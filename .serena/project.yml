@@ -1,0 +1,8 @@
+# Serena project config for agentscient — the conductor's seat.
+# Tracked so every session and worktree resolves the same scope.
+project_name: "agentscient"
+# Constitutional repo: contracts and doctrine today, PHP as code lands.
+languages: ["php_phpactor"]
+encoding: "utf-8"
+ignore_all_files_in_gitignore: true
+read_only: false
