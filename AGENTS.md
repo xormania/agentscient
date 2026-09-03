@@ -37,6 +37,33 @@ boundary is not a declared, verifiable coupling.
   consumed through a contract, a probe, and a verified mock, and is
   removable for the cost of a configuration line.
 
+## Standing rulings
+
+- **Symfony is the framework, whole** (owner, 2026-09-03: "we use
+  Symfony/ai — we use everything Symfony has to offer"). Every
+  capability is built on what Symfony and its ecosystem already ship,
+  symfony/ai included. The functionality carried over from the House
+  lane is proven; what it needs is organization and abstraction, not
+  reinvention. Before any contract is written, the first question is
+  which package already covers it; `docs/mapping.md` is the measured
+  answer and is re-measured before it is relied on. This supersedes
+  the migration doctrine's "harness CLIs stay dispatched subprocesses,
+  never language SDKs": model access goes through the symfony/ai
+  Platform, whose Claude Code and Codex bridges spawn those same CLIs
+  as subprocesses, so the wire and the subprocess hold while the
+  abstraction changes. Unchanged: no vendor becomes load-bearing
+  (pre-1.0 packages are pinned exactly, probed, and mocked), and the
+  model is named at dispatch, never in a table.
+- **Four projections of one service** (owner, 2026-09-03: "this is
+  about providing cli, mcp and api resources", "and probably a TUI").
+  Every capability is exposed as a Console command, a TUI view, an
+  MCP resource, and an API resource, each a projection of the same
+  service generated from the same contract. The wire holds on all
+  four: exit classes on the CLI, problem details on the API, error
+  results on MCP, the refusal line wherever text is shown. MCP stays
+  the context-and-diagnostics plane, read-only by construction; the
+  CLI and the API act.
+
 ## The lane
 
 The operating apparatus lives under `ops/`. `ops/devlane/` is the dev
