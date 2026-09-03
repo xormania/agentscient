@@ -220,9 +220,10 @@ that formats and parses the line; the Console error listener that
 turns a thrown Refusal into exit 2 and one stderr line; the API
 Platform normalizer that turns it into problem details carrying the
 same three fields; the MCP error mapping; the conformance harness,
-Process-driven over any binary; a Flex recipe; installed into the
-workbench first. Smallest surface, most doctrine, and it proves the
-four-projection shape before any capability rides it.
+Process-driven over any binary; gestated under `packages/wire/` in
+this project and composed by its application shell, its Flex recipe
+written at graduation. Smallest surface, most doctrine, and it proves
+the four-projection shape before any capability rides it.
 
 The strangler order this map proposes, each step on the owner's
 word: the wire; the decisions register (smallest instrument that
