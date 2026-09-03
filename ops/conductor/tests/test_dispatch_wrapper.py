@@ -709,5 +709,49 @@ class Row9ModelByJob(_WrapperFixture):
         self.assert_no_launch()
 
 
+class Row10JobNameMatchesCatalogueShape(_WrapperFixture):
+    """Job names match the catalogue shape ^[a-z][a-z0-9-]*$ before any
+    indirect expansion. A dry-run of a bad name is the same refusal.
+    Finding D1: an unvalidated job name entered Bash indirect expansion,
+    so array-subscript command substitutions ran even under --dry-run.
+    """
+
+    def _assert_job_name_wire_refusal(self, proc, *, found):
+        text = self.combined(proc)
+        self.assertNotEqual(proc.returncode, 0, text)
+        lower = text.lower()
+        self.assertIn("expected", lower, text)
+        self.assertIn("found", lower, text)
+        self.assertIn("needed", lower, text)
+        self.assertIn(found, text)
+        self.assert_no_launch()
+        return text
+
+    def test_an_underscore_job_name_is_a_wire_refusal_on_dry_run(self):
+        bad = "wrap_job"
+        self.assertNotRegex(bad, r"^[a-z][a-z0-9-]*$")
+        proc = self.invoke(self.full_flags(job=bad, dry_run=True))
+        self._assert_job_name_wire_refusal(proc, found=bad)
+
+    def test_array_subscript_job_name_does_not_execute_on_dry_run(self):
+        marker = self.scratch / "indirect-executed"
+        self.assertFalse(marker.exists(), "plant: marker must not pre-exist")
+        payload = f'printf INDIRECT_EXECUTED > "{marker}"'
+        job = 'x[$(${BASH} ${C} "${PAYLOAD}")]'
+        self.assertNotRegex(job, r"^[a-z][a-z0-9-]*$")
+        proc = self.invoke(
+            self.full_flags(job=job, harness="codex", dry_run=True),
+            extra_env={"C": "-c", "PAYLOAD": payload},
+        )
+        self.assertFalse(
+            marker.exists(),
+            "job-name command substitution must not run; "
+            f"marker={marker.read_text(encoding='utf-8') if marker.exists() else ''!r}",
+        )
+        text = self.combined(proc)
+        self.assertNotIn("INDIRECT_EXECUTED", text)
+        self._assert_job_name_wire_refusal(proc, found=job)
+
+
 if __name__ == "__main__":
     unittest.main()
