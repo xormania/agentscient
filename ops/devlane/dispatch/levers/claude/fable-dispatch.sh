@@ -20,7 +20,7 @@
 # conduct, but cannot hold push custody. Landing remains conductor-side.
 #
 # The read-role argv was verified live by the conductor on the operator host
-# (2026-08-28, ~/.local/bin/claude): claude -p --model claude-fable-5
+# (2026-08-28, ~/.local/bin/claude): claude -p --model claude-fable-5-1
 # --permission-mode plan --output-format text --setting-sources project,local
 # --strict-mcp-config --disable-slash-commands. It exited 0 in 8s with the
 # correct answer; the record reported flags isolation and an unchanged operator
@@ -49,7 +49,7 @@ usage() {
 }
 
 scope_ref=""; scope_repo=""; scope_path=""; prompt_text=""; prompt_file=""
-model="claude-fable-5"; role="read"; wall_timeout="300"
+model="claude-fable-5-1"; role="read"; wall_timeout="300"
 jobs_root="$JOBS_ROOT_DEFAULT"; record_evidence="no"; provision_levers="no"
 readonly AGENT_NAME="Claude Fable 5"
 readonly AGENT_EMAIL="noreply@anthropic.com"

@@ -4,8 +4,9 @@ The operating apparatus for building Agentscient: the owner directs, a
 conductor session coordinates, workers are dispatched harness CLIs on
 the wire, and everything binds to the law in `AGENTS.md` and `docs/`.
 
-This lane is carried over from the House dev lane through the MinSpec
-workbench copy, de-instanced, and lands here as the **bounded Python
+This lane is carried over from the House dev lane, through the scrubbed
+copy in the `minspec/workbench` repository (provenance only; MinSpec is
+not used here), de-instanced, and lands here as the **bounded Python
 incumbent**: every instrument under `ops/devlane/` is the functional
 specification for a Symfony Console twin, and retires only when its
 twin passes the same conformance row (the strangler, per the migration
@@ -24,7 +25,12 @@ responsibilities; it is the thing the twins are measured against.
 | `ops/devlane/workflow/checks/` | deterministic guards: trailers, secrets, CI shape, the vocabulary wall, the term wall |
 | `ops/devlane/fixtures/` | synthetic harness envelopes and store builders — never raw captures |
 | `ops/devlane/infra/` | the local CI muscle: Gitea, act_runner, the lane image (inert until composed up) |
+| `ops/conductor/` | the conductor lane: the instruments (register, ledger, watch, land, onboard, CI store, census, skills, the doctor), their contracts and suites, the ideas and hand-off records, the AARs — `ops/conductor/README.md` |
 | `ops/process/` | the pipeline law: who produces what, what each is denied, review, tdd, bdd, worth |
+| `ops/docs/` | the shelf: the four lesson pages the process law cites, carried from the House; records, not law |
+| `ops/design/features/` | the BDD feature shelf: Given/When/Then scenarios per area |
+| `ops/capabilities/contracts/` | the seed's four CUE contracts — the anatomy of a capability, the refusal shape, the read/write tags — input to the module maker; the seed's vets, plans and tests did not cross |
+| `ops/archive/` | House-era records about this framework, behind a standing banner: reference for the twins' authors, never authority |
 | `ops/bin/` | the levers a session pulls by hand |
 
 ## The levers
@@ -32,7 +38,7 @@ responsibilities; it is the thing the twins are measured against.
 | run | does |
 |---|---|
 | `ops/bin/suites.sh` | runs every lane suite exactly as CI does; the local answer and the CI answer are one command |
-| `ops/bin/dispatch.sh` | dispatches one job to one harness on a worktree, through the launcher; needs the gitignored `ops/bin/dispatch.conf` (copy the example; model names are the owner's) |
+| `ops/bin/dispatch.sh` | the shim for `ops/conductor/tools/dispatch.sh`: one job to one harness on a worktree, through the launcher; reads the tracked `ops/conductor/tools/dispatch.conf` (model names are the owner's) |
 | `ops/bin/go.sh` | the one-word front of `dispatch.sh`: `go.sh <intent> <branch|.> <scope…>` |
 | `ops/bin/board.sh` | what is open, measured now: PRs and worktrees per repository |
 | `ops/bin/link-ops.sh` | makes this lane reachable from sibling package clones as a locally-excluded symlink |
@@ -75,15 +81,25 @@ Named so nobody infers them from silence:
 
 - `ops/devlane/workflow/wf.py` — the workflow engine the House lane
   drives gates with; `apply-push.sh`'s default gate runner names it and
-  refuses on absence. It arrives with the workflow freight, behind the
-  genus contract in `docs/workflow.md`, or not at all.
+  refuses on absence. Its runtime stays on `lane/workflow` (PR #10,
+  closed unmerged at the owner's word, 2026-09-03; I-008, D-PORT-2
+  proposed). What crossed is its specification: `PLAN.md`, the twelve
+  CUE contracts and their notes under `contracts/`. The runtime arrives
+  only as the Symfony twin, behind the genus contract in
+  `docs/workflow.md`.
+- `ops/devlane/workflow/tests/` beyond `test_term_wall.py`, and the
+  engine's fault corpora, observations, packets and verdicts — on
+  `lane/workflow`, not crossing: they pin the Python CLI's shape, which
+  the twin does not keep. The CUE contracts are the transferable oracle.
 - `ops/contracts/imports.json` — the cross-app import declaration the
-  dispatch and task contracts cite. Arrives with the contracts freight.
-- `ops/docs/` and `ops/design/features/` — the lessons shelf and the
-  BDD feature files the process law cites. Arrive with their freights.
-- The conductor instruments (register, ledger, watch, land, onboard,
-  CI store, census) and the conformance gate — the next freight; they
-  join `ops/devlane/` with their contracts and rows.
+  dispatch and task contracts cite. On `lane/workflow`, not crossing;
+  deptrac holds that boundary for the PHP modules.
+- `ops/capabilities/` beyond `contracts/*.cue`, and `ops/guide/` — the
+  seed's vets, plans and tests, and the House's per-app guide pages: on
+  `lane/workflow`, not crossing.
+- `ops/devlane/workflow/gate-kinds/*.json` still name House paths
+  (`.dev/app/…`) in their `argv`; nothing on `dev` executes them. A
+  finding, recorded here, not fixed in the extraction.
 
 ## The rules the lane binds
 
