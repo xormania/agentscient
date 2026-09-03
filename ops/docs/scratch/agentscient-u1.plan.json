@@ -1,0 +1,101 @@
+{
+  "id": "agentscient/U1",
+  "parent": {
+    "id": "agentscient",
+    "sha256": "3164ced127ffc5ee64e172629cd7f4fdace5657113e0be4cb47b89e11c9b3578",
+    "unit": "U1"
+  },
+  "ref": "bc5d2c4b5b047d033b125334d0d4fad5f53b3186",
+  "scope": {
+    "owner_words": "frame work first; i'm worried about conflating docker service and (Symfony) service",
+    "dated": "2026-08-29",
+    "source": "in/BRIEF-U1.md; ops/docs/scratch/agentscient-framework-plan.md §0, §7 row U1"
+  },
+  "premises": [
+    {"text": "the wall polices one direction (dev-lane words out of the design tree) over text suffixes only, not .py or .json", "tag": "read", "source": "ops/devlane/workflow/checks/vocabulary_wall.py"},
+    {"text": "vocab.cue asserts each reserved term is a substring of a wall literal, one _has_<term>! row per term; faults vocab.1..3 each remove one term", "tag": "read", "source": "ops/devlane/workflow/contracts/cue/vocab.cue; faults/vocab.*.meta.json"},
+    {"text": "AGENTS.md's dev-lane sentence and the wall's allowlist are compared both ways by a test", "tag": "read", "source": "ops/devlane/workflow/tests/test_guide.py TheSurfaceListsAgree"},
+    {"text": "whole-word 'service' hits at bc5d2c4: .dev/app 2 (test docstrings), AGENTS.md 1, ONBOARDING.md 1, ops/docs/scratch 42 (40 non-idiom), .dev/handoffs 2, .dev/records 6, all other dev-lane surfaces 0", "tag": "measured", "source": "grep -rwi -E 'services?' at bc5d2c4"},
+    {"text": ".dev/infra/ does not exist; no .plan.json exists under .dev/; no agentscient/* ref is visible", "tag": "measured", "source": "ls / find at bc5d2c4"},
+    {"text": "'capability' occurs 0 times in CLAUDE.md and README.md", "tag": "measured", "source": "grep -rwi at bc5d2c4"},
+    {"text": "a capability is a single coherent thing the dev-lane can do", "tag": "read", "source": "ops/docs/scratch/capability-abstraction.md §A"},
+    {"text": "a hit is a rename in the same unit, not an allowlist entry", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan-narrow.md §3"},
+    {"text": "read roles cannot run python; the conductor runs each gate and stamps the ref", "tag": "read", "source": "agentscient-framework-plan.md §7 (handoff 2026-08-28 §4)"}
+  ],
+  "settled": [
+    {"id": "capability-axis", "ruled_by": "owner", "dated": "2026-08-27", "where": "ops/docs/scratch/capability-decisions.md"},
+    {"id": "service-is-compose", "ruled_by": "owner", "dated": "2026-08-29", "where": "in/BRIEF-U1.md; agentscient-framework-plan.md §0"},
+    {"id": "framework-before-surface", "ruled_by": "owner", "dated": "2026-08-29", "where": "agentscient-framework-plan.md §0"},
+    {"id": "launcher-pinned", "ruled_by": "owner", "dated": "2026-08-29", "where": "agentscient-framework-plan.md §0"},
+    {"id": "beside-fixture-cutover", "ruled_by": "owner", "dated": "2026-08-29", "where": "agentscient-framework-plan.md §0"},
+    {"id": "wf-to-ledger", "ruled_by": "owner", "dated": "2026-08-29", "where": "agentscient-framework-plan.md §0"}
+  ],
+  "decisions": [
+    {"id": "D-U1-two-passes", "sentence": "The service rule is a second pass of the same vocabulary_wall.py over exactly the surfaces the first pass exempts, so the two passes partition the tree.", "status": "recommended",
+     "premises": [
+       {"text": "the allowlist is already the enumerated dev-lane surface and AGENTS.md must name the same set", "tag": "read", "source": "test_guide.TheSurfaceListsAgree"},
+       {"text": "extend the wall, do not fork it", "tag": "read", "source": "in/BRIEF-U1.md §Constraints"}
+     ]},
+    {"id": "D-U1-homes", "sentence": "service is allowed under .dev/infra/, ops/docs/scratch/, .dev/handoffs/, .dev/records/ and .git/, each with a stated reason pinned by test, and nowhere else on the dev lane.", "status": "recommended",
+     "premises": [
+       {"text": "40 non-idiomatic hits in scratch research naming other frameworks' objects; 2 in handoffs (systemd); 6 in immutable records", "tag": "measured", "source": "grep -rwi at bc5d2c4"},
+       {"text": "dispatch records are committed evidence and are never edited", "tag": "read", "source": "ops/devlane/dispatch/CONTRACT.md §The record"}
+     ]},
+    {"id": "D-U1-rename", "sentence": "The four English 'service' hits in scope are reworded in this unit, not allowlisted.", "status": "recommended",
+     "premises": [
+       {"text": "4 hits, all idiom (AGENTS.md:32, ONBOARDING.md:164, test_ci_shape.py:1306, test_promotion_round2.py:7)", "tag": "measured", "source": "grep -rwi at bc5d2c4"},
+       {"text": "every allowlist entry shrinks what the wall measures", "tag": "read", "source": "test_vocabulary_wall.py docstring"}
+     ]},
+    {"id": "D-U1-code-suffixes", "sentence": "Pass 2 scans .py and .json in addition to the text suffixes.", "status": "recommended",
+     "premises": [
+       {"text": "the guarded word is a code/manifest word (class Service, services.yaml, a manifest key)", "tag": "read", "source": "agentscient-framework-plan.md §2.2–2.3"},
+       {"text": "the two in-app hits are in .py files the wall never reads today", "tag": "measured", "source": "grep -rwi at bc5d2c4"}
+     ]},
+    {"id": "D-U1-capability-both-ways", "sentence": "capability/capabilities join pass 1's RESERVED and vocab.cue gains _has_capability! (VOC-S13) with fault vocab.4.", "status": "recommended",
+     "premises": [
+       {"text": "the owner's definition of capability is the dev-lane's", "tag": "read", "source": "in/BRIEF-U1.md; capability-abstraction.md §A"},
+       {"text": "0 hits in the design tree today", "tag": "measured", "source": "grep -rwi CLAUDE.md README.md at bc5d2c4"}
+     ]},
+    {"id": "D-U1-infra-readme", "sentence": ".dev/infra/README.md is created so the carve-out names a path that exists.", "status": "recommended",
+     "premises": [
+       {"text": ".dev/infra/ is absent", "tag": "measured", "source": "ls at bc5d2c4"},
+       {"text": "test_guide refuses a named repo path that does not exist", "tag": "read", "source": "test_guide.py test_every_repo_path_a_page_names_exists"}
+     ]},
+    {"id": "D-U1-parent-binding", "sentence": "Until U0 lands, parent.sha256 is the sha256 of the parent's prose and U0's plan extract re-binds it to the parent's .plan.json.", "status": "recommended",
+     "premises": [
+       {"text": "no .plan.json exists at this ref", "tag": "measured", "source": "find .dev at bc5d2c4"},
+       {"text": "the brief asks for a sidecar bound to the parent's prose digest", "tag": "read", "source": "in/BRIEF-U1.md §Constraints"}
+     ]}
+  ],
+  "open": [],
+  "deliverables": [
+    {"path": "ops/devlane/workflow/checks/vocabulary_wall.py", "interface": {"declared_absent": "a check: exit 0/1, hits printed with the refusal name"}},
+    {"path": "ops/devlane/workflow/contracts/cue/vocab.cue", "interface": {"declared_absent": "CUE; row VOC-S13 _has_capability!"}},
+    {"path": "ops/devlane/workflow/contracts/examples/vocab.json", "interface": {"declared_absent": "positive control"}},
+    {"path": "ops/devlane/workflow/contracts/obs/vocab.json", "interface": {"declared_absent": "regenerated observation"}},
+    {"path": "ops/devlane/workflow/contracts/faults/vocab.4.json", "interface": {"declared_absent": "fault: capability absent from every literal"}},
+    {"path": "ops/devlane/workflow/contracts/faults/vocab.4.meta.json", "interface": {"declared_absent": "fault sidecar; reject_path names capability"}},
+    {"path": "ops/devlane/workflow/tests/fixtures/vocab/", "interface": {"declared_absent": "committed positive and negative trees: clean/, service-in-app/, service-in-json/, capability-in-design/"}},
+    {"path": "ops/devlane/workflow/tests/test_vocabulary_wall.py", "interface": {"declared_absent": "unittest; pins SERVICE_HOMES; fixtures fire/quiet; real tree quiet on both passes"}},
+    {"path": "ops/devlane/workflow/tests/test_guide.py", "interface": {"declared_absent": "unittest; second sentence ↔ SERVICE_HOMES both ways"}},
+    {"path": "AGENTS.md", "interface": {"declared_absent": "one added sentence in §This file is dev-lane surface; line 32 reworded"}},
+    {"path": ".dev/ONBOARDING.md", "interface": {"declared_absent": "lines 35–41 name the second direction; line 164 reworded"}},
+    {"path": "ops/devlane/workflow/tests/test_ci_shape.py", "interface": {"declared_absent": "one-word docstring rewording at line 1306"}},
+    {"path": "ops/devlane/workflow/tests/test_promotion_round2.py", "interface": {"declared_absent": "one-word docstring rewording at line 7"}},
+    {"path": ".dev/infra/README.md", "interface": {"declared_absent": "five lines: compose's home"}}
+  ],
+  "gates": [
+    {"name": "wall-tree", "argv": ["python3", "ops/devlane/workflow/checks/vocabulary_wall.py"], "fires_on": "any fixture under tests/fixtures/vocab/ planted at the repo root (exit 1, vocab.service-outside-infra or a pass-1 term printed)", "quiet_on": "the PR head: both passes print clean with N >= 1 files each, exit 0"},
+    {"name": "wall-suite", "argv": ["python3", "ops/devlane/workflow/tests/test_vocabulary_wall.py"], "fires_on": "a wall without SERVICE_HOMES, a fixture that no longer fires, a service hit in the real tree", "quiet_on": "the PR head"},
+    {"name": "agreement", "argv": ["python3", "ops/devlane/workflow/tests/test_guide.py"], "fires_on": "AGENTS.md and the wall naming different surfaces in either direction", "quiet_on": "the PR head"},
+    {"name": "contract", "argv": ["python3", "ops/devlane/workflow/contracts/vet.py"], "fires_on": "faults/vocab.4.json not drawing vocab.capability-absent; examples/vocab.json failing; obs/vocab.json stale", "quiet_on": "the PR head"}
+  ],
+  "units": [],
+  "refusals": ["vocab.service-outside-infra", "vocab.capability-absent"],
+  "discharge": {
+    "decisions_to": "DECISIONS.md (via U21)",
+    "design_to": "ops/devlane/workflow/checks/vocabulary_wall.py docstring",
+    "lessons_to": "ops/docs/mini-app-lessons.md"
+  },
+  "denied": ["the freedom to move the unit's boundaries (pipeline.md row 2)", "editing the snapshot", "reading outside the snapshot and in/", "executing anything beyond grep, sha256sum, git rev-parse"]
+}

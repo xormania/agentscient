@@ -1,0 +1,35 @@
+# grok confirming review 20260829T214305Z-review-grok-fce178 — U1 at fdda352
+
+verdict: changes  counts: {'p1': 1, 'p2': 4, 'p3': 0, 'opinions': 0, 'tests_wall': 34, 'tests_guide': 9, 'ruff_errors': 0, 'wall_pass1_files': 1, 'wall_pass2_files': 656, 'prior_closed': 8, 'prior_open': 5}
+
+## note
+Gates re-run at fdda352: test_vocabulary_wall 34/34, test_guide 9/9, ruff check ops/devlane/workflow exit 0, wall pass 1 clean 1 design file / 21 terms, pass 2 clean 656 files / 2 terms. Closed by the 581672 fix: R1 (VOC-S14 _has_capabilities; cue vet of obs-minus-capabilities now rc 1; fault 4 literals have neither spelling), R2 (service_scanned += 1 only after read_text; homes-only tree still reports clean — 1 but the file was opened), R11 (docstring names capability and exit 1 on either pass), R12 (vocabulary_wall.py CLAUDE.md now pass 2 clean — 1 file), R15 (violates cites parent §10 and plan §2; sites 4). Closed against D-U1-homes / D-U1-code-suffixes: Grok-4/R4 (.github/services: still fires; infra compose quiet) and R7 (.sh still unscanned; suffixes remain .py/.json). Still reproduce, not re-filed: R9 AGENTS.md still says Compose's container term with no backticked service; R10 vocab.capability-absent remains a visible required field on #VocabFacts; R13/R14 test-strength (fixer was denied test edits).
+
+## findings
+### 1. severity: p1 | where: ops/devlane/workflow/checks/vocabulary_wall.py §patterns_for
+- **claim:** Grok-1/Opus-R5 not closed. Pass 2 still uses (?<![\w-])service(?![\w-]), so hyphenated compose names (api-service, db-service) and UserService/user_service stay quiet while a bare JSON key or x="service" fires. Plan §2 said word-boundary; \b matches api-service (True here) and the hyphen class does not. Codex 581672 refuted this as whole-word matching; the owner aim is docker vs Symfony spelling, and the docker spelling still slips through.
+- **reproduce:** python3 -c "import tempfile,shutil,subprocess,sys; from pathlib import Path; W='ops/devlane/workflow/checks/vocabulary_wall.py'
+def go(rel,text):
+ t=Path(tempfile.mkdtemp()); (t/'design').mkdir(); (t/'design'/'spec.md').write_text('Observations are stored and reproduced.\n'); p=t/rel; p.parent.mkdir(parents=True,exist_ok=True); p.write_text(text); r=subprocess.run([sys.executable,W,'--root',str(t)],capture_output=True,text=True); print(rel, r.returncode, 'hit' if 'vocab.service-outside-infra' in r.stdout else 'quiet'); shutil.rmtree(t)
+go('ops/devlane/x/x.py','class UserService:\n    pass\n')
+go('ops/devlane/x/x.py','n=\"api-service\"\n')
+go('ops/devlane/x/x.py','user_service=1\n')
+go('ops/devlane/x/x.py','x=\"service\"\n')
+go('ops/devlane/x/c.json','{\"service\":1}\n')
+go('ops/devlane/compose.yaml','db-service:\n  image: postgres\n')"
+
+### 2. severity: p2 | where: ops/devlane/workflow/contracts/obs/vocab.json:3
+- **claim:** Grok-3 not closed. Codex claimed the observation was unicode-contained; array literals are \u0073ervice (15) but facts.joined source still contains ruff.toml\nservice\nservices. The wall lookbehind fails because the previous source character is n, so pass 2 reports clean — 656 file(s) while the committed observation carries the compose term. json.dumps of the loaded obs reintroduces four line-hits.
+- **reproduce:** python3 -c "from pathlib import Path; import json,re; t=Path('ops/devlane/workflow/contracts/obs/vocab.json').read_text(); i=t.find('ruff.toml'); print(t[i:i+70]); pat=re.compile(r'(?<![\\w-])services?(?![\\w-])', re.I); print('line-hits', [(n,ln[:70]) for n,ln in enumerate(t.splitlines(),1) if pat.search(ln)]); d=json.loads(t); plain=json.dumps(d,sort_keys=True,indent=2); print('reformat-hits', [n for n,ln in enumerate(plain.splitlines(),1) if pat.search(ln)])"; python3 ops/devlane/workflow/checks/vocabulary_wall.py | sed -n '/pass 2/,+2p'
+
+### 3. severity: p2 | where: ops/devlane/workflow/checks/vocabulary_wall.py §design_files/service_files
+- **claim:** Grok-2/Opus-R8 not closed. Passes still partition named surfaces, not the tree. At fdda352: p1=1 p2=656 overlap=0; .mcp.json is scanned by neither. A design/spec.md saying 'The service is injected' and a design/tool.py 'class Service' both stay quiet (pass 1 does not look for the compose term; pass 2 does not read the design tree). test_a_py_in_the_design_tree_is_scanned_by_neither_pass still pins the hole. Plan §2 / D-U1-two-passes said nothing is scanned by neither.
+- **reproduce:** python3 -c "import tempfile,shutil,subprocess,sys,importlib.util; from pathlib import Path; spec=importlib.util.spec_from_file_location('w','ops/devlane/workflow/checks/vocabulary_wall.py'); w=importlib.util.module_from_spec(spec); spec.loader.exec_module(w); root=Path('.').resolve(); p1={p.relative_to(root).as_posix() for p in w.design_files(root,[])}; p2={p.relative_to(root).as_posix() for p,_ in w.service_files(root)}; print('p1',len(p1),'p2',len(p2),'overlap',len(p1&p2)); print('neither .mcp.json', '.mcp.json' not in p1 and '.mcp.json' not in p2); W='ops/devlane/workflow/checks/vocabulary_wall.py'; t=Path(tempfile.mkdtemp()); (t/'design').mkdir(); (t/'design'/'spec.md').write_text('The service is injected.\n'); (t/'design'/'tool.py').write_text('class Service:\n    pass\n'); r=subprocess.run([sys.executable,W,'--root',str(t)],capture_output=True,text=True); print('rc',r.returncode); print(r.stdout); shutil.rmtree(t)"
+
+### 4. severity: p2 | where: ops/devlane/workflow/contracts/extract/vocab.py:134 / vet.py:645
+- **claim:** Opus-R3 not closed. Both files remain edited against plan §3 Not touched. extract/vocab.py still re.sub \bservices? after json.dumps (and that \b is why joined is not escaped). vet.py still logs every matched_line containing vocab. so test_vet_py_draws_capability_absent_on_vocab_4 can pass. No ratification row covers either edit.
+- **reproduce:** sed -n '128,137p' ops/devlane/workflow/contracts/extract/vocab.py; sed -n '643,647p' ops/devlane/workflow/contracts/vet.py; sed -n '136,139p' ops/docs/scratch/agentscient-u1-plan.md
+
+### 5. severity: p2 | where: ops/devlane/workflow/checks/vocabulary_wall.py §service_files
+- **claim:** Opus-R6 not closed. Pass 2 still searches file contents only, never path components, and compound identifiers do not match. class ServiceRegistry, service_container, and a file named ops/devlane/services.yaml are all quiet. D-U1-code-suffixes premises name services.yaml as a reason to scan .py/.json; the filename itself is never tested.
+- **reproduce:** python3 -c "import tempfile,shutil,subprocess,sys; from pathlib import Path; t=Path(tempfile.mkdtemp()); (t/'design').mkdir(); (t/'design'/'spec.md').write_text('Observations are stored and reproduced.\n'); (t/'.dev/app').mkdir(parents=True); (t/'ops/devlane/x.py').write_text('class ServiceRegistry:\n    pass\n\nservice_container = {}\n'); (t/'ops/devlane/services.yaml').write_text('db:\n  image: postgres\n'); r=subprocess.run([sys.executable,'ops/devlane/workflow/checks/vocabulary_wall.py','--root',str(t)],capture_output=True,text=True); print(r.returncode); print(r.stdout); shutil.rmtree(t)"
