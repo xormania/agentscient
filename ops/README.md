@@ -4,8 +4,9 @@ The operating apparatus for building Agentscient: the owner directs, a
 conductor session coordinates, workers are dispatched harness CLIs on
 the wire, and everything binds to the law in `AGENTS.md` and `docs/`.
 
-This lane is carried over from the House dev lane through the MinSpec
-workbench copy, de-instanced, and lands here as the **bounded Python
+This lane is carried over from the House dev lane, through the scrubbed
+copy in the `minspec/workbench` repository (provenance only; MinSpec is
+not used here), de-instanced, and lands here as the **bounded Python
 incumbent**: every instrument under `ops/devlane/` is the functional
 specification for a Symfony Console twin, and retires only when its
 twin passes the same conformance row (the strangler, per the migration
@@ -24,6 +25,7 @@ responsibilities; it is the thing the twins are measured against.
 | `ops/devlane/workflow/checks/` | deterministic guards: trailers, secrets, CI shape, the vocabulary wall, the term wall |
 | `ops/devlane/fixtures/` | synthetic harness envelopes and store builders — never raw captures |
 | `ops/devlane/infra/` | the local CI muscle: Gitea, act_runner, the lane image (inert until composed up) |
+| `ops/conductor/` | the conductor lane: the instruments (register, ledger, watch, land, onboard, CI store, census, skills, the doctor), their contracts and suites, the ideas and hand-off records, the AARs — `ops/conductor/README.md` |
 | `ops/process/` | the pipeline law: who produces what, what each is denied, review, tdd, bdd, worth |
 | `ops/bin/` | the levers a session pulls by hand |
 
@@ -32,7 +34,7 @@ responsibilities; it is the thing the twins are measured against.
 | run | does |
 |---|---|
 | `ops/bin/suites.sh` | runs every lane suite exactly as CI does; the local answer and the CI answer are one command |
-| `ops/bin/dispatch.sh` | dispatches one job to one harness on a worktree, through the launcher; needs the gitignored `ops/bin/dispatch.conf` (copy the example; model names are the owner's) |
+| `ops/bin/dispatch.sh` | the shim for `ops/conductor/tools/dispatch.sh`: one job to one harness on a worktree, through the launcher; reads the tracked `ops/conductor/tools/dispatch.conf` (model names are the owner's) |
 | `ops/bin/go.sh` | the one-word front of `dispatch.sh`: `go.sh <intent> <branch|.> <scope…>` |
 | `ops/bin/board.sh` | what is open, measured now: PRs and worktrees per repository |
 | `ops/bin/link-ops.sh` | makes this lane reachable from sibling package clones as a locally-excluded symlink |
@@ -79,11 +81,10 @@ Named so nobody infers them from silence:
   genus contract in `docs/workflow.md`, or not at all.
 - `ops/contracts/imports.json` — the cross-app import declaration the
   dispatch and task contracts cite. Arrives with the contracts freight.
+- `ops/devlane/workflow/` beyond `checks/` and `gate-kinds/` — the
+  engine, its contracts and suites: the next freight.
 - `ops/docs/` and `ops/design/features/` — the lessons shelf and the
   BDD feature files the process law cites. Arrive with their freights.
-- The conductor instruments (register, ledger, watch, land, onboard,
-  CI store, census) and the conformance gate — the next freight; they
-  join `ops/devlane/` with their contracts and rows.
 
 ## The rules the lane binds
 

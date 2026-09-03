@@ -48,8 +48,6 @@ names what Symfony already covers and what is left to build.
 
 Architecture doctrine: package-first composition. Packages gestate
 here, package-shaped, and graduate to their own repositories with
-Flex recipes when their boundaries are proven.
-[MinSpec](https://github.com/minspec) is the intended substrate for
-that later stage, deferred for now with its pins kept. Runtime road:
+Flex recipes when their boundaries are proven. Runtime road:
 plain supervised processes today; snapshot-per-request isolation as
 the runtime matures.

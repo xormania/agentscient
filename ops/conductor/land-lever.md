@@ -1,0 +1,79 @@
+# The land lever — contract
+
+Standing: PROPOSED. Source of demand: the handwork ledger's own
+recurrence data — `land=3` declared by-hand landings, plus `amend=4`
+in the same family — and the stale-ref dispatch of 2026-08-31, where a
+lineage worktree left behind origin landed work onto old law. Landing
+is the conductor's write-path: this contract makes it one verb whose
+preconditions are checked instead of recalled.
+
+## Conventions
+
+This instrument inherits `ops/conductor/instrument-conventions.md`:
+the refusal wire, identity rule, four-class exits, instrument shape,
+and lint duty apply as written there. This contract states only what
+is land-specific.
+
+## Instrument
+
+`python3 ops/conductor/tools/land.py RECORD_ID [--push] [--no-fetch]`
+— run inside the lineage worktree, on the lineage branch. Landing
+writes commits, so identity is required. subprocess is used only to
+run `git`.
+
+The dispatch store is `$XDG_STATE_HOME/agentscient/dispatch` (else
+`~/.local/state/agentscient/dispatch`).
+
+## What landing is
+
+The snapshot ref `refs/dispatch/RECORD_ID` holds the producer's
+commits on top of the tree it was dispatched from. Landing cherry-picks
+every commit in `HEAD..refs/dispatch/RECORD_ID`, in order, onto the
+current branch — messages verbatim (records land verbatim; no `-x`
+line), authorship preserved, committer identity from `WF_AGENT`.
+
+## Preconditions, checked in this order
+
+Each is a refusal (the wire, exit 2), so a hermetic conformance
+invocation fails fast at `record`:
+
+| refusal | fires when |
+|---|---|
+| identity | `WF_AGENT` unset or malformed (inherited, checked first) |
+| record | no record directory named RECORD_ID in the dispatch store |
+| exit-status | the record's `exit` file is missing or nonzero — a failed dispatch is adjudicated by a person, never landed |
+| ref | `refs/dispatch/RECORD_ID` does not resolve here |
+| envelope | `.dev/records/dispatches/RECORD_ID.json` is absent from the working tree |
+| envelope-status | the envelope's `result.envelope.status` is not `ok` — an attempt can exit 0 while the dispatch system rejects the answer (schema-invalid); the lever lands only accepted work, and a person adjudicates the rest |
+| lineage | the current branch is not the envelope's `lineage.branch` |
+| dirty | the working tree has staged or unstaged changes |
+| stale | the branch is behind `origin/<branch>` — a three-way ruling. With a remote and the fetch allowed: the upstream branch is probed first (`ls-remote --exit-code`); an upstream that lacks the branch is fresh evidence (a first landing on an unpushed branch is the normal case), a probe or fetch failure refuses — an unperformed freshness check is not freshness. With `--no-fetch`: the last-known `origin/<branch>` ref is the comparison, and its absence refuses — skipping the fetch presumes prior evidence. With no origin remote: a planted origin ref compares, otherwise there is nothing to be behind |
+| attribution | a commit to be landed carries no git-parseable trailer, checked before any pick |
+
+Refusal text is one line by the inherited wire even when git's
+diagnostics are not: embedded newlines are normalized before the
+refusal is emitted.
+
+## The act and its exits
+
+- Nothing to land: print `landed n=0` and exit 0 — landing is
+  idempotent, and idempotence is judged by **patch equivalence**
+  (`rev-list --right-only --cherry-pick HEAD...ref`), never by
+  ancestry: a landed commit carries a new sha, and a re-run must see
+  nothing left.
+- Each landed commit prints `LANDED<tab><sha><tab><subject>` — the sha
+  is the **landed** commit's, the one now on the branch; then the
+  summary `landed n=N ref=refs/dispatch/RECORD_ID`; exit 0.
+- `--push` pushes the branch to origin after a successful landing
+  (n ≥ 1 only); a push failure is a Finding, exit 1, with the landing
+  kept.
+- A cherry-pick conflict is an **Abort, exit 3**: the in-progress pick
+  is aborted (`git cherry-pick --abort`), the tree is left clean, the
+  commits already landed are kept, and the last stdout line — an
+  outcome, not a diagnostic — names the conflicted source sha and the
+  remainder — a stopped landing leaves commits, never residue.
+
+## Lint
+
+Inherited. The tool shells to `git` — it earns its THIS-FILE-ONLY row
+(S603), stated in the PR.
