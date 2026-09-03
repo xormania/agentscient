@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import unittest
 
 import launch_support as ls
 
@@ -431,6 +432,78 @@ class ModelIsRequiredAndEffortReachesEveryCli(ls._TempLaunch):
         rec2 = self.read_record()
         self.assertIn("effort_argv", rec2["model"])
         self.assertEqual(rec2["model"]["effort_argv"], tokens)
+
+    def test_close_reconstructs_effort_argv_from_the_requested_value(self):
+        rec, *_ = self.launch_ok(self.argv_for(
+            job="plan", harness="grok", stage="plan", extra=["--effort", "high"],
+        ))
+        tokens = ["--reasoning-effort", "high"]
+        self.assertEqual(rec["model"]["effort_requested"], "high")
+        self.assertEqual(rec["model"]["effort_argv"], tokens)
+        path = self.the_record_path()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["status"] = "launched"
+        data["result"] = None
+        data["at"]["closed"] = None
+        data["model"].pop("effort_argv", None)
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        planted = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["status"], "launched")
+        self.assertNotIn("effort_argv", planted["model"])
+        self.assertEqual(planted["model"]["effort_requested"], "high")
+        code, out, err = self.run_main(["close", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        rec2 = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(rec2["status"], "closed")
+        self.assertEqual(rec2["model"]["effort_argv"], tokens)
+
+
+class EffortContractDocumentsMatchTheWire(unittest.TestCase):
+    """G1 — CONTRACT.md §Refusals model and §The record model fields,
+    and ops/conductor/pipelines.md, say effort is forwarded to all
+    three harnesses and the model block includes effort_argv."""
+
+    def test_refusals_model_does_not_refuse_codex_effort_for_a_missing_flag(self):
+        path = ls.REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"missing {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "CONTRACT.md is empty")
+        stale = (
+            "the CLI has no effort flag, so the dial is refused rather than dropped"
+        )
+        self.assertFalse(
+            stale in text,
+            "CONTRACT.md §Refusals model still refuses Codex effort "
+            "because the CLI has no effort flag",
+        )
+
+    def test_the_record_model_fields_include_effort_argv(self):
+        path = ls.REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"missing {path}")
+        text = path.read_text(encoding="utf-8")
+        listed = (
+            "model {requested, effort_requested, effort_argv, ran, read_from}"
+        )
+        stale = "model {requested, effort_requested, ran, read_from}"
+        self.assertTrue(
+            listed in text,
+            "CONTRACT.md §The record model fields must list effort_argv",
+        )
+        self.assertFalse(
+            stale in text,
+            "CONTRACT.md §The record still lists the model block without effort_argv",
+        )
+
+    def test_pipelines_does_not_say_the_launcher_refuses_codex_effort(self):
+        path = ls.REPO / "ops" / "conductor" / "pipelines.md"
+        self.assertTrue(path.is_file(), f"missing {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "pipelines.md is empty")
+        stale = "the launcher refuses `--effort` on codex until"
+        self.assertFalse(
+            stale in text,
+            "pipelines.md still says the launcher refuses --effort on Codex",
+        )
 
 
 class ClaudeWriteIsUnadmitted(ls._TempLaunch):
