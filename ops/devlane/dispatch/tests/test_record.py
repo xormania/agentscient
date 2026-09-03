@@ -75,6 +75,7 @@ class _RecordCase(unittest.TestCase):
             "model": {
                 "requested": "alias-requested",
                 "effort_requested": None,
+                "effort_argv": [],
                 "ran": None,
                 "read_from": None,
             },
@@ -304,3 +305,32 @@ class SchemaIsComplete(_RecordCase):
         rec = self.built()
         rec["follows"] = "20260826T000000Z-plan-grok-000001"
         self._raises_naming(rec, "follows")
+
+
+class EffortArgvCarriesTheDial(_RecordCase):
+    """model.effort_argv is the exact tokens that reached the command
+    line: a list; when effort_requested is set, non-empty and one token
+    contains the requested value; when unset, []. Missing is a
+    refusal, not silence."""
+
+    def test_effort_requested_carried_in_effort_argv_validates(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = ["--reasoning-effort", "high"]
+        rec = self.recmod().validate(rec)
+        self.assertEqual(rec["model"]["effort_requested"], "high")
+        self.assertEqual(
+            rec["model"]["effort_argv"], ["--reasoning-effort", "high"],
+        )
+
+    def test_effort_requested_not_carried_refuses_naming_effort_argv(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = []
+        self._raises_naming(rec, "model.effort_argv")
+
+    def test_effort_argv_without_effort_requested_is_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = None
+        rec["model"]["effort_argv"] = ["--reasoning-effort", "high"]
+        self._raises_naming(rec, "model.effort_argv")
