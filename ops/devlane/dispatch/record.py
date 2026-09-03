@@ -70,6 +70,15 @@ def validate(rec):
             "harness_version"))), "observed")
     model = rec.get("model")
     _need(isinstance(model, dict), "model")
+    effort_argv = model.get("effort_argv")
+    _need(isinstance(effort_argv, list), "model.effort_argv")
+    effort = model.get("effort_requested")
+    if effort:
+        _need(bool(effort_argv) and any(effort in token for token in effort_argv),
+              "model.effort_argv", "must carry model.effort_requested")
+    else:
+        _need(effort_argv == [], "model.effort_argv",
+              "must be empty without model.effort_requested")
     if model.get("ran") is None:
         if not (rec.get("note") or model.get("note")):
             model["note"] = "no stream was found; model.ran is null"
