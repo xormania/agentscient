@@ -20,19 +20,20 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+      - name: the host's user toolchain on PATH (ruff, composer, cue live in ~/.local/bin)
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: term wall — tree content and paths
         env:
           TERM_WALL: ${{ vars.TERM_WALL }}
         run: python3 ops/devlane/workflow/checks/term_wall.py --root .
-      - name: ruff — the pinned contract
+      - name: ruff — the pinned contract (the host's ruff; ruff.toml refuses a version outside the range)
         run: |
-          python3 -m pip install --quiet --disable-pip-version-check 'ruff==0.16.5'
-          python3 -m ruff --version
-          python3 -m ruff check .
+          ruff --version
+          ruff check .
       - name: lane suites
         run: bash ops/bin/suites.sh
       - name: the host toolchain the self-hosted runner relies on
-        run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version
+        run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version
       - name: composer validate — the manifest and the lock agree
         run: composer validate --strict
       - name: composer install — from the lock, nothing resolved on the runner
