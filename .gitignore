@@ -17,3 +17,5 @@ __pycache__/
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+# Session scratch documents the owner reads across sessions; never tree content.
+.dev/tmp/
