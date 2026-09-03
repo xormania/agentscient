@@ -20,7 +20,7 @@
     "ref_name": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
     "ref_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/snapshot"
+    "root": "<job 20260903T232312Z-review-grok-194a1f>/snapshot"
   },
   "harness": {
     "name": "grok",
@@ -28,14 +28,14 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok",
-        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok"
+        "GROK_HOME": "<job 20260903T232312Z-review-grok-194a1f>/home/grok",
+        "HOME": "<job 20260903T232312Z-review-grok-194a1f>/home/grok"
       },
-      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok/sessions",
+      "store": "<job 20260903T232312Z-review-grok-194a1f>/home/grok/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok",
+      "home": "<job 20260903T232312Z-review-grok-194a1f>/home/grok",
       "auth_files": [
         "auth.json"
       ]
@@ -55,18 +55,18 @@
       "--reasoning-effort",
       "xhigh",
       "--prompt-file",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/prompt.txt"
+      "<job 20260903T232312Z-review-grok-194a1f>/prompt.txt"
     ]
   },
   "model": {
     "requested": "grok-4.6",
     "effort_requested": "xhigh",
     "ran": "grok-4.6",
-    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T232312Z-review-grok-194a1f%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json"
+    "read_from": "<job 20260903T232312Z-review-grok-194a1f>/home/grok-stream/sessions/%3Cjob%2020260903T232312Z-review-grok-194a1f%3E%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json"
   },
   "session": {
     "id": "4bda9a7a-a6de-4222-8aee-bc3d942d9fe2",
-    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T232312Z-review-grok-194a1f%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json",
+    "stream": "<job 20260903T232312Z-review-grok-194a1f>/home/grok-stream/sessions/%3Cjob%2020260903T232312Z-review-grok-194a1f%3E%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json",
     "stream_sha256_at_close": "5d3d62b3f00c933e5dc92013f21f7d4d4f1904b102c584ee2c6818063ab69b29",
     "spend": {
       "input": 4066197,
@@ -74,7 +74,7 @@
       "output": 45962,
       "total": 4112159,
       "cost_usd_ticks": 4703271000,
-      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232312Z-review-grok-194a1f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T232312Z-review-grok-194a1f%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json",
+      "source": "<job 20260903T232312Z-review-grok-194a1f>/home/grok-stream/sessions/%3Cjob%2020260903T232312Z-review-grok-194a1f%3E%2Fsnapshot/4bda9a7a-a6de-4222-8aee-bc3d942d9fe2/summary.json",
       "messages": 342
     }
   },

@@ -20,7 +20,7 @@
     "ref_name": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
     "ref_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/snapshot"
+    "root": "<job 20260903T232447Z-review-codex-9c696a>/snapshot"
   },
   "harness": {
     "name": "codex",
@@ -28,13 +28,13 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex"
+        "CODEX_HOME": "<job 20260903T232447Z-review-codex-9c696a>/home/codex"
       },
-      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex/sessions",
+      "store": "<job 20260903T232447Z-review-codex-9c696a>/home/codex/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex",
+      "home": "<job 20260903T232447Z-review-codex-9c696a>/home/codex",
       "auth_files": [
         "auth.json"
       ]
@@ -47,14 +47,14 @@
       "--sandbox",
       "workspace-write",
       "-c",
-      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/out\"]",
+      "sandbox_workspace_write.writable_roots=[\"<job 20260903T232447Z-review-codex-9c696a>/out\"]",
       "--model",
       "gpt-daybreak-blue-latest",
       "-c",
       "model_reasoning_effort=\"xhigh\"",
       "--json",
       "-o",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/out/last-message.json",
+      "<job 20260903T232447Z-review-codex-9c696a>/out/last-message.json",
       "-"
     ]
   },
@@ -66,18 +66,18 @@
       "model_reasoning_effort=\"xhigh\""
     ],
     "ran": "gpt-daybreak-blue-latest",
-    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl"
+    "read_from": "<job 20260903T232447Z-review-codex-9c696a>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl"
   },
   "session": {
     "id": "01a06996-d7f3-7a93-b34a-85756afa884e",
-    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl",
+    "stream": "<job 20260903T232447Z-review-codex-9c696a>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl",
     "stream_sha256_at_close": "a7f3ad078d83eb732e62ce60cb220a83442c5e51b0bd733d7ca2abfa3c11a612",
     "spend": {
       "input": 3186939,
       "cached": 3041092,
       "output": 20864,
       "total": 3207803,
-      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl",
+      "source": "<job 20260903T232447Z-review-codex-9c696a>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl",
       "messages": 243
     }
   },
@@ -154,8 +154,8 @@
         }
       ],
       "artifacts": {
-        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/context/diff.patch",
-        "tree": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/snapshot"
+        "diff": "<job 20260903T232447Z-review-codex-9c696a>/context/diff.patch",
+        "tree": "<job 20260903T232447Z-review-codex-9c696a>/snapshot"
       },
       "spend": {
         "unresolved": "usage unavailable to auditor"

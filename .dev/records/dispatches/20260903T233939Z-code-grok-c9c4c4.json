@@ -1,0 +1,96 @@
+{
+  "id": "20260903T233939Z-code-grok-c9c4c4",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/effort-per-role-2",
+  "lineage": {
+    "branch": "lane/effort-per-role-2",
+    "base_sha": "acdc4ae70b1890c633957b8af6c816481f05bcab"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T23:39:39Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "acdc4ae70b1890c633957b8af6c816481f05bcab",
+    "ref_sha": "acdc4ae70b1890c633957b8af6c816481f05bcab",
+    "behind_tip": 0,
+    "root": "<job 20260903T233939Z-code-grok-c9c4c4>/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "<job 20260903T233939Z-code-grok-c9c4c4>/home/grok",
+        "HOME": "<job 20260903T233939Z-code-grok-c9c4c4>/home/grok"
+      },
+      "store": "<job 20260903T233939Z-code-grok-c9c4c4>/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "<job 20260903T233939Z-code-grok-c9c4c4>/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "d990c02d-cf66-47e4-be6d-cbc855dd4c3d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "<job 20260903T233939Z-code-grok-c9c4c4>/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "d990c02d-cf66-47e4-be6d-cbc855dd4c3d",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "62620eb5b4372148953dd3e7da50212fcc43901196859c5b814b902615f658a3"
+    },
+    "scope": "the findings and rulings at in/findings-effort-pr.md, against the change at this ref. Write the tests for every finding marked APPLY (D1, D2, D3 with G4, G1 is a document check, G2, G3): each red on this tree for the reason the finding states, in the test files that already cover the code it names; do not touch DEFER findings; do not read the implementation beyond what the finding quotes. Commit each test file as its red is proven.",
+    "inputs": [
+      {
+        "path": "<job 20260903T233939Z-code-grok-c9c4c4>/in/findings-effort-pr.md",
+        "sha256": "634d1f5d41e749d4d45188361b62340e6cbbe3cfc807b3b5292fb7f2276a43fb"
+      }
+    ],
+    "sha256": "66402325577f9ec6a2894e947cc4cf727f1d802dab80cc80e4f3066adb0f6b88",
+    "bytes": 1099
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
