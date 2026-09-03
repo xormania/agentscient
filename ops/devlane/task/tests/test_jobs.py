@@ -48,5 +48,30 @@ class AuthorTestsBriefAsksForTheEnvelope(unittest.TestCase):
         )
 
 
+class SecurityAuditIsInTheCatalogue(unittest.TestCase):
+    """security-audit is a read, whole-tree job with the envelope."""
+
+    def test_security_audit_is_a_read_whole_job_with_the_envelope(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        self.assertIn("security-audit", jobs)
+        spec = jobs["security-audit"]
+        self.assertIsInstance(spec, dict)
+        self.assertEqual(spec.get("role"), "read")
+        self.assertEqual(spec.get("snapshot"), "whole")
+        prompt = spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "security-audit prompt is empty")
+        for token in ("{ref}", "{base}", "{diff}", "{scope}"):
+            self.assertIn(token, prompt, f"security-audit prompt missing {token}")
+        self.assertIn(
+            ENVELOPE_CLAUSE,
+            prompt,
+            "security-audit brief must ask for the envelope; "
+            f"last 240 chars: {prompt[-240:]!r}",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
