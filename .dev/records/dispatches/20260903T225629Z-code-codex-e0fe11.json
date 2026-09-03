@@ -20,7 +20,7 @@
     "ref_name": "25a0830d08a8be635560551965b992d0c12b3f28",
     "ref_sha": "25a0830d08a8be635560551965b992d0c12b3f28",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/snapshot"
+    "root": "<job 20260903T225629Z-code-codex-e0fe11>/snapshot"
   },
   "harness": {
     "name": "codex",
@@ -28,13 +28,13 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/home/codex"
+        "CODEX_HOME": "<job 20260903T225629Z-code-codex-e0fe11>/home/codex"
       },
-      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/home/codex/sessions",
+      "store": "<job 20260903T225629Z-code-codex-e0fe11>/home/codex/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/home/codex",
+      "home": "<job 20260903T225629Z-code-codex-e0fe11>/home/codex",
       "auth_files": [
         "auth.json"
       ]
@@ -50,18 +50,18 @@
       "gpt-5.6-sol",
       "--json",
       "-o",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/out/last-message.json"
+      "<job 20260903T225629Z-code-codex-e0fe11>/out/last-message.json"
     ]
   },
   "model": {
     "requested": "gpt-5.6-sol",
     "effort_requested": null,
     "ran": "gpt-5.6-sol",
-    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-56-30-01a0697c-ed44-7890-8a7a-82d36532c72b.jsonl"
+    "read_from": "<job 20260903T225629Z-code-codex-e0fe11>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-56-30-01a0697c-ed44-7890-8a7a-82d36532c72b.jsonl"
   },
   "session": {
     "id": "01a0697c-ed44-7890-8a7a-82d36532c72b",
-    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-56-30-01a0697c-ed44-7890-8a7a-82d36532c72b.jsonl",
+    "stream": "<job 20260903T225629Z-code-codex-e0fe11>/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-56-30-01a0697c-ed44-7890-8a7a-82d36532c72b.jsonl",
     "stream_sha256_at_close": "98264f700681dcecc0f9b55407b45cb0e14459bc81dc07eb964da4e2b537be64",
     "spend": {
       "unresolved": "no session stream discovered"
@@ -75,7 +75,7 @@
     "scope": "bash ops/bin/suites.sh",
     "inputs": [
       {
-        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/in/contract-effort-per-role.md",
+        "path": "<job 20260903T225629Z-code-codex-e0fe11>/in/contract-effort-per-role.md",
         "sha256": "8277479335f368a7acdae63d9e8b768f6245da429da0fe8c8087563f5af6c4df"
       }
     ],
@@ -146,7 +146,7 @@
       "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime"
     },
     "residual_patch": {
-      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/residual.patch",
+      "path": "<job 20260903T225629Z-code-codex-e0fe11>/residual.patch",
       "sha256": "d29019b313a58e1962c6e10abed07aebf6c77e07a1822f75654445153715b9a5",
       "untracked": []
     },

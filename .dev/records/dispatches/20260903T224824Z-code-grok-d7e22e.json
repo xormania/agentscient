@@ -20,7 +20,7 @@
     "ref_name": "84c05a7387d2971f7f10dff5c0298985ebc24471",
     "ref_sha": "84c05a7387d2971f7f10dff5c0298985ebc24471",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/snapshot"
+    "root": "<job 20260903T224824Z-code-grok-d7e22e>/snapshot"
   },
   "harness": {
     "name": "grok",
@@ -28,14 +28,14 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/home/grok",
-        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/home/grok"
+        "GROK_HOME": "<job 20260903T224824Z-code-grok-d7e22e>/home/grok",
+        "HOME": "<job 20260903T224824Z-code-grok-d7e22e>/home/grok"
       },
-      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/home/grok/sessions",
+      "store": "<job 20260903T224824Z-code-grok-d7e22e>/home/grok/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/home/grok",
+      "home": "<job 20260903T224824Z-code-grok-d7e22e>/home/grok",
       "auth_files": [
         "auth.json"
       ]
@@ -53,18 +53,18 @@
       "--always-approve",
       "--disable-web-search",
       "--prompt-file",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/prompt.txt"
+      "<job 20260903T224824Z-code-grok-d7e22e>/prompt.txt"
     ]
   },
   "model": {
     "requested": "grok-4.6",
     "effort_requested": null,
     "ran": "grok-4.6",
-    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T224824Z-code-grok-d7e22e%2Fsnapshot/235ab149-e52f-4291-8b51-01fc188e5fd8/summary.json"
+    "read_from": "<job 20260903T224824Z-code-grok-d7e22e>/home/grok-stream/sessions/%3Cjob%2020260903T224824Z-code-grok-d7e22e%3E%2Fsnapshot/235ab149-e52f-4291-8b51-01fc188e5fd8/summary.json"
   },
   "session": {
     "id": "235ab149-e52f-4291-8b51-01fc188e5fd8",
-    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T224824Z-code-grok-d7e22e%2Fsnapshot/235ab149-e52f-4291-8b51-01fc188e5fd8/summary.json",
+    "stream": "<job 20260903T224824Z-code-grok-d7e22e>/home/grok-stream/sessions/%3Cjob%2020260903T224824Z-code-grok-d7e22e%3E%2Fsnapshot/235ab149-e52f-4291-8b51-01fc188e5fd8/summary.json",
     "stream_sha256_at_close": "8e55d5a3044dbf717eb8ff270db47d19f6ad7cf67172d977b1d345975828c9ca",
     "spend": {
       "input": 1966276,
@@ -72,7 +72,7 @@
       "output": 26319,
       "total": 1992595,
       "cost_usd_ticks": 2190963400,
-      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T224824Z-code-grok-d7e22e%2Fsnapshot/235ab149-e52f-4291-8b51-01fc188e5fd8/summary.json",
+      "source": "<job 20260903T224824Z-code-grok-d7e22e>/home/grok-stream/sessions/%3Cjob%2020260903T224824Z-code-grok-d7e22e%3E%2Fsnapshot/235ab149-e52f-4291-8b51-01fc188e5fd8/summary.json",
       "messages": 225
     }
   },
@@ -84,7 +84,7 @@
     "scope": "the skeptic's report at in/SKEPTIC.md, against the tests you committed at this ref. Apply its first two findings only: (1) in ops/conductor/tests/test_dispatch_wrapper.py, the env-beats-conf case for a per-job effort must plant a competing conf value, so a dispatcher that lets the conf win over the environment fails it; (2) in ops/devlane/dispatch/tests/test_record.py, add the case where model.effort_argv is not a list, which the validator must reject. Do not apply the third finding: the plan leaves go.sh without a suite, proved by dry-run. Prove each amended test red for its reason, commit each, touch nothing else.",
     "inputs": [
       {
-        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T224824Z-code-grok-d7e22e/in/SKEPTIC.md",
+        "path": "<job 20260903T224824Z-code-grok-d7e22e>/in/SKEPTIC.md",
         "sha256": "e738d1c7b82293f49c8552fcd1714dd29ab50a7e1252b9d5dfacf0f8e6e1f26a"
       }
     ],

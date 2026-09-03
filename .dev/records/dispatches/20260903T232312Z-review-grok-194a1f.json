@@ -1,0 +1,91 @@
+{
+  "id": "20260903T232312Z-review-grok-194a1f",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/effort-per-role",
+  "lineage": {
+    "branch": "lane/effort-per-role",
+    "base_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T23:23:13Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "ref_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "behind_tip": 0,
+    "root": "<job 20260903T232312Z-review-grok-194a1f>/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "<job 20260903T232312Z-review-grok-194a1f>/home/grok",
+        "HOME": "<job 20260903T232312Z-review-grok-194a1f>/home/grok"
+      },
+      "store": "<job 20260903T232312Z-review-grok-194a1f>/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "<job 20260903T232312Z-review-grok-194a1f>/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4bda9a7a-a6de-4222-8aee-bc3d942d9fe2",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "<job 20260903T232312Z-review-grok-194a1f>/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "4bda9a7a-a6de-4222-8aee-bc3d942d9fe2",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "62620eb5b4372148953dd3e7da50212fcc43901196859c5b814b902615f658a3"
+    },
+    "scope": "the change on lane/effort-per-role against dev: effort forwarded to three CLIs, per-job model and effort resolution in the dispatcher, a new security-audit job, and the review fan-out; a first work order through the loop",
+    "inputs": [],
+    "sha256": "49df46fb5a3285d3fcf706229f606b864263266587401585c8dfc441a95cf6b9",
+    "bytes": 848
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
