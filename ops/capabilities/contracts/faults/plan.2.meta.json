@@ -1,0 +1,13 @@
+{
+  "change": "deliverables[0].path differs from the parent unit row",
+  "contract": "plan",
+  "fault": "plan.2.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.deliverables-mismatch",
+  "site": [
+    "deliverables",
+    0,
+    "path"
+  ],
+  "violates": "\u00a74 rule 2; \u00a75 N=2"
+}

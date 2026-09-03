@@ -1,0 +1,12 @@
+{
+  "change": "parent.sha256 one hex digit off",
+  "contract": "plan",
+  "fault": "plan.1.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.stale-parent",
+  "site": [
+    "parent",
+    "sha256"
+  ],
+  "violates": "\u00a74 rule 1; \u00a75 N=1"
+}

@@ -1,0 +1,14 @@
+{
+  "change": "root omits the parent key instead of declaring it absent",
+  "contract": "plan",
+  "fault": "plan.7.json",
+  "from": "examples/plan.root.json",
+  "omitted_keys": [
+    "parent"
+  ],
+  "reject_path": "plan\\.root-parent",
+  "site": [
+    "parent"
+  ],
+  "violates": "\u00a73 #Plan parent; \u00a74 raw presence; \u00a75 N=7"
+}

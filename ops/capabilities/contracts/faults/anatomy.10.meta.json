@@ -1,0 +1,1 @@
+{"from":"examples/anatomy/goodcap","change":"declare missing Protocol","violates":"interface resolution","reject_path":"anatomy.iface-unresolved","site":["capability.json"]}

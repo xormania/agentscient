@@ -1,0 +1,13 @@
+{
+  "change": "a new:true decision with ratified_by parent",
+  "contract": "plan",
+  "fault": "plan.14.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.decision-unratified",
+  "site": [
+    "decisions",
+    0,
+    "ratified_by"
+  ],
+  "violates": "\u00a73.2 standing rule; \u00a75 N=14"
+}

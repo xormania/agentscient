@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"add notes","violates":"closed capability","reject_path":"registry.contract","site":["capabilities",0,"notes"]}

@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"unknown iface","violates":"interface resolution","reject_path":"registry.unknown-iface","site":["capabilities",1,"deps"]}

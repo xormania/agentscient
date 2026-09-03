@@ -1,0 +1,1 @@
+{"from":"examples/anatomy/goodcap","change":"add undeclared method","violates":"interface declaration","reject_path":"anatomy.member-undeclared","site":["goodcap.py"]}

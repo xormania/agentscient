@@ -1,0 +1,13 @@
+{
+  "change": "premises[0].tag is guessed, outside the four tags",
+  "contract": "plan",
+  "fault": "plan.6.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.premise-tag",
+  "site": [
+    "premises",
+    0,
+    "tag"
+  ],
+  "violates": "\u00a73 #Premise; \u00a75 N=6"
+}

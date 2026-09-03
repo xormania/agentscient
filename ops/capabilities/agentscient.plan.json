@@ -1,0 +1,95 @@
+{
+  "id": "agentscient",
+  "parent": {"declared_absent": "root plan"},
+  "ref": "dc704402ca4e930677e483c8e8986af94324baa1",
+  "scope": {
+    "owner_words": "I want to get the mini-apps redone into a framework - it makes sense - i like symfony, its a good example | don't constrain it too much - this is a big task | you bring up something important - plans (contracts) at every level | these contracts and their economics are important | yes - but framework first",
+    "dated": "2026-08-29",
+    "source": "owner 2026-08-29; ops/docs/scratch/agentscient-framework-plan.md"
+  },
+  "premises": [
+    {"text": "The dev lane's mini-apps are separate programs whose boundaries grew by accretion rather than from one framework contract.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §1"},
+    {"text": "A compiled container can refuse registry, dependency, tag-flow, and interface defects before the first capability runs.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §2"},
+    {"text": "Plans are prose documents with closed sidecars and child plans are digest-bound projections of parent units.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §3"}
+  ],
+  "settled": [
+    {"id": "framework-before-surface", "ruled_by": "owner", "dated": "2026-08-29", "where": "owner 2026-08-29: frame work first"},
+    {"id": "wf-renamed-ledger", "ruled_by": "owner", "dated": "2026-08-27", "where": "framework plan §0"},
+    {"id": "capability-is-the-word", "ruled_by": "owner", "dated": "2026-08-27", "where": "framework plan §0"},
+    {"id": "launcher-pinned", "ruled_by": "owner", "dated": "2026-08-29", "where": "framework plan §0"},
+    {"id": "beside-fixture-cutover", "ruled_by": "owner", "dated": "2026-08-29", "where": "framework plan §8"},
+    {"id": "plans-at-every-level", "ruled_by": "owner", "dated": "2026-08-29", "where": "owner 2026-08-29: plans (contracts) at every level"},
+    {"id": "stdlib-only", "ruled_by": "owner", "dated": "2026-08-29", "where": "framework plan §2.4"},
+    {"id": "cue-doctrine-positive-negative-raw", "ruled_by": "owner", "dated": "2026-08-29", "where": "framework plan §3"},
+    {"id": "tests-by-non-implementer-then-skeptic", "ruled_by": "owner", "dated": "2026-08-29", "where": "ops/process/pipeline.md"}
+  ],
+  "decisions": [
+    {"id": "D-plan-cue", "sentence": "A plan is prose plus a closed sidecar and every child is a digest-bound projection of a parent unit.", "premises": [{"text": "Plans are prose documents with closed sidecars and child plans are digest-bound projections of parent units.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §3"}], "new": true, "ratified_by": "owner", "status": "standing"},
+    {"id": "D-language", "sentence": "The dev-lane container is Python stdlib while CUE contracts and the fixture repository remain portable.", "premises": [{"text": "A compiled container can refuse registry, dependency, tag-flow, and interface defects before the first capability runs.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §2"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-storage", "sentence": "One sqlite file per lane is owned by db while committed JSON exports remain evidence and the database remains a cache.", "premises": [{"text": "The dev lane's mini-apps are separate programs whose boundaries grew by accretion rather than from one framework contract.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §1"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-set", "sentence": "The framework capability set includes task as the workflow capability and keeps the launcher pinned until the explicit cutover.", "premises": [{"text": "Task remains the workflow capability and the launcher stays pinned until explicit cutover.", "tag": "read", "source": "ops/docs/scratch/agentscient-u0-review-grok-a46183.md finding 1"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-context-custody", "sentence": "Fact custody is a framework capability distinct from harness isolation and follows the static checks unit.", "premises": [{"text": "The framework ratification separated fact custody from staged harness inputs.", "tag": "read", "source": "ops/docs/scratch/agentscient-u0-review-grok-a46183.md finding 1"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-size", "sentence": "The container proper is bounded at 2,000 lines by a gate, and the capability count is bounded only by the registry being closed.", "premises": [{"text": "A measured container bound resists the accretion that the framework replaces.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §11 D-size"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-order", "sentence": "Plan gate and vocabulary come first, container second, primitives third, surface fourth, and the runner and cutover last.", "premises": [{"text": "Framework comes before surface and every unit after U0 must be vettable by U0's gate.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §11 D-order"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-anatomy", "sentence": "A capability directory is a closed shape checked in both directions, and a scaffold command writes it.", "premises": [{"text": "Closure and positive and negative controls make the capability anatomy checkable.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §11 D-anatomy"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-fixture-repo", "sentence": "The fixture capability grows a manifest-driven repository builder that proves its own plant and is the only end-to-end ground and later-container conformance suite.", "premises": [{"text": "The conductor cannot use the framework it builds, and an unproved fixture plant answers about nothing.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §11 D-fixture-repo"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-hooks-listeners", "sentence": "Hooks are registered as listeners, not made a capability, because nothing injects them.", "premises": [{"text": "Hooks are invoked by git and the harness rather than called through an injected interface.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §11 D-hooks-listeners"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-launcher-after", "sentence": "Moving the launcher and levers under the framework is a separate plan after U21, gated on records and custody having been in capability.", "premises": [{"text": "The launcher is pinned and its read half is copied rather than moved in this plan.", "tag": "read", "source": "ops/docs/scratch/agentscient-framework-plan.md §11 D-launcher-after"}], "new": true, "ratified_by": "conductor", "status": "standing"},
+    {"id": "D-new-2", "sentence": "The interface-projection decision is superseded by D-U2-iface-manifest: interface members are declared in the manifest and verified in both directions while the 3.12.14 pin stands.", "premises": [{"text": "D-U2-iface-manifest replaces introspection with a portable declared member list.", "tag": "read", "source": "ops/docs/scratch/agentscient-u2-ratification.md Amendment U2-A1 and D-U2-iface-manifest"}], "new": true, "ratified_by": "conductor", "status": "superseded"}
+  ],
+  "open": [],
+  "deliverables": [
+    {"path": "ops/capabilities/", "interface": {"declared_absent": "the framework is delivered through the unit projections below"}}
+  ],
+  "gates": [
+    {"name": "plan-vet-root", "argv": ["python3", "ops/capabilities/checks/plan_vet.py", "vet", "ops/capabilities/agentscient.plan.json"], "fires_on": "a root sidecar outside the plan contract", "quiet_on": "the hand-written root sidecar", "cost": "cheap"}
+  ],
+  "units": [
+    {"id": "U0", "deliverables": [
+      {"path": "ops/capabilities/contracts/plan.cue", "interface": {"name": "#Plan", "fields": ["id", "parent", "ref", "scope", "premises", "settled", "decisions", "open", "deliverables", "gates", "units", "refusals", "discharge", "denied", "economics"], "declared_at": "out/PLAN.md §3"}},
+      {"path": "ops/capabilities/checks/plan_vet.py", "interface": {"name": "plan vet", "argv": ["python3", "ops/capabilities/checks/plan_vet.py", "vet", "<path.plan.json>"], "output": "stdout", "declared_at": "out/PLAN.md §4"}},
+      {"path": "ops/capabilities/checks/plan_vet.py extract", "interface": {"name": "plan extract", "argv": ["python3", "ops/capabilities/checks/plan_vet.py", "extract", "<path.plan.md>"], "output": "file", "declared_at": "out/PLAN.md §4"}},
+      {"path": "ops/capabilities/contracts/faults/plan.*.json", "interface": {"name": "plan fault corpus", "fields": ["contract", "fault", "from", "change", "violates", "reject_path"], "declared_at": "out/PLAN.md §5"}},
+      {"path": "ops/capabilities/agentscient.plan.json", "interface": {"declared_absent": "a data file; consumed only by plan vet, whose interface is declared above"}}
+    ], "needs": [], "stage": "check"},
+    {"id": "U1", "deliverables": [
+      {"path": "ops/devlane/workflow/contracts/cue/vocab.cue", "interface": {"name": "vocabulary contract", "fields": ["#Vocab"], "declared_at": "ops/docs/scratch/agentscient-u1-plan.md"}},
+      {"path": "ops/devlane/workflow/checks/vocabulary_wall.py", "interface": {"name": "vocabulary wall", "argv": ["python3", "ops/devlane/workflow/checks/vocabulary_wall.py"], "output": "stdout", "declared_at": "ops/docs/scratch/agentscient-u1-plan.md"}}
+    ], "needs": [], "stage": "done"},
+    {"id": "U2", "deliverables": [
+      {"path": "ops/capabilities/contracts/capabilities.cue", "interface": {"name": "#Registry", "fields": ["capabilities"], "declared_at": "ops/docs/scratch/agentscient-u2-plan.md §3.2"}},
+      {"path": "ops/capabilities/contracts/capability.cue", "interface": {"name": "#Anatomy", "fields": ["capability.json", "CONTRACT.md", "contract.cue", "module", "tests/", "faults/", "guide.md"], "declared_at": "ops/docs/scratch/agentscient-u2-plan.md §3.3"}},
+      {"path": "ops/capabilities/contracts/outcome.cue", "interface": {"name": "#Refusal", "fields": ["name", "class", "remedy"], "declared_at": "ops/docs/scratch/agentscient-u2-plan.md §3.1"}},
+      {"path": "ops/capabilities/contracts/examples/", "interface": {"name": "U2 positive controls", "fields": ["registry.json", "registry.empty.json", "anatomy/goodcap"], "declared_at": "ops/docs/scratch/agentscient-u2-plan.md §6.1"}},
+      {"path": "ops/capabilities/contracts/faults/", "interface": {"name": "U2 fault corpus", "fields": ["from", "change", "violates", "reject_path"], "declared_at": "ops/docs/scratch/agentscient-u2-plan.md §6.2"}},
+      {"path": "ops/capabilities/checks/registry_vet.py", "interface": {"name": "registry-vet", "argv": ["python3", "ops/capabilities/checks/registry_vet.py", "vet", "<registry.json>"], "output": "stderr on refusal", "declared_at": "ops/docs/scratch/agentscient-u2-plan.md §5.1"}},
+      {"path": "ops/capabilities/checks/anatomy.py", "interface": {"name": "anatomy", "argv": ["python3", "ops/capabilities/checks/anatomy.py", "vet", "<capability-directory>"], "output": "stderr on refusal", "declared_at": "ops/docs/scratch/agentscient-u2-plan.md §5.2"}},
+      {"path": "ops/capabilities/capabilities.json", "interface": {"declared_absent": "data export consumed by the container and checked by registry-vet"}},
+      {"path": "ops/devlane/workflow/gate-kinds/artifact.json registry-vet", "interface": {"declared_absent": "registration data for the declared registry-vet interface"}},
+      {"path": "ops/devlane/workflow/gate-kinds/artifact.json anatomy", "interface": {"declared_absent": "registration data for the declared anatomy interface"}}
+    ], "needs": ["U0"], "stage": "code"},
+    {"id": "U3", "deliverables": [{"path": "ops/capabilities/container/boot.py", "interface": {"declared_absent": "specified by framework plan §7 U3"}}], "needs": ["U2"], "stage": "plan"},
+    {"id": "U4", "deliverables": [{"path": "ops/capabilities/checks/", "interface": {"declared_absent": "framework static gates specified by §7 U4"}}], "needs": ["U3"], "stage": "plan"},
+    {"id": "U5", "deliverables": [{"path": "ops/capabilities/capabilities/db/", "interface": {"declared_absent": "DbRW, DbRO, and Migrator"}}], "needs": ["U3"], "stage": "plan"},
+    {"id": "U6", "deliverables": [{"path": "ops/capabilities/capabilities/gitro/", "interface": {"declared_absent": "allowlisted git reads"}}], "needs": ["U3"], "stage": "plan"},
+    {"id": "U7", "deliverables": [{"path": "ops/capabilities/fixture/repo.py", "interface": {"declared_absent": "manifest-driven fixture repository"}}], "needs": ["U5", "U6"], "stage": "plan"},
+    {"id": "U8", "deliverables": [{"path": "ops/capabilities/capabilities/ledger/", "interface": {"declared_absent": "LedgerRW and LedgerRO"}}], "needs": ["U5", "U7"], "stage": "plan"},
+    {"id": "U9", "deliverables": [{"path": "ops/capabilities/capabilities/records/", "interface": {"declared_absent": "dispatch record reads"}}], "needs": ["U7"], "stage": "plan"},
+    {"id": "U10", "deliverables": [{"path": "ops/capabilities/capabilities/observe/", "interface": {"declared_absent": "telemetry reads"}}], "needs": ["U7"], "stage": "plan"},
+    {"id": "U11", "deliverables": [{"path": "ops/capabilities/surface/", "interface": {"declared_absent": "container-driven MCP surface"}}], "needs": ["U4", "U8", "U9", "U10"], "stage": "plan"},
+    {"id": "U12", "deliverables": [{"path": "ops/capabilities/capabilities/jobs/", "interface": {"declared_absent": "catalogue and envelope read capability serving agentscient://jobs"}}], "needs": ["U11"], "stage": "plan"},
+    {"id": "U13", "deliverables": [{"path": "ops/capabilities/capabilities/law/", "interface": {"declared_absent": "unified CUE package"}}], "needs": ["U2"], "stage": "plan"},
+    {"id": "U14", "deliverables": [{"path": "ops/capabilities/capabilities/certify/", "interface": {"declared_absent": "registered checks over law and gitro"}}], "needs": ["U8", "U13"], "stage": "plan"},
+    {"id": "U15", "deliverables": [{"path": "ops/capabilities/capabilities/snapshot/", "interface": {"declared_absent": "proved staging"}}], "needs": ["U6"], "stage": "plan"},
+    {"id": "U16", "deliverables": [{"path": "ops/capabilities/capabilities/custody/", "interface": {"declared_absent": "fact custody distinct from harness isolation"}}], "needs": ["U4"], "stage": "plan"},
+    {"id": "U17", "deliverables": [{"path": "ops/capabilities/capabilities/memory/", "interface": {"declared_absent": "durable sourced memory"}}], "needs": ["U8", "U9", "U12"], "stage": "plan"},
+    {"id": "U18", "deliverables": [{"path": "ops/capabilities/commands/plan.py", "interface": {"declared_absent": "plan scaffold, vet, extract, and status"}}], "needs": ["U4", "U0"], "stage": "plan"},
+    {"id": "U19", "deliverables": [{"path": "ops/capabilities/capabilities/task/", "interface": {"declared_absent": "workflow capability with a lever-backed DAG runner"}}], "needs": ["U11", "U12", "U16"], "stage": "plan"},
+    {"id": "U20", "deliverables": [{"path": ".mcp.json", "interface": {"declared_absent": "explicit framework cutover"}}], "needs": ["U11", "U12", "U13", "U14", "U15", "U16", "U17", "U18", "U19"], "stage": "plan"},
+    {"id": "U21", "deliverables": [{"path": "ops/docs/DECISIONS.md", "interface": {"declared_absent": "framework plan discharge"}}], "needs": ["U20"], "stage": "plan"}
+  ],
+  "refusals": ["plan.stale-parent", "plan.deliverables-mismatch", "plan.reopened", "plan.undelegated", "plan.gate-half"],
+  "discharge": {"decisions_to": "ops/docs/DECISIONS.md", "design_to": "ops/capabilities/capabilities/*/CONTRACT.md", "lessons_to": "ops/docs/mini-app-lessons.md"},
+  "denied": ["changing the owner's scope", "using the framework while it is being built", "cutting over before the fixture gates pass"],
+  "economics": {"write": {"minutes": 120, "tag": "assumed"}}
+}

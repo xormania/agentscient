@@ -1,0 +1,12 @@
+{
+  "change": "a new:false decision whose premise text is absent from the parent",
+  "contract": "plan",
+  "fault": "plan.13.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.decision-not-new",
+  "site": [
+    "decisions",
+    0
+  ],
+  "violates": "\u00a73.2 standing rule; \u00a75 N=13"
+}

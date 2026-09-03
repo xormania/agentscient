@@ -1,0 +1,1 @@
+{"from":"examples/anatomy/goodcap","change":"leave migrations empty","violates":"migration presence","reject_path":"anatomy.migrates-empty","site":["migrations/"]}

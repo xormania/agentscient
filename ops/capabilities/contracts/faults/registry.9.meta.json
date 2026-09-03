@@ -1,0 +1,1 @@
+{"from":"examples/registry.json","change":"stale digest sidecar","violates":"export currency","reject_path":"registry.stale-export","site":["digest"]}

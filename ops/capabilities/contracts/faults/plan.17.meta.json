@@ -1,0 +1,14 @@
+{
+  "change": "the units key is omitted entirely",
+  "contract": "plan",
+  "fault": "plan.17.json",
+  "from": "examples/plan.json",
+  "omitted_keys": [
+    "units"
+  ],
+  "reject_path": "plan\\.absent-key",
+  "site": [
+    "units"
+  ],
+  "violates": "\u00a74 raw presence; \u00a75 N=17; after-action 5d87918"
+}

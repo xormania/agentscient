@@ -1,0 +1,13 @@
+{
+  "change": "decisions[0].premises is an empty list",
+  "contract": "plan",
+  "fault": "plan.9.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.premise-empty",
+  "site": [
+    "decisions",
+    0,
+    "premises"
+  ],
+  "violates": "\u00a73 #Decision premises; \u00a75 N=9"
+}

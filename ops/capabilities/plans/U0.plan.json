@@ -1,0 +1,515 @@
+{
+  "decisions": [
+    {
+      "id": "D-U0-bootstrap-binding",
+      "new": true,
+      "premises": [
+        {
+          "source": "sha256sum ops/docs/scratch/agentscient-framework-plan.md at 76fd53d",
+          "tag": "measured",
+          "text": "The parent plan has no .plan.json yet; its prose digest at this ref is 3164ced1\u20263578 and is the only digest a child can bind to before U0 lands."
+        },
+        {
+          "source": "parent \u00a73.3 rule 1",
+          "tag": "read",
+          "text": "A child written against a parent that has since changed must be refused as stale with the digest it expected."
+        }
+      ],
+      "ratified_by": "conductor",
+      "sentence": "#Parent gains bound_to sidecar or prose; a child may bind to its parent's prose digest only while the parent's sidecar does not exist, and plan vet draws plan.bound-prose the moment it does, so this plan is rebound to agentscient.plan.json's digest in U0's last commit.",
+      "status": "standing"
+    },
+    {
+      "id": "D-U0-economics",
+      "new": true,
+      "premises": [
+        {
+          "source": "in/BRIEF-U0.md item 1",
+          "tag": "read",
+          "text": "A record already carries brief.bytes and inputs[].sha256, so carry cost can be derived from bytes the ledger already hashes rather than declared by hand."
+        },
+        {
+          "source": "in/BRIEF-U0.md item 1 'enforce'",
+          "tag": "read",
+          "text": "A boundary-class gate (builds, daemon runs) must be declared because it cannot run at every level."
+        },
+        {
+          "source": "parent \u00a73 opening; context.cue \u00a7brief",
+          "tag": "read",
+          "text": "A derived number written by hand into the sidecar drifts from its source the same way a prose interface written twice does."
+        }
+      ],
+      "ratified_by": "conductor",
+      "sentence": "Every #Gate declares cost as cheap or boundary (a boundary gate also names boundary_at, the stage it runs at) and every plan declares economics.write as minutes tagged measured or assumed, while carry (bytes \u00d7 readers from the md, the sidecar and the ledger's brief.bytes/inputs[].sha256) and change (the cascade of sidecars whose parent.id names this plan) are derived by plan vet --economics and refused if hand-written into the sidecar.",
+      "status": "standing"
+    },
+    {
+      "id": "D-U0-standing-rule",
+      "new": true,
+      "premises": [
+        {
+          "source": "in/BRIEF-U0.md item 2",
+          "tag": "read",
+          "text": "The owner's reason for tagged premises is that a wrong premise answered as a question stays wrong; the tag is what the owner answers, so it must be on every premise of a new decision."
+        },
+        {
+          "source": "in/BRIEF-U0.md item 3",
+          "tag": "read",
+          "text": "A falsified premise must surface as revisit rather than stand forever."
+        },
+        {
+          "source": "parent \u00a73.2 #Decision; \u00a711",
+          "tag": "read",
+          "text": "The parent's recommended / ratified / rejected map onto new+pending / new+owner / superseded without loss, so the root sidecar can be hand-written in the new shape."
+        }
+      ],
+      "ratified_by": "conductor",
+      "sentence": "#Decision carries new, ratified_by, and status; a decision with new false must have every premise text present verbatim in its parent's premises or decisions (else plan.decision-not-new) and is parent-ratified by construction, while a decision with new true is the only kind that reaches the owner and may not enter code while pending or revisit.",
+      "status": "standing"
+    },
+    {
+      "id": "D-U0-extract-form",
+      "new": true,
+      "premises": [
+        {
+          "source": "this plan \u00a74 (no execution was permitted)",
+          "tag": "assumed",
+          "text": "Python 3 stdlib with json, hashlib, subprocess to a `cue` binary is enough for vet and extract; no third-party parser is needed because the extractable prose forms are markdown tables and fenced JSON."
+        },
+        {
+          "source": "parent \u00a73.1, \u00a73.4",
+          "tag": "read",
+          "text": "The sidecar is regenerated from the md's tables and refused when they disagree."
+        }
+      ],
+      "ratified_by": "conductor",
+      "sentence": "plan extract reads three markdown tables with fixed header rows (Premises, Decisions, Units) and one fenced block per remaining top-level field tagged ```json plan:<field>, emits the sidecar with sorted keys and a trailing newline, and plan vet draws plan.drift when the committed sidecar differs byte-for-byte from a fresh extraction.",
+      "status": "standing"
+    },
+    {
+      "id": "D-U0-vet-shape",
+      "new": true,
+      "premises": [
+        {
+          "source": "ops/docs/mini-app-lessons.md \u00a712; ops/docs/cue-aar-equality.md \u00a7The one-line version",
+          "tag": "read",
+          "text": "cue vet -c cannot prove a key was stated; equality lives only in direct field references; a raw-document presence check must precede vetting."
+        },
+        {
+          "source": "ops/devlane/workflow/errors.py class Refusal",
+          "tag": "read",
+          "text": "Refusal(claim, expected=, actual=, needed=) is the lane's refusal shape and is fail-fast: first failure only."
+        },
+        {
+          "source": "in/BRIEF-U0.md item 4",
+          "tag": "read",
+          "text": "task becomes the workflow capability after the container and its definitions will be vetted by this same gate later; leave the seam, do not design it."
+        }
+      ],
+      "ratified_by": "conductor",
+      "sentence": "plan vet runs raw-presence (json.load, every #Plan key stated, no derived key present) \u2192 cue vet -c against plan.cue \u2192 the relational rules in order, stops at the first failure with Refusal(claim, expected, actual, needed) in the copied errors shape, and takes --definition (default #Plan) so a later #Workflow definition is vetted by the same command without redesign.",
+      "status": "standing"
+    },
+    {
+      "id": "D-U0-layout",
+      "new": true,
+      "premises": [
+        {
+          "source": "agentscient-framework-plan.md \u00a77 row U0",
+          "tag": "read",
+          "text": "Row U0 names five deliverables: contracts/plan.cue, checks/plan_vet.py, plan extract, the \u00a73.6 faults, agentscient.plan.json passing; gate: plan vet on the framework plan itself."
+        },
+        {
+          "source": "ops/devlane/workflow/contracts/faults/vocab.1.meta.json; contracts/vet.py check_fault, fixture_intact",
+          "tag": "read",
+          "text": "The lane's contract form is cue/ + examples/ + faults/ with a <name>.N.json fault beside a <name>.N.meta.json naming change, violates, reject_path, and the plant is proved against the clean example."
+        }
+      ],
+      "ratified_by": "conductor",
+      "sentence": "The root sidecar lives at ops/capabilities/agentscient.plan.json beside a one-line pointer to its prose in ops/docs/scratch/, child plans live at ops/capabilities/plans/<unit>.plan.md + .plan.json, and plan.cue with its examples/ and faults/ lives under ops/capabilities/contracts/ in the cue+faults form.",
+      "status": "standing"
+    }
+  ],
+  "deliverables": [
+    {
+      "interface": {
+        "declared_at": "out/PLAN.md \u00a73",
+        "fields": [
+          "id",
+          "parent",
+          "ref",
+          "scope",
+          "premises",
+          "settled",
+          "decisions",
+          "open",
+          "deliverables",
+          "gates",
+          "units",
+          "refusals",
+          "discharge",
+          "denied",
+          "economics"
+        ],
+        "name": "#Plan"
+      },
+      "path": "ops/capabilities/contracts/plan.cue"
+    },
+    {
+      "interface": {
+        "argv": [
+          "python3",
+          "ops/capabilities/checks/plan_vet.py",
+          "vet",
+          "<path.plan.json>"
+        ],
+        "declared_at": "out/PLAN.md \u00a74",
+        "name": "plan vet",
+        "output": "stdout"
+      },
+      "path": "ops/capabilities/checks/plan_vet.py"
+    },
+    {
+      "interface": {
+        "argv": [
+          "python3",
+          "ops/capabilities/checks/plan_vet.py",
+          "extract",
+          "<path.plan.md>"
+        ],
+        "declared_at": "out/PLAN.md \u00a74",
+        "name": "plan extract",
+        "output": "file"
+      },
+      "path": "ops/capabilities/checks/plan_vet.py extract"
+    },
+    {
+      "interface": {
+        "declared_at": "out/PLAN.md \u00a75",
+        "fields": [
+          "contract",
+          "fault",
+          "from",
+          "change",
+          "violates",
+          "reject_path"
+        ],
+        "name": "plan fault corpus"
+      },
+      "path": "ops/capabilities/contracts/faults/plan.*.json"
+    },
+    {
+      "interface": {
+        "declared_absent": "a data file; consumed only by plan vet, whose interface is declared above"
+      },
+      "path": "ops/capabilities/agentscient.plan.json"
+    }
+  ],
+  "denied": [
+    "reading outside the snapshot and in/",
+    "executing anything (no cue, no python)",
+    "moving row U0's deliverables or the parent's section boundaries",
+    "editing the snapshot or the parent prose",
+    "designing the workflow (task) definition the same gate will vet later"
+  ],
+  "discharge": {
+    "decisions_to": "ops/docs/DECISIONS.md (the six D-U0 rows once ratified)",
+    "design_to": "ops/capabilities/contracts/plan.md (the contract's prose; folds into law's CONTRACT.md at U13)",
+    "lessons_to": "ops/docs/mini-app-lessons.md"
+  },
+  "economics": {
+    "write": {
+      "minutes": 45,
+      "tag": "assumed"
+    }
+  },
+  "gates": [
+    {
+      "argv": [
+        "python3",
+        "ops/capabilities/checks/plan_vet.py",
+        "vet",
+        "ops/capabilities/agentscient.plan.json"
+      ],
+      "cost": "cheap",
+      "fires_on": "any of the 18 faults in \u00a75 substituted for the root sidecar",
+      "name": "plan-vet-root",
+      "quiet_on": "the hand-written root sidecar at the ref U0 lands on"
+    },
+    {
+      "argv": [
+        "python3",
+        "ops/capabilities/checks/plan_vet.py",
+        "vet",
+        "ops/capabilities/plans/U0.plan.json"
+      ],
+      "cost": "cheap",
+      "fires_on": "this sidecar still bound_to prose once agentscient.plan.json exists (plan.bound-prose)",
+      "name": "plan-vet-self",
+      "quiet_on": "this sidecar rebound to the root sidecar's digest"
+    },
+    {
+      "argv": [
+        "python3",
+        "ops/capabilities/checks/plan_vet.py",
+        "faults"
+      ],
+      "cost": "cheap",
+      "fires_on": "a fault that vets clean, or one that does not differ from examples/plan.json, or one whose stderr misses its reject_path",
+      "name": "plan-faults",
+      "quiet_on": "every plan.N.json drawing exactly its meta.json refusal"
+    },
+    {
+      "argv": [
+        "python3",
+        "ops/capabilities/checks/plan_vet.py",
+        "extract",
+        "ops/capabilities/plans/U0.plan.md",
+        "--check"
+      ],
+      "cost": "cheap",
+      "fires_on": "U0.plan.json differing from a fresh extraction of U0.plan.md",
+      "name": "plan-drift",
+      "quiet_on": "byte-identical"
+    },
+    {
+      "argv": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "ops/capabilities/tests",
+        "-p",
+        "test_plan*.py"
+      ],
+      "cost": "cheap",
+      "fires_on": "the stage-3 suite red",
+      "name": "plan-vet-tests",
+      "quiet_on": "the suite green with the skeptic's additions"
+    }
+  ],
+  "id": "agentscient/U0",
+  "open": [],
+  "parent": {
+    "bound_to": "sidecar",
+    "id": "agentscient",
+    "sha256": "5db2de97e6e2be1ceb001d01c8bb055ae870feb54be60fbbecdf8ee46c4fd75a",
+    "unit": "U0"
+  },
+  "premises": [
+    {
+      "source": "sha256sum ops/docs/scratch/agentscient-framework-plan.md at 76fd53d",
+      "tag": "measured",
+      "text": "The parent plan has no .plan.json yet; its prose digest at this ref is 3164ced1\u20263578 and is the only digest a child can bind to before U0 lands."
+    },
+    {
+      "source": "agentscient-framework-plan.md \u00a77 row U0",
+      "tag": "read",
+      "text": "Row U0 names five deliverables: contracts/plan.cue, checks/plan_vet.py, plan extract, the \u00a73.6 faults, agentscient.plan.json passing; gate: plan vet on the framework plan itself."
+    },
+    {
+      "source": "agentscient-framework-plan.md \u00a73.2, \u00a73.3; in/BRIEF-U0.md items 1\u20133",
+      "tag": "read",
+      "text": "#Plan, #Parent, #Decision, #Gate and the seven relational rules are specified in the parent \u00a73.2\u20133.3 and carried here with the amendments the brief adds."
+    },
+    {
+      "source": "ops/docs/mini-app-lessons.md \u00a712; ops/docs/cue-aar-equality.md \u00a7The one-line version",
+      "tag": "read",
+      "text": "cue vet -c cannot prove a key was stated; equality lives only in direct field references; a raw-document presence check must precede vetting."
+    },
+    {
+      "source": "ops/devlane/workflow/contracts/faults/vocab.1.meta.json; contracts/vet.py check_fault, fixture_intact",
+      "tag": "read",
+      "text": "The lane's contract form is cue/ + examples/ + faults/ with a <name>.N.json fault beside a <name>.N.meta.json naming change, violates, reject_path, and the plant is proved against the clean example."
+    },
+    {
+      "source": "ops/devlane/workflow/gate-kinds/artifact.json checks[]",
+      "tag": "read",
+      "text": "Checks are registered as rows {name, class, argv, ci} in ops/devlane/workflow/gate-kinds/artifact.json and run statically in CI."
+    },
+    {
+      "source": "ops/devlane/harness/context.cue lines 37\u201348, 242\u2013260; parent \u00a710 last paragraph",
+      "tag": "read",
+      "text": "#Digest, #NonEmpty, #DeclaredAbsent and #Interface already exist in harness/context.cue and can be restated verbatim in plan.cue (the container may not import ops/devlane/, so copy, not import)."
+    },
+    {
+      "source": "in/BRIEF-U0.md item 1",
+      "tag": "read",
+      "text": "A record already carries brief.bytes and inputs[].sha256, so carry cost can be derived from bytes the ledger already hashes rather than declared by hand."
+    },
+    {
+      "source": "in/BRIEF-U0.md item 2",
+      "tag": "read",
+      "text": "The owner's reason for tagged premises is that a wrong premise answered as a question stays wrong; the tag is what the owner answers, so it must be on every premise of a new decision."
+    },
+    {
+      "source": "ops/devlane/workflow/errors.py class Refusal",
+      "tag": "read",
+      "text": "Refusal(claim, expected=, actual=, needed=) is the lane's refusal shape and is fail-fast: first failure only."
+    },
+    {
+      "source": "this plan \u00a74 (no execution was permitted)",
+      "tag": "assumed",
+      "text": "Python 3 stdlib with json, hashlib, subprocess to a `cue` binary is enough for vet and extract; no third-party parser is needed because the extractable prose forms are markdown tables and fenced JSON."
+    },
+    {
+      "source": "ops/process/pipeline.md rows 3\u20135; in/BRIEF-U0.md \u00a7Constraints",
+      "tag": "read",
+      "text": "The stage-3 tests author gets this plan and the CONTRACT text only; plan_vet.py does not exist when the tests are written."
+    }
+  ],
+  "ref": "76fd53d99a0868a7fa860d1cca2473cc91853a88",
+  "refusals": [
+    "plan.absent-key",
+    "plan.derived-key",
+    "plan.root-parent",
+    "plan.stale-parent",
+    "plan.bound-prose",
+    "plan.deliverables-mismatch",
+    "plan.reopened",
+    "plan.settled-dropped",
+    "plan.undelegated",
+    "plan.leaf-open",
+    "plan.scope-drift",
+    "plan.scope-oversize",
+    "plan.gate-half",
+    "plan.gate-cost",
+    "plan.premise-tag",
+    "plan.premise-empty",
+    "plan.decision-not-new",
+    "plan.decision-unratified",
+    "plan.status",
+    "plan.decision-multiline",
+    "plan.stage-blocked",
+    "plan.drift"
+  ],
+  "scope": {
+    "dated": "2026-08-29",
+    "owner_words": "I want to get the mini-apps redone into a framework - it makes sense - i like symfony, its a good example | don't constrain it too much - this is a big task | you bring up something important - plans (contracts) at every level | these contracts and their economics are important | yes - but framework first",
+    "source": "in/BRIEF-U0.md (owner, in order, 2026-08-29)"
+  },
+  "settled": [
+    {
+      "dated": "2026-08-29",
+      "id": "framework-before-surface",
+      "ruled_by": "owner",
+      "where": "parent \u00a70; in/BRIEF-U0.md 'yes - but framework first'"
+    },
+    {
+      "dated": "2026-08-27",
+      "id": "wf-renamed-ledger",
+      "ruled_by": "owner",
+      "where": "parent \u00a70"
+    },
+    {
+      "dated": "2026-08-27",
+      "id": "capability-is-the-word",
+      "ruled_by": "owner",
+      "where": "parent \u00a70; capability-decisions.md"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "launcher-pinned",
+      "ruled_by": "owner",
+      "where": "parent \u00a70; in/BRIEF-U0.md \u00a7Constraints"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "beside-fixture-cutover",
+      "ruled_by": "owner",
+      "where": "parent \u00a70, \u00a78; in/BRIEF-U0.md \u00a7Constraints"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "plans-at-every-level",
+      "ruled_by": "owner",
+      "where": "in/BRIEF-U0.md 'plans (contracts) at every level'; 'these contracts and their economics are important'"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "stdlib-only",
+      "ruled_by": "owner",
+      "where": "in/BRIEF-U0.md \u00a7Constraints"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "cue-doctrine-positive-negative-raw",
+      "ruled_by": "owner",
+      "where": "in/BRIEF-U0.md \u00a7Constraints; after-action 5d87918"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "tests-by-non-implementer-then-skeptic",
+      "ruled_by": "owner",
+      "where": "in/BRIEF-U0.md \u00a7Constraints; ops/process/pipeline.md"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-plan-cue",
+      "ruled_by": "owner",
+      "where": "root plan decision carried for projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-language",
+      "ruled_by": "conductor",
+      "where": "root plan decision carried for projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-storage",
+      "ruled_by": "conductor",
+      "where": "root plan decision carried for projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-set",
+      "ruled_by": "conductor",
+      "where": "root plan decision carried for projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-context-custody",
+      "ruled_by": "conductor",
+      "where": "root plan decision carried for projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-size",
+      "ruled_by": "conductor",
+      "where": "root plan \u00a711 projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-order",
+      "ruled_by": "conductor",
+      "where": "root plan \u00a711 projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-anatomy",
+      "ruled_by": "conductor",
+      "where": "root plan \u00a711 projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-fixture-repo",
+      "ruled_by": "conductor",
+      "where": "root plan \u00a711 projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-hooks-listeners",
+      "ruled_by": "conductor",
+      "where": "root plan \u00a711 projection"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-launcher-after",
+      "ruled_by": "conductor",
+      "where": "root plan \u00a711 projection"
+    }
+  ],
+  "units": []
+}

@@ -1,0 +1,13 @@
+{
+  "change": "gates[0] omits cost",
+  "contract": "plan",
+  "fault": "plan.11.json",
+  "from": "examples/plan.json",
+  "reject_path": "plan\\.gate-cost",
+  "site": [
+    "gates",
+    0,
+    "cost"
+  ],
+  "violates": "\u00a73.1 enforce; \u00a75 N=11"
+}

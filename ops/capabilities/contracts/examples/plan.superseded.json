@@ -1,0 +1,108 @@
+{
+  "decisions": [
+    {
+      "id": "D-leaf-one",
+      "new": true,
+      "premises": [
+        {
+          "source": "owner 2026-08-29",
+          "tag": "read",
+          "text": "plans at every level"
+        }
+      ],
+      "ratified_by": "owner",
+      "sentence": "The earlier leaf decision is superseded by D-leaf-two.",
+      "status": "superseded"
+    },
+    {
+      "id": "D-leaf-two",
+      "new": true,
+      "premises": [
+        {
+          "source": "owner 2026-08-29",
+          "tag": "read",
+          "text": "plans at every level"
+        }
+      ],
+      "ratified_by": "owner",
+      "sentence": "The leaf delivers the plan gate under the replacement decision.",
+      "status": "standing"
+    }
+  ],
+  "deliverables": [
+    {
+      "interface": {
+        "declared_at": "example \u00a71",
+        "name": "#Plan"
+      },
+      "path": "contracts/plan.cue"
+    }
+  ],
+  "denied": [
+    "reading outside the snapshot"
+  ],
+  "discharge": {
+    "decisions_to": "docs/DECISIONS.md",
+    "design_to": "contracts/plan.md",
+    "lessons_to": "docs/lessons.md"
+  },
+  "economics": {
+    "write": {
+      "minutes": 1,
+      "tag": "assumed"
+    }
+  },
+  "gates": [
+    {
+      "argv": [
+        "python3",
+        "checks/plan_vet.py",
+        "vet",
+        "plan.json"
+      ],
+      "cost": "cheap",
+      "fires_on": "a planted fault",
+      "name": "plan-vet-leaf",
+      "quiet_on": "the clean leaf"
+    }
+  ],
+  "id": "example/leaf",
+  "open": [],
+  "parent": {
+    "bound_to": "sidecar",
+    "id": "example",
+    "sha256": "27af1e2ea72d54bf53118082fd1d88a0f72db510c54e6082ba7f8cb2d637307b",
+    "unit": "leaf"
+  },
+  "premises": [
+    {
+      "source": "owner 2026-08-29",
+      "tag": "read",
+      "text": "plans at every level"
+    }
+  ],
+  "ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "refusals": [
+    "plan.stale-parent"
+  ],
+  "scope": {
+    "dated": "2026-08-29",
+    "owner_words": "framework first",
+    "source": "owner 2026-08-29"
+  },
+  "settled": [
+    {
+      "dated": "2026-08-29",
+      "id": "framework-before-surface",
+      "ruled_by": "owner",
+      "where": "owner 2026-08-29"
+    },
+    {
+      "dated": "2026-08-29",
+      "id": "D-root-one",
+      "ruled_by": "owner",
+      "where": "parent decision D-root-one"
+    }
+  ],
+  "units": []
+}
