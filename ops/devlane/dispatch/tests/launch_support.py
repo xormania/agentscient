@@ -31,6 +31,7 @@ import tempfile
 import time
 import types
 import unittest
+import urllib.parse
 from pathlib import Path
 
 import support
@@ -640,6 +641,33 @@ def git_env(home: Path) -> dict:
         "GIT_TERMINAL_PROMPT": "0",
     })
     return env
+
+
+def resolve_record_paths(rec):
+    """A record on disk carries the two harness encodings of its snapshot
+    path as ``<snapshot-slug>`` and ``<snapshot-encoded>`` (the launcher's
+    ``_portable_paths``; the term wall refuses the encoded account name).
+    Mirror of the launcher's ``_absolute_paths`` for tests that read the
+    record file directly and then open the stream it names."""
+    snapshot = str((rec.get("snapshot") or {}).get("root") or "")
+    if not snapshot.startswith("/"):
+        return rec
+    subs = [("<snapshot-slug>", re.sub(r"[/.]", "-", snapshot)),
+            ("<snapshot-encoded>", urllib.parse.quote(snapshot, safe=""))]
+
+    def walk(value):
+        if isinstance(value, str):
+            for old, new in subs:
+                if old in value:
+                    value = value.replace(old, new)
+            return value
+        if isinstance(value, list):
+            return [walk(x) for x in value]
+        if isinstance(value, dict):
+            return {k: walk(x) for k, x in value.items()}
+        return value
+
+    return walk(rec)
 
 
 def claude_slug(cwd: str) -> str:
