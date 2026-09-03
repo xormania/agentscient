@@ -634,11 +634,24 @@ class Row8EffortResolution(_WrapperFixture):
 
     def test_env_effort_harness_job_beats_conf(self):
         env_effort = "wrap-effort-env-job"
+        conf_effort = "wrap-effort-conf-job"
+        self.assertNotEqual(env_effort, conf_effort)
+        self.assertNotEqual(env_effort, self.conf_effort_grok)
+        self.assertNotEqual(conf_effort, self.conf_effort_grok)
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(EFFORT_GROK_WRAP_JOB=conf_effort),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("EFFORT_GROK_WRAP_JOB=", landed)
+        self.assertIn(conf_effort, landed)
+        self.assertNotIn(env_effort, landed)
         extra = {"EFFORT_GROK_WRAP_JOB": env_effort}
         proc = self.invoke(self.full_flags(), extra_env=extra)
         argv, _env = self.parse_dry_run(proc)
         self.assertEqual(argv, self.expected_argv(effort=env_effort))
         self.assertEqual(argv[argv.index("--effort") + 1], env_effort)
+        self.assertNotEqual(argv[argv.index("--effort") + 1], conf_effort)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assert_no_launch()
 
