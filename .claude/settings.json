@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/context-precheck.sh" }
+        ]
+      },
+      {
+        "matcher": "Agent|Workflow|Task",
+        "hooks": [
+          { "type": "command", "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/no-subagents.py" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/context-boundary.sh" }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/test-guard-hook.sh" }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|mcp__serena__(replace|insert|rename|safe_delete).*",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/ruff-after-edit.sh" }
+        ]
+      }
+    ]
+  }
+}
