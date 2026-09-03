@@ -13,14 +13,14 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-03T23:24:47Z",
-    "closed": null
+    "closed": "2026-09-03T23:30:30Z"
   },
   "snapshot": {
     "mode": "whole",
     "ref_name": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
     "ref_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
     "behind_tip": 0,
-    "root": "<job 20260903T232447Z-review-codex-9c696a>/snapshot"
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/snapshot"
   },
   "harness": {
     "name": "codex",
@@ -28,13 +28,13 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "CODEX_HOME": "<job 20260903T232447Z-review-codex-9c696a>/home/codex"
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex"
       },
-      "store": "<job 20260903T232447Z-review-codex-9c696a>/home/codex/sessions",
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "<job 20260903T232447Z-review-codex-9c696a>/home/codex",
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex",
       "auth_files": [
         "auth.json"
       ]
@@ -47,14 +47,14 @@
       "--sandbox",
       "workspace-write",
       "-c",
-      "sandbox_workspace_write.writable_roots=[\"<job 20260903T232447Z-review-codex-9c696a>/out\"]",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/out\"]",
       "--model",
       "gpt-daybreak-blue-latest",
       "-c",
       "model_reasoning_effort=\"xhigh\"",
       "--json",
       "-o",
-      "<job 20260903T232447Z-review-codex-9c696a>/out/last-message.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/out/last-message.json",
       "-"
     ]
   },
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl"
   },
   "session": {
-    "id": "ff42a9cb-fd7e-45fa-b018-3e237926e8a2",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a06996-d7f3-7a93-b34a-85756afa884e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl",
+    "stream_sha256_at_close": "a7f3ad078d83eb732e62ce60cb220a83442c5e51b0bd733d7ca2abfa3c11a612",
+    "spend": {
+      "input": 3186939,
+      "cached": 3041092,
+      "output": 20864,
+      "total": 3207803,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T19-24-48-01a06996-d7f3-7a93-b34a-85756afa884e.jsonl",
+      "messages": 243
+    }
   },
   "brief": {
     "template": {
@@ -86,10 +93,85 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-03T23:24:47Z",
+      "ended": "2026-09-03T23:30:29Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/dispatch.sh:124-140",
+          "claim": "The unvalidated job name enters Bash indirect expansion. Array-subscript command substitutions are evaluated before jobs.json validation, permitting arbitrary host commands even during --dry-run.",
+          "reproduce": "C=-c PAYLOAD='printf \"INDIRECT_EXECUTED\\n\" >&2' LAUNCHER_PIN=ops/devlane/dispatch/launch.py bash ops/conductor/tools/dispatch.sh --job 'x[$(${BASH} ${C} \"${PAYLOAD}\")]' --harness codex --scope-file ops/devlane/infra/secrets/README.md --worktree . --dry-run"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/jobs.json security-audit; ops/devlane/dispatch/launch.py:166-174,1080-1103",
+          "claim": "security-audit declares a read-only role, but Codex receives workspace-write. Snapshot modifications by a read role are recorded but do not invalidate an approving envelope, allowing the auditor to alter its evidence.",
+          "reproduce": "python3 -c 'import json; j=json.load(open(\"ops/devlane/task/jobs.json\"))[\"security-audit\"]; print(j[\"role\"], j[\"constraints\"])' && sed -n '166,174p;1080,1103p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/record.py:73-81",
+          "claim": "The new effort evidence validator accepts any token merely containing the requested effort and never compares effort_argv with harness.argv. A record claiming xhigh therefore validates even when no effort option reached the CLI.",
+          "reproduce": "cd ops/devlane/dispatch/tests && PYTHONDONTWRITEBYTECODE=1 python3 -c 'from test_record import _RecordCase; c=_RecordCase(\"runTest\"); r=c.built(); r[\"model\"][\"effort_requested\"]=\"xhigh\"; r[\"model\"][\"effort_argv\"]=[\"not-xhigh\"]; r[\"harness\"][\"argv\"]=[\"codex\",\"exec\",\"--model\",\"M\"]; v=c.recmod().validate(r); print(v[\"model\"][\"effort_argv\"], v[\"harness\"][\"argv\"])'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:340-376",
+          "claim": "The launcher accepts security-audit results without checking the effort reported by the vendor stream. Codex turn_context and Grok summaries expose actual effort, but _stream ignores both, so a silently downgraded security audit remains valid.",
+          "reproduce": "sed -n '100,116p;140,153p' ops/devlane/fixtures/stores.py; sed -n '340,376p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/dispatch.conf:13",
+          "claim": "The new security gate is assigned to the floating gpt-daybreak-blue-latest alias. Its implementation can change without a repository diff or immutable version pin.",
+          "reproduce": "git diff --unified=0 f295d0cf53eadb1634c999d6b2820b89286022f9 03cf55c539df9e049519eb963ca582f6f0ddcec4 -- ops/conductor/tools/dispatch.conf | rg '^\\+MODEL_CODEX_SECURITY_AUDIT=.*latest'"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/context/diff.patch",
+        "tree": "/home/scientdb/.local/state/agentscient/dispatch/20260903T232447Z-review-codex-9c696a/snapshot"
+      },
+      "spend": {
+        "unresolved": "usage unavailable to auditor"
+      },
+      "stamp": {
+        "ref": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+        "started": null,
+        "ended": "2026-09-03T23:29:42Z"
+      },
+      "note": "Read all 1,816 diff lines and inspected the changed tree. Shell/argv, permissions, vendor evidence, secrets, paths/refs, templates, SQL, and supply-chain surfaces were covered. Secret scan was clean across 19 changed tracked files; no SQL or dependency/lock/action changes were present. ../in contained no files, so there were no named inputs there; the named diff under ../context was read whole. Live vendor execution, network behavior, and destructive containment probes were not covered."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-03T23:30:29.405Z"
+    }
+  },
+  "status": "closed"
 }
