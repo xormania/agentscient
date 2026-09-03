@@ -1,16 +1,64 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(cd *)",
+      "Bash(git *)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)",
+      "Bash(gh variable list *)",
+      "Bash(composer *)",
+      "Bash(php *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(bash ops/bin/*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/context-precheck.sh" }
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/context-precheck.sh"
+          }
         ]
       },
       {
         "matcher": "Agent|Workflow|Task",
         "hooks": [
-          { "type": "command", "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/no-subagents.py" }
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/no-subagents.py"
+          }
         ]
       }
     ],
@@ -18,19 +66,28 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/context-boundary.sh" }
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/context-boundary.sh"
+          }
         ]
       },
       {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/test-guard-hook.sh" }
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/test-guard-hook.sh"
+          }
         ]
       },
       {
         "matcher": "Write|Edit|MultiEdit|mcp__serena__(replace|insert|rename|safe_delete).*",
         "hooks": [
-          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/ruff-after-edit.sh" }
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/ruff-after-edit.sh"
+          }
         ]
       }
     ]
