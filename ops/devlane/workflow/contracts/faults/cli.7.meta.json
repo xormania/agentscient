@@ -1,0 +1,12 @@
+{
+  "contract": "cli",
+  "fault": "cli.7.json",
+  "from": "obs/cli.json",
+  "change": "`--source` is declared non-repeatable (action `store`) everywhere it is added",
+  "violates": "PLAN.md §5 lines 299-301",
+  "quote": "\"every chain-appending verb accepts a repeatable `--source`, recorded in the event payload and emitted as additional commit trailers\"",
+  "reject_path": "action\\b|append|--source|source",
+  "implied": false,
+  "sites": 18,
+  "note": "`--source` is added once globally and once per command by the same helper; the repeatability constraint is one constraint, so all sites carry the same value. Changing the global alone would leave 17 `append` declarations to satisfy a contract that looks per-command."
+}

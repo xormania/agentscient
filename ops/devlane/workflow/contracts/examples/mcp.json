@@ -1,0 +1,6 @@
+{
+  "facts": {
+    "verb_literals": ["log", "next", "status"]
+  },
+  "provenance": {}
+}

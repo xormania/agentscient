@@ -1,0 +1,10 @@
+{
+  "contract": "schema",
+  "fault": "schema.2.json",
+  "from": "obs/schema.json",
+  "change": "the `claims` table's `agent` column is named `owner` again",
+  "violates": "PLAN.md §2 line 55 (with §3.2 line 105)",
+  "quote": "\"`claims` (TTL, reclaim-as-heartbeat, exit 3) | **as-is** | `owner` column becomes `agent`\"",
+  "reject_path": "facts\\.tables\\.[0-9]+\\.columns\\.[0-9]+\\.name|owner",
+  "implied": false
+}

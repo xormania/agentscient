@@ -1,0 +1,781 @@
+{
+  "facts": {
+    "joined": "  \n compose term(s)\n design file(s) scanned, \n dev-lane term(s) in the design tree\n file(s) scanned, \n in: \n reserved term(s)\n(?![\\w-])\n(?<![\\w-])\n*\n--root\n.\n.adoc\n.claude/\n.cue\n.dev/\nops/docs/scratch/\n.dev/handoffs/\nops/devlane/infra/\n.dev/records/\n.git/\n.github/\n.json\n.md\n.py\n.rst\n.serena/\n.toml\n.txt\n.yaml\n.yml\n/\n:\n: \nAGENTS.md\nCONTRIB.md\nREADME.md\nThe two-direction vocabulary wall, as a registered check (PLAN \u00a710).\n\nDev-lane terms \u2014 work order, gate, stage, receipt, red/green, frozen set,\nchain, claim, marker, packet, wf, capability \u2014 exist only under `.dev/`, in the root\ndev-lane surfaces, and in dev-lane commits and PRs. They never appear in\nthe product's design artifacts, contracts or specs: the product describes itself\nin its own vocabulary, and a process word in a design artifact is scope\nleakage.\n\nExit 0 only when both passes are clean; exit 1 when either pass finds a term.\nPrints every hit, because a check that says only \"failed\" makes the reader\ngo and re-run it by hand.\n\n    vocabulary_wall.py [--root DIR] [PATH ...]\n\nWith no PATH, scans the design surfaces that exist: everything outside\n`.dev/`, `.git/`, and the root dev-lane files that are allowed to use the\nvocabulary.\n\nThe compose term is checked in the other direction across the dev-lane\nsurfaces. It is allowed only in `ops/devlane/infra/` (compose),\n`ops/docs/scratch/` (research), `.dev/handoffs/` (systemd),\n`.dev/records/` (evidence), and `.git/` (not a tree surface).\n\nThese words belong under .dev/ only (PLAN \u00a710).\n__main__\ncapabilities\ncapability\nchain\nclaim\nclaims\ndev-lane vocabulary wall\nfrozen set\ngate\ngates\ngreen stage\nmarker\nmarkers\npacket\npackets\npass 1\npass 2\npaths\nreceipt\nreceipts\nred stage\nruff.toml\n\u0073ervice\n\u0073ervices\nstage\nstages\nutf-8\nvocab.\u0073ervice-outside-infra: \nvocabulary wall: \nvocabulary wall: clean \u2014 \nvocabulary wall: nothing to scan \u2014 0 design file(s); no dev-lane term can be present, and none was looked for\nvocabulary wall: nothing to scan \u2014 0 file(s); compose term was not looked for\nwf\nwork order\nwork orders",
+    "literals": [
+      "  ",
+      " compose term(s)",
+      " design file(s) scanned, ",
+      " dev-lane term(s) in the design tree",
+      " file(s) scanned, ",
+      " in: ",
+      " reserved term(s)",
+      "(?![\\w-])",
+      "(?<![\\w-])",
+      "*",
+      "--root",
+      ".",
+      ".adoc",
+      ".claude/",
+      ".cue",
+      ".dev/",
+      "ops/docs/scratch/",
+      ".dev/handoffs/",
+      "ops/devlane/infra/",
+      ".dev/records/",
+      ".git/",
+      ".github/",
+      ".json",
+      ".md",
+      ".py",
+      ".rst",
+      ".serena/",
+      ".toml",
+      ".txt",
+      ".yaml",
+      ".yml",
+      "/",
+      ":",
+      ": ",
+      "AGENTS.md",
+      "CONTRIB.md",
+      "README.md",
+      "The two-direction vocabulary wall, as a registered check (PLAN \u00a710).\n\nDev-lane terms \u2014 work order, gate, stage, receipt, red/green, frozen set,\nchain, claim, marker, packet, wf, capability \u2014 exist only under `.dev/`, in the root\ndev-lane surfaces, and in dev-lane commits and PRs. They never appear in\nthe product's design artifacts, contracts or specs: the product describes itself\nin its own vocabulary, and a process word in a design artifact is scope\nleakage.\n\nExit 0 only when both passes are clean; exit 1 when either pass finds a term.\nPrints every hit, because a check that says only \"failed\" makes the reader\ngo and re-run it by hand.\n\n    vocabulary_wall.py [--root DIR] [PATH ...]\n\nWith no PATH, scans the design surfaces that exist: everything outside\n`.dev/`, `.git/`, and the root dev-lane files that are allowed to use the\nvocabulary.\n\nThe compose term is checked in the other direction across the dev-lane\nsurfaces. It is allowed only in `ops/devlane/infra/` (compose),\n`ops/docs/scratch/` (research), `.dev/handoffs/` (systemd),\n`.dev/records/` (evidence), and `.git/` (not a tree surface).\n",
+      "These words belong under .dev/ only (PLAN \u00a710).",
+      "__main__",
+      "capabilities",
+      "capability",
+      "chain",
+      "claim",
+      "claims",
+      "dev-lane vocabulary wall",
+      "frozen set",
+      "gate",
+      "gates",
+      "green stage",
+      "marker",
+      "markers",
+      "packet",
+      "packets",
+      "pass 1",
+      "pass 2",
+      "paths",
+      "receipt",
+      "receipts",
+      "red stage",
+      "ruff.toml",
+      "\u0073ervice",
+      "\u0073ervices",
+      "stage",
+      "stages",
+      "utf-8",
+      "vocab.\u0073ervice-outside-infra: ",
+      "vocabulary wall: ",
+      "vocabulary wall: clean \u2014 ",
+      "vocabulary wall: nothing to scan \u2014 0 design file(s); no dev-lane term can be present, and none was looked for",
+      "vocabulary wall: nothing to scan \u2014 0 file(s); compose term was not looked for",
+      "wf",
+      "work order",
+      "work orders"
+    ]
+  },
+  "provenance": {
+    "literals": [
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "  {hit}",
+        "kind": "f-string-segment",
+        "lines": "157-157",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "            print(f\"  {hit}\")",
+        "value": "  "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: clean \u2014 {service_scanned} file(s) scanned, {len(SERVICE_TERMS)} compose term(s)",
+        "kind": "f-string-segment",
+        "lines": "200-201",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: clean \u2014 {service_scanned} file(s) scanned,\"\n              f\" {len(SERVICE_TERMS)} compose term(s)\")",
+        "value": " compose term(s)"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: clean \u2014 {scanned} design file(s) scanned, {len(RESERVED)} reserved term(s)",
+        "kind": "f-string-segment",
+        "lines": "169-170",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: clean \u2014 {scanned} design file(s) scanned,\"\n              f\" {len(RESERVED)} reserved term(s)\")",
+        "value": " design file(s) scanned, "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: {len(hits)} dev-lane term(s) in the design tree",
+        "kind": "f-string-segment",
+        "lines": "155-155",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: {len(hits)} dev-lane term(s) in the design tree\")",
+        "value": " dev-lane term(s) in the design tree"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: clean \u2014 {service_scanned} file(s) scanned, {len(SERVICE_TERMS)} compose term(s)",
+        "kind": "f-string-segment",
+        "lines": "200-201",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: clean \u2014 {service_scanned} file(s) scanned,\"\n              f\" {len(SERVICE_TERMS)} compose term(s)\")",
+        "value": " file(s) scanned, "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "{shown}:{number}: {term} in: {line.strip()[:90]}",
+        "kind": "f-string-segment",
+        "lines": "149-149",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "                    hits.append(f\"{shown}:{number}: {term!r} in: {line.strip()[:90]}\")",
+        "value": " in: "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocab.\u0073ervice-outside-infra: {shown}:{number}: {SERVICE_TERMS[0]} in: {line.strip()[:90]}",
+        "kind": "f-string-segment",
+        "lines": "189-190",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "                        f\"vocab.\u0073ervice-outside-infra: {shown}:{number}: \"\n                        f\"{SERVICE_TERMS[0]!r} in: {line.strip()[:90]}\")",
+        "value": " in: "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: clean \u2014 {scanned} design file(s) scanned, {len(RESERVED)} reserved term(s)",
+        "kind": "f-string-segment",
+        "lines": "169-170",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: clean \u2014 {scanned} design file(s) scanned,\"\n              f\" {len(RESERVED)} reserved term(s)\")",
+        "value": " reserved term(s)"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "(?<![\\w-]){re.escape(term)}(?![\\w-])",
+        "kind": "f-string-segment",
+        "lines": "68-68",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "    return [(term, re.compile(rf\"(?<![\\w-]){re.escape(term)}(?![\\w-])\", re.IGNORECASE))",
+        "value": "(?![\\w-])"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "(?<![\\w-]){re.escape(term)}(?![\\w-])",
+        "kind": "f-string-segment",
+        "lines": "68-68",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "    return [(term, re.compile(rf\"(?<![\\w-]){re.escape(term)}(?![\\w-])\", re.IGNORECASE))",
+        "value": "(?<![\\w-])"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "81-81",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "                yield from (p for p in sorted(path.rglob(\"*\")) if p.is_file())",
+        "value": "*"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "85-85",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    for path in sorted(root.rglob(\"*\")):",
+        "value": "*"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "105-105",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "                candidates.extend(p for p in path.rglob(\"*\") if p.is_file())",
+        "value": "*"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "118-118",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "                candidates.extend(p for p in base.rglob(\"*\") if p.is_file())",
+        "value": "*"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "129-129",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    parser.add_argument(\"paths\", nargs=\"*\")",
+        "value": "*"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "128-128",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    parser.add_argument(\"--root\", default=\".\")",
+        "value": "--root"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "128-128",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    parser.add_argument(\"--root\", default=\".\")",
+        "value": "."
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".adoc"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "48-48",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_PREFIXES = (\".dev/\", \".git/\", \".github/\", \".claude/\", \".serena/\")",
+        "value": ".claude/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".cue"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "48-48",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_PREFIXES = (\".dev/\", \".git/\", \".github/\", \".claude/\", \".serena/\")",
+        "value": ".dev/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "60-60",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"ops/docs/scratch/\",",
+        "value": "ops/docs/scratch/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "61-61",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \".dev/handoffs/\",",
+        "value": ".dev/handoffs/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "59-59",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"ops/devlane/infra/\",",
+        "value": "ops/devlane/infra/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "62-62",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \".dev/records/\",",
+        "value": ".dev/records/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "48-48",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_PREFIXES = (\".dev/\", \".git/\", \".github/\", \".claude/\", \".serena/\")",
+        "value": ".git/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "63-63",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \".git/\",",
+        "value": ".git/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "48-48",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_PREFIXES = (\".dev/\", \".git/\", \".github/\", \".claude/\", \".serena/\")",
+        "value": ".github/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "56-56",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "CODE_SUFFIXES = (\".py\", \".json\")",
+        "value": ".json"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".md"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "56-56",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "CODE_SUFFIXES = (\".py\", \".json\")",
+        "value": ".py"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".rst"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "48-48",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_PREFIXES = (\".dev/\", \".git/\", \".github/\", \".claude/\", \".serena/\")",
+        "value": ".serena/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".toml"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".txt"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".yaml"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "55-55",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "TEXT_SUFFIXES = {\".md\", \".txt\", \".rst\", \".adoc\", \".cue\", \".toml\", \".yaml\", \".yml\"}",
+        "value": ".yml"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "114-114",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "            base = root / prefix.rstrip(\"/\")",
+        "value": "/"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "{shown}:{number}: {term} in: {line.strip()[:90]}",
+        "kind": "f-string-segment",
+        "lines": "149-149",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "                    hits.append(f\"{shown}:{number}: {term!r} in: {line.strip()[:90]}\")",
+        "value": ":"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocab.\u0073ervice-outside-infra: {shown}:{number}: {SERVICE_TERMS[0]} in: {line.strip()[:90]}",
+        "kind": "f-string-segment",
+        "lines": "189-190",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "                        f\"vocab.\u0073ervice-outside-infra: {shown}:{number}: \"\n                        f\"{SERVICE_TERMS[0]!r} in: {line.strip()[:90]}\")",
+        "value": ":"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "{shown}:{number}: {term} in: {line.strip()[:90]}",
+        "kind": "f-string-segment",
+        "lines": "149-149",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "                    hits.append(f\"{shown}:{number}: {term!r} in: {line.strip()[:90]}\")",
+        "value": ": "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocab.\u0073ervice-outside-infra: {shown}:{number}: {SERVICE_TERMS[0]} in: {line.strip()[:90]}",
+        "kind": "f-string-segment",
+        "lines": "189-190",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "                        f\"vocab.\u0073ervice-outside-infra: {shown}:{number}: \"\n                        f\"{SERVICE_TERMS[0]!r} in: {line.strip()[:90]}\")",
+        "value": ": "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "53-53",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_FILES = (\"AGENTS.md\", \"CONTRIB.md\", \"README.md\", \"ruff.toml\")",
+        "value": "AGENTS.md"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "53-53",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_FILES = (\"AGENTS.md\", \"CONTRIB.md\", \"README.md\", \"ruff.toml\")",
+        "value": "CONTRIB.md"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "53-53",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_FILES = (\"AGENTS.md\", \"CONTRIB.md\", \"README.md\", \"ruff.toml\")",
+        "value": "README.md"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "2-25",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "\"\"\"The two-direction vocabulary wall, as a registered check (PLAN \u00a710).\n\nDev-lane terms \u2014 work order, gate, stage, receipt, red/green, frozen set,\nchain, claim, marker, packet, wf, capability \u2014 exist only under `.dev/`, in the root\ndev-lane surfaces, and in dev-lane commits and PRs. They never appear in\nthe product's design artifacts, contracts or specs: the product describes itself\nin its own vocabulary, and a process word in a design artifact is scope\nleakage.\n\nExit 0 only when both passes are clean; exit 1 when either pass finds a term.\nPrints every hit, because a check that says only \"failed\" makes the reader\ngo and re-run it by hand.\n\n    vocabulary_wall.py [--root DIR] [PATH ...]\n\nWith no PATH, scans the design surfaces that exist: everything outside\n`.dev/`, `.git/`, and the root dev-lane files that are allowed to use the\nvocabulary.\n\nThe compose term is checked in the other direction across the dev-lane\nsurfaces. It is allowed only in `ops/devlane/infra/` (compose),\n`ops/docs/scratch/` (research), `.dev/handoffs/` (systemd),\n`.dev/records/` (evidence), and `.git/` (not a tree surface).\n\"\"\"",
+        "value": "The two-direction vocabulary wall, as a registered check (PLAN \u00a710).\n\nDev-lane terms \u2014 work order, gate, stage, receipt, red/green, frozen set,\nchain, claim, marker, packet, wf, capability \u2014 exist only under `.dev/`, in the root\ndev-lane surfaces, and in dev-lane commits and PRs. They never appear in\nthe product's design artifacts, contracts or specs: the product describes itself\nin its own vocabulary, and a process word in a design artifact is scope\nleakage.\n\nExit 0 only when both passes are clean; exit 1 when either pass finds a term.\nPrints every hit, because a check that says only \"failed\" makes the reader\ngo and re-run it by hand.\n\n    vocabulary_wall.py [--root DIR] [PATH ...]\n\nWith no PATH, scans the design surfaces that exist: everything outside\n`.dev/`, `.git/`, and the root dev-lane files that are allowed to use the\nvocabulary.\n\nThe compose term is checked in the other direction across the dev-lane\nsurfaces. It is allowed only in `ops/devlane/infra/` (compose),\n`ops/docs/scratch/` (research), `.dev/handoffs/` (systemd),\n`.dev/records/` (evidence), and `.git/` (not a tree surface).\n"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "158-158",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "        print(\"These words belong under .dev/ only (PLAN \u00a710).\")",
+        "value": "These words belong under .dev/ only (PLAN \u00a710)."
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "205-205",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "if __name__ == \"__main__\":",
+        "value": "__main__"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "40-40",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"wf\", \"capability\", \"capabilities\",",
+        "value": "capabilities"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "40-40",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"wf\", \"capability\", \"capabilities\",",
+        "value": "capability"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "39-39",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"chain\", \"claim\", \"claims\", \"marker\", \"markers\", \"packet\", \"packets\",",
+        "value": "chain"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "39-39",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"chain\", \"claim\", \"claims\", \"marker\", \"markers\", \"packet\", \"packets\",",
+        "value": "claim"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "39-39",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"chain\", \"claim\", \"claims\", \"marker\", \"markers\", \"packet\", \"packets\",",
+        "value": "claims"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "127-127",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    parser = argparse.ArgumentParser(description=\"dev-lane vocabulary wall\")",
+        "value": "dev-lane vocabulary wall"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "38-38",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"receipt\", \"receipts\", \"red stage\", \"green stage\", \"frozen set\",",
+        "value": "frozen set"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "37-37",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"work order\", \"work orders\", \"gate\", \"gates\", \"stage\", \"stages\",",
+        "value": "gate"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "37-37",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"work order\", \"work orders\", \"gate\", \"gates\", \"stage\", \"stages\",",
+        "value": "gates"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "38-38",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"receipt\", \"receipts\", \"red stage\", \"green stage\", \"frozen set\",",
+        "value": "green stage"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "39-39",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"chain\", \"claim\", \"claims\", \"marker\", \"markers\", \"packet\", \"packets\",",
+        "value": "marker"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "39-39",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"chain\", \"claim\", \"claims\", \"marker\", \"markers\", \"packet\", \"packets\",",
+        "value": "markers"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "39-39",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"chain\", \"claim\", \"claims\", \"marker\", \"markers\", \"packet\", \"packets\",",
+        "value": "packet"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "39-39",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"chain\", \"claim\", \"claims\", \"marker\", \"markers\", \"packet\", \"packets\",",
+        "value": "packets"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "152-152",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    print(\"pass 1\")",
+        "value": "pass 1"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "192-192",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    print(\"pass 2\")",
+        "value": "pass 2"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "129-129",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    parser.add_argument(\"paths\", nargs=\"*\")",
+        "value": "paths"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "38-38",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"receipt\", \"receipts\", \"red stage\", \"green stage\", \"frozen set\",",
+        "value": "receipt"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "38-38",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"receipt\", \"receipts\", \"red stage\", \"green stage\", \"frozen set\",",
+        "value": "receipts"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "38-38",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"receipt\", \"receipts\", \"red stage\", \"green stage\", \"frozen set\",",
+        "value": "red stage"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "53-53",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "ALLOWED_FILES = (\"AGENTS.md\", \"CONTRIB.md\", \"README.md\", \"ruff.toml\")",
+        "value": "ruff.toml"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "57-57",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "SERVICE_TERMS = (\"serv\\u0069ce\", \"serv\\u0069ces\")",
+        "value": "\u0073ervice"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "57-57",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "SERVICE_TERMS = (\"serv\\u0069ce\", \"serv\\u0069ces\")",
+        "value": "\u0073ervices"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "37-37",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"work order\", \"work orders\", \"gate\", \"gates\", \"stage\", \"stages\",",
+        "value": "stage"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "37-37",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"work order\", \"work orders\", \"gate\", \"gates\", \"stage\", \"stages\",",
+        "value": "stages"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "139-139",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "            text = path.read_text(encoding=\"utf-8\")",
+        "value": "utf-8"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "176-176",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "            text = path.read_text(encoding=\"utf-8\")",
+        "value": "utf-8"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocab.\u0073ervice-outside-infra: {shown}:{number}: {SERVICE_TERMS[0]} in: {line.strip()[:90]}",
+        "kind": "f-string-segment",
+        "lines": "189-190",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "                        f\"vocab.\u0073ervice-outside-infra: {shown}:{number}: \"\n                        f\"{SERVICE_TERMS[0]!r} in: {line.strip()[:90]}\")",
+        "value": "vocab.\u0073ervice-outside-infra: "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: {len(hits)} dev-lane term(s) in the design tree",
+        "kind": "f-string-segment",
+        "lines": "155-155",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: {len(hits)} dev-lane term(s) in the design tree\")",
+        "value": "vocabulary wall: "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: clean \u2014 {scanned} design file(s) scanned, {len(RESERVED)} reserved term(s)",
+        "kind": "f-string-segment",
+        "lines": "169-170",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: clean \u2014 {scanned} design file(s) scanned,\"\n              f\" {len(RESERVED)} reserved term(s)\")",
+        "value": "vocabulary wall: clean \u2014 "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "fstring_template": "vocabulary wall: clean \u2014 {service_scanned} file(s) scanned, {len(SERVICE_TERMS)} compose term(s)",
+        "kind": "f-string-segment",
+        "lines": "200-201",
+        "rule": "\u00a75.12 string constant of the vocabulary wall, ADAPTED: an f-string literal segment",
+        "text": "        print(f\"vocabulary wall: clean \u2014 {service_scanned} file(s) scanned,\"\n              f\" {len(SERVICE_TERMS)} compose term(s)\")",
+        "value": "vocabulary wall: clean \u2014 "
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "166-167",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "        print(\"vocabulary wall: nothing to scan \u2014 0 design file(s);\"\n              \" no dev-lane term can be present, and none was looked for\")",
+        "value": "vocabulary wall: nothing to scan \u2014 0 design file(s); no dev-lane term can be present, and none was looked for"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "198-198",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "        print(\"vocabulary wall: nothing to scan \u2014 0 file(s); compose term was not looked for\")",
+        "value": "vocabulary wall: nothing to scan \u2014 0 file(s); compose term was not looked for"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "40-40",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"wf\", \"capability\", \"capabilities\",",
+        "value": "wf"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "37-37",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"work order\", \"work orders\", \"gate\", \"gates\", \"stage\", \"stages\",",
+        "value": "work order"
+      },
+      {
+        "file": "checks/vocabulary_wall.py",
+        "kind": "constant",
+        "lines": "37-37",
+        "rule": "\u00a75.12 string constant of the vocabulary wall",
+        "text": "    \"work order\", \"work orders\", \"gate\", \"gates\", \"stage\", \"stages\",",
+        "value": "work orders"
+      }
+    ],
+    "readings": [
+      "docstrings are string constants and are included",
+      "f-string literal segments are included and flagged kind: \"f-string-segment\"; their reconstructed template is in fstring_template and is not itself a literal",
+      "joined is \"\\n\".join(literals) over the sorted unique list, so a term spanning two literals is not a substring of it"
+    ],
+    "target": "checks/vocabulary_wall.py"
+  }
+}

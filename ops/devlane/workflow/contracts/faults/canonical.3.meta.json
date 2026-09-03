@@ -1,0 +1,10 @@
+{
+  "contract": "canonical",
+  "fault": "canonical.3.json",
+  "from": "obs/canonical.json",
+  "change": "canonical.py also uses hashlib.md5",
+  "violates": "PLAN.md §3.1 line 79 (with §2 line 52, §6 line 355)",
+  "quote": "\"`state_sha256`, and `hash` = SHA-256 over the canonical JSON of the event without its own hash field\"",
+  "reject_path": "facts\\.hashlib_algorithms(\\.[0-9]+)?\\b|md5",
+  "implied": false
+}

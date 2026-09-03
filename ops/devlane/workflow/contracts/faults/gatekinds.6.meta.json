@@ -1,0 +1,10 @@
+{
+  "contract": "gatekinds",
+  "fault": "gatekinds.6.json",
+  "from": "obs/gatekinds.json",
+  "change": "the tdd red stage requires `receipt.compile` to leave, an event type PLAN.md never lists",
+  "violates": "PLAN.md §6 line 331 (with §3.2 lines 112-121, §3.3 lines 130-144)",
+  "quote": "\"A spec names, per version: ordered stages, the receipts/outcomes required to leave each stage\" / \"| test receipts | `receipt.red`, `receipt.green` |\"",
+  "reject_path": "facts\\.kinds\\.[0-9]+\\.spec\\.stages\\.[0-9]+\\.leave_requires(\\.[0-9]+)?\\b|receipt\\.compile",
+  "implied": false
+}

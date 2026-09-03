@@ -1,0 +1,52 @@
+{
+  "facts": {
+    "hashlib_algorithms": [
+      "sha256"
+    ],
+    "json_dumps_calls": [
+      {
+        "keywords": {
+          "allow_nan": false,
+          "separators": [
+            ",",
+            ":"
+          ]
+        },
+        "line": 35
+      }
+    ]
+  },
+  "provenance": {
+    "hashlib_algorithms": [
+      {
+        "algorithm": "sha256",
+        "file": "canonical.py",
+        "lines": "52-52",
+        "rule": "\u00a75.8 attribute name used on the hashlib module",
+        "text": "    return hashlib.sha256(data).hexdigest()"
+      }
+    ],
+    "json_dumps_calls": [
+      {
+        "callee": "json.dumps",
+        "file": "canonical.py",
+        "keyword_source": {
+          "allow_nan": "False",
+          "separators": "(',', ':')",
+          "sort_keys": "True"
+        },
+        "lines": "35-35",
+        "positional": [
+          "obj"
+        ],
+        "rule": "\u00a75.8 a call to json.dumps; keywords read as literals, non-literals recorded as \"non-literal\"",
+        "text": "    return json.dumps(obj, sort_keys=True, separators=(\",\", \":\"), allow_nan=False)"
+      }
+    ],
+    "readings": [
+      "tuple/list keyword values are rendered as JSON arrays; the verbatim source is in text and keyword_source",
+      "positional arguments are not part of the \u00a75.8 shape and are carried in provenance only"
+    ],
+    "target": "canonical.py"
+  }
+}

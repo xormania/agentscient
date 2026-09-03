@@ -1,0 +1,34 @@
+{
+  "id": "cli-1ea66ee3",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md section 4 documents exactly sixteen CLI verbs, one line per command, with claim and release sharing a single table row.",
+  "observed": "The argparse surface exposes seventeen commands; the extra verb is named agents.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "238-238",
+      "quote": "One line per command."
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "247-247",
+      "quote": "`wf claim <wo> --agent A [--ttl 30m]` / `wf release <wo> --agent A`"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "259-259",
+      "quote": "| `wf export` | regenerate the tracked export from the DB (normally fired by `commit`) |"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "149-149",
+      "quote": "\"name\": \"agents\""
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "603-605",
+      "quote": "incompatible list lengths (16 and 17)"
+    }
+  ],
+  "action": "record-finding"
+}

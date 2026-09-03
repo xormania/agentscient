@@ -1,0 +1,10 @@
+{
+  "contract": "cli",
+  "fault": "cli.8.json",
+  "from": "obs/cli.json",
+  "change": "`wf advance` has no `--to` flag, so an earlier stage cannot be re-entered",
+  "violates": "PLAN.md §4 line 253 (with §3.3 lines 157-161)",
+  "quote": "\"`--to <stage> --reason` re-enters an earlier stage (§3.3)\" / \"**A voided freeze has an exit** … `wf advance --to <stage> --reason \\\"…\\\"`\"",
+  "reject_path": "facts\\.commands\\.[0-9]+\\.arguments\\b|--to",
+  "implied": false
+}

@@ -1,0 +1,31 @@
+{
+  "facts": {
+    "files": [
+      "PLAN.md",
+      "canonical.py",
+      "chain.py",
+      "gate-kinds/artifact.json",
+      "gate-kinds/tdd.json",
+      "gitio.py",
+      "meta.json",
+      "migrations/0001_foundation.sql",
+      "receipts.py",
+      "store.py",
+      "wf.py"
+    ],
+    "dirs": [
+      "attempts",
+      "chains",
+      "gate-kinds",
+      "migrations",
+      "objects",
+      "tests"
+    ],
+    "gitignore": []
+  },
+  "provenance": {
+    "source": "PLAN.md",
+    "lines": "328-330,468-479,513-519,565-576",
+    "note": "wf.db is omitted because it is a generated, gitignored local file; no ignore-file path or literal rule is documented."
+  }
+}

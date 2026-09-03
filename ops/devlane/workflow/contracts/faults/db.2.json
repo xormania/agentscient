@@ -1,0 +1,655 @@
+{
+  "facts": {
+    "present": true,
+    "tables": [
+      {
+        "name": "artifacts",
+        "columns": [
+          {
+            "name": "digest",
+            "type": "TEXT",
+            "notnull": false,
+            "pk": true
+          },
+          {
+            "name": "size",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "media_type",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "class",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "created_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "digest"
+        ]
+      },
+      {
+        "name": "attempts",
+        "columns": [
+          {
+            "name": "attempt_id",
+            "type": "TEXT",
+            "notnull": false,
+            "pk": true
+          },
+          {
+            "name": "wo_id",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "verb",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "agent",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "argv",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "attempted_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "duration_ms",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "exit_code",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "record_kind",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "exhaustiveness",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "reason",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "event_appended",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "seq_before",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "seq_after",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "head_before",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "head_after",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "stage_before",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "stage_after",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "stdout_tail",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "stderr_tail",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "stdout_sha256",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "stderr_sha256",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "attempt_id"
+        ]
+      },
+      {
+        "name": "claims",
+        "columns": [
+          {
+            "name": "wo_id",
+            "type": "TEXT",
+            "notnull": false,
+            "pk": true
+          },
+          {
+            "name": "agent",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "note",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "acquired_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "expires_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "wo_id"
+        ]
+      },
+      {
+        "name": "events",
+        "columns": [
+          {
+            "name": "wo_id",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": true
+          },
+          {
+            "name": "seq",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": true
+          },
+          {
+            "name": "hash",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "prev",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "time",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "payload",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "state_sha256",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "seq",
+          "wo_id"
+        ]
+      },
+      {
+        "name": "gate_kinds",
+        "columns": [
+          {
+            "name": "kind",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": true
+          },
+          {
+            "name": "version",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": true
+          },
+          {
+            "name": "spec_json",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "spec_sha256",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "synced_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "kind",
+          "version"
+        ]
+      },
+      {
+        "name": "schema_migrations",
+        "columns": [
+          {
+            "name": "version",
+            "type": "INTEGER",
+            "notnull": false,
+            "pk": true
+          },
+          {
+            "name": "name",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "sha256",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "applied_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "version"
+        ]
+      },
+      {
+        "name": "sessions",
+        "columns": [
+          {
+            "name": "session_id",
+            "type": "TEXT",
+            "notnull": false,
+            "pk": true
+          },
+          {
+            "name": "agent",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "wo_id",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "status",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "started_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "last_seen",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "ttl_seconds",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "session_id"
+        ]
+      },
+      {
+        "name": "wo_state",
+        "columns": [
+          {
+            "name": "wo_id",
+            "type": "TEXT",
+            "notnull": false,
+            "pk": true
+          },
+          {
+            "name": "state_json",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "state_sha256",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "last_seq",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "last_hash",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "wo_id"
+        ]
+      },
+      {
+        "name": "work_orders",
+        "columns": [
+          {
+            "name": "wo_id",
+            "type": "TEXT",
+            "notnull": false,
+            "pk": true
+          },
+          {
+            "name": "objective",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "kind",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "kind_version",
+            "type": "INTEGER",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "spec_sha256",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          },
+          {
+            "name": "created_at",
+            "type": "TEXT",
+            "notnull": true,
+            "pk": false
+          }
+        ],
+        "primary_key": [
+          "wo_id"
+        ]
+      }
+    ],
+    "gate_kinds": [
+      {
+        "kind": "artifact",
+        "version": 1,
+        "spec_sha256_raw": "dbbf262a3ea2b59568c1ced6ccc89aa07e873a1480a3a5d3ce00c73200b5e1fd",
+        "spec_sha256_canonical": "dbbf262a3ea2b59568c1ced6ccc89aa07e873a1480a3a5d3ce00c73200b5e1fd"
+      },
+      {
+        "kind": "tdd",
+        "version": 1,
+        "spec_sha256_raw": "495984ff1dbe22386e09d65a3a11ba675b6c9a46ae08e2f9a534cd75a478f20e",
+        "spec_sha256_canonical": "495984ff1dbe22386e09d65a3a11ba675b6c9a46ae08e2f9a534cd75a478f20e"
+      }
+    ],
+    "schema_migrations": [
+      "foundation.sql"
+    ],
+    "work_orders_count": 0
+  },
+  "provenance": {
+    "extractor": "contracts/extract/db.py",
+    "method": "wf.db copied to a temp file; the copy opened file:<copy>?mode=ro; sqlite_master + PRAGMA table_info + SELECTs. The original is never opened.",
+    "paths_relative_to": "ops/devlane/workflow",
+    "canonical_form": "json.dumps(obj, sort_keys=True, separators=(',',':'))",
+    "facts": {
+      "present": {
+        "file": "wf.db",
+        "lines": "n/a (binary SQLite database, 81920 bytes)",
+        "text": "sha256(wf.db) = 54042566f57c737141ece083cc6c9c5ea288f828e8527559d175bcb99374282a",
+        "rule": "5.2 present"
+      },
+      "tables[artifacts]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table artifacts; the database is not a text file)",
+        "text": "CREATE TABLE artifacts (\n  digest     TEXT PRIMARY KEY,\n  size       INTEGER NOT NULL,\n  media_type TEXT    NOT NULL,\n  class      TEXT    NOT NULL,\n  created_at TEXT    NOT NULL\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "digest"
+        ]
+      },
+      "tables[attempts]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table attempts; the database is not a text file)",
+        "text": "CREATE TABLE attempts (\n  attempt_id     TEXT    PRIMARY KEY,\n  wo_id          TEXT    NOT NULL,\n  verb           TEXT    NOT NULL,\n  agent          TEXT    NOT NULL,\n  argv           TEXT    NOT NULL,\n  attempted_at   TEXT    NOT NULL,\n  duration_ms    INTEGER NOT NULL,\n  exit_code      INTEGER NOT NULL,\n  record_kind    TEXT    NOT NULL,\n  exhaustiveness TEXT    NOT NULL DEFAULT '',\n  reason         TEXT    NOT NULL DEFAULT '',\n  event_appended INTEGER NOT NULL,\n  seq_before     INTEGER NOT NULL,\n  seq_after      INTEGER NOT NULL,\n  head_before    TEXT    NOT NULL DEFAULT '',\n  head_after     TEXT    NOT NULL DEFAULT '',\n  stage_before   TEXT    NOT NULL DEFAULT '',\n  stage_after    TEXT    NOT NULL DEFAULT '',\n  stdout_tail    TEXT    NOT NULL DEFAULT '',\n  stderr_tail    TEXT    NOT NULL DEFAULT '',\n  stdout_sha256  TEXT    NOT NULL DEFAULT '',\n  stderr_sha256  TEXT    NOT NULL DEFAULT ''\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "attempt_id"
+        ]
+      },
+      "tables[claims]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table claims; the database is not a text file)",
+        "text": "CREATE TABLE claims (\n  wo_id       TEXT PRIMARY KEY REFERENCES work_orders(wo_id),\n  agent       TEXT NOT NULL,\n  note        TEXT NOT NULL DEFAULT '',\n  acquired_at TEXT NOT NULL,\n  expires_at  TEXT NOT NULL\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "wo_id"
+        ]
+      },
+      "tables[events]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table events; the database is not a text file)",
+        "text": "CREATE TABLE events (\n  wo_id        TEXT    NOT NULL REFERENCES work_orders(wo_id),\n  seq          INTEGER NOT NULL,\n  hash         TEXT    NOT NULL,\n  prev         TEXT    NOT NULL,\n  time         TEXT    NOT NULL,\n  payload      TEXT    NOT NULL,\n  state_sha256 TEXT    NOT NULL,\n  PRIMARY KEY (wo_id, seq)\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "wo_id",
+          "seq"
+        ]
+      },
+      "tables[gate_kinds]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table gate_kinds; the database is not a text file)",
+        "text": "CREATE TABLE gate_kinds (\n  kind        TEXT    NOT NULL,\n  version     INTEGER NOT NULL,\n  spec_json   TEXT    NOT NULL,\n  spec_sha256 TEXT    NOT NULL,\n  synced_at   TEXT    NOT NULL,\n  PRIMARY KEY (kind, version)\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "kind",
+          "version"
+        ]
+      },
+      "tables[schema_migrations]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table schema_migrations; the database is not a text file)",
+        "text": "CREATE TABLE schema_migrations (\n  version    INTEGER PRIMARY KEY,\n  name       TEXT NOT NULL,\n  sha256     TEXT NOT NULL,\n  applied_at TEXT NOT NULL\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "version"
+        ]
+      },
+      "tables[sessions]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table sessions; the database is not a text file)",
+        "text": "CREATE TABLE sessions (\n  session_id  TEXT PRIMARY KEY,\n  agent       TEXT    NOT NULL,\n  wo_id       TEXT    NOT NULL DEFAULT '',\n  status      TEXT    NOT NULL,\n  started_at  TEXT    NOT NULL,\n  last_seen   TEXT    NOT NULL,\n  ttl_seconds INTEGER NOT NULL\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "session_id"
+        ]
+      },
+      "tables[wo_state]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table wo_state; the database is not a text file)",
+        "text": "CREATE TABLE wo_state (\n  wo_id        TEXT PRIMARY KEY REFERENCES work_orders(wo_id),\n  state_json   TEXT    NOT NULL,\n  state_sha256 TEXT    NOT NULL,\n  last_seq     INTEGER NOT NULL,\n  last_hash    TEXT    NOT NULL\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "wo_id"
+        ]
+      },
+      "tables[work_orders]": {
+        "file": "wf.db",
+        "lines": "n/a (sqlite_master.sql of table work_orders; the database is not a text file)",
+        "text": "CREATE TABLE work_orders (\n  wo_id        TEXT PRIMARY KEY,\n  objective    TEXT NOT NULL,\n  kind         TEXT NOT NULL,\n  kind_version INTEGER NOT NULL,\n  spec_sha256  TEXT NOT NULL,\n  created_at   TEXT NOT NULL\n)",
+        "rule": "5.2 tables: sqlite_master + PRAGMA table_info of the live database",
+        "primary_key_declaration_order": [
+          "wo_id"
+        ]
+      },
+      "gate_kinds[artifact@1]": {
+        "file": "wf.db",
+        "lines": "n/a (row of table gate_kinds; the database is not a text file)",
+        "text": "{\"checks\":[{\"argv\":[\"python3\",\"ops/devlane/workflow/checks/vocabulary_wall.py\"],\"ci\":true,\"class\":\"policy\",\"name\":\"vocabulary-wall\"},{\"argv\":[\"python3\",\"ops/devlane/workflow/checks/secret_scan.py\"],\"ci\":true,\"class\":\"security\",\"name\":\"secret-scan\"}],\"harness_scope\":[],\"kind\":\"artifact\",\"stages\":[{\"leave_requires\":[],\"name\":\"draft\"},{\"leave_requires\":[],\"name\":\"review\",\"outcomes\":{\"aborted\":\"terminal\",\"accepted\":\"ratify\",\"denied\":\"terminal\",\"finding\":\"fix\",\"rejected\":\"fix\"}},{\"advance_to\":\"review\",\"blocked_by_open_markers\":true,\"leave_requires\":[],\"name\":\"fix\"},{\"actor\":\"owner\",\"leave_requires\":[],\"name\":\"ratify\",\"outcomes\":{\"aborted\":\"terminal\",\"denied\":\"terminal\",\"ratified\":\"terminal\"}}],\"test_scope\":[],\"version\":1}",
+        "rule": "5.2 gate_kinds: kind, version, sha256 of stored spec_json (raw and canonical)",
+        "stored_spec_sha256_column": "dbbf262a3ea2b59568c1ced6ccc89aa07e873a1480a3a5d3ce00c73200b5e1fd",
+        "stored_bytes_are_already_canonical": true
+      },
+      "gate_kinds[tdd@1]": {
+        "file": "wf.db",
+        "lines": "n/a (row of table gate_kinds; the database is not a text file)",
+        "text": "{\"checks\":[{\"argv\":[\"cargo\",\"test\",\"--workspace\"],\"class\":\"build\",\"name\":\"cargo-test\"},{\"argv\":[\"cargo\",\"audit\"],\"class\":\"security\",\"name\":\"audit\"},{\"argv\":[\"python3\",\"ops/devlane/workflow/checks/secret_scan.py\"],\"ci\":true,\"class\":\"security\",\"name\":\"secret-scan\"},{\"argv\":[\"python3\",\"ops/devlane/workflow/checks/diagnostics.py\",\"--\",\"cargo\",\"check\",\"--message-format=json\"],\"class\":\"diagnostics\",\"name\":\"diagnostics\"}],\"harness_scope\":[\"Cargo.toml\",\"Cargo.lock\",\".cargo/**\",\"rust-toolchain*\",\"crates/*/build.rs\"],\"kind\":\"tdd\",\"stages\":[{\"leave_requires\":[],\"name\":\"spec\"},{\"leave_requires\":[\"receipt.red\"],\"name\":\"red\"},{\"leave_requires\":[\"receipt.green\"],\"name\":\"impl\",\"seals_frozen_set\":true},{\"leave_requires\":[],\"name\":\"review\",\"outcomes\":{\"accepted\":\"advance\",\"denied\":\"terminal\",\"finding\":\"impl\"}},{\"actor\":\"owner\",\"leave_requires\":[],\"name\":\"ratify\",\"outcomes\":{\"aborted\":\"terminal\",\"denied\":\"terminal\",\"ratified\":\"terminal\"}}],\"test_scope\":[\"crates/*/tests/**\",\"crates/*/src/**/*_test.rs\",\"ops/design/features/**\"],\"version\":1}",
+        "rule": "5.2 gate_kinds: kind, version, sha256 of stored spec_json (raw and canonical)",
+        "stored_spec_sha256_column": "495984ff1dbe22386e09d65a3a11ba675b6c9a46ae08e2f9a534cd75a478f20e",
+        "stored_bytes_are_already_canonical": true
+      },
+      "schema_migrations": {
+        "file": "wf.db",
+        "lines": "n/a (rows of table schema_migrations)",
+        "text": "0001_foundation.sql",
+        "rule": "5.2 schema_migrations: the version/name column, sorted",
+        "column_used": "name",
+        "columns_available": [
+          "version",
+          "name",
+          "sha256",
+          "applied_at"
+        ],
+        "all_column_values": {
+          "version": [
+            "1"
+          ],
+          "name": [
+            "0001_foundation.sql"
+          ],
+          "sha256": [
+            "6cef53631d100a66c98c79fb9100b55f75a1c8d8b3fec297d5a19b480ae69f8c"
+          ],
+          "applied_at": [
+            "<timestamp elided: SPEC section 4 forbids timestamps in observations>"
+          ]
+        },
+        "note": "5.2 marks the column name a GUESS. Both `name` and `version` exist; `name` was taken because it holds the migration filename, which is what 5.1 `migrations` lists."
+      },
+      "work_orders_count": {
+        "file": "wf.db",
+        "lines": "n/a (SELECT COUNT(*) FROM work_orders)",
+        "text": "SELECT COUNT(*) FROM work_orders; -> 0",
+        "rule": "5.2 work_orders_count",
+        "note": "the table exists and is empty; this 0 is an observation, not a default"
+      }
+    },
+    "sidecar_files_present": [],
+    "tables_present": [
+      "artifacts",
+      "attempts",
+      "claims",
+      "events",
+      "gate_kinds",
+      "schema_migrations",
+      "sessions",
+      "wo_state",
+      "work_orders"
+    ]
+  }
+}

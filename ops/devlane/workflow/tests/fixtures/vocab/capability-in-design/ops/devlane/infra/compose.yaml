@@ -1,0 +1,3 @@
+__VOCAB_SERVICES__:
+  db:
+    image: example

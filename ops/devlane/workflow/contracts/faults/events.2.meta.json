@@ -1,0 +1,10 @@
+{
+  "contract": "events",
+  "fault": "events.2.json",
+  "from": "obs/events.json",
+  "change": "the event type `commit.landed` appears nowhere in the tree",
+  "violates": "PLAN.md §3.2 line 120 (with §3.6 lines 205-207, §5 line 291)",
+  "quote": "\"| commit SHAs | `commit.landed` (see §3.5) |\"",
+  "reject_path": "facts\\.types\\b|commit\\.landed",
+  "implied": false
+}

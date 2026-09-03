@@ -1,0 +1,10 @@
+{
+  "contract": "layout",
+  "fault": "layout.2.json",
+  "from": "obs/layout.json",
+  "change": "wf.py is not in the tree",
+  "violates": "PLAN.md §8 line 471 (with §13 line 565)",
+  "quote": "\"  wf.py                # entry point (small stdlib modules beside it)\"",
+  "reject_path": "facts\\.files\\b|wf\\.py",
+  "implied": false
+}

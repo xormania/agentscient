@@ -1,0 +1,36 @@
+{
+  "id": "mcp-imports-append-layer",
+  "raised_by": "conductor",
+  "adjudicated": false,
+  "verdict": "ambiguous",
+  "action": "record-finding",
+
+  "rule": "PLAN.md section 9 says the MCP server is read-only by construction because it imports the query layer and not the append layer.",
+  "observed": "mcp_server.py imports `chain`, the module defining Chain.append, alongside `query`.",
+
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "486-487",
+      "quote": "Read-only by construction: it imports the query layer, not the append layer."
+    },
+    {
+      "artifact": "obs/mcp.json",
+      "lines": "facts.server_imports",
+      "quote": "[\"canonical\", \"cas\", \"chain\", \"errors\", \"gatekinds\", \"mcp_launch\", \"query\", \"store\"]"
+    }
+  ],
+
+  "why_ambiguous": "PLAN.md does not define which module IS the append layer, and importing `chain` is not the same as calling `Chain.append`. The extractor author raised the same ambiguity unprompted and declined to take a position on it. Deciding this needs the owner, not another model.",
+
+  "why_no_packet": "This never became a disagreement packet, and that is the interesting part. The `mcp` contract places no constraint on `facts.server_imports` at all, so the observation could not conflict with it and nothing was generated for the adjudicator to rule on. The same hole let fault mcp.4 -- which planted a fictional `gitio` import against the same sentence -- be ACCEPTED. A contract hole does not merely fail to catch a planted fault; it hides the real finding standing behind it.",
+
+  "found_via": "chasing the six faults the contracts accepted, rather than by any check",
+
+  "evidence_kind": "attestation",
+  "not_reproducible_because": "judgement",
+  "grounding": {
+    "quotes_verbatim": true,
+    "checked_by": "read directly from PLAN.md and mcp_server.py at the commit this was filed against"
+  }
+}

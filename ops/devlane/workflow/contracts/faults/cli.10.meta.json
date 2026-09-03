@@ -1,0 +1,11 @@
+{
+  "contract": "cli",
+  "fault": "cli.10.json",
+  "from": "obs/cli.json",
+  "change": "`wf next --json` returns no `advances` key",
+  "violates": "PLAN.md §4 line 254 and the sketch at lines 278-283",
+  "quote": "\"| `wf next [<wo>]` | the agent's home verb: current stage, satisfied/missing evidence, and the exact argv that advances it |\" / \"\\\"advances\\\": [\\\"wf\\\", \\\"red\\\", \\\"WO-012\\\", \\\"--\\\", \\\"cargo\\\", \\\"test\\\", \\\"-p\\\", \\\"product-core\\\"]\"",
+  "reject_path": "next_json_keys\\b|advances",
+  "implied": true,
+  "note": "Line 254 states the capability in prose (\"the exact argv that advances it\"); the key *name* comes only from the block PLAN.md labels a \"sketch\" (line 276)."
+}

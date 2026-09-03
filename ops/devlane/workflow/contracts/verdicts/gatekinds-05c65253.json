@@ -1,0 +1,34 @@
+{
+  "id": "gatekinds-05c65253",
+  "verdict": "doc-wrong",
+  "rule": "PLAN.md says gate kinds are data and that a named stage to re-enter is an outcome effect, and it describes the artifact cycle draft → review → fix → ratify, but the spec field list never names advance_to.",
+  "observed": "artifact.json's fix stage has advance_to set to review, which the closed spec rejects.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "181-181",
+      "quote": "The draft → review → fix → ratify cycle is the seeded `artifact` gate kind."
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "186-186",
+      "quote": "`advance`, `stay`, a named stage to re-enter, or `terminal` — and the"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "328-328",
+      "quote": "**Gate kinds are data.** Source of truth is tracked JSON under"
+    },
+    {
+      "artifact": "PLAN.md",
+      "lines": "332-332",
+      "quote": "test scope (globs), and registered checks (name, class, argv template)."
+    },
+    {
+      "artifact": "gate-kinds/artifact.json",
+      "lines": "50-53",
+      "quote": "\"advance_to\": \"review\""
+    }
+  ],
+  "action": "record-finding"
+}

@@ -1,0 +1,11 @@
+{
+  "contract": "commitmsg",
+  "fault": "commitmsg.2.json",
+  "from": "obs/commitmsg.json",
+  "change": "gitio.py emits no `Event` trailer",
+  "violates": "PLAN.md §5 line 312 (with §3.6 lines 208-209)",
+  "quote": "\"Event: 14 3f9c2a1b\" / \"Every workflow commit message carries the work-order, stage, and head-event identifiers (§5).\"",
+  "reject_path": "facts\\.trailer_keys\\b|Event",
+  "implied": false,
+  "sites": 2
+}

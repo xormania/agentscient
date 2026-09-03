@@ -38,7 +38,7 @@
   "test_scope": [
     "crates/*/tests/**",
     "crates/*/src/**/*_test.rs",
-    ".dev/design/features/**"
+    "ops/design/features/**"
   ],
   "harness_scope": [
     "Cargo.toml",
@@ -53,11 +53,11 @@
     {"name": "audit", "class": "security",
      "argv": ["cargo", "audit"]},
     {"name": "secret-scan", "class": "security",
-     "argv": ["python3", ".dev/app/workflow/checks/secret_scan.py"], "ci": true},
+     "argv": ["python3", "ops/devlane/workflow/checks/secret_scan.py"], "ci": true},
     {"name": "lint", "class": "quality",
-     "argv": ["python3", ".dev/app/workflow/checks/lint.py"], "ci": true},
+     "argv": ["python3", "ops/devlane/workflow/checks/lint.py"], "ci": true},
     {"name": "diagnostics", "class": "diagnostics",
-     "argv": ["python3", ".dev/app/workflow/checks/diagnostics.py",
+     "argv": ["python3", "ops/devlane/workflow/checks/diagnostics.py",
               "--", "cargo", "check", "--message-format=json"]}
   ]
 }

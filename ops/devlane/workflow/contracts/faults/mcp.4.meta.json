@@ -1,0 +1,10 @@
+{
+  "contract": "mcp",
+  "fault": "mcp.4.json",
+  "from": "obs/mcp.json",
+  "change": "mcp_server.py imports `gitio`, the export/commit/cross-bind module",
+  "violates": "PLAN.md §9 lines 486-487 (with §13 lines 568-569)",
+  "quote": "\"Read-only by construction: it imports the query layer, not the append layer.\" / \"`gitio.py` (export, commit, cross-bind)\"",
+  "reject_path": "facts\\.server_imports(\\.[0-9]+)?\\b|gitio",
+  "implied": false
+}

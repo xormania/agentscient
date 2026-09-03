@@ -1,0 +1,10 @@
+{
+  "contract": "exitcodes",
+  "fault": "exitcodes.4.json",
+  "from": "obs/exitcodes.json",
+  "change": "the usage constant EXIT_USAGE is 65, not 64",
+  "violates": "PLAN.md §4 line 274 (with §2 line 59)",
+  "quote": "\"`64` usage.\"",
+  "reject_path": "facts\\.constants\\.[0-9]+\\.value:.*\\b65\\b",
+  "implied": false
+}

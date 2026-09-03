@@ -1,0 +1,3742 @@
+{
+  "facts": {
+    "commands": [
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--reason"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--to"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "advance",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "agents",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--allow-dirty"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--kind"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--verify-only"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": "*",
+            "positional": "target",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "check",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--note"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--ttl"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "claim",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--message"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": "?",
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "commit",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "export",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--allow-dirty"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "green",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--rebuild"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "init",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--all"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--attempts"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--full"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--recorded-by"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--since"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--type"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "-n",
+              "--number"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "log",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--note"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": [
+              "open",
+              "close"
+            ],
+            "nargs": null,
+            "positional": "action",
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "id",
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "marker",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": "?",
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "next",
+        "next_json_keys": [
+          "advances",
+          "advances_complete",
+          "claim",
+          "frozen",
+          "head",
+          "kind",
+          "last_commit",
+          "missing",
+          "note",
+          "objective",
+          "open_markers",
+          "outcomes",
+          "requires_agent",
+          "satisfied",
+          "seq",
+          "stage",
+          "status",
+          "wo"
+        ]
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--kind"
+            ],
+            "nargs": null,
+            "required": true
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--objective"
+            ],
+            "nargs": null,
+            "required": true
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": "?",
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "open",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--by"
+            ],
+            "nargs": null,
+            "required": true
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--note"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "value",
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "outcome",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--allow-dirty"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "red",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": null,
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "release",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--checks"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "nargs": "?",
+            "positional": "wo",
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "status",
+        "next_json_keys": "n/a"
+      },
+      {
+        "arguments": [
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--agent"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--deep"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--json"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "store_true",
+            "choices": null,
+            "flags": [
+              "--no-commit"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": null,
+            "choices": null,
+            "flags": [
+              "--root"
+            ],
+            "nargs": null,
+            "required": null
+          },
+          {
+            "action": "append",
+            "choices": null,
+            "flags": [
+              "--source"
+            ],
+            "nargs": null,
+            "required": null
+          }
+        ],
+        "helpers_applied": [
+          "common_options"
+        ],
+        "name": "verify",
+        "next_json_keys": "n/a"
+      }
+    ],
+    "env_literals": [],
+    "global_arguments": [
+      {
+        "action": null,
+        "choices": null,
+        "default_env": null,
+        "dest": null,
+        "flags": [
+          "--agent"
+        ],
+        "nargs": null
+      },
+      {
+        "action": "store_true",
+        "choices": null,
+        "default_env": null,
+        "dest": null,
+        "flags": [
+          "--json"
+        ],
+        "nargs": null
+      },
+      {
+        "action": "store_true",
+        "choices": null,
+        "default_env": null,
+        "dest": null,
+        "flags": [
+          "--no-commit"
+        ],
+        "nargs": null
+      },
+      {
+        "action": null,
+        "choices": null,
+        "default_env": null,
+        "dest": null,
+        "flags": [
+          "--root"
+        ],
+        "nargs": null
+      },
+      {
+        "action": "append",
+        "choices": null,
+        "default_env": null,
+        "dest": null,
+        "flags": [
+          "--source"
+        ],
+        "nargs": null
+      }
+    ]
+  },
+  "provenance": {
+    "build_parser": {
+      "file": "wf.py",
+      "lines": "1861-1983",
+      "rule": "\u00a75.6 the parser is read from this function only",
+      "text": "def build_parser() -> Parser:"
+    },
+    "commands": {
+      "advance": {
+        "add_parser": {
+          "dispatch": "cmd_advance",
+          "file": "wf.py",
+          "lines": "1914-1914",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"advance\", parents=[common], help=\"enter the next stage\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1915-1915",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--to"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1916-1916",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--to\", default=None, help=\"re-enter an earlier stage\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--reason"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1917-1917",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--reason\", default=None, help=\"required with --to\")"
+          }
+        ]
+      },
+      "agents": {
+        "add_parser": {
+          "dispatch": "cmd_agents",
+          "file": "wf.py",
+          "lines": "1979-1980",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"agents\", parents=[common],\n                              help=\"per-agent projection over what is recorded\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          }
+        ]
+      },
+      "check": {
+        "add_parser": {
+          "dispatch": "cmd_check",
+          "file": "wf.py",
+          "lines": "1941-1942",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"check\", parents=[common],\n                              help=\"run a registered check and record the receipt\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": "*",
+              "positional": "target",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1943-1944",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"target\", nargs=\"*\", metavar=\"WO CHECK\",\n                   help=\"<wo> <check-name>, or <check-name> with --verify-only\")"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--verify-only"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1945-1946",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--verify-only\", action=\"store_true\",\n                   help=\"run and exit meaningfully, recording nothing (CI mode)\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--kind"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1947-1948",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--kind\", default=None,\n                   help=\"gate kind to read the check from, for --verify-only\")"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--allow-dirty"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1949-1949",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--allow-dirty\", action=\"store_true\")"
+          }
+        ]
+      },
+      "claim": {
+        "add_parser": {
+          "dispatch": "cmd_claim",
+          "file": "wf.py",
+          "lines": "1879-1880",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"claim\", parents=[common],\n                              help=\"claim a work order for a while\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1881-1881",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--ttl"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1882-1884",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--ttl\", default=coord.DEFAULT_TTL,\n                   help=f\"duration, e.g. 30m (default {coord.DEFAULT_TTL});\"\n                        \" re-claiming is the heartbeat\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--note"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1885-1885",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--note\", default=None)"
+          }
+        ]
+      },
+      "commit": {
+        "add_parser": {
+          "dispatch": "cmd_commit",
+          "file": "wf.py",
+          "lines": "1927-1927",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"commit\", parents=[common], help=\"flush the export and commit it\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": "?",
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1928-1928",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\", nargs=\"?\", default=None)"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--message"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1929-1929",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--message\", default=None)"
+          }
+        ]
+      },
+      "export": {
+        "add_parser": {
+          "dispatch": "cmd_export",
+          "file": "wf.py",
+          "lines": "1932-1932",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"export\", parents=[common], help=\"regenerate the tracked export\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          }
+        ]
+      },
+      "green": {
+        "add_parser": {
+          "dispatch": "cmd_green",
+          "file": "wf.py",
+          "lines": "1909-1909",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"green\", parents=[common], help=\"run the frozen command and record success\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1910-1910",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--allow-dirty"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1911-1911",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--allow-dirty\", action=\"store_true\")"
+          }
+        ]
+      },
+      "init": {
+        "add_parser": {
+          "dispatch": "cmd_init",
+          "file": "wf.py",
+          "lines": "1868-1868",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"init\", parents=[common], help=\"create or upgrade the database\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--rebuild"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1869-1870",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--rebuild\", action=\"store_true\",\n                   help=\"reconstruct the database from the tracked export\")"
+          }
+        ]
+      },
+      "log": {
+        "add_parser": {
+          "dispatch": "cmd_log",
+          "file": "wf.py",
+          "lines": "1960-1960",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"log\", parents=[common], help=\"the chain\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1961-1961",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--attempts"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1962-1962",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--attempts\", action=\"store_true\", help=\"include refusal history\")"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--type"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1963-1964",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--type\", action=\"append\", default=None,\n                   help=\"only this event type (repeatable); receipt.check:class works\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--recorded-by"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1967-1968",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--recorded-by\", dest=\"recorded_by\", default=None,\n                   help=\"only events this agent recorded\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--since"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1969-1969",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--since\", default=None, help=\"only events at or after this time\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "-n",
+                "--number"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1970-1972",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"-n\", \"--number\", type=int, default=None,\n                   help=f\"only the last N matching events\"\n                        f\" (default {query.DEFAULT_LOG_TAIL})\")"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--all"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1973-1974",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--all\", action=\"store_true\",\n                   help=\"no tail bound \u2014 the whole chain\")"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--full"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1975-1976",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--full\", action=\"store_true\",\n                   help=\"complete event payloads instead of compact lines\")"
+          }
+        ]
+      },
+      "marker": {
+        "add_parser": {
+          "dispatch": "cmd_marker",
+          "file": "wf.py",
+          "lines": "1952-1953",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"marker\", parents=[common],\n                              help=\"open or close a finding or blocker\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1954-1954",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": [
+                "open",
+                "close"
+              ],
+              "nargs": null,
+              "positional": "action",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1955-1955",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"action\", choices=(\"open\", \"close\"))"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "id",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1956-1956",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"id\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--note"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1957-1957",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--note\", default=None)"
+          }
+        ]
+      },
+      "next": {
+        "add_parser": {
+          "dispatch": "cmd_next",
+          "file": "wf.py",
+          "lines": "1893-1893",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"next\", parents=[common], help=\"what advances this work order\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": "?",
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1894-1894",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\", nargs=\"?\", default=None)"
+          }
+        ]
+      },
+      "open": {
+        "add_parser": {
+          "dispatch": "cmd_open",
+          "file": "wf.py",
+          "lines": "1873-1873",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"open\", parents=[common], help=\"open a work order\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": "?",
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1874-1874",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\", nargs=\"?\", default=None, help=\"WO-NNN; allocated when omitted\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--kind"
+              ],
+              "nargs": null,
+              "required": true
+            },
+            "file": "wf.py",
+            "lines": "1875-1875",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--kind\", required=True)"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--objective"
+              ],
+              "nargs": null,
+              "required": true
+            },
+            "file": "wf.py",
+            "lines": "1876-1876",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--objective\", required=True)"
+          }
+        ]
+      },
+      "outcome": {
+        "add_parser": {
+          "dispatch": "cmd_outcome",
+          "file": "wf.py",
+          "lines": "1920-1920",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"outcome\", parents=[common], help=\"record a gate outcome and who stated it\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1921-1921",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "value",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1922-1922",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"value\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--by"
+              ],
+              "nargs": null,
+              "required": true
+            },
+            "file": "wf.py",
+            "lines": "1923-1923",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--by\", required=True, help=\"owner, or the agent stating it\")"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--note"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1924-1924",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--note\", default=None)"
+          }
+        ]
+      },
+      "red": {
+        "add_parser": {
+          "dispatch": "cmd_red",
+          "file": "wf.py",
+          "lines": "1903-1903",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"red\", parents=[common], help=\"run a failing test command and record it\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1904-1904",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--allow-dirty"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1905-1906",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--allow-dirty\", action=\"store_true\",\n                   help=\"record against a dirty tree, accepting hash-only re-verification (D3)\")"
+          }
+        ]
+      },
+      "release": {
+        "add_parser": {
+          "dispatch": "cmd_release",
+          "file": "wf.py",
+          "lines": "1888-1889",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"release\", parents=[common],\n                              help=\"give up a claim you hold\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": null,
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1890-1890",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\")"
+          }
+        ]
+      },
+      "status": {
+        "add_parser": {
+          "dispatch": "cmd_status",
+          "file": "wf.py",
+          "lines": "1897-1897",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"status\", parents=[common], help=\"open work orders, or one in detail\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "nargs": "?",
+              "positional": "wo",
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1898-1898",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"wo\", nargs=\"?\", default=None)"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--checks"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1899-1900",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--checks\", action=\"store_true\",\n                   help=\"the registered checks, and which of them CI runs\")"
+          }
+        ]
+      },
+      "verify": {
+        "add_parser": {
+          "dispatch": "cmd_verify",
+          "file": "wf.py",
+          "lines": "1935-1936",
+          "parents": [
+            "common"
+          ],
+          "rule": "\u00a75.6 subparsers.add_parser(\"<name>\") \u2192 command",
+          "text": "    p = subparsers.add_parser(\"verify\", parents=[common],\n                              help=\"recompute every hash and link\")"
+        },
+        "arguments": [
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--root"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1847-1848",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--json"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1849-1851",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": null,
+              "choices": null,
+              "flags": [
+                "--agent"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1852-1853",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "append",
+              "choices": null,
+              "flags": [
+                "--source"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1854-1855",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--no-commit"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "helper": "common_options",
+            "lines": "1856-1858",
+            "rule": "\u00a75.6 inherited via parents=[common], added by helper common_options()",
+            "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")",
+            "via": "common"
+          },
+          {
+            "argument": {
+              "action": "store_true",
+              "choices": null,
+              "flags": [
+                "--deep"
+              ],
+              "nargs": null,
+              "required": null
+            },
+            "file": "wf.py",
+            "lines": "1937-1938",
+            "rule": "\u00a75.6 add_argument on the sub-parser",
+            "text": "    p.add_argument(\"--deep\", action=\"store_true\",\n                   help=\"also re-verify receipts, cross-binds and the prefix walk\")"
+          }
+        ]
+      }
+    },
+    "env_literals": [
+      {
+        "file": "wf.py",
+        "lines": "72-72",
+        "rule": "\u00a75.6 env_literals: /^WF_[A-Z_]+$/ string constant",
+        "text": "        self.agent = getattr(args, \"agent\", None) or os.environ.get(\"WF_AGENT\") or \"\"",
+        "value": "WF_AGENT"
+      }
+    ],
+    "global_arguments": [
+      {
+        "argument": {
+          "action": null,
+          "choices": null,
+          "default_env": null,
+          "dest": null,
+          "flags": [
+            "--root"
+          ],
+          "nargs": null
+        },
+        "file": "wf.py",
+        "helper": "common_options",
+        "lines": "1847-1848",
+        "parser_var": "parser",
+        "rule": "\u00a75.6 add_argument on the root parser via helper common_options()",
+        "text": "    parser.add_argument(\"--root\", default=missing,\n                        help=\"state root (default: beside wf.py)\")"
+      },
+      {
+        "argument": {
+          "action": "store_true",
+          "choices": null,
+          "default_env": null,
+          "dest": null,
+          "flags": [
+            "--json"
+          ],
+          "nargs": null
+        },
+        "file": "wf.py",
+        "helper": "common_options",
+        "lines": "1849-1851",
+        "parser_var": "parser",
+        "rule": "\u00a75.6 add_argument on the root parser via helper common_options()",
+        "text": "    parser.add_argument(\"--json\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"machine-readable output\")"
+      },
+      {
+        "argument": {
+          "action": null,
+          "choices": null,
+          "default_env": null,
+          "dest": null,
+          "flags": [
+            "--agent"
+          ],
+          "nargs": null
+        },
+        "file": "wf.py",
+        "helper": "common_options",
+        "lines": "1852-1853",
+        "parser_var": "parser",
+        "rule": "\u00a75.6 add_argument on the root parser via helper common_options()",
+        "text": "    parser.add_argument(\"--agent\", default=missing,\n                        help=\"agent identity; falls back to $WF_AGENT\")"
+      },
+      {
+        "argument": {
+          "action": "append",
+          "choices": null,
+          "default_env": null,
+          "dest": null,
+          "flags": [
+            "--source"
+          ],
+          "nargs": null
+        },
+        "file": "wf.py",
+        "helper": "common_options",
+        "lines": "1854-1855",
+        "parser_var": "parser",
+        "rule": "\u00a75.6 add_argument on the root parser via helper common_options()",
+        "text": "    parser.add_argument(\"--source\", action=\"append\", default=missing,\n                        help=\"provenance for the content this verb records (repeatable)\")"
+      },
+      {
+        "argument": {
+          "action": "store_true",
+          "choices": null,
+          "default_env": null,
+          "dest": null,
+          "flags": [
+            "--no-commit"
+          ],
+          "nargs": null
+        },
+        "file": "wf.py",
+        "helper": "common_options",
+        "lines": "1856-1858",
+        "parser_var": "parser",
+        "rule": "\u00a75.6 add_argument on the root parser via helper common_options()",
+        "text": "    parser.add_argument(\"--no-commit\", action=\"store_true\",\n                        default=argparse.SUPPRESS if suppress else False,\n                        help=\"defer the auto-commit; flush later with wf commit\")"
+      }
+    ],
+    "next_json_keys": {
+      "dispatch": "cmd_next",
+      "emit_sites": [
+        {
+          "file": "wf.py",
+          "lines": "473-473",
+          "rule": "ctx.emit payload",
+          "text": "    ctx.emit(body, human)"
+        },
+        {
+          "file": "wf.py",
+          "lines": "460-460",
+          "rule": "ctx.emit payload",
+          "text": "            ctx.emit({\"wo\": None, \"note\": \"no open work orders\"}, \"no open work orders\")"
+        }
+      ],
+      "rule": "\u00a75.6 next_json_keys, ADAPTED: keys of every payload reaching ctx.emit(<payload>, \u2026) inside the dispatch target \u2014 dict literals, the name the payload is built under, .update() calls and subscript assignment, one call hop at a time into sibling modules",
+      "unfollowed": []
+    },
+    "notes": [],
+    "root_parser_helpers": [
+      "common_options"
+    ],
+    "target": "wf.py"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "contract": "cli",
+  "fault": "cli.2.json",
+  "from": "obs/cli.json",
+  "change": "a `freeze` command exists",
+  "violates": "PLAN.md §4 lines 238-239 (with §3.3 lines 146-150)",
+  "quote": "\"Verbs from the brief that were merged: … `freeze` into `red`/`advance` (§3.3)\" / \"**Freezing is an effect, not a verb.**\"",
+  "reject_path": "freeze",
+  "implied": false
+}

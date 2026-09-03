@@ -1,0 +1,29 @@
+{
+  "id": "db-d1034084",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md section 3.2 says the artifacts table holds digest, size, media_type, and class.",
+  "observed": "The live artifacts table has those four columns plus created_at, so the column count is 5 rather than 4.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "104-104",
+      "quote": "| `artifacts` | CAS: `digest`, `size`, `media_type`, `class` | as-is |"
+    },
+    {
+      "artifact": "cue/db.cue",
+      "lines": "64-64",
+      "quote": "_columnCount: len(_columnNames) & 4"
+    },
+    {
+      "artifact": "wf.db",
+      "lines": "n/a-n/a",
+      "quote": "CREATE TABLE artifacts ("
+    },
+    {
+      "artifact": "wf.db",
+      "lines": "n/a-n/a",
+      "quote": "created_at TEXT    NOT NULL"
+    }
+  ],
+  "action": "record-finding"
+}

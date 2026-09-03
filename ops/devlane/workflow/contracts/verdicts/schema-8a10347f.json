@@ -1,0 +1,24 @@
+{
+  "id": "schema-8a10347f",
+  "verdict": "code-wrong",
+  "rule": "PLAN.md section 3.2 says the gate_kinds table holds kind, version, and spec_json.",
+  "observed": "The migrated table at facts.tables.4 has 5 columns where the contract, citing that three-name list, requires 3.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "103-103",
+      "quote": "| `gate_kinds` | `kind`, `version`, `spec_json` — the gate-kind registry (§6) | new |"
+    },
+    {
+      "artifact": "cue/schema.cue",
+      "lines": "123-123",
+      "quote": "_columnCount: len(_columnNames) & 3"
+    },
+    {
+      "artifact": "obs/schema.json",
+      "lines": "11-11",
+      "quote": "conflicting values 5 and 3"
+    }
+  ],
+  "action": "record-finding"
+}

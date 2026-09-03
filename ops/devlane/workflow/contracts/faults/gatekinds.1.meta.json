@@ -1,0 +1,10 @@
+{
+  "contract": "gatekinds",
+  "fault": "gatekinds.1.json",
+  "from": "obs/gatekinds.json",
+  "change": "the tdd review stage declares the effect `approve` for outcome `accepted`, which is neither an effect keyword nor one of the spec's stage names",
+  "violates": "PLAN.md §3.5 lines 185-187",
+  "quote": "\"The spec declares each outcome's *effect* as data — `advance`, `stay`, a named stage to re-enter, or `terminal` — and the engine applies the declared effect mechanically\"",
+  "reject_path": "facts\\.kinds\\.[0-9]+\\.spec\\.stages\\.[0-9]+\\.outcomes\\.accepted\\b|approve",
+  "implied": false
+}

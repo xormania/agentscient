@@ -1,0 +1,10 @@
+{
+  "contract": "db",
+  "fault": "db.5.json",
+  "from": "obs/db.json",
+  "change": "the live database has no `events` table",
+  "violates": "PLAN.md §3.2 lines 93, 101 (with §3.1 lines 73-83)",
+  "quote": "\"Nine tables.\" / \"| `events` | the chain (`wo_id`, `seq`, `hash`, `prev`, `time`, `payload`, `state_sha256`) | as-is |\"",
+  "reject_path": "facts\\.tables\\b",
+  "implied": false
+}

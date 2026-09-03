@@ -1,0 +1,10 @@
+{
+  "contract": "schema",
+  "fault": "schema.4.json",
+  "from": "obs/schema.json",
+  "change": "the `work_orders` table has no `spec_sha256` column",
+  "violates": "PLAN.md §3.2 line 100 (with §6 lines 354-355)",
+  "quote": "\"| `work_orders` | `wo_id`, `objective`, `kind`, `kind_version`, `spec_sha256`, `created_at` | packets, adapted |\"",
+  "reject_path": "facts\\.tables\\.[0-9]+\\.columns\\b|spec_sha256",
+  "implied": false
+}

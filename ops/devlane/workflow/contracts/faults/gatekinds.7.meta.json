@@ -1,0 +1,10 @@
+{
+  "contract": "gatekinds",
+  "fault": "gatekinds.7.json",
+  "from": "obs/gatekinds.json",
+  "change": "the spec in gate-kinds/artifact.json declares kind `artefact`, so the registered kind no longer matches its own filename",
+  "violates": "PLAN.md §6 lines 328-329",
+  "quote": "\"Source of truth is tracked JSON under `gate-kinds/<kind>.json`; `wf init` syncs it into `gate_kinds`\"",
+  "reject_path": "facts\\.kinds\\.[0-9]+\\.(spec\\.kind|file)\\b|artefact",
+  "implied": false
+}

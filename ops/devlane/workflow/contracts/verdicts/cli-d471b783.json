@@ -1,0 +1,29 @@
+{
+  "id": "cli-d471b783",
+  "verdict": "contract-wrong",
+  "rule": "PLAN.md requires every chain-appending verb to accept a repeatable --source and does not require that flag to be per-command.",
+  "observed": "wf.py registers --source as a global argparse argument with action append, which the contract's empty-or-[--json] schema rejects.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "300-300",
+      "quote": "accepts a repeatable `--source`, recorded in the event payload and emitted"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "650-650",
+      "quote": "if len(global_arguments) == 0 {"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1327-1334",
+      "quote": "\"action\": \"append\""
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1331-1333",
+      "quote": "\"--source\""
+    }
+  ],
+  "action": "amend-contract"
+}

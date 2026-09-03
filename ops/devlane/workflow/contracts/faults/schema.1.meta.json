@@ -1,0 +1,10 @@
+{
+  "contract": "schema",
+  "fault": "schema.1.json",
+  "from": "obs/schema.json",
+  "change": "the `attempts` table is gone from the migration's tables; eight tables remain",
+  "violates": "PLAN.md §3.2 lines 93, 107",
+  "quote": "\"Nine tables.\" / \"| `attempts` | every attempted transition incl. refusals; before/after bindings; `agent` | as-is + agent |\"",
+  "reject_path": "facts\\.tables\\b",
+  "implied": false
+}

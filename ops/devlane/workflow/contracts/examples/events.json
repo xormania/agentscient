@@ -1,0 +1,16 @@
+{
+  "facts": {
+    "types": [
+      {"value": "artifact.recorded"},
+      {"value": "commit.landed"},
+      {"value": "marker.close"},
+      {"value": "marker.open"},
+      {"value": "outcome"},
+      {"value": "receipt.check"},
+      {"value": "receipt.green"},
+      {"value": "receipt.red"},
+      {"value": "stage.entered"}
+    ]
+  },
+  "provenance": {}
+}

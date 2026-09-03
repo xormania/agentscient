@@ -1,0 +1,24 @@
+{
+  "id": "cli-e834efa2",
+  "verdict": "contract-wrong",
+  "rule": "PLAN.md requires --json on every command and does not forbid other documented flags from sharing the root parser with it.",
+  "observed": "--json is present as a global argument, but it is not the only global argument, so the contract's singleton [--json] schema rejects it.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "265-265",
+      "quote": "`--json` output mode"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "650-650",
+      "quote": "if len(global_arguments) == 0 {"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1297-1302",
+      "quote": "\"flags\": [\n    \"--json\"\n  ]"
+    }
+  ],
+  "action": "amend-contract"
+}

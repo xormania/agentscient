@@ -1,0 +1,10 @@
+{
+  "contract": "db",
+  "fault": "db.2.json",
+  "from": "obs/db.json",
+  "change": "the applied migration is recorded unnumbered, as `foundation.sql`",
+  "violates": "PLAN.md §6 lines 361-362 (with §8 line 472)",
+  "quote": "\"**Migrations**: numbered forward-only SQL in `migrations/`, applied by `init` inside a transaction, recorded in `schema_migrations`\"",
+  "reject_path": "facts\\.schema_migrations(\\.[0-9]+)?\\b",
+  "implied": false
+}

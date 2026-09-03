@@ -1,0 +1,222 @@
+{
+  "facts": {
+    "kinds": [
+      {
+        "file": "gate-kinds/artifact.json",
+        "spec": {
+          "kind": "artifact",
+          "version": 1,
+          "stages": [
+            {
+              "name": "draft",
+              "leave_requires": []
+            },
+            {
+              "name": "review",
+              "leave_requires": [],
+              "outcomes": {
+                "accepted": "ratify",
+                "finding": "fix",
+                "rejected": "fix",
+                "denied": "terminal",
+                "aborted": "terminal"
+              }
+            },
+            {
+              "name": "fix",
+              "leave_requires": [],
+              "advance_to": "review",
+              "blocked_by_open_markers": true
+            },
+            {
+              "name": "ratify",
+              "actor": "owner",
+              "leave_requires": [],
+              "outcomes": {
+                "ratified": "terminal",
+                "denied": "terminal",
+                "aborted": "terminal"
+              }
+            }
+          ],
+          "test_scope": [],
+          "harness_scope": [],
+          "checks": [
+            {
+              "name": "vocabulary-wall",
+              "class": "policy",
+              "argv": [
+                "python3",
+                "ops/devlane/workflow/checks/vocabulary_wall.py"
+              ],
+              "ci": true
+            },
+            {
+              "name": "secret-scan",
+              "class": "security",
+              "argv": [
+                "python3",
+                "ops/devlane/workflow/checks/secret_scan.py"
+              ],
+              "ci": true
+            }
+          ]
+        },
+        "sha256_raw": "7b50996b00e6821000da092c27cf3e9ebd1780a5ff9411e6770eac540b4c4c95",
+        "sha256_canonical": "dbbf262a3ea2b59568c1ced6ccc89aa07e873a1480a3a5d3ce00c73200b5e1fd"
+      },
+      {
+        "file": "gate-kinds/tdd.json",
+        "spec": {
+          "kind": "tdd",
+          "version": 1,
+          "stages": [
+            {
+              "name": "spec",
+              "leave_requires": []
+            },
+            {
+              "name": "red",
+              "leave_requires": [
+                "receipt.compile"
+              ]
+            },
+            {
+              "name": "impl",
+              "leave_requires": [
+                "receipt.green"
+              ],
+              "seals_frozen_set": true
+            },
+            {
+              "name": "review",
+              "leave_requires": [],
+              "outcomes": {
+                "accepted": "advance",
+                "finding": "impl",
+                "denied": "terminal"
+              }
+            },
+            {
+              "name": "ratify",
+              "actor": "owner",
+              "leave_requires": [],
+              "outcomes": {
+                "ratified": "terminal",
+                "denied": "terminal",
+                "aborted": "terminal"
+              }
+            }
+          ],
+          "test_scope": [
+            "crates/*/tests/**",
+            "crates/*/src/**/*_test.rs",
+            "ops/design/features/**"
+          ],
+          "harness_scope": [
+            "Cargo.toml",
+            "Cargo.lock",
+            ".cargo/**",
+            "rust-toolchain*",
+            "crates/*/build.rs"
+          ],
+          "checks": [
+            {
+              "name": "cargo-test",
+              "class": "build",
+              "argv": [
+                "cargo",
+                "test",
+                "--workspace"
+              ]
+            },
+            {
+              "name": "audit",
+              "class": "security",
+              "argv": [
+                "cargo",
+                "audit"
+              ]
+            },
+            {
+              "name": "secret-scan",
+              "class": "security",
+              "argv": [
+                "python3",
+                "ops/devlane/workflow/checks/secret_scan.py"
+              ],
+              "ci": true
+            },
+            {
+              "name": "diagnostics",
+              "class": "diagnostics",
+              "argv": [
+                "python3",
+                "ops/devlane/workflow/checks/diagnostics.py",
+                "--",
+                "cargo",
+                "check",
+                "--message-format=json"
+              ]
+            }
+          ]
+        },
+        "sha256_raw": "14266d82720fa272baab1f072f62e47622b1af5b3b513ee93df66a6a7c0b6b4d",
+        "sha256_canonical": "495984ff1dbe22386e09d65a3a11ba675b6c9a46ae08e2f9a534cd75a478f20e"
+      }
+    ]
+  },
+  "provenance": {
+    "extractor": "contracts/extract/gatekinds.py",
+    "method": "json.loads of each gate-kinds/*.json; digests over the raw bytes and over the canonical dump. The parsed value is emitted untouched, in the file's own key order.",
+    "paths_relative_to": "ops/devlane/workflow",
+    "file_field_form": "path relative to ops/devlane/workflow, e.g. gate-kinds/tdd.json (SPEC section 4 provenance convention)",
+    "facts": {
+      "kinds[gate-kinds/artifact.json]": {
+        "file": "gate-kinds/artifact.json",
+        "lines": "1-45",
+        "text": "{\n  \"kind\": \"artifact\",\n  \"version\": 1,\n  \"stages\": [\n    {\n      \"name\": \"draft\",\n      \"leave_requires\": []\n    },\n    {\n      \"name\": \"review\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"accepted\": \"ratify\",\n        \"finding\": \"fix\",\n        \"rejected\": \"fix\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    },\n    {\n      \"name\": \"fix\",\n      \"leave_requires\": [],\n      \"advance_to\": \"review\",\n      \"blocked_by_open_markers\": true\n    },\n    {\n      \"name\": \"ratify\",\n      \"actor\": \"owner\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"ratified\": \"terminal\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    }\n  ],\n  \"test_scope\": [],\n  \"harness_scope\": [],\n  \"checks\": [\n    {\"name\": \"vocabulary-wall\", \"class\": \"policy\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/vocabulary_wall.py\"], \"ci\": true},\n    {\"name\": \"secret-scan\", \"class\": \"security\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/secret_scan.py\"], \"ci\": true}\n  ]\n}\n",
+        "rule": "5.3 kinds: gate-kinds/*.json, sorted by file",
+        "bytes": 1026,
+        "ends_with_newline": true
+      },
+      "kinds[gate-kinds/artifact.json].sha256_raw": {
+        "file": "gate-kinds/artifact.json",
+        "lines": "1-45",
+        "text": "{\n  \"kind\": \"artifact\",\n  \"version\": 1,\n  \"stages\": [\n    {\n      \"name\": \"draft\",\n      \"leave_requires\": []\n    },\n    {\n      \"name\": \"review\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"accepted\": \"ratify\",\n        \"finding\": \"fix\",\n        \"rejected\": \"fix\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    },\n    {\n      \"name\": \"fix\",\n      \"leave_requires\": [],\n      \"advance_to\": \"review\",\n      \"blocked_by_open_markers\": true\n    },\n    {\n      \"name\": \"ratify\",\n      \"actor\": \"owner\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"ratified\": \"terminal\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    }\n  ],\n  \"test_scope\": [],\n  \"harness_scope\": [],\n  \"checks\": [\n    {\"name\": \"vocabulary-wall\", \"class\": \"policy\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/vocabulary_wall.py\"], \"ci\": true},\n    {\"name\": \"secret-scan\", \"class\": \"security\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/secret_scan.py\"], \"ci\": true}\n  ]\n}\n",
+        "rule": "5.3 sha256_raw: sha256 over the file bytes on disk"
+      },
+      "kinds[gate-kinds/artifact.json].sha256_canonical": {
+        "file": "gate-kinds/artifact.json",
+        "lines": "1-45",
+        "text": "{\n  \"kind\": \"artifact\",\n  \"version\": 1,\n  \"stages\": [\n    {\n      \"name\": \"draft\",\n      \"leave_requires\": []\n    },\n    {\n      \"name\": \"review\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"accepted\": \"ratify\",\n        \"finding\": \"fix\",\n        \"rejected\": \"fix\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    },\n    {\n      \"name\": \"fix\",\n      \"leave_requires\": [],\n      \"advance_to\": \"review\",\n      \"blocked_by_open_markers\": true\n    },\n    {\n      \"name\": \"ratify\",\n      \"actor\": \"owner\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"ratified\": \"terminal\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    }\n  ],\n  \"test_scope\": [],\n  \"harness_scope\": [],\n  \"checks\": [\n    {\"name\": \"vocabulary-wall\", \"class\": \"policy\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/vocabulary_wall.py\"], \"ci\": true},\n    {\"name\": \"secret-scan\", \"class\": \"security\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/secret_scan.py\"], \"ci\": true}\n  ]\n}\n",
+        "rule": "5.3 sha256_canonical: sha256 over json.dumps(obj, sort_keys=True, separators=(',',':'))"
+      },
+      "kinds[gate-kinds/tdd.json]": {
+        "file": "gate-kinds/tdd.json",
+        "lines": "1-61",
+        "text": "{\n  \"kind\": \"tdd\",\n  \"version\": 1,\n  \"stages\": [\n    {\n      \"name\": \"spec\",\n      \"leave_requires\": []\n    },\n    {\n      \"name\": \"red\",\n      \"leave_requires\": [\"receipt.red\"]\n    },\n    {\n      \"name\": \"impl\",\n      \"leave_requires\": [\"receipt.green\"],\n      \"seals_frozen_set\": true\n    },\n    {\n      \"name\": \"review\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"accepted\": \"advance\",\n        \"finding\": \"impl\",\n        \"denied\": \"terminal\"\n      }\n    },\n    {\n      \"name\": \"ratify\",\n      \"actor\": \"owner\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"ratified\": \"terminal\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    }\n  ],\n  \"test_scope\": [\n    \"crates/*/tests/**\",\n    \"crates/*/src/**/*_test.rs\",\n    \"ops/design/features/**\"\n  ],\n  \"harness_scope\": [\n    \"Cargo.toml\",\n    \"Cargo.lock\",\n    \".cargo/**\",\n    \"rust-toolchain*\",\n    \"crates/*/build.rs\"\n  ],\n  \"checks\": [\n    {\"name\": \"cargo-test\", \"class\": \"build\",\n     \"argv\": [\"cargo\", \"test\", \"--workspace\"]},\n    {\"name\": \"audit\", \"class\": \"security\",\n     \"argv\": [\"cargo\", \"audit\"]},\n    {\"name\": \"secret-scan\", \"class\": \"security\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/secret_scan.py\"], \"ci\": true},\n    {\"name\": \"diagnostics\", \"class\": \"diagnostics\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/diagnostics.py\",\n              \"--\", \"cargo\", \"check\", \"--message-format=json\"]}\n  ]\n}\n",
+        "rule": "5.3 kinds: gate-kinds/*.json, sorted by file",
+        "bytes": 1429,
+        "ends_with_newline": true
+      },
+      "kinds[gate-kinds/tdd.json].sha256_raw": {
+        "file": "gate-kinds/tdd.json",
+        "lines": "1-61",
+        "text": "{\n  \"kind\": \"tdd\",\n  \"version\": 1,\n  \"stages\": [\n    {\n      \"name\": \"spec\",\n      \"leave_requires\": []\n    },\n    {\n      \"name\": \"red\",\n      \"leave_requires\": [\"receipt.red\"]\n    },\n    {\n      \"name\": \"impl\",\n      \"leave_requires\": [\"receipt.green\"],\n      \"seals_frozen_set\": true\n    },\n    {\n      \"name\": \"review\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"accepted\": \"advance\",\n        \"finding\": \"impl\",\n        \"denied\": \"terminal\"\n      }\n    },\n    {\n      \"name\": \"ratify\",\n      \"actor\": \"owner\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"ratified\": \"terminal\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    }\n  ],\n  \"test_scope\": [\n    \"crates/*/tests/**\",\n    \"crates/*/src/**/*_test.rs\",\n    \"ops/design/features/**\"\n  ],\n  \"harness_scope\": [\n    \"Cargo.toml\",\n    \"Cargo.lock\",\n    \".cargo/**\",\n    \"rust-toolchain*\",\n    \"crates/*/build.rs\"\n  ],\n  \"checks\": [\n    {\"name\": \"cargo-test\", \"class\": \"build\",\n     \"argv\": [\"cargo\", \"test\", \"--workspace\"]},\n    {\"name\": \"audit\", \"class\": \"security\",\n     \"argv\": [\"cargo\", \"audit\"]},\n    {\"name\": \"secret-scan\", \"class\": \"security\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/secret_scan.py\"], \"ci\": true},\n    {\"name\": \"diagnostics\", \"class\": \"diagnostics\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/diagnostics.py\",\n              \"--\", \"cargo\", \"check\", \"--message-format=json\"]}\n  ]\n}\n",
+        "rule": "5.3 sha256_raw: sha256 over the file bytes on disk"
+      },
+      "kinds[gate-kinds/tdd.json].sha256_canonical": {
+        "file": "gate-kinds/tdd.json",
+        "lines": "1-61",
+        "text": "{\n  \"kind\": \"tdd\",\n  \"version\": 1,\n  \"stages\": [\n    {\n      \"name\": \"spec\",\n      \"leave_requires\": []\n    },\n    {\n      \"name\": \"red\",\n      \"leave_requires\": [\"receipt.red\"]\n    },\n    {\n      \"name\": \"impl\",\n      \"leave_requires\": [\"receipt.green\"],\n      \"seals_frozen_set\": true\n    },\n    {\n      \"name\": \"review\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"accepted\": \"advance\",\n        \"finding\": \"impl\",\n        \"denied\": \"terminal\"\n      }\n    },\n    {\n      \"name\": \"ratify\",\n      \"actor\": \"owner\",\n      \"leave_requires\": [],\n      \"outcomes\": {\n        \"ratified\": \"terminal\",\n        \"denied\": \"terminal\",\n        \"aborted\": \"terminal\"\n      }\n    }\n  ],\n  \"test_scope\": [\n    \"crates/*/tests/**\",\n    \"crates/*/src/**/*_test.rs\",\n    \"ops/design/features/**\"\n  ],\n  \"harness_scope\": [\n    \"Cargo.toml\",\n    \"Cargo.lock\",\n    \".cargo/**\",\n    \"rust-toolchain*\",\n    \"crates/*/build.rs\"\n  ],\n  \"checks\": [\n    {\"name\": \"cargo-test\", \"class\": \"build\",\n     \"argv\": [\"cargo\", \"test\", \"--workspace\"]},\n    {\"name\": \"audit\", \"class\": \"security\",\n     \"argv\": [\"cargo\", \"audit\"]},\n    {\"name\": \"secret-scan\", \"class\": \"security\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/secret_scan.py\"], \"ci\": true},\n    {\"name\": \"diagnostics\", \"class\": \"diagnostics\",\n     \"argv\": [\"python3\", \"ops/devlane/workflow/checks/diagnostics.py\",\n              \"--\", \"cargo\", \"check\", \"--message-format=json\"]}\n  ]\n}\n",
+        "rule": "5.3 sha256_canonical: sha256 over json.dumps(obj, sort_keys=True, separators=(',',':'))"
+      }
+    },
+    "directory_listing": [
+      "artifact.json",
+      "tdd.json"
+    ],
+    "non_json_files_ignored": []
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "cli-17b697ea": {
+    "bytes": 1851,
+    "packet": "adjudicated/packets/cli-17b697ea.md",
+    "sha256": "e59c3fb846575802a6dac4b97752c41b6f73504ce70668227efd555feea5ab0b"
+  },
+  "cli-1ea66ee3": {
+    "bytes": 24779,
+    "packet": "adjudicated/packets/cli-1ea66ee3.md",
+    "sha256": "028b5bc194af6e92ee30feb926324fcddd8d6995728824e46fbeab73b3d8e51f"
+  },
+  "cli-2bddfb3a": {
+    "bytes": 1506,
+    "packet": "adjudicated/packets/cli-2bddfb3a.md",
+    "sha256": "deb85793532024f090cad33f62e3eb74645ad74bc80ebe53c200c4a6d98d7e19"
+  },
+  "cli-7d8048e8": {
+    "bytes": 1503,
+    "packet": "adjudicated/packets/cli-7d8048e8.md",
+    "sha256": "a58ff7d7d42c888088e51d50403a005a8b506c5fa1dac33f3984ea21770799d3"
+  },
+  "cli-88a31003": {
+    "bytes": 1524,
+    "packet": "adjudicated/packets/cli-88a31003.md",
+    "sha256": "fc64d80dbec6c842c16a93def5ce367563839f662da257e42ac873f1b6893c70"
+  },
+  "cli-ad84ff53": {
+    "bytes": 1966,
+    "packet": "adjudicated/packets/cli-ad84ff53.md",
+    "sha256": "9776bd15b0532cda5a2b33c3609aa22016cbed464bf69cc3c496a2bce0e1a933"
+  },
+  "cli-d471b783": {
+    "bytes": 1513,
+    "packet": "adjudicated/packets/cli-d471b783.md",
+    "sha256": "bff82a5077a834b12ae5c7681bed861901397030644c6cf894ea9b9e2cc7da65"
+  },
+  "cli-df87ac3b": {
+    "bytes": 1459,
+    "packet": "adjudicated/packets/cli-df87ac3b.md",
+    "sha256": "a0da97237da6c98f66a24b214faa01c38c2339f84c0a57c732f0a3970c33f7b2"
+  },
+  "cli-e834efa2": {
+    "bytes": 1519,
+    "packet": "adjudicated/packets/cli-e834efa2.md",
+    "sha256": "5f5bcbc887f04ce4695535b23310bdbd492354cb23709e86da3f17e6c7eacefe"
+  },
+  "cli-f8b3b9e0": {
+    "bytes": 1336,
+    "packet": "adjudicated/packets/cli-f8b3b9e0.md",
+    "sha256": "057385e85579ebb5ff08c95fa0bd3944ff54e95bb89f02614195c4995596b604"
+  },
+  "cli-f9688ea2": {
+    "bytes": 1347,
+    "packet": "adjudicated/packets/cli-f9688ea2.md",
+    "sha256": "091a80d57d27057bd4d92e85af19c435899f90c614a3e8d52e9bdfe6cd1539d8"
+  },
+  "commitmsg-788dd5fa": {
+    "bytes": 1318,
+    "packet": "adjudicated/packets/commitmsg-788dd5fa.md",
+    "sha256": "eb77d9293de8273dda057c25523f99255615502f10941e1d563f249fc6beef29"
+  },
+  "db-8a10347f": {
+    "bytes": 6001,
+    "packet": "adjudicated/packets/db-8a10347f.md",
+    "sha256": "8c74a9f8e6fbeb8539a8d852bac9a26751d6f10d8ea1df1282f010c709fabb74"
+  },
+  "db-d1034084": {
+    "bytes": 5998,
+    "packet": "adjudicated/packets/db-d1034084.md",
+    "sha256": "1c75fc8f49125c2709257ecd3bd554f5cc7d53f50d81a73a98c148dd0637c67a"
+  },
+  "events-0801e281": {
+    "bytes": 2486,
+    "packet": "adjudicated/packets/events-0801e281.md",
+    "sha256": "d0d40ed492eb572c9e3841a22227d56a0b11a021383c2e47fdf6dac582b8f1d3"
+  },
+  "events-1aeacf14": {
+    "bytes": 2243,
+    "packet": "adjudicated/packets/events-1aeacf14.md",
+    "sha256": "40ae966969e87140007dc179a063f9832da8a93396cb3f1106467f801510cfb9"
+  },
+  "events-6fac9888": {
+    "bytes": 2243,
+    "packet": "adjudicated/packets/events-6fac9888.md",
+    "sha256": "b06d34656c3e9458640e7a6a55ef09bd9325e2580ad9de14a0d8101700054cf3"
+  },
+  "events-77d4b7c9": {
+    "bytes": 2220,
+    "packet": "adjudicated/packets/events-77d4b7c9.md",
+    "sha256": "d0cfb956bafe23379fc57847500a518269ce2cc39c060d72726c28d7098d902b"
+  },
+  "events-88f3d343": {
+    "bytes": 2219,
+    "packet": "adjudicated/packets/events-88f3d343.md",
+    "sha256": "d03c5749f659ac064b360676431ba5d94766c71acbce53db818a2a5fd2b80b08"
+  },
+  "exitcodes-10a89bb7": {
+    "bytes": 1865,
+    "packet": "adjudicated/packets/exitcodes-10a89bb7.md",
+    "sha256": "9d56311bab8724f56e78f5a2cf28940c4b0802275dec63a92dd878b997ba6b94"
+  },
+  "exitcodes-18549552": {
+    "bytes": 1342,
+    "packet": "adjudicated/packets/exitcodes-18549552.md",
+    "sha256": "c5e05a1e36cbfc98a960ef73c7e69c5be599ade92400e83a1d0ee1c9c37a7d30"
+  },
+  "gatekinds-05c65253": {
+    "bytes": 9649,
+    "packet": "adjudicated/packets/gatekinds-05c65253.md",
+    "sha256": "b5d467296dcdc049cb520a293a289af3c51c3903b40e9ea8af55a733c91dd106"
+  },
+  "gatekinds-c6ad8971": {
+    "bytes": 9656,
+    "packet": "adjudicated/packets/gatekinds-c6ad8971.md",
+    "sha256": "b80a9b67f620c0f32a220781a7262718a28d51edd81b919ba4ac78bfe67d3f95"
+  },
+  "schema-8a10347f": {
+    "bytes": 5230,
+    "packet": "adjudicated/packets/schema-8a10347f.md",
+    "sha256": "c1a7b604fc7738c30ce2d058244e4cbcdd305d0e75a1f96c48c829fab4ba2d18"
+  },
+  "schema-d1034084": {
+    "bytes": 5227,
+    "packet": "adjudicated/packets/schema-d1034084.md",
+    "sha256": "bfc2025f7c1bc88905f4487fa7e4a374b8a422da352ab96babdf5f10cb811cc6"
+  }
+}

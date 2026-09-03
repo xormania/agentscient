@@ -1,0 +1,624 @@
+{
+  "facts": {
+    "files": [
+      "PLAN.md",
+      "canonical.py",
+      "cas.py",
+      "chain.py",
+      "checks/ci_matrix.py",
+      "checks/diagnostics.py",
+      "checks/secret_scan.py",
+      "checks/vocabulary_wall.py",
+      "coord.py",
+      "errors.py",
+      "gate-kinds/artifact.json",
+      "gate-kinds/tdd.json",
+      "gatekinds.py",
+      "gitio.py",
+      "mcp_launch.py",
+      "mcp_server.py",
+      "meta.json",
+      "migrations/1_foundation.sql",
+      "query.py",
+      "receipts.py",
+      "store.py",
+      "tests/acceptance.py",
+      "tests/shard.py",
+      "tests/support.py",
+      "tests/test_canonical.py",
+      "tests/test_chain.py",
+      "tests/test_check.py",
+      "tests/test_ci_shape.py",
+      "tests/test_claims.py",
+      "tests/test_cli_basics.py",
+      "tests/test_codex_findings.py",
+      "tests/test_commit_findings.py",
+      "tests/test_diagnostics.py",
+      "tests/test_export.py",
+      "tests/test_gate.py",
+      "tests/test_gatekinds.py",
+      "tests/test_marker.py",
+      "tests/test_mcp_server.py",
+      "tests/test_outcome.py",
+      "tests/test_plant_guard.py",
+      "tests/test_promotion_findings.py",
+      "tests/test_promotion_round2.py",
+      "tests/test_promotion_round3.py",
+      "tests/test_slice2_review.py",
+      "tests/test_store.py",
+      "tests/test_token_diet.py",
+      "tests/test_verify.py",
+      "verify.py",
+      "wf.db",
+      "wf.db.lock",
+      "wf.py"
+    ],
+    "dirs": [
+      "attempts",
+      "chains",
+      "checks",
+      "gate-kinds",
+      "migrations",
+      "objects",
+      "tests"
+    ],
+    "gitignore": [
+      {
+        "file": ".gitignore",
+        "line": "ops/devlane/workflow/wf.db"
+      },
+      {
+        "file": ".gitignore",
+        "line": "ops/devlane/workflow/wf.db-journal"
+      },
+      {
+        "file": ".gitignore",
+        "line": "ops/devlane/workflow/wf.db-shm"
+      },
+      {
+        "file": ".gitignore",
+        "line": "ops/devlane/workflow/wf.db-wal"
+      },
+      {
+        "file": ".gitignore",
+        "line": "ops/devlane/workflow/wf.db.lock"
+      },
+      {
+        "file": ".gitignore",
+        "line": "ops/devlane/workflow/wf.db.rebuild*"
+      }
+    ]
+  },
+  "provenance": {
+    "extractor": "contracts/extract/layout.py",
+    "method": "os.walk of the app directory; .gitignore search at repo root and under .dev/",
+    "paths_relative_to": "ops/devlane/workflow",
+    "gitignore_paths_relative_to": "the repo root",
+    "repo_root_determined_by": "directory containing a .git entry, found by walking up from the app root",
+    "exclusions": {
+      "dirs": [
+        "contracts",
+        "__pycache__"
+      ],
+      "suffixes": [
+        ".pyc"
+      ]
+    },
+    "facts": {
+      "files": {
+        "file": ".",
+        "lines": "n/a (directory walk, 51 entries)",
+        "text": "PLAN.md\ncanonical.py\ncas.py\nchain.py\nchecks/ci_matrix.py\nchecks/diagnostics.py\nchecks/secret_scan.py\nchecks/vocabulary_wall.py\ncoord.py\nerrors.py\ngate-kinds/artifact.json\ngate-kinds/tdd.json\ngatekinds.py\ngitio.py\nmcp_launch.py\nmcp_server.py\nmeta.json\nmigrations/0001_foundation.sql\nquery.py\nreceipts.py\nstore.py\ntests/acceptance.py\ntests/shard.py\ntests/support.py\ntests/test_canonical.py\ntests/test_chain.py\ntests/test_check.py\ntests/test_ci_shape.py\ntests/test_claims.py\ntests/test_cli_basics.py\ntests/test_codex_findings.py\ntests/test_commit_findings.py\ntests/test_diagnostics.py\ntests/test_export.py\ntests/test_gate.py\ntests/test_gatekinds.py\ntests/test_marker.py\ntests/test_mcp_server.py\ntests/test_outcome.py\ntests/test_plant_guard.py\ntests/test_promotion_findings.py\ntests/test_promotion_round2.py\ntests/test_promotion_round3.py\ntests/test_slice2_review.py\ntests/test_store.py\ntests/test_token_diet.py\ntests/test_verify.py\nverify.py\nwf.db\nwf.db.lock\nwf.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc"
+      },
+      "dirs": {
+        "file": ".",
+        "lines": "n/a (directory walk, 7 entries)",
+        "text": "attempts\nchains\nchecks\ngate-kinds\nmigrations\nobjects\ntests",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "files[PLAN.md]": {
+        "file": "PLAN.md",
+        "lines": "n/a (directory entry in .)",
+        "text": "PLAN.md",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 31106,
+        "is_symlink": false
+      },
+      "files[canonical.py]": {
+        "file": "canonical.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "canonical.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 3290,
+        "is_symlink": false
+      },
+      "files[cas.py]": {
+        "file": "cas.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "cas.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 2772,
+        "is_symlink": false
+      },
+      "files[chain.py]": {
+        "file": "chain.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "chain.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 20458,
+        "is_symlink": false
+      },
+      "files[checks/ci_matrix.py]": {
+        "file": "checks/ci_matrix.py",
+        "lines": "n/a (directory entry in checks)",
+        "text": "ci_matrix.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 2764,
+        "is_symlink": false
+      },
+      "files[checks/diagnostics.py]": {
+        "file": "checks/diagnostics.py",
+        "lines": "n/a (directory entry in checks)",
+        "text": "diagnostics.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 5170,
+        "is_symlink": false
+      },
+      "files[checks/secret_scan.py]": {
+        "file": "checks/secret_scan.py",
+        "lines": "n/a (directory entry in checks)",
+        "text": "secret_scan.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 3797,
+        "is_symlink": false
+      },
+      "files[checks/vocabulary_wall.py]": {
+        "file": "checks/vocabulary_wall.py",
+        "lines": "n/a (directory entry in checks)",
+        "text": "vocabulary_wall.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 4001,
+        "is_symlink": false
+      },
+      "files[coord.py]": {
+        "file": "coord.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "coord.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 8008,
+        "is_symlink": false
+      },
+      "files[errors.py]": {
+        "file": "errors.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "errors.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 3536,
+        "is_symlink": false
+      },
+      "files[gate-kinds/artifact.json]": {
+        "file": "gate-kinds/artifact.json",
+        "lines": "n/a (directory entry in gate-kinds)",
+        "text": "artifact.json",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 1026,
+        "is_symlink": false
+      },
+      "files[gate-kinds/tdd.json]": {
+        "file": "gate-kinds/tdd.json",
+        "lines": "n/a (directory entry in gate-kinds)",
+        "text": "tdd.json",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 1429,
+        "is_symlink": false
+      },
+      "files[gatekinds.py]": {
+        "file": "gatekinds.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "gatekinds.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 12945,
+        "is_symlink": false
+      },
+      "files[gitio.py]": {
+        "file": "gitio.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "gitio.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 8998,
+        "is_symlink": false
+      },
+      "files[mcp_launch.py]": {
+        "file": "mcp_launch.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "mcp_launch.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 9913,
+        "is_symlink": false
+      },
+      "files[mcp_server.py]": {
+        "file": "mcp_server.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "mcp_server.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 16816,
+        "is_symlink": false
+      },
+      "files[meta.json]": {
+        "file": "meta.json",
+        "lines": "n/a (directory entry in .)",
+        "text": "meta.json",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 112,
+        "is_symlink": false
+      },
+      "files[migrations/0001_foundation.sql]": {
+        "file": "migrations/0001_foundation.sql",
+        "lines": "n/a (directory entry in migrations)",
+        "text": "0001_foundation.sql",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 4760,
+        "is_symlink": false
+      },
+      "files[query.py]": {
+        "file": "query.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "query.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 16690,
+        "is_symlink": false
+      },
+      "files[receipts.py]": {
+        "file": "receipts.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "receipts.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 5350,
+        "is_symlink": false
+      },
+      "files[store.py]": {
+        "file": "store.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "store.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 11635,
+        "is_symlink": false
+      },
+      "files[tests/acceptance.py]": {
+        "file": "tests/acceptance.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "acceptance.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 19777,
+        "is_symlink": false
+      },
+      "files[tests/shard.py]": {
+        "file": "tests/shard.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "shard.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 1966,
+        "is_symlink": false
+      },
+      "files[tests/support.py]": {
+        "file": "tests/support.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "support.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 14293,
+        "is_symlink": false
+      },
+      "files[tests/test_canonical.py]": {
+        "file": "tests/test_canonical.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_canonical.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 4793,
+        "is_symlink": false
+      },
+      "files[tests/test_chain.py]": {
+        "file": "tests/test_chain.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_chain.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 17873,
+        "is_symlink": false
+      },
+      "files[tests/test_check.py]": {
+        "file": "tests/test_check.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_check.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 9910,
+        "is_symlink": false
+      },
+      "files[tests/test_ci_shape.py]": {
+        "file": "tests/test_ci_shape.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_ci_shape.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 12416,
+        "is_symlink": false
+      },
+      "files[tests/test_claims.py]": {
+        "file": "tests/test_claims.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_claims.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 9947,
+        "is_symlink": false
+      },
+      "files[tests/test_cli_basics.py]": {
+        "file": "tests/test_cli_basics.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_cli_basics.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 15568,
+        "is_symlink": false
+      },
+      "files[tests/test_codex_findings.py]": {
+        "file": "tests/test_codex_findings.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_codex_findings.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 10768,
+        "is_symlink": false
+      },
+      "files[tests/test_commit_findings.py]": {
+        "file": "tests/test_commit_findings.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_commit_findings.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 10049,
+        "is_symlink": false
+      },
+      "files[tests/test_diagnostics.py]": {
+        "file": "tests/test_diagnostics.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_diagnostics.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 11465,
+        "is_symlink": false
+      },
+      "files[tests/test_export.py]": {
+        "file": "tests/test_export.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_export.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 18950,
+        "is_symlink": false
+      },
+      "files[tests/test_gate.py]": {
+        "file": "tests/test_gate.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_gate.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 16097,
+        "is_symlink": false
+      },
+      "files[tests/test_gatekinds.py]": {
+        "file": "tests/test_gatekinds.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_gatekinds.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 7134,
+        "is_symlink": false
+      },
+      "files[tests/test_marker.py]": {
+        "file": "tests/test_marker.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_marker.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 5870,
+        "is_symlink": false
+      },
+      "files[tests/test_mcp_server.py]": {
+        "file": "tests/test_mcp_server.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_mcp_server.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 41546,
+        "is_symlink": false
+      },
+      "files[tests/test_outcome.py]": {
+        "file": "tests/test_outcome.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_outcome.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 9668,
+        "is_symlink": false
+      },
+      "files[tests/test_plant_guard.py]": {
+        "file": "tests/test_plant_guard.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_plant_guard.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 7161,
+        "is_symlink": false
+      },
+      "files[tests/test_promotion_findings.py]": {
+        "file": "tests/test_promotion_findings.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_promotion_findings.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 4854,
+        "is_symlink": false
+      },
+      "files[tests/test_promotion_round2.py]": {
+        "file": "tests/test_promotion_round2.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_promotion_round2.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 7588,
+        "is_symlink": false
+      },
+      "files[tests/test_promotion_round3.py]": {
+        "file": "tests/test_promotion_round3.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_promotion_round3.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 3634,
+        "is_symlink": false
+      },
+      "files[tests/test_slice2_review.py]": {
+        "file": "tests/test_slice2_review.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_slice2_review.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 42582,
+        "is_symlink": false
+      },
+      "files[tests/test_store.py]": {
+        "file": "tests/test_store.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_store.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 8401,
+        "is_symlink": false
+      },
+      "files[tests/test_token_diet.py]": {
+        "file": "tests/test_token_diet.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_token_diet.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 3865,
+        "is_symlink": false
+      },
+      "files[tests/test_verify.py]": {
+        "file": "tests/test_verify.py",
+        "lines": "n/a (directory entry in tests)",
+        "text": "test_verify.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 21085,
+        "is_symlink": false
+      },
+      "files[verify.py]": {
+        "file": "verify.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "verify.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 17721,
+        "is_symlink": false
+      },
+      "files[wf.db]": {
+        "file": "wf.db",
+        "lines": "n/a (directory entry in .)",
+        "text": "wf.db",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 81920,
+        "is_symlink": false
+      },
+      "files[wf.db.lock]": {
+        "file": "wf.db.lock",
+        "lines": "n/a (directory entry in .)",
+        "text": "wf.db.lock",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 0,
+        "is_symlink": false
+      },
+      "files[wf.py]": {
+        "file": "wf.py",
+        "lines": "n/a (directory entry in .)",
+        "text": "wf.py",
+        "rule": "5.5 files: paths relative to ops/devlane/workflow, sorted, excluding contracts/, __pycache__/, *.pyc",
+        "bytes": 81344,
+        "is_symlink": false
+      },
+      "dirs[attempts]": {
+        "file": "attempts",
+        "lines": "n/a (directory entry in .)",
+        "text": "attempts",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "dirs[chains]": {
+        "file": "chains",
+        "lines": "n/a (directory entry in .)",
+        "text": "chains",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "dirs[checks]": {
+        "file": "checks",
+        "lines": "n/a (directory entry in .)",
+        "text": "checks",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "dirs[gate-kinds]": {
+        "file": "gate-kinds",
+        "lines": "n/a (directory entry in .)",
+        "text": "gate-kinds",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "dirs[migrations]": {
+        "file": "migrations",
+        "lines": "n/a (directory entry in .)",
+        "text": "migrations",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "dirs[objects]": {
+        "file": "objects",
+        "lines": "n/a (directory entry in .)",
+        "text": "objects",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "dirs[tests]": {
+        "file": "tests",
+        "lines": "n/a (directory entry in .)",
+        "text": "tests",
+        "rule": "5.5 dirs: directories relative to ops/devlane/workflow, sorted, same exclusions"
+      },
+      "gitignore[.gitignore:1]": {
+        "file": ".gitignore",
+        "lines": "1-1",
+        "text": "ops/devlane/workflow/wf.db",
+        "rule": "5.5 gitignore: every line of every .gitignore at repo root or under .dev/ whose text contains \"db\""
+      },
+      "gitignore[.gitignore:2]": {
+        "file": ".gitignore",
+        "lines": "2-2",
+        "text": "ops/devlane/workflow/wf.db.lock",
+        "rule": "5.5 gitignore: every line of every .gitignore at repo root or under .dev/ whose text contains \"db\""
+      },
+      "gitignore[.gitignore:3]": {
+        "file": ".gitignore",
+        "lines": "3-3",
+        "text": "ops/devlane/workflow/wf.db.rebuild*",
+        "rule": "5.5 gitignore: every line of every .gitignore at repo root or under .dev/ whose text contains \"db\""
+      },
+      "gitignore[.gitignore:4]": {
+        "file": ".gitignore",
+        "lines": "4-4",
+        "text": "ops/devlane/workflow/wf.db-journal",
+        "rule": "5.5 gitignore: every line of every .gitignore at repo root or under .dev/ whose text contains \"db\""
+      },
+      "gitignore[.gitignore:5]": {
+        "file": ".gitignore",
+        "lines": "5-5",
+        "text": "ops/devlane/workflow/wf.db-wal",
+        "rule": "5.5 gitignore: every line of every .gitignore at repo root or under .dev/ whose text contains \"db\""
+      },
+      "gitignore[.gitignore:6]": {
+        "file": ".gitignore",
+        "lines": "6-6",
+        "text": "ops/devlane/workflow/wf.db-shm",
+        "rule": "5.5 gitignore: every line of every .gitignore at repo root or under .dev/ whose text contains \"db\""
+      },
+      "gitignore": {
+        "file": ".gitignore",
+        "lines": "n/a (line-filtered across 1 file(s))",
+        "text": ".gitignore: ops/devlane/workflow/wf.db\n.gitignore: ops/devlane/workflow/wf.db.lock\n.gitignore: ops/devlane/workflow/wf.db.rebuild*\n.gitignore: ops/devlane/workflow/wf.db-journal\n.gitignore: ops/devlane/workflow/wf.db-wal\n.gitignore: ops/devlane/workflow/wf.db-shm",
+        "rule": "5.5 gitignore: every line of every .gitignore at repo root or under .dev/ whose text contains \"db\"",
+        "match": "case-sensitive substring \"db\", as 5.5 words it",
+        "case_insensitive_only_matches": [],
+        "note": "an empty list here means the .gitignore files listed in gitignore_files_searched were read and none carried a db line"
+      }
+    },
+    "gitignore_files_searched": [
+      ".gitignore"
+    ],
+    "gitignore_search_scope": [
+      "<repo root>/.gitignore",
+      "every .gitignore under <repo root>/.dev/"
+    ]
+  }
+}

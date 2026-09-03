@@ -19,9 +19,9 @@ With no PATH, scans the design surfaces that exist: everything outside
 vocabulary.
 
 The compose term is checked in the other direction across the dev-lane
-surfaces. It is allowed only in `.dev/infra/` (compose),
-`.dev/docs/scratch/` (research), `.dev/handoffs/` (systemd),
-`.dev/records/` (evidence), `.dev/conductor/`
+surfaces. It is allowed only in `ops/devlane/infra/` (compose),
+`ops/docs/scratch/` (research), `.dev/handoffs/` (systemd),
+`.dev/records/` (evidence), `ops/conductor/`
 (conductor records quote evidence), and `.git/` (not a tree surface).
 """
 
@@ -46,7 +46,7 @@ RESERVED = [
 #: (.claude/ adapters, .serena/ code-assist config and memories) are
 #: dev-lane surface — they describe how the repo is worked on, not what
 #: the product is. Design artifacts never live in a dot-directory here.
-ALLOWED_PREFIXES = (".dev/", ".git/", ".github/", ".claude/", ".serena/")
+ALLOWED_PREFIXES = (".dev/", ".git/", ".github/", ".claude/", ".serena/", "ops/")
 #: `ruff.toml` joins them for the same reason as the dot-directories:
 #: it configures how this repo is worked on, and it cannot do that
 #: without naming dev-lane paths — a per-file rule for
@@ -60,11 +60,11 @@ SERVICE_RULE = "vocab.service-outside-infra"
 PROD_TERMS = ("ker\u006eel",)
 PROD_RULE = "vocab.kernel-outside-homes"
 SERVICE_HOMES = (
-    ".dev/infra/",
-    ".dev/docs/scratch/",
+    "ops/devlane/infra/",
+    "ops/docs/scratch/",
     ".dev/handoffs/",
     ".dev/records/",
-    ".dev/conductor/",
+    "ops/conductor/",
     ".git/",
 )
 

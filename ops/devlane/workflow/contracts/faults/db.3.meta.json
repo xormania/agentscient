@@ -1,0 +1,11 @@
+{
+  "contract": "db",
+  "fault": "db.3.json",
+  "from": "obs/db.json",
+  "change": "the DB records a second applied migration, `0002_indexes.sql`, for which no file exists under migrations/",
+  "violates": "PLAN.md §6 lines 361-363 (with §13 line 576)",
+  "quote": "\"numbered forward-only SQL in `migrations/`, applied by `init` inside a transaction, recorded in `schema_migrations`, never rewritten once applied\"",
+  "reject_path": "facts\\.schema_migrations(\\.[0-9]+)?\\b|0002_indexes",
+  "implied": false,
+  "note": "The db contract sees one data file and cannot list migrations/ itself; it fires only if the author pinned the recorded set to §13's `0001_foundation.sql`. If it does not fire, that is the documented 'registry claims more than the tree holds' gap, and the contract is too permissive."
+}

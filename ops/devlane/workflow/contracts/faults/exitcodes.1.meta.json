@@ -1,0 +1,11 @@
+{
+  "contract": "exitcodes",
+  "fault": "exitcodes.1.json",
+  "from": "obs/exitcodes.json",
+  "change": "the code 4 joins the observed set",
+  "violates": "PLAN.md §4 lines 271-274 (with §2 line 59)",
+  "quote": "\"**Exit codes** (loopflow's, unchanged): `0` ok — including a recorded denial; `1` refused or failed … `2` evidence integrity … `3` claim held by another agent; `64` usage.\"",
+  "reject_path": "all_codes(\\.[0-9]+)?:.*\\b4\\b",
+  "implied": false,
+  "note": "The clean run already fails here on 70 (EXIT_INTERNAL, an observed disagreement). The regex is written to match the 4 line and not the 70 line: \"64\" has no word boundary before its 4."
+}

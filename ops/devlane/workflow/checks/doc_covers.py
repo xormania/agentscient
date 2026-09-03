@@ -20,7 +20,7 @@ gave INVALID its printed shape.
 `covers:` names repo-relative paths. Absolute and `..` are refused
 LEXICALLY, before any filesystem call: a checker that stats an absolute
 path has already reached outside the repository it is judging, and
-`.dev/docs/../docs/README.md` is not a name, it is a route. The
+`ops/docs/../docs/README.md` is not a name, it is a route. The
 inside test resolves both sides, because a `/tmp` that is itself a
 symlink (macOS) would otherwise report every inside path as outside.
 
@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 #: The shelf, relative to the repository root.
-SHELF = (".dev", "docs")
+SHELF = ("ops", "docs")
 
 FINDING = "finding"
 INVALID = "invalid"

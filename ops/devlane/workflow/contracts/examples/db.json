@@ -1,0 +1,89 @@
+{
+  "facts": {
+    "present": true,
+    "tables": [
+      {
+        "name": "work_orders",
+        "columns": [
+          {"name": "wo_id"},
+          {"name": "objective"},
+          {"name": "kind"},
+          {"name": "kind_version"},
+          {"name": "spec_sha256"},
+          {"name": "created_at"}
+        ]
+      },
+      {
+        "name": "events",
+        "columns": [
+          {"name": "wo_id"},
+          {"name": "seq"},
+          {"name": "hash"},
+          {"name": "prev"},
+          {"name": "time"},
+          {"name": "payload"},
+          {"name": "state_sha256"}
+        ]
+      },
+      {"name": "wo_state"},
+      {
+        "name": "gate_kinds",
+        "columns": [
+          {"name": "kind"},
+          {"name": "version"},
+          {"name": "spec_json"}
+        ]
+      },
+      {
+        "name": "artifacts",
+        "columns": [
+          {"name": "digest"},
+          {"name": "size"},
+          {"name": "media_type"},
+          {"name": "class"}
+        ]
+      },
+      {
+        "name": "claims",
+        "columns": [
+          {"name": "wo_id"},
+          {"name": "agent"},
+          {"name": "note"},
+          {"name": "acquired_at"},
+          {"name": "expires_at"}
+        ],
+        "primary_key": ["wo_id"]
+      },
+      {
+        "name": "sessions",
+        "columns": [
+          {"name": "session_id"},
+          {"name": "agent"},
+          {"name": "wo_id"},
+          {"name": "status"},
+          {"name": "started_at"},
+          {"name": "last_seen"},
+          {"name": "ttl_seconds"}
+        ]
+      },
+      {
+        "name": "attempts",
+        "columns": [
+          {"name": "record_kind"},
+          {"name": "exhaustiveness"},
+          {"name": "agent"}
+        ]
+      },
+      {"name": "schema_migrations"}
+    ],
+    "gate_kinds": [
+      {"kind": "tdd", "version": 1},
+      {"kind": "artifact"}
+    ]
+  },
+  "provenance": {
+    "source": "PLAN.md",
+    "lines": "56,91-108,335-348,468-479,513-519",
+    "note": "Only table and column names, claims.wo_id primary-key status, and seeded kind names are represented; unspecified SQL metadata and current row values are omitted."
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "_comment": [
+    "The cross-app import graph for the dev-lane apps, enforced by imports.py.",
+    "An app may reference another only when it is listed in may_import.",
+    "Adding an arrow is a design decision -- it records that two apps are now",
+    "coupled. Removing one is a promise the coupling is gone.",
+    "",
+    "Every app in ops/devlane/ must appear here, and every app named here must",
+    "exist. A new app therefore cannot land without declaring its edges, which",
+    "is the point: the graph cannot drift while nobody is looking.",
+    "",
+    "task -> telemetry: run.py loads telemetry/breaker.py by path to",
+    "supervise a dispatched agent. It was added when the task app landed,",
+    "by this check refusing the merge until it was declared.",
+    "",
+    "dispatch -> task, dispatch -> harness: dispatch is the composition app",
+    "the §Dispatch launcher moved to (PR #61), so it may depend DOWNWARD on",
+    "both -- task for the jobs.json registry it reads by path, harness for",
+    "isolation.py/wires.py it loads to run an agent. task -> harness stays",
+    "forbidden: the launcher no longer lives in task, so that edge is gone",
+    "rather than allowed. The reverse (harness -> task) would be a cycle.",
+    "",
+    "dispatch -> telemetry: launch.py loads telemetry/usage.py by path at close to",
+    "record session.spend from the harness's own store (U5, 2026-08-30). One",
+    "reader for the report and the record, so the two never disagree."
+  ],
+  "apps": {
+    "dispatch": {
+      "may_import": [
+        "task",
+        "harness",
+        "telemetry"
+      ]
+    },
+    "fixtures": {
+      "may_import": []
+    },
+    "harness": {
+      "may_import": []
+    },
+    "hooks": {
+      "may_import": []
+    },
+    "task": {
+      "may_import": [
+        "telemetry"
+      ]
+    },
+    "telemetry": {
+      "may_import": []
+    },
+    "workflow": {
+      "may_import": []
+    }
+  }
+}

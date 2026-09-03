@@ -1,0 +1,10 @@
+{
+  "contract": "gatekinds",
+  "fault": "gatekinds.4.json",
+  "from": "obs/gatekinds.json",
+  "change": "the tdd `audit` check entry has no `class`",
+  "violates": "PLAN.md §6 line 332 (with §3.4 lines 175-177)",
+  "quote": "\"the test scope (globs), and registered checks (name, class, argv template).\"",
+  "reject_path": "facts\\.kinds\\.[0-9]+\\.spec\\.checks\\.[0-9]+(\\.class)?\\b",
+  "implied": false
+}

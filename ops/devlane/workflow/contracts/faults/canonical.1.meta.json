@@ -1,0 +1,10 @@
+{
+  "contract": "canonical",
+  "fault": "canonical.1.json",
+  "from": "obs/canonical.json",
+  "change": "json.dumps is called with the default spacing separators `(\", \", \": \")`",
+  "violates": "PLAN.md §2 line 52 (with §13 lines 574-575)",
+  "quote": "\"canonical form is *defined* as byte-identical to Python's `json.dumps(obj, sort_keys=True, separators=(\\\",\\\",\\\":\\\"))`\"",
+  "reject_path": "facts\\.json_dumps_calls\\.[0-9]+\\.keywords\\.separators\\b",
+  "implied": false
+}

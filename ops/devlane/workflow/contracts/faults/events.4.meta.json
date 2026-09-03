@@ -1,0 +1,10 @@
+{
+  "contract": "events",
+  "fault": "events.4.json",
+  "from": "obs/events.json",
+  "change": "the `commit.landed` event built at wf.py:1321 carries no `sha` key",
+  "violates": "PLAN.md §3.6 lines 205-206",
+  "quote": "\"After each workflow commit, `commit.landed` is appended, recording the `sha` and the chain head (`seq`, `hash`) that landed in it.\"",
+  "reject_path": "facts\\.shapes\\.[0-9]+\\.keys\\b|sha\\b",
+  "implied": false
+}

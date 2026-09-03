@@ -1,0 +1,24 @@
+{
+  "id": "cli-88a31003",
+  "verdict": "contract-wrong",
+  "rule": "PLAN.md documents --no-commit as the switch that defers auto-commit and does not require it to be declared only on subcommands.",
+  "observed": "wf.py registers --no-commit as a global store_true argument, which the contract's empty-or-[--json] global_arguments schema rejects.",
+  "because": [
+    {
+      "artifact": "PLAN.md",
+      "lines": "291-291",
+      "quote": "`--no-commit` defers;"
+    },
+    {
+      "artifact": "cue/cli.cue",
+      "lines": "650-650",
+      "quote": "if len(global_arguments) == 0 {"
+    },
+    {
+      "artifact": "obs/cli.json",
+      "lines": "1307-1314",
+      "quote": "\"flags\": [\n    \"--no-commit\"\n  ]"
+    }
+  ],
+  "action": "amend-contract"
+}

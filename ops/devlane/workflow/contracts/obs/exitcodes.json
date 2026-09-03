@@ -1,0 +1,188 @@
+{
+  "facts": {
+    "all_codes": [
+      0,
+      1,
+      2,
+      3,
+      64,
+      70
+    ],
+    "constants": [
+      {
+        "file": "errors.py",
+        "name": "Claimed.exit_code",
+        "value": 3
+      },
+      {
+        "file": "errors.py",
+        "name": "EXIT_CLAIMED",
+        "value": 3
+      },
+      {
+        "file": "errors.py",
+        "name": "EXIT_INTEGRITY",
+        "value": 2
+      },
+      {
+        "file": "errors.py",
+        "name": "EXIT_INTERNAL",
+        "value": 70
+      },
+      {
+        "file": "errors.py",
+        "name": "EXIT_OK",
+        "value": 0
+      },
+      {
+        "file": "errors.py",
+        "name": "EXIT_REFUSED",
+        "value": 1
+      },
+      {
+        "file": "errors.py",
+        "name": "EXIT_USAGE",
+        "value": 64
+      },
+      {
+        "file": "errors.py",
+        "name": "Integrity.exit_code",
+        "value": 2
+      },
+      {
+        "file": "errors.py",
+        "name": "Refusal.exit_code",
+        "value": 1
+      },
+      {
+        "file": "errors.py",
+        "name": "Usage.exit_code",
+        "value": 64
+      },
+      {
+        "file": "errors.py",
+        "name": "WfError.exit_code",
+        "value": 1
+      }
+    ],
+    "exit_literals": []
+  },
+  "provenance": {
+    "constants": [
+      {
+        "file": "errors.py",
+        "lines": "13-13",
+        "name": "EXIT_OK",
+        "rule": "\u00a75.7 module-level NAME = <int>, name matching /exit|code/i",
+        "text": "EXIT_OK = 0",
+        "value": 0
+      },
+      {
+        "file": "errors.py",
+        "lines": "14-14",
+        "name": "EXIT_REFUSED",
+        "rule": "\u00a75.7 module-level NAME = <int>, name matching /exit|code/i",
+        "text": "EXIT_REFUSED = 1",
+        "value": 1
+      },
+      {
+        "file": "errors.py",
+        "lines": "15-15",
+        "name": "EXIT_INTEGRITY",
+        "rule": "\u00a75.7 module-level NAME = <int>, name matching /exit|code/i",
+        "text": "EXIT_INTEGRITY = 2",
+        "value": 2
+      },
+      {
+        "file": "errors.py",
+        "lines": "16-16",
+        "name": "EXIT_CLAIMED",
+        "rule": "\u00a75.7 module-level NAME = <int>, name matching /exit|code/i",
+        "text": "EXIT_CLAIMED = 3",
+        "value": 3
+      },
+      {
+        "file": "errors.py",
+        "lines": "17-17",
+        "name": "EXIT_USAGE",
+        "rule": "\u00a75.7 module-level NAME = <int>, name matching /exit|code/i",
+        "text": "EXIT_USAGE = 64",
+        "value": 64
+      },
+      {
+        "file": "errors.py",
+        "lines": "22-22",
+        "name": "EXIT_INTERNAL",
+        "rule": "\u00a75.7 module-level NAME = <int>, name matching /exit|code/i",
+        "text": "EXIT_INTERNAL = 70",
+        "value": 70
+      },
+      {
+        "file": "errors.py",
+        "lines": "28-28",
+        "name": "WfError.exit_code",
+        "resolution": "EXIT_REFUSED = 1, resolved against errors.py's module constants",
+        "rule": "\u00a75.7 class attribute, name matching /exit|code/i",
+        "text": "    exit_code = EXIT_REFUSED",
+        "value": 1
+      },
+      {
+        "file": "errors.py",
+        "lines": "44-44",
+        "name": "Refusal.exit_code",
+        "resolution": "EXIT_REFUSED = 1, resolved against errors.py's module constants",
+        "rule": "\u00a75.7 class attribute, name matching /exit|code/i",
+        "text": "    exit_code = EXIT_REFUSED",
+        "value": 1
+      },
+      {
+        "file": "errors.py",
+        "lines": "81-81",
+        "name": "Integrity.exit_code",
+        "resolution": "EXIT_INTEGRITY = 2, resolved against errors.py's module constants",
+        "rule": "\u00a75.7 class attribute, name matching /exit|code/i",
+        "text": "    exit_code = EXIT_INTEGRITY",
+        "value": 2
+      },
+      {
+        "file": "errors.py",
+        "lines": "111-111",
+        "name": "Claimed.exit_code",
+        "resolution": "EXIT_CLAIMED = 3, resolved against errors.py's module constants",
+        "rule": "\u00a75.7 class attribute, name matching /exit|code/i",
+        "text": "    exit_code = EXIT_CLAIMED",
+        "value": 3
+      },
+      {
+        "file": "errors.py",
+        "lines": "118-118",
+        "name": "Usage.exit_code",
+        "resolution": "EXIT_USAGE = 64, resolved against errors.py's module constants",
+        "rule": "\u00a75.7 class attribute, name matching /exit|code/i",
+        "text": "    exit_code = EXIT_USAGE",
+        "value": 64
+      }
+    ],
+    "exit_call_sites": [
+      {
+        "arguments": [
+          "<not an int literal: main()>"
+        ],
+        "callee": "sys.exit",
+        "file": "wf.py",
+        "lines": "2029-2029",
+        "rule": "\u00a75.7 exit-like call site, scanned for int literal arguments",
+        "text": "    sys.exit(main())"
+      }
+    ],
+    "exit_literals": [],
+    "readings": [
+      "the \u00a75.7 name filter is applied case-insensitively (ADAPTED): spelled EXIT/CODE only, the 'and class attributes' half of the rule matches nothing in this tree",
+      "True/False are not counted as int literals"
+    ],
+    "targets": [
+      "errors.py",
+      "wf.py"
+    ]
+  }
+}

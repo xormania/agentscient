@@ -1,0 +1,12 @@
+{
+  "contract": "vocab",
+  "fault": "vocab.4.json",
+  "from": "obs/vocab.json",
+  "change": "the capability and capabilities terms are absent from every vocabulary-wall literal",
+  "violates": "agentscient-framework-plan.md §10 and agentscient-u1-plan.md §2: capability is reserved by the framework",
+  "quote": "capability and capabilities join pass 1's RESERVED",
+  "reject_path": "facts\\.(joined|literals)\\b|capability",
+  "implied": false,
+  "sites": 4,
+  "note": "Both singular and plural literal entries, and their joined carrier occurrences, are absent."
+}

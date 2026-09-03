@@ -1,0 +1,20 @@
+# Proof fixture for CodeQL advanced setup (Unit A′, 2026-08-30).
+# A Python file with two CodeQL-detectable sinks: subprocess.shell=True
+# on user input, and eval of user input. Tracked with a non-.py suffix
+# so the real scan (and default setup) never see it; the workflow copies
+# it to a .py path only when PROOF=1.
+import subprocess
+import sys
+
+
+def run_unchecked(user_input: str) -> None:
+    subprocess.call(user_input, shell=True)
+
+
+def eval_unchecked(user_input: str):
+    return eval(user_input)
+
+
+if __name__ == "__main__":
+    run_unchecked(sys.argv[1])
+    eval_unchecked(sys.argv[1])

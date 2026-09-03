@@ -1,0 +1,11 @@
+{
+  "contract": "db",
+  "fault": "db.4.json",
+  "from": "obs/db.json",
+  "change": "the registered `tdd` gate kind's version is the string \"1\" instead of the integer 1",
+  "violates": "PLAN.md §6 line 336 (with §3.2 line 103, §6 line 355)",
+  "quote": "\"{\\\"kind\\\": \\\"tdd\\\", \\\"version\\\": 1,\"",
+  "reject_path": "facts\\.gate_kinds\\.[0-9]+\\.version\\b",
+  "implied": true,
+  "note": "PLAN.md gives the integer only in the §6 block it labels \"Illustrative\" (line 333); §3.2 line 103 names the column but not its type."
+}

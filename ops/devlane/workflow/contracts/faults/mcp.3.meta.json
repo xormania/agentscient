@@ -1,0 +1,10 @@
+{
+  "contract": "mcp",
+  "fault": "mcp.3.json",
+  "from": "obs/mcp.json",
+  "change": "mcp_server.py names no `next` verb",
+  "violates": "PLAN.md §9 lines 485-486 (with §4 line 254)",
+  "quote": "\"Serves `status`/`next`/`log` as MCP resources over the same `--json` surface.\"",
+  "reject_path": "facts\\.verb_literals\\b|next",
+  "implied": false
+}

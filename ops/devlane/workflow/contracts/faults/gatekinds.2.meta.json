@@ -1,0 +1,10 @@
+{
+  "contract": "gatekinds",
+  "fault": "gatekinds.2.json",
+  "from": "obs/gatekinds.json",
+  "change": "the artifact gate kind no longer declares the outcome value `rejected` anywhere",
+  "violates": "PLAN.md §3.5 lines 181-184",
+  "quote": "\"The draft → review → fix → ratify cycle is the seeded `artifact` gate kind. Outcomes are recorded per stage from the spec's declared set — `accepted`, `rejected`, `denied`, `aborted`, `finding`, `ratified` — as distinct values, never collapsed.\"",
+  "reject_path": "outcomes\\b|rejected",
+  "implied": false
+}
