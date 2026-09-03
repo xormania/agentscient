@@ -78,3 +78,27 @@ OK
 == conductor-run4
 Ran 232 tests in 133.366s
 OK
+== workflow-run4 (the final rerun of the session, read after the AAR was first written)
+workflow rc=1
+Ran 993 tests in 197.028s
+FAILED (failures=12, errors=3)
+      4 FAIL test_guide
+      3 FAIL test_vocabulary_reserved
+      3 FAIL test_ci_shape
+      2 FAIL test_vocabulary_wall
+      1 ERROR test_vocabulary_wall
+      1 ERROR test_promotion_round3
+      1 ERROR test_ci_shape
+--- assertions ---
+      3 AssertionError: 1 != 0 : pass 1
+      2 AssertionError: Items in the first set but not the second:
+      1 AssertionError: unexpectedly None : AGENTS.md has no paragraph naming compose and capability
+      1 AssertionError: [] is not true : non-quoting ops/docs dropped from the scan
+      1 AssertionError: Lists differ: ['ops/README.md:[13]'] != []
+      1 AssertionError: 24 != 21
+      1 AssertionError: 'unittest discover' not found in 'bash ops/bin/php-suite.sh' : symfony
+      1 AssertionError: 'ops/devlane/infra/' not found in 'The lane rule, enforced by a check, not a convention** (`AGENTS.md`\n§"This file is dev-lane surface"): dev-lane vocab
+      1 AssertionError: 'infra/note.md' unexpectedly found in "vocab.kernel-outside-homes: ops/infra/note.md:1: 'kernel' in: infra may mention kernel as compose does."
+--- errors ---
+      1 FileNotFoundError: [Errno 2] No such file or directory: '/tmp/wall-empty-x9hafoor/.dev/note.md'
+
