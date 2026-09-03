@@ -97,7 +97,7 @@ class ModelRanComesFromTheStream(ls._TempLaunch):
     """
 
     def _assert_stream_digest(self, rec):
-        stream = rec["session"]["stream"]
+        stream = ls.resolve_record_paths(rec)["session"]["stream"]
         self.assertTrue(stream, "a stream path is recorded")
         path = Path(stream)
         self.assertTrue(path.is_file(), f"stream missing: {stream}")

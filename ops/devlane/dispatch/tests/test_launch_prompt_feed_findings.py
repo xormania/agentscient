@@ -435,7 +435,7 @@ class CloseCollectsTheHarnessStream(_ParserLaunch):
             f"job home, not leave it null: rec={rec2!r} out={out!r} "
             f"err={err!r}",
         )
-        stream = rec2.get("session", {}).get("stream")
+        stream = ls.resolve_record_paths(rec2).get("session", {}).get("stream")
         self.assertTrue(
             stream,
             f"close must set session.stream: rec={rec2!r}",
