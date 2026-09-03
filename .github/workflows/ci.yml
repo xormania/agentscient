@@ -2,7 +2,9 @@ name: ci
 # The gate every PR into dev must pass whole: the wall over the tree,
 # lint under the pinned contract, every lane suite (stdlib only, no
 # cached oracle), then the Symfony project: manifest and lock agree,
-# install from the lock, the kernel boots, every PHPUnit suite. `edited` is in the trigger set so a title or body
+# install from the lock, the kernel boots, every PHPUnit suite. Runs on
+# this repository's own self-hosted runners (the House's pattern; the
+# toolchain lives on the host), with CI_RUNNER as the override. `edited` is in the trigger set so a title or body
 # changed after checks passed is judged again.
 on:
   pull_request:
@@ -13,7 +15,7 @@ permissions:
   contents: read
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -29,15 +31,10 @@ jobs:
           python3 -m ruff check .
       - name: lane suites
         run: bash ops/bin/suites.sh
-      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
-        with:
-          php-version: '8.4'
+      - name: the host toolchain the self-hosted runner relies on
+        run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version
       - name: composer validate — the manifest and the lock agree
         run: composer validate --strict
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: ~/.cache/composer/files
-          key: composer-${{ hashFiles('composer.lock') }}
       - name: composer install — from the lock, nothing resolved on the runner
         run: composer install --prefer-dist --no-progress --no-interaction
       - name: php lint
