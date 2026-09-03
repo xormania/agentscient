@@ -89,7 +89,11 @@ lane — dispatch, harness, task, telemetry, hooks, guards — carried over
 from the House lane as the bounded Python incumbent: every instrument
 there is the functional specification for a Symfony Console twin, and
 retires only when its twin passes the same conformance row.
-`ops/process/` holds the pipeline law; `ops/bin/` the levers.
+`ops/conductor/` is the conductor lane — the instruments, their
+contracts, the ideas and hand-off records, the register — with its own
+state under `~/.local/state/agentscient/`. `ops/process/` holds the
+pipeline law; `ops/bin/` the levers; `CONTRIB.md` the naming and the
+templates.
 Delegation runs through `ops/bin/dispatch.sh` (or `go.sh`) and nothing
 else — in-session sub-agents are refused by hook. `ops/bin/suites.sh`
 is the one answer to "is it green?", here and in CI. Read
