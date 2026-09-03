@@ -115,6 +115,7 @@ does not change the runner.
 | job | deliverable |
 |:--|:--|
 | `adversarial-review` | findings that survived the task's own attempt to refute them |
+| `security-audit` | security findings against the change that survived the auditor's own attempt to refute them |
 | `verify` | one claim, executed: a reproduction or a refutation |
 | `author-tests` | a test file that has been run and is red for the stated reason |
 | `sweep` | structured findings over disjoint categories, merged |
