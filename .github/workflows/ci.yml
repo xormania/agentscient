@@ -1,0 +1,30 @@
+name: ci
+# The gate every PR into dev must pass whole: the wall over the tree,
+# lint under the pinned contract, and every lane suite — stdlib only,
+# no cached oracle. `edited` is in the trigger set so a title or body
+# changed after checks passed is judged again.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [dev]
+permissions:
+  contents: read
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: term wall — tree content and paths
+        env:
+          TERM_WALL: ${{ vars.TERM_WALL }}
+        run: python3 ops/devlane/workflow/checks/term_wall.py --root .
+      - name: ruff — the pinned contract
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check 'ruff==0.16.5'
+          python3 -m ruff --version
+          python3 -m ruff check .
+      - name: lane suites
+        run: bash ops/bin/suites.sh
