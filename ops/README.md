@@ -27,6 +27,10 @@ responsibilities; it is the thing the twins are measured against.
 | `ops/devlane/infra/` | the local CI muscle: Gitea, act_runner, the lane image (inert until composed up) |
 | `ops/conductor/` | the conductor lane: the instruments (register, ledger, watch, land, onboard, CI store, census, skills, the doctor), their contracts and suites, the ideas and hand-off records, the AARs — `ops/conductor/README.md` |
 | `ops/process/` | the pipeline law: who produces what, what each is denied, review, tdd, bdd, worth |
+| `ops/docs/` | the shelf: the four lesson pages the process law cites, carried from the House; records, not law |
+| `ops/design/features/` | the BDD feature shelf: Given/When/Then scenarios per area |
+| `ops/capabilities/contracts/` | the seed's four CUE contracts — the anatomy of a capability, the refusal shape, the read/write tags — input to the module maker; the seed's vets, plans and tests did not cross |
+| `ops/archive/` | House-era records about this framework, behind a standing banner: reference for the twins' authors, never authority |
 | `ops/bin/` | the levers a session pulls by hand |
 
 ## The levers
@@ -77,14 +81,25 @@ Named so nobody infers them from silence:
 
 - `ops/devlane/workflow/wf.py` — the workflow engine the House lane
   drives gates with; `apply-push.sh`'s default gate runner names it and
-  refuses on absence. It arrives with the workflow freight, behind the
-  genus contract in `docs/workflow.md`, or not at all.
+  refuses on absence. Its runtime stays on `lane/workflow` (PR #10,
+  closed unmerged at the owner's word, 2026-09-03; I-008, D-PORT-2
+  proposed). What crossed is its specification: `PLAN.md`, the twelve
+  CUE contracts and their notes under `contracts/`. The runtime arrives
+  only as the Symfony twin, behind the genus contract in
+  `docs/workflow.md`.
+- `ops/devlane/workflow/tests/` beyond `test_term_wall.py`, and the
+  engine's fault corpora, observations, packets and verdicts — on
+  `lane/workflow`, not crossing: they pin the Python CLI's shape, which
+  the twin does not keep. The CUE contracts are the transferable oracle.
 - `ops/contracts/imports.json` — the cross-app import declaration the
-  dispatch and task contracts cite. Arrives with the contracts freight.
-- `ops/devlane/workflow/` beyond `checks/` and `gate-kinds/` — the
-  engine, its contracts and suites: the next freight.
-- `ops/docs/` and `ops/design/features/` — the lessons shelf and the
-  BDD feature files the process law cites. Arrive with their freights.
+  dispatch and task contracts cite. On `lane/workflow`, not crossing;
+  deptrac holds that boundary for the PHP modules.
+- `ops/capabilities/` beyond `contracts/*.cue`, and `ops/guide/` — the
+  seed's vets, plans and tests, and the House's per-app guide pages: on
+  `lane/workflow`, not crossing.
+- `ops/devlane/workflow/gate-kinds/*.json` still name House paths
+  (`.dev/app/…`) in their `argv`; nothing on `dev` executes them. A
+  finding, recorded here, not fixed in the extraction.
 
 ## The rules the lane binds
 
