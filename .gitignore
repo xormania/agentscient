@@ -1,0 +1,4 @@
+__pycache__/
+*.py[cod]
+# Machine-local permissions and overrides; the tracked settings.json is the contract.
+.claude/settings.local.json
