@@ -44,16 +44,13 @@
     "argv": [
       "/home/scientdb/.local/bin/codex",
       "exec",
-      "--sandbox",
-      "workspace-write",
-      "-c",
-      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/out\"]",
+      "resume",
+      "01a0697c-ed44-7890-8a7a-82d36532c72b",
       "--model",
       "gpt-5.6-sol",
       "--json",
       "-o",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/out/last-message.json",
-      "-"
+      "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/out/last-message.json"
     ]
   },
   "model": {
@@ -67,12 +64,7 @@
     "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-56-30-01a0697c-ed44-7890-8a7a-82d36532c72b.jsonl",
     "stream_sha256_at_close": "98264f700681dcecc0f9b55407b45cb0e14459bc81dc07eb964da4e2b537be64",
     "spend": {
-      "input": 3137424,
-      "cached": 3055232,
-      "output": 8749,
-      "total": 3146173,
-      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T225629Z-code-codex-e0fe11/home/codex-stream/sessions/2026/09/03/rollout-2026-09-03T18-56-30-01a0697c-ed44-7890-8a7a-82d36532c72b.jsonl",
-      "messages": 240
+      "unresolved": "no session stream discovered"
     }
   },
   "brief": {
@@ -93,8 +85,8 @@
   "caps": {
     "cap-out": 500000,
     "source": "wires.py",
-    "timeout": 900.0,
-    "timeout_source": "default"
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
   "attempts": [
@@ -104,6 +96,27 @@
       "ended": "2026-09-03T23:12:26Z",
       "exit": 137,
       "tripped": true
+    },
+    {
+      "n": 2,
+      "launched": "2026-09-03T23:14:28Z",
+      "ended": "2026-09-03T23:14:28Z",
+      "exit": 1,
+      "tripped": false
+    },
+    {
+      "n": 3,
+      "launched": "2026-09-03T23:15:01Z",
+      "ended": "2026-09-03T23:15:01Z",
+      "exit": 1,
+      "tripped": false
+    },
+    {
+      "n": 4,
+      "launched": "2026-09-03T23:15:27Z",
+      "ended": "2026-09-03T23:15:27Z",
+      "exit": 1,
+      "tripped": false
     }
   ],
   "result": {
@@ -138,9 +151,10 @@
       "untracked": []
     },
     "cause": {
-      "reason": "timeout",
-      "note": "timeout: harness exceeded runtime"
+      "reason": "harness-cli:1"
     }
   },
-  "status": "closed"
+  "status": "closed",
+  "note": "wall at 900s from the launcher default; the job declares no cap; work uncommitted in the snapshot",
+  "_envelope_cause": "no-last-message"
 }
