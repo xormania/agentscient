@@ -17,3 +17,10 @@ __pycache__/
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+# The workflow engine's cache; the tracked export under chains/ is the evidence.
+ops/devlane/workflow/wf.db
+ops/devlane/workflow/wf.db.lock
+ops/devlane/workflow/wf.db.rebuild*
+ops/devlane/workflow/wf.db-journal
+ops/devlane/workflow/wf.db-wal
+ops/devlane/workflow/wf.db-shm

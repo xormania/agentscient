@@ -26,6 +26,11 @@ line-length = 88
 # complaint is advice and never a failure.
 extend-exclude = [
     ".git",
+    # The CodeQL skeptic's stand-in is evidence consumed by the CI tests, not
+    # product code; the fault corpora are data consumed by contract checks.
+    "ops/docs/scratch/codeql-skeptic-bb95fc-standin",
+    "ops/devlane/workflow/contracts/faults",
+    "ops/capabilities/contracts/faults",
 ]
 
 [lint]
@@ -105,6 +110,39 @@ ignore = [
 # hooks/claude carries S603/S607 inline: its input is a command string,
 # and a file-wide S603 ignore would exempt the one call the rule exists for.
 
+# The workflow engine and the docs shelf, as the House kept them.
+# Import ORDER IS LOAD-BEARING in the workflow suites: support.py wires
+# sys.path so the workflow modules resolve at all, so it must import first.
+"ops/devlane/workflow/tests/*.py" = ["I001"]
+"ops/devlane/workflow/wf.py" = ["I001"]
+"ops/devlane/workflow/*.py" = ["S603", "S607"]
+# store.py and mcp_launch.py build SQL by interpolation, but only ever with
+# identifiers the code itself owns, every VALUE bound with a ? placeholder;
+# S608 cannot see that invariant.
+"ops/devlane/workflow/store.py" = ["S608", "S603", "S607"]
+"ops/devlane/workflow/mcp_launch.py" = ["S608", "S603", "S607", "I001"]
+# The contract extractors read a SQLite database and interpolate names they
+# got from its own schema; values are bound. Evidence files, formatted to the
+# contract but not rewritten.
+"ops/devlane/workflow/contracts/extract/*.py" = ["S608"]
+# The shelf's generators shell out on purpose; tool-audit refuses a non-https
+# URL at run time, which is the file:/custom-scheme concern S310 is about.
+"ops/docs/*.py" = ["S603", "S607"]
+"ops/docs/tool-audit.py" = ["S603", "S607", "S310"]
+# The cross-app import contract: imports.py inspects app trees and its suite
+# runs the checker as a real subprocess.
+"ops/contracts/*.py" = ["S603", "S607"]
+"ops/contracts/tests/*.py" = ["S101", "S603", "S607"]
+# The positive anatomy control is fixture data too: its tiny module and test
+# are copied into planted repositories verbatim.
+"ops/capabilities/contracts/examples/anatomy/goodcap/goodcap.py" = ["I001"]
+"ops/capabilities/contracts/examples/anatomy/goodcap/tests/test_goodcap.py" = ["S101"]
+# The seed's tests invoke the vets as subprocesses and assert on the exit the gate will see.
+"ops/capabilities/tests/*.py" = [
+    "S101", "S105", "S106", "S108", "S603", "S607",
+    "PLW1510", "E741", "RUF012", "RUF015", "B007", "PLW2901",
+    "S608", "BLE001", "SIM117",
+]
 # Tests: a test that runs a subprocess asserts on its returncode a
 # line later — that assertion IS the check, so PLW1510 measures
 # nothing here. The rest are readability rules whose subjects

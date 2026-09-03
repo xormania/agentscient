@@ -22,10 +22,15 @@ responsibilities; it is the thing the twins are measured against.
 | `ops/devlane/task/` | the job registry (`jobs.json`), envelopes, filesets, the parity runner |
 | `ops/devlane/telemetry/` | usage readers, the breaker, pulse, worth |
 | `ops/devlane/hooks/` | git hooks (crossing recorder, trailer gate) and the Claude hooks wired by `.claude/settings.json` |
-| `ops/devlane/workflow/checks/` | deterministic guards: trailers, secrets, CI shape, the vocabulary wall, the term wall |
+| `ops/devlane/workflow/` | the engine: `wf.py` (work orders, stages, gates, receipts, the chain), its read-only MCP server, the gate kinds and the check registry, the contract estate under `contracts/` (12 CUE schemas, the fault corpus, observations, the plan), 45 suites; `checks/` holds the deterministic guards: trailers, secrets, CI shape, doc commands and covers, the vocabulary wall, the term wall |
 | `ops/devlane/fixtures/` | synthetic harness envelopes and store builders — never raw captures |
 | `ops/devlane/infra/` | the local CI muscle: Gitea, act_runner, the lane image (inert until composed up) |
 | `ops/conductor/` | the conductor lane: the instruments (register, ledger, watch, land, onboard, CI store, census, skills, the doctor), their contracts and suites, the ideas and hand-off records, the AARs — `ops/conductor/README.md` |
+| `ops/capabilities/` | the framework seed: the capability registry and its vets (anatomy, registry, plan), their CUE contracts and fault corpus, the unit plans |
+| `ops/contracts/` | the cross-app import boundary: which lane app may import which, checked as a gate |
+| `ops/docs/` | the shelf: owner docs with front matter and an index a test holds both ways; the CUE lessons; the generators; `scratch/` for memos |
+| `ops/guide/` | the instructional entry points, one per lane app |
+| `ops/design/` | the BDD feature files every workflow test is swept against |
 | `ops/process/` | the pipeline law: who produces what, what each is denied, review, tdd, bdd, worth |
 | `ops/bin/` | the levers a session pulls by hand |
 
@@ -75,16 +80,15 @@ Arming either is a reviewable change to `.claude/settings.json`.
 
 Named so nobody infers them from silence:
 
-- `ops/devlane/workflow/wf.py` — the workflow engine the House lane
-  drives gates with; `apply-push.sh`'s default gate runner names it and
-  refuses on absence. It arrives with the workflow freight, behind the
-  genus contract in `docs/workflow.md`, or not at all.
-- `ops/contracts/imports.json` — the cross-app import declaration the
-  dispatch and task contracts cite. Arrives with the contracts freight.
-- `ops/devlane/workflow/` beyond `checks/` and `gate-kinds/` — the
-  engine, its contracts and suites: the next freight.
-- `ops/docs/` and `ops/design/features/` — the lessons shelf and the
-  BDD feature files the process law cites. Arrive with their freights.
+- The probes runner and the board instrument: contract only, as in the
+  House (`ops/conductor/README.md`).
+- `ops/devlane/infra/` carries no tests; the House's infra suites did
+  not cross yet.
+- This project's lexicon: the vocabulary wall stands as mechanism with
+  every surface a home (I-007) until the lexicon is ruled.
+- The CodeQL workflow runs but is not a required check: code scanning
+  on a private repository depends on the forge's plan, and the House
+  proved the scanner both ways before requiring anything.
 
 ## The rules the lane binds
 
