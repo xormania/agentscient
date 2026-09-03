@@ -44,3 +44,8 @@ jobs:
         run: php bin/console about
       - name: phpunit — the project and every package
         run: vendor/bin/phpunit
+      - name: mate serves measured truth — the compiled container answers
+        run: |
+          vendor/bin/mate tools:call symfony-services --query=router --limit=10 --format=json \
+            | jq -e '.untrusted_data.services["router.default"]'
+          vendor/bin/mate tools:list
