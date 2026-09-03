@@ -1376,12 +1376,20 @@ class TheConductorsDialReachesTheHarness(unittest.TestCase):
         argv = self.rendered("codex", {"model": "M"})
         self.assertEqual(argv[argv.index("-m") + 1], "M")
 
-    def test_codex_refuses_an_effort_it_cannot_deliver(self):
-        """The honest floor: codex has no verified effort flag, only a
-        generic `-c key=value` whose reasoning key is not ours to guess."""
-        with self.assertRaises(run.RunError) as caught:
-            self.rendered("codex", {"model": "M", "effort": "E"})
-        self.assertIn("effort", str(caught.exception))
+    def test_codex_receives_both_dials(self):
+        tokens = ["-c", 'model_reasoning_effort="E"']
+        try:
+            argv = self.rendered("codex", {"model": "M", "effort": "E"})
+        except run.RunError as exc:
+            self.fail(
+                f"codex argv must carry adjacent {tokens}; "
+                f"adapter refused: {exc}"
+            )
+        self.assertEqual(argv[argv.index("-m") + 1], "M")
+        self.assertTrue(
+            any(argv[i:i + 2] == tokens for i in range(len(argv) - 1)),
+            f"codex argv must carry adjacent {tokens}: {argv!r}",
+        )
 
     def test_an_unset_dial_adds_nothing(self):
         """The control: without the dial the argv is the bare template."""
