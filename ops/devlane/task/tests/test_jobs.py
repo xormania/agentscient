@@ -72,6 +72,25 @@ class SecurityAuditIsInTheCatalogue(unittest.TestCase):
             f"last 240 chars: {prompt[-240:]!r}",
         )
 
+    def test_security_audit_declares_caps_timeout_1200(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIn("security-audit", jobs)
+        self.assertIn("adversarial-review", jobs)
+        audit = jobs["security-audit"]
+        sibling = jobs["adversarial-review"]
+        self.assertIsInstance(audit, dict)
+        self.assertIsInstance(sibling, dict)
+        audit_caps = audit.get("caps")
+        sibling_caps = sibling.get("caps")
+        self.assertIsInstance(audit_caps, dict, "security-audit must declare caps")
+        self.assertIsInstance(sibling_caps, dict)
+        self.assertEqual(sibling_caps.get("timeout"), 1200)
+        self.assertEqual(
+            audit_caps.get("timeout"), 1200,
+            "security-audit declares caps.timeout 1200, like adversarial-review",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
