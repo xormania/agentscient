@@ -100,6 +100,7 @@ def expected_launch_argv(
     job: str,
     harness: str,
     model: str,
+    effort: str | None = None,
     ref: str,
     lineage: str | None = None,
     unit: str | None = None,
@@ -115,9 +116,10 @@ def expected_launch_argv(
         harness,
         "--model",
         model,
-        "--ref",
-        ref,
     ]
+    if effort:
+        argv.extend(["--effort", effort])
+    argv.extend(["--ref", ref])
     if lineage:
         argv.extend(["--lineage", lineage])
     if unit:
@@ -171,16 +173,8 @@ class _WrapperFixture(unittest.TestCase):
         self.conf_path = self.scratch / "dispatch.conf"
         self.conf_timeout = "120"
         self.conf_model_grok = "wrap-model-conf-grok"
-        self._plant_conf(
-            self.conf_path,
-            LAUNCHER_PIN=str(self.pin),
-            DEFAULT_TIMEOUT=self.conf_timeout,
-            WF_AGENT_DEFAULT=CONF_AGENT,
-            MODEL_GROK=self.conf_model_grok,
-            MODEL_CODEX="wrap-model-conf-codex",
-            MODEL_CLAUDE_READ="wrap-model-conf-claude-read",
-            MODEL_CLAUDE_PLAN="wrap-model-conf-claude-plan",
-        )
+        self.conf_effort_grok = "wrap-effort-conf-grok"
+        self._plant_conf(self.conf_path, **self._conf_kwargs())
 
         self.job = "wrap-job"
         self.harness = "grok"
@@ -248,6 +242,22 @@ class _WrapperFixture(unittest.TestCase):
         self.assertTrue(os.access(path, os.X_OK), f"sentinel not executable: {path}")
         self.assertFalse(marker.exists(), "plant: marker must not pre-exist")
 
+    def _conf_kwargs(self, **overrides: str) -> dict[str, str]:
+        keys = {
+            "LAUNCHER_PIN": str(self.pin),
+            "DEFAULT_TIMEOUT": self.conf_timeout,
+            "WF_AGENT_DEFAULT": CONF_AGENT,
+            "MODEL_GROK": self.conf_model_grok,
+            "MODEL_CODEX": "wrap-model-conf-codex",
+            "MODEL_CLAUDE_READ": "wrap-model-conf-claude-read",
+            "MODEL_CLAUDE_PLAN": "wrap-model-conf-claude-plan",
+            "EFFORT_GROK": self.conf_effort_grok,
+            "EFFORT_CODEX": "wrap-effort-conf-codex",
+            "EFFORT_CLAUDE": "wrap-effort-conf-claude",
+        }
+        keys.update(overrides)
+        return keys
+
     def _plant_conf(self, path: Path, **keys: str) -> None:
         lines = [
             f"{name}={_bash_single_quote(value)}\n" for name, value in keys.items()
@@ -307,6 +317,7 @@ class _WrapperFixture(unittest.TestCase):
             ("job", "--job", kw.get("job", self.job)),
             ("harness", "--harness", kw.get("harness", self.harness)),
             ("model", "--model", kw.get("model", self.model_flag)),
+            ("effort", "--effort", kw.get("effort")),
             ("unit", "--unit", kw.get("unit", self.unit)),
             ("stage", "--stage", kw.get("stage", self.stage)),
             ("scope-file", "--scope-file", str(kw.get("scope_file", self.scope_path))),
@@ -331,6 +342,7 @@ class _WrapperFixture(unittest.TestCase):
             job=kw.get("job", self.job),
             harness=kw.get("harness", self.harness),
             model=kw.get("model", self.model_flag),
+            effort=kw.get("effort", self.conf_effort_grok),
             ref=kw.get("ref", self.ref),
             lineage=kw.get("lineage", self.lineage),
             unit=kw.get("unit", self.unit),
@@ -578,6 +590,108 @@ class Row7ConfEnvFlagPrecedence(_WrapperFixture):
             argv,
             self.expected_argv(model=self.conf_model_grok),
         )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+
+class Row8EffortResolution(_WrapperFixture):
+    """Acceptance 8: flag, conf, per-job suffix, env, empty, missing key."""
+
+    def test_effort_flag_reaches_argv_after_the_model(self):
+        proc = self.invoke(self.full_flags(effort="high"))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv, self.expected_argv(effort="high"))
+        model_at = argv.index("--model")
+        self.assertEqual(argv[model_at:model_at + 4],
+                         ["--model", self.model_flag, "--effort", "high"])
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_omitted_effort_uses_conf_effort_grok(self):
+        proc = self.invoke(self.full_flags())
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv, self.expected_argv())
+        self.assertIn("--effort", argv)
+        self.assertEqual(
+            argv[argv.index("--effort") + 1], self.conf_effort_grok,
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_effort_harness_job_suffix_beats_harness_effort(self):
+        job_effort = "wrap-effort-job"
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(EFFORT_GROK_WRAP_JOB=job_effort),
+        )
+        proc = self.invoke(self.full_flags())
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv, self.expected_argv(effort=job_effort))
+        self.assertEqual(argv[argv.index("--effort") + 1], job_effort)
+        self.assertNotEqual(job_effort, self.conf_effort_grok)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_env_effort_harness_job_beats_conf(self):
+        env_effort = "wrap-effort-env-job"
+        extra = {"EFFORT_GROK_WRAP_JOB": env_effort}
+        proc = self.invoke(self.full_flags(), extra_env=extra)
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv, self.expected_argv(effort=env_effort))
+        self.assertEqual(argv[argv.index("--effort") + 1], env_effort)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_empty_effort_grok_omits_the_effort_token(self):
+        self._plant_conf(self.conf_path, **self._conf_kwargs(EFFORT_GROK=""))
+        proc = self.invoke(self.full_flags())
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv, self.expected_argv(effort=""))
+        self.assertNotIn("--effort", argv)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_conf_missing_effort_codex_refuses_naming_it(self):
+        keys = self._conf_kwargs()
+        del keys["EFFORT_CODEX"]
+        self.assertNotIn("EFFORT_CODEX", keys)
+        self._plant_conf(self.conf_path, **keys)
+        proc = self.invoke(self.full_flags(dry_run=False))
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        self.assertIn("EFFORT_CODEX", text)
+        self.assert_no_launch()
+
+
+class Row9ModelByJob(_WrapperFixture):
+    """Acceptance 9: MODEL_<HARNESS>_<JOB> beats the harness model;
+    --model still beats both."""
+
+    def test_model_harness_job_suffix_beats_harness_model(self):
+        job_model = "wrap-model-job-grok"
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(MODEL_GROK_WRAP_JOB=job_model),
+        )
+        proc = self.invoke(self.full_flags(omit=("model",)))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv[argv.index("--model") + 1], job_model)
+        self.assertNotEqual(job_model, self.conf_model_grok)
+        self.assertEqual(argv, self.expected_argv(model=job_model))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_model_flag_beats_job_and_harness_model(self):
+        job_model = "wrap-model-job-grok"
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(MODEL_GROK_WRAP_JOB=job_model),
+        )
+        proc = self.invoke(self.full_flags())
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv[argv.index("--model") + 1], self.model_flag)
+        self.assertNotEqual(self.model_flag, job_model)
+        self.assertNotEqual(self.model_flag, self.conf_model_grok)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assert_no_launch()
 
