@@ -41,6 +41,7 @@ working conductor lane that ran these disciplines by hand first.
 | `docs/probes.md` | deterministic hand-over: probe corpora, runners, and session-close manifests |
 | `docs/concerns.md` | single-concern reviewers as fixed, calibrated artifacts |
 | `docs/verified-couplings.md` | the six verification obligations of every edge in the code graph |
+| `docs/mapping.md` | what we have, what Symfony has, what is left — measured against Packagist |
 
 Architecture doctrine: package-first composition per
 [MinSpec](https://github.com/minspec). Runtime road: plain
