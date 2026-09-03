@@ -1,0 +1,155 @@
+# One job per mini app. Until 2026-08-25 this was a single sharded job that
+# ran the workflow shard AND all six other suites in full, so those six ran
+# three times each: 29.3s of suites became 87.9s, and 58.6s of every run was
+# a rerun. Worse, a telemetry failure turned all three shards red and none of
+# the three names said "telemetry" — the log had to be fetched to learn it.
+#
+# Check names are `CI:<lane>:<app>`. The lane prefix is there because dev-lane
+# will not be the only lane, and because a bare `WF:` read as "the workflow
+# app" while covering every mini app.
+#
+# Splitting also makes `gh run rerun --job` meaningful: one app, not three
+# shards of everything.
+#
+# The workflow app keeps its shards — that partition is real parallelism over
+# 600+ tests, and test_ci_shape asserts every file lands in exactly one shard.
+#
+# Product tests are not here. `cargo test --workspace` is a registered check
+# (tdd@1, class build) with "ci": false because no Cargo workspace exists yet;
+# flipping that flag puts it in `dev: gates`' derived matrix, which is
+# unfiltered and therefore runs on product changes — which is where it belongs.
+#
+# Every app check is required, and a filtered required check never reports,
+# so this workflow is unfiltered: a required check that a path filter skips
+# never reports, and the pull request waits on it forever.
+name: CI
+
+# A new push supersedes the runs of the old head — a 342s suite run on a
+# commit nobody will merge is pure waste. PR runs group by ref and cancel;
+# push runs to dev/main group by sha, so tip verification is never cancelled
+# by an unrelated later push racing in.
+concurrency:
+  group: ci-dev-apps-${{ github.event_name }}-${{ github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+on:
+  # Every app check is required, and a filtered required check never
+  # reports. No paths: / paths-ignore: on either trigger.
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+# Jobs run on the owner's self-hosted runners (2026-08-28, AGENTS.md
+# §Metered CI states what it bills): what this file bills per push is 0 --
+# it was 10.4 on ubuntu-latest at d6b3549 (ci_minutes.py --days 7), and
+# the contexts are unchanged at 19 (ci_contexts.py). `vars.CI_RUNNER` set
+# to `ubuntu-latest` moves every job back to hosted runners without a
+# commit; unset, this file's default runs. Same in ci-dev.yml.
+#
+# No caching here or in ci-dev.yml, on purpose: the suite is stdlib-only
+# (no pip, no build, nothing to restore), and caching wf.db across runs
+# would put the stale-cache failure class — the one classify_cache exists
+# to stop — into CI itself. Rebuilding from the export IS the fast path.
+jobs:
+  workflow:
+    name: "dev: workflow"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+
+      # test_gate_binding runs every registered checker against a planted
+      # fault, and the lint checker shells out to ruff, which the runner
+      # image does not carry. Without this the binding's CLEAN fixture
+      # exits 1 and the suite fails (Codex, PR #36). Range matches
+      # ruff.toml's required-version.
+      - name: Install ruff for the gate-binding fixtures
+        env:
+          PIPX_HOME: ${{ runner.temp }}/pipx
+          PIPX_BIN_DIR: ${{ runner.temp }}/pipx/bin
+        run: echo "$PIPX_BIN_DIR" >> "$GITHUB_PATH" && pipx install --force 'ruff>=0.16,<0.17'
+
+      # test_vocabulary_wall's vet shells cue. The shard used to find a
+      # stray host cue through the $HOME/.local/bin export that the pipx
+      # isolation removed — an unpinned host dependency, now deliberate:
+      # digest-pinned, same block the gates job uses.
+      - name: Install CUE for the vocabulary contract tests
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/cue.tar.gz" \
+            https://github.com/cue-lang/cue/releases/download/v0.14.1/cue_v0.14.1_linux_amd64.tar.gz
+          echo "c7d29f5988d088627cf53bd6a223807c466066cf432c7cf5c36429ffc9e734f6  $RUNNER_TEMP/cue.tar.gz" \
+            | sha256sum -c
+          tar -xzf "$RUNNER_TEMP/cue.tar.gz" -C "$RUNNER_TEMP" cue
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      # wf is stdlib-only, so there is no install step to have. The shard
+      # partition (every file in exactly one shard) is asserted by
+      # test_ci_shape.py, so a file can never fall out of CI silently.
+      - name: wf test suite (shard)
+        run: python3 ops/devlane/workflow/tests/shard.py 3 ${{ matrix.shard }}
+
+  # One check per mini app, so a red name says which app is red. `cmd` is
+  # carried in the matrix rather than branched on in a step, because a step
+  # that picks its own command by `if:` is a place for an app to silently
+  # run nothing.
+  app:
+    name: "dev: ${{ matrix.app }}"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: telemetry
+            cmd: python3 -m unittest discover ops/devlane/telemetry/tests -v
+          - app: task
+            # Runs against the `stub` adapter: no harness binary, no model,
+            # no network.
+            cmd: python3 -m unittest discover -s ops/devlane/task/tests -t ops/devlane/task/tests -v
+          - app: dispatch
+            # The §Dispatch launcher, split out of task (PR #61) so it may
+            # compose task and harness without the task -> harness edge the
+            # imports contract forbids. Same stub adapter: no harness binary,
+            # no model, no network.
+            cmd: python3 -m unittest discover -s ops/devlane/dispatch/tests -t ops/devlane/dispatch/tests -v
+          - app: hooks
+            cmd: python3 -m unittest discover -s ops/devlane/hooks/tests -v
+          - app: fixtures
+            cmd: python3 -m unittest discover ops/devlane/fixtures/tests -v
+          - app: contracts
+            # The cross-app import contract. Plain python, no cue and no
+            # network, so it runs here rather than waiting on the contracts
+            # pipeline.
+            cmd: python3 -m unittest discover ops/contracts/tests -v
+          - app: conductor
+            # The conductor lane's nine instruments and the conformance gate.
+            # Runs from the repository root: conductor-enforce asks git about
+            # the tree it is in.
+            cmd: python3 -m unittest discover -s ops/conductor/tests -v
+          - app: capabilities
+            # The framework seed: the capability vets and their fault corpora;
+            # cue is on the host.
+            cmd: python3 -m unittest discover -s ops/capabilities/tests -v
+          - app: symfony
+            # The Symfony project itself: manifest and lock, install, lint, the
+            # the application boots, PHPUnit, Mate answering from the compiled container.
+            cmd: bash ops/bin/php-suite.sh
+          - app: harness
+            # `cue` is NOT on the runner, so the CUE controls in
+            # ops/devlane/harness/controls/ are not exercised here --
+            # vet_context.py refuses rather than reporting a pass it did not
+            # run, and wiring it in needs a cue install step plus a decision
+            # about pinning its version, which is the argument ruff.toml
+            # already settles for the linter.
+            cmd: python3 -m unittest discover -s ops/devlane/harness/tests -v
+    steps:
+      - uses: actions/checkout@v4
+      - name: ${{ matrix.app }} suite
+        run: ${{ matrix.cmd }}

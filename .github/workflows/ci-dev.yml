@@ -1,0 +1,160 @@
+# Check names are `CI:<lane>:<subject>`. The lane prefix exists because
+# dev-lane will not be the only lane, and a bare `WF:` read as "the
+# workflow app" while actually covering every mini app — which is how a
+# green local run of the workflow shards got reported as a green suite
+# (PR #52).
+#
+# Neither ruleset carries a required_status_checks rule (checked
+# 2026-08-26: GET of dev 21147486 and main 21126361, both active
+# branch rulesets, hold deletion, non_fast_forward and pull_request
+# only). If one is ever added its contexts are these job names, and a
+# rename here means updating it in the UI by hand.
+# `python3 ops/devlane/workflow/checks/ci_contexts.py checks.json`
+# prints the exact list, where `checks.json` is `wf --json status --checks`.
+#
+# CI is a verifier, never a decider. It re-checks recorded evidence and fails
+# on mismatch; it originates no state and writes nothing back. The runner
+# rebuilds its own throwaway database from the tracked export, so nothing it
+# does can become evidence.
+#
+# NOT path-filtered, deliberately, for two separate reasons:
+#
+#   `dev: verify` binds to product commits. The chain's cross-binds name commits
+#   in this repo (§3.6), so a product change is exactly when the evidence
+#   needs re-verifying. It is also the required check: a required check that a
+#   path filter skips never reports, and the pull request waits on it forever.
+#
+#   `dev: gates` runs the registered checks, and those police the PRODUCT tree —
+#   the vocabulary wall reads design artifacts, the secret scan reads every
+#   tracked file. Filtering them to .dev/ would be exactly backwards.
+#
+# The per-mini-app suites live in ci-dev-apps.yml, one job each, unfiltered
+# as well, so every one of them reports on every pull request and can be
+# required.
+name: CI
+
+# Superseded runs are cancelled: PR runs group by ref, push runs by sha (a
+# dev/main tip verification is never cancelled by a later unrelated push).
+# The prefix is a per-file literal: both files are named CI, so
+# `github.workflow` is the same string in both and a shared key cancels
+# the other file's run.
+# Jobs run on the owner's self-hosted runners (2026-08-28, AGENTS.md
+# §Metered CI states what it bills): a self-hosted minute is not metered,
+# so what this file bills per push is 0 -- it was 7.0 on ubuntu-latest at
+# d6b3549 (ci_minutes.py --days 7). The contexts are unchanged: 19 before,
+# 19 after (ci_contexts.py). `vars.CI_RUNNER` is the escape hatch: set the
+# repository variable to `ubuntu-latest` and every job is back on hosted
+# runners without a commit, for the day the box is down. It is unset by
+# default, so this file's own default is what runs.
+#
+# There is deliberately NO caching in this file — nothing to restore
+# (stdlib-only), and a cached wf.db would be the stale-cache failure class
+# running inside CI. See also the note in ci-dev-apps.yml.
+concurrency:
+  group: ci-dev-${{ github.event_name }}-${{ github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+on:
+  # No branch filter on pull_request, so a PR into any base — dev or main —
+  # is verified. The push list is the branches whose own tip must stay
+  # verified after a merge lands on it.
+  pull_request:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: "dev: verify"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the cross-bind and prefix-walk checks read history
+
+      - name: Rebuild the database from the tracked export
+        run: python3 ops/devlane/workflow/wf.py init --rebuild --json
+
+      - name: Verify every hash, link, receipt and cross-bind
+        run: python3 ops/devlane/workflow/wf.py verify --deep --json
+
+      # The term wall: names this repository does not carry in its tree,
+      # the pattern from the repository variable, never tree content.
+      - name: term wall — tree content and paths
+        env:
+          TERM_WALL: ${{ vars.TERM_WALL }}
+        run: python3 ops/devlane/workflow/checks/term_wall.py --root .
+
+  # PLAN §7 anticipated this: "(Later: derive the matrix from
+  # `wf status --checks --json`.)" Adding a check to a gate-kind JSON with
+  # "ci": true now puts it in the matrix with no change to this file.
+  discover:
+    name: "dev: discover"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.checks.outputs.matrix }}
+      any: ${{ steps.checks.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the tracked registry only — no database, no migration, no
+      # session row — so it can run before anything has been rebuilt.
+      - id: checks
+        name: Derive the matrix from the registry
+        run: |
+          python3 ops/devlane/workflow/wf.py --json status --checks > checks.json
+          python3 ops/devlane/workflow/checks/ci_matrix.py checks.json >> "$GITHUB_OUTPUT"
+          python3 ops/devlane/workflow/wf.py status --checks
+
+  gates:
+    name: "dev: gates"
+    # Only discover: the gates police the tree and need the matrix, not the
+    # evidence verification — waiting on verify serialized ~8s for nothing.
+    needs: [discover]
+    if: needs.discover.outputs.any == 'yes'
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # commit-trailers walks this branch's commits over the base, so
+          # the default depth-1 checkout would leave it INVALID rather
+          # than passing over nothing.
+          fetch-depth: 0
+
+      # --verify-only runs the registered command and records nothing, so CI
+      # originates no state; the exit code is wf's own (1 for a failed check),
+      # never the wrapped command's, which would collide with the §4 map.
+      # ruff is not on the runner image, and the lint check refuses
+      # (exit 1) rather than reporting clean when it cannot run — so
+      # without this the gate would be red, not silently green. The
+      # range matches ruff.toml's required-version.
+      - name: Install ruff for the lint gate
+        if: matrix.check == 'lint'
+        env:
+          PIPX_HOME: ${{ runner.temp }}/pipx
+          PIPX_BIN_DIR: ${{ runner.temp }}/pipx/bin
+        run: echo "$PIPX_BIN_DIR" >> "$GITHUB_PATH" && pipx install --force 'ruff>=0.16,<0.17'
+
+      # These gates execute CUE contracts. Pin the version because registry
+      # export digests are tool-version-sensitive.
+      - name: Install CUE for the framework contract gates
+        if: matrix.check == 'registry-vet' || matrix.check == 'anatomy'
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/cue.tar.gz" \
+            https://github.com/cue-lang/cue/releases/download/v0.14.1/cue_v0.14.1_linux_amd64.tar.gz
+          echo "c7d29f5988d088627cf53bd6a223807c466066cf432c7cf5c36429ffc9e734f6  $RUNNER_TEMP/cue.tar.gz" \
+            | sha256sum -c
+          tar -xzf "$RUNNER_TEMP/cue.tar.gz" -C "$RUNNER_TEMP" cue
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: ${{ matrix.check }}
+        run: python3 ops/devlane/workflow/wf.py check --verify-only ${{ matrix.check }}
