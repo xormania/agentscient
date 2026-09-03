@@ -1,0 +1,189 @@
+{
+  "id": "20260903T222700Z-code-grok-49641f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/effort-per-role",
+  "lineage": {
+    "branch": "lane/effort-per-role",
+    "base_sha": "b1203b5ae023918bb67c8b615cb08fbc03906ed9"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T22:27:00Z",
+    "closed": "2026-09-03T22:41:14Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
+    "ref_sha": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "2d678a58-1628-4ebb-a5b5-d4cab76fd9d6",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": null,
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T222700Z-code-grok-49641f%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json"
+  },
+  "session": {
+    "id": "2d678a58-1628-4ebb-a5b5-d4cab76fd9d6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T222700Z-code-grok-49641f%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json",
+    "stream_sha256_at_close": "026496f9f77e64962b95bcb7026187548d03ba31633af7b38732c93cbc6cd363",
+    "spend": {
+      "input": 4185411,
+      "cached": 4013056,
+      "output": 50247,
+      "total": 4235658,
+      "cost_usd_ticks": 4509624000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T222700Z-code-grok-49641f%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json",
+      "messages": 290
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "1df096c550a60e625a6af8bc1c5714af6a826fda2bf3e165e50887f3f084bd98"
+    },
+    "scope": "the contract at in/contract-effort-per-role.md: the owner's scope first, then the plan. Write exactly the tests the plan's section 'Tests, by the harness the pipeline gives them to' names, in the files it names, each red for the reason it states; read the existing tests and contracts those files sit beside, not the implementation. The owner's constraint, verbatim: 'i don't want it too complicated'.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/in/contract-effort-per-role.md",
+        "sha256": "8277479335f368a7acdae63d9e8b768f6245da429da0fe8c8087563f5af6c4df"
+      }
+    ],
+    "sha256": "512ef009310077ee04e2b830d66d9d3b6b06df6739060c2a86fec454ed7de82f",
+    "bytes": 1065
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-03T22:27:00Z",
+      "ended": "2026-09-03T22:41:14Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6ed803b4b28cf3be2e4192efa0736d5f3177806b",
+    "changed_paths": [
+      "ops/conductor/tests/test_dispatch_wrapper.py",
+      "ops/devlane/dispatch/tests/test_launch_refusals.py",
+      "ops/devlane/dispatch/tests/test_record.py",
+      "ops/devlane/task/tests/test_jobs.py",
+      "ops/devlane/task/tests/test_run.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 5
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_refusals.py \u00a7test_effort_on_codex_reaches_the_command_line",
+          "claim": "Codex-with-effort fails first on the existing model refusal (exit 3, drop --effort), so the adjacent-token and effort_argv assertions do not run yet. The same first failure hits resumed Codex.",
+          "reproduce": "cd ops/devlane/dispatch/tests && python3 -m unittest test_launch_refusals.ModelIsRequiredAndEffortReachesEveryCli.test_effort_on_codex_reaches_the_command_line test_launch_refusals.ModelIsRequiredAndEffortReachesEveryCli.test_resumed_codex_carries_the_dial_again -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py \u00a7test_effort_flag_reaches_argv_after_the_model",
+          "claim": "--effort is still an unknown wrapper flag, so this case refuses before dry-run argv can show the dial after --model.",
+          "reproduce": "cd ops/conductor/tests && python3 -m unittest test_dispatch_wrapper.Row8EffortResolution.test_effort_flag_reaches_argv_after_the_model -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py \u00a7test_effort_requested_carried_in_effort_argv_validates",
+          "claim": "Set-and-carried already passes: validate keeps effort_argv and does not refuse. The two mismatch cases are the reds.",
+          "reproduce": "cd ops/devlane/dispatch/tests && python3 -m unittest test_record.EffortArgvCarriesTheDial -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py \u00a7test_empty_effort_grok_omits_the_effort_token",
+          "claim": "Empty EFFORT_GROK already omits --effort, because the wrapper sends no effort dial today.",
+          "reproduce": "cd ops/conductor/tests && python3 -m unittest test_dispatch_wrapper.Row8EffortResolution.test_empty_effort_grok_omits_the_effort_token -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py \u00a7test_model_flag_beats_job_and_harness_model",
+          "claim": "--model already beats a planted MODEL_GROK_WRAP_JOB and MODEL_GROK. The new red on this row is MODEL_GROK_WRAP_JOB beating MODEL_GROK when the flag is omitted.",
+          "reproduce": "cd ops/conductor/tests && python3 -m unittest test_dispatch_wrapper.Row9ModelByJob -v"
+        }
+      ],
+      "artifacts": {
+        "test_launch_refusals": "ops/devlane/dispatch/tests/test_launch_refusals.py",
+        "test_record": "ops/devlane/dispatch/tests/test_record.py",
+        "test_run": "ops/devlane/task/tests/test_run.py",
+        "test_dispatch_wrapper": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "test_jobs": "ops/devlane/task/tests/test_jobs.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 0,
+        "out": 0,
+        "runs": 0
+      },
+      "stamp": {
+        "ref": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
+        "started": "2026-09-03T22:27:00Z",
+        "ended": "2026-09-03T22:40:16Z"
+      },
+      "note": "Five test files on lane/effort-per-role, each committed after its red, at 6ed803b from b1203b5. Implementation unread. go.sh got no suite, as the plan said. Reds that match the plan: Claude and Grok effort_argv, Claude resume missing --effort, record mismatch refusals, Codex adapter tokens, wrapper conf/job/env effort, missing EFFORT_CODEX, MODEL_GROK_WRAP_JOB, security-audit absent from the catalogue. Rows 1-7 now expect conf effort after --model and fail that list equality until the wrapper sends it. Spend was not read from a stream. ruff check on the five files: all checks passed at 6ed803b. commit-trailers --range b1203b5..HEAD: clean, 5 messages."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-03T22:41:14.501Z"
+    }
+  },
+  "status": "closed"
+}
