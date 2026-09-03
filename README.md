@@ -27,10 +27,13 @@ believe*. Agentscient is that layer:
 
 ## Status
 
-Genesis. This repository currently contains founding contracts only
-— no code. The documents under `docs/` are the law the first
-packages will be built against, extracted and de-instanced from a
-working conductor lane that ran these disciplines by hand first.
+Early. This repository is the Symfony project: the founding
+contracts under `docs/`, extracted and de-instanced from a working
+conductor lane that ran these disciplines by hand first; the dev lane
+under `ops/`, that machinery carried over as the oracle its Symfony
+twins are measured against; and, as they are built, the packages
+under `packages/`. The first package is the wire. `docs/mapping.md`
+names what Symfony already covers and what is left to build.
 
 ## The founding documents
 
@@ -41,8 +44,12 @@ working conductor lane that ran these disciplines by hand first.
 | `docs/probes.md` | deterministic hand-over: probe corpora, runners, and session-close manifests |
 | `docs/concerns.md` | single-concern reviewers as fixed, calibrated artifacts |
 | `docs/verified-couplings.md` | the six verification obligations of every edge in the code graph |
+| `docs/mapping.md` | what we have, what Symfony has, what is left — measured against Packagist |
 
-Architecture doctrine: package-first composition per
-[MinSpec](https://github.com/minspec). Runtime road: plain
-supervised processes today; snapshot-per-request isolation as the
-runtime matures.
+Architecture doctrine: package-first composition. Packages gestate
+here, package-shaped, and graduate to their own repositories with
+Flex recipes when their boundaries are proven.
+[MinSpec](https://github.com/minspec) is the intended substrate for
+that later stage, deferred for now with its pins kept. Runtime road:
+plain supervised processes today; snapshot-per-request isolation as
+the runtime matures.

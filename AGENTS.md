@@ -1,9 +1,11 @@
 # AGENTS.md — Agentscient operating seed
 
 You are working on Agentscient: the trust layer for agent systems,
-built as Symfony packages under package-first composition. This
-repository is constitutional — contracts and doctrine; package code
-lives in sibling repositories that install here by declaration.
+built as a Symfony project. This repository is that project: the
+application shell, the packages it gestates under `packages/`, the
+founding contracts under `docs/`, and the lane under `ops/`. A package
+graduates to its own repository with a Flex recipe when its boundary
+is proven; until then it lives here, package-shaped.
 
 Read `docs/` before working: the wire, the workflow genus, probes,
 concerns, and verified couplings are the law every change is built
@@ -36,6 +38,49 @@ boundary is not a declared, verifiable coupling.
 - **No vendor becomes load-bearing.** Every external capability is
   consumed through a contract, a probe, and a verified mock, and is
   removable for the cost of a configuration line.
+
+## Standing rulings
+
+- **Symfony is the framework, whole** (owner, 2026-09-03: "we use
+  Symfony/ai — we use everything Symfony has to offer"). Every
+  capability is built on what Symfony and its ecosystem already ship,
+  symfony/ai included. The functionality carried over from the House
+  lane is proven; what it needs is organization and abstraction, not
+  reinvention. Before any contract is written, the first question is
+  which package already covers it; `docs/mapping.md` is the measured
+  answer and is re-measured before it is relied on. This supersedes
+  the migration doctrine's "harness CLIs stay dispatched subprocesses,
+  never language SDKs": model access goes through the symfony/ai
+  Platform, whose Claude Code and Codex bridges spawn those same CLIs
+  as subprocesses, so the wire and the subprocess hold while the
+  abstraction changes. Unchanged: no vendor becomes load-bearing
+  (pre-1.0 packages are pinned exactly, probed, and mocked), and the
+  model is named at dispatch, never in a table.
+- **Four projections of one service** (owner, 2026-09-03: "this is
+  about providing cli, mcp and api resources", "and probably a TUI").
+  Every capability is exposed as a Console command, a TUI view, an
+  MCP resource, and an API resource, each a projection of the same
+  service generated from the same contract. The wire holds on all
+  four: exit classes on the CLI, problem details on the API, error
+  results on MCP, the refusal line wherever text is shown. MCP stays
+  the context-and-diagnostics plane, read-only by construction; the
+  CLI and the API act.
+- **This is a Symfony project, not a constitutional repository**
+  (owner, 2026-09-03: "i don't know where the constitutional came from
+  - probably bad assumptions from the other model. This is a Symfony
+  project"; and "we'll skip MinSpec for now - we can organize what we
+  write here into a package/flex recipe later"). The genesis framing
+  of this repository as law-only is withdrawn. Code lives here: each
+  package under `packages/<name>/` with its own `composer.json` of
+  type `symfony-bundle`, its own tests and README, reaching its
+  siblings only through Composer path repositories, never by relative
+  import, so that graduation is a subtree split plus a recipe and
+  never a refactor. The application shell composes them. MinSpec is
+  deferred, not dropped: its pins are kept (Symfony 8.1.*, PHP 8.4) so
+  the later move is free, and graduation to sibling repositories and
+  the recipes endpoint is a later act, per package, when its boundary
+  is proven. This answers the question the estates ruling left open:
+  packages gestate here.
 
 ## The lane
 
