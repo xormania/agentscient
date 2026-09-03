@@ -1,0 +1,80 @@
+== workflow-run1
+Ran 990 tests in 140.188s
+FAILED (failures=234, errors=107)
+     95 FAIL test_bdd_sweep
+     45 FAIL test_ci_codeql
+     38 ERROR test_docs_index
+     29 FAIL test_doc_covers
+     25 ERROR test_ci_shape
+     21 ERROR test_ci_contexts
+     13 FAIL test_vocabulary_wall
+     13 FAIL test_guide
+      8 FAIL test_mcp_server
+      8 ERROR test_mcp_server
+      7 FAIL test_ci_shape
+      6 FAIL test_vocabulary_reserved
+      5 ERROR test_guide
+      4 ERROR test_ci_minutes
+      3 FAIL test_self_hosted_review
+      3 FAIL test_export
+      3 FAIL test_docs_index
+      3 FAIL test_ci_contexts
+      2 ERROR test_doc_commands_failopen
+      2 ERROR test_ci_codeql
+      1 FAIL test_token_diet
+      1 FAIL test_standalone_import
+      1 FAIL test_promotion_round3
+      1 FAIL test_lint_check
+      1 FAIL test_gate_binding
+      1 FAIL test_gate
+      1 ERROR unittest
+      1 ERROR test_vocabulary_wall
+== workflow-run2
+Ran 990 tests in 139.252s
+FAILED (failures=165, errors=9)
+     95 FAIL test_bdd_sweep
+     29 FAIL test_doc_covers
+     10 FAIL test_vocabulary_wall
+      7 FAIL test_mcp_server
+      6 FAIL test_vocabulary_reserved
+      5 FAIL test_ci_shape
+      4 ERROR test_mcp_server
+      3 FAIL test_guide
+      3 FAIL test_export
+      3 FAIL test_docs_index
+      1 FAIL test_token_diet
+      1 FAIL test_standalone_import
+      1 FAIL test_gate_binding
+      1 FAIL test_gate
+      1 ERROR unittest
+      1 ERROR test_vocabulary_wall
+      1 ERROR test_promotion_round3
+      1 ERROR test_guide
+      1 ERROR test_ci_shape
+== workflow-run3
+Ran 993 tests in 163.707s
+FAILED (failures=51, errors=6)
+     13 FAIL test_vocabulary_reserved
+     12 FAIL test_vocabulary_wall
+     10 FAIL test_process_index
+      5 FAIL test_guide
+      4 FAIL test_ci_shape
+      3 FAIL test_ci_codeql
+      2 FAIL test_gate_binding
+      2 ERROR test_vocabulary_wall
+      1 FAIL test_token_diet
+      1 FAIL test_docs_index
+      1 ERROR test_slice2_review
+      1 ERROR test_promotion_round3
+      1 ERROR test_guide
+      1 ERROR test_ci_shape
+== capabilities-run1
+Ran 152 tests in 5.217s
+FAILED (failures=1)
+      1 FAIL test_plan_vet
+== capabilities-run2
+Ran 152 tests in 5.160s
+OK
+== conductor-run4
+Ran 232 tests in 133.366s
+OK
