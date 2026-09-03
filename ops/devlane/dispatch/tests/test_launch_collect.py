@@ -5,7 +5,7 @@ Written from CONTRACT.md §Dispatch Collect. Plan items (r)(s).
   C1  worker HEAD that does not descend from ref_sha → invalid, no fetch
   C2  committed-and-clean → changed_paths from ref_sha..head, residual empty
   C3  edited-only → changed_paths empty, residual non-empty
-  C4  read role: head equals ref_sha; residual recorded not judged
+  C4  read role: head equals ref_sha; a changed snapshot is invalid
 """
 
 from __future__ import annotations
@@ -122,8 +122,9 @@ class CommittedCleanVersusEditedOnly(ls._TempLaunch):
 
 
 class ReadRoleHeadEqualsRef(ls._TempLaunch):
-    """C4 — read roles: head must equal ref_sha; residual is recorded
-    not judged."""
+    """C4 — read roles: head must equal ref_sha. Finding D2: a snapshot
+    changed by a read role makes the envelope invalid, not merely
+    recorded."""
 
     def test_a_read_role_records_head_equal_to_ref_sha(self):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
@@ -132,14 +133,26 @@ class ReadRoleHeadEqualsRef(ls._TempLaunch):
         self.assertEqual(result["head"], self.ref)
         self.assertNotIn(f"refs/dispatch/{rec['id']}", self.refs_map())
 
-    def test_a_read_role_with_an_uncommitted_edit_records_residual_not_invalid(
+    def test_a_read_role_with_an_uncommitted_edit_makes_the_envelope_invalid(
             self):
         os.environ["TASK_LAUNCH_EDIT"] = "notes.txt"
-        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        os.environ["TASK_LAUNCH_VERDICT"] = "approve"
+        _code, _out, _err = self.dispatch(self.argv_for(
+            job="plan", harness="grok", stage="plan",
+        ))
+        rec = self.read_record()
+        self.assertEqual(rec["role"], "read")
         result = rec["result"]
         self.assertEqual(result["head"], rec["snapshot"]["ref_sha"])
         residual = ls.residual_entries(result.get("residual_paths"))
         self.assertGreater(len(residual), 0)
+        self.assertTrue(
+            any("notes.txt" in str(item) for item in residual),
+            f"plant: notes.txt is in residual_paths, got {residual!r}",
+        )
         envelope = result.get("envelope") or {}
-        self.assertNotEqual(envelope.get("status"), "invalid")
-        self.assertEqual(rec["status"], "closed")
+        self.assertEqual(
+            envelope.get("status"), "invalid",
+            "a snapshot changed by a read role makes the envelope invalid, "
+            f"not merely recorded: envelope={envelope!r}",
+        )
