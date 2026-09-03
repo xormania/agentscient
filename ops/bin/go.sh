@@ -10,7 +10,8 @@
 # intents (default harness in parens):
 #   sweep      (codex)  security/defect sweep over disjoint categories
 #   audit      (grok)   adversarial review of a change — findings that survive
-#   review     (both)   sweep + audit, the review lane in one word
+#   security   (codex)  security audit of a change
+#   review     (both)   security + adversarial audits
 #   plan       (claude) a plan for the scope, no edits
 #   tests      (claude) author tests from the contract, red-first
 #   check      (codex)  check existing tests against the contract
@@ -32,6 +33,7 @@ scope="$*"
 case $intent in
     sweep)      job=sweep;              def_harness=codex  ;;
     audit)      job=adversarial-review; def_harness=grok   ;;
+    security)   job=security-audit;      def_harness=codex  ;;
     plan)       job=plan;               def_harness=claude; stage=plan ;;
     tests)      job=author-tests;       def_harness=claude ;;
     check)      job=check-tests;        def_harness=codex  ;;
@@ -62,15 +64,16 @@ fire() {  # fire <job> <harness> [<stage>]
     [[ -n $h ]] || die "no harness for job '$j'; set HARNESS=grok|codex|claude"
     printf '>> go: %s  job=%s harness=%s  target=%s\n' "$intent" "$j" "$h" "$where" >&2
     local args=(--job "$j" --harness "$h" --scope-file "$scope_file" "${locator[@]}")
+    [[ -n ${EFFORT:-} ]] && args+=(--effort "$EFFORT")
     [[ -n $st ]] && args+=(--stage "$st")
     bash "$here/dispatch.sh" "${args[@]}"
 }
 
 if [[ $job == __fanout__ ]]; then
-    # The review lane: security sweep (codex) then adversarial audit (grok).
+    # The review lane: security audit (codex) then adversarial audit (grok).
     # Two harnesses, so no single producer owns the whole review.
     rc=0
-    fire sweep              codex || rc=$?
+    fire security-audit     codex || rc=$?
     fire adversarial-review grok  || rc=$?
     exit "$rc"
 fi

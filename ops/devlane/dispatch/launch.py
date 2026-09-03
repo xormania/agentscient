@@ -242,13 +242,24 @@ def _grok_permission(sandbox):
     return ["--permission-mode", sandbox, "--disable-web-search"]
 
 
+def _effort_argv(harness, effort):
+    """Return the exact argv tokens that carry the requested effort."""
+    if not effort:
+        return []
+    if harness == "claude":
+        return ["--effort", effort]
+    if harness == "codex":
+        return ["-c", f'model_reasoning_effort="{effort}"']
+    return ["--reasoning-effort", effort]
+
+
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
     executable = shutil.which(name) or name
     last_message = str((Path(prompt).parent / "out" / "last-message.json").resolve())
     if resume:
         if name == "codex":
             return [executable, "exec", "resume", session, "--model", model,
-                    "--json", "-o", last_message]
+                    *_effort_argv(name, effort), "--json", "-o", last_message]
         if name == "claude":
             out = str((Path(prompt).parent / "out").resolve())
             incoming = str((Path(prompt).parent / "in").resolve())
@@ -258,15 +269,15 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
                     "--add-dir", incoming, "--add-dir", context,
                     "--allowedTools", *CLAUDE_TOOL_RULES,
                     "--disallowedTools", *CLAUDE_DENIED_TOOLS,
-                    "--model", model, "--output-format", "json",
+                    "--model", model, *_effort_argv(name, effort),
+                    "--output-format", "json",
                     "--json-schema", ENVELOPE_SCHEMA_JSON]
         # grok resume must carry the same flags as a fresh launch, or B1
         # returns on every resumed dispatch (review ffaf14).
         argv = [executable, *flags, "-r", session, "--model", model,
                 "--output-format", "plain"]
         argv += _grok_permission(sandbox)
-        if effort:
-            argv += ["--reasoning-effort", effort]
+        argv += _effort_argv(name, effort)
         argv += ["--prompt-file", str(prompt)]
         return argv
     out = str((Path(prompt).parent / "out").resolve())
@@ -278,7 +289,8 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
                 "--add-dir", incoming, "--add-dir", context,
                 "--allowedTools", *CLAUDE_TOOL_RULES,
                 "--disallowedTools", *CLAUDE_DENIED_TOOLS,
-                "--model", model, "--output-format", "json",
+                "--model", model, *_effort_argv(name, effort),
+                "--output-format", "json",
                 "--json-schema", ENVELOPE_SCHEMA_JSON]
     if name == "codex":
         # codex exec takes the brief on stdin; "-" says so explicitly. With
@@ -287,7 +299,8 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
         # it is writable; nothing else outside cwd and /tmp is.
         return [executable, "exec", "--sandbox", sandbox,
                 "-c", f'sandbox_workspace_write.writable_roots=["{out}"]',
-                "--model", model, "--json", "-o", last_message, "-"]
+                "--model", model, *_effort_argv(name, effort),
+                "--json", "-o", last_message, "-"]
     # grok: the record states `sandbox`; the argv must carry it, or the
     # record claims a permission mode the child never had. plain output
     # keeps stdout parseable as the envelope. `always-approve` is grok's
@@ -305,8 +318,7 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
     argv = [executable, *flags, "-s", session, "--model", model,
             "--output-format", "plain"]
     argv += _grok_permission(sandbox)
-    if effort:
-        argv += ["--reasoning-effort", effort]
+    argv += _effort_argv(name, effort)
     argv += ["--prompt-file", str(prompt)]
     return argv
 
@@ -597,6 +609,8 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     argv = _argv(harness, rec["model"]["requested"], rec["model"]["effort_requested"],
                  rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"], resume)
     rec["harness"]["argv"] = argv
+    rec["model"]["effort_argv"] = _effort_argv(
+        harness, rec["model"]["effort_requested"])
     if harness == "codex":
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
     env = _child_env(os.environ, iso_env, rec["id"])
@@ -688,8 +702,6 @@ def _launch(args):
     stage = args.stage or ("code" if role == "write" else "review")
     if not args.model:
         _refuse("model", "a model", "none", "pass --model")
-    if args.harness == "codex" and args.effort:
-        _refuse("model", "an effort-capable adapter", "effort on codex", "drop --effort")
     if args.harness == "claude" and role == "write":
         _refuse("write-role-unadmitted", "a write row with a containment entry",
                 "none for claude", "run the containment probe or use codex or grok")
@@ -786,6 +798,7 @@ def _launch(args):
                     "argv": _argv(args.harness, args.model, args.effort, session,
                                   prompt, _flags, sandbox)},
         "model": {"requested": args.model, "effort_requested": args.effort,
+                  "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
         "session": {"id": session, "stream": None, "stream_sha256_at_close": None},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
@@ -1195,6 +1208,8 @@ def _resume(args):
 def _close(args):
     repo = _repo()
     path, rec = _find_record(repo, args.id)
+    # Records launched before effort_argv joined the wire remain closable.
+    rec["model"].setdefault("effort_argv", [])
     branch = _branch(repo)
     lineage = rec["lineage"]["branch"]
     if branch != lineage:
