@@ -334,3 +334,12 @@ class EffortArgvCarriesTheDial(_RecordCase):
         rec["model"]["effort_requested"] = None
         rec["model"]["effort_argv"] = ["--reasoning-effort", "high"]
         self._raises_naming(rec, "model.effort_argv")
+
+    def test_effort_argv_that_is_not_a_list_is_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = "--reasoning-effort high"
+        self.assertIsInstance(rec["model"]["effort_argv"], str)
+        self.assertNotIsInstance(rec["model"]["effort_argv"], list)
+        self.assertIn("high", rec["model"]["effort_argv"])
+        self._raises_naming(rec, "model.effort_argv")
