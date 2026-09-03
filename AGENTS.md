@@ -76,11 +76,11 @@ boundary is not a declared, verifiable coupling.
   siblings only through Composer path repositories, never by relative
   import, so that graduation is a subtree split plus a recipe and
   never a refactor. The application shell composes them. MinSpec is
-  deferred, not dropped: its pins are kept (Symfony 8.1.*, PHP 8.4) so
-  the later move is free, and graduation to sibling repositories and
-  the recipes endpoint is a later act, per package, when its boundary
-  is proven. This answers the question the estates ruling left open:
-  packages gestate here.
+  not used (owner, 2026-09-03: "we're not using MinSpec - i said
+  that"); the Symfony pins (8.1.*, PHP >=8.4) stand on their own, and a
+  package graduates to its own repository under this organisation with
+  its own Flex recipe when its boundary is proven. This answers the
+  question the estates ruling left open: packages gestate here.
 
 ## The lane
 
@@ -89,7 +89,11 @@ lane — dispatch, harness, task, telemetry, hooks, guards — carried over
 from the House lane as the bounded Python incumbent: every instrument
 there is the functional specification for a Symfony Console twin, and
 retires only when its twin passes the same conformance row.
-`ops/process/` holds the pipeline law; `ops/bin/` the levers.
+`ops/conductor/` is the conductor lane — the instruments, their
+contracts, the ideas and hand-off records, the register — with its own
+state under `~/.local/state/agentscient/`. `ops/process/` holds the
+pipeline law; `ops/bin/` the levers; `CONTRIB.md` the naming and the
+templates.
 Delegation runs through `ops/bin/dispatch.sh` (or `go.sh`) and nothing
 else — in-session sub-agents are refused by hook. `ops/bin/suites.sh`
 is the one answer to "is it green?", here and in CI. Read

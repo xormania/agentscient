@@ -18,10 +18,10 @@ and expires the moment you read it: re-measure before relying.
   `version_normalized` of the form N.N.N.N, dated by its `time`. 88
   names, measured at `2026-09-03T01:17:33+00:00`. The script and its raw output live
   with the session that wrote this; the table is its rendering.
-- The substrate pin: the MinSpec skeleton pins every `symfony/*`
-  component at `8.1.*` and PHP at `>=8.4` (skeleton `composer.json` at
-  dev `050e624`), so the Symfony column that matters is the latest
-  8.1 tag, which for every component below is also its latest stable.
+- The project's pin: the application shell is materialized at
+  `symfony/*` `8.1.*` and PHP `>=8.4` (`composer.json` at the root), so
+  the Symfony column that matters is the latest 8.1 tag, which for
+  every component below is also its latest stable.
 - Sources read, not just described: `ClaudeCode/ModelClient.php` in
   symfony/ai (spawns the CLI with `--output-format stream-json`),
   `Command.php` in symfony/console (the exit constants), the
