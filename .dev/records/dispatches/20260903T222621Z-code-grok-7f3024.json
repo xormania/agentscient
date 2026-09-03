@@ -20,7 +20,7 @@
     "ref_name": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
     "ref_sha": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222621Z-code-grok-7f3024/snapshot"
+    "root": "<job 20260903T222621Z-code-grok-7f3024>/snapshot"
   },
   "harness": {
     "name": "grok",
@@ -28,14 +28,14 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222621Z-code-grok-7f3024/home/grok",
-        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222621Z-code-grok-7f3024/home/grok"
+        "GROK_HOME": "<job 20260903T222621Z-code-grok-7f3024>/home/grok",
+        "HOME": "<job 20260903T222621Z-code-grok-7f3024>/home/grok"
       },
-      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222621Z-code-grok-7f3024/home/grok/sessions",
+      "store": "<job 20260903T222621Z-code-grok-7f3024>/home/grok/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222621Z-code-grok-7f3024/home/grok",
+      "home": "<job 20260903T222621Z-code-grok-7f3024>/home/grok",
       "auth_files": [
         "auth.json"
       ]
@@ -53,7 +53,7 @@
       "--always-approve",
       "--disable-web-search",
       "--prompt-file",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T222621Z-code-grok-7f3024/prompt.txt"
+      "<job 20260903T222621Z-code-grok-7f3024>/prompt.txt"
     ]
   },
   "model": {
@@ -76,7 +76,7 @@
     "scope": "the plan at in/PLAN.md, section 'Tests, by the harness the pipeline gives them to', written from the scope at in/scope-effort-per-role.md. Write exactly the tests that section names, in the files it names, each red for the reason it states; read the existing tests and contracts those files sit beside, not the implementation. The owner's constraint, verbatim: 'i don't want it too complicated'.",
     "inputs": [
       {
-        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222621Z-code-grok-7f3024/in/PLAN.md",
+        "path": "<job 20260903T222621Z-code-grok-7f3024>/in/PLAN.md",
         "sha256": "2b27ae79d15087b6e662278054d987b76a17ae2aa025b5552a72cf1668c943ff"
       }
     ],

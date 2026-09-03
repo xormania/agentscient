@@ -20,7 +20,7 @@
     "ref_name": "86c02de0a25baed995d53280115a75d17efe26f5",
     "ref_sha": "86c02de0a25baed995d53280115a75d17efe26f5",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T221409Z-plan-claude-eb7717/snapshot"
+    "root": "<job 20260903T221409Z-plan-claude-eb7717>/snapshot"
   },
   "harness": {
     "name": "claude",
@@ -52,11 +52,11 @@
       "--permission-mode",
       "acceptEdits",
       "--add-dir",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T221409Z-plan-claude-eb7717/out",
+      "<job 20260903T221409Z-plan-claude-eb7717>/out",
       "--add-dir",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T221409Z-plan-claude-eb7717/in",
+      "<job 20260903T221409Z-plan-claude-eb7717>/in",
       "--add-dir",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T221409Z-plan-claude-eb7717/context",
+      "<job 20260903T221409Z-plan-claude-eb7717>/context",
       "--allowedTools",
       "Bash(python3 -m unittest *)",
       "Bash(python3 -m pytest *)",
@@ -107,11 +107,11 @@
     "requested": "claude-fable-5-1",
     "effort_requested": null,
     "ran": "claude-fable-5-1",
-    "read_from": "/home/scientdb/.claude/projects/-home-scientdb--local-state-agentscient-dispatch-20260903T221409Z-plan-claude-eb7717-snapshot/97c1922f-f215-4c2e-8f05-128778012822.jsonl"
+    "read_from": "<claude-projects>/<snapshot of 20260903T221409Z-plan-claude-eb7717>/97c1922f-f215-4c2e-8f05-128778012822.jsonl"
   },
   "session": {
     "id": "97c1922f-f215-4c2e-8f05-128778012822",
-    "stream": "/home/scientdb/.claude/projects/-home-scientdb--local-state-agentscient-dispatch-20260903T221409Z-plan-claude-eb7717-snapshot/97c1922f-f215-4c2e-8f05-128778012822.jsonl",
+    "stream": "<claude-projects>/<snapshot of 20260903T221409Z-plan-claude-eb7717>/97c1922f-f215-4c2e-8f05-128778012822.jsonl",
     "stream_sha256_at_close": "be755f783c353b1564bb62f305accbb24815c8beadcb15cd7cb530a6d2073415",
     "spend": {
       "input": 648,
@@ -131,7 +131,7 @@
     "scope": "Reasoning effort per role for all three harness CLIs (claude, codex, grok), so a dispatch can name an effort and the run record shows what reached the CLI; a Codex security sweep on the security model at xhigh. The scope is the input file in/scope-effort-per-role.md: the owner's words verbatim, measured facts with their commands, boundaries, and measurable acceptance. Read it whole. Plan how; keep it simple; the owner said 'not all work is the same' and 'i don't want it too complicated'.",
     "inputs": [
       {
-        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T221409Z-plan-claude-eb7717/in/scope-effort-per-role.md",
+        "path": "<job 20260903T221409Z-plan-claude-eb7717>/in/scope-effort-per-role.md",
         "sha256": "91fe9574168ee943d56241d7b9d7d88405ce6ffdd21a68f0f73a3c2ceadd5d5d"
       }
     ],
@@ -201,7 +201,7 @@
         }
       ],
       "artifacts": {
-        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260903T221409Z-plan-claude-eb7717/out/PLAN.md"
+        "plan": "<job 20260903T221409Z-plan-claude-eb7717>/out/PLAN.md"
       },
       "spend": {
         "harness": "claude",

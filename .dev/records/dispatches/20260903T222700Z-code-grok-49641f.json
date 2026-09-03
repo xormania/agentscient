@@ -20,7 +20,7 @@
     "ref_name": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
     "ref_sha": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/snapshot"
+    "root": "<job 20260903T222700Z-code-grok-49641f>/snapshot"
   },
   "harness": {
     "name": "grok",
@@ -28,14 +28,14 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok",
-        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok"
+        "GROK_HOME": "<job 20260903T222700Z-code-grok-49641f>/home/grok",
+        "HOME": "<job 20260903T222700Z-code-grok-49641f>/home/grok"
       },
-      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok/sessions",
+      "store": "<job 20260903T222700Z-code-grok-49641f>/home/grok/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok",
+      "home": "<job 20260903T222700Z-code-grok-49641f>/home/grok",
       "auth_files": [
         "auth.json"
       ]
@@ -53,18 +53,18 @@
       "--always-approve",
       "--disable-web-search",
       "--prompt-file",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/prompt.txt"
+      "<job 20260903T222700Z-code-grok-49641f>/prompt.txt"
     ]
   },
   "model": {
     "requested": "grok-4.6",
     "effort_requested": null,
     "ran": "grok-4.6",
-    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T222700Z-code-grok-49641f%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json"
+    "read_from": "<job 20260903T222700Z-code-grok-49641f>/home/grok-stream/sessions/%3Cjob%2020260903T222700Z-code-grok-49641f%3E%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json"
   },
   "session": {
     "id": "2d678a58-1628-4ebb-a5b5-d4cab76fd9d6",
-    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T222700Z-code-grok-49641f%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json",
+    "stream": "<job 20260903T222700Z-code-grok-49641f>/home/grok-stream/sessions/%3Cjob%2020260903T222700Z-code-grok-49641f%3E%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json",
     "stream_sha256_at_close": "026496f9f77e64962b95bcb7026187548d03ba31633af7b38732c93cbc6cd363",
     "spend": {
       "input": 4185411,
@@ -72,7 +72,7 @@
       "output": 50247,
       "total": 4235658,
       "cost_usd_ticks": 4509624000,
-      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T222700Z-code-grok-49641f%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json",
+      "source": "<job 20260903T222700Z-code-grok-49641f>/home/grok-stream/sessions/%3Cjob%2020260903T222700Z-code-grok-49641f%3E%2Fsnapshot/2d678a58-1628-4ebb-a5b5-d4cab76fd9d6/summary.json",
       "messages": 290
     }
   },
@@ -84,7 +84,7 @@
     "scope": "the contract at in/contract-effort-per-role.md: the owner's scope first, then the plan. Write exactly the tests the plan's section 'Tests, by the harness the pipeline gives them to' names, in the files it names, each red for the reason it states; read the existing tests and contracts those files sit beside, not the implementation. The owner's constraint, verbatim: 'i don't want it too complicated'.",
     "inputs": [
       {
-        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260903T222700Z-code-grok-49641f/in/contract-effort-per-role.md",
+        "path": "<job 20260903T222700Z-code-grok-49641f>/in/contract-effort-per-role.md",
         "sha256": "8277479335f368a7acdae63d9e8b768f6245da429da0fe8c8087563f5af6c4df"
       }
     ],

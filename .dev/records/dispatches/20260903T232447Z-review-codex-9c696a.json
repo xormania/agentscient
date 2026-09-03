@@ -1,0 +1,95 @@
+{
+  "id": "20260903T232447Z-review-codex-9c696a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/effort-per-role",
+  "lineage": {
+    "branch": "lane/effort-per-role",
+    "base_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-03T23:24:47Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "ref_sha": "03cf55c539df9e049519eb963ca582f6f0ddcec4",
+    "behind_tip": 0,
+    "root": "<job 20260903T232447Z-review-codex-9c696a>/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "<job 20260903T232447Z-review-codex-9c696a>/home/codex"
+      },
+      "store": "<job 20260903T232447Z-review-codex-9c696a>/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "<job 20260903T232447Z-review-codex-9c696a>/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"<job 20260903T232447Z-review-codex-9c696a>/out\"]",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "<job 20260903T232447Z-review-codex-9c696a>/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "ff42a9cb-fd7e-45fa-b018-3e237926e8a2",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-effort-per-role/ops/devlane/task/jobs.json",
+      "sha256": "8810911d64e2c91ba83f2b8889c043a58470b519b0d9a5d84a8a599cd44608ce"
+    },
+    "scope": "the change on lane/effort-per-role against dev: effort forwarded to three CLIs, per-job model and effort resolution in the dispatcher, a new security-audit job, and the review fan-out; a first work order through the loop",
+    "inputs": [],
+    "sha256": "29c58a66bd6ced7a1f597dc0aa5df97c1d38499b089b29f41fb3520f947b2262",
+    "bytes": 1459
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
