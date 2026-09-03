@@ -2,7 +2,7 @@
 
 - recorded: 2026-09-03, on the question of skipping the substrate
 - source: owner, verbatim below
-- disposition: ratified — `AGENTS.md` §Standing rulings, third bullet; register row D-REPO-1
+- disposition: ratified — `AGENTS.md` §Standing rulings, third bullet; register row D-REPO-1, superseded by D-REPO-2 — the reading "MinSpec deferred" below was the conductor's softening and is corrected by I-006: MinSpec is not used
 
 ## In the owner's words
 

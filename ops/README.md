@@ -4,8 +4,9 @@ The operating apparatus for building Agentscient: the owner directs, a
 conductor session coordinates, workers are dispatched harness CLIs on
 the wire, and everything binds to the law in `AGENTS.md` and `docs/`.
 
-This lane is carried over from the House dev lane through the MinSpec
-workbench copy, de-instanced, and lands here as the **bounded Python
+This lane is carried over from the House dev lane, through the scrubbed
+copy in the `minspec/workbench` repository (provenance only; MinSpec is
+not used here), de-instanced, and lands here as the **bounded Python
 incumbent**: every instrument under `ops/devlane/` is the functional
 specification for a Symfony Console twin, and retires only when its
 twin passes the same conformance row (the strangler, per the migration

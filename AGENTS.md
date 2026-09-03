@@ -76,11 +76,11 @@ boundary is not a declared, verifiable coupling.
   siblings only through Composer path repositories, never by relative
   import, so that graduation is a subtree split plus a recipe and
   never a refactor. The application shell composes them. MinSpec is
-  deferred, not dropped: its pins are kept (Symfony 8.1.*, PHP 8.4) so
-  the later move is free, and graduation to sibling repositories and
-  the recipes endpoint is a later act, per package, when its boundary
-  is proven. This answers the question the estates ruling left open:
-  packages gestate here.
+  not used (owner, 2026-09-03: "we're not using MinSpec - i said
+  that"); the Symfony pins (8.1.*, PHP >=8.4) stand on their own, and a
+  package graduates to its own repository under this organisation with
+  its own Flex recipe when its boundary is proven. This answers the
+  question the estates ruling left open: packages gestate here.
 
 ## The lane
 
