@@ -1,0 +1,100 @@
+{
+  "id": "20260904T175121Z-tests-grok-a0a65d",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-budget",
+  "lineage": {
+    "branch": "lane/session-budget",
+    "base_sha": "472b45e305691d43b7b0ab087fbea360cd17f614"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-04T17:51:22Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "472b45e305691d43b7b0ab087fbea360cd17f614",
+    "ref_sha": "472b45e305691d43b7b0ab087fbea360cd17f614",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "dec59861-96af-4371-b8ed-1cb7697dac4f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "dec59861-96af-4371-b8ed-1cb7697dac4f",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Item 49 slice session-budget (S), plan 20260904T172250Z-plan-grok-2c8a8f. Owner 2026-09-04: watchdog should have stopped you. A matrix row on every tool call; no grant escape. Ceilings SESSION_TURNS_CEILING=100 SESSION_AVG_CONTEXT_CEILING=200000 SESSION_REFUSALS_CEILING=10 from the churn analysis (finding 1: merge is the ruling). Frozen command: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T175121Z-tests-grok-a0a65d/in/slice-session-budget.md",
+        "sha256": "497a1aceb47cf49f53b096cccb596a7d465bdf1c033c38073e2182dc01f77415"
+      }
+    ],
+    "sha256": "b9c84e970558f93c6e32de6f894823cf4b616efe06c1f8375c4d5f471aa0c234",
+    "bytes": 2765
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
