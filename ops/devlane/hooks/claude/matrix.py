@@ -36,6 +36,7 @@ also permits dispatch-by-hand.  The other rows have no escape: a launch that
 would refuse at mint refuses here, before the mint.
 """
 
+import ast
 import json
 import os
 import re
@@ -75,17 +76,9 @@ GRANT = re.compile(r"^\s*(?:export\s+)?HAND_GRANT=(\d+)\b")
 WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
-PY_OPEN_WRITE = re.compile(
-    r"open\(\s*(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)\s*,\s*(?:mode\s*=\s*)?"
-    r"(?P<mode_quote>['\"])(?=[rwaxtb+]*[wax+])[rwaxtb+]+(?P=mode_quote)"
-)
-PY_PATH_WRITE = re.compile(
-    r"Path\(\s*(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)\s*\)"
-    r"\s*\.\s*(?:(?:write_text|write_bytes)\(|open\(\s*(?:mode\s*=\s*)?"
-    r"(?P<mode_quote>['\"])(?=[rwaxtb+]*[wax+])[rwaxtb+]+(?P=mode_quote))"
-)
 ASSIGN = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(\S+)", re.MULTILINE)
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+HEREDOC_OPEN = re.compile(r"<<-?[ \t]*(['\"]?)([A-Za-z_]\w*)\1")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
 
@@ -200,6 +193,109 @@ def base(word):
     return word.rsplit("/", 1)[-1]
 
 
+def is_python(word):
+    return bool(re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", base(word)))
+
+
+def python_operand(tokens, program):
+    """The script operand after Python options, or the literal -c source."""
+    program += 1
+    while program < len(tokens):
+        argument = tokens[program]
+        if argument == "--":
+            return program + 1, None
+        if argument == "-c":
+            return None, tokens[program + 1] if program + 1 < len(tokens) else None
+        if argument == "-m" or argument in ("-h", "-V", "--help", "--version"):
+            return None, None
+        if argument in ("-W", "-X", "--check-hash-based-pycs"):
+            program += 2
+            continue
+        if argument.startswith(("-W", "-X", "--check-hash-based-pycs=")):
+            program += 1
+            continue
+        if argument in ("--debug", "--inspect", "--isolated", "--no-site", "--no-user-site", "--quiet", "--verbose"):
+            program += 1
+            continue
+        if re.fullmatch(r"-[bBdEiIOPqRsSuvx]+", argument):
+            program += 1
+            continue
+        if argument.startswith("-"):
+            return None, None
+        return program, None
+    return None, None
+
+
+def literal_arg(call, position, keyword, default=None):
+    node = call.args[position] if len(call.args) > position else None
+    for item in call.keywords:
+        if item.arg == keyword:
+            node = item.value
+            break
+    return node.value if isinstance(node, ast.Constant) and isinstance(node.value, str) else default
+
+
+def python_sources(text):
+    """Literal Python supplied to an executing interpreter, never quoted shell data."""
+    sources = []
+    for command in commands(text):
+        tokens = tokens_of(command)
+        if not tokens or not is_python(tokens[0]):
+            continue
+        _program, source = python_operand(tokens, 0)
+        if source is not None:
+            sources.append(source)
+
+    lines = text.splitlines()
+    index = 0
+    while index < len(lines):
+        match = HEREDOC_OPEN.search(lines[index])
+        if not match:
+            index += 1
+            continue
+        delimiter = match.group(2)
+        end = index + 1
+        while end < len(lines) and lines[end].strip() != delimiter:
+            end += 1
+        if any(is_python(tokens_of(command)[0]) for command in commands(lines[index]) if tokens_of(command)):
+            sources.append("\n".join(lines[index + 1:end]))
+        index = end + 1
+    return sources
+
+
+def python_written_paths(text):
+    """Literal paths bound to writable stdlib open calls in executed Python."""
+    paths = []
+    for source in python_sources(text):
+        try:
+            tree = ast.parse(source)
+        except (SyntaxError, ValueError):
+            continue
+        for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+            function = call.func
+            if (isinstance(function, ast.Name) and function.id == "open") or (
+                    isinstance(function, ast.Attribute) and function.attr == "open"
+                    and isinstance(function.value, ast.Name) and function.value.id == "io"):
+                path = literal_arg(call, 0, "file")
+                mode = literal_arg(call, 1, "mode", "r")
+                if path and mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+"):
+                    paths.append(path)
+                continue
+            if not isinstance(function, ast.Attribute) or function.attr not in ("open", "write_text", "write_bytes"):
+                continue
+            owner = function.value
+            if not isinstance(owner, ast.Call) or not (
+                    (isinstance(owner.func, ast.Name) and owner.func.id == "Path") or
+                    (isinstance(owner.func, ast.Attribute) and owner.func.attr == "Path"
+                     and isinstance(owner.func.value, ast.Name) and owner.func.value.id == "pathlib")):
+                continue
+            path = literal_arg(owner, 0, "")
+            mode = literal_arg(call, 0, "mode", "r") if function.attr == "open" else "w"
+            if path and mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+"):
+                paths.append(path)
+    return paths
+
+
 def redirect_targets(tokens):
     """stdout redirection targets, whether `> f`, `>f` or `>> f`."""
     targets = []
@@ -290,13 +386,30 @@ def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
     program = 0
-    if base(tokens[program]) == "env":
+    if tokens and base(tokens[program]) == "env":
         program += 1
-        while program < len(tokens) and ENV_ASSIGN.match(tokens[program]):
-            program += 1
+        while program < len(tokens):
+            argument = tokens[program]
+            if argument == "--":
+                program += 1
+                break
+            if ENV_ASSIGN.match(argument) or argument in ("-i", "--ignore-environment", "-0", "--null", "--debug"):
+                program += 1
+                continue
+            if argument in ("-u", "--unset", "-C", "--chdir"):
+                program += 2
+                continue
+            if argument.startswith(("--unset=", "--chdir=")):
+                program += 1
+                continue
+            if argument.startswith("-"):
+                return None, {}
+            break
     name = base(tokens[program]) if program < len(tokens) else ""
-    if re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", name):
-        program += 1
+    if is_python(name):
+        program, _source = python_operand(tokens, program)
+        if program is None:
+            return None, {}
         name = base(tokens[program]) if program < len(tokens) else ""
     if name in DISPATCHERS:
         kind = "dispatcher"
@@ -460,13 +573,11 @@ def check_text(text, cwd, depth=0):
     conf = lane_conf(root)
     lane = conf.get("LANE_NAME")
     grant = open_grant(text, lane)
-    for pattern in (PY_OPEN_WRITE, PY_PATH_WRITE):
-        for match in pattern.finditer(text):
-            path = match.group("path")
-            _, rel = relative(path, cwd)
-            if is_code(rel) and not grant_covers(grant, rel):
-                return deny("hand-write", "code changed through the ladder (freeze)",
-                            f"a script writing {path}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
+    for path in python_written_paths(text):
+        _, rel = relative(path, cwd)
+        if is_code(rel) and not grant_covers(grant, rel):
+            return deny("hand-write", "code changed through the ladder (freeze)",
+                        f"a script writing {path}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
     for statement in commands(text):
         toks = tokens_of(statement)
         if not toks:
