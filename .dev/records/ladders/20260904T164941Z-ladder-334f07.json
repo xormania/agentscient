@@ -57,9 +57,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-noguess/.dev/records/dispatches/20260904T164941Z-tests-grok-41ff0e.json",
+        "proof": {
+          "given": [
+            "### Verb",
+            "20260904T164941Z-tests-grok-41ff0e"
+          ],
+          "withheld": []
+        },
+        "sha256": "ec15f951d014bb46f5780ed24bed10887d2a9eaf23ae53dd65c6b4a5ab80d6b9"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
