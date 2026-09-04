@@ -962,5 +962,149 @@ class FreshnessThreeWay(_LandFixture):
         self.assert_refusal(proc, "stale")
 
 
+class CollectedTrip(_LandFixture):
+    """A tripped dispatch whose tree was collected lands; others refuse.
+
+    Defect 12: exit-status and envelope-status accept a result.collected
+    mark whose verify.exit is 0 and whose head is the dispatch ref.
+    Uncollected trips, a mismatched collected head, and a failing
+    verify still refuse. Existing ExitStatusRefusal and EnvelopeStatus
+    cases stay the pin for records with no collection.
+    """
+
+    COLLECTED_AT = "2026-09-03T22:56:29Z"
+    VERIFY_CMD = "test -f landed.txt"
+
+    def collected_payload(
+        self,
+        *,
+        head: str,
+        verify_exit: int,
+        status: str = "invalid",
+        reason: str | None = "tripped before commit",
+    ) -> dict:
+        return {
+            "lineage": {"branch": BRANCH},
+            "result": {
+                "envelope": {"status": status},
+                "collected": {
+                    "at": self.COLLECTED_AT,
+                    "by": AGENT,
+                    "head": head,
+                    "verify": {"command": self.VERIFY_CMD, "exit": verify_exit},
+                    "reason": reason,
+                },
+            },
+        }
+
+    def commit_working_tree_envelope(self, payload: dict) -> Path:
+        envelope = (
+            self.repo / ".dev" / "records" / "dispatches" / f"{REC}.json"
+        )
+        data = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
+        self._plant_bytes(envelope, data)
+        loaded = json.loads(envelope.read_text(encoding="utf-8"))
+        self.assertEqual(loaded, json.loads(data.decode("utf-8")))
+        self.git("add", str(envelope.relative_to(self.repo)))
+        self.git("commit", "-m", f"plant collected envelope\n\n{TRAILER}")
+        self.assertEqual(self.porcelain(), "")
+        self.assertTrue(envelope.is_file())
+        return envelope
+
+    def seed_tripped_producers(self) -> list[str]:
+        self.seed_repo()
+        shas = self.plant_producers(
+            [("landed.txt", "landed-body\n", SUBJECT, True)]
+        )
+        self.plant_record(exit_code="137")
+        planted = (self.store / REC / "exit").read_text(encoding="utf-8")
+        self.assertEqual(planted.strip(), "137")
+        self.assertNotEqual(planted.strip(), "0")
+        self.assertEqual(len(shas), 1)
+        return shas
+
+    def test_a_tripped_record_with_a_collected_result_lands(self):
+        producers = self.seed_tripped_producers()
+        producer = producers[0]
+        original = self.message(producer)
+        self.assertIn(TRAILER, original)
+        self.assertNotIn("cherry picked from commit", original)
+        tip = self.sha(REF)
+        self.assertEqual(tip, producer)
+        envelope = self.commit_working_tree_envelope(
+            self.collected_payload(head=tip, verify_exit=0)
+        )
+        loaded = json.loads(envelope.read_text(encoding="utf-8"))
+        collected = loaded["result"]["collected"]
+        self.assertEqual(collected["verify"]["exit"], 0)
+        self.assertEqual(collected["head"], tip)
+        self.assertEqual(loaded["result"]["envelope"]["status"], "invalid")
+        self.assertEqual(self.sha(REF), tip)
+
+        proc = self.land()
+        stdout = proc.stdout or ""
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        rows = self.landed_rows(stdout)
+        self.assertEqual(len(rows), 1, stdout)
+        sha, subject = rows[0]
+        self.assertEqual(subject, SUBJECT)
+        self.assertEqual(self.sha(sha), self.sha("HEAD"))
+        self.assertEqual(self.message("HEAD"), original)
+        self.assertNotIn("cherry picked from commit", self.message("HEAD"))
+
+    def test_a_tripped_record_without_a_collection_names_the_collect_verb(self):
+        self.seed_tripped_producers()
+        envelope = (
+            self.repo / ".dev" / "records" / "dispatches" / f"{REC}.json"
+        )
+        loaded = json.loads(envelope.read_text(encoding="utf-8"))
+        self.assertNotIn("collected", loaded.get("result", {}))
+        proc = self.land()
+        self.assert_refusal(proc, "exit-status")
+        err = proc.stderr or ""
+        self.assertIn("launch.py collect", err)
+        self.assertEqual(self.sha("HEAD"), self.base)
+
+    def test_a_collected_head_that_is_not_the_ref_refuses_ref(self):
+        self.seed_tripped_producers()
+        tip = self.sha(REF)
+        wrong = self.base
+        self.assertNotEqual(wrong, tip)
+        envelope = self.commit_working_tree_envelope(
+            self.collected_payload(head=wrong, verify_exit=0)
+        )
+        loaded = json.loads(envelope.read_text(encoding="utf-8"))
+        self.assertEqual(loaded["result"]["collected"]["head"], wrong)
+        self.assertEqual(loaded["result"]["collected"]["verify"]["exit"], 0)
+        self.assertEqual(self.sha(REF), tip)
+        pre = self.sha("HEAD")
+        proc = self.land()
+        self.assert_refusal(proc, "ref")
+        err = proc.stderr or ""
+        self.assertIn(wrong, err)
+        self.assertIn(tip, err)
+        self.assertEqual(self.sha("HEAD"), pre)
+        self.assertFalse((self.repo / "landed.txt").exists())
+
+    def test_a_collected_result_with_a_failing_verify_still_refuses(self):
+        self.seed_tripped_producers()
+        tip = self.sha(REF)
+        envelope = self.commit_working_tree_envelope(
+            self.collected_payload(head=tip, verify_exit=1)
+        )
+        loaded = json.loads(envelope.read_text(encoding="utf-8"))
+        self.assertEqual(loaded["result"]["collected"]["head"], tip)
+        self.assertEqual(loaded["result"]["collected"]["verify"]["exit"], 1)
+        self.assertNotEqual(loaded["result"]["collected"]["verify"]["exit"], 0)
+        pre = self.sha("HEAD")
+        proc = self.land()
+        self.assert_refusal(proc, "exit-status")
+        err = (proc.stderr or "").lower()
+        self.assertRegex(err, r"collect|verify")
+        self.assertEqual(self.sha("HEAD"), pre)
+        self.assertEqual(self.landed_rows(proc.stdout or ""), [])
+        self.assertFalse((self.repo / "landed.txt").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
