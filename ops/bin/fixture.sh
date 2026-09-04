@@ -46,7 +46,7 @@ def lane_name() -> str:
 ROOT = Path(sys.argv[1]).resolve()
 ARGS = sys.argv[2:]
 APPS = ROOT / "ops" / "devlane" / "fixtures" / "apps"
-IDENTITY = re.compile(r"^(.+?) <([^<>\s]+)>$")
+IDENTITY = re.compile(r"^(.+?) <([^<>@\s]+@[^<>@\s]+)>$")
 PROBE_TIMEOUT = 2
 SPAN = re.compile(r"^(?:(?P<path>[^:]+):)?(?P<start>\d+)(?:-(?P<end>\d+))?$")
 
@@ -116,7 +116,16 @@ def make(argv: list[str]) -> int:
         refuse("arguments", "make <app> [DIR]", repr(argv), "supply an app and optional target")
     agent, agent_name, agent_email = identity()
     conf_raw = os.environ.get("FIXTURE_COPY_LIST", "")
+    if not conf_raw:
+        lane_conf = ROOT / "ops" / "lane.conf"
+        match = re.search(
+            r"(?m)^FIXTURE_COPY_LIST='([^']*)'\s*$",
+            lane_conf.read_text(encoding="utf-8") if lane_conf.is_file() else "",
+        )
+        conf_raw = match.group(1) if match else ""
     conf = Path(conf_raw) if conf_raw else None
+    if conf is not None and not conf.is_absolute():
+        conf = ROOT / conf
     if conf is None or not conf.is_file():
         refuse(
             "conf",
@@ -145,17 +154,6 @@ def make(argv: list[str]) -> int:
     tracked = [item for item in listed.stdout.split("\0") if item]
     app_prefix = app_root.relative_to(ROOT).as_posix() + "/"
     app_files = [item for item in tracked if item.startswith(app_prefix)]
-    if not os.access(ROOT / ".git", os.W_OK):
-        app_files = sorted(
-            {
-                *app_files,
-                *(
-                    path.relative_to(ROOT).as_posix()
-                    for path in app_root.rglob("*")
-                    if path.is_file()
-                ),
-            }
-        )
     if not app_files:
         refuse("app", "a tracked fixture app", f"{app_name} has no tracked files", "commit the app before making it")
 
@@ -268,9 +266,13 @@ def load_manifest(directory: Path) -> dict:
     return data
 
 
-def patch_fixture(directory: Path, manifest: dict) -> None:
+def patch_fixture(directory: Path, manifest: dict, fault_id: str | None = None) -> None:
     patches: list[Path] = []
     for fault in manifest["faults"]:
+        if fault_id is not None and (
+            not isinstance(fault, dict) or fault.get("id") != fault_id
+        ):
+            continue
         rel = fault.get("fix") if isinstance(fault, dict) else None
         if not isinstance(rel, str) or safe_relative(rel) is None:
             refuse("fix", "an app-relative patch per fault", repr(rel), "repair the manifest fix path")
@@ -278,34 +280,23 @@ def patch_fixture(directory: Path, manifest: dict) -> None:
         if not patch.is_file():
             refuse("fix", f"existing patch {rel}", "missing", "restore the planted fix")
         patches.append(patch)
-
-    with tempfile.TemporaryDirectory(prefix="fixture-fix-check-") as tmp:
-        trial = Path(tmp) / "app"
-        shutil.copytree(
-            directory,
-            trial,
-            ignore=shutil.ignore_patterns(
-                ".git", "vendor", "target", ".venv", "var", ".phpunit.cache", "node_modules"
-            ),
-        )
-        for patch in patches:
-            trial_patch = trial / patch.relative_to(directory)
-            checked = run(["git", "apply", "--check", str(trial_patch)], cwd=trial)
-            if checked.returncode != 0:
-                refuse("fix", "every planted patch to apply", checked.stderr.strip() or str(patch), "repair the patch set")
-            applied = run(["git", "apply", str(trial_patch)], cwd=trial)
-            if applied.returncode != 0:
-                refuse("fix", "every planted patch to apply", applied.stderr.strip() or str(patch), "repair the patch set")
+    if fault_id is not None and not patches:
+        refuse("fault", "a fault id in the manifest", repr(fault_id), "choose a planted fault")
     for patch in patches:
+        checked = run(["git", "apply", "--check", str(patch)], cwd=directory)
+        if checked.returncode != 0:
+            refuse("fix", "every planted patch to apply", checked.stderr.strip() or str(patch), "repair the patch set")
         applied = run(["git", "apply", str(patch)], cwd=directory)
         if applied.returncode != 0:
-            abort("the preflighted patch set", applied.stderr.strip() or str(patch), "restore the fixture and retry")
+            abort("the checked patch set", applied.stderr.strip() or str(patch), "restore the fixture and retry")
 
 
 def probe(command: str, directory: Path, timeout: int = PROBE_TIMEOUT) -> str:
-    env = os.environ.copy()
-    env.pop("WF_AGENT", None)
-    env.pop("LANGUAGE", None)
+    env = {
+        key: os.environ[key]
+        for key in ("PATH", "HOME")
+        if key in os.environ
+    }
     env.update({"LC_ALL": "C", "LANG": "C", "TZ": "UTC"})
     try:
         proc = subprocess.Popen(
@@ -334,11 +325,17 @@ def probe(command: str, directory: Path, timeout: int = PROBE_TIMEOUT) -> str:
 
 def prove(argv: list[str]) -> int:
     fixed = False
+    fault_id = None
     if argv[:1] == ["--fixed"]:
         fixed = True
         argv = argv[1:]
+        if argv[:1] == ["--fault"]:
+            if len(argv) < 2:
+                refuse("arguments", "--fault ID", repr(argv), "name one planted fault")
+            fault_id = argv[1]
+            argv = argv[2:]
     if len(argv) != 1:
-        refuse("arguments", "prove [--fixed] DIR", repr(argv), "supply one made fixture directory")
+        refuse("arguments", "prove [--fixed [--fault ID]] DIR", repr(argv), "supply one made fixture directory")
     directory = Path(argv[0]).expanduser().resolve()
     manifest = load_manifest(directory)
     timeout = manifest.get("probe_timeout", PROBE_TIMEOUT)
@@ -349,25 +346,41 @@ def prove(argv: list[str]) -> int:
             repr(timeout),
             "repair FAULTS.json",
         )
-    if fixed:
-        patch_fixture(directory, manifest)
+    scratch = None
+    try:
+        if fixed:
+            scratch = tempfile.TemporaryDirectory(prefix="fixture-fix-check-")
+            trial = Path(scratch.name) / "app"
+            shutil.copytree(
+                directory,
+                trial,
+                symlinks=True,
+                ignore=shutil.ignore_patterns(
+                    ".git", "vendor", "target", ".venv", "var", ".phpunit.cache", "node_modules"
+                ),
+            )
+            patch_fixture(trial, manifest, fault_id)
+            directory = trial
 
-    counts = {"RED": 0, "GREEN": 0, "UNREACHABLE": 0}
-    rows: list[tuple[str, str]] = []
-    for fault in manifest["faults"]:
-        if not isinstance(fault, dict) or not isinstance(fault.get("id"), str) or not isinstance(fault.get("probe"), str):
-            refuse("manifest", "fault ids and probe commands", repr(fault), "repair FAULTS.json")
-        colour = probe(fault["probe"], directory, timeout)
-        counts[colour] += 1
-        rows.append((fault["id"], colour))
-    for fault_id, colour in rows:
-        print(f"{fault_id} {colour}")
-    print(
-        f"red={counts['RED']} green={counts['GREEN']} "
-        f"unreachable={counts['UNREACHABLE']}"
-    )
-    expected = "GREEN" if fixed else "RED"
-    return 0 if rows and all(colour == expected for _, colour in rows) else 1
+        counts = {"RED": 0, "GREEN": 0, "UNREACHABLE": 0}
+        rows: list[tuple[str, str]] = []
+        for fault in manifest["faults"]:
+            if not isinstance(fault, dict) or not isinstance(fault.get("id"), str) or not isinstance(fault.get("probe"), str):
+                refuse("manifest", "fault ids and probe commands", repr(fault), "repair FAULTS.json")
+            colour = probe(fault["probe"], directory, timeout)
+            counts[colour] += 1
+            rows.append((fault["id"], colour))
+        for row_fault_id, colour in rows:
+            print(f"{row_fault_id} {colour}")
+        print(
+            f"red={counts['RED']} green={counts['GREEN']} "
+            f"unreachable={counts['UNREACHABLE']}"
+        )
+        expected = "GREEN" if fixed else "RED"
+        return 0 if rows and all(colour == expected for _, colour in rows) else 1
+    finally:
+        if scratch is not None:
+            scratch.cleanup()
 
 
 def spans(raw: object) -> list[tuple[str, int, int]]:
@@ -424,6 +437,40 @@ def calibration_row(
     }
 
 
+def review_envelope(payload: dict) -> dict:
+    result = payload.get("result")
+    envelope = result.get("envelope") if isinstance(result, dict) else None
+    contract_path = ROOT / "ops" / "devlane" / "task" / "envelope.py"
+    if contract_path.is_file():
+        task_dir = str(contract_path.parent)
+        if task_dir not in sys.path:
+            sys.path.insert(0, task_dir)
+        try:
+            import envelope as envelope_contract  # noqa: PLC0415
+        except ImportError as exc:
+            refuse("record", "the envelope contract", str(exc), "restore the task envelope module")
+        try:
+            envelope_contract.validate(envelope)
+        except envelope_contract.EnvelopeError as exc:
+            refuse("record", "a valid review envelope", str(exc), "repair or replace the record")
+    elif not isinstance(envelope, dict):
+        refuse("record", "a valid review envelope", repr(envelope), "repair or replace the record")
+
+    if envelope.get("status") != "ok":
+        refuse("record", "a review envelope with status ok", repr(envelope.get("status")), "supply a completed review record")
+    findings = envelope.get("findings")
+    if not isinstance(findings, list):
+        refuse("record", "a review findings list", repr(findings), "repair or replace the record")
+    for finding in findings:
+        if (
+            not isinstance(finding, dict)
+            or not isinstance(finding.get("claim"), str)
+            or not finding["claim"].strip()
+        ):
+            refuse("record", "findings with non-empty claims", repr(finding), "repair or replace the record")
+    return envelope
+
+
 def grade(argv: list[str]) -> int:
     record_root = ROOT
     if len(argv) == 4 and argv[2] == "--repo":
@@ -440,9 +487,9 @@ def grade(argv: list[str]) -> int:
         payload = json.loads(record.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         refuse("record", "a readable JSON review record", str(exc), "repair or replace the record")
-    review_jobs = {"check-tests", "security-audit", "adversarial-review"}
+    review_jobs = {"security-audit", "adversarial-review"}
     if not isinstance(payload, dict) or payload.get("job") not in review_jobs:
-        refuse("record", "a security-audit or adversarial-review record", repr(payload.get("job") if isinstance(payload, dict) else payload), "supply a review record")
+        refuse("record", "a security-audit or adversarial-review record", "a non-review job", "supply a review record")
     app_name = argv[1]
     app = APPS / app_name
     if safe_relative(app_name) != app_name or "/" in app_name or not (app / "FAULTS.json").is_file():
@@ -461,8 +508,8 @@ def grade(argv: list[str]) -> int:
     model_value = payload.get("model")
     harness = harness_value.get("name") if isinstance(harness_value, dict) else None
     model = model_value.get("ran") if isinstance(model_value, dict) else None
-    envelope = (payload.get("result") or {}).get("envelope") if isinstance(payload.get("result"), dict) else None
-    findings = envelope.get("findings") if isinstance(envelope, dict) else []
+    envelope = review_envelope(payload)
+    findings = envelope["findings"]
     if (
         not isinstance(record_id, str)
         or not record_id
@@ -470,21 +517,28 @@ def grade(argv: list[str]) -> int:
         or not harness
         or not isinstance(model, str)
         or not model
-        or not isinstance(findings, list)
     ):
         refuse("record", "review identity and a findings list", "incomplete envelope", "repair or replace the record")
 
+    app_prefix = app.relative_to(ROOT).as_posix() + "/"
+    root_prefix = ROOT.as_posix() + "/"
     rows = []
     caught = set()
     false_positives = set()
     unmatched = 0
     unlocated = 0
     for n, finding in enumerate(findings, 1):
-        if not isinstance(finding, dict):
-            finding = {"claim": str(finding)}
-        claim = finding.get("claim") or finding.get("finding") or finding.get("title") or "unnamed finding"
+        claim = finding["claim"]
         finding_key = f"{record_id}#{n}"
-        located = spans(finding.get("where") or finding.get("file"))
+        located = spans(finding.get("where"))
+        normalized = []
+        for path, start, end in located:
+            if path.startswith(root_prefix):
+                path = path.removeprefix(root_prefix)
+            if path.startswith(app_prefix):
+                path = path.removeprefix(app_prefix)
+            normalized.append((path, start, end))
+        located = normalized
         fault_hits = [fault for fault in faults if any(overlap(span, fault[2]) for span in located)]
         if fault_hits:
             for fault_id, _expected, _location, _neighbour in fault_hits:
