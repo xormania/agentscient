@@ -181,7 +181,11 @@ def dispatch_is_running(path: Path) -> bool:
             return False
         if not isinstance(state, dict):
             return False
-        os.kill(int(state["pid"]), 0)
+        pid = state["pid"]
+        if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+            return False
+        # Signal zero observes PID existence, not worker identity or progress.
+        os.kill(pid, 0)
     except (json.JSONDecodeError, KeyError, OSError, TypeError, ValueError):
         return False
     return True

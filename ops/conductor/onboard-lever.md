@@ -55,8 +55,12 @@ line (an unperformed read is named, never silent):
 - `dispatches:` record directories in the dispatch store
   (`$XDG_STATE_HOME/agentscient/dispatch`, else `~/.local/state/…`)
   are running only when `record.json` says `launched`, `state.json`
-  names a live worker pid, and no `exit` file exists; then the newest
-  closed record with its exit code. Terminal records and directories
+  names a positive integer pid for which signal zero succeeds, and no
+  `exit` file exists; then the newest closed record with its exit code.
+  This is a PID-existence observation, not proof of worker identity or
+  progress: an unreaped zombie or a reused pid can still satisfy it.
+  Non-integer, boolean, zero, and negative pids are not running.
+  Terminal records and directories
   without `record.json` are not running. A genuinely nonexistent
   store path says ABSENT and is a measured fact; a path that exists
   but is not a readable directory is unavailable and counts
