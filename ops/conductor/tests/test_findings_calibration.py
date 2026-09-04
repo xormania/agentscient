@@ -6,10 +6,13 @@ Tests invoke it as a subprocess with HOME pointed at a temp dir.
 The live store (`~/.local/state/agentscient/findings.db` at import-time
 HOME) must stay untouched — asserted in tearDown.
 
-`calibrate` is a new writing verb: it upserts grader rows, is
-idempotent, refuses `identity` and `calibration`, leaves `export`
-byte-identical, and makes `export --calibration` deterministic. Today
-the verb is unknown (class `arguments`); the exit-0 assertion is the
+`calibrate` is a new writing verb: it upserts grader rows keyed on
+record, app, fault id and finding key, is idempotent, refuses
+`identity` and `calibration` before acting, leaves `export`
+byte-identical to today's empty findings export, writes
+`ops/conductor/findings/calibration.jsonl` via `export --calibration`,
+and makes that export deterministic across insertion order. Today the
+verb is unknown (class `arguments`); the exit-0 assertion is the
 intended red.
 """
 
@@ -53,6 +56,8 @@ ROW = {
     "claim": "CAUGHT_CLAIM_SYN",
 }
 
+PRESENT_KEYS = ("record", "app", "class", "harness", "model", "claim")
+
 
 def _live_snapshot() -> list[tuple[str, str, bytes | None]]:
     snaps = []
@@ -73,12 +78,16 @@ class _CalibrateFixture(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory(prefix="findings-calibrate-")
         root = Path(self._tmp.name)
         self.home = root / "home"
-        self.scratch = root / "scratch"
+        self.repo = root / "repo"
         self.home.mkdir()
-        self.scratch.mkdir()
+        self.repo.mkdir()
         self.store = self.home / ".local" / "state" / "agentscient" / "findings.db"
         self.assertFalse(self.store.exists(), "isolated store must start absent")
-        self.staged = self.scratch / "findings.py"
+        self.staged = self.repo / "ops" / "conductor" / "tools" / "findings.py"
+        self.calibration_jsonl = (
+            self.repo / "ops" / "conductor" / "findings" / "calibration.jsonl"
+        )
+        self.calibration_jsonl.parent.mkdir(parents=True, exist_ok=True)
         self._stage_tool_bytes()
 
     def tearDown(self):
@@ -92,6 +101,7 @@ class _CalibrateFixture(unittest.TestCase):
             self._tmp.cleanup()
 
     def _stage_tool_bytes(self) -> None:
+        self.staged.parent.mkdir(parents=True, exist_ok=True)
         data = TOOL.read_bytes()
         self.staged.write_bytes(data)
         landed = self.staged.read_bytes()
@@ -123,7 +133,7 @@ class _CalibrateFixture(unittest.TestCase):
             self.assertNotIn("WF_AGENT", env)
         return subprocess.run(
             [sys.executable, str(self.staged), *argv],
-            cwd=str(self.scratch),
+            cwd=str(self.repo),
             env=env,
             input=stdin,
             capture_output=True,
@@ -134,18 +144,23 @@ class _CalibrateFixture(unittest.TestCase):
 
     def assert_refusal(self, proc, class_name: str) -> None:
         err = proc.stderr or ""
-        compact = err.lower().replace("_", "-")
-        token = class_name.lower().replace("_", "-")
-        self.assertIn(token, compact, err)
         self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual((proc.stdout or "").strip(), "")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
-        lower = err.lower()
+        line = lines[0]
+        token = class_name.lower().replace("_", "-")
+        head = line.split(":", 1)[0].strip().lower().replace("_", "-")
+        self.assertEqual(
+            head,
+            token,
+            f"refusal class must be the leading token {token!r}: {line!r}",
+        )
+        lower = line.lower()
         for word in ("expected", "found", "needed"):
             self.assertIn(word, lower, err)
         self.assertLess(lower.index("expected"), lower.index("found"), err)
         self.assertLess(lower.index("found"), lower.index("needed"), err)
-        self.assertEqual((proc.stdout or "").strip(), "")
 
     def jsonl(self, rows: list[dict]) -> str:
         return "".join(json.dumps(row) + "\n" for row in rows)
@@ -166,58 +181,136 @@ class _CalibrateFixture(unittest.TestCase):
     def export_calibration(self):
         return self.invoke(["export", "--calibration"], agent=None)
 
+    def exported_rows(self) -> list[dict]:
+        exported = self.export_calibration()
+        self.assertEqual(exported.returncode, 0, exported.stderr)
+        return self.parse_jsonl(exported.stdout)
+
+
+class RefusalShape(_CalibrateFixture):
+    def test_embedded_class_token_is_not_a_refusal(self):
+        proc = subprocess.CompletedProcess(
+            args=["findings.py"],
+            returncode=2,
+            stdout="",
+            stderr="not-identity garbage expected x; found y; needed z\n",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_refusal(proc, "identity")
+
 
 class CalibrateWrites(_CalibrateFixture):
     def test_calibrate_upserts_a_row_under_temp_home(self):
         proc = self.calibrate([ROW])
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
-        exported = self.export_calibration()
-        self.assertEqual(exported.returncode, 0, exported.stderr)
-        rows = self.parse_jsonl(exported.stdout)
-        self.assertEqual(len(rows), 1, exported.stdout)
+        rows = self.exported_rows()
+        self.assertEqual(len(rows), 1, rows)
         self.assertEqual(rows[0]["record"], ROW["record"])
         self.assertEqual(rows[0]["app"], ROW["app"])
         self.assertEqual(rows[0]["fault_id"], ROW["fault_id"])
         self.assertEqual(rows[0]["finding_key"], ROW["finding_key"])
         self.assertEqual(rows[0]["class"], "caught")
         self.assertEqual(rows[0]["claim"], ROW["claim"])
+        self.assertEqual(rows[0]["harness"], ROW["harness"])
+        self.assertEqual(rows[0]["model"], ROW["model"])
 
     def test_calibrate_is_idempotent_on_the_same_row(self):
         first = self.calibrate([ROW])
         self.assertEqual(first.returncode, 0, first.stderr)
         second = self.calibrate([ROW])
         self.assertEqual(second.returncode, 0, second.stderr)
-        exported = self.export_calibration()
-        self.assertEqual(exported.returncode, 0, exported.stderr)
-        rows = self.parse_jsonl(exported.stdout)
-        self.assertEqual(len(rows), 1, exported.stdout)
+        rows = self.exported_rows()
+        self.assertEqual(len(rows), 1, rows)
 
-    def test_calibrate_upserts_by_record_app_fault_and_finding_key(self):
+    def test_calibrate_upserts_non_key_fields_on_the_same_key(self):
         first = self.calibrate([ROW])
         self.assertEqual(first.returncode, 0, first.stderr)
         updated = dict(ROW)
         updated["class"] = "missed"
         updated["claim"] = "UPDATED_CLAIM_SYN"
+        updated["harness"] = "codex"
+        updated["model"] = "gpt-5.6"
         second = self.calibrate([updated])
         self.assertEqual(second.returncode, 0, second.stderr)
-        exported = self.export_calibration()
-        rows = self.parse_jsonl(exported.stdout)
-        self.assertEqual(len(rows), 1, exported.stdout)
+        rows = self.exported_rows()
+        self.assertEqual(len(rows), 1, rows)
         self.assertEqual(rows[0]["class"], "missed")
         self.assertEqual(rows[0]["claim"], "UPDATED_CLAIM_SYN")
+        self.assertEqual(rows[0]["harness"], "codex")
+        self.assertEqual(rows[0]["model"], "gpt-5.6")
 
-    def test_calibrate_accepts_null_fault_id_and_finding_key(self):
-        row = dict(ROW)
-        row["fault_id"] = None
-        row["finding_key"] = None
-        row["class"] = "unmatched"
-        proc = self.calibrate([row])
+    def test_calibrate_discriminates_each_part_of_the_composite_key(self):
+        variants = [
+            ROW,
+            {**ROW, "record": "other-record"},
+            {**ROW, "app": "other-app"},
+            {**ROW, "fault_id": "SYN-02"},
+            {**ROW, "finding_key": f"{ROW['record']}#2"},
+        ]
+        proc = self.calibrate(variants)
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        exported = self.export_calibration()
-        rows = self.parse_jsonl(exported.stdout)
-        self.assertEqual(len(rows), 1)
-        self.assertIsNone(rows[0]["fault_id"])
-        self.assertIsNone(rows[0]["finding_key"])
+        rows = self.exported_rows()
+        self.assertEqual(len(rows), 5, rows)
+        keys = {
+            (row["record"], row["app"], row["fault_id"], row["finding_key"])
+            for row in rows
+        }
+        self.assertEqual(len(keys), 5, keys)
+        updated = dict(ROW)
+        updated["claim"] = "ONLY_DEFAULT_KEY_UPDATED"
+        second = self.calibrate([updated])
+        self.assertEqual(second.returncode, 0, second.stderr)
+        after = self.exported_rows()
+        self.assertEqual(len(after), 5, after)
+        matched = [
+            row
+            for row in after
+            if (row["record"], row["app"], row["fault_id"], row["finding_key"])
+            == (ROW["record"], ROW["app"], ROW["fault_id"], ROW["finding_key"])
+        ]
+        self.assertEqual(len(matched), 1)
+        self.assertEqual(matched[0]["claim"], "ONLY_DEFAULT_KEY_UPDATED")
+        others = [
+            row
+            for row in after
+            if (row["record"], row["app"], row["fault_id"], row["finding_key"])
+            != (ROW["record"], ROW["app"], ROW["fault_id"], ROW["finding_key"])
+        ]
+        self.assertEqual(len(others), 4)
+        self.assertEqual({row["claim"] for row in others}, {ROW["claim"]})
+
+    def test_calibrate_null_keys_are_distinct_rows(self):
+        first = dict(ROW)
+        first["fault_id"] = None
+        first["finding_key"] = None
+        first["class"] = "unmatched"
+        first["claim"] = "NULL_A"
+        second = dict(first)
+        second["record"] = "other-record"
+        second["claim"] = "NULL_B"
+        third = dict(ROW)
+        third["fault_id"] = None
+        third["finding_key"] = f"{ROW['record']}#9"
+        third["class"] = "unlocated"
+        third["claim"] = "NULL_FAULT"
+        fourth = dict(ROW)
+        fourth["fault_id"] = "SYN-09"
+        fourth["finding_key"] = None
+        fourth["class"] = "missed"
+        fourth["claim"] = "NULL_FINDING"
+        proc = self.calibrate([first, second, third, fourth])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        rows = self.exported_rows()
+        self.assertEqual(len(rows), 4, rows)
+        keys = {
+            (row["record"], row["app"], row["fault_id"], row["finding_key"])
+            for row in rows
+        }
+        self.assertEqual(len(keys), 4, keys)
+        again = self.calibrate([first])
+        self.assertEqual(again.returncode, 0, again.stderr)
+        after = self.exported_rows()
+        self.assertEqual(len(after), 4, after)
 
 
 class CalibrateRefuses(_CalibrateFixture):
@@ -237,11 +330,14 @@ class CalibrateRefuses(_CalibrateFixture):
         proc = self.invoke(["calibrate"], stdin="not-json\n")
         self.assert_refusal(proc, "calibration")
 
-    def test_calibrate_refuses_calibration_on_a_missing_key(self):
-        row = dict(ROW)
-        del row["app"]
-        proc = self.calibrate([row])
-        self.assert_refusal(proc, "calibration")
+    def test_calibrate_refuses_calibration_on_each_missing_key(self):
+        for key in PRESENT_KEYS:
+            with self.subTest(missing=key):
+                row = dict(ROW)
+                del row[key]
+                proc = self.calibrate([row])
+                self.assert_refusal(proc, "calibration")
+                self.assertFalse(self.store.exists())
 
     def test_calibrate_refuses_calibration_on_an_unknown_class(self):
         row = dict(ROW)
@@ -249,32 +345,67 @@ class CalibrateRefuses(_CalibrateFixture):
         proc = self.calibrate([row])
         self.assert_refusal(proc, "calibration")
 
+    def test_calibrate_refuses_before_acting_on_mixed_valid_and_invalid(self):
+        bad = dict(ROW)
+        del bad["app"]
+        proc = self.calibrate([ROW, bad])
+        self.assert_refusal(proc, "calibration")
+        self.assertFalse(self.store.exists())
+        exported = self.export_calibration()
+        if exported.returncode == 0:
+            self.assertEqual(exported.stdout.strip(), "")
+        self.assertFalse(self.calibration_jsonl.exists())
+
 
 class ExportStaysPut(_CalibrateFixture):
-    def test_findings_export_is_byte_identical_after_calibrate(self):
+    def test_findings_export_is_byte_identical_to_today_after_calibrate(self):
         before = self.export_findings()
         self.assertEqual(before.returncode, 0, before.stderr)
+        self.assertEqual(
+            before.stdout,
+            "",
+            "empty-store findings export is empty today",
+        )
         proc = self.calibrate([ROW])
         self.assertEqual(proc.returncode, 0, proc.stderr)
         after = self.export_findings()
         self.assertEqual(after.returncode, 0, after.stderr)
         self.assertEqual(after.stdout, before.stdout)
+        self.assertEqual(after.stdout, "")
 
-    def test_export_calibration_is_deterministic(self):
+    def test_export_calibration_writes_tracked_jsonl_deterministically(self):
         other = dict(ROW)
         other["fault_id"] = "SYN-02"
         other["finding_key"] = None
         other["class"] = "missed"
+        other["claim"] = "MISSED_CLAIM_SYN"
         proc = self.calibrate([ROW, other])
         self.assertEqual(proc.returncode, 0, proc.stderr)
         first = self.export_calibration()
-        second = self.export_calibration()
         self.assertEqual(first.returncode, 0, first.stderr)
-        self.assertEqual(second.returncode, 0, second.stderr)
-        self.assertEqual(first.stdout, second.stdout)
         self.assertTrue(first.stdout.strip(), "calibration export is empty")
-        rows = self.parse_jsonl(first.stdout)
-        self.assertEqual(len(rows), 2)
+        self.assertTrue(
+            self.calibration_jsonl.is_file(),
+            "export --calibration writes ops/conductor/findings/calibration.jsonl",
+        )
+        self.assertEqual(
+            self.calibration_jsonl.read_text(encoding="utf-8"),
+            first.stdout,
+        )
+        second = self.export_calibration()
+        self.assertEqual(second.stdout, first.stdout)
+        if self.store.is_file():
+            self.store.unlink()
+        self.calibration_jsonl.unlink()
+        reversed_rows = self.calibrate([other, ROW])
+        self.assertEqual(reversed_rows.returncode, 0, reversed_rows.stderr)
+        third = self.export_calibration()
+        self.assertEqual(third.returncode, 0, third.stderr)
+        self.assertEqual(third.stdout, first.stdout)
+        self.assertEqual(
+            self.calibration_jsonl.read_text(encoding="utf-8"),
+            first.stdout,
+        )
 
 
 if __name__ == "__main__":
