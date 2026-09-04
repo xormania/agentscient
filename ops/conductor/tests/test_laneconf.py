@@ -18,6 +18,7 @@ from __future__ import annotations
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -53,6 +54,7 @@ REQUIRED_KEYS = (
     "REPO_SLUG",
     "CHECK_NAME",
     "WF_AGENT_DEFAULT",
+    "LANE_AUTHOR",
     "MODEL_GROK",
     "MODEL_CODEX",
     "MODEL_CLAUDE_READ",
@@ -79,6 +81,7 @@ REQUIRED_DEFAULTS = {
     "REPO_SLUG": "org/proj",
     "CHECK_NAME": "ci",
     "WF_AGENT_DEFAULT": "Conf Agent <conf@example.invalid>",
+    "LANE_AUTHOR": "Lane Owner <lane-owner@example.invalid>",
     "MODEL_GROK": "model-grok",
     "MODEL_CODEX": "model-codex",
     "MODEL_CLAUDE_READ": "model-claude-read",
@@ -307,6 +310,13 @@ class GetVerb(_LaneconfFixture):
         proc = self.invoke(["get", "LANE_NAME"])
         self.assert_get(proc, value)
 
+    def test_get_prints_lane_author(self):
+        value = "Owner Name <owner@example.invalid>"
+        self.assertNotEqual(value, REQUIRED_DEFAULTS["LANE_AUTHOR"])
+        self.plant_conf(LANE_AUTHOR=value)
+        proc = self.invoke(["get", "LANE_AUTHOR"])
+        self.assert_get(proc, value)
+
     def test_get_does_not_need_identity(self):
         proc = self.invoke(["get", "LANE_NAME"])
         env = self.env()
@@ -370,9 +380,29 @@ class LocalFile(_LaneconfFixture):
                 )
 
 
+class ThreeLayerPrecedence(_LaneconfFixture):
+    """Environment beats the local file, which beats the tracked conf."""
+
+    def test_environment_beats_local_file_beats_conf(self):
+        self.plant_conf(MODEL_GROK="from-conf")
+        local = self.plant_local("MODEL_GROK='from-local'\n")
+        self.assertTrue(local.is_file())
+        self.assertNotEqual("from-env", "from-local")
+        self.assertNotEqual("from-env", "from-conf")
+        self.assertNotEqual("from-local", "from-conf")
+        proc = self.invoke(
+            ["get", "MODEL_GROK"],
+            extra={"MODEL_GROK": "from-env"},
+        )
+        self.assert_get(proc, "from-env")
+        self.assertNotEqual((proc.stdout or "").strip(), "from-local")
+        self.assertNotEqual((proc.stdout or "").strip(), "from-conf")
+
+
 class SyntaxRefusal(_LaneconfFixture):
     """A line that is not KEY='literal' or a comment refuses class
-    `syntax` naming the line number."""
+    `syntax` naming the line number. Double-quoted, unquoted, export,
+    and command-substitution forms are syntax, and must not execute."""
 
     def test_a_non_key_line_refuses_syntax_naming_the_line_number(self):
         text = (
@@ -386,6 +416,58 @@ class SyntaxRefusal(_LaneconfFixture):
         proc = self.invoke(["get", "LANE_NAME"])
         line = self.assert_refusal(proc, "syntax")
         self.assertIn("3", line)
+
+    def test_double_quoted_assignment_refuses_syntax(self):
+        text = "# header\nMODEL_GROK=\"double-quoted\"\n"
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        self.assertIn('MODEL_GROK="double-quoted"', self.conf_path.read_text())
+        proc = self.invoke(["get", "MODEL_GROK"])
+        line = self.assert_refusal(proc, "syntax")
+        self.assertIn("2", line)
+
+    def test_unquoted_assignment_refuses_syntax(self):
+        text = "# header\nMODEL_GROK=unquoted\n"
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        self.assertIn("MODEL_GROK=unquoted", self.conf_path.read_text())
+        proc = self.invoke(["get", "MODEL_GROK"])
+        line = self.assert_refusal(proc, "syntax")
+        self.assertIn("2", line)
+
+    def test_export_assignment_refuses_syntax(self):
+        text = "# header\nexport MODEL_GROK='from-export'\n"
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        self.assertIn("export MODEL_GROK=", self.conf_path.read_text())
+        proc = self.invoke(["get", "MODEL_GROK"])
+        line = self.assert_refusal(proc, "syntax")
+        self.assertIn("2", line)
+
+    def test_command_substitution_does_not_run_and_refuses_syntax(self):
+        witness = self.scratch / "pwned-syntax"
+        self.assertFalse(witness.exists(), "plant: witness must start absent")
+        text = (
+            "# header\n"
+            f'MODEL_GROK="$(printf PWNED > {witness})"\n'
+        )
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("$(printf PWNED", landed)
+        proc = self.invoke(["get", "MODEL_GROK"])
+        self.assert_refusal(proc, "syntax")
+        self.assertFalse(
+            witness.exists(),
+            "command substitution must not execute; "
+            f"witness="
+            f"{witness.read_text(encoding='utf-8') if witness.exists() else ''!r}",
+        )
+
+    def test_get_does_not_need_bash_on_path(self):
+        nobash = self.scratch / "nobash-bin"
+        nobash.mkdir()
+        path = str(nobash)
+        self.assertIsNone(shutil.which("bash", path=path))
+        self.assertIsNone(shutil.which("sh", path=path))
+        proc = self.invoke(["get", "LANE_NAME"], extra={"PATH": path})
+        self.assert_get(proc, REQUIRED_DEFAULTS["LANE_NAME"])
 
 
 class BashPythonParity(_LaneconfFixture):
@@ -497,6 +579,57 @@ class ClosureVerb(_LaneconfFixture):
         self.assertIn(ghost, text)
         self.assertIn(rel, text)
 
+    def test_undeclared_shell_and_env_reads_name_each_key_and_file(self):
+        ghost_shell = "GHOST_SHELL"
+        ghost_env = "GHOST_ENV"
+        ghost_get = "GHOST_GET"
+        rel_shell = "ops/bin/ghost.sh"
+        rel_env = "ops/bin/ghost_env.py"
+        rel_get = "ops/bin/ghost_get.py"
+        rel_clean_sh = "ops/bin/clean.sh"
+        rel_clean_py = "ops/bin/clean.py"
+        repo = self.plant_scratch_repo(
+            {
+                "ops/conductor/tools/reads.py": reader_source(),
+                rel_clean_sh: "echo ok\n",
+                rel_clean_py: "print('ok')\n",
+                rel_shell: 'echo "${' + ghost_shell + '}"\n',
+                rel_env: (
+                    "import os\n"
+                    f"os.environ[{ghost_env!r}]\n"
+                ),
+                rel_get: (
+                    "import os\n"
+                    f"os.environ.get({ghost_get!r})\n"
+                ),
+            },
+        )
+        conf = repo / "ops" / "lane.conf"
+        planted = declared_keys(conf.read_text(encoding="utf-8"))
+        for ghost in (ghost_shell, ghost_env, ghost_get):
+            self.assertNotIn(ghost, planted)
+        self.assertIn(
+            ghost_shell,
+            (repo / rel_shell).read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            ghost_env,
+            (repo / rel_env).read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            ghost_get,
+            (repo / rel_get).read_text(encoding="utf-8"),
+        )
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 1, text)
+        self.assertIn(ghost_shell, text)
+        self.assertIn(rel_shell, text)
+        self.assertIn(ghost_env, text)
+        self.assertIn(rel_env, text)
+        self.assertIn(ghost_get, text)
+        self.assertIn(rel_get, text)
+
     def test_check_name_not_equal_to_the_workflow_name_exits_1_naming_both(
             self):
         workflow_name = "other-check"
@@ -531,33 +664,83 @@ class LiteralsVerb(_LaneconfFixture):
         proc = self.invoke(["literals"], lane_conf=None, cwd=REPO)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
-    def test_a_scratch_lane_file_carrying_a_forbidden_token_exits_1(self):
-        tokens = (
-            '"dev"',
-            "origin/dev",
-            "'agentscient'",
-            "uscient/agentscient",
-            "/home/work/",
+    def test_a_benign_scratch_tree_exits_0(self):
+        repo = self.plant_scratch_repo(
+            {
+                "ops/conductor/tools/reads.py": reader_source(),
+                "ops/bin/clean.sh": "echo ok\n",
+                "ops/conductor/tools/clean.py": "print('ok')\n",
+            },
         )
-        for token in tokens:
-            with self.subTest(token=token):
-                rel = "ops/bin/spread.sh"
+        conf = repo / "ops" / "lane.conf"
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_a_scratch_lane_file_carrying_a_forbidden_token_exits_1(self):
+        configured = {
+            "LANE_NAME": "lanex",
+            "TRUNK_BRANCH": "trunkx",
+            "RELEASE_BRANCH": "relx",
+            "REPO_SLUG": "org/projx",
+            "CHECK_NAME": "checkx",
+        }
+        plants = (
+            ("ops/bin/legacy-dev.sh", '"dev"'),
+            ("ops/conductor/tools/legacy_dev.py", '"dev"'),
+            ("ops/bin/legacy-origin.sh", "origin/dev"),
+            ("ops/conductor/tools/legacy_origin.py", "origin/dev"),
+            ("ops/bin/legacy-lane.sh", "'agentscient'"),
+            ("ops/conductor/tools/legacy_lane.py", "'agentscient'"),
+            ("ops/bin/legacy-slug.sh", "uscient/agentscient"),
+            ("ops/conductor/tools/legacy_slug.py", "uscient/agentscient"),
+            ("ops/bin/legacy-home.sh", "/home/work/"),
+            ("ops/conductor/tools/legacy_home.py", "/home/work/"),
+            ("ops/bin/cfg-lane.sh", configured["LANE_NAME"]),
+            ("ops/conductor/tools/cfg_lane.py", configured["LANE_NAME"]),
+            ("ops/bin/cfg-trunk.sh", configured["TRUNK_BRANCH"]),
+            ("ops/conductor/tools/cfg_trunk.py", configured["TRUNK_BRANCH"]),
+            ("ops/bin/cfg-rel.sh", configured["RELEASE_BRANCH"]),
+            ("ops/conductor/tools/cfg_rel.py", configured["RELEASE_BRANCH"]),
+            ("ops/bin/cfg-slug.sh", configured["REPO_SLUG"]),
+            ("ops/conductor/tools/cfg_slug.py", configured["REPO_SLUG"]),
+            ("ops/bin/cfg-check.sh", configured["CHECK_NAME"]),
+            ("ops/conductor/tools/cfg_check.py", configured["CHECK_NAME"]),
+        )
+        self.assertEqual(len(plants), 20, plants)
+        for rel, token in plants:
+            with self.subTest(rel=rel, token=token):
+                if rel.endswith(".py"):
+                    body = (
+                        "print('ok')\n"
+                        "print('still-ok')\n"
+                        f"marker = {token!r}\n"
+                    )
+                else:
+                    body = (
+                        "echo ok\n"
+                        "echo still-ok\n"
+                        f"echo {token}\n"
+                    )
                 repo = self.plant_scratch_repo(
                     {
                         "ops/conductor/tools/reads.py": reader_source(),
-                        rel: f"echo {token}\n",
+                        rel: body,
                     },
+                    conf_overrides=configured,
                 )
                 conf = repo / "ops" / "lane.conf"
                 spread = repo / rel
-                body = spread.read_text(encoding="utf-8")
-                self.assertIn(token, body)
-                line_no = body.splitlines().index(f"echo {token}") + 1
+                landed = spread.read_text(encoding="utf-8")
+                self.assertIn(token, landed)
+                self.assertGreaterEqual(len(landed.splitlines()), 3)
+                line_no = 3
+                self.assertIn(token, landed.splitlines()[line_no - 1])
                 proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
                 text = self.combined(proc)
                 self.assertEqual(proc.returncode, 1, text)
                 self.assertIn(rel, text)
                 self.assertIn(str(line_no), text)
+                self.assertIn(token, text)
 
     def test_record_py_lane_kind_is_exempt_and_a_second_dev_fails(self):
         rel = "ops/devlane/dispatch/record.py"
@@ -615,6 +798,49 @@ class GetWithoutLaneConfUsesTrackedFile(_LaneconfFixture):
             cwd=self.home,
         )
         self.assert_get(proc, keys["LANE_NAME"])
+
+
+class TrackedConfMove(_LaneconfFixture):
+    """dispatch.conf moved to ops/lane.conf; the local file is gitignored."""
+
+    def test_lane_conf_is_tracked_and_dispatch_conf_is_not(self):
+        listed_new = subprocess.run(
+            ["git", "ls-files", "--", "ops/lane.conf"],
+            cwd=str(REPO),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        listed_old = subprocess.run(
+            ["git", "ls-files", "--", "ops/conductor/tools/dispatch.conf"],
+            cwd=str(REPO),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(listed_new.returncode, 0, listed_new.stderr)
+        self.assertEqual(listed_old.returncode, 0, listed_old.stderr)
+        self.assertEqual(listed_new.stdout.strip(), "ops/lane.conf")
+        self.assertEqual(
+            listed_old.stdout.strip(),
+            "",
+            "dispatch.conf must be moved, not copied: "
+            f"ls-files={listed_old.stdout!r}",
+        )
+
+    def test_lane_local_conf_is_gitignored(self):
+        proc = subprocess.run(
+            ["git", "check-ignore", "-v", "--", "ops/lane.local.conf"],
+            cwd=str(REPO),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(
+            proc.returncode, 0,
+            proc.stderr or proc.stdout or "check-ignore did not match",
+        )
+        self.assertIn("lane.local.conf", proc.stdout)
 
 
 if __name__ == "__main__":
