@@ -169,7 +169,8 @@
       },
       "job": "implement",
       "name": "code",
-      "outcome": "launched",
+      "outcome": "stopped",
+      "reason": "wall",
       "record": "20260904T150457Z-code-codex-a3279b",
       "stage": "code"
     },
@@ -228,7 +229,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "wall",
+    "record": "20260904T150457Z-code-codex-a3279b",
+    "stage": "code",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-check-tests-json"
 }
