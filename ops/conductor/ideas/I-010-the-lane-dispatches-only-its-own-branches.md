@@ -19,4 +19,9 @@ appear, is to dispatch from a trusted worktree with that commit as the
 the snapshot. This ruling is re-read the day the repository stops being
 private or gains an outside contributor.
 
-Owner, 2026-09-04, in session: "its a private repo".
+Owner, 2026-09-04, in session: "its a private repo"; and on the day
+it is not: "if it public - i'll hit it with a shitload of security
+audits and red teams - so let's find a balance that works for now".
+The balance for now: the default stands; the pin is the lock an
+operator sets when the trust changes; going public is preceded by
+the owner's audits and red teams, and this ruling is re-read then.
