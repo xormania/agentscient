@@ -10,12 +10,12 @@
   "implementation_markers": [],
   "lane": "agentscient",
   "plan": {
-    "path": "/home/scientdb/projects/uscient/agentscient/.dev/wip/slice-session-budget.md",
+    "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/.dev/ladder-inputs/slice-session-budget.md",
     "sha256": "497a1aceb47cf49f53b096cccb596a7d465bdf1c033c38073e2182dc01f77415"
   },
   "pr": null,
   "scope": {
-    "path": "/home/scientdb/projects/uscient/agentscient/.dev/wip/scope-session-budget.txt",
+    "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/.dev/ladder-inputs/scope-session-budget.txt",
     "sha256": "7c0694949314354b9a203e96c730906fe283dc54e51b5496b905027c5d03c269"
   },
   "stages": [
