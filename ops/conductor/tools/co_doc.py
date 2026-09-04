@@ -30,6 +30,7 @@ ABSOLUTE = re.compile(r"(?<![\w$])(/[^\s)'\";,]+)")
 class Report:
     def __init__(self):
         self.lines = []
+        self.notes = []
         self.invalid = False
 
     def add(self, kind, probe, expected, found, remedy, invalid=False):
@@ -41,6 +42,9 @@ class Report:
 
     def invalid_probe(self, probe, expected, found, remedy):
         self.add("Abort", probe, expected, f"INVALID: {found}", remedy, True)
+
+    def note(self, probe, text):
+        self.notes.append(f"{probe}: {text}")
 
 
 def load_settings(report):
@@ -217,8 +221,19 @@ def levers(report):
             report.invalid_probe("P-LEV-1", f"parseable dispatch configuration at {conf}",
                                  str(exc), "fix the shell assignments in dispatch.conf")
             values = {}
-    paths = (("LAUNCHER_PIN", values.get("LAUNCHER_PIN")),
-             ("dispatch.sh", str(tools / "dispatch.sh")),
+    launcher = values.get("LAUNCHER_PIN")
+    if launcher:
+        paths = (("LAUNCHER_PIN", launcher),)
+    else:
+        sibling = (tools / "../../devlane/dispatch/launch.py").resolve()
+        if sibling.is_file():
+            report.note("P-LEV-1", f"live launcher at {sibling} (sibling default)")
+        else:
+            report.add("Abort", "P-LEV-1", f"live launcher at {sibling} (sibling default)",
+                       "inert: path is absent",
+                       "restore the sibling launcher or define LAUNCHER_PIN in dispatch.conf")
+        paths = ()
+    paths += (("dispatch.sh", str(tools / "dispatch.sh")),
              ("gate.sh", str(tools / "gate.sh")))
     for name, text in paths:
         if not text:
@@ -349,7 +364,7 @@ def main():
     identity(report)
     workflow(report)
     ledgers(report)
-    print("\n".join(report.lines))
+    print("\n".join((*report.notes, *report.lines)))
     return 2 if report.invalid else (1 if report.lines else 0)
 
 

@@ -17,6 +17,7 @@ import contextlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -193,10 +194,14 @@ def render(job, context, require) -> str:
 
     values = dict(context)
     values.update(require)
-    try:
-        prompt = template.format_map(values).strip()
-    except (KeyError, ValueError) as exc:
-        raise RunError(f"job prompt cannot render: {exc}") from exc
+    fields = re.findall(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", template)
+    missing = [name for name in fields if name not in values]
+    if missing:
+        raise RunError(f"job prompt cannot render: missing {missing[0]!r}")
+    prompt = template
+    for name in fields:
+        prompt = prompt.replace(f"{{{name}}}", str(values[name]))
+    prompt = prompt.strip()
 
     deliverable = job.get("deliverable")
     if deliverable is not None:

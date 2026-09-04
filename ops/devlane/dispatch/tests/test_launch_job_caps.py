@@ -24,6 +24,7 @@ POLICY_CAPS = {
     "check-tests": 1800,
     "adversarial-review": 1200,
     "security-audit": 1200,
+    "implement": 3600,
 }
 COMMIT_ON_RED = "Commit each test file as soon as its red is proven"
 JOB_TIMEOUT = 42
@@ -120,11 +121,11 @@ class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
         self.assertEqual(caps["timeout_source"], "default")
 
 
-class JobsJsonCarriesExactlyTheFourPolicyCaps(unittest.TestCase):
+class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
     """author-tests 1800, check-tests 1800, adversarial-review 1200,
-    security-audit 1200."""
+    security-audit 1200, implement 3600."""
 
-    def test_exactly_four_jobs_carry_the_named_caps(self):
+    def test_exactly_five_jobs_carry_the_named_caps(self):
         self.assertTrue(ls.JOBS_PATH.is_file(), f"missing {ls.JOBS_PATH}")
         jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
         self.assertIsInstance(jobs, dict)

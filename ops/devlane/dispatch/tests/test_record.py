@@ -396,3 +396,91 @@ class EffortArgvCarriesTheDial(_RecordCase):
             rec["harness"]["argv"].index("--reasoning-effort"),
         )
         self._raises_naming(rec, "argv")
+
+
+class CollectedResultRequiresAGreenVerify(_RecordCase):
+    """A present result.collected must carry at, by, head, and verify.exit == 0."""
+
+    def _closed_with_collected(self, collected):
+        rec = self.built()
+        rec["status"] = "closed"
+        rec["at"]["closed"] = "2026-09-03T00:00:01Z"
+        rec["result"] = {
+            "head": rec["snapshot"]["ref_sha"],
+            "changed_paths": [],
+            "residual_paths": [],
+            "envelope": {
+                "job": "implement",
+                "status": "invalid",
+                "verdict": None,
+                "counts": {"p1": 0, "p2": 0, "p3": 0, "opinions": 0},
+                "findings": [],
+                "artifacts": {},
+                "spend": {"harness": "codex", "total": 0, "out": 0, "runs": 1},
+                "stamp": {
+                    "ref": rec["snapshot"]["ref_sha"],
+                    "started": None,
+                    "ended": None,
+                },
+                "note": "timeout",
+            },
+            "collected": collected,
+        }
+        return rec
+
+    def _green_collected(self, **overrides):
+        payload = {
+            "at": "2026-09-03T00:00:02Z",
+            "by": ls.AGENT,
+            "head": "c" * 40,
+            "verify": {"command": "true", "exit": 0},
+            "reason": None,
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_a_collected_result_without_a_green_verify_is_refused(self):
+        rec = self._closed_with_collected(self._green_collected(
+            verify={"command": "false", "exit": 1},
+        ))
+        self.assertEqual(rec["result"]["collected"]["verify"]["exit"], 1)
+        self.assertNotEqual(rec["result"]["collected"]["verify"]["exit"], 0)
+        self._raises_naming(rec, "result.collected")
+
+    def test_a_collected_result_missing_at_is_refused(self):
+        collected = self._green_collected()
+        del collected["at"]
+        rec = self._closed_with_collected(collected)
+        self.assertNotIn("at", rec["result"]["collected"])
+        self._raises_naming(rec, "result.collected")
+
+    def test_a_collected_result_missing_by_is_refused(self):
+        collected = self._green_collected()
+        del collected["by"]
+        rec = self._closed_with_collected(collected)
+        self.assertNotIn("by", rec["result"]["collected"])
+        self._raises_naming(rec, "result.collected")
+
+    def test_a_collected_result_missing_head_is_refused(self):
+        collected = self._green_collected()
+        del collected["head"]
+        rec = self._closed_with_collected(collected)
+        self.assertNotIn("head", rec["result"]["collected"])
+        self._raises_naming(rec, "result.collected")
+
+    def test_a_collected_result_with_a_non_string_head_is_refused(self):
+        rec = self._closed_with_collected(self._green_collected(head=0))
+        self.assertEqual(rec["result"]["collected"]["head"], 0)
+        self._raises_naming(rec, "result.collected")
+
+    def test_a_collected_result_with_json_false_verify_exit_is_refused(self):
+        """Security finding 5: JSON false equals 0 in Python; a forged
+        verify.exit must still be refused."""
+        rec = self._closed_with_collected(self._green_collected(
+            verify={"command": "true", "exit": False},
+        ))
+        exit_value = rec["result"]["collected"]["verify"]["exit"]
+        self.assertIs(exit_value, False)
+        self.assertEqual(exit_value, 0)
+        self.assertIs(type(exit_value), bool)
+        self._raises_naming(rec, "result.collected")

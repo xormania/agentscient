@@ -19,6 +19,7 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS handwork(
 
 LEVERS = {
     "dispatch": "ops/devlane/dispatch/launch.py",
+    "collect": "ops/devlane/dispatch/launch.py",
     "gate-run": "ops/conductor/tools/gate.sh",
     "land": "ops/conductor/tools/land.py",
     "verify-record": None,

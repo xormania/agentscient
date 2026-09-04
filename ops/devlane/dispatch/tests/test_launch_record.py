@@ -266,3 +266,88 @@ class BehindTipIsACount(ls._TempLaunch):
         self.assertGreater(counted, 0)
         self.assertEqual(rec["snapshot"]["behind_tip"], counted)
         self.assertIsInstance(rec["snapshot"]["behind_tip"], int)
+
+
+GROK_USAGE_RUNS = [[
+    {
+        "inputTokens": 100,
+        "outputTokens": 40,
+        "totalTokens": 140,
+        "cachedReadTokens": 10,
+        "costUsdTicks": 1100,
+        "modelCalls": 1,
+        "numTurns": 1,
+    },
+]]
+
+
+class EnvelopeSpendIsFilledFromTheSessionStore(ls._TempLaunch):
+    """result.envelope.spend is filled by the launcher from session.spend
+    when the store resolved; the harness's zeros are never the record's
+    figure. An unresolved spend starts with UNREACHABLE: and names the
+    store roots examined."""
+
+    def test_envelope_spend_is_filled_from_the_session_store(self):
+        os.environ["TASK_LAUNCH_GROK_USAGE"] = json.dumps(GROK_USAGE_RUNS)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        session_spend = rec.get("session", {}).get("spend") or {}
+        self.assertIsInstance(session_spend, dict)
+        self.assertNotIn(
+            "unresolved", session_spend,
+            f"plant: grok usage_runs must resolve session.spend: "
+            f"{session_spend!r}",
+        )
+        self.assertIn("total", session_spend, session_spend)
+        self.assertIn("output", session_spend, session_spend)
+        self.assertGreater(session_spend["total"], 0, session_spend)
+        envelope = (rec.get("result") or {}).get("envelope") or {}
+        got = envelope.get("spend")
+        self.assertIsInstance(got, dict, envelope)
+        self.assertEqual(
+            got,
+            {
+                "harness": "grok",
+                "total": session_spend["total"],
+                "out": session_spend["output"],
+                "runs": 1,
+            },
+            f"envelope.spend is filled from the session store, not the "
+            f"harness zeros: envelope={got!r} session={session_spend!r}",
+        )
+        self.assertEqual(got["runs"], len(rec.get("attempts") or []), rec)
+
+    def test_an_unresolved_spend_names_unreachable_and_where_it_looked(self):
+        os.environ["TASK_LAUNCH_WRITE_STREAM"] = "1"
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        spend = rec.get("session", {}).get("spend") or {}
+        self.assertIsInstance(spend, dict)
+        self.assertIn("unresolved", spend, spend)
+        unresolved = str(spend["unresolved"])
+        self.assertTrue(
+            unresolved.startswith("UNREACHABLE:"),
+            f"unresolved must start with UNREACHABLE: and name why, "
+            f"got {unresolved!r}",
+        )
+        looked = spend.get("looked_in")
+        self.assertIsInstance(looked, list, spend)
+        self.assertGreater(len(looked), 0, spend)
+        self.assertNotEqual(
+            looked, ["grok"],
+            "looked_in names store roots, not the harness word",
+        )
+        job_dir = os.path.realpath(self.the_job_dir())
+        roots = []
+        for raw in looked:
+            text = str(raw)
+            self.assertIn(
+                "/", text,
+                f"looked_in entry is a path, not a token: {raw!r}",
+            )
+            real = os.path.realpath(text)
+            if real.startswith(job_dir) and "grok" in real:
+                roots.append(real)
+        self.assertTrue(
+            roots,
+            f"looked_in must name an examined grok store root under the "
+            f"job dir {job_dir}: {looked!r}",
+        )
