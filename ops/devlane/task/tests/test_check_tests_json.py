@@ -232,6 +232,64 @@ class ReadRolePromptRejectsAnyWritePath(_CheckTestsJob):
             f"{missed!r}",
         )
 
+    def test_write_verb_plus_path_token_is_not_a_verb_blacklist(self):
+        """Security P2 and adversarial P2: shape, not a verb list.
+
+        Declared (PLAN-check-tests-json-2.md:89-92): a write verb plus a
+        path-shaped token; path-shaped includes an extensionless relative
+        name (`REVIEW`), not only slash, extension, or `{out}`. The tests
+        say the read-role prompt rejects any write path, not a blacklist.
+
+        Practiced: `Generate REVIEW in the repository` (security P2) and
+        `Create REVIEW on disk` / `Dump REVIEW in the repository`
+        (adversarial P2) are not write paths, so planting either as the
+        live check-tests prompt leaves the existing guard tests green.
+        One test names both findings because they are the same
+        declared-versus-practiced gap.
+        """
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        plants = (
+            "Generate REVIEW in the repository",
+            "Create REVIEW on disk",
+            "Dump REVIEW in the repository",
+            "Generate NOTES in the repository",
+            "Dump CHANGELOG in the repository",
+            "Create TODO on disk",
+        )
+        self.assertEqual(len(plants), 6)
+        missed = []
+        for prompt in plants:
+            if write_path_ask(prompt) is None:
+                missed.append(prompt)
+        self.assertEqual(
+            missed,
+            [],
+            "write-path detection remains a verb blacklist "
+            "(create|persist|save|store|write) and treats an "
+            "extensionless name as a path only with "
+            "'in the repository'; security P2 Generate REVIEW and "
+            "adversarial P2 Create REVIEW on disk / Dump REVIEW must "
+            f"be write paths: missed {missed!r}",
+        )
+        live = self.check_tests().get("prompt")
+        self.assertIsInstance(live, str)
+        self.assertTrue(live.strip(), "check-tests prompt is empty")
+        self.assertIsNone(
+            write_path_ask(live),
+            "the live check-tests prompt must stay not a write path",
+        )
+        self.assertIn(STDOUT_EMPTY_ARTIFACTS, live)
+        planted_live = (
+            "Create REVIEW on disk. " + STDOUT_EMPTY_ARTIFACTS
+        )
+        self.assertIsNotNone(
+            write_path_ask(planted_live),
+            "planting the adversarial Create REVIEW on disk prompt as "
+            "the live check-tests brief must be a write path; a "
+            "blacklist that misses it leaves the no-file tests green",
+        )
+
     def test_the_live_read_role_prompt_is_not_a_write_path(self):
         spec = self.check_tests()
         self.assertEqual(spec.get("role"), "read", spec)
