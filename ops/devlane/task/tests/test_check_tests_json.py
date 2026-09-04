@@ -34,20 +34,38 @@ OTHER_JOB_NAMES = (
     "adjudicate",
 )
 
-# Output-path asks in the prompt: a file to write, a path in artifacts,
-# or any of the forms the skeptic showed still passing ({out} was
-# already forbidden; /tmp/REPORT.txt was not). SKEPTIC.md is the output
-# filename (exact case); it must not match the role-card path
-# test-skeptic.md.
-PROMPT_OUTPUT_PATH = re.compile(
-    r"\{out\}"
-    r"|SKEPTIC\.md"
-    r"|/tmp\b"
-    r"|\bREPORT\.txt\b"
-    r"|(?i:write the report to)"
-    r"|(?i:name that path in artifacts)"
-    r"|(?i:name .{0,80} in artifacts)"
+# The prompt must ask for the envelope on stdout and empty artifacts.
+# A regression that replaces this clause with a file write is the
+# finding the name-list used to miss.
+STDOUT_EMPTY_ARTIFACTS = (
+    "Return the JSON envelope on stdout and leave artifacts empty."
 )
+
+# A write-path ask is a write/create/persist/save/store/emit verb
+# together with a path-shaped token, or an artifacts-output
+# instruction. Names are not listed: REPORT.rst and
+# reports/findings.json are caught by shape, not by being on a list.
+# SKEPTIC.md is still named below as the role-card cousin that must
+# not be confused with test-skeptic.md.
+WRITE_PATH_ASK = re.compile(
+    r"(?is)"
+    r"\b(?:write|create|persist|save|store|emit|dump)\b"
+    r".{0,200}?"
+    r"(?:\{out\}|(?<![A-Za-z])out/|/\S+|\b[\w.-]+\.\w{1,8}\b)"
+)
+ARTIFACTS_OUTPUT_ASK = re.compile(
+    r"(?i)\b(?:write|name|include|put|place)\b.{0,80}\bartifacts\b"
+)
+
+
+def write_path_ask(text: str):
+    """Return the first write-path instruction in text, or None."""
+    if not isinstance(text, str) or not text.strip():
+        return None
+    match = WRITE_PATH_ASK.search(text)
+    if match:
+        return match
+    return ARTIFACTS_OUTPUT_ASK.search(text)
 
 # A path of any form in the deliverable: slash, {out}, or a filename.
 DELIVERABLE_PATH = re.compile(
@@ -104,7 +122,7 @@ class CheckTestsPromptCarriesNoFilePath(_CheckTestsJob):
         prompt = self.check_tests().get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertTrue(prompt.strip(), "check-tests prompt is empty")
-        match = PROMPT_OUTPUT_PATH.search(prompt)
+        match = write_path_ask(prompt)
         self.assertIsNone(
             match,
             "check-tests prompt asks for a path as output; "
@@ -117,12 +135,95 @@ class CheckTestsPromptCarriesNoFilePath(_CheckTestsJob):
         prompt = self.check_tests().get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertTrue(prompt.strip(), "check-tests prompt is empty")
-        self.assertNotRegex(
-            prompt,
-            r"(?i)(write|name).{0,80}artifacts",
+        match = ARTIFACTS_OUTPUT_ASK.search(prompt)
+        self.assertIsNone(
+            match,
             "check-tests prompt must not name a path in artifacts; "
-            f"last 240 chars: {prompt[-240:]!r}",
+            f"matched {match.group(0)!r} in {prompt!r}"
+            if match
+            else "",
         )
+
+    def test_check_tests_prompt_asks_for_stdout_and_empty_artifacts(self):
+        prompt = self.check_tests().get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "check-tests prompt is empty")
+        self.assertIn(
+            STDOUT_EMPTY_ARTIFACTS,
+            prompt,
+            "check-tests prompt must ask for the JSON envelope on stdout "
+            "and empty artifacts; last 240 chars: "
+            f"{prompt[-240:]!r}",
+        )
+
+
+class ReadRolePromptRejectsAnyWritePath(_CheckTestsJob):
+    """The read-role prompt test rejects any write path, not a blacklist.
+
+    The name-list (SKEPTIC.md, {out}, /tmp, REPORT.txt, two phrases)
+    accepted a prompt that created REPORT.rst and one that persisted
+    reports/findings.json. Shape, not names, is the pin.
+    """
+
+    def test_creating_report_rst_is_a_write_path(self):
+        prompt = (
+            "Create REPORT.rst in the repository and include it in "
+            "artifacts. Return the JSON envelope on stdout and leave "
+            "artifacts empty."
+        )
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a prompt that creates REPORT.rst must be a write path; "
+            "a name-list that omits REPORT.rst misses this",
+        )
+
+    def test_persisting_findings_json_is_a_write_path(self):
+        prompt = (
+            "Adopt the role card at ops/process/roles/test-skeptic.md. "
+            "Persist the skeptic findings under reports/findings.json."
+        )
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a prompt that persists reports/findings.json must be a "
+            "write path; requiring only SKEPTIC.md/{out} misses this",
+        )
+
+    def test_write_path_detection_is_by_shape_not_a_name_list(self):
+        names = (
+            "NOTES.rst",
+            "out/custom.bin",
+            "var/review.html",
+            "tmp/SKEPTIC.out",
+        )
+        for name in names:
+            prompt = (
+                f"Create {name} in the repository and include it in "
+                "artifacts."
+            )
+            match = write_path_ask(prompt)
+            self.assertIsNotNone(
+                match,
+                f"write-path detection must catch {name!r} by shape, "
+                "not by listing filenames",
+            )
+
+    def test_the_live_read_role_prompt_is_not_a_write_path(self):
+        spec = self.check_tests()
+        self.assertEqual(spec.get("role"), "read", spec)
+        prompt = spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "check-tests prompt is empty")
+        match = write_path_ask(prompt)
+        self.assertIsNone(
+            match,
+            "check-tests is a read role; its prompt asks for a write "
+            f"path: {match.group(0)!r}"
+            if match
+            else "",
+        )
+        self.assertIn(STDOUT_EMPTY_ARTIFACTS, prompt)
 
 
 class CheckTestsDeliverableIsTheJsonEnvelopeOnStdout(_CheckTestsJob):
