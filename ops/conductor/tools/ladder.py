@@ -601,8 +601,6 @@ class Driver:
             detail = result.stderr.strip() or result.stdout.strip()
             if detail and ":" in detail:
                 reason = detail.split(":", 1)[0].split()[-1]
-            if attempt >= 2:
-                reason = "retry-cap"
             raise Stopped(name, reason=reason, detail=detail)
         record_id = match.group(1)
         record_path = (
@@ -909,9 +907,34 @@ class Driver:
                 result = self.finish(pending, already_closed=(dispatch_record, envelope))
                 records[name] = pending.record_id
                 return result, pending.record_id
-        pending = self.mint(name, inputs, previous)
-        records[name] = pending.record_id
-        return self.finish(pending), pending.record_id
+            if int(row.get("attempt") or 0) >= 2:
+                raise Stopped(
+                    name,
+                    str(row.get("dispatch_record") or "none"),
+                    "retry-cap",
+                    detail="stage already reached its two-attempt cap",
+                )
+        try:
+            pending = self.mint(name, inputs, previous)
+            records[name] = pending.record_id
+            return self.finish(pending), pending.record_id
+        except Stopped as stopped:
+            if resume and int(self.row(name).get("attempt") or 0) >= 2:
+                detail = "\n".join(
+                    part
+                    for part in (
+                        stopped.detail,
+                        f"second attempt failed reason={stopped.reason or 'unknown'}",
+                    )
+                    if part
+                )
+                raise Stopped(
+                    name,
+                    stopped.record_id,
+                    "retry-cap",
+                    detail=detail,
+                ) from stopped
+            raise
 
     def mark_skipped(self, name: str, condition: str) -> None:
         row = self.row(name)
@@ -926,7 +949,7 @@ class Driver:
                 if not isinstance(value, str):
                     continue
                 path = Path(value)
-                if "tests" not in path.parts or not path.name:
+                if not path.name.startswith("test") or path.suffix != ".py":
                     continue
                 commands.append(
                     f"python3 -m unittest discover -s {path.parent.as_posix()} "
@@ -1121,7 +1144,14 @@ class Driver:
                 reason="pr",
                 detail=created.stderr.strip() or created.stdout.strip(),
             )
-        url = created.stdout.strip().splitlines()[-1]
+        output = created.stdout.strip().splitlines()
+        if not output:
+            raise Stopped(
+                "pr",
+                reason="pr",
+                detail="gh pr create returned no URL",
+            )
+        url = output[-1]
         row["outcome"] = "ok"
         tail = url.rstrip("/").rsplit("/", 1)[-1]
         self.record["pr"] = {
