@@ -9,6 +9,7 @@ the rows; the missing exclusion and README lines are the intended red.
 
 from __future__ import annotations
 
+import subprocess
 import tomllib
 import unittest
 from pathlib import Path
@@ -16,6 +17,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[4]
 RUFF = REPO / "ruff.toml"
 README = REPO / "ops" / "README.md"
+LANE_CONF = REPO / "ops" / "lane.conf"
+COPY_LIST = REPO / "ops" / "devlane" / "fixtures" / "copy-list"
+COPY_LIST_REL = "ops/devlane/fixtures/copy-list"
 APPS_EXCLUDE = "ops/devlane/fixtures/apps"
 TESTS_PATH = "ops/devlane/fixtures/tests"
 
@@ -77,6 +81,40 @@ class ReadmeLayout(unittest.TestCase):
             text,
             r"\|\s*`ops/bin/fixture\.sh`\s*\|",
             "ops/README.md levers table must have a row for ops/bin/fixture.sh",
+        )
+
+
+class CopyListDefault(unittest.TestCase):
+    def test_copy_list_is_tracked(self):
+        self.assertTrue(
+            COPY_LIST.is_file(),
+            f"{COPY_LIST} is missing; make's default copy list must be tracked",
+        )
+        proc = subprocess.run(
+            ["git", "ls-files", "--", COPY_LIST_REL],
+            cwd=str(REPO),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(
+            proc.stdout.strip(),
+            COPY_LIST_REL,
+            f"{COPY_LIST_REL} must be tracked",
+        )
+        self.assertTrue(
+            COPY_LIST.read_text(encoding="utf-8").strip(),
+            "the tracked copy list must name at least one path",
+        )
+
+    def test_lane_conf_names_the_copy_list_as_the_default(self):
+        self.assertTrue(LANE_CONF.is_file(), f"{LANE_CONF} is missing")
+        text = LANE_CONF.read_text(encoding="utf-8")
+        self.assertRegex(
+            text,
+            r"(?m)^FIXTURE_COPY_LIST='ops/devlane/fixtures/copy-list'\s*$",
+            f"{LANE_CONF} must name FIXTURE_COPY_LIST's default as the tracked copy list",
         )
 
 
