@@ -202,13 +202,17 @@ EXPECTED_FIXES = {
     fault_id: f"fixes/rc{index:02d}.patch"
     for index, fault_id in enumerate(EXPECTED_IDS, start=1)
 }
-EXPECTED_NEEDS = ["cargo metadata --offline --format-version 1 >/dev/null"]
+EXPECTED_NEEDS = [
+    "cargo metadata --offline --locked --format-version 1 >/dev/null"
+]
 SHELL_GATE = (
     "cargo metadata --offline --format-version 1 >/dev/null || exit 127"
 )
 RC07_GREP = r"""grep -Eq '^anyhow *= *"\*"' Cargo.toml"""
 EXPECTED_INSTALL = "cargo fetch"
-EXPECTED_READY = "cargo metadata --offline --format-version 1 >/dev/null"
+EXPECTED_READY = (
+    "cargo metadata --offline --locked --format-version 1 >/dev/null"
+)
 EXPECTED_CHECK = (
     "cargo fmt --check && cargo clippy --offline --all-targets -- "
     "-D warnings && cargo test --offline --locked"
