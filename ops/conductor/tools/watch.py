@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import NoReturn
 
 PASS_STATES = {"SUCCESS"}
@@ -103,6 +104,40 @@ def counts(checks: list[tuple[str, str]]) -> dict[str, int]:
     return result
 
 
+def configured_check_names() -> tuple[str, ...]:
+    """Read CHECK_NAMES through the shared reader, including staged copies."""
+    here = Path(__file__).resolve()
+    for tools in (here.parent, Path.cwd() / "ops" / "conductor" / "tools"):
+        if not (tools / "laneconf.py").is_file():
+            continue
+        if str(tools) not in sys.path:
+            sys.path.insert(0, str(tools))
+        try:
+            import laneconf
+        except ImportError as error:
+            refuse(
+                "conf-key",
+                "CHECK_NAMES in the lane conf",
+                str(error),
+                "define CHECK_NAMES in the lane conf",
+            )
+        try:
+            return tuple(laneconf.get("CHECK_NAMES").split())
+        except laneconf.ConfigError as error:
+            refuse(
+                "conf-key",
+                "CHECK_NAMES in the lane conf",
+                str(error),
+                "define CHECK_NAMES in the lane conf",
+            )
+    refuse(
+        "conf-key",
+        "the lane conf reader beside this file or the working directory",
+        "neither",
+        "run from the repository root or keep laneconf.py beside this file",
+    )
+
+
 def watch(args: argparse.Namespace) -> int:
     if args.interval < 5:
         refuse("interval", "at least 5 seconds", str(args.interval), "--interval must be at least 5")
@@ -116,8 +151,14 @@ def watch(args: argparse.Namespace) -> int:
     if shutil.which("gh") is None:
         refuse("gh-missing", "gh on PATH", "gh was not found", "install gh or add it to PATH")
 
-    expected = tuple(
-        name.strip() for name in (args.expect_names or "").split(",") if name.strip()
+    expected = (
+        tuple(
+            name.strip()
+            for name in args.expect_names.split(",")
+            if name.strip()
+        )
+        if args.expect_names is not None
+        else configured_check_names()
     )
     scale = _tick_scale()
     started = time.monotonic()
