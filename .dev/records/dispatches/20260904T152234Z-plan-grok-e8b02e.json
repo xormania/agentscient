@@ -1,0 +1,154 @@
+{
+  "id": "20260904T152234Z-plan-grok-e8b02e",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/context-contracts",
+  "lineage": {
+    "branch": "lane/context-contracts",
+    "base_sha": "28608ca4f3f3ef982902cb7c9bbcbe1f96aadf4b"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T15:22:34Z",
+    "closed": "2026-09-04T15:38:58Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "28608ca4f3f3ef982902cb7c9bbcbe1f96aadf4b",
+    "ref_sha": "28608ca4f3f3ef982902cb7c9bbcbe1f96aadf4b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "870ae4c7-c360-4890-83c3-0721135e6aca",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/home/grok-stream/sessions/<snapshot-encoded>/870ae4c7-c360-4890-83c3-0721135e6aca/summary.json"
+  },
+  "session": {
+    "id": "870ae4c7-c360-4890-83c3-0721135e6aca",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/home/grok-stream/sessions/<snapshot-encoded>/870ae4c7-c360-4890-83c3-0721135e6aca/summary.json",
+    "stream_sha256_at_close": "d610855fc99f693e053b1dd85ccb7dc9831f31e10caa78bf504007dab70dc279",
+    "spend": {
+      "input": 2738121,
+      "cached": 2403712,
+      "output": 53680,
+      "total": 2791801,
+      "cost_usd_ticks": 3727681800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/home/grok-stream/sessions/<snapshot-encoded>/870ae4c7-c360-4890-83c3-0721135e6aca/summary.json",
+      "messages": 308
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Re-plan item 45, context contracts (the owner's freeze item 1), in the driver's grammar: every stage boundary gets a guaranteed format (a closed CUE definition per job kind for the input manifest, the plan, the test command, the envelope), vetted with cue vet by the dispatcher before launch and by the consumer at land, with a `context` refusal on the wire; and first, the closure gate: every contract in the tree names its consumer and a firing fixture or the gate refuses. Inputs: the owner's scope, the existing plan, the rules, and today's measured cases. Output the plan only; no code, no tests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/in/input-context-contracts-replan.md",
+        "sha256": "0316c09726b3f107ae0906f3315ac9f53fe450aa19eed67ca4634fdced593a98"
+      }
+    ],
+    "sha256": "aadd66fa7c76f2401cef22c75f51efaf455b334f1af6381b96c507eae26fbc45",
+    "bytes": 2905
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T15:22:34Z",
+      "ended": "2026-09-04T15:38:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "28608ca4f3f3ef982902cb7c9bbcbe1f96aadf4b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152234Z-plan-grok-e8b02e/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2791801,
+        "out": 53680,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "28608ca4f3f3ef982902cb7c9bbcbe1f96aadf4b",
+        "started": "2026-09-04T15:22:34Z",
+        "ended": "2026-09-04T15:38:53Z"
+      },
+      "note": "Re-plan of item 45 at 28608ca: closure gate first, then closed CUE per job kind for manifest, plan, command, and envelope; eleven S slices."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T15:38:57.874Z"
+    }
+  },
+  "status": "closed"
+}
