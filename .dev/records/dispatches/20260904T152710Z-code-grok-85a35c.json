@@ -1,0 +1,158 @@
+{
+  "id": "20260904T152710Z-code-grok-85a35c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "64c6534b846ce334c03bee9521aaacbd2752d37a"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T15:27:10Z",
+    "closed": "2026-09-04T15:36:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "64c6534b846ce334c03bee9521aaacbd2752d37a",
+    "ref_sha": "64c6534b846ce334c03bee9521aaacbd2752d37a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "57211c1a-003f-48b3-ad2a-61c1cfd486eb",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/home/grok-stream/sessions/<snapshot-encoded>/57211c1a-003f-48b3-ad2a-61c1cfd486eb/summary.json"
+  },
+  "session": {
+    "id": "57211c1a-003f-48b3-ad2a-61c1cfd486eb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/home/grok-stream/sessions/<snapshot-encoded>/57211c1a-003f-48b3-ad2a-61c1cfd486eb/summary.json",
+    "stream_sha256_at_close": "9e2eb0d328a55753fcc7772d7c228ecab6ef219651559e6df3f91ae5cdf37295",
+    "spend": {
+      "input": 2064918,
+      "cached": 1651712,
+      "output": 29290,
+      "total": 2094208,
+      "cost_usd_ticks": 3107613600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/home/grok-stream/sessions/<snapshot-encoded>/57211c1a-003f-48b3-ad2a-61c1cfd486eb/summary.json",
+      "messages": 249
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "Tests-fix for the item 31 second slice (lane/check-tests-json), from the adjudication in the input file: repair the six upheld fixtures in ops/conductor/tests/test_ladder_lever.py exactly as ruled (plant a valid check-tests finding wherever a fixture plants a bare changes verdict), add the missing order test (envelope validation runs before the leak check), keep every other test as it is, prove the repaired class red-then-green boundaries as the ruling describes, commit each file. Test files only; no implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T152710Z-code-grok-85a35c/in/input-check-tests-json-2-testsfix.md",
+        "sha256": "7f415de0aa1c67541d8a0106fe233fbdde89fc0ed117d1adae6f930662f3b8c6"
+      }
+    ],
+    "sha256": "f2e3d4180d7d0fb5f16841bbf41cc102ec594d1503fd1b0b15c696a246f93aab",
+    "bytes": 2865
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T15:27:10Z",
+      "ended": "2026-09-04T15:36:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "2c837f23f1a5416843d54dcfe33c404d64ef6d3c",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_ladder_lever.py",
+        "order_commit": "ce6d9e4d86c13d37b386ef57f41e8125ae9f0417",
+        "plants_commit": "2c837f23f1a5416843d54dcfe33c404d64ef6d3c"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2094208,
+        "out": 29290,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "64c6534b846ce334c03bee9521aaacbd2752d37a",
+        "started": "2026-09-04T15:31:32Z",
+        "ended": "2026-09-04T15:36:20Z"
+      },
+      "note": "Repaired the six bare check-tests changes plants in ops/conductor/tests/test_ladder_lever.py by adding stage_findings={\"check-tests\": [dict(CHECK_TESTS_FINDING)]} beside each; added CheckTestsEnvelopeValidatedBeforeFindingsFile.test_empty_changes_with_a_leak_stops_envelope_not_withheld. Test file only; ladder.py not read or edited. Red then commit: python3 -m unittest ops.conductor.tests.test_ladder_lever.CheckTestsEnvelopeValidatedBeforeFindingsFile.test_empty_changes_with_a_leak_stops_envelope_not_withheld at 64c6534b846ce334c03bee9521aaacbd2752d37a failed on assert_stopped: expected stage=check-tests reason=envelope; last line was 'stopped stage=tests-fix record=none reason=withheld'. Committed ce6d9e4d86c13d37b386ef57f41e8125ae9f0417. After the six plants: the same six methods 6 tests OK; class 7 tests, 2 failures (test_changes_with_no_findings_is_an_envelope_stop returncode 0!=3; order test still withheld not envelope); five class locks green. Committed 2c837f23f1a5416843d54dcfe33c404d64ef6d3c. Full suite at 2c837f23f1a5416843d54dcfe33c404d64ef6d3c: python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py \u2014 86 tests, 4 failures: the two empty-changes reds plus FindingsPayloadWriteDoesNotFollowASymlink already red at the ref. ruff check on the test file exit 0."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T15:36:51.765Z"
+    }
+  },
+  "status": "closed"
+}
