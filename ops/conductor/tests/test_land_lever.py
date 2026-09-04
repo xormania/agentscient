@@ -979,7 +979,7 @@ class CollectedTrip(_LandFixture):
         self,
         *,
         head: str,
-        verify_exit: int,
+        verify_exit,
         status: str = "invalid",
         reason: str | None = "tripped before commit",
     ) -> dict:
@@ -1104,6 +1104,66 @@ class CollectedTrip(_LandFixture):
         self.assertEqual(self.sha("HEAD"), pre)
         self.assertEqual(self.landed_rows(proc.stdout or ""), [])
         self.assertFalse((self.repo / "landed.txt").exists())
+
+    def test_a_collected_result_with_json_false_verify_exit_is_not_green(self):
+        """Security finding 5: JSON false == 0 must not satisfy
+        verify.exit is 0."""
+        self.seed_tripped_producers()
+        tip = self.sha(REF)
+        envelope = self.commit_working_tree_envelope(
+            self.collected_payload(head=tip, verify_exit=False)
+        )
+        loaded = json.loads(envelope.read_text(encoding="utf-8"))
+        exit_value = loaded["result"]["collected"]["verify"]["exit"]
+        self.assertIs(exit_value, False)
+        self.assertEqual(exit_value, 0)
+        raw = envelope.read_text(encoding="utf-8")
+        self.assertRegex(raw, r'"exit":\s*false')
+        self.assertNotRegex(raw, r'"exit":\s*0\b')
+        pre = self.sha("HEAD")
+        proc = self.land()
+        self.assertNotEqual(
+            proc.returncode, 0,
+            "JSON false must not land as a verified collection: "
+            f"{self.combined(proc)!r}",
+        )
+        self.assert_refusal(proc, "exit-status")
+        self.assertEqual(self.sha("HEAD"), pre)
+        self.assertEqual(self.landed_rows(proc.stdout or ""), [])
+        self.assertFalse((self.repo / "landed.txt").exists())
+
+
+class EnvelopeStatusNamesCollect(_LandFixture):
+    """Adversarial finding 5: envelope-status needed text names
+    launch.py collect, never a by-hand adjudication."""
+
+    def test_an_invalid_envelope_with_exit_zero_names_the_collect_verb(self):
+        self.ready()
+        envelope = (
+            self.repo / ".dev" / "records" / "dispatches" / f"{REC}.json"
+        )
+        payload = json.dumps(
+            {
+                "lineage": {"branch": BRANCH},
+                "result": {"envelope": {"status": "invalid"}},
+            },
+            indent=2,
+        ) + "\n"
+        self._plant_bytes(envelope, payload.encode("utf-8"))
+        loaded = json.loads(envelope.read_text(encoding="utf-8"))
+        self.assertEqual(loaded["result"]["envelope"]["status"], "invalid")
+        self.assertNotIn("collected", loaded.get("result", {}))
+        exit_text = (self.store / REC / "exit").read_text(encoding="utf-8")
+        self.assertEqual(exit_text.strip(), "0")
+        self.git("add", str(envelope.relative_to(self.repo)))
+        self.git("commit", "-m", f"invalid envelope names collect\n\n{TRAILER}")
+        pre = self.sha("HEAD")
+        proc = self.land()
+        self.assert_refusal(proc, "envelope-status")
+        err = proc.stderr or ""
+        self.assertIn("launch.py collect", err)
+        self.assertNotIn("adjudicate the rejected dispatch by hand", err)
+        self.assertEqual(self.sha("HEAD"), pre, "nothing may land")
 
 
 if __name__ == "__main__":
