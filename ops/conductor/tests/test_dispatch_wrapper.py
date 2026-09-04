@@ -45,6 +45,9 @@ NAME_KEYS = (
 SCOPE_CAP = 1024
 FLAG_AGENT = "Wrap Agent <noreply@example.invalid>"
 CONF_AGENT = "Conf Agent <noreply@example.invalid>"
+ENV_AGENT = "Grok 4.6 <noreply@x.ai>"
+MALFORMED_AGENT = "Grok 4.6"
+FABLE_AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 NO_WORKTREE_BRANCH = "no-wt-dispatch-wrapper-9f3c1e2a"
 
 # PIN_CONF_OVERRIDE: spec names only the real conf path. Tests point at a
@@ -63,7 +66,10 @@ CONF_ENV = "LANE_CONF"
 # is env delta DISPATCH_TIMEOUT when --timeout is given; neither
 # DISPATCH_TIMEOUT nor DEFAULT_TIMEOUT is in the delta when it is not.
 # DEFAULT_TIMEOUT is retired: a conf that still sets it is a refusal.
-# Winning agent is env delta WF_AGENT.
+# Winning agent is env delta WF_AGENT: --agent if passed, else the
+# invoking WF_AGENT when it matches Name <address>, else
+# WF_AGENT_DEFAULT. A well-formed invoking WF_AGENT does not require
+# WF_AGENT_DEFAULT to be present in conf or local conf.
 
 
 def _porcelain(cwd: Path) -> bytes:
@@ -1510,6 +1516,129 @@ class RowDispatchConfRetired(_WrapperFixture):
         self.assertNotEqual(
             argv[argv.index("--model") + 1], "from-dispatch-conf",
         )
+        self.assert_no_launch()
+
+
+class RowAgentIdentity(_WrapperFixture):
+    """Identity for the launched env: --agent if passed; else WF_AGENT
+    when it matches Name <address>; else WF_AGENT_DEFAULT. A Grok-led
+    session that already exports a well-formed WF_AGENT does not need
+    WF_AGENT_DEFAULT in conf or local conf.
+    """
+
+    def _assert_dry_run_identity(self, proc, identity: str) -> None:
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(env.get("WF_AGENT"), identity, self.combined(proc))
+        self.assertNotEqual(env.get("WF_AGENT"), CONF_AGENT)
+        self.assertNotIn("--agent", argv)
+        self.assert_no_launch()
+
+    def test_exported_name_address_wf_agent_is_the_launched_identity(self):
+        self.assertRegex(ENV_AGENT, r".+ <.+>")
+        self.assertNotEqual(ENV_AGENT, CONF_AGENT)
+        self.assertNotEqual(ENV_AGENT, FLAG_AGENT)
+        proc = self.invoke(
+            self.full_flags(omit=("agent",)),
+            extra_env={"WF_AGENT": ENV_AGENT},
+        )
+        self._assert_dry_run_identity(proc, ENV_AGENT)
+
+    def test_exported_name_address_wf_agent_reaches_the_foreground_launcher(self):
+        self.assertRegex(ENV_AGENT, r".+ <.+>")
+        self.assertNotEqual(ENV_AGENT, CONF_AGENT)
+        self.assertNotEqual(ENV_AGENT, FLAG_AGENT)
+        env_log = self.scratch / "launcher-env.json"
+        self._plant_python_sentinel(
+            self.pin,
+            "import json, os, pathlib\n"
+            f"pathlib.Path({str(env_log)!r}).write_text("
+            "json.dumps({'WF_AGENT': os.environ.get('WF_AGENT')}))\n"
+            f"pathlib.Path({str(self.marker)!r}).write_text('launched')\n",
+        )
+        proc = self.invoke(
+            self.full_flags(omit=("agent",), dry_run=False),
+            extra_env={"WF_AGENT": ENV_AGENT},
+            timeout=8,
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertTrue(self.marker.exists(), "foreground path must launch")
+        self.assertTrue(env_log.is_file(), "sentinel recorded env")
+        launched = json.loads(env_log.read_text(encoding="utf-8"))
+        self.assertEqual(launched.get("WF_AGENT"), ENV_AGENT)
+        self.assertNotEqual(launched.get("WF_AGENT"), CONF_AGENT)
+        self.assertNotEqual(launched.get("WF_AGENT"), FLAG_AGENT)
+
+    def test_agent_flag_beats_exported_wf_agent(self):
+        self.assertRegex(FLAG_AGENT, r".+ <.+>")
+        self.assertRegex(ENV_AGENT, r".+ <.+>")
+        self.assertNotEqual(FLAG_AGENT, ENV_AGENT)
+        self.assertNotEqual(FLAG_AGENT, CONF_AGENT)
+        proc = self.invoke(
+            self.full_flags(agent=FLAG_AGENT),
+            extra_env={"WF_AGENT": ENV_AGENT},
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(env.get("WF_AGENT"), FLAG_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), ENV_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), CONF_AGENT)
+        self.assertNotIn("--agent", argv)
+        self.assert_no_launch()
+
+    def test_malformed_exported_wf_agent_falls_through_to_conf_default(self):
+        self.assertNotEqual(MALFORMED_AGENT, CONF_AGENT)
+        self.assertNotRegex(MALFORMED_AGENT, r".+ <.+>")
+        proc = self.invoke(
+            self.full_flags(omit=("agent",)),
+            extra_env={"WF_AGENT": MALFORMED_AGENT},
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(env.get("WF_AGENT"), CONF_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), MALFORMED_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), ENV_AGENT)
+        self.assertNotIn("--agent", argv)
+        self.assert_no_launch()
+
+    def test_exported_wf_agent_does_not_need_conf_wf_agent_default(self):
+        self.assertRegex(ENV_AGENT, r".+ <.+>")
+        keys = self._conf_kwargs()
+        self.assertIn("WF_AGENT_DEFAULT", keys)
+        del keys["WF_AGENT_DEFAULT"]
+        self.assertNotIn("WF_AGENT_DEFAULT", keys)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("WF_AGENT_DEFAULT", landed)
+        self.assertNotEqual(ENV_AGENT, CONF_AGENT)
+        proc = self.invoke(
+            self.full_flags(omit=("agent",)),
+            extra_env={"WF_AGENT": ENV_AGENT},
+        )
+        self._assert_dry_run_identity(proc, ENV_AGENT)
+
+    def test_local_conf_wf_agent_default_does_not_override_exported_wf_agent(self):
+        self.assertRegex(ENV_AGENT, r".+ <.+>")
+        self.assertRegex(FABLE_AGENT, r".+ <.+>")
+        self.assertNotEqual(ENV_AGENT, FABLE_AGENT)
+        self.assertNotEqual(ENV_AGENT, CONF_AGENT)
+        self.assertNotEqual(FABLE_AGENT, CONF_AGENT)
+        local = self.conf_path.parent / "lane.local.conf"
+        self._plant_bytes(
+            local,
+            f"WF_AGENT_DEFAULT={_bash_single_quote(FABLE_AGENT)}\n".encode(),
+        )
+        self.assertIn(FABLE_AGENT, local.read_text(encoding="utf-8"))
+        proc = self.invoke(
+            self.full_flags(omit=("agent",)),
+            extra_env={"WF_AGENT": ENV_AGENT},
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(env.get("WF_AGENT"), ENV_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), FABLE_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), CONF_AGENT)
+        self.assertNotIn("--agent", argv)
         self.assert_no_launch()
 
 
