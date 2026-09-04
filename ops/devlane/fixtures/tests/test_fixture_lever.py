@@ -36,6 +36,9 @@ LEVER = REPO / "ops" / "bin" / "fixture.sh"
 APP = "synth"
 AGENT = "Fixture Lever Tester <fixture-tester@example.invalid>"
 MALFORMED_AGENT = "JustAName"
+NO_AT_AGENT = "Fixture Lever Tester <noreply>"
+HOST_SECRET_NAME = "FIXTURE_HOST_SECRET"
+HOST_SECRET_VALUE = "host-credential-must-not-leak"
 REPO_USER = "Repo Config"
 REPO_EMAIL = "repo-config@example.invalid"
 TRAILER = "Source: original"
@@ -726,6 +729,11 @@ class MakeRefuses(_LeverFixture):
         proc = self.make(agent=MALFORMED_AGENT)
         self.assert_refusal(proc, "identity")
 
+    def test_make_refuses_identity_without_at_in_the_address(self):
+        self.seed_repo()
+        proc = self.make(agent=NO_AT_AGENT)
+        self.assert_refusal(proc, "identity")
+
     def test_make_refuses_conf_when_lane_conf_is_unset(self):
         self.seed_repo()
         proc = self.make(lane_conf=None)
@@ -949,6 +957,82 @@ class MakeCopies(_LeverFixture):
         self.assertTrue(first.is_dir())
         self.assertTrue(second.is_dir())
 
+    def test_make_copies_tracked_files_only_when_git_is_not_writable(self):
+        self.seed_repo()
+        untracked_rel = "ops/devlane/fixtures/apps/synth/untracked-secret.env"
+        untracked = self.repo / untracked_rel
+        payload = b"UNTRACKED_MUST_NOT_RIDE_WHEN_GIT_RO\n"
+        self._plant_bytes(untracked, payload)
+        tracked = self.git("ls-files").stdout.splitlines()
+        self.assertNotIn(untracked_rel, tracked)
+        git_dir = self.repo / ".git"
+        self.assertTrue(git_dir.is_dir())
+        mode = git_dir.stat().st_mode
+        target = self.root / "ro-git-out"
+        try:
+            git_dir.chmod(mode & ~stat.S_IWUSR & ~stat.S_IWGRP & ~stat.S_IWOTH)
+            self.assertFalse(os.access(git_dir, os.W_OK), git_dir)
+            proc = self.make(target=target)
+        finally:
+            git_dir.chmod(mode)
+        if proc.returncode == 0:
+            made = self.parse_dir(proc)
+            present = _rel_files(made)
+            self.assertNotIn("untracked-secret.env", present)
+            leaked = [
+                path.as_posix()
+                for path in made.rglob("*")
+                if path.is_file()
+                and ".git" not in path.relative_to(made).parts
+                and "UNTRACKED_MUST_NOT_RIDE_WHEN_GIT_RO"
+                in path.read_text(encoding="utf-8", errors="replace")
+            ]
+            self.assertEqual(leaked, [], leaked)
+        else:
+            self.assertEqual(proc.returncode, 2, proc.stderr or proc.stdout)
+            err = proc.stderr or ""
+            lines = [ln for ln in err.splitlines() if ln.strip()]
+            self.assertEqual(len(lines), 1, err)
+            lower = lines[0].lower()
+            self.assertLess(lower.index("expected"), lower.index("found"), err)
+            self.assertLess(lower.index("found"), lower.index("needed"), err)
+            self.assertEqual((proc.stdout or "").strip(), "")
+            self.assertFalse(
+                target.exists(),
+                "a make that cannot list tracked files leaves no directory",
+            )
+
+    def _plant_default_copy_list(self, listed: str) -> Path:
+        default_list = (
+            self.repo / "ops" / "devlane" / "fixtures" / "copy-list"
+        )
+        self._plant_bytes(default_list, f"{listed}\n".encode("utf-8"))
+        lane_conf = self.repo / "ops" / "lane.conf"
+        self._plant_bytes(
+            lane_conf,
+            (
+                "LANE_NAME='agentscient'\n"
+                "FIXTURE_COPY_LIST='ops/devlane/fixtures/copy-list'\n"
+            ).encode("utf-8"),
+        )
+        self.git("add", str(default_list.relative_to(self.repo)), "ops/lane.conf")
+        self.git("commit", "-m", f"plant default copy list\n\n{TRAILER}")
+        tracked = self.git("ls-files").stdout.splitlines()
+        self.assertIn("ops/devlane/fixtures/copy-list", tracked)
+        self.assertIn("ops/lane.conf", tracked)
+        return default_list
+
+    def test_make_uses_the_lane_conf_copy_list_when_env_is_unset(self):
+        self.seed_repo()
+        self._plant_default_copy_list(self.copy_rel)
+        target = self.root / "default-copy-out"
+        proc = self.make(target=target, lane_conf=None)
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        made = self.parse_dir(proc)
+        present = _rel_files(made)
+        self.assertIn(self.copy_rel, present)
+        self.assertNotIn("extra-tracked.txt", present)
+
 
 class ProveColours(_LeverFixture):
     def test_prove_refuses_manifest_when_faults_json_is_absent(self):
@@ -986,6 +1070,7 @@ class ProveColours(_LeverFixture):
 
     def test_prove_fixed_reports_every_probe_green_without_identity(self):
         made = self.plant_made_repo()
+        before = (made / "src" / "cli.py").read_bytes()
         proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
         err = (proc.stderr or "").lower()
@@ -996,11 +1081,18 @@ class ProveColours(_LeverFixture):
         self.assertEqual(rows["SYN-02"], "GREEN")
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts, {"red": 0, "green": 2, "unreachable": 0})
-        cli = (made / "src" / "cli.py").read_text(encoding="utf-8")
-        self.assertNotIn(MARKER_01, cli)
-        self.assertNotIn(MARKER_02, cli)
-        self.assertIn(FIXED_01, cli)
-        self.assertIn(FIXED_02, cli)
+        after = (made / "src" / "cli.py").read_bytes()
+        self.assertEqual(
+            after,
+            before,
+            "prove --fixed applies patches only in the preflight copy; "
+            "the supplied directory is never written",
+        )
+        cli = after.decode("utf-8")
+        self.assertIn(MARKER_01, cli)
+        self.assertIn(MARKER_02, cli)
+        self.assertNotIn(FIXED_01, cli)
+        self.assertNotIn(FIXED_02, cli)
 
     def test_prove_fixed_exits_1_when_a_probe_stays_red(self):
         made = self.plant_made_repo()
@@ -1114,6 +1206,106 @@ class ProveColours(_LeverFixture):
         self.assertEqual(set(rows), {"SYN-01", "SYN-02"})
         self.assertEqual(rows["SYN-01"], "RED")
         self.assertEqual(rows["SYN-02"], "RED")
+
+    def test_prove_scrubs_ambient_secrets_from_the_probe_environment(self):
+        made = self.plant_made_dir()
+        proc = self.invoke(
+            ["prove", str(made)],
+            agent=AGENT,
+            extra={
+                HOST_SECRET_NAME: HOST_SECRET_VALUE,
+                "COMPOSER_AUTH": "composer-token-must-not-leak",
+                "CARGO_HOME": str(self.root / "must-not-inherit-cargo-home"),
+            },
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        dump_path = made / "probes" / "env-dump.txt"
+        self.assertTrue(dump_path.is_file(), "the SYN-01 probe dumps its environment")
+        dump = dump_path.read_text(encoding="utf-8")
+        self.assertIn("PATH=", dump)
+        self.assertIn("HOME=" + str(self.home), dump)
+        self.assertNotIn(HOST_SECRET_NAME, dump)
+        self.assertNotIn(HOST_SECRET_VALUE, dump)
+        self.assertNotIn("COMPOSER_AUTH", dump)
+        self.assertNotIn("composer-token-must-not-leak", dump)
+        self.assertNotIn("must-not-inherit-cargo-home", dump)
+        self.assertNotIn("CARGO_HOME=", dump)
+        self.assertNotIn("WF_AGENT", dump)
+
+    def test_prove_fixed_does_not_write_the_supplied_directory(self):
+        made = self.plant_made_repo()
+        before = {
+            rel: (made / rel).read_bytes()
+            for rel in ("src/cli.py", "FAULTS.json", "probes/syn-01.sh")
+        }
+        proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        rows = self.parse_prove(proc.stdout)
+        self.assertEqual(rows["SYN-01"], "GREEN")
+        self.assertEqual(rows["SYN-02"], "GREEN")
+        for rel, payload in before.items():
+            self.assertEqual(
+                (made / rel).read_bytes(),
+                payload,
+                f"prove --fixed mutated supplied {rel}",
+            )
+
+    def test_prove_fixed_copies_symlinks_as_symlinks(self):
+        made = self.plant_made_repo("symlink-preflight")
+        outside = self.root / "outside-secret.txt"
+        outside.write_text(
+            "OUTSIDE_SECRET_MUST_NOT_BE_DEREFERENCED\n",
+            encoding="utf-8",
+        )
+        outside.chmod(0)
+        link = made / "link-to-outside"
+        link.symlink_to(outside)
+        self.assertTrue(link.is_symlink())
+        try:
+            proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
+            err = proc.stderr or ""
+            self.assertEqual(
+                proc.returncode,
+                0,
+                "prove --fixed must copy symlinks as symlinks, not dereference "
+                f"an unreadable target: stdout={proc.stdout!r} stderr={err!r}",
+            )
+            self.assertNotIn("PermissionError", err, err)
+            rows = self.parse_prove(proc.stdout)
+            self.assertEqual(set(rows), {"SYN-01", "SYN-02"})
+            self.assertEqual(rows["SYN-01"], "GREEN")
+            self.assertEqual(rows["SYN-02"], "GREEN")
+            self.assertTrue(link.is_symlink(), "supplied symlink must stay a symlink")
+        finally:
+            outside.chmod(0o644)
+
+    def test_prove_fixed_fault_applies_one_fix_in_the_preflight_copy(self):
+        made = self.plant_made_repo("one-fix-preflight")
+        before = (made / "src" / "cli.py").read_bytes()
+        proc = self.invoke(
+            ["prove", "--fixed", "--fault", "SYN-01", str(made)],
+            agent=None,
+        )
+        after = (made / "src" / "cli.py").read_bytes()
+        self.assertEqual(
+            after,
+            before,
+            "an isolated --fault fix still must not write the supplied directory",
+        )
+        rows = self.parse_prove(proc.stdout)
+        self.assertEqual(
+            rows.get("SYN-01"),
+            "GREEN",
+            proc.stdout or proc.stderr,
+        )
+        self.assertEqual(
+            rows.get("SYN-02"),
+            "RED",
+            proc.stdout or proc.stderr,
+        )
+        self.assertNotEqual(proc.returncode, 0, proc.stdout)
+        self.assertIn(MARKER_01, after.decode("utf-8"))
+        self.assertIn(MARKER_02, after.decode("utf-8"))
 
 
 class GradeRefusesOnTheLever(_LeverFixture):
