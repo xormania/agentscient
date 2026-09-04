@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T14:30:23Z",
-    "closed": null
+    "closed": "2026-09-04T14:44:37Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/home/grok-stream/sessions/<snapshot-encoded>/1b59ce20-ac45-4eaa-8317-2c16089f83a0/summary.json"
   },
   "session": {
     "id": "1b59ce20-ac45-4eaa-8317-2c16089f83a0",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/home/grok-stream/sessions/<snapshot-encoded>/1b59ce20-ac45-4eaa-8317-2c16089f83a0/summary.json",
+    "stream_sha256_at_close": "62a1d123d3d479da2fb9029c828f650effb4086c27eb5c1cbf5d82e44c48beb3",
+    "spend": {
+      "input": 5064141,
+      "cached": 4757760,
+      "output": 47321,
+      "total": 5111462,
+      "cost_usd_ticks": 5568465600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/home/grok-stream/sessions/<snapshot-encoded>/1b59ce20-ac45-4eaa-8317-2c16089f83a0/summary.json",
+      "messages": 353
+    }
   },
   "brief": {
     "template": {
@@ -91,10 +99,62 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T14:30:23Z",
+      "ended": "2026-09-04T14:44:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e9bd0a1221980ad8804b2999c401992013f50e9a",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/devlane/task/tests/test_check_tests_json.py",
+      "ops/devlane/task/tests/test_jobs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever": "ops/conductor/tests/test_ladder_lever.py",
+        "test_check_tests_json": "ops/devlane/task/tests/test_check_tests_json.py",
+        "test_jobs": "ops/devlane/task/tests/test_jobs.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5111462,
+        "out": 47321,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4ed9c1189f577a3db756f5a778ad8323e56bd62c",
+        "started": "2026-09-04T14:35:10Z",
+        "ended": "2026-09-04T14:43:58Z"
+      },
+      "note": "Six commits on lane/check-tests-json (9eeaa0a..e9bd0a1), only the three named test files, HEAD e9bd0a122198. Finding 1: test_changes_with_no_findings_is_an_envelope_stop red \u2014 assert_stopped expected exit 3, driver returned 0 and opened a PR. Finding 2: test_payload_symlink_is_not_followed red \u2014 host file no longer reads HOST; write_text followed check-tests-findings.payload.json. Finding 4: test_findings_none_does_not_move_to_tests_fix now requires assert_stopped reason=envelope (exit 3); already true against the live driver, so this is the pin against a silent success. Finding 3: write_path_ask loaded via support.load(\"write_path\") with no in-file regex; Create REVIEW in the repository was None under the old regex, then rewired; write_path.py is absent so test_write_path_ask_comes_from_write_path_py fails on the missing file. Finding 5: test_contract_does_not_claim_all_three_read_jobs_name_inputs red \u2014 CONTRACT.md still has that slots claim; practiced jobs.json slots already match. Locks still pass: test_validated_changes_still_moves_to_tests_fix, test_findings_none_does_not_move_to_tests_fix, test_practiced_read_job_slots_are_plan_without_inputs. Named implement command: python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py && python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_json.py && python3 -m unittest discover -s ops/devlane/task/tests -p test_jobs.py"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T14:44:37.246Z"
+    }
+  },
+  "status": "closed"
 }
