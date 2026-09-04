@@ -78,7 +78,8 @@
       },
       "job": "check-tests",
       "name": "check-tests",
-      "outcome": "launched",
+      "outcome": "stopped",
+      "reason": "wall",
       "record": "20260904T155934Z-check-tests-codex-49dad2",
       "stage": "check-tests"
     },
@@ -155,7 +156,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "wall",
+    "record": "20260904T155934Z-check-tests-codex-49dad2",
+    "stage": "check-tests",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-context-contracts"
 }
