@@ -15,8 +15,8 @@ report of a crash.
 from __future__ import annotations
 
 import argparse
+import codecs
 import json
-import mmap
 import os
 import re
 import shutil
@@ -53,7 +53,6 @@ ERROR_TEXT_RE = re.compile(
     r"\berrored\b|\berrors\s*=\s*[1-9]\d*\b",
     re.IGNORECASE,
 )
-ERROR_BYTES_RE = re.compile(ERROR_TEXT_RE.pattern.encode(), re.IGNORECASE)
 REFUSAL_BYTES_RE = re.compile(
     rb"(?m)^\s*(?:" + b"|".join(
         re.escape(item).encode() for item in REFUSAL_CLASSES
@@ -208,7 +207,7 @@ def run(argv, timeout=90):
             timeout=timeout,
             check=False,
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, UnicodeError):
         return None
     return result.stdout if result.returncode == 0 else None
 
@@ -298,18 +297,20 @@ def entries(store, caps, closed_cache=None):
         for name in set(closed_cache) - present:
             del closed_cache[name]
     for d in dirs:
-        fingerprint = input_fingerprint(d)
-        cached = closed_cache.get(d.name) if closed_cache is not None else None
-        if cached is not None and cached[0] == fingerprint:
-            out.append(cached[1])
-            continue
         try:
+            fingerprint = input_fingerprint(d)
+            cached = closed_cache.get(d.name) if closed_cache is not None else None
+            if cached is not None and cached[0] == fingerprint:
+                out.append(cached[1])
+                continue
             rec = read_json(d / "record.json")
             state = read_json(d / "state.json") or {}
         except OSError as exc:
+            if closed_cache is not None:
+                closed_cache.pop(d.name, None)
             entry = Entry(d, "error", {}, {}, False, caps)
             entry.error = exc
-            entry.fingerprint = fingerprint
+            entry.fingerprint = None
             out.append(entry)
             continue
         has_exit = (d / "exit").is_file()
@@ -373,16 +374,126 @@ def held_text(entry, names):
     return "\n".join(chunks)
 
 
-def held_matches(entry, names, pattern):
-    """Search held files without copying growing transcripts into memory."""
+def _is_word(char):
+    return char == "_" or char.isalnum()
+
+
+def _is_digit(char):
+    return char.isdecimal()
+
+
+def _error_stream_matches(stream):
+    """Match ERROR_TEXT_RE with bounded state over incrementally decoded text."""
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+    stem = "error"
+    stem_at = 0
+    count_state = 0
+    errored_pending = False
+    previous = None
+
+    def consume(text):
+        nonlocal stem_at, count_state, errored_pending, previous
+        for char in text:
+            word = _is_word(char)
+            if errored_pending:
+                if not word:
+                    return True
+                errored_pending = False
+
+            if count_state == 1:
+                if char.isspace():
+                    pass
+                elif char == "=":
+                    count_state = 2
+                else:
+                    count_state = 0
+            elif count_state == 2:
+                if char.isspace():
+                    pass
+                elif char in "123456789":
+                    count_state = 3
+                else:
+                    count_state = 0
+            elif count_state == 3:
+                if _is_digit(char):
+                    pass
+                elif not word:
+                    return True
+                else:
+                    count_state = 0
+
+            folded = char.casefold()
+            if stem_at < len(stem):
+                if folded == stem[stem_at]:
+                    if stem_at or previous is None or not _is_word(previous):
+                        stem_at += 1
+                    else:
+                        stem_at = 0
+                else:
+                    stem_at = (
+                        1
+                        if folded == "e"
+                        and (previous is None or not _is_word(previous))
+                        else 0
+                    )
+            elif stem_at == len(stem):
+                if folded == "s":
+                    count_state = 1
+                    stem_at = 0
+                elif folded == "e":
+                    stem_at += 1
+                else:
+                    stem_at = 0
+            elif folded == "d":
+                errored_pending = True
+                stem_at = 0
+            else:
+                stem_at = (
+                    1
+                    if folded == "e"
+                    and (previous is None or not _is_word(previous))
+                    else 0
+                )
+            previous = char
+        return False
+
+    while chunk := stream.read(64 * 1024):
+        if consume(decoder.decode(chunk)):
+            return True
+    if consume(decoder.decode(b"", final=True)):
+        return True
+    return errored_pending or count_state == 3
+
+
+def _refusal_stream_matches(stream):
+    """Match REFUSAL_BYTES_RE with bounded state, including long whitespace."""
+    tokens = tuple(f"{item}:".encode() for item in REFUSAL_CLASSES)
+    prefix = bytearray()
+    at_line_start = True
+    whitespace = b" \t\n\r\v\f"
+    while chunk := stream.read(64 * 1024):
+        for byte in chunk:
+            if at_line_start and not prefix and byte in whitespace:
+                continue
+            prefix.append(byte)
+            candidates = [token for token in tokens if token.startswith(prefix)]
+            if any(len(prefix) == len(token) for token in candidates):
+                return True
+            if not candidates:
+                at_line_start = byte == ord("\n")
+                prefix.clear()
+            else:
+                at_line_start = False
+    return False
+
+
+def held_matches(entry, names, matcher):
+    """Search held files with bounded memory and no mutable mappings."""
     for name in names:
         try:
             with (entry.path / name).open("rb") as stream:
-                if os.fstat(stream.fileno()).st_size == 0:
-                    continue
-                with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
-                    if pattern.search(data):
-                        return True
+                if matcher(stream):
+                    return True
         except FileNotFoundError:
             continue
     return False
@@ -481,17 +592,22 @@ class Watch:
         if entry.job == "author-tests":
             note = envelope.get("note")
             note_has_errors = isinstance(note, str) and ERROR_TEXT_RE.search(note)
-            if note_has_errors or held_matches(
-                entry,
-                ("raw.out", "stdout", "stderr", "launcher.log"),
-                ERROR_BYTES_RE,
+            errors_key = ("deviation", "errors", entry.name)
+            if errors_key not in self.reported and (
+                note_has_errors
+                or held_matches(
+                    entry,
+                    ("raw.out", "stdout", "stderr", "launcher.log"),
+                    _error_stream_matches,
+                )
             ):
                 self.deviation("errors", entry.name)
 
-        if held_matches(
+        refused_key = ("deviation", "refused", entry.name)
+        if refused_key not in self.reported and held_matches(
             entry,
             ("raw.out", "stdout", "stderr", "launcher.log"),
-            REFUSAL_BYTES_RE,
+            _refusal_stream_matches,
         ):
             self.deviation("refused", entry.name)
 
