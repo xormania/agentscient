@@ -16,6 +16,7 @@ row that cannot look refuses: "could not look" is not a pass.
     class           trigger                                       computed from
     hand-write      a write to a path under a code root           statement, repo root
     direct-launch   launch.py run without the dispatcher          command word
+    dispatch-by-hand a driver job sent outside ladder.sh          job, command word
     override        --model or --effort on a dispatcher call      tokens
     input-absent    a --scope-file or --input missing or empty    the files
     scope-cap       --scope-file over SCOPE_CAP                   size, lane conf
@@ -25,12 +26,14 @@ row that cannot look refuses: "could not look" is not a pass.
     contract-vet    harness contracts do not vet as a package     cue vet
     dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
                     worktree, DISPATCH_TIMEOUT and WF_AGENT       text
+    test-form       unittest invoked with a path argument          tokens
     prune           rm -r of records, state, worktrees, .git      statement
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
-path -- and only for hand-write and direct-launch.  The other rows have no
-escape: a launch that would refuse at mint refuses here, before the mint.
+path -- and only for hand-write, direct-launch and dispatch-by-hand.  The
+other rows have no escape: a launch that would refuse at mint refuses here,
+before the mint.
 """
 
 import json
@@ -60,6 +63,16 @@ WRITE_JOBS = ("author-tests", "implement")
 DISPATCHERS = ("dispatch.sh", "go.sh")
 LAUNCHER = "launch.py"
 DRIVER = "ladder.sh"
+DRIVER_JOBS = (
+    "author-tests", "check-tests", "implement", "security-audit",
+    "adversarial-review",
+)
+ALLOWED_BY_HAND = {
+    "plan": "planning is a direct read-only dispatch",
+    "adjudicate": "adjudication is a direct decision dispatch",
+    "sweep": "a sweep is a direct read-only dispatch",
+    "verify": "verification is a direct read-only dispatch",
+}
 SCOPE_CAP_DEFAULT = 1024
 TRUNK_DEFAULT = "dev"
 LANE_DEFAULT = "agentscient"
@@ -69,9 +82,11 @@ WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
 PY_WRITE = re.compile(r"open\([^)]*['\"][wa]['\"]|write_text\(|write_bytes\(|\.writelines\(")
-PY_PATH = re.compile(r"['\"]((?:[./\w-]*/)?(?:ops|docs|packages|src|\.github|\.claude|config|bin)/[^'\"\s]+)['\"]")
+PY_PATH = re.compile(r"(?:open|Path)\(\s*['\"]([^'\"]+)['\"]")
 ASSIGN = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(\S+)", re.MULTILINE)
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+UNRESOLVED = re.compile(r"\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[^}]+\})")
+UNITTEST_VALUE_OPTIONS = ("-k", "--durations")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
 
@@ -275,21 +290,20 @@ def prune_targets(tokens, cwd, conf):
 def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
-    for token in tokens[:3]:
-        if "=" in token:
-            continue
-        name = base(token)
-        if name in DISPATCHERS:
-            kind = "dispatcher"
-        elif name == LAUNCHER:
-            kind = "launcher"
-        elif name == DRIVER:
-            kind = "driver"
-        if kind:
-            break
+    if not tokens:
+        return None, {}
+    name = base(tokens[0])
+    if re.fullmatch(r"python(?:3(?:\.\d+)?)?|bash|sh", name) and len(tokens) > 1:
+        name = base(tokens[1])
+    if name in DISPATCHERS:
+        kind = "dispatcher"
+    elif name == LAUNCHER:
+        kind = "launcher"
+    elif name == DRIVER:
+        kind = "driver"
     if kind is None:
         return None, {}
-    flags = {"input": []}
+    flags = {"input": [], "command": name}
     it = iter(tokens)
     for flag in it:
         if flag in ("--scope-file", "--worktree", "--job", "--model", "--effort", "--harness", "--stage", "--unit"):
@@ -302,6 +316,36 @@ def dispatch_args(tokens):
             key, _, value = flag[2:].partition("=")
             flags[key] = value
     return kind, flags
+
+
+def path_form_unittest_arg(tokens):
+    """The first path-form unittest argument, or None."""
+    if not tokens or not re.fullmatch(r"python(?:3(?:\.\d+)?)?", base(tokens[0])):
+        return None
+    try:
+        module = tokens.index("-m")
+    except ValueError:
+        return None
+    if module + 1 >= len(tokens) or tokens[module + 1] != "unittest":
+        return None
+    arguments = iter(tokens[module + 2:])
+    positional = []
+    for token in arguments:
+        if token in UNITTEST_VALUE_OPTIONS:
+            next(arguments, None)
+        elif not token.startswith("-"):
+            positional.append(token)
+    if positional and positional[0] == "discover":
+        return None
+    return next((token for token in positional if "/" in token or token.endswith(".py")), None)
+
+
+def path_form_in(text):
+    for statement in commands(text):
+        argument = path_form_unittest_arg(tokens_of(statement))
+        if argument:
+            return argument
+    return None
 
 
 def expand(script_text, cwd):
@@ -330,6 +374,16 @@ def check_dispatch(kind, flags, cwd, text, grant):
         return None
     if kind == "driver":
         return None
+    job = flags.get("job", "")
+    if job in DRIVER_JOBS or job.endswith("-fix"):
+        if grant is None or grant[1].strip():
+            dispatcher = flags.get("command", "dispatcher")
+            return deny(
+                "dispatch-by-hand",
+                f"the ladder driver to run {job} (ops/bin/ladder.sh)",
+                f"{dispatcher} --job {job} from the session",
+                "start or resume a ladder for the lane",
+            )
     if "model" in flags or "effort" in flags:
         return deny("override", "the conf's model and effort", "--model/--effort on the dispatcher call",
                     "drop them; ops/lane.conf decides")
@@ -343,6 +397,10 @@ def check_dispatch(kind, flags, cwd, text, grant):
             return deny("input-absent", "a literal input path", f"unresolved {path}", "write the path out in the run script")
         if not os.path.isfile(absolute) or os.path.getsize(absolute) == 0:
             return deny("input-absent", "a readable non-empty input", f"{path} missing or empty", "write it before dispatch")
+        unresolved = UNRESOLVED.search(read_text(absolute) or "")
+        if unresolved:
+            return deny("input-absent", "resolved input content", f"unresolved {unresolved.group(0)} in {path}",
+                        "write the resolved value into the input before dispatch")
     scope_file = flags.get("scope-file", "")
     cap = int(conf.get("SCOPE_CAP", SCOPE_CAP_DEFAULT))
     if scope_file:
@@ -350,9 +408,13 @@ def check_dispatch(kind, flags, cwd, text, grant):
         if size > cap:
             return deny("scope-cap", f"<= {cap} bytes", f"{size} bytes in {scope_file}",
                         "cut the scope before dispatch, not after the mint")
-    job = flags.get("job", "")
     scope_text = read_text(os.path.normpath(os.path.join(cwd, scope_file))) or "" if scope_file else ""
     if job == "implement":
+        path_argument = path_form_in(scope_text)
+        if path_argument:
+            return deny("bucket-command", "the bucket's tests in unittest discover form",
+                        f'path-form argument "{path_argument}" in {scope_file}',
+                        "name the tests with discover -s and -p (ranking K2)")
         hit = WHOLE_SUITE.search(scope_text)
         if hit:
             return deny("bucket-command", "the bucket's tests as the named command",
@@ -437,6 +499,14 @@ def check_text(text, cwd, depth=0):
             refusal = check_dispatch(kind, flags, cwd, text, grant)
             if refusal:
                 return refusal
+        path_argument = path_form_unittest_arg(toks)
+        if path_argument:
+            return deny(
+                "test-form",
+                "the discover form (python3 -m unittest discover -s <tests dir> -p <file>) or ops/bin/suites.sh",
+                f"a path-form unittest argument {path_argument}",
+                "the discover form",
+            )
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
                 refusal = check_text(toks[2], cwd, depth + 1)
