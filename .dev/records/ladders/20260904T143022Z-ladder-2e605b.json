@@ -168,10 +168,21 @@
         "sha256": "1d67fc8e5c6063c538498ae2b7bd6e81eeddffa698bb4b7e4ae05d8c79caf5a7"
       },
       "job": "implement",
+      "landed": [
+        "5eebd4d4d93e2d6c2e1198cff2544916994289fd"
+      ],
+      "landed_shas": [
+        "5eebd4d4d93e2d6c2e1198cff2544916994289fd"
+      ],
       "name": "code",
-      "outcome": "launched",
-      "reason": "wall",
+      "outcome": "stopped",
+      "reason": "retry-cap",
       "record": "20260904T154304Z-code-codex-5404bf",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
       "stage": "code"
     },
     {
@@ -229,7 +240,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "retry-cap",
+    "record": "20260904T154304Z-code-codex-5404bf",
+    "stage": "code",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-check-tests-json"
 }
