@@ -1,0 +1,216 @@
+{
+  "id": "20260904T103330Z-review-codex-2e6aab",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/ladder-audit",
+  "lineage": {
+    "branch": "lane/ladder-audit",
+    "base_sha": "b5293a9393442dffbb1d2bac4bb93013c30c806e"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T10:33:31Z",
+    "closed": "2026-09-04T10:43:21Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+    "ref_sha": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-33-31-01a06bfb-12ac-77e2-9e87-f00f071a35e1.jsonl"
+  },
+  "session": {
+    "id": "01a06bfb-12ac-77e2-9e87-f00f071a35e1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-33-31-01a06bfb-12ac-77e2-9e87-f00f071a35e1.jsonl",
+    "stream_sha256_at_close": "dc5f25b9c2439d2aab2d038783cc5c5e5443cddc18b9ed126235ce6f77ccf508",
+    "spend": {
+      "input": 6897708,
+      "cached": 6685328,
+      "output": 41533,
+      "total": 6939241,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T06-33-31-01a06bfb-12ac-77e2-9e87-f00f071a35e1.jsonl",
+      "messages": 435
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder-audit/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Security audit of the ladder batch (the lane conf and the ladder driver), merged on dev at 4ddb91f; the change under audit is the diff from 9af6680 restricted to the batch's files named in the input file, with the contracts and the session's review notes. Aim at: the conf reader and what it sources (a tracked file and a gitignored local file), the dispatcher and launcher reading it, the land lever re-authoring commits and its --author/--co-author flags, the driver's stage loop (what it dispatches, what it lands, what it pushes, the PR it opens, the ledger it feeds), the withholding proof, the resume path and its retry cap, and anything a worker snapshot or a crafted record could use to reach outside its job or to make the driver land or push what it should not. Findings as quotation pairs with file and line; P1 under the trust model in the input.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103330Z-review-codex-2e6aab/in/contract-ladder-batch-audit.md",
+        "sha256": "57c828fdc12c48dfad451178954c085d736f48b3d7b4b85c0e2588f9db3a73d6"
+      }
+    ],
+    "sha256": "b0f30802decd83ee19ab8fab42d12028fd0f3ab14489cd2c92967d3e1d00c26d",
+    "bytes": 4191
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T10:33:31Z",
+      "ended": "2026-09-04T10:43:21Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 11,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": ".github/workflows/ci.yml:9-10,24-64; 9af66807ae2942f84a96a55c2f7379642011cb18:.github/workflows/ci.yml:23-27",
+          "claim": "Declared: the workflow says merge-group jobs check \"exactly what would land.\" Practiced: both self-hosted jobs execute repository commands without checkout, while the base used pinned actions/checkout@11d5960a326750d5838078e36cf38b85af677262 with persist-credentials:false. A fresh runner has no tree; a persistent runner can execute stale or residual files rather than the event SHA.",
+          "reproduce": "git show 9af66807ae2942f84a96a55c2f7379642011cb18:.github/workflows/ci.yml | rg -n 'actions/checkout|persist-credentials'; ! rg -n 'actions/checkout|persist-credentials' .github/workflows/ci.yml"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/lane.conf:10; ops/conductor/tools/ladder.py:41-52,1097,1240-1249; ops/conductor/tools/laneconf.py:284-313",
+          "claim": "Declared: ops/lane.conf provides \"CHECK_NAMES='lane app'\". Practiced: the ladder requires and indexes singular CHECK_NAME. The closure gate returns success because its source scanner misses the dynamically iterated CONF_KEYS, but every real ladder load refuses before dispatch.",
+          "reproduce": "set +e; LANE_CONF=ops/lane.conf PYTHONDONTWRITEBYTECODE=1 python3 ops/conductor/tools/laneconf.py closure; closure=$?; LANE_CONF=ops/lane.conf PYTHONDONTWRITEBYTECODE=1 python3 ops/conductor/tools/laneconf.py get CHECK_NAME; get=$?; printf 'closure=%s get=%s\\n' \"$closure\" \"$get\"; test \"$closure\" -eq 0 -a \"$get\" -eq 2"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/ladder-lever.md:48-53; ops/conductor/tools/ladder.py:944-967; ops/devlane/task/jobs.json:80-84",
+          "claim": "Declared: each test path under tests/ becomes a unittest invocation. Practiced: artifact values are accepted solely by filename prefix and suffix, then interpolated unquoted into shell-shaped command text. A test-author envelope can inject separators that the subsequent implement harness is instructed to execute.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 - <<'PY'\nfrom pathlib import Path\nimport ladder\nseen=[]\nd=object.__new__(ladder.Driver)\nd.conf={'SCOPE_CAP':'1024'}\nd.make_input=lambda name, body: seen.append(body) or Path('/dev/null')\nd.derive_command({'artifacts':{'test':'tests/test_ok.py; printf PWNED; #.py'}})\nprint(seen[0])\nassert '; printf PWNED;' in seen[0]\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/ladder-lever.md:97-110; ops/conductor/tools/ladder.py:279-289,1373-1384",
+          "claim": "Declared: resume records carry scope and plan paths with SHA-256 digests. Practiced: resume ignores those digests and passes each record-controlled path to file_arg, which resolves and accepts any readable host file. A crafted record can feed credentials outside the worktree to a harness and its durable job record.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 -c 'import ladder; p=ladder.file_arg(\"/etc/hostname\", \"scope\"); print(p, p.read_text().strip())'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/ladder-lever.md:35-46,89-94; ops/conductor/tools/ladder.py:649-683,733-759,890-909",
+          "claim": "Declared: each named stage consumes its own accepted dispatch record. Practiced: existing_result checks only closed/ok and the record-supplied model and effort; it never binds job, stage, harness, lineage, or branch. A crafted resume record can substitute an unrelated completed review for tests and mark stages complete without their required work.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 - <<'PY'\nfrom pathlib import Path\nimport json, ladder\nrid='20260903T232312Z-review-grok-194a1f'\nrec=json.loads((Path('.dev/records/dispatches')/f'{rid}.json').read_text())\nm=rec['model']\nrow={'name':'tests','outcome':'ok','dispatch_record':rid,'dispatched':{'model':m['requested'],'effort':m['effort_requested']}}\nd=object.__new__(ladder.Driver)\nd.worktree=Path('.').resolve(); d.record={'base_sha':'0'*40,'stages':[row]}; d.stage_by_name={'tests':row}\naccepted=d.existing_result('tests')\nprint('claimed=tests actual=',rec['job'],rec['stage'],'accepted=',accepted is not None)\nassert accepted is not None and rec['job']!='author-tests'\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/ladder-lever.md:17-21,61; ops/conductor/tools/ladder.py:1121,1373-1379",
+          "claim": "Declared: resume operates in the worktree owning the recorded branch and pushes that branch once. Practiced: the record branch is checked only for being a non-empty string and is appended to git push without -- or a validated refspec. A crafted value of --mirror is parsed as Git's destructive mirror option.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 -c 'record={\"branch\":\"--mirror\"}; branch=record.get(\"branch\"); assert isinstance(branch,str) and branch; print([\"git\",\"push\",\"origin\",branch])'; git push -h 2>&1 | rg -- '--\\[no-\\]mirror'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/ladder-lever.md:118-125; ops/conductor/tools/ladder.py:796-800,969-995",
+          "claim": "Declared: withheld stages contain \"no line from an implementation envelope.\" Practiced: implementation_markers records only the implementation record ID and optional note, while has_leak merely searches those markers. Verbatim implementation text in findings, artifacts, or other envelope fields passes and can be supplied to fix-tests.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 - <<'PY'\nimport ladder\nd=object.__new__(ladder.Driver)\nd.implementation_markers=['20260904T-code-id','implementation note only']\nenv={'note':None,'findings':[{'claim':'a verbatim implementation line absent from both markers'}]}\nprint('has_leak=',d.has_leak(env))\nassert not d.has_leak(env)\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "../in/contract-ladder-batch-audit.md:637-640; ops/conductor/tools/ladder.py:321-339,370,538-549,1194-1198; ops/conductor/tools/land.py:323-373",
+          "claim": "Declared: implement runs per S bucket of files, each landed and green before the next. Practiced: bucket file lists are parsed but never used; land.py cherry-picks every worker commit without validating changed paths, and the next transition executes the just-landed branch dispatch.sh on the host. A worker snapshot can modify a lane executable or local conf outside its bucket and have the driver execute it before security review.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'\nfrom pathlib import Path\nladder=Path('ops/conductor/tools/ladder.py').read_text()\nland=Path('ops/conductor/tools/land.py').read_text()\nprint({'bucket_file_uses':ladder.count('bucket[\"files\"]'),'changed_path_checks':'changed_paths' in ladder or 'changed_paths' in land,'executes_branch_dispatch':'self.dispatch = worktree / \"ops\" / \"bin\" / \"dispatch.sh\"' in ladder,'cherry_picks_all':'\"cherry-pick\", commit' in land})\nassert ladder.count('bucket[\"files\"]')==0 and 'changed_paths' not in ladder and 'changed_paths' not in land\nassert 'self.dispatch = worktree / \"ops\" / \"bin\" / \"dispatch.sh\"' in ladder and '\"cherry-pick\", commit' in land\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "../in/contract-ladder-batch-audit.md:632-649; ops/conductor/tools/ladder.py:321-339,1194-1198",
+          "claim": "Declared: an M slice is exactly two named S implementation runs and the driver enforces the bounded loop. Practiced: parse_plan recognizes undocumented tab-prefixed directives, defaults ordinary Markdown plans to one S bucket, and imposes no bucket-count or declared-class validation. The supplied batch plan is therefore misclassified, while a crafted plan can schedule an arbitrary number of implementation runs.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 - <<'PY'\nfrom pathlib import Path\nimport ladder\nbuckets,slices=ladder.parse_plan(Path('../in/contract-ladder-batch-audit.md'))\nprint('batch input:',buckets,slices)\nclass Plan:\n def read_text(self,encoding='utf-8'): return ''.join(f'bucket\\tb{i}\\tM\\tfile{i}.py\\n' for i in range(7))\ncrafted,_=ladder.parse_plan(Plan())\nprint('crafted count:',len(crafted),'classes:',[b['declared'] for b in crafted])\nassert buckets==[{'name':'scope','declared':'S','files':[]}] and len(crafted)==7\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": "../in/contract-ladder-batch-audit.md:212-216,255-260; ops/conductor/tools/dispatch.sh:14-23,38-49,71-79,110",
+          "claim": "Declared: the conf has a literal-only grammar with no quoting tricks, and lane.local.conf is for LAUNCHER_PIN, model overrides, and identity. Practiced: validation permits every uppercase shell variable and the local-key guard blocks only lane identity keys. Sourcing a tracked ignored local file can replace exported PATH; the next unqualified realpath, python3, git, or utility resolves through worker-controlled executables.",
+          "reproduce": "bash <<'BASH'\nline=\"PATH='ops/pwn:/usr/bin'\"\n[[ $line =~ ^[A-Z][A-Z0-9_]*=\\'[^\\']*\\'[[:space:]]*$ ]] || exit 1\nsource /dev/stdin <<<\"$line\"\nprintf 'accepted PATH=%s\\n' \"$PATH\"\n[[ $PATH == 'ops/pwn:/usr/bin' ]]\nBASH"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/ladder-lever.md:82-85; ops/conductor/tools/ladder.py:1140-1165",
+          "claim": "Declared: exit 0 means a draft PR opened and returns its URL. Practiced: the driver trusts any non-empty final stdout line from gh, records it as the URL, and marks the ladder done without URL/repository validation or a confirming read. Vendor output \"not-a-url\" is accepted as successful evidence.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 - <<'PY'\nfrom pathlib import Path\nimport subprocess, ladder\nladder.git_out=lambda *a,**k:'a'*40\nladder.git=lambda *a,**k:subprocess.CompletedProcess([],0,'','')\nladder.run=lambda *a,**k:subprocess.CompletedProcess([],0,'not-a-url\\n','')\nd=object.__new__(ladder.Driver)\nd.worktree=Path('.'); d.branch='lane/example'; d.conf={'CHECK_NAME':'ci','TRUNK_BRANCH':'dev','REPO_SLUG':'org/repo'}; d.scope=Path('ops/lane.conf'); d.record={'id':'demo','stages':[],'pr':None,'status':'running'}; d.gh='gh'; d.make_input=lambda *a,**k:Path('/dev/null'); row={}; d.row=lambda name:row; d.commit=lambda *a:None; d.calibrate=lambda:None\nprint(d.open_pr(),d.record['pr'],d.record['status'])\nassert d.record['pr']['url']=='not-a-url' and d.record['status']=='done'\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 6939241,
+        "out": 41533,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+        "started": null,
+        "ended": null
+      },
+      "note": "Read the named input whole (SHA-256 57c828fdc12c48dfad451178954c085d736f48b3d7b4b85c0e2588f9db3a73d6) and audited the brief's batch files and review note against the 26,330-line patch (SHA-256 9a899662dc739050c9cf5bc471950424d8cac3be6733bbe43e4bc61846e7ee70). Covered argv, shell/template, record/path/ref containment, secrets, SQL, sandbox/permission claims, vendor-output checks, and supply-chain changes. Added config/records contained zero private-key, GitHub, AWS, Slack, bearer, or OpenAI-key pattern matches; added SQL values remain parameterized; no dependency lockfile or launcher sandbox-flag change was found. Tempfile-backed suites, live harness/forge/network behavior, and an actual remote push were not run because the filesystem is read-only and destructive probes were excluded; the shipped CHECK_NAME mismatch also prevents a live ladder start. The session store was not read. Unrelated fixture/calibration additions among the diff's 119 files were outside the brief's restricted batch scope."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T10:43:20.788Z"
+    }
+  },
+  "status": "closed"
+}
