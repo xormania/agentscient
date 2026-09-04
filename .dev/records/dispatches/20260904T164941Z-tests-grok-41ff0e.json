@@ -1,0 +1,100 @@
+{
+  "id": "20260904T164941Z-tests-grok-41ff0e",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/noguess",
+  "lineage": {
+    "branch": "lane/noguess",
+    "base_sha": "4dbf140588423d158a68270783032da8ae16496f"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:49:42Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4dbf140588423d158a68270783032da8ae16496f",
+    "ref_sha": "4dbf140588423d158a68270783032da8ae16496f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "742526c5-08e8-4136-a66a-68f60764f3a3",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "742526c5-08e8-4136-a66a-68f60764f3a3",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-noguess/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "### Verb\n`python3 ops/conductor/tools/laneconf.py defaults [--paths FILE\u2026] [--strict]`\n- Scan the same source set `literals()` uses (`ops/` and `.claude/`, suffixes `.py` `.sh`, skip `tests` `fixtures` `archive` `infra`), unless `--paths` names files; `--paths` still skips those four directory names if a named file sits under them.\n- Do **not** read `DEFERRED_LITERAL_PATHS`. That list is why today's identity fallbacks are invisible to `literals()`.\n- Hits, two families:\n  1. Hardcoded lane value: a literal equal to a `lane.conf` value, or a compare/assign of `dev` / `master` / `agentscient` / `uscient/agentscient` / `../wt` / a `MODEL_*` / `EFFORT_*` / `ADDRESS_*` / `LANE_AUTHOR` / `WALL_DEFAULT` / `SCOPE_CAP` value, outside `lane.conf` itself and outside `laneconf.py`'s own token table. `NAME_KEYS` expands to every identity key including `WORKTREE_ROOT` and the address/model/effort/author/wall/scope keys. The `len >= 4` filter goes. Short `dev` is a token as `'\"dev\"'` and `\"'dev'\"` ",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T164941Z-tests-grok-41ff0e/in/PLAN-noguess-s1.md",
+        "sha256": "3239502de5092b7b92bc42076e81000dacc57831a423eadfa38d0095c036b27d"
+      }
+    ],
+    "sha256": "cfcca2aeb76e9049a9b4937ce45548abb894ed0d217ec682fc0542a40dcb71bb",
+    "bytes": 3343
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
