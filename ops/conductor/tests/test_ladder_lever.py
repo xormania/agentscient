@@ -74,8 +74,17 @@ IMPLEMENT_BODY = "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers"
 TEST_ALPHA = "ops/conductor/tests/test_alpha.py"
 TEST_BETA = "ops/conductor/tests/test_beta.py"
 TEST_RELAY = "packages/relay/spec/test_relay.py"
-SKEPTIC_MD = "ops/conductor/tests/SKEPTIC.md"
 SKEPTIC_BODY = "SKEPTIC_MD_BODY_aa32 the skeptic report"
+CHECK_TESTS_FINDING_CLAIM = "CHECK_TESTS_FINDING_CLAIM_aa32 quotation pair"
+CHECK_TESTS_FINDING_REPRO = (
+    "python3 -m unittest discover -s ops/conductor/tests -p test_alpha.py"
+)
+CHECK_TESTS_FINDING = {
+    "severity": "p2",
+    "where": "ops/conductor/tests/test_alpha.py §test_ok",
+    "claim": CHECK_TESTS_FINDING_CLAIM,
+    "reproduce": CHECK_TESTS_FINDING_REPRO,
+}
 PR_URL = "https://example.invalid/org/projx/pull/7"
 NOT_A_URL = "not-a-url"
 PWN_ARTIFACT = "tests/test_ok.py; printf PWNED; #.py"
@@ -410,7 +419,7 @@ if plant.get("leak_implement_into") == name:
 notes = plant.get("notes") or {}
 if name in notes:
     note = notes[name]
-findings = []
+findings = list((plant.get("stage_findings") or {}).get(name) or [])
 if plant.get("leak_implement_into_findings") == name:
     findings.append({
         "severity": "p2",
@@ -840,6 +849,7 @@ class _LadderFixture(unittest.TestCase):
             "notes": {},
             "skeptic_md": False,
             "skeptic_text": SKEPTIC_BODY,
+            "stage_findings": {},
             "land_extra_path": None,
             "ran_grok": RAN_GROK,
             "ran_codex": RAN_CODEX,
@@ -1429,6 +1439,82 @@ class _LadderFixture(unittest.TestCase):
                 return rec_id
         self.fail(f"no record named {name}")
         return ""
+
+    def plant_check_tests_findings(self, *, verdict: str) -> list[dict]:
+        planted = [dict(CHECK_TESTS_FINDING)]
+        self.patch_plant(
+            verdicts={"check-tests": verdict},
+            stage_findings={"check-tests": planted},
+        )
+        landed = self.load_plant()
+        self.assertEqual(landed["verdicts"]["check-tests"], verdict)
+        self.assertEqual(landed["stage_findings"]["check-tests"], planted)
+        self.assertFalse(landed.get("skeptic_md"))
+        return planted
+
+    def check_tests_envelope(self) -> dict:
+        rec_id = self.record_id_for("check-tests")
+        path = Path(self.load_plant()["records"][rec_id]["path"])
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        env = ((payload.get("result") or {}).get("envelope")) or {}
+        self.assertIsInstance(env, dict, payload)
+        return env
+
+    def dispatch_record_paths(self) -> set[Path]:
+        found: set[Path] = set()
+        for info in self.load_plant().get("records", {}).values():
+            raw = info.get("path")
+            if not raw:
+                continue
+            path = Path(raw)
+            if path.is_file():
+                found.add(path.resolve())
+        return found
+
+    def existing_file_for(self, value: str) -> Path | None:
+        path = Path(value)
+        candidates = [path]
+        if not path.is_absolute():
+            candidates.append(self.repo / path)
+            candidates.append(self.wt / path)
+        for cand in candidates:
+            if cand.is_file():
+                return cand
+        return None
+
+    def named_paths_holding(self, record: dict, claim: str) -> list[Path]:
+        found: list[Path] = []
+        seen: set[Path] = set()
+
+        def walk(value) -> None:
+            if isinstance(value, str):
+                path = self.existing_file_for(value)
+                if path is None:
+                    return
+                resolved = path.resolve()
+                if resolved in seen:
+                    return
+                text = path.read_text(encoding="utf-8")
+                if claim in text:
+                    seen.add(resolved)
+                    found.append(path)
+            elif isinstance(value, dict):
+                for item in value.values():
+                    walk(item)
+            elif isinstance(value, list):
+                for item in value:
+                    walk(item)
+
+        walk(record)
+        return found
+
+    def driver_written_findings_files(self, record: dict, claim: str) -> list[Path]:
+        dispatch = self.dispatch_record_paths()
+        return [
+            path
+            for path in self.named_paths_holding(record, claim)
+            if path.resolve() not in dispatch
+        ]
 
     def ladder_paths(self) -> list[Path]:
         folder = self.repo / ".dev" / "records" / "ladders"
@@ -2658,23 +2744,44 @@ class WithholdingEnvelope(_LadderFixture):
 
 
 class TestsFixInputs(_LadderFixture):
-    """A8: tests-fix is given the skeptic envelope and SKEPTIC.md."""
+    """Item 31: tests-fix is given the findings file the driver wrote."""
 
-    def test_tests_fix_is_given_skeptic_md(self):
-        self.patch_plant(
-            verdicts={"check-tests": "changes"},
-            skeptic_md=True,
-            skeptic_text=SKEPTIC_BODY,
-        )
-        self.assertTrue(self.load_plant()["skeptic_md"])
+    def test_tests_fix_input_is_the_named_findings_file(self):
+        planted = self.plant_check_tests_findings(verdict="changes")
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
+        env = self.check_tests_envelope()
+        self.assertEqual(env.get("status"), "ok", env)
+        self.assertEqual(env.get("verdict"), "changes", env)
+        self.assertEqual(env.get("artifacts") or {}, {}, env)
+        self.assertEqual(env.get("findings"), planted, env)
+        names = self.dispatch_names()
+        self.assertIn("tests-fix", names, names)
+        self.assertIn("code", names, names)
+        self.assertLess(names.index("check-tests"), names.index("tests-fix"), names)
+        self.assertLess(names.index("tests-fix"), names.index("code"), names)
         argv = self.dispatch_argv_for("tests-fix")
-        text = self.inputs_text(argv)
-        self.assertIn(SKEPTIC_BODY, text)
-        inputs = self.flag_values(argv, "--input")
+        input_paths = [Path(value) for value in self.flag_values(argv, "--input")]
+        self.assertTrue(input_paths, argv)
+        dispatch = self.dispatch_record_paths()
+        matching = []
+        for raw in input_paths:
+            path = self.existing_file_for(str(raw)) or (
+                raw if raw.is_file() else None
+            )
+            if path is None or not path.is_file():
+                continue
+            if path.resolve() in dispatch:
+                continue
+            if CHECK_TESTS_FINDING_CLAIM in path.read_text(encoding="utf-8"):
+                matching.append(path)
         self.assertTrue(
-            any(Path(value).name == "SKEPTIC.md" for value in inputs),
+            matching,
+            "tests-fix --input has no driver-written findings file: "
+            f"{argv!r}",
+        )
+        self.assertFalse(
+            any(Path(value).name == "SKEPTIC.md" for value in input_paths),
             argv,
         )
 
@@ -2956,6 +3063,56 @@ class PrUrl(_LadderFixture):
             pr = record.get("pr") or {}
             self.assertNotEqual(pr.get("url"), NOT_A_URL, record)
             self.assertNotEqual(record.get("status"), "done", record)
+
+
+class CheckTestsFindingsFile(_LadderFixture):
+    """Item 31: the driver writes findings to a file it names in the record."""
+
+    def test_ladder_record_names_the_findings_file_the_driver_wrote(self):
+        planted = self.plant_check_tests_findings(verdict="changes")
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        env = self.check_tests_envelope()
+        self.assertEqual(env.get("status"), "ok", env)
+        self.assertEqual(env.get("verdict"), "changes", env)
+        self.assertEqual(env.get("artifacts") or {}, {}, env)
+        self.assertEqual(env.get("findings"), planted, env)
+        record = self.ladder_record()
+        files = self.driver_written_findings_files(
+            record, CHECK_TESTS_FINDING_CLAIM,
+        )
+        self.assertTrue(
+            files,
+            "ladder record does not name a findings file the driver wrote "
+            f"distinct from the dispatch record: {record!r}",
+        )
+        self.assertFalse(
+            any(path.name == "SKEPTIC.md" for path in files),
+            files,
+        )
+
+
+class TestsFixContractText(unittest.TestCase):
+    """Item 31: ladder-lever.md names findings, not SKEPTIC.md, as tests-fix input."""
+
+    def _tests_fix_table_rows(self) -> list[str]:
+        path = REPO / "ops" / "conductor" / "ladder-lever.md"
+        self.assertTrue(path.is_file(), path)
+        text = path.read_text(encoding="utf-8")
+        rows = [
+            line for line in text.splitlines()
+            if "`tests-fix`" in line and "|" in line
+        ]
+        self.assertTrue(rows, "ladder-lever.md has no tests-fix table row")
+        return rows
+
+    def test_ladder_lever_tests_fix_row_does_not_name_skeptic_md(self):
+        blob = "\n".join(self._tests_fix_table_rows())
+        self.assertNotIn("SKEPTIC.md", blob, blob)
+
+    def test_ladder_lever_tests_fix_row_names_findings(self):
+        blob = "\n".join(self._tests_fix_table_rows())
+        self.assertIn("findings", blob.lower(), blob)
 
 
 if __name__ == "__main__":
