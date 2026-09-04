@@ -13,6 +13,11 @@ import sys
 from pathlib import Path
 from typing import NoReturn
 
+try:
+    import laneconf
+except ModuleNotFoundError:
+    laneconf = None
+
 IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<email>[^<>\s@]+@[^<>\s]+)>")
 GIT = shutil.which("git") or "git"
 
@@ -42,7 +47,34 @@ def git_value(kind: str, expected: str, needed: str, *args: str) -> str:
 def state_root() -> Path:
     configured = os.environ.get("XDG_STATE_HOME")
     base = Path(configured) if configured else Path.home() / ".local" / "state"
-    return base / "agentscient" / "dispatch"
+    return base / conf_value("LANE_NAME") / "dispatch"
+
+
+def conf_value(name: str) -> str:
+    if laneconf is not None:
+        try:
+            return laneconf.get(name)
+        except laneconf.ConfigError as error:
+            kind = "conf-key" if error.kind == "key" else error.kind
+            refuse(kind, error.expected, error.found, error.needed)
+    path = Path(
+        os.environ.get(
+            "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"
+        )
+    )
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as error:
+        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
+    match = re.search(rf"(?m)^{re.escape(name)}='([^']*)'\s*$", text)
+    if match is None:
+        refuse(
+            "conf-key",
+            f"{name} declared in the lane conf",
+            f"no {name} in {path}",
+            f"define {name} in {path}",
+        )
+    return match.group(1)
 
 
 def identity() -> tuple[str, str]:
@@ -54,6 +86,19 @@ def identity() -> tuple[str, str]:
             "WF_AGENT in the Name <address> form",
             value or "unset",
             "export WF_AGENT='Your Model Name <noreply@vendor>'",
+        )
+    return match.group("name"), match.group("email")
+
+
+def option_identity(value: str, kind: str) -> tuple[str, str]:
+    """Parse an optional CLI identity on the refusal wire."""
+    match = IDENTITY.fullmatch(value)
+    if match is None:
+        refuse(
+            kind,
+            f"--{kind} in the Name <address> form",
+            value or "empty",
+            f"pass --{kind} 'Name <address>'",
         )
     return match.group("name"), match.group("email")
 
@@ -132,7 +177,19 @@ def validated_collection(data: dict, ref_head: str) -> bool:
     return True
 
 
-def preconditions(record_id: str, no_fetch: bool) -> tuple[list[str], str, str, str]:
+def preconditions(
+    record_id: str, no_fetch: bool
+) -> tuple[list[str], str, str, str, str, str]:
+    lane_author = conf_value("LANE_AUTHOR")
+    match = IDENTITY.fullmatch(lane_author)
+    if match is None:
+        refuse(
+            "conf-value",
+            "LANE_AUTHOR in the Name <address> form",
+            repr(lane_author),
+            "correct LANE_AUTHOR in the lane conf",
+        )
+    author_name, author_email = match.group("name"), match.group("email")
     name, email = identity()
     record = state_root() / record_id
     if not record.is_dir():
@@ -291,11 +348,19 @@ def preconditions(record_id: str, no_fetch: bool) -> tuple[list[str], str, str, 
                 "none",
                 "add the required attribution trailer to the producer commit",
             )
-    return commits, ref, name, email
+    return commits, ref, name, email, author_name, author_email
 
 
 def land(args: argparse.Namespace) -> int:
-    commits, ref, name, email = preconditions(args.record_id, args.no_fetch)
+    commits, ref, name, email, author_name, author_email = preconditions(
+        args.record_id, args.no_fetch
+    )
+    if args.author is not None:
+        author_name, author_email = option_identity(args.author, "author")
+    co_author = None
+    if args.co_author is not None:
+        co_name, co_email = option_identity(args.co_author, "co-author")
+        co_author = f"{co_name} <{co_email}>"
     if not commits:
         print("landed n=0")
         return 0
@@ -312,6 +377,40 @@ def land(args: argparse.Namespace) -> int:
             # The outcome line is a result, not a diagnostic: stdout.
             print(f"abort conflict sha={commit} remainder={remainder}")
             return 3
+        landed_author = git_value(
+            "ref", "the landed author", "repair the repository", "show", "-s",
+            "--format=%an <%ae>", "HEAD",
+        )
+        amend_args = ["commit", "--amend", "--no-edit"]
+        needs_amend = False
+        if landed_author != f"{author_name} <{author_email}>":
+            amend_args.append(f"--author={author_name} <{author_email}>")
+            needs_amend = True
+        if co_author is not None:
+            message = git_value(
+                "ref", "the landed message", "repair the repository", "show",
+                "-s", "--format=%B", "HEAD",
+            )
+            trailer = f"Co-Authored-By: {co_author}"
+            if trailer not in message.splitlines():
+                amend_args.extend(["--trailer", trailer])
+                needs_amend = True
+        if needs_amend:
+            amended = git(
+                *identity_args,
+                *amend_args,
+            )
+            if amended.returncode != 0:
+                detail = (
+                    amended.stderr.strip()
+                    or f"git commit exited {amended.returncode}"
+                )
+                refuse(
+                    "author",
+                    f"landed commit author {author_name} <{author_email}>",
+                    detail,
+                    "repair the repository and retry the landing",
+                )
         landed = git_value(
             "ref", "the landed commit", "repair the repository", "rev-parse", "HEAD"
         )
@@ -332,6 +431,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("record_id", metavar="RECORD_ID")
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--no-fetch", action="store_true")
+    parser.add_argument("--author")
+    parser.add_argument("--co-author")
     return parser.parse_args()
 
 

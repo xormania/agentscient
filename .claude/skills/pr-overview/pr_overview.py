@@ -90,16 +90,17 @@ from pathlib import Path, PurePosixPath
 #: the number that cannot answer "and is that all of them" -- but
 #: WHICH tree is per pull request, not per session (`head_root`).
 ROOT = Path(__file__).resolve().parents[3]
-#: Under the root: the registry command, and the derivation CI's own
-#: suite pins (test_ci_shape) -- the check-run names GitHub renders for
-#: the two workflow files, both matrices expanded, refusing any shape
-#: it cannot expand. Asked, not copied.
+sys.path.insert(0, str(ROOT / "ops" / "conductor" / "tools"))
+import laneconf  # noqa: E402
+
+#: Under the root: the derivation CI's own parser -- the check-run names
+#: GitHub renders for every job in the always-on workflow, refusing any
+#: shape it cannot read. Asked, not copied.
 CI_CONTEXTS = Path("ops/devlane/workflow/checks/ci_contexts.py")
 #: The only paths a head is fetched for: everything the derivation
 #: reads lives under one of them, and the rest of a repository archive
 #: is dropped rather than written out.
-WORKFLOW_DATA = (".github/workflows/ci-dev.yml",
-                 ".github/workflows/ci-dev-apps.yml")
+WORKFLOW_DATA = (".github/workflows/ci.yml",)
 GATE_KIND_DATA = "ops/devlane/workflow/gate-kinds/"
 
 #: PAGED, both connections. `first: 100` on reviewThreads meant a PR
@@ -275,19 +276,18 @@ def ci_contexts():
 def expected_checks(root=ROOT):
     """Every check-run name CI produces on a pull request, as a frozenset.
 
-    The trusted local ci_contexts.py derives names from the head's two
-    workflow YAML files and gate-kind JSON registry. Both
-    workflows are unfiltered by policy (test_ci_shape pins it), so every
-    name here reports on every pull request, and a missing one is a
-    check that has not reported -- never one that was not due.
+    The trusted local ci_contexts.py derives every job id from the head's
+    always-on workflow. The workflow is unfiltered by policy, so every name
+    here reports on every pull request, and a missing one is a check that has
+    not reported -- never one that was not due.
 
-    ci_contexts.py refuses a shape it cannot expand: a job it does not
-    know, a name it cannot read, an empty matrix. That refusal reaches
-    the reader as `cannot tell`, never shortened into a smaller set.
+    ci_contexts.py refuses a shape it cannot read or an empty jobs mapping.
+    That refusal reaches the reader as `cannot tell`, never shortened into a
+    smaller set.
     """
     contexts = ci_contexts()
     try:
-        names = contexts.derive(registry(root), root=root)
+        names = contexts.workflow_job_names(root=root)
     except contexts.DerivationError as exc:
         raise Unavailable(f"ci_contexts.py refused: {exc}") from exc
     if not names:
@@ -657,18 +657,20 @@ def selftest():
             problems.append(f"review_state wanted {want}, got {got}")
         print(f"  {mark} review {want:<21} -> {got}")
 
-    # The live wiring: the tree names what should report, and every
-    # registry matrix entry is in it. Printed, so a reader sees the set
-    # this checkout expects rather than trusting that one exists.
+    # The live wiring: the workflow names what should report and the shared
+    # conf names the same set. Printed, so a reader sees the set this checkout
+    # expects rather than trusting that one exists.
     try:
         required = expected_checks()
-        matrix = registry(ROOT).get("ci_matrix") or []
-        absent = [m for m in matrix if not any(f"({m})" in n for n in required)]
+        configured = frozenset(laneconf.get("CHECK_NAMES").split())
         got = f"{len(required)} expected: {', '.join(sorted(required))}"
-        ok = bool(required) and not absent
-        if absent:
-            problems.append(f"registry entries {absent} not in expected set")
-    except Unavailable as exc:
+        ok = bool(required) and required == configured
+        if required != configured:
+            problems.append(
+                f"workflow jobs {sorted(required)} != CHECK_NAMES "
+                f"{sorted(configured)}"
+            )
+    except (Unavailable, laneconf.ConfigError) as exc:
         ok, got = False, f"cannot tell — {exc}"
         problems.append(got)
     print(f"  {'ok  ' if ok else 'FAIL'} {'tree':<28} -> {got}")
@@ -692,7 +694,7 @@ def selftest():
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--repo", default="uscient/agentscient")
+    ap.add_argument("--repo", default=laneconf.get("REPO_SLUG"))
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--selftest", action="store_true",
                     help="run the verdict table against known states")

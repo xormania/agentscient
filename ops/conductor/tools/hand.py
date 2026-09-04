@@ -10,6 +10,11 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+try:
+    import laneconf
+except ModuleNotFoundError:
+    laneconf = None
+
 SCHEMA = """CREATE TABLE IF NOT EXISTS handwork(
     id INTEGER PRIMARY KEY, ts TEXT NOT NULL, session TEXT NOT NULL,
     agent TEXT NOT NULL, action TEXT NOT NULL, why_by_hand TEXT NOT NULL,
@@ -46,6 +51,27 @@ def refuse(kind, expected, found, needed):
     )
 
 
+def lane_name():
+    if laneconf is not None:
+        try:
+            return laneconf.get("LANE_NAME")
+        except laneconf.ConfigError as error:
+            kind = "conf-key" if error.kind == "key" else error.kind
+            refuse(kind, error.expected, error.found, error.needed)
+    path = Path(os.environ.get(
+        "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"))
+    if "LANE_CONF" not in os.environ and not path.is_file():
+        return "agentscient"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as error:
+        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
+    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
+    if match is None:
+        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
+    return match.group(1)
+
+
 def now():
     return datetime.now(timezone.utc)
 
@@ -59,7 +85,12 @@ def parse_stamp(value):
 
 
 def database_path():
-    return Path.home() / ".local/state/agentscient/handwork.db"
+    return (
+        Path.home()
+        / ".local/state"
+        / lane_name()
+        / "handwork.db"
+    )
 
 
 def connect():
