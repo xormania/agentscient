@@ -113,7 +113,11 @@ class _RegisterFixture(unittest.TestCase):
             self.assertEqual(len(landed), len(ABSENT_STUB))
         self.assertTrue(self.staged.is_file())
 
-    def env(self, agent: str | None = None) -> dict[str, str]:
+    def env(
+        self,
+        agent: str | None = None,
+        extra: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         env = {
             "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             "HOME": str(self.home),
@@ -123,13 +127,21 @@ class _RegisterFixture(unittest.TestCase):
         }
         if agent is not None:
             env["WF_AGENT"] = agent
+        if extra:
+            env.update(extra)
         return env
 
-    def invoke(self, argv: list[str], *, agent: str | None = None):
+    def invoke(
+        self,
+        argv: list[str],
+        *,
+        agent: str | None = None,
+        extra_env: dict[str, str] | None = None,
+    ):
         return subprocess.run(
             [sys.executable, str(self.staged), *argv],
             cwd=str(REPO),
-            env=self.env(agent=agent),
+            env=self.env(agent=agent, extra=extra_env),
             capture_output=True,
             text=True,
             check=False,
@@ -565,6 +577,47 @@ class BlockedQueue(_RegisterFixture):
         blocked_ids = [row["id"] for row in payload["blocked"]]
         self.assertIn(LAW, blocked_ids, payload)
         self.assertNotIn(DID, blocked_ids, payload)
+
+
+class LaneNameSelectsStore(_RegisterFixture):
+    """LANE_NAME from the conf selects the store under HOME."""
+
+    def test_lane_name_from_conf_selects_the_store(self):
+        conf = self.scratch / "lane.conf"
+        text = (
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='trunkx'\n"
+            "RELEASE_BRANCH='relx'\n"
+            "REPO_SLUG='org/projx'\n"
+            "CHECK_NAME='checkx'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        conf.write_text(text, encoding="utf-8")
+        self.assertEqual(conf.read_text(encoding="utf-8"), text)
+        lanex = self.home / ".local" / "state" / "lanex" / "decisions.db"
+        self.assertFalse(lanex.exists(), "plant: lanex store must start absent")
+        self.assertFalse(self.store.exists(), "plant: default store absent")
+        proc = self.invoke(
+            ["add", DID, QUESTION, "--home", HOME_PATH],
+            agent=OWNER,
+            extra_env={"LANE_CONF": str(conf)},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertTrue(lanex.is_file(), f"store missing under lanex: {lanex}")
+        self.assertFalse(
+            self.store.exists(),
+            f"store used the literal lane name: {self.store}",
+        )
 
 
 if __name__ == "__main__":

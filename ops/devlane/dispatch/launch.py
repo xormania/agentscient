@@ -57,8 +57,23 @@ def _module(name, path):
     return mod
 
 
+LANECONF = _module(
+    "laneconf",
+    APP.parent.parent / "conductor" / "tools" / "laneconf.py",
+)
 ENVELOPE = _module("envelope", APP.parent / "task" / "envelope.py")
 ENVELOPE_SCHEMA_JSON = json.dumps(ENVELOPE.ENVELOPE_SCHEMA, separators=(",", ":"))
+
+
+def _lane_values(*names):
+    resolved = {}
+    for name in names:
+        try:
+            resolved[name] = LANECONF.get(name)
+        except LANECONF.ConfigError as exc:
+            kind = "conf-key" if exc.kind == "key" else exc.kind
+            raise Refused(exc.line(kind)) from exc
+    return resolved
 
 
 def _git(repo, *args, check=True, env=None, input=None):
@@ -80,7 +95,10 @@ def _git(repo, *args, check=True, env=None, input=None):
 
 
 def _refuse(ident, expected, found, satisfy):
-    raise Refused(f"{ident}: expected {expected}; found {found}; satisfy by {satisfy}")
+    raise Refused(
+        f"{ident}: expected {expected}; found {found}; "
+        f"needed {satisfy}; satisfy by {satisfy}"
+    )
 
 
 def _now():
@@ -150,7 +168,7 @@ def _jobs_root():
         return Path(os.environ["DISPATCH_JOBS"])
     state = os.environ.get("XDG_STATE_HOME")
     base = Path(state) if state else Path(os.environ.get("HOME", "")) / ".local/state"
-    return base / "agentscient" / "dispatch"
+    return base / _lane_values("LANE_NAME")["LANE_NAME"] / "dispatch"
 
 
 def _repo():
@@ -752,8 +770,11 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                  "stream": rec["session"].get("stream"), "attempt": len(rec["attempts"]) + 1}
         (job_dir / "state.json").write_text(json.dumps(state) + "\n")
         job_timeout = (job_caps or {}).get("timeout")
+        wall_default = _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
         timeout = float(os.environ.get(
-            "DISPATCH_TIMEOUT", job_timeout if job_timeout is not None else "900"))
+            "DISPATCH_TIMEOUT",
+            job_timeout if job_timeout is not None else wall_default,
+        ))
         rec["caps"]["timeout"] = timeout
         rec["caps"]["timeout_source"] = (
             "DISPATCH_TIMEOUT" if "DISPATCH_TIMEOUT" in os.environ
@@ -805,11 +826,24 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
 
 
 def _launch(args):
+    lane = _lane_values(
+        "WALL_DEFAULT",
+        "SCOPE_CAP",
+        "LANE_NAME",
+        "TRUNK_BRANCH",
+        "RELEASE_BRANCH",
+    )
     agent = _identity()
     repo = _repo()
     branch = _branch(repo)
     lineage = args.lineage or branch
-    if branch in {"detached", "dev", "main"} or branch != lineage:
+    protected = {
+        "detached",
+        "main",
+        lane["TRUNK_BRANCH"],
+        lane["RELEASE_BRANCH"],
+    }
+    if branch in protected or branch != lineage:
         _refuse("record-target", f"the checkout on {lineage}", branch,
                 f"run from a worktree of {lineage}")
     root = _jobs_root().resolve()
@@ -836,8 +870,24 @@ def _launch(args):
         _refuse("mode-unavailable", "whole", f"{mode} on {args.job}", "stage it by hand")
     scope_bytes = len((args.scope or "").encode())
     takes_scope = "{scope}" in (job.get("prompt") or "")
-    if scope_bytes > 1024 or (args.scope is not None and not takes_scope):
-        _refuse("scope-cap", "<= 1024 bytes on a job that takes a scope",
+    try:
+        scope_cap = int(lane["SCOPE_CAP"])
+    except ValueError:
+        _refuse(
+            "conf-key",
+            "SCOPE_CAP as a positive whole number",
+            lane["SCOPE_CAP"],
+            f"correct SCOPE_CAP in {LANECONF.conf_path()}",
+        )
+    if scope_cap < 1:
+        _refuse(
+            "conf-key",
+            "SCOPE_CAP as a positive whole number",
+            lane["SCOPE_CAP"],
+            f"correct SCOPE_CAP in {LANECONF.conf_path()}",
+        )
+    if scope_bytes > scope_cap or (args.scope is not None and not takes_scope):
+        _refuse("scope-cap", f"<= {scope_cap} bytes on a job that takes a scope",
                 f"{scope_bytes} bytes on {args.job}", "shorten it or drop it")
     resolved = _git(repo, "rev-parse", "--verify", f"{args.ref}^{{commit}}", check=False)
     if resolved.returncode:
@@ -850,11 +900,11 @@ def _launch(args):
         tip = _git(repo, "rev-parse", lineage).stdout.strip()
         _refuse("stale-base", f"{ref_sha[:8]} reachable from {lineage}",
                 f"it is not ({lineage} is at {tip[:8]})", "name a commit on the branch or override stale-base:REASON")
-    # The base a review diffs against is where the lineage left dev, not
+    # The base a review diffs against is where the lineage left the trunk, not
     # the lineage's own tip -- merge-base(ref, lineage) is ref itself when
     # ref is the tip, and a review of an empty comparison reviews nothing.
     candidates = []
-    for anchor in ("origin/dev", "dev"):
+    for anchor in (f"origin/{lane['TRUNK_BRANCH']}", lane["TRUNK_BRANCH"]):
         probe = _git(repo, "merge-base", ref_sha, anchor, check=False)
         if probe.returncode == 0 and probe.stdout.strip():
             candidate = probe.stdout.strip()
@@ -1461,7 +1511,10 @@ def _collect(args):
             check=False).returncode:
         _refuse("off-lineage-head", f"HEAD to descend from {ref_sha}",
                 before, "restore the snapshot to the dispatched lineage")
-    recorded_timeout = float((rec.get("caps") or {}).get("timeout") or 900)
+    recorded_timeout = float(
+        (rec.get("caps") or {}).get("timeout")
+        or _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
+    )
     timeout = max(recorded_timeout, args.timeout or recorded_timeout)
     verify_home = job_dir / "home" / "verify"
     verify_home.mkdir(parents=True, exist_ok=True)

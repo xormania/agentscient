@@ -249,6 +249,9 @@ class _LeverFixture(unittest.TestCase):
         )
         self.copy_rel = "ops/bin/copied.txt"
         self.conf_path = self.root / "lane.conf"
+        # The lane conf the lever reads its lane name from, apart from the copy list.
+        self.lane_conf_path = self.root / "lane-conf.sh"
+        self.lane_conf_path.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
         self.seeded = False
         self._linked = None
 
@@ -381,10 +384,11 @@ class _LeverFixture(unittest.TestCase):
         self.assertNotIn("XDG_STATE_HOME", env)
         if agent is not None:
             env["WF_AGENT"] = agent
+        env["LANE_CONF"] = str(self.lane_conf_path)
         if lane_conf is True:
-            env["LANE_CONF"] = str(self.conf_path)
+            env["FIXTURE_COPY_LIST"] = str(self.conf_path)
         elif isinstance(lane_conf, str):
-            env["LANE_CONF"] = lane_conf
+            env["FIXTURE_COPY_LIST"] = lane_conf
         if extra:
             env.update(extra)
         return env
@@ -727,7 +731,7 @@ class MakeRefuses(_LeverFixture):
         proc = self.make(lane_conf=None)
         self.assert_refusal(proc, "conf")
         err = (proc.stderr or "").upper()
-        self.assertIn("LANE_CONF", err)
+        self.assertIn("FIXTURE_COPY_LIST", err)
 
     def test_make_refuses_conf_when_lane_conf_file_is_missing(self):
         self.seed_repo()

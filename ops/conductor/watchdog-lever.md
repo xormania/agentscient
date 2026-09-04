@@ -20,8 +20,9 @@ Grok's review of the first cut (record
   `caps.timeout` in `ops/devlane/task/jobs.json` (found beside this
   file, or beside the working directory when the file runs as a staged
   copy), else unknown.
-- The forge, unless `--no-forge`: `gh pr list --base dev --state open`
-  and `gh pr checks` per open pull request.
+- The forge, unless `--no-forge`: `gh pr list --base <TRUNK_BRANCH> --state open`
+  and `gh pr checks` per open pull request; the trunk comes from the lane
+  conf through its reader (a missing key is refusal class `conf-key`).
 
 ## Classification, per job directory
 
