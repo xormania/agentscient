@@ -2178,6 +2178,9 @@ class PythonServiceMakeProve(_RepoFreeze):
             work = self.work_dir("nb-k1")
             marker = work / "INJECTED"
             target = work / f"sum-me; touch {marker}"
+            # The injection string carries the marker's absolute path, so the
+            # file lives under a nested directory named by it.
+            target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text("payload\n", encoding="utf-8")
             with suppress(Exception):
                 service.export.checksum_file(target)
