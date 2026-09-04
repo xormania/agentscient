@@ -11,6 +11,11 @@ import sys
 from pathlib import Path
 from typing import NoReturn
 
+try:
+    import laneconf
+except ModuleNotFoundError:
+    laneconf = None
+
 TIMEOUT = 5
 LAW = (
     ("AGENTS.md", "the operating contract"),
@@ -34,6 +39,30 @@ def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
         file=sys.stderr,
     )
     raise SystemExit(2)
+
+
+def lane_name() -> str:
+    if laneconf is not None:
+        try:
+            return laneconf.get("LANE_NAME")
+        except laneconf.ConfigError as error:
+            kind = "conf-key" if error.kind == "key" else error.kind
+            refuse(kind, error.expected, error.found, error.needed)
+    path = Path(
+        os.environ.get(
+            "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"
+        )
+    )
+    if "LANE_CONF" not in os.environ and not path.is_file():
+        return "agentscient"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as error:
+        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
+    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
+    if match is None:
+        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
+    return match.group(1)
 
 
 def run(
@@ -144,7 +173,7 @@ def prs_line(root: Path) -> tuple[str, bool]:
 
 def dispatches_line() -> tuple[str, bool]:
     state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
-    store = state_home / "agentscient/dispatch"
+    store = state_home / lane_name() / "dispatch"
     if not store.is_dir():
         if not store.exists() and not store.is_symlink():
             # The contract: an absent store says so — a measured fact,

@@ -1,0 +1,177 @@
+{
+  "id": "20260904T064617Z-code-grok-20c853",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-conf",
+  "lineage": {
+    "branch": "lane/lane-conf",
+    "base_sha": "81484c4efe3f7923c0b1d450006acb64064d7090"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T06:46:18Z",
+    "closed": "2026-09-04T07:12:05Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "81484c4efe3f7923c0b1d450006acb64064d7090",
+    "ref_sha": "81484c4efe3f7923c0b1d450006acb64064d7090",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "dfb5ec14-ae9f-4f4a-8950-1465260f45d1",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/home/grok-stream/sessions/<snapshot-encoded>/dfb5ec14-ae9f-4f4a-8950-1465260f45d1/summary.json"
+  },
+  "session": {
+    "id": "dfb5ec14-ae9f-4f4a-8950-1465260f45d1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/home/grok-stream/sessions/<snapshot-encoded>/dfb5ec14-ae9f-4f4a-8950-1465260f45d1/summary.json",
+    "stream_sha256_at_close": "eef56b09897ee92bada145e778a6c7459fb806525f9e9740e04cd48475d44086",
+    "spend": {
+      "input": 10540399,
+      "cached": 10289664,
+      "output": 88810,
+      "total": 10629209,
+      "cost_usd_ticks": 14945754000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/home/grok-stream/sessions/<snapshot-encoded>/dfb5ec14-ae9f-4f4a-8950-1465260f45d1/summary.json",
+      "messages": 574
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-conf/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The ladder batch, unit 1 (the lane conf), the fix round on the tests: the Codex skeptic judged the tests at this ref against the contract and found 2 P1 and 8 P2 (verdict CHANGES); its findings are appended to the input file after the contract. Address every P1 and P2, saying in the commit which you left and why. Finding 1 is the LANE_AUTHOR rule that joined the contract after the first round: pin it in test_land_lever.py and test_laneconf.py. The tests stay red-first at this ref (no implementation exists; do not write one); one commit per file. Files: ops/conductor/tests/test_laneconf.py, ops/devlane/dispatch/tests/test_launch_lane_conf.py, ops/conductor/tests/test_dispatch_wrapper.py, ops/conductor/tests/test_instrument_conventions.py, ops/conductor/tests/test_land_lever.py, ops/devlane/dispatch/tests/launch_support.py, and for finding 2 the suites of the other named readers (findings, decisions, hand, onboard, worth, the overview) with non-default conf values.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T064617Z-code-grok-20c853/in/contract-laneconf-fix.md",
+        "sha256": "6b0c1dcd34175b0b3d5d8fcfc9eb2ad987bbaf911c524a7bb43dcc0501733e85"
+      }
+    ],
+    "sha256": "85e23e5a10d495d9122a8fb4bcfbea5ad8d6b545cee22663d435f79a1de24434",
+    "bytes": 3321
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T06:46:18Z",
+      "ended": "2026-09-04T07:12:05Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0e11b74f785e584276b2a57a6ff84cdae97797fa",
+    "changed_paths": [
+      ".claude/skills/pr-overview/tests/test_collect_rows.py",
+      "ops/conductor/tests/test_decisions_register.py",
+      "ops/conductor/tests/test_dispatch_wrapper.py",
+      "ops/conductor/tests/test_findings.py",
+      "ops/conductor/tests/test_handwork_ledger.py",
+      "ops/conductor/tests/test_land_lever.py",
+      "ops/conductor/tests/test_laneconf.py",
+      "ops/conductor/tests/test_onboard_lever.py",
+      "ops/devlane/dispatch/tests/launch_support.py",
+      "ops/devlane/dispatch/tests/test_launch_lane_conf.py",
+      "ops/devlane/telemetry/tests/test_worth_dispatches.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_laneconf": "ops/conductor/tests/test_laneconf.py",
+        "test_launch_lane_conf": "ops/devlane/dispatch/tests/test_launch_lane_conf.py",
+        "test_dispatch_wrapper": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "test_land_lever": "ops/conductor/tests/test_land_lever.py",
+        "launch_support": "ops/devlane/dispatch/tests/launch_support.py",
+        "test_findings": "ops/conductor/tests/test_findings.py",
+        "test_decisions_register": "ops/conductor/tests/test_decisions_register.py",
+        "test_handwork_ledger": "ops/conductor/tests/test_handwork_ledger.py",
+        "test_onboard_lever": "ops/conductor/tests/test_onboard_lever.py",
+        "test_worth_dispatches": "ops/devlane/telemetry/tests/test_worth_dispatches.py",
+        "test_collect_rows": ".claude/skills/pr-overview/tests/test_collect_rows.py",
+        "head": "0e11b74f785e584276b2a57a6ff84cdae97797fa"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 10629209,
+        "out": 88810,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "81484c4efe3f7923c0b1d450006acb64064d7090",
+        "started": null,
+        "ended": "2026-09-04T07:11:28Z"
+      },
+      "note": "Fix round on the unit-1 tests at 81484c4: 11 commits, one per file, head 0e11b74. Both P1s and all eight P2s are pinned. Tests stay red; no implementation was written. Left: ops/conductor/tests/test_instrument_conventions.py (the first-round registry row still stands; no skeptic finding asked for a change). Left of finding 2: ci, branches, co_doc, skills, gate.sh, board.sh, link-ops.sh, and commit_trailers (the brief named findings, decisions, hand, onboard, worth, and the overview). Three wrapper rows (env-beats-conf, flag-beats-env, env-beats-local) and land's already-correct-author row are green on the incumbent, because those layers already hold; the commit bodies say so."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T07:12:04.648Z"
+    }
+  },
+  "status": "closed"
+}

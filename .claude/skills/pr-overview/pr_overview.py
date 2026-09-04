@@ -90,6 +90,9 @@ from pathlib import Path, PurePosixPath
 #: the number that cannot answer "and is that all of them" -- but
 #: WHICH tree is per pull request, not per session (`head_root`).
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "ops" / "conductor" / "tools"))
+import laneconf  # noqa: E402
+
 #: Under the root: the registry command, and the derivation CI's own
 #: suite pins (test_ci_shape) -- the check-run names GitHub renders for
 #: the two workflow files, both matrices expanded, refusing any shape
@@ -692,7 +695,7 @@ def selftest():
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--repo", default="uscient/agentscient")
+    ap.add_argument("--repo", default=laneconf.get("REPO_SLUG"))
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--selftest", action="store_true",
                     help="run the verdict table against known states")

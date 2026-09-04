@@ -1085,6 +1085,53 @@ class _TempLaunch(unittest.TestCase):
             )
         return text
 
+    def assert_wire_refusal(
+        self, code, out, err, *, ident, named=(), phrases=(),
+    ):
+        """Unit-1 wire: class token, expected/found/needed in order,
+        one stderr line, empty stdout, exit 3. Pre-unit-1 launcher
+        rows keep assert_refusal, which still pins `satisfy`.
+        """
+        self.assertEqual(
+            code, REFUSAL_EXIT,
+            f"{ident} refuses with exit 3, got {code}: "
+            f"{self.combined(out, err)!r}",
+        )
+        self.assertEqual(
+            (out or "").strip(),
+            "",
+            f"{ident} refusal text belongs on stderr, not stdout: {out!r}",
+        )
+        err = err or ""
+        lines = [ln for ln in err.splitlines() if ln.strip()]
+        self.assertEqual(
+            len(lines), 1,
+            f"{ident} refusal must be one stderr line: {err!r}",
+        )
+        line = lines[0]
+        lower = line.lower()
+        token = ident.lower().replace("_", "-")
+        self.assertIn(token, lower, f"{ident} class token missing: {line!r}")
+        for word in ("expected", "found", "needed"):
+            self.assertIn(word, lower, f"{ident} names {word}: {line!r}")
+        self.assertLess(
+            lower.index("expected"), lower.index("found"), line,
+        )
+        self.assertLess(lower.index("found"), lower.index("needed"), line)
+        self.assertRegex(
+            line,
+            rf"{re.escape(token)}:\s*expected",
+            f"{ident}: expected is the refusal class token: {line!r}",
+        )
+        for item in named:
+            self.assertIn(str(item), line, f"{ident} names {item!r}: {line!r}")
+        for phrase in phrases:
+            self.assertIn(
+                phrase.lower(), lower,
+                f"{ident} names {phrase!r}: {line!r}",
+            )
+        return line
+
     def assert_not_started(self):
         self.assertFalse(
             self.start_witness.is_file(),

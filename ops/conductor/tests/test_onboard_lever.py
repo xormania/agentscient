@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -115,6 +116,25 @@ def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
     if not path.is_dir():
         return ("other", ())
     return ("dir", tuple(sorted(p.name for p in path.iterdir())))
+
+
+# A launcher's job directory: <stamp>-<stage>-<harness>-<hash>. The CI
+# runners share the operator's live store, so a dispatch launched while a
+# test runs adds one of these; the guard below tolerates exactly that
+# addition and nothing else (a store file the tool under test wrote to
+# the live path is still a mutation).
+_JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
+
+
+def _without_new_job_dirs(before, after):
+    """Drop from ``after`` the job directories absent from ``before``."""
+    kept = {}
+    for key, (kind, names) in after.items():
+        if kind == "dir" and key in before and before[key][0] == "dir":
+            previous = set(before[key][1])
+            names = tuple(n for n in names if n in previous or not _JOB_DIR.match(n))
+        kept[key] = (kind, names)
+    return kept
 
 
 def _live_store_paths() -> list[Path]:
@@ -220,7 +240,10 @@ class _OnboardFixture(unittest.TestCase):
     def tearDown(self):
         try:
             self.assertEqual(
-                {str(p): _store_snap(p) for p in _live_store_paths()},
+                _without_new_job_dirs(
+                    self._live_before,
+                    {str(p): _store_snap(p) for p in _live_store_paths()},
+                ),
                 self._live_before,
                 "live dispatch store mutated",
             )
@@ -571,8 +594,11 @@ class _OnboardFixture(unittest.TestCase):
         *,
         cwd: Path | None = None,
         xdg: Path | str | None = None,
+        extra_env: dict[str, str] | None = None,
     ):
         env = self.env(xdg=xdg)
+        if extra_env:
+            env.update(extra_env)
         self.assertNotIn("WF_AGENT", env)
         try:
             return subprocess.run(
@@ -1006,6 +1032,48 @@ class ReviewPins(_OnboardFixture):
         self.assertIn("unavailable:", out)
         self.assertIn("brief complete", out)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
+
+
+class LaneNameSelectsStore(_OnboardFixture):
+    """LANE_NAME from the conf selects the dispatch store under HOME."""
+
+    def test_lane_name_from_conf_selects_the_dispatch_store(self):
+        self.ready(plant_store=False)
+        conf = self.scratch / "lane.conf"
+        text = (
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='trunkx'\n"
+            "RELEASE_BRANCH='relx'\n"
+            "REPO_SLUG='org/projx'\n"
+            "CHECK_NAME='checkx'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        self._plant_bytes(conf, text.encode("utf-8"))
+        rec_id = "20260901T140000Z-lanex-run"
+        lanex_store = self.home / ".local" / "state" / "lanex" / "dispatch"
+        self.plant_dispatch(store=lanex_store, running=(rec_id,), closed=())
+        self.assertTrue((lanex_store / rec_id).is_dir())
+        self.assertFalse(
+            self.store.exists(),
+            "plant: agentscient dispatch store must stay absent",
+        )
+        proc = self.invoke(extra_env={"LANE_CONF": str(conf)})
+        line = self.labelled_line(proc.stdout or "", "dispatches")
+        self.assertIn(rec_id, line)
+        self.assertFalse(
+            self.store.exists(),
+            "tool created the literal agentscient store",
+        )
 
 
 if __name__ == "__main__":
