@@ -79,6 +79,7 @@ EXTERNAL_ENV_KEYS = {
     "THREADS_OUT",
     "TMPDIR",
     "WATCH_TICK_SCALE",
+    "WATCHDOG_TICK",
     "WF_AGENT",
     "XDG_STATE_HOME",
 }

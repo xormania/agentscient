@@ -36,6 +36,34 @@ FALLBACK_WARN_MIN = 40
 SETTLING_TICKS = 2
 
 
+def _laneconf():
+    """The conf reader beside this file, or beside the working directory
+    when this file runs as a staged copy; None when neither holds it."""
+    for tools in (HERE.parent, Path.cwd() / "ops" / "conductor" / "tools"):
+        if (tools / "laneconf.py").is_file():
+            if str(tools) not in sys.path:
+                sys.path.insert(0, str(tools))
+            try:
+                import laneconf
+            except ImportError:
+                return None
+            return laneconf
+    return None
+
+
+def conf_value(key):
+    """A key through the conf reader; a missing key is refusal class
+    conf-key, never a literal here."""
+    reader = _laneconf()
+    if reader is not None:
+        try:
+            return reader.get(key)
+        except reader.ConfigError as error:
+            refuse("conf-key", f"{key} in the lane conf", str(error), "define it")
+    refuse("conf-key", "the lane conf reader beside this file or the working directory", "neither", "run from the repository root or set LANE_CONF and keep laneconf.py beside the conf")
+    return None
+
+
 def refuse(cls, expected, found, needed):
     print(f"{cls}: expected {expected}; found {found}; needed {needed}", file=sys.stderr)
     sys.exit(2)
@@ -58,7 +86,7 @@ def store_root(explicit):
         return Path(os.environ["DISPATCH_JOBS"])
     state = os.environ.get("XDG_STATE_HOME")
     base = Path(state) if state else Path(os.environ.get("HOME", "")) / ".local/state"
-    return base / "agentscient" / "dispatch"
+    return base / conf_value("LANE_NAME") / "dispatch"
 
 
 def parse_stamp(value):
@@ -221,6 +249,7 @@ class Watch:
     def __init__(self, args):
         self.args = args
         self.caps = job_caps()
+        self.trunk = conf_value("TRUNK_BRANCH")
         self.tick = 0
         self.reported = set()
         self.settling_since = {}
@@ -289,7 +318,7 @@ class Watch:
             else:
                 n, unreachable = forge
                 prs = str(n) + (f" (checks unreachable for {', '.join('#' + str(p) for p in unreachable)})" if unreachable else "")
-            say(f"heartbeat: running={live}; settling={settling}; launchers={launchers_txt}; open PRs into dev={prs}")
+            say(f"heartbeat: running={live}; settling={settling}; launchers={launchers_txt}; open PRs into {self.trunk}={prs}")
 
     def launcher_count(self):
         if shutil.which("pgrep") is None:
@@ -303,7 +332,7 @@ class Watch:
             return None
 
     def forge(self):
-        raw = run(["gh", "pr", "list", "--base", "dev", "--state", "open", "--json", "number,headRefOid"])
+        raw = run(["gh", "pr", "list", "--base", self.trunk, "--state", "open", "--json", "number,headRefOid"])
         if raw is None:
             return None
         try:
