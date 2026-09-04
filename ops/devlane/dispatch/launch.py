@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import copy
+import faulthandler
 import hashlib
 import importlib.util
 import json
@@ -34,7 +35,15 @@ STAGES = ("plan", "tests", "check-tests", "code", "review", "adjudicate")
 OWNER_NAME = "xormania"
 OWNER_EMAIL = "127287135+xormania@users.noreply.github.com"
 monotonic = time.monotonic
+# The Python stack on a crash lands in the job's stderr; a stderr with no
+# file descriptor (a test loading the module) is not a place to write it.
+with contextlib.suppress(Exception):
+    faulthandler.enable()
 sleep = time.sleep
+# How often the wait loop reads the session stream (the expensive part:
+# a glob of the job home and a regex over a multi-megabyte file). The
+# cheap checks, the child's exit, the wall and the grace, run every 50 ms.
+TICK = float(os.environ.get("DISPATCH_TICK", "1"))
 
 
 class Refused(Exception):
@@ -752,20 +761,24 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         grace = float(os.environ.get("DISPATCH_STREAM_GRACE", "120"))
         started_clock = monotonic()
         runtime_note = None
+        last_read = -TICK
+        stream = None
         while proc.poll() is None:
             elapsed = monotonic() - started_clock
-            stream, _ran, _sid, _mis = _stream(
-                job_dir, harness, rec["session"]["id"], snapshot,
-                rec["snapshot"]["ref_sha"],
-            )
-            over = False
-            if stream and rec["caps"].get("cap-out") is not None:
-                with contextlib.suppress(OSError):
-                    over = any(int(n) > int(rec["caps"]["cap-out"])
-                               for n in re.findall(r'"output_tokens"\s*:\s*(\d+)', stream.read_text()))
-            if over:
-                runtime_note = "trip: output cap exceeded"
-                break
+            if elapsed - last_read >= TICK:
+                last_read = elapsed
+                stream, _ran, _sid, _mis = _stream(
+                    job_dir, harness, rec["session"]["id"], snapshot,
+                    rec["snapshot"]["ref_sha"],
+                )
+                over = False
+                if stream and rec["caps"].get("cap-out") is not None:
+                    with contextlib.suppress(OSError):
+                        over = any(int(n) > int(rec["caps"]["cap-out"])
+                                   for n in re.findall(r'"output_tokens"\s*:\s*(\d+)', stream.read_text()))
+                if over:
+                    runtime_note = "trip: output cap exceeded"
+                    break
             if elapsed >= timeout:
                 runtime_note = "timeout: harness exceeded runtime"
                 break
