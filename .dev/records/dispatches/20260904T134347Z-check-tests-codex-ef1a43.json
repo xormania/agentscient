@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T13:43:47Z",
-    "closed": null
+    "closed": "2026-09-04T13:51:51Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-43-48-01a06ca9-4816-7453-837a-9d7ac73d61bc.jsonl"
   },
   "session": {
-    "id": "4addb3e6-5999-4443-8382-5584153a1955",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a06ca9-4816-7453-837a-9d7ac73d61bc",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-43-48-01a06ca9-4816-7453-837a-9d7ac73d61bc.jsonl",
+    "stream_sha256_at_close": "ea911a9fa706a8a6244629676803764f880ad51cb4c2b50cfc8ad2346b65e3bc",
+    "spend": {
+      "input": 1775416,
+      "cached": 1663488,
+      "output": 22457,
+      "total": 1797873,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-43-48-01a06ca9-4816-7453-837a-9d7ac73d61bc.jsonl",
+      "messages": 211
+    }
   },
   "brief": {
     "template": {
@@ -95,10 +102,92 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:43:47Z",
+      "ended": "2026-09-04T13:51:51Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "933631ecab87f012c7c57b6f729c26c036dd251c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 6,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:1186",
+          "claim": "The test plants the non-allowlisted probe `./probes/does-not-exist-syn` but requires UNREACHABLE and exit 1. The contract requires every unmatched probe string to refuse class `probe`, so a correct implementation cannot make this test green.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_fixture_lever.py\").read_text(); b=s[s.index(\"def test_prove_spawn_failure_is_unreachable_never_a_colour\"):s.index(\"def test_prove_timeout_is_unreachable_never_a_colour\")]; assert \"./probes/does-not-exist-syn\" in b and \"UNREACHABLE\" in b and \"assert_refusal\" not in b'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_isolation.py:683",
+          "claim": "Every new assertion observes one Codex implement launch after `launch_ok()` returns, and none requires `<job>/scratch/git/`. A launcher that applies isolation only to Codex writes, creates directories after child exit, and omits `scratch/git/` passes while violating the all-children, before-spawn contract.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/dispatch/tests/test_launch_isolation.py\").read_text(); b=s[s.index(\"class JobDirectoryScratchIsTheChildTmp\"):]; assert \"job=\\\"implement\\\", harness=\\\"codex\\\", stage=\\\"code\\\"\" in b and \"harness=\\\"claude\\\"\" not in b and \"harness=\\\"grok\\\"\" not in b and \"scratch / \\\"git\\\"\" not in b'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:1267",
+          "claim": "The tests remove HOME and several named secrets and reject one semicolon-bearing probe, but never require the exact environment key set or reject extra argv on an otherwise valid form. A blacklist parser accepting `sh probes/syn-01.sh extra`, retaining `shell=True`, and forwarding unplanted ambient keys survives.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_fixture_lever.py\").read_text(); g=s[s.index(\"def test_prove_refuses_an_off_list_probe\"):s.index(\"def test_prove_refuses_a_probe_script_symlink\")]; e=s[s.index(\"def test_prove_scrubs_ambient_secrets\"):s.index(\"def test_prove_fixed_does_not_write\")]; assert \"true; echo\" in g and \"sh probes/syn-01.sh extra\" not in s and \"self.assertEqual(keys\" not in e'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:1412",
+          "claim": "Both containment plants make the leaf itself a symlink. An implementation rejecting only `path.is_symlink()` passes while a regular leaf reached through a symlinked parent still escapes `probes/` or the fixture; the contract requires containment of the fully resolved path.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_fixture_lever.py\").read_text(); b=s[s.index(\"def test_prove_refuses_a_probe_script_symlink\"):s.index(\"def test_prove_fixed_does_not_copy_ignored_vendor\")]; assert \"escape.symlink_to(outside)\" in b and \"original.symlink_to(outside)\" in b and \"parent-symlink\" not in b and \"linkdir\" not in b'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py:1445",
+          "claim": "The ignored-vendor test re-reads the supplied tree after `prove`; it never observes the trial or gives copied bytes a side effect. An implementation can retain conditional copying of ignored `vendor/`, then emit the expected toolchain refusal, and pass despite admitting untracked bytes into the trial.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_fixture_lever.py\").read_text(); b=s[s.index(\"def test_prove_fixed_does_not_copy_ignored_vendor\"):s.index(\"def test_prove_fixed_refuses_toolchain_when_a_fault_names_vendor\")]; assert \"self.assert_refusal(proc, \\\"toolchain\\\")\" in b and \"vendor_bin.read_bytes()\" in b and \"trial\" not in b and \"PWNED\" not in b'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/fixtures/tests/test_fixture_grade.py:681",
+          "claim": "The lever-facing validator test covers only a missing `lineage`; the separate helper test invokes `record.validate()` without coupling it to `grade`. A grader that manually rejects missing lineage and the tested statuses but never calls `record.validate` passes while accepting other invalid record shapes.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=Path(\"ops/devlane/fixtures/tests/test_fixture_grade.py\").read_text(); b=s[s.index(\"def test_grade_refuses_a_record_that_fails_record_validate\"):s.index(\"def test_grade_refuses_record_when_the_job_is_not_a_review_job\")]; assert \"del payload[\\\"lineage\\\"]\" in b and \"mod.validate\" not in b and \"RecordError\" not in b'"
+        }
+      ],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1797873,
+        "out": 22457,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "933631ecab87f012c7c57b6f729c26c036dd251c",
+        "started": "2026-09-04T09:44:03-04:00",
+        "ended": "2026-09-04T09:51:16-04:00"
+      },
+      "note": "Reviewed only contracts and tests; no implementation was read. The test guard reported all plants guarded. The supplied red-run artifact was read, but local reruns could not reach assertions because the read-only sandbox provided no writable temporary directory. Writing SKEPTIC.md was also rejected by that sandbox, so the named artifact is absent."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
 }
