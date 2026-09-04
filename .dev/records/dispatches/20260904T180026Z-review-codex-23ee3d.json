@@ -1,0 +1,170 @@
+{
+  "id": "20260904T180026Z-review-codex-23ee3d",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "c81b410536917ef93b500af077c9b12089738383"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T18:00:27Z",
+    "closed": "2026-09-04T18:13:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c81b410536917ef93b500af077c9b12089738383",
+    "ref_sha": "c81b410536917ef93b500af077c9b12089738383",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-00-28-01a06d94-42a3-7322-ba9f-9e50cfe3c983.jsonl"
+  },
+  "session": {
+    "id": "01a06d94-42a3-7322-ba9f-9e50cfe3c983",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-00-28-01a06d94-42a3-7322-ba9f-9e50cfe3c983.jsonl",
+    "stream_sha256_at_close": "65dba8948c031be7dff73b7a6d56e32ca07b4d484975249f375a221dacd9815a",
+    "spend": {
+      "input": 2819369,
+      "cached": 2654640,
+      "output": 30273,
+      "total": 2849642,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-00-28-01a06d94-42a3-7322-ba9f-9e50cfe3c983.jsonl",
+      "messages": 274
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "39b25f2dee8786bec13132454679620f900370693b40e6287c364235f65780d5"
+    },
+    "scope": "Audit the item 31 batch on lane/check-tests-json against its merge-base with dev: slice 1 (the check-tests job returns its report on the wire, the driver writes a findings file for tests-fix) and slice 2 (the driver validates the check-tests envelope's verdict, counts and findings before writing; a shape-based write-path recogniser in ops/devlane/task/write_path.py; the findings file resolved against the worktree and published symlink-safe; the contract's slots paragraph). Inputs: the slice-2 plan and the first re-audit's findings. Quote declared words and practiced evidence with file:line for every finding; hunt: a changes envelope with no findings accepted, a symlink followed on the findings write, a path escaping the ladder input directory, a read-role prompt naming a write path, a test that pins absence only, a catalogue job changed other than check-tests. Review only; do not edit.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/in/PLAN-check-tests-json-2.md",
+        "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180026Z-review-codex-23ee3d/in/input-check-tests-json-2-fix-tests.md",
+        "sha256": "672b186d689bea4d4f2001ddc9f485ec28791131adc8042a8eb6abfa9e13cd78"
+      }
+    ],
+    "sha256": "c20da6ae48b7d06952e77009281e9601d7103b6e574661f08a4b2464c3e36966",
+    "bytes": 4231
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T18:00:27Z",
+      "ended": "2026-09-04T18:13:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c81b410536917ef93b500af077c9b12089738383",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": ".dev/ladder-inputs/PLAN-check-tests-json-2.md:85-86; ops/conductor/ladder-lever.md:82-87; ops/conductor/tools/ladder.py:184-193,1043-1046,1721-1728",
+          "claim": "Declared: the plan says the payload \u201cmust be a regular file inside `inputs_dir`,\u201d and the ladder contract says a guarantee violation exits 3. Practiced: `replace_text` passes the destination to `os.replace`, but its call is outside an OSError-to-Stopped guard. A write-stage worker can plant a directory at the predictable payload path, causing an uncaught `IsADirectoryError` and taking the ladder off its wire.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools python3 - <<'PY'\nimport tempfile\nfrom pathlib import Path\nfrom types import SimpleNamespace as NS\nimport ladder\nwith tempfile.TemporaryDirectory() as td:\n    wt=Path(td)/'wt'; wt.mkdir()\n    inputs=wt/'inputs'; inputs.mkdir()\n    payload=inputs/'check-tests-findings.payload.json'; payload.mkdir(); (payload/'plant').write_text('x')\n    d=object.__new__(ladder.Driver); d.worktree=wt; d.inputs_dir=inputs; d.findings=wt/'findings.py'; d.stage_by_name={'check-tests':{}}; d.commit=lambda *a:None\n    ladder.run=lambda *a,**k:NS(returncode=0,stdout='',stderr='')\n    p=ladder.Pending('check-tests','id',wt/'r','m','e','b',0.0)\n    env={'verdict':'changes','counts':{'p1':1,'p2':0,'p3':0,'opinions':0},'findings':[{'severity':'p1','where':'x','claim':'Declared: d; Practiced: p','reproduce':'true'}]}\n    try: d.ledger_result(p,env)\n    except Exception as e:\n        assert type(e) is IsADirectoryError and not isinstance(e,ladder.Stopped),type(e)\n        print(type(e).__name__)\n    else: raise AssertionError('payload directory did not take the ladder off-wire')\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "docs/concerns.md:15-19; ops/devlane/task/jobs.json:68,72; ops/conductor/tools/ladder.py:783-826,1043-1046",
+          "claim": "Declared: findings \u201cquote both halves\u201d and a finding without both quotations \u201cis not a finding\u201d; check-tests requests quotation pairs. Practiced: validation requires only non-empty `where`, `claim`, and `reproduce` strings. A schema-valid finding with `where: \"x\"` and `claim: \"not a quotation pair\"` is accepted for publication and handoff to tests-fix.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/conductor/tools:ops/devlane/dispatch python3 -c 'from pathlib import Path; import ladder,launch; p=ladder.Pending(\"check-tests\",\"id\",Path(\"r\"),\"m\",\"e\",\"base\",0.0); env={\"job\":\"check-tests\",\"status\":\"ok\",\"verdict\":\"changes\",\"counts\":{\"p1\":0,\"p2\":1,\"p3\":0,\"opinions\":0},\"findings\":[{\"severity\":\"p2\",\"where\":\"x\",\"claim\":\"not a quotation pair\",\"reproduce\":\"true\"}],\"artifacts\":{},\"spend\":{\"harness\":\"codex\",\"total\":0,\"out\":0,\"runs\":0},\"stamp\":{\"ref\":\"deadbeef\"},\"note\":None}; assert launch._schema_valid(env); ladder.Driver.validate_check_tests(p,env); print(\"accepted\",env[\"findings\"][0])'"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/ladder-inputs/PLAN-check-tests-json-2.md:89-93; ops/devlane/task/tests/test_check_tests_json.py:131-136,235-273; ops/devlane/task/write_path.py:7-15",
+          "claim": "Declared: the read-role guard \u201crejects any write path, not a blacklist,\u201d using a write verb plus a path-shaped token. Practiced: `_WRITE_PATH` still enumerates seven verbs. `Produce REVIEW in the repository` is not recognized, and planting it as the live check-tests prompt leaves all 22 relevant guard tests green.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=ops/devlane/task/tests python3 - <<'PY'\nimport json,unittest\nfrom pathlib import Path\nimport test_check_tests_json as a,test_jobs as b\njobs=json.loads(Path('ops/devlane/task/jobs.json').read_text())\nprompt='Produce REVIEW in the repository. Return the JSON envelope on stdout and leave artifacts empty.'\njobs['check-tests']['prompt']=prompt\nF=type('F',(),{'is_file':lambda self:True,'read_text':lambda self,encoding=None:json.dumps(jobs)})\na.JOBS_PATH=b.JOBS_PATH=F()\ns=unittest.TestSuite()\nfor c in (a.CheckTestsPromptCarriesNoFilePath,a.ReadRolePromptRejectsAnyWritePath,b.CheckTestsReadRolePromptRejectsAnyWritePath): s.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(c))\nr=unittest.TextTestRunner(verbosity=0).run(s)\nassert a.write_path_ask(prompt) is None and r.wasSuccessful() and r.testsRun==22\nprint('wrong produce-write prompt accepted',r.wasSuccessful())\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 2849642,
+        "out": 30273,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c81b410536917ef93b500af077c9b12089738383"
+      },
+      "note": "Covered the named injection, credential, path/ref, permission, vendor-output, supply-chain, and catalogue hunts. No added shell/argv/SQL/template injection, real credential, dependency/action change, ref escape, sandbox-record mismatch, empty-changes acceptance, stale slots claim, remaining named absence-only test, or other-job catalogue drift was found. The 22 and 16 task tests passed. Real-filesystem symlink and directory tests plus the full conductor suite could not run because this sandbox has no writable temporary directory; exception propagation was reproduced with a direct mock. Live non-Codex containment was not re-probed. The session store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T18:13:09.040Z"
+    }
+  },
+  "status": "closed"
+}
