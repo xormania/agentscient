@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 
 import launch_support as ls
 
@@ -210,20 +211,40 @@ class CollectAfterATrip(ls._TempLaunch):
         rec = self._trip_codex_write()
         job_id = rec["id"]
         ref_sha = rec["snapshot"]["ref_sha"]
-        code, out, err = self._collect(job_id, "test -f scratch.txt")
+        reason = "tripped-by-wall"
+        verify = "test -f scratch.txt"
+        code, out, err = self._collect(
+            job_id, verify, extra=["--reason", reason],
+        )
         self.assertEqual(
             code, 0,
             f"collect must succeed: out={out!r} err={err!r}",
         )
         rec2 = self.read_record()
-        collected = (rec2.get("result") or {}).get("collected") or {}
-        self.assertEqual(
-            (collected.get("verify") or {}).get("exit"), 0, collected,
+        result = rec2.get("result") or {}
+        collected = result.get("collected") or {}
+        self.assertEqual((collected.get("verify") or {}).get("exit"), 0, collected)
+        self.assertEqual((collected.get("verify") or {}).get("command"), verify)
+        self.assertEqual(collected.get("reason"), reason)
+        self.assertEqual(collected.get("by"), ls.AGENT)
+        self.assertRegex(
+            str(collected.get("at") or ""),
+            r"^\d{4}-\d{2}-\d{2}T",
+            f"collected.at is UTC: {collected!r}",
         )
         self.assertEqual(
-            ls.residual_entries((rec2.get("result") or {}).get("residual_paths")),
+            ls.residual_entries(result.get("residual_paths")),
             [],
-            rec2.get("result"),
+            result,
+        )
+        changed = ls.changed_entries(result.get("changed_paths"))
+        self.assertTrue(
+            any("scratch.txt" in str(item) for item in changed),
+            f"changed_paths names the collected file: {changed!r}",
+        )
+        self.assertTrue(
+            result.get("residual_patch"),
+            f"residual_patch is kept as evidence: {result!r}",
         )
         self.assertEqual(rec2.get("status"), "closed")
         refs = self.refs_map()
@@ -239,11 +260,18 @@ class CollectAfterATrip(ls._TempLaunch):
             msg.startswith(COLLECT_SUBJECT),
             f"collected commit starts with out/COMMIT_MSG subject: {msg!r}",
         )
-        self.assertIn("Co-Authored-By:", msg)
-        ran = (rec2.get("model") or {}).get("ran") or ls.RAN_MODEL
         self.assertIn(
-            ran, msg,
-            f"trailer block names the running model {ran!r}: {msg!r}",
+            "The tripped run left this file uncommitted.", msg,
+            f"harness COMMIT_MSG body is kept: {msg!r}",
+        )
+        ran = (rec2.get("model") or {}).get("ran") or ls.RAN_MODEL
+        trailer_lines = [
+            ln for ln in msg.splitlines() if ln.startswith("Co-Authored-By:")
+        ]
+        self.assertTrue(trailer_lines, f"commit has Co-Authored-By trailers: {msg!r}")
+        self.assertTrue(
+            any(ran in ln for ln in trailer_lines),
+            f"Co-Authored-By trailer names the running model {ran!r}: {msg!r}",
         )
         self.assertEqual(
             self.porcelain(), "",
@@ -257,24 +285,56 @@ class CollectAfterATrip(ls._TempLaunch):
     def test_collect_refuses_a_failing_verify_and_commits_nothing(self):
         rec = self._trip_codex_write()
         job_id = rec["id"]
+        snap = self.snapshot_of(rec)
         before_refs = self.refs_map()
         before_record = (
             self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
         ).read_bytes()
-        before_head = self._git("rev-parse", "HEAD").stdout.strip()
+        before_lineage = self._git("rev-parse", "HEAD").stdout.strip()
+        before_snap = self._git("rev-parse", "HEAD", repo=snap).stdout.strip()
+        before_porc = self.porcelain(repo=snap)
         code, out, err = self._collect(job_id, "false")
-        self.assert_refusal(
+        text = self.assert_refusal(
             code, out, err, ident="verify",
             phrases=["verify"],
         )
+        self.assertRegex(text, r"exit|false|1")
         after_refs = self.refs_map()
         self.assertEqual(after_refs, before_refs)
         after_record = (
             self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
         ).read_bytes()
         self.assertEqual(after_record, before_record)
-        after_head = self._git("rev-parse", "HEAD").stdout.strip()
-        self.assertEqual(after_head, before_head)
+        self.assertEqual(
+            self._git("rev-parse", "HEAD").stdout.strip(), before_lineage,
+        )
+        self.assertEqual(
+            self._git("rev-parse", "HEAD", repo=snap).stdout.strip(),
+            before_snap,
+            "failing verify must not commit the snapshot",
+        )
+        self.assertEqual(self.porcelain(repo=snap), before_porc)
+
+    def test_collect_verify_is_walled_by_the_job_cap_in_the_snapshot(self):
+        rec = self._trip_codex_write()
+        snap = self.snapshot_of(rec)
+        before_snap = self._git("rev-parse", "HEAD", repo=snap).stdout.strip()
+        started = time.monotonic()
+        code, out, err = self._collect(rec["id"], "test -f scratch.txt && sleep 8")
+        elapsed = time.monotonic() - started
+        self.assertLess(
+            elapsed, 5,
+            f"verify runs under the job cap, not the 8s sleep: "
+            f"elapsed={elapsed:.3f}s out={out!r} err={err!r}",
+        )
+        self.assert_refusal(
+            code, out, err, ident="verify",
+            phrases=["verify"],
+        )
+        self.assertEqual(
+            self._git("rev-parse", "HEAD", repo=snap).stdout.strip(),
+            before_snap,
+        )
 
     def test_collect_refuses_a_read_role(self):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
