@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import unittest
 
 import support
@@ -38,29 +37,14 @@ STDOUT_EMPTY_ARTIFACTS = (
     "Return the JSON envelope on stdout and leave artifacts empty."
 )
 
-# Shape, not a name list: a write verb plus a path-shaped token, or an
-# artifacts-output instruction. REPORT.rst and reports/findings.json
-# must fail this; listing SKEPTIC.md / {out} / REPORT.txt must not be
-# enough to pass.
-WRITE_PATH_ASK = re.compile(
-    r"(?is)"
-    r"\b(?:write|create|persist|save|store|emit|dump)\b"
-    r".{0,200}?"
-    r"(?:\{out\}|(?<![A-Za-z])out/|/\S+|\b[\w.-]+\.\w{1,8}\b)"
-)
-ARTIFACTS_OUTPUT_ASK = re.compile(
-    r"(?i)\b(?:write|name|include|put|place)\b.{0,80}\bartifacts\b"
-)
-
-
 def write_path_ask(text: str):
-    """Return the first write-path instruction in text, or None."""
-    if not isinstance(text, str) or not text.strip():
-        return None
-    match = WRITE_PATH_ASK.search(text)
-    if match:
-        return match
-    return ARTIFACTS_OUTPUT_ASK.search(text)
+    """Return the first write-path instruction in text, or None.
+
+    Loaded from write_path.py the way support.load loads sibling
+    modules. No in-file regex, no fallback that restores one.
+    """
+    module = support.load("write_path")
+    return module.write_path_ask(text)
 
 # Item 31: every job other than check-tests is frozen. prompt_sha256 is
 # SHA-256 of the prompt string; prompt None is pinned as None.
@@ -275,6 +259,16 @@ class CheckTestsReadRolePromptRejectsAnyWritePath(unittest.TestCase):
         self.assertIsInstance(payload, dict)
         return payload
 
+    def test_write_path_ask_comes_from_write_path_py(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        module = support.load("write_path")
+        fn = getattr(module, "write_path_ask", None)
+        self.assertTrue(
+            callable(fn),
+            "write_path.py must export write_path_ask",
+        )
+
     def test_check_tests_role_is_read(self):
         jobs = self.jobs()
         self.assertIn("check-tests", jobs)
@@ -309,6 +303,18 @@ class CheckTestsReadRolePromptRejectsAnyWritePath(unittest.TestCase):
             match,
             "read-role prompt test must reject reports/findings.json "
             "by shape, not by listing SKEPTIC.md or {out}",
+        )
+
+    def test_create_review_in_the_repository_is_a_write_path(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        prompt = "Create REVIEW in the repository"
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a write verb plus an extensionless relative name is a "
+            "write path; requiring a slash, an extension, or {out} "
+            "misses Create REVIEW in the repository",
         )
 
     def test_live_check_tests_prompt_is_not_a_write_path(self):
