@@ -189,6 +189,15 @@ def _identity():
     return value
 
 
+def _lane_author():
+    value = _lane_values("LANE_AUTHOR")["LANE_AUTHOR"]
+    match = re.fullmatch(r"([^<>\n]+) <([^<>\s@]+@[^<>\s]+)>", value)
+    if match is None:
+        _refuse("conf-value", "LANE_AUTHOR in the Name <address> form",
+                repr(value), "correct LANE_AUTHOR in the lane conf")
+    return match.groups()
+
+
 def _inside(path, root):
     try:
         path.resolve(strict=False).relative_to(root.resolve())
@@ -707,9 +716,10 @@ def _write_record(repo, rec):
 
 def _commit_record(repo, path, rec, subject=None):
     rel = path.relative_to(repo)
+    owner_name, owner_email = _lane_author()
     env = dict(os.environ)
-    env.update(GIT_AUTHOR_NAME=OWNER_NAME, GIT_AUTHOR_EMAIL=OWNER_EMAIL,
-               GIT_COMMITTER_NAME=OWNER_NAME, GIT_COMMITTER_EMAIL=OWNER_EMAIL)
+    env.update(GIT_AUTHOR_NAME=owner_name, GIT_AUTHOR_EMAIL=owner_email,
+               GIT_COMMITTER_NAME=owner_name, GIT_COMMITTER_EMAIL=owner_email)
     msg = (f"{subject or f'dispatch: record {rec['id']}'}\n\n"
            "Source: generated: ops/devlane/dispatch/launch.py\n"
            f"Co-Authored-By: {rec['dispatched_by']}")
