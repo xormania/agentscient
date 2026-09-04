@@ -48,6 +48,8 @@ launch.py <job> --harness H --model M [--effort E] --ref R
           [--input PATH]... [--follows ID]... [--override ID:REASON]...
 launch.py status [ID] [--json]
 launch.py resume ID [--prompt-file PATH]
+launch.py collect ID --verify CMD [--reason TEXT] [--timeout SECONDS]
+launch.py wait ID [--timeout S] [--interval S]
 launch.py close ID
 launch.py brief --check ID
 ```
@@ -116,6 +118,7 @@ no mode.
   out/           where a job writes a document deliverable ({out})
   raw.out        the harness's stdout, byte for byte
   stderr         the harness's stderr
+  launcher.log    detached wrapper output, when launched with --detach
   breaker.log    the battery's stderr
   TRIPPED.md     written by the battery on a trip
   state.json     pid, pgid, session id, stream path, attempt
@@ -139,6 +142,9 @@ twice, and bookkeeping files counted as repository changes.
 of the copied inputs, space-separated, in the order given), and
 `scope`. A template naming a value the launcher did not supply is a
 refusal at render, never a brief with a hole in it.
+For harnesses whose argv carries no schema (codex and grok), the
+rendered brief ends with the envelope JSON Schema. Claude continues to
+receive the same schema through `--json-schema` instead.
 
 ### The child's environment
 
@@ -164,6 +170,14 @@ in `~/.codex/sessions` would report "no stream" and run unsupervised.
 | claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `plan` | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
 | codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only` | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
 | grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `plan` | `auto` | policy, until an owner-named `--sandbox` profile is added to the row | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; its `head_commit` is cross-checked against `snapshot.ref_sha` |
+
+For Claude, the snapshot's `.claude/settings.json`
+`permissions.allow` and `permissions.deny` strings are carried on argv
+and recorded under `harness.permissions`. Allow rules beginning
+`Bash(gh `, `Bash(composer `, `Bash(git `, `Bash(php `, or
+`Bash(bash ops/bin/` are dropped because they admit network access, an
+interpreter, or worker-editable scripts; malformed or absent project
+settings are declared `unresolved`.
 
 `containment` says what stops a write role reaching outside its
 snapshot: `os` when the harness's own sandbox enforces it, `policy` when
@@ -215,7 +229,12 @@ satisfy it. `override` marks the only overridable one.
 | `write-role-unadmitted` | a write role on a harness whose adapter row has no write sandbox (claude) | expected a write row with a containment entry; found none for `<harness>`; run the containment probe and add the row, or dispatch the role on codex or grok |
 | `scope-cap` | `--scope` over 1024 bytes, or given to a job with no `{scope}` | expected ≤ 1024 bytes on a job that takes a scope; found `<n>` bytes / a scope on `<job>`, which takes none; shorten it — a scope that needs more is a brief, and briefs are derived — or drop it |
 | `caps` | an unknown wire, or `cap` and `total` (or `cap_out` and `out`) both given | `run.py`'s own text |
-| `off-lineage-head` (at close, write roles) | the snapshot's `HEAD` is not a descendant of `ref_sha` | expected `HEAD` to descend from `<ref_sha>`; found `<head>`; the envelope is `invalid`, nothing is fetched, and the record says so |
+| `off-lineage-head` (at close or collect, write roles) | the snapshot's `HEAD` is not a descendant of `ref_sha` | expected `HEAD` to descend from `<ref_sha>`; found `<head>`; nothing is fetched, and the close record says so or collect refuses |
+| `resume-store` | a codex or grok resume has no session store in either its live or archived home | expected the store for `<session id>` under both named paths; found neither; resume a job whose store survived, or launch afresh |
+| `collect-role` | `collect` names a read role | expected a write role; found read; collect only a failed write job |
+| `collect-state` | `collect` names a job with no failed or tripped attempt, a result without residue, or a result already collected | expected an uncollected write job with a failed attempt and residue; found the recorded state; use the normal result or name the recoverable job |
+| `verify` | the collection verification exits non-zero or reaches its wall | expected the named command to exit 0 within the recorded job wall or a larger `--timeout`; found its exit or timeout and stderr tail; fix the residual tree and rerun collect |
+| `wait-target` | `wait` names no record | expected a record for `<id>`; found none; name a launched dispatch |
 
 Runtime outcomes that are not refusals, and still produce a record:
 `unsupervised` (no session stream under the isolated store within the
@@ -233,6 +252,18 @@ ref_sha..head`; `residual_paths` is `git status --porcelain` in the
 snapshot. Read roles: `head` must equal `ref_sha`; a non-empty
 `residual_paths` is recorded; a changed head or non-empty residual makes the
 envelope invalid.
+
+`collect ID --verify CMD [--timeout SECONDS]` is the recovery path for a
+write job with residual files and any tripped or non-zero attempt, including
+one later resumed successfully. It runs the verification in the snapshot
+with an isolated home and no ambient operator variables, under the recorded
+wall or a larger explicit wall, verifies that `HEAD` still descends from
+`ref_sha`, commits the residual with the
+harness's message and running-model attribution, advances
+`refs/dispatch/<id>`, retains `residual_patch`, and records
+`result.collected {at, by, head, verify {command, exit: 0}, reason}`.
+Every failed precondition leaves the snapshot commit, ref, and record
+unchanged.
 
 ### The record
 
@@ -252,7 +283,7 @@ Fields, in this order:
 id, lane ("dev"), stage, unit, lineage {branch, base_sha}, follows [ids],
 job, role (read|write), dispatched_by, at {launched, closed},
 snapshot {mode, ref_name, ref_sha, behind_tip, root},
-harness {name, version,
+harness {name, version, permissions?,
          isolation {mechanism, flags | env, home?, auth_files?, store,
                     observed {operator_config_present, evidence,
                               checked_at, harness_version}
@@ -264,7 +295,8 @@ brief {template {path, sha256}, scope, inputs [{path, sha256}], sha256, bytes},
 caps {..., source},
 overrides [{refusal, reason, by}],
 attempts [{n, launched, ended, exit, tripped}],
-result {head, changed_paths, residual_paths, envelope},
+result {head, changed_paths, residual_paths, residual_patch?, envelope,
+        collected? {at, by, head, verify {command, exit}, reason}},
 status (launched|closed|died)
 ```
 
@@ -289,6 +321,10 @@ status (launched|closed|died)
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- `result.envelope.spend` is filled by the launcher from resolved
+  `session.spend`; the harness's zero placeholder is never the record's
+  measured figure. An unresolved spend begins `UNREACHABLE:` and names
+  the store roots examined.
 
 **The permitted delta to the invoking repository**, and nothing else:
 one new file at the record path; one commit containing only it, on the
@@ -306,13 +342,18 @@ store; and the record is a commit, so changing it is a diff.
 
 ### Watching, and picking up after a kill
 
-The launch is the watch: `launch.py` is one foreground process the
-session backgrounds once. `state.json` carries `pid`, `pgid`, the
+The launcher prints `record: <id>` as soon as the launched record is
+written. `state.json` carries `pid`, `pgid`, the
 session id, the stream path and the attempt number; `exit` is written
 last. `status` reports `running` (pid alive), `finished` (exit file),
 `tripped` (`TRIPPED.md`), **`DIED`** (pid gone and no exit file — never
 reported as finished), `unlaunched` (refused before launch). `close ID`
 finalizes and commits a DIED job's record as `invalid`.
+
+`wait ID` polls that record until `closed` or `died`, writes poll lines
+to stderr, and prints one terminal summary. A clean, untripped, schema-
+valid close exits 0; another terminal result exits 1; the wait wall
+exits 2.
 
 `resume ID` relaunches in the same snapshot directory — grok scopes
 sessions by cwd — with `claude -p -r <id>`, `grok -r <id>`, or `codex
@@ -320,6 +361,10 @@ exec resume <id>`, clears the previous exit and trip markers before
 registering, appends output rather than truncating it, re-arms the
 battery, and appends an `attempts` entry. A job the battery tripped
 resumes only with a changed cap or a stated reason, recorded.
+Before a codex or grok resume the archived session store is restored to
+the harness home, then moved forward again after the attempt. A failed
+resume cannot downgrade the prior stream, model, spend, or cause, and
+every completed attempt commits the updated record.
 
 ### Lane
 

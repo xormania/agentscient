@@ -18,8 +18,9 @@
 #   implement  (claude) implement to green
 #   adjudicate (grok)   adjudicate a contested result
 #
-# Override the harness with HARNESS=grok|codex|claude. Everything prints
-# where its verdict landed; nothing is cached.
+# Override the harness with HARNESS=grok|codex|claude. Set DETACH=1 to return
+# each dispatch's record id immediately. Everything prints where its verdict
+# landed; nothing is cached.
 set -uo pipefail
 
 here=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -66,6 +67,7 @@ fire() {  # fire <job> <harness> [<stage>]
     local args=(--job "$j" --harness "$h" --scope-file "$scope_file" "${locator[@]}")
     [[ -n ${EFFORT:-} ]] && args+=(--effort "$EFFORT")
     [[ -n $st ]] && args+=(--stage "$st")
+    [[ ${DETACH:-0} == 1 ]] && args+=(--detach)
     bash "$here/dispatch.sh" "${args[@]}"
 }
 

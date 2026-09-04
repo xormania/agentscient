@@ -13,6 +13,11 @@ executable.
 (argparse, json, subprocess, time). It shells to the `gh` CLI found on
 PATH — and only to `gh` — so tests may stub it with a fake executable.
 
+Test apparatus: `WATCH_TICK_SCALE`, when set, scales the poll sleep
+and the elapsed reading together, so the interval floor stays on the
+wire while a suite does not wait through real polls. Unset means real
+time. The suite sets it to 0.02; nothing else does.
+
 ## The pinned reading
 
 A pull request's checks are **settled** when the check table has at
@@ -83,6 +88,7 @@ the lane's refusal wire):
 |---|---|
 | number | NUMBER is not a positive integer |
 | interval | `--interval` under 5 seconds |
+| tick-scale | `WATCH_TICK_SCALE` is set and is not a positive number |
 | gh-missing | `gh` is not on PATH |
 | gh-error | gh exits nonzero (its stderr is quoted in found) |
 | json | gh's output is not the JSON shape asked for |

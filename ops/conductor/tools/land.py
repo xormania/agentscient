@@ -58,7 +58,7 @@ def identity() -> tuple[str, str]:
     return match.group("name"), match.group("email")
 
 
-def record_exit(record: Path) -> None:
+def record_exit(record: Path) -> tuple[bool, str]:
     exit_file = record / "exit"
     try:
         value = exit_file.read_text().strip()
@@ -68,16 +68,14 @@ def record_exit(record: Path) -> None:
         successful = int(value) == 0
     except ValueError:
         successful = False
-    if not successful:
-        refuse(
-            "exit-status",
-            "record exit file containing 0",
-            value or "empty",
-            "close a successful dispatch before landing it",
-        )
+    return successful, value or "empty"
 
 
-def read_lineage(record_id: str) -> str:
+def refuse_exit(found: str, needed: str) -> NoReturn:
+    refuse("exit-status", "record exit file containing 0", found, needed)
+
+
+def read_envelope(record_id: str) -> tuple[str, dict]:
     path = Path(".dev/records/dispatches") / f"{record_id}.json"
     if not path.is_file():
         refuse(
@@ -98,15 +96,40 @@ def read_lineage(record_id: str) -> str:
             f"invalid {path}",
             "repair the recorded dispatch envelope",
         )
-    env_status = ((data.get("result") or {}).get("envelope") or {}).get("status")
-    if env_status != "ok":
-        refuse(
-            "envelope-status",
-            "a dispatch envelope recorded ok",
-            repr(env_status),
-            "adjudicate the rejected dispatch by hand; the lever lands only accepted work",
+    return branch, data
+
+
+def collection_marker(record_id: str) -> bool:
+    path = Path(".dev/records/dispatches") / f"{record_id}.json"
+    try:
+        data = json.loads(path.read_text())
+        result = data.get("result") or {}
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return False
+    return isinstance(result, dict) and "collected" in result
+
+
+def validated_collection(data: dict, ref_head: str) -> bool:
+    result = data.get("result") or {}
+    collected = result.get("collected") if isinstance(result, dict) else None
+    if collected is None:
+        return False
+    verify = collected.get("verify") if isinstance(collected, dict) else None
+    verify_exit = verify.get("exit") if isinstance(verify, dict) else None
+    if type(verify_exit) is not int or verify_exit != 0:
+        refuse_exit(
+            f"result.collected.verify.exit {verify_exit!r}",
+            "rerun launch.py collect with a verification that exits 0",
         )
-    return branch
+    head = collected.get("head")
+    if head != ref_head:
+        refuse(
+            "ref",
+            f"result.collected.head matching dispatch ref {ref_head}",
+            repr(head),
+            "restore the collected dispatch ref or recollect the result",
+        )
+    return True
 
 
 def preconditions(record_id: str, no_fetch: bool) -> tuple[list[str], str, str, str]:
@@ -119,11 +142,32 @@ def preconditions(record_id: str, no_fetch: bool) -> tuple[list[str], str, str, 
             "absent",
             "close or choose an existing dispatch record",
         )
-    record_exit(record)
+    successful_exit, exit_value = record_exit(record)
+    if not successful_exit and not collection_marker(record_id):
+        refuse_exit(
+            exit_value,
+            f"run launch.py collect {record_id} --verify COMMAND before landing it",
+        )
 
     ref = f"refs/dispatch/{record_id}"
-    git_value("ref", f"resolvable {ref}", "restore the dispatch ref", "rev-parse", "--verify", ref)
-    lineage = read_lineage(record_id)
+    ref_head = git_value(
+        "ref", f"resolvable {ref}", "restore the dispatch ref", "rev-parse", "--verify", ref
+    )
+    lineage, data = read_envelope(record_id)
+    collected = validated_collection(data, ref_head)
+    if not successful_exit and not collected:
+        refuse_exit(
+            exit_value,
+            f"run launch.py collect {record_id} --verify COMMAND before landing it",
+        )
+    env_status = ((data.get("result") or {}).get("envelope") or {}).get("status")
+    if env_status != "ok" and not collected:
+        refuse(
+            "envelope-status",
+            "a dispatch envelope recorded ok",
+            repr(env_status),
+            f"run launch.py collect {record_id} --verify COMMAND before landing it",
+        )
     branch = git_value(
         "lineage",
         f"current branch {lineage}",

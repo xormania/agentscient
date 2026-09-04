@@ -460,3 +460,205 @@ class GrokArgvCarriesTheSandboxTheRecordStates(ls._TempLaunch):
                 f"U10: grok output is plain, not json; argv={argv!r}",
             )
         self.assertIn("--prompt-file", argv)
+
+
+class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
+    """Project permissions.allow/deny from .claude/settings.json land on
+    argv after the floor; network-reaching rules are dropped; the
+    record's harness.permissions names what applied.
+
+    Interpreters and worker-editable shell scripts from the untrusted
+    snapshot are dropped the same way: they are not a network prefix,
+    but they run host-level code with the operator's UID and HOME.
+    """
+
+    ALLOW_KEEP = "Bash(ruff *)"
+    ALLOW_DROP_PHP = "Bash(php *)"
+    ALLOW_DROP_BASH_SCRIPTS = "Bash(bash ops/bin/*)"
+    ALLOW_DROP_GH = "Bash(gh pr *)"
+    ALLOW_DROP_GIT = "Bash(git *)"
+    ALLOW_DROP_COMPOSER = "Bash(composer *)"
+    DENY_KEEP = "WebFetch"
+    DROPPED = (ALLOW_DROP_GH, ALLOW_DROP_GIT, ALLOW_DROP_COMPOSER)
+
+    def _plant_settings(self, payload=None):
+        if payload is None:
+            payload = {
+                "permissions": {
+                    "allow": [
+                        self.ALLOW_KEEP,
+                        self.ALLOW_DROP_GH,
+                        self.ALLOW_DROP_GIT,
+                        self.ALLOW_DROP_COMPOSER,
+                    ],
+                    "deny": [self.DENY_KEEP],
+                }
+            }
+        path = self.repo / ".claude" / "settings.json"
+        body = json.dumps(payload, indent=2) + "\n"
+        self.assertFalse(path.is_file(), "plant: settings.json was already there")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8")
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.ref = self._commit("plant project claude settings")
+        return path, ls.sha256_file(path)
+
+    def _flag_values(self, argv, flag):
+        argv = [str(a) for a in argv]
+        self.assertIn(flag, argv, argv)
+        start = argv.index(flag) + 1
+        values = []
+        for item in argv[start:]:
+            if str(item).startswith("--"):
+                break
+            values.append(item)
+        return values
+
+    def test_claude_argv_carries_the_project_permissions(self):
+        path, digest = self._plant_settings()
+        landed = path.read_text(encoding="utf-8")
+        self.assertIn(self.ALLOW_KEEP, landed)
+        for rule in self.DROPPED:
+            self.assertIn(rule, landed, f"plant: {rule} must be in settings")
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="claude", stage="plan",
+        )
+        argv = [str(a) for a in witness["argv"]]
+        allow = self._flag_values(argv, "--allowedTools")
+        deny = self._flag_values(argv, "--disallowedTools")
+        self.assertIn(self.ALLOW_KEEP, allow)
+        for rule in self.DROPPED:
+            self.assertNotIn(rule, allow, f"{rule} reaches the network and is dropped")
+            self.assertNotIn(rule, deny)
+        self.assertIn(self.DENY_KEEP, deny)
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(perms, dict, rec.get("harness"))
+        self.assertEqual(perms.get("source"), ".claude/settings.json")
+        self.assertEqual(perms.get("sha256"), digest)
+        self.assertEqual(perms.get("allow"), 1)
+        self.assertEqual(perms.get("deny"), 1)
+        self.assertEqual(list(perms.get("dropped") or []), list(self.DROPPED))
+        self.assertEqual(perms.get("applied"), "argv")
+
+    def test_no_project_settings_is_declared_unresolved(self):
+        settings = self.repo / ".claude" / "settings.json"
+        self.assertFalse(settings.is_file(), "plant: no project settings")
+        rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(
+            perms, dict,
+            f"harness.permissions must declare the absence: "
+            f"harness={rec.get('harness')!r}",
+        )
+        self.assertIn("unresolved", perms, perms)
+        self.assertTrue(str(perms["unresolved"]).strip(), perms)
+
+    def test_claude_resume_argv_carries_the_same_permissions(self):
+        self._plant_settings()
+        rec, first, *_ = self.launch_ok(
+            job="plan", harness="claude", stage="plan",
+        )
+        first_allow = self._flag_values(first["argv"], "--allowedTools")
+        first_deny = self._flag_values(first["argv"], "--disallowedTools")
+        self.assertIn(self.ALLOW_KEEP, first_allow)
+        for rule in self.DROPPED:
+            self.assertNotIn(rule, first_allow)
+        self.witness.unlink()
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        second = self.read_witness()
+        second_allow = self._flag_values(second["argv"], "--allowedTools")
+        second_deny = self._flag_values(second["argv"], "--disallowedTools")
+        self.assertEqual(second_allow, first_allow)
+        self.assertEqual(second_deny, first_deny)
+        self.assertIn(self.ALLOW_KEEP, second_allow)
+        for rule in self.DROPPED:
+            self.assertNotIn(rule, second_allow)
+        self.assertIn(self.DENY_KEEP, second_deny)
+
+    def test_unparseable_project_settings_are_declared_unresolved(self):
+        path = self.repo / ".claude" / "settings.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        planted = "{not-json\n"
+        path.write_text(planted, encoding="utf-8")
+        self.assertEqual(path.read_text(encoding="utf-8"), planted)
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(planted)
+        self.ref = self._commit("plant unparseable claude settings")
+        rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(perms, dict, rec.get("harness"))
+        self.assertIn("unresolved", perms, perms)
+        self.assertTrue(str(perms["unresolved"]).strip(), perms)
+        self.assertNotEqual(perms.get("applied"), "argv", perms)
+
+    def test_a_non_string_permission_rule_is_declared_unresolved(self):
+        payload = {
+            "permissions": {
+                "allow": [self.ALLOW_KEEP, 1],
+                "deny": [self.DENY_KEEP],
+            }
+        }
+        path, _digest = self._plant_settings(payload)
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        self.assertIn(1, loaded["permissions"]["allow"])
+        self.assertFalse(
+            all(isinstance(item, str) for item in loaded["permissions"]["allow"]),
+            "plant: a non-string allow rule landed",
+        )
+        rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(perms, dict, rec.get("harness"))
+        self.assertIn("unresolved", perms, perms)
+        self.assertTrue(str(perms["unresolved"]).strip(), perms)
+        self.assertNotEqual(perms.get("applied"), "argv", perms)
+
+    def test_php_star_and_editable_script_rules_are_dropped(self):
+        """Security finding 2: Bash(php *) and Bash(bash ops/bin/*) from
+        the untrusted snapshot must not reach --allowedTools."""
+        path, digest = self._plant_settings({
+            "permissions": {
+                "allow": [
+                    self.ALLOW_KEEP,
+                    self.ALLOW_DROP_PHP,
+                    self.ALLOW_DROP_BASH_SCRIPTS,
+                    self.ALLOW_DROP_GH,
+                ],
+                "deny": [self.DENY_KEEP],
+            }
+        })
+        planted = json.loads(path.read_text(encoding="utf-8"))
+        allow_rules = planted["permissions"]["allow"]
+        self.assertIn(self.ALLOW_DROP_PHP, allow_rules)
+        self.assertIn(self.ALLOW_DROP_BASH_SCRIPTS, allow_rules)
+        self.assertIn(self.ALLOW_KEEP, allow_rules)
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="claude", stage="plan",
+        )
+        argv = [str(a) for a in witness["argv"]]
+        allow = self._flag_values(argv, "--allowedTools")
+        deny = self._flag_values(argv, "--disallowedTools")
+        self.assertIn(self.ALLOW_KEEP, allow)
+        self.assertNotIn(
+            self.ALLOW_DROP_PHP, allow,
+            f"Bash(php *) is an interpreter and must be dropped: {allow!r}",
+        )
+        self.assertNotIn(
+            self.ALLOW_DROP_BASH_SCRIPTS, allow,
+            f"Bash(bash ops/bin/*) is a worker-editable script rule "
+            f"and must be dropped: {allow!r}",
+        )
+        self.assertNotIn(self.ALLOW_DROP_GH, allow)
+        self.assertNotIn(self.ALLOW_DROP_PHP, deny)
+        self.assertNotIn(self.ALLOW_DROP_BASH_SCRIPTS, deny)
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(perms, dict, rec.get("harness"))
+        dropped = list(perms.get("dropped") or [])
+        self.assertIn(self.ALLOW_DROP_PHP, dropped, perms)
+        self.assertIn(self.ALLOW_DROP_BASH_SCRIPTS, dropped, perms)
+        self.assertIn(self.ALLOW_DROP_GH, dropped, perms)
+        self.assertEqual(perms.get("sha256"), digest)
+        self.assertEqual(perms.get("applied"), "argv")
+        self.assertEqual(perms.get("allow"), 1, perms)
+        self.assertEqual(perms.get("deny"), 1, perms)

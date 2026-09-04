@@ -18,11 +18,14 @@ assumed) live in PIN_* comments below. Callee flag names come from
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import signal
 import stat
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -34,7 +37,6 @@ TOOLS_DIR = WRAPPER.parent
 SCOPE_CAP = 1024
 FLAG_AGENT = "Wrap Agent <noreply@example.invalid>"
 CONF_AGENT = "Conf Agent <noreply@example.invalid>"
-ENV_AGENT = "Env Agent <noreply@example.invalid>"
 NO_WORKTREE_BRANCH = "no-wt-dispatch-wrapper-9f3c1e2a"
 
 # PIN_CONF_OVERRIDE: spec names only the real conf path. Tests point at a
@@ -49,7 +51,10 @@ CONF_ENV = "DISPATCH_CONF"
 # --timeout are env deltas, not callee flags. Order follows CONTRACT.md
 # §Verbs. argv[0] is LAUNCHER_PIN with no python3 prefix.
 # PIN_ENV_KEYS: env overrides use the conf key names. Winning timeout
-# is env delta DEFAULT_TIMEOUT. Winning agent is env delta WF_AGENT.
+# is env delta DISPATCH_TIMEOUT when --timeout is given; neither
+# DISPATCH_TIMEOUT nor DEFAULT_TIMEOUT is in the delta when it is not.
+# DEFAULT_TIMEOUT is retired: a conf that still sets it is a refusal.
+# Winning agent is env delta WF_AGENT.
 
 
 def _porcelain(cwd: Path) -> bytes:
@@ -107,6 +112,7 @@ def expected_launch_argv(
     stage: str | None = None,
     scope: str | None = None,
     input_path: Path | str | None = None,
+    input_paths: list[Path | str] | None = None,
     follows: str | None = None,
 ) -> list[str]:
     argv = [
@@ -128,7 +134,10 @@ def expected_launch_argv(
         argv.extend(["--stage", stage])
     if scope is not None:
         argv.extend(["--scope", scope])
-    if input_path is not None:
+    if input_paths is not None:
+        for one in input_paths:
+            argv.extend(["--input", str(one)])
+    elif input_path is not None:
         argv.extend(["--input", str(input_path)])
     if follows:
         argv.extend(["--follows", follows])
@@ -229,23 +238,41 @@ class _WrapperFixture(unittest.TestCase):
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
 
+    def _plant_executable(self, path: Path, body: str) -> None:
+        path.write_text(body, encoding="utf-8")
+        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, body, f"sentinel plant did not land: {path}")
+        self.assertTrue(os.access(path, os.X_OK), f"sentinel not executable: {path}")
+
     def _plant_sentinel(self, path: Path, marker: Path) -> None:
         body = (
             "#!/bin/sh\n"
             f"printf launched > '{marker}'\n"
             "exit 0\n"
         )
-        path.write_text(body, encoding="utf-8")
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
-        landed = path.read_text(encoding="utf-8")
-        self.assertEqual(landed, body, f"sentinel plant did not land: {path}")
-        self.assertTrue(os.access(path, os.X_OK), f"sentinel not executable: {path}")
+        self._plant_executable(path, body)
         self.assertFalse(marker.exists(), "plant: marker must not pre-exist")
+
+    def _plant_python_sentinel(self, path: Path, script: str) -> None:
+        body = "#!/usr/bin/env python3\n" + script
+        self._plant_executable(path, body)
+
+    def _reap_reported_pid(self, proc: subprocess.CompletedProcess) -> None:
+        for line in (proc.stdout or "").splitlines():
+            if not line.startswith("launcher-pid:"):
+                continue
+            raw = line.split(":", 1)[1].strip()
+            try:
+                pid = int(raw)
+            except ValueError:
+                continue
+            with contextlib.suppress(OSError):
+                os.kill(pid, signal.SIGTERM)
 
     def _conf_kwargs(self, **overrides: str) -> dict[str, str]:
         keys = {
             "LAUNCHER_PIN": str(self.pin),
-            "DEFAULT_TIMEOUT": self.conf_timeout,
             "WF_AGENT_DEFAULT": CONF_AGENT,
             "MODEL_GROK": self.conf_model_grok,
             "MODEL_CODEX": "wrap-model-conf-codex",
@@ -287,7 +314,13 @@ class _WrapperFixture(unittest.TestCase):
             env.update(extra)
         return env
 
-    def invoke(self, flags: list[str], *, extra_env: dict[str, str] | None = None):
+    def invoke(
+        self,
+        flags: list[str],
+        *,
+        extra_env: dict[str, str] | None = None,
+        timeout: float | None = 30,
+    ):
         argv = ["bash", str(WRAPPER), *flags]
         # Absent wrapper is not a collection error and not bash 127: that
         # would make every case fail for the same reason. Return an empty
@@ -297,20 +330,28 @@ class _WrapperFixture(unittest.TestCase):
             return subprocess.CompletedProcess(
                 args=argv, returncode=0, stdout="", stderr="",
             )
-        return subprocess.run(
-            argv,
-            cwd=str(REPO),
-            env=self.env(extra_env),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            return subprocess.run(
+                argv,
+                cwd=str(REPO),
+                env=self.env(extra_env),
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired as exc:
+            self.fail(
+                f"wrapper exceeded {timeout}s; stdout={exc.stdout!r} "
+                f"stderr={exc.stderr!r}"
+            )
 
     def combined(self, proc: subprocess.CompletedProcess) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
 
     def full_flags(self, *extra: str, dry_run: bool = True, **kw) -> list[str]:
         omit = set(kw.pop("omit", ()))
+        input_paths = kw.pop("input_paths", None)
         pairs = [
             ("worktree", "--worktree", str(kw.get("worktree", self.worktree))),
             ("branch", "--branch", kw.get("branch")),
@@ -330,6 +371,10 @@ class _WrapperFixture(unittest.TestCase):
         for name, flag, value in pairs:
             if name in omit or value is None:
                 continue
+            if name == "input" and input_paths is not None:
+                for one in input_paths:
+                    flags.extend(["--input", str(one)])
+                continue
             flags.extend([flag, value])
         flags.extend(extra)
         if dry_run:
@@ -337,6 +382,11 @@ class _WrapperFixture(unittest.TestCase):
         return flags
 
     def expected_argv(self, **kw) -> list[str]:
+        input_paths = kw.get("input_paths")
+        if input_paths is not None:
+            input_path = None
+        else:
+            input_path = kw.get("input_path", self.input_path)
         return expected_launch_argv(
             pin=kw.get("pin", self.pin),
             job=kw.get("job", self.job),
@@ -348,15 +398,16 @@ class _WrapperFixture(unittest.TestCase):
             unit=kw.get("unit", self.unit),
             stage=kw.get("stage", self.stage),
             scope=kw.get("scope", self.scope_text),
-            input_path=kw.get("input_path", self.input_path),
+            input_path=input_path,
+            input_paths=input_paths,
             follows=kw.get("follows", self.follows),
         )
 
-    def parse_dry_run(
+    def parse_dry_run_object(
         self, proc: subprocess.CompletedProcess
-    ) -> tuple[list[str], dict[str, str]]:
+    ) -> dict:
         if not WRAPPER.is_file():
-            return [], {}
+            return {}
         text = self.combined(proc)
         start = text.find("{")
         end = text.rfind("}")
@@ -375,6 +426,14 @@ class _WrapperFixture(unittest.TestCase):
         except json.JSONDecodeError as exc:
             self.fail(f"dry-run JSON is not parseable ({exc}); got {text!r}")
         self.assertIsInstance(payload, dict, payload)
+        return payload
+
+    def parse_dry_run(
+        self, proc: subprocess.CompletedProcess
+    ) -> tuple[list[str], dict[str, str]]:
+        if not WRAPPER.is_file():
+            return [], {}
+        payload = self.parse_dry_run_object(proc)
         self.assertIn("argv", payload)
         self.assertIn("env", payload)
         argv = payload["argv"]
@@ -408,7 +467,8 @@ class Row1FullFlagSetArgv(_WrapperFixture):
         self.assertEqual(argv, self.expected_argv())
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertEqual(env.get("WF_AGENT"), FLAG_AGENT)
-        self.assertEqual(env.get("DEFAULT_TIMEOUT"), self.flag_timeout)
+        self.assertEqual(env.get("DISPATCH_TIMEOUT"), self.flag_timeout)
+        self.assertNotIn("DEFAULT_TIMEOUT", env)
         self.assert_no_launch()
 
     def test_omitted_model_and_agent_use_conf_defaults(self):
@@ -538,59 +598,72 @@ class Row6DryRunCreatesNoDispatchDir(_WrapperFixture):
 
 
 class Row7ConfEnvFlagPrecedence(_WrapperFixture):
-    """Acceptance 7: scratch conf; env beats conf; flag beats both."""
+    """Acceptance 7: --timeout exports DISPATCH_TIMEOUT; conf must not set
+    DEFAULT_TIMEOUT; an invoking DISPATCH_TIMEOUT passes through unless
+    the flag wins."""
 
-    def test_scratch_conf_launcher_pin_and_timeout_are_honoured(self):
-        proc = self.invoke(self.full_flags(omit=("timeout", "model", "agent")))
+    def test_timeout_flag_exports_dispatch_timeout(self):
+        proc = self.invoke(self.full_flags())
         argv, env = self.parse_dry_run(proc)
-        self.assertEqual(argv[:1], [str(self.pin)])
-        self.assertEqual(env.get("DEFAULT_TIMEOUT"), self.conf_timeout)
-        self.assertEqual(
-            argv,
-            self.expected_argv(pin=self.pin, model=self.conf_model_grok),
-        )
+        self.assertEqual(env.get("DISPATCH_TIMEOUT"), self.flag_timeout)
+        self.assertNotIn("DEFAULT_TIMEOUT", env)
+        self.assertEqual(argv, self.expected_argv())
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assertEqual(env.get("WF_AGENT"), CONF_AGENT)
         self.assert_no_launch()
 
-    def test_environment_override_beats_conf(self):
-        env_timeout = "45"
-        extra = {
-            "LAUNCHER_PIN": str(self.pin_env),
-            "DEFAULT_TIMEOUT": env_timeout,
-            "WF_AGENT_DEFAULT": ENV_AGENT,
-            "MODEL_GROK": "wrap-model-env-grok",
-        }
-        proc = self.invoke(
-            self.full_flags(omit=("timeout", "model", "agent")),
-            extra_env=extra,
-        )
+    def test_no_timeout_exports_no_wall(self):
+        proc = self.invoke(self.full_flags(omit=("timeout",)))
         argv, env = self.parse_dry_run(proc)
-        self.assertEqual(argv[:1], [str(self.pin_env)])
-        self.assertEqual(env.get("DEFAULT_TIMEOUT"), env_timeout)
-        self.assertEqual(
-            argv,
-            self.expected_argv(pin=self.pin_env, model="wrap-model-env-grok"),
-        )
+        self.assertNotIn("DISPATCH_TIMEOUT", env)
+        self.assertNotIn("DEFAULT_TIMEOUT", env)
+        self.assertEqual(argv, self.expected_argv())
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assertEqual(env.get("WF_AGENT"), ENV_AGENT)
         self.assert_no_launch()
 
-    def test_timeout_flag_beats_environment_and_conf(self):
-        extra = {"DEFAULT_TIMEOUT": "45"}
+    def test_invoking_dispatch_timeout_passes_through(self):
+        invoked = "77"
         proc = self.invoke(
-            self.full_flags(timeout="33", omit=("model", "agent")),
-            extra_env=extra,
+            self.full_flags(omit=("timeout",)),
+            extra_env={"DISPATCH_TIMEOUT": invoked},
         )
         argv, env = self.parse_dry_run(proc)
-        self.assertEqual(env.get("DEFAULT_TIMEOUT"), "33")
-        self.assertNotEqual(env.get("DEFAULT_TIMEOUT"), "45")
-        self.assertNotEqual(env.get("DEFAULT_TIMEOUT"), self.conf_timeout)
-        self.assertEqual(
-            argv,
-            self.expected_argv(model=self.conf_model_grok),
-        )
+        self.assertEqual(env.get("DISPATCH_TIMEOUT"), invoked)
+        self.assertNotIn("DEFAULT_TIMEOUT", env)
+        self.assertEqual(argv, self.expected_argv())
         self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_flag_beats_invoking_dispatch_timeout(self):
+        proc = self.invoke(
+            self.full_flags(timeout="33"),
+            extra_env={"DISPATCH_TIMEOUT": "45"},
+        )
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(env.get("DISPATCH_TIMEOUT"), "33")
+        self.assertNotEqual(env.get("DISPATCH_TIMEOUT"), "45")
+        self.assertNotIn("DEFAULT_TIMEOUT", env)
+        self.assertEqual(argv, self.expected_argv())
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_a_conf_that_sets_default_timeout_is_refused(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(DEFAULT_TIMEOUT=self.conf_timeout),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("DEFAULT_TIMEOUT", landed)
+        self.assertIn(self.conf_timeout, landed)
+        proc = self.invoke(self.full_flags(dry_run=False))
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        self.assertIn("DEFAULT_TIMEOUT", text)
+        self.assertIn(self.conf_timeout, text)
+        self.assertIn(str(self.conf_path), text)
+        lower = text.lower()
+        self.assertIn("expected", lower, text)
+        self.assertIn("found", lower, text)
+        self.assertIn("needed", lower, text)
         self.assert_no_launch()
 
 
@@ -751,6 +824,261 @@ class Row10JobNameMatchesCatalogueShape(_WrapperFixture):
         text = self.combined(proc)
         self.assertNotIn("INDIRECT_EXECUTED", text)
         self._assert_job_name_wire_refusal(proc, found=job)
+
+
+class Row10TwoInputsBothReachArgv(_WrapperFixture):
+    """Two --input flags both reach the launcher argv, in the order given."""
+
+    def test_two_input_flags_land_in_order(self):
+        first = self.scratch / "input-a.txt"
+        second = self.scratch / "input-b.txt"
+        self._plant_bytes(first, b"bytes-a\n")
+        self._plant_bytes(second, b"bytes-b\n")
+        self.assertNotEqual(first, second)
+        proc = self.invoke(self.full_flags(input_paths=[first, second]))
+        argv, _env = self.parse_dry_run(proc)
+        input_at = [i for i, tok in enumerate(argv) if tok == "--input"]
+        self.assertEqual(len(input_at), 2, argv)
+        self.assertEqual(argv[input_at[0] + 1], str(first))
+        self.assertEqual(argv[input_at[1] + 1], str(second))
+        self.assertLess(input_at[0], input_at[1])
+        self.assertEqual(argv, self.expected_argv(input_paths=[first, second]))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_two_input_flags_reach_the_foreground_launcher_in_order(self):
+        first = self.scratch / "input-a.txt"
+        second = self.scratch / "input-b.txt"
+        self._plant_bytes(first, b"bytes-a\n")
+        self._plant_bytes(second, b"bytes-b\n")
+        argv_log = self.scratch / "launcher-argv.json"
+        self._plant_python_sentinel(
+            self.pin,
+            "import json, pathlib, sys\n"
+            f"pathlib.Path({str(argv_log)!r}).write_text("
+            "json.dumps(sys.argv))\n"
+            f"pathlib.Path({str(self.marker)!r}).write_text('launched')\n",
+        )
+        proc = self.invoke(
+            self.full_flags(input_paths=[first, second], dry_run=False),
+            timeout=8,
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertTrue(self.marker.exists(), "foreground path must launch")
+        self.assertTrue(argv_log.is_file(), "sentinel recorded argv")
+        launched = json.loads(argv_log.read_text(encoding="utf-8"))
+        self.assertIsInstance(launched, list, launched)
+        input_at = [i for i, tok in enumerate(launched) if tok == "--input"]
+        self.assertEqual(len(input_at), 2, launched)
+        self.assertEqual(launched[input_at[0] + 1], str(first))
+        self.assertEqual(launched[input_at[1] + 1], str(second))
+        self.assertLess(input_at[0], input_at[1])
+
+    def test_a_missing_input_file_refuses_before_launch(self):
+        missing = Path("/no/such")
+        self.assertFalse(missing.exists(), "plant: missing path must not exist")
+        self._plant_python_sentinel(
+            self.pin,
+            "from pathlib import Path\n"
+            f"Path({str(self.marker)!r}).write_text('launched')\n",
+        )
+        proc = self.invoke(self.full_flags(input_path=missing, dry_run=False))
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        self.assertIn(str(missing), text)
+        lower = text.lower()
+        self.assertIn("expected", lower, text)
+        self.assertIn("found", lower, text)
+        self.assertIn("needed", lower, text)
+        self.assert_no_launch()
+
+
+class Row11LauncherSource(_WrapperFixture):
+    """Dry-run names where the launcher path came from: env, conf, or sibling."""
+
+    def _assert_launcher_source(self, proc, *, source: str, pin: Path) -> None:
+        payload = self.parse_dry_run_object(proc)
+        self.assertIn("launcher", payload)
+        launcher = payload["launcher"]
+        self.assertIsInstance(launcher, dict, launcher)
+        self.assertEqual(launcher.get("source"), source, payload)
+        argv = payload["argv"]
+        self.assertIsInstance(argv, list, argv)
+        self.assertGreaterEqual(len(argv), 1, argv)
+        self.assertEqual(argv[0], str(pin))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_conf_without_pin_resolves_the_sibling_launcher(self):
+        keys = self._conf_kwargs()
+        self.assertIn("LAUNCHER_PIN", keys)
+        del keys["LAUNCHER_PIN"]
+        self.assertNotIn("LAUNCHER_PIN", keys)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("LAUNCHER_PIN", landed)
+        sibling = (REPO / "ops" / "devlane" / "dispatch" / "launch.py").resolve()
+        self.assertTrue(sibling.is_file(), f"plant: sibling launcher at {sibling}")
+        proc = self.invoke(self.full_flags())
+        self._assert_launcher_source(proc, source="sibling", pin=sibling)
+
+    def test_env_pin_reports_source_env(self):
+        proc = self.invoke(
+            self.full_flags(),
+            extra_env={"LAUNCHER_PIN": str(self.pin_env)},
+        )
+        self._assert_launcher_source(proc, source="env", pin=self.pin_env)
+
+    def test_conf_pin_reports_source_conf(self):
+        proc = self.invoke(self.full_flags())
+        self._assert_launcher_source(proc, source="conf", pin=self.pin)
+
+    def test_foreground_prints_launcher_provenance(self):
+        proc = self.invoke(self.full_flags(dry_run=False), timeout=8)
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 0, text)
+        self.assertIn(f"launcher: {self.pin} (conf)", text)
+        self.assertTrue(self.marker.exists(), "foreground path must launch")
+
+    def test_the_sibling_launcher_in_the_tree_is_executable(self):
+        """Adversarial finding 2: the wrapper execs argv[0] without
+        python3, so the real sibling launch.py must stay mode 100755."""
+        sibling = (
+            REPO / "ops" / "devlane" / "dispatch" / "launch.py"
+        ).resolve()
+        self.assertTrue(sibling.is_file(), f"plant: sibling at {sibling}")
+        self.assertTrue(
+            os.access(sibling, os.X_OK),
+            f"sibling launch.py must be executable for exec: "
+            f"mode={oct(sibling.stat().st_mode)}",
+        )
+        listed = subprocess.check_output(
+            ["git", "ls-files", "-s", "--", "ops/devlane/dispatch/launch.py"],
+            cwd=str(REPO),
+            text=True,
+        )
+        self.assertTrue(
+            listed.startswith("100755"),
+            f"git index mode must be 100755, not a 644 regression: {listed!r}",
+        )
+
+
+class Row12Detach(_WrapperFixture):
+    """--detach returns the record id without waiting for the launcher."""
+
+    RECORD_ID = "20260901T000000Z-plan-grok-abcdef"
+
+    def test_detach_returns_the_record_id_before_the_launcher_exits(self):
+        record_id = self.RECORD_ID
+        job_dir = self.jobs_root / record_id
+        self._plant_python_sentinel(
+            self.pin,
+            "import pathlib, sys, time\n"
+            f"pathlib.Path({str(job_dir)!r}).mkdir(parents=True, exist_ok=True)\n"
+            f"sys.stdout.write('record: {record_id}\\n')\n"
+            "sys.stdout.flush()\n"
+            "time.sleep(5)\n",
+        )
+        started = time.monotonic()
+        proc = self.invoke(self.full_flags("--detach", dry_run=False), timeout=8)
+        elapsed = time.monotonic() - started
+        try:
+            self.assertEqual(proc.returncode, 0, self.combined(proc))
+            self.assertLess(
+                elapsed,
+                3,
+                f"detach returned after {elapsed:.2f}s; must not wait for the launcher",
+            )
+            self.assertIn(f"record: {record_id}", proc.stdout or "")
+            pid_lines = [
+                ln for ln in (proc.stdout or "").splitlines()
+                if ln.startswith("launcher-pid:")
+            ]
+            self.assertEqual(
+                len(pid_lines), 1,
+                f"detach prints launcher-pid: got {pid_lines!r} from "
+                f"{proc.stdout!r}",
+            )
+            raw_pid = pid_lines[0].split(":", 1)[1].strip()
+            self.assertTrue(raw_pid.isdigit(), pid_lines[0])
+            log_path = job_dir / "launcher.log"
+            self.assertTrue(log_path.is_file(), f"missing launcher.log at {log_path}")
+            log_text = log_path.read_text(encoding="utf-8")
+            self.assertIn(
+                f"record: {record_id}", log_text,
+                f"launcher.log must carry the launcher stdout, not be empty: "
+                f"{log_text!r}",
+            )
+        finally:
+            self._reap_reported_pid(proc)
+
+    def test_detach_surfaces_a_launcher_refusal(self):
+        refusal = (
+            "expected a harness job in jobs.json; found wrap-job; "
+            "satisfy by name a dispatchable job"
+        )
+        self._plant_python_sentinel(
+            self.pin,
+            "import sys\n"
+            f"sys.stderr.write({refusal!r} + '\\n')\n"
+            "sys.exit(3)\n",
+        )
+        proc = self.invoke(self.full_flags("--detach", dry_run=False), timeout=8)
+        text = self.combined(proc)
+        self.assertIn(refusal, proc.stderr or "")
+        self.assertEqual(proc.returncode, 3, text)
+
+    def test_foreground_record_line_comes_from_the_launcher(self):
+        record_id = self.RECORD_ID
+        decoy = "20260902T000000Z-plan-grok-zzzzzz"
+        self.assertNotEqual(record_id, decoy)
+        decoy_dir = self.jobs_root / decoy
+        decoy_dir.mkdir()
+        self.assertTrue(decoy_dir.is_dir(), "plant: newer jobs-root directory")
+        os.utime(decoy_dir, None)
+        self._plant_python_sentinel(
+            self.pin,
+            "import sys\n"
+            f"sys.stdout.write('record: {record_id}\\n')\n"
+            "sys.stdout.flush()\n",
+        )
+        proc = self.invoke(self.full_flags(dry_run=False), timeout=8)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        lines = [ln for ln in (proc.stdout or "").splitlines() if ln.strip()]
+        self.assertTrue(lines, proc.stdout)
+        self.assertEqual(lines[-1], f"record: {record_id}")
+        self.assertNotIn(decoy, proc.stdout or "")
+
+    def test_dry_run_with_detach_declares_detach_in_the_plan(self):
+        """Adversarial finding 3: --dry-run --detach must not silently
+        become a foreground plan."""
+        proc = self.invoke(self.full_flags("--detach", dry_run=True))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        payload = self.parse_dry_run_object(proc)
+        self.assertIn("detach", payload, payload)
+        self.assertTrue(payload["detach"], payload)
+        self.assert_no_launch()
+
+    def test_dry_run_names_that_argv0_is_executed_directly(self):
+        """Adversarial finding 3: dry-run JSON names that argv[0] is
+        exec'd, with no python3 interpreter prefix."""
+        proc = self.invoke(self.full_flags(dry_run=True))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        payload = self.parse_dry_run_object(proc)
+        argv = payload.get("argv")
+        self.assertIsInstance(argv, list, payload)
+        self.assertTrue(argv, payload)
+        self.assertFalse(
+            argv[0].rstrip("/").endswith("python3"),
+            f"argv[0] is the launcher path, not python3: {argv!r}",
+        )
+        launcher = payload.get("launcher")
+        self.assertIsInstance(launcher, dict, payload)
+        self.assertTrue(
+            payload.get("exec") is True or launcher.get("exec") is True,
+            f"dry-run JSON must name that argv[0] is exec'd: {payload!r}",
+        )
+        self.assert_no_launch()
 
 
 if __name__ == "__main__":

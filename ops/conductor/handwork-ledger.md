@@ -51,6 +51,7 @@ probe that exists means the lever is built:
 | class | probe |
 |---|---|
 | dispatch | `ops/devlane/dispatch/launch.py` |
+| collect | `ops/devlane/dispatch/launch.py` |
 | gate-run | `ops/conductor/tools/gate.sh` |
 | land | `ops/conductor/tools/land.py` |
 | verify-record | — |

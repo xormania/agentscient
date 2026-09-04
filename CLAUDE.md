@@ -10,7 +10,11 @@ The lane's own law is `ops/README.md`; read it before dispatching.
 ## Writing, for every session
 
 Name things by what they are; index ids stay in the files. Plain
-words, in the owner's register, not the lane's.
+words, in the owner's register, not the lane's. "House" means the
+project's general principles of style, and nothing else (owner,
+2026-09-04: "It just meant the general principles of style for the
+project"). The repository the lane was copied from is named by its
+path or called the previous repository, never that word.
 
 Mannered prose substitutes metaphor and flourish for direct statement.
 Instead of "a parameter worth varying," the mannered writer produces "a

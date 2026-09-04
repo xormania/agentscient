@@ -175,6 +175,18 @@ def _schema_probe():
 
 schema_read, schema_path, schema_sha, schema_how = _schema_probe()
 
+def _glob_present(root, pattern):
+    if not root:
+        return False
+    sessions = Path(root) / "sessions"
+    try:
+        return any(sessions.rglob(pattern))
+    except OSError:
+        return False
+
+rollout_present = _glob_present(os.environ.get("CODEX_HOME") or "", "rollout-*.jsonl")
+summary_present = _glob_present(os.environ.get("GROK_HOME") or "", "summary.json")
+
 try:
     pgid = os.getpgid(0)
 except OSError:
@@ -194,7 +206,15 @@ start_witness.write_text(json.dumps({
     "schema_path": schema_path,
     "schema_sha": schema_sha,
     "schema_how": schema_how,
+    "rollout_present": rollout_present,
+    "summary_present": summary_present,
 }) + "\n", encoding="utf-8")
+
+commit_msg = os.environ.get("TASK_LAUNCH_COMMIT_MSG") or ""
+if commit_msg:
+    out_dir = job_parent / "out"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "COMMIT_MSG").write_text(commit_msg, encoding="utf-8")
 
 if witness:
     Path(witness).write_text(json.dumps({
@@ -211,6 +231,8 @@ if witness:
         "schema_sha": schema_sha,
         "schema_how": schema_how,
         "last_message_present": last_message.exists(),
+        "rollout_present": rollout_present,
+        "summary_present": summary_present,
     }), encoding="utf-8")
 
 if grandchild_path:
@@ -304,9 +326,12 @@ if write_stream and stores_path:
                     fh.write(json.dumps(extra) + "\n")
     elif exe == "grok":
         home = os.environ.get("GROK_HOME") or str(Path(os.environ.get("HOME", "")) / ".grok")
+        usage_raw = os.environ.get("TASK_LAUNCH_GROK_USAGE") or ""
+        usage_runs = json.loads(usage_raw) if usage_raw else None
         stores.build_grok_store(
             Path(home), cwd, base_timestamp=epoch, session_id=stream_id,
             model=ran_model, marker="LAUNCH-FAKE",
+            usage_runs=usage_runs,
             head_commit=head_commit or None,
             git_root_dir=cwd,
             grok_home=home,
@@ -757,6 +782,7 @@ class _TempLaunch(unittest.TestCase):
                 "TASK_LAUNCH_WRAPPER_DECOY_FIRST",
                 "TASK_LAUNCH_WRAPPER_USAGE",
                 "TASK_LAUNCH_WRAPPER_AGENT_NOTE", "TASK_LAUNCH_NOTE",
+                "TASK_LAUNCH_GROK_USAGE", "TASK_LAUNCH_COMMIT_MSG",
                 "CLICOLOR_FORCE", "FORCE_COLOR",
                 "NO_COLOR", "CODEX_HOME", "GROK_HOME", "CLAUDE_CONFIG_DIR",
             )
@@ -878,6 +904,8 @@ class _TempLaunch(unittest.TestCase):
         os.environ.pop("TASK_LAUNCH_NOTE", None)
         os.environ.pop("TASK_LAUNCH_STATUS", None)
         os.environ.pop("TASK_LAUNCH_ENVELOPE_COMMIT", None)
+        os.environ.pop("TASK_LAUNCH_GROK_USAGE", None)
+        os.environ.pop("TASK_LAUNCH_COMMIT_MSG", None)
 
         (self.home / ".codex").mkdir()
         (self.home / ".codex" / "auth.json").write_text("{}\n", encoding="utf-8")
@@ -1029,7 +1057,7 @@ class _TempLaunch(unittest.TestCase):
     def combined(self, out, err):
         return (out or "") + (err or "")
 
-    def assert_refusal(self, code, out, err, *, ident, phrases):
+    def assert_refusal(self, code, out, err, *, ident, phrases, named=()):
         text = self.combined(out, err)
         self.assertEqual(
             code, REFUSAL_EXIT,
@@ -1039,10 +1067,21 @@ class _TempLaunch(unittest.TestCase):
         self.assertIn("expected", lower, f"{ident} names expected: {text!r}")
         self.assertIn("found", lower, f"{ident} names found: {text!r}")
         self.assertIn("satisfy", lower, f"{ident} names satisfy: {text!r}")
+        self.assertRegex(
+            text,
+            rf"{re.escape(ident)}:\s*expected",
+            f"{ident}: expected is the refusal class token: {text!r}",
+        )
         for phrase in phrases:
             self.assertIn(
                 phrase.lower(), lower,
                 f"{ident} text must name {phrase!r}: {text!r}",
+            )
+        for item in named:
+            self.assertIn(
+                str(item), text,
+                f"{ident} names {item!r} (session id, path, or value): "
+                f"{text!r}",
             )
         return text
 

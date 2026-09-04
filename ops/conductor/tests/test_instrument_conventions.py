@@ -35,6 +35,7 @@ REGISTRY = (
     ("onboard.py", ["unexpected"], "arguments", False),
     ("ci.py", ["report"], "store", False),
     ("branches.py", ["census", "unexpected"], "arguments", False),
+    ("findings.py", ["disposition", "NOSUCH#1", "fixed", "why"], "key", True),
 )
 
 
