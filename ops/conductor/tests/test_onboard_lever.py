@@ -1045,7 +1045,7 @@ class LaneNameSelectsStore(_OnboardFixture):
             "TRUNK_BRANCH='trunkx'\n"
             "RELEASE_BRANCH='relx'\n"
             "REPO_SLUG='org/projx'\n"
-            "CHECK_NAME='checkx'\n"
+            "CHECK_NAMES='checkx'\n"
             "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
             "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
             "MODEL_GROK='model-grok'\n"
