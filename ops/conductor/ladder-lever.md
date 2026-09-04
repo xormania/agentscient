@@ -36,7 +36,7 @@ dispatcher from the lane configuration, never carried in this table.
 |---|---|---|---|---|---|
 | `tests` | `author-tests` | grok | `tests` | scope, plan | always |
 | `check-tests` | `check-tests` | codex | `check-tests` | scope, plan, tests envelope | always |
-| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, skeptic envelope and `SKEPTIC.md` | skeptic says `changes` |
+| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, check-tests record and driver-written findings file | skeptic says `changes` |
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
@@ -107,7 +107,8 @@ After every transition the driver commits
 - scope, optional plan, and conf paths with SHA-256 digests;
 - ordered stage rows naming job, harness, attempt, input path and
   digest, custody proof, dispatch record, dispatched and recorded model
-  and effort, outcome, landed shas, and ledger import/export state;
+  and effort, outcome, landed shas, ledger import/export state, and the
+  driver-written check-tests findings file;
 - for every slice, the plan's declared bucket beside measured files,
   tests, lines, stage minutes, and findings per stage.
 
