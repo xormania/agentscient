@@ -25,7 +25,7 @@ REQUIRED_DEFAULTS = {
     "TRUNK_BRANCH": "dev",
     "RELEASE_BRANCH": "master",
     "REPO_SLUG": "uscient/agentscient",
-    "CHECK_NAME": "ci",
+    "CHECK_NAMES": "lane app",
     "WF_AGENT_DEFAULT": ls.AGENT,
     "LANE_AUTHOR": "Lane Owner <lane-owner@example.invalid>",
     "MODEL_GROK": "model-grok",
