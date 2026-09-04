@@ -303,7 +303,12 @@ class _LandFixture(unittest.TestCase):
         shas = [ln.strip() for ln in out.splitlines() if ln.strip()]
         return shas
 
-    def env(self, *, agent: str | None = AGENT) -> dict[str, str]:
+    def env(
+        self,
+        *,
+        agent: str | None = AGENT,
+        extra: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         env = {
             "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             "HOME": str(self.home),
@@ -319,10 +324,18 @@ class _LandFixture(unittest.TestCase):
         self.assertNotIn("XDG_STATE_HOME", env)
         if agent is not None:
             env["WF_AGENT"] = agent
+        if extra:
+            env.update(extra)
         return env
 
-    def invoke(self, argv: list[str], *, agent: str | None = AGENT):
-        env = self.env(agent=agent)
+    def invoke(
+        self,
+        argv: list[str],
+        *,
+        agent: str | None = AGENT,
+        extra_env: dict[str, str] | None = None,
+    ):
+        env = self.env(agent=agent, extra=extra_env)
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         else:
@@ -346,11 +359,12 @@ class _LandFixture(unittest.TestCase):
         extra: list[str] | None = None,
         *,
         agent: str | None = AGENT,
+        extra_env: dict[str, str] | None = None,
     ):
         argv = [record]
         if extra:
             argv.extend(extra)
-        return self.invoke(argv, agent=agent)
+        return self.invoke(argv, agent=agent, extra_env=extra_env)
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
@@ -1166,5 +1180,63 @@ class EnvelopeStatusNamesCollect(_LandFixture):
         self.assertEqual(self.sha("HEAD"), pre, "nothing may land")
 
 
+class LaneNameSelectsStore(_LandFixture):
+    """LANE_NAME from the conf selects the store under HOME.
+
+    Unit 1 contract: every state-root reader reads LANE_NAME through
+    the reader. Tests plant LANE_CONF and never write the tracked file.
+    """
+
+    def test_lane_name_from_conf_selects_the_store(self):
+        self.seed_repo()
+        self.plant_producers(
+            [("landed.txt", "landed-body\n", SUBJECT, True)]
+        )
+        conf = self.scratch / "lane.conf"
+        text = (
+            "# scratch lane conf\n"
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='dev'\n"
+            "RELEASE_BRANCH='master'\n"
+            "REPO_SLUG='uscient/agentscient'\n"
+            "CHECK_NAME='ci'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        self._plant_bytes(conf, text.encode("utf-8"))
+        landed = conf.read_text(encoding="utf-8")
+        self.assertIn("LANE_NAME='lanex'", landed)
+        store = self.home / ".local" / "state" / "lanex" / "dispatch"
+        rec_dir = store / REC
+        rec_dir.mkdir(parents=True)
+        self._plant_bytes(rec_dir / "exit", b"0\n")
+        self.assertTrue((store / REC / "exit").is_file())
+        self.assertFalse(
+            (self.store / REC).exists(),
+            "plant: agentscient record dir must be absent",
+        )
+        proc = self.land(extra_env={"LANE_CONF": str(conf)})
+        stdout = proc.stdout or ""
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            self.summary_line(stdout),
+            f"landed n=1 ref={REF}",
+            stdout,
+        )
+        self.assertEqual(
+            (self.repo / "landed.txt").read_text(encoding="utf-8"),
+            "landed-body\n",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
+
