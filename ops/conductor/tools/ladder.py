@@ -813,6 +813,7 @@ class Driver:
         if (
             not valid
             or counts != tally
+            or envelope.get("artifacts") != {}
             or verdict not in {"approve", "changes"}
             or (verdict == "approve" and bool(findings))
             or (verdict == "changes" and not findings)
@@ -1010,13 +1011,48 @@ class Driver:
         extra = [destination]
         if pending.name == "check-tests":
             findings_file = self.inputs_dir / "check-tests-findings.json"
-            findings_file.parent.mkdir(parents=True, exist_ok=True)
+            findings_dir = findings_file.parent
+            try:
+                if findings_dir.is_symlink():
+                    findings_dir.unlink()
+                findings_dir.mkdir(parents=True, exist_ok=True)
+                resolved_dir = findings_dir.resolve(strict=True)
+                resolved_worktree = self.worktree.resolve(strict=True)
+            except OSError as error:
+                raise Stopped(
+                    pending.name,
+                    pending.record_id,
+                    "findings-file",
+                    detail=str(error),
+                ) from error
+            if not resolved_dir.is_relative_to(resolved_worktree):
+                raise Stopped(
+                    pending.name,
+                    pending.record_id,
+                    "findings-file",
+                    detail="findings directory resolves outside the worktree",
+                )
             findings_payload = self.inputs_dir / "check-tests-findings.payload.json"
+            if findings_file.exists() or findings_file.is_symlink():
+                raise Stopped(
+                    pending.name,
+                    pending.record_id,
+                    "findings-file",
+                    detail="published findings path already exists",
+                )
             replace_text(
                 findings_payload,
                 json.dumps(envelope.get("findings"), indent=2, sort_keys=True) + "\n",
             )
-            findings_file.symlink_to(findings_payload.name)
+            try:
+                findings_file.symlink_to(findings_payload.name)
+            except OSError as error:
+                raise Stopped(
+                    pending.name,
+                    pending.record_id,
+                    "findings-file",
+                    detail=str(error),
+                ) from error
             row["findings_file"] = str(findings_file)
             extra.extend((findings_file, findings_payload))
         row["outcome"] = "ok"
