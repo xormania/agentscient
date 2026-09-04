@@ -331,10 +331,23 @@ class EnvelopeSpendIsFilledFromTheSessionStore(ls._TempLaunch):
         looked = spend.get("looked_in")
         self.assertIsInstance(looked, list, spend)
         self.assertGreater(len(looked), 0, spend)
-        blob = " ".join(str(p) for p in looked)
-        job_dir = self.the_job_dir()
+        self.assertNotEqual(
+            looked, ["grok"],
+            "looked_in names store roots, not the harness word",
+        )
+        job_dir = os.path.realpath(self.the_job_dir())
+        roots = []
+        for raw in looked:
+            text = str(raw)
+            self.assertIn(
+                "/", text,
+                f"looked_in entry is a path, not a token: {raw!r}",
+            )
+            real = os.path.realpath(text)
+            if real.startswith(job_dir) and "grok" in real:
+                roots.append(real)
         self.assertTrue(
-            "grok" in blob or str(job_dir) in blob,
-            f"looked_in must name the grok store root examined: "
-            f"{looked!r} job={job_dir}",
+            roots,
+            f"looked_in must name an examined grok store root under the "
+            f"job dir {job_dir}: {looked!r}",
         )
