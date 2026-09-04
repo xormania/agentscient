@@ -20,9 +20,23 @@
   },
   "stages": [
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
       "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-noguess/.dev/ladder-inputs/PLAN-noguess-s1.md",
+        "proof": {
+          "given": [
+            "### Verb"
+          ],
+          "withheld": []
+        },
+        "sha256": "3239502de5092b7b92bc42076e81000dacc57831a423eadfa38d0095c036b27d"
+      },
       "job": "author-tests",
       "name": "tests",
       "outcome": "pending",
