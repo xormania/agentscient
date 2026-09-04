@@ -13,6 +13,7 @@ The clause, verbatim:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import unittest
 
@@ -31,6 +32,115 @@ SPEND_TO_THE_LAUNCHER = (
     '"runs": 0}`; the launcher fills it from the session store. Do not '
     "read the store."
 )
+
+# Item 31: every job other than check-tests is frozen. prompt_sha256 is
+# SHA-256 of the prompt string; prompt None is pinned as None.
+OTHER_JOB_WIRES = {
+    "verify": {
+        "adapter": "direct",
+        "deliverable": (
+            "one claim, executed: a reproduction or a refutation"
+        ),
+        "prompt": None,
+        "constraints": ["read only", "never edit the snapshot"],
+    },
+    "adversarial-review": {
+        "adapter": "harness",
+        "deliverable": (
+            "findings that survived the task's own attempt to refute them"
+        ),
+        "role": "read",
+        "snapshot": "whole",
+        "caps": {"timeout": 1200},
+        "prompt_sha256": (
+            "29f1eb4b675aba92de83d49b2e456646335fe81475ac916a15a98ca266af18dc"
+        ),
+        "constraints": ["read only", "do not edit the snapshot"],
+    },
+    "security-audit": {
+        "adapter": "harness",
+        "deliverable": (
+            "security findings against the change, each with a "
+            "reproduction, that survived the auditor's own attempt to "
+            "refute them"
+        ),
+        "role": "read",
+        "snapshot": "whole",
+        "caps": {"timeout": 1200},
+        "prompt_sha256": (
+            "7dcf07553df5d024e327f9ddcfa118b8e6da54be705c3ff2dd4b1181da3c86ad"
+        ),
+        "constraints": ["read only", "do not edit the snapshot"],
+    },
+    "author-tests": {
+        "adapter": "harness",
+        "deliverable": (
+            "a test file that has been run and is red for the stated reason"
+        ),
+        "role": "write",
+        "snapshot": "whole",
+        "caps": {"timeout": 1800},
+        "prompt_sha256": (
+            "5837d42dd53d13edd27a31ec33353791e21697596238a6fec1839ad53be48c5e"
+        ),
+        "constraints": ["do not edit the implementation", "no network"],
+    },
+    "sweep": {
+        "adapter": "harness",
+        "deliverable": (
+            "structured findings over disjoint categories, merged"
+        ),
+        "role": "read",
+        "snapshot": "whole",
+        "prompt_sha256": (
+            "69113adc3703823d99da9b40a605071b8adf37a9f3bcd16540ee4f244874b4e6"
+        ),
+        "constraints": ["read only", "do not edit the snapshot"],
+    },
+    "plan": {
+        "adapter": "harness",
+        "deliverable": (
+            "a plan written to the job's out/PLAN.md, and an envelope "
+            "naming it"
+        ),
+        "role": "read",
+        "snapshot": "whole",
+        "prompt_sha256": (
+            "3548d793298215c967422d67292bc492f4769c79972ea9c4f631f175332e9afc"
+        ),
+        "constraints": ["read only", "do not edit the snapshot"],
+    },
+    "implement": {
+        "adapter": "harness",
+        "deliverable": (
+            "commits in the snapshot that make the named test command "
+            "pass, trailers per AGENTS.md"
+        ),
+        "role": "write",
+        "snapshot": "whole",
+        "caps": {"timeout": 3600},
+        "prompt_sha256": (
+            "464d0a35b9cd30c14559fcba0a51895cfb97bf13a8b1c9b72db854cda854a00f"
+        ),
+        "constraints": [
+            "do not edit the files the tests live in",
+            "no network",
+        ],
+    },
+    "adjudicate": {
+        "adapter": "harness",
+        "deliverable": (
+            "a ruling at the job's out/RULING.md: UPHELD, PARTIAL or "
+            "REJECTED per finding, and what the reviewers missed"
+        ),
+        "role": "read",
+        "snapshot": "whole",
+        "prompt_sha256": (
+            "3490f9e27ebc6218b847431c5676725aa8800561d2a25d08f2c146f43831a15d"
+        ),
+        "constraints": ["read only", "do not edit the snapshot"],
+    },
+}
 
 
 class AuthorTestsBriefAsksForTheEnvelope(unittest.TestCase):
@@ -125,6 +235,55 @@ class EveryHarnessPromptLeavesSpendToTheLauncher(unittest.TestCase):
             "every harness job prompt leaves spend to the launcher; "
             f"missing from {missing!r}",
         )
+
+
+class OtherJobWiresAreUnchanged(unittest.TestCase):
+    """Item 31: the job wire is unchanged for every other job."""
+
+    def test_every_other_job_wire_is_unchanged(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        self.assertIn("check-tests", jobs)
+        others = {
+            name: spec for name, spec in jobs.items() if name != "check-tests"
+        }
+        self.assertEqual(
+            set(others),
+            set(OTHER_JOB_WIRES),
+            "another job was added or removed; check-tests is the only "
+            f"job in this bucket: {sorted(others)!r}",
+        )
+        for name, expected in OTHER_JOB_WIRES.items():
+            spec = others[name]
+            self.assertIsInstance(spec, dict, name)
+            expected_keys = {
+                ("prompt" if key == "prompt_sha256" else key)
+                for key in expected
+            }
+            self.assertEqual(
+                set(spec),
+                expected_keys,
+                f"{name} keys changed: {sorted(spec)!r}",
+            )
+            for key, value in expected.items():
+                if key == "prompt_sha256":
+                    prompt = spec.get("prompt")
+                    self.assertIsInstance(prompt, str, name)
+                    digest = hashlib.sha256(
+                        prompt.encode("utf-8"),
+                    ).hexdigest()
+                    self.assertEqual(
+                        digest,
+                        value,
+                        f"{name} prompt changed",
+                    )
+                    continue
+                self.assertEqual(
+                    spec.get(key),
+                    value,
+                    f"{name}.{key} changed",
+                )
 
 
 if __name__ == "__main__":
