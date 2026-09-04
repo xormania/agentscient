@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import unittest
 
 import support
@@ -32,6 +33,34 @@ SPEND_TO_THE_LAUNCHER = (
     '"runs": 0}`; the launcher fills it from the session store. Do not '
     "read the store."
 )
+
+STDOUT_EMPTY_ARTIFACTS = (
+    "Return the JSON envelope on stdout and leave artifacts empty."
+)
+
+# Shape, not a name list: a write verb plus a path-shaped token, or an
+# artifacts-output instruction. REPORT.rst and reports/findings.json
+# must fail this; listing SKEPTIC.md / {out} / REPORT.txt must not be
+# enough to pass.
+WRITE_PATH_ASK = re.compile(
+    r"(?is)"
+    r"\b(?:write|create|persist|save|store|emit|dump)\b"
+    r".{0,200}?"
+    r"(?:\{out\}|(?<![A-Za-z])out/|/\S+|\b[\w.-]+\.\w{1,8}\b)"
+)
+ARTIFACTS_OUTPUT_ASK = re.compile(
+    r"(?i)\b(?:write|name|include|put|place)\b.{0,80}\bartifacts\b"
+)
+
+
+def write_path_ask(text: str):
+    """Return the first write-path instruction in text, or None."""
+    if not isinstance(text, str) or not text.strip():
+        return None
+    match = WRITE_PATH_ASK.search(text)
+    if match:
+        return match
+    return ARTIFACTS_OUTPUT_ASK.search(text)
 
 # Item 31: every job other than check-tests is frozen. prompt_sha256 is
 # SHA-256 of the prompt string; prompt None is pinned as None.
@@ -234,6 +263,72 @@ class EveryHarnessPromptLeavesSpendToTheLauncher(unittest.TestCase):
             missing, [],
             "every harness job prompt leaves spend to the launcher; "
             f"missing from {missing!r}",
+        )
+
+
+class CheckTestsReadRolePromptRejectsAnyWritePath(unittest.TestCase):
+    """check-tests is a read role; its prompt test is not a blacklist."""
+
+    def jobs(self) -> dict:
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        payload = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(payload, dict)
+        return payload
+
+    def test_check_tests_role_is_read(self):
+        jobs = self.jobs()
+        self.assertIn("check-tests", jobs)
+        spec = jobs["check-tests"]
+        self.assertIsInstance(spec, dict)
+        self.assertEqual(
+            spec.get("role"),
+            "read",
+            "check-tests is a read role; a write-path prompt is a "
+            f"role change, not a deliverable tweak: {spec!r}",
+        )
+
+    def test_a_report_rst_write_prompt_is_rejected_by_shape(self):
+        prompt = (
+            "Create REPORT.rst in the repository and include it in "
+            "artifacts. Return the JSON envelope on stdout and leave "
+            "artifacts empty."
+        )
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "read-role prompt test must reject REPORT.rst by shape, "
+            "not because REPORT.txt is on a name list",
+        )
+
+    def test_a_findings_json_persist_prompt_is_rejected_by_shape(self):
+        prompt = (
+            "Persist the skeptic findings under reports/findings.json."
+        )
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "read-role prompt test must reject reports/findings.json "
+            "by shape, not by listing SKEPTIC.md or {out}",
+        )
+
+    def test_live_check_tests_prompt_is_not_a_write_path(self):
+        spec = self.jobs()["check-tests"]
+        prompt = spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "check-tests prompt is empty")
+        match = write_path_ask(prompt)
+        self.assertIsNone(
+            match,
+            "check-tests read-role prompt asks for a write path: "
+            f"{match.group(0)!r}"
+            if match
+            else "",
+        )
+        self.assertIn(
+            STDOUT_EMPTY_ARTIFACTS,
+            prompt,
+            "check-tests prompt must keep the stdout / empty-artifacts "
+            f"clause; last 240 chars: {prompt[-240:]!r}",
         )
 
 
