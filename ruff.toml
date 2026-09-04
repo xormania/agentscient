@@ -29,6 +29,9 @@ extend-exclude = [
     # `ruff check ..` is the dispatch gate. The sibling `home/` is launcher
     # runtime custody (harness installs and caches), not this repository.
     "../home",
+    # Fixture apps are linted through their own prove/check commands. Root
+    # ruff must leave their planted K1/K4 faults intact for calibration.
+    "ops/devlane/fixtures/apps",
 ]
 
 [lint]
@@ -118,6 +121,7 @@ ignore = [
 # instruments — each with a code-built argv; THIS-FILE-ONLY rows, as the
 # House kept them, so a future tool earns its own row or stays clean.
 "ops/conductor/tools/watch.py" = ["S603"]
+"ops/conductor/tools/watchdog.py" = ["S603", "BLE001"]  # gh and pgrep with code-built argv; the tick guard catches everything by design
 "ops/conductor/tools/ci.py" = ["S603"]
 "ops/conductor/tools/land.py" = ["S603"]
 "ops/conductor/tools/branches.py" = ["S603"]

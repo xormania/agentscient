@@ -24,6 +24,7 @@ responsibilities; it is the thing the twins are measured against.
 | `ops/devlane/hooks/` | git hooks (crossing recorder, trailer gate) and the Claude hooks wired by `.claude/settings.json` |
 | `ops/devlane/workflow/checks/` | deterministic guards: trailers, secrets, CI shape, the vocabulary wall, the term wall |
 | `ops/devlane/fixtures/` | synthetic harness envelopes and store builders — never raw captures |
+| `ops/devlane/fixtures/apps/` | whole-project calibration fixtures with planted faults — apparatus, never product code |
 | `ops/devlane/infra/` | the local CI muscle: Gitea, act_runner, the lane image (inert until composed up) |
 | `ops/conductor/` | the conductor lane: the instruments (register, ledger, watch, land, onboard, CI store, census, skills, the doctor), their contracts and suites, the ideas and hand-off records, the AARs — `ops/conductor/README.md` |
 | `ops/process/` | the pipeline law: who produces what, what each is denied, review, tdd, bdd, worth |
@@ -38,6 +39,7 @@ responsibilities; it is the thing the twins are measured against.
 | run | does |
 |---|---|
 | `ops/bin/suites.sh` | runs every lane suite exactly as CI does; the local answer and the CI answer are one command |
+| `ops/bin/fixture.sh` | makes isolated fixture repositories, proves their planted faults red or fixed faults green, and grades review records |
 | `ops/bin/dispatch.sh` | the shim for `ops/conductor/tools/dispatch.sh`: one job to one harness through the launcher in the same worktree; `--detach` returns the minted record id at once, and `launch.py wait ID` waits for closure |
 | `ops/bin/go.sh` | the one-word front of `dispatch.sh`: `go.sh <intent> <branch|.> <scope…>`; `DETACH=1` passes the detached-launch mode through |
 | `ops/bin/board.sh` | what is open, measured now: PRs and worktrees per repository |

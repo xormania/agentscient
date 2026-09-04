@@ -1,0 +1,171 @@
+{
+  "id": "20260904T060817Z-code-grok-48112f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-conf",
+  "lineage": {
+    "branch": "lane/lane-conf",
+    "base_sha": "c7681ace990000846343b2f1f71851e2927ea77e"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T06:08:17Z",
+    "closed": "2026-09-04T06:30:08Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c7681ace990000846343b2f1f71851e2927ea77e",
+    "ref_sha": "c7681ace990000846343b2f1f71851e2927ea77e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b30d882c-9e12-4964-b1a3-127adc9b82be",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/home/grok-stream/sessions/<snapshot-encoded>/b30d882c-9e12-4964-b1a3-127adc9b82be/summary.json"
+  },
+  "session": {
+    "id": "b30d882c-9e12-4964-b1a3-127adc9b82be",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/home/grok-stream/sessions/<snapshot-encoded>/b30d882c-9e12-4964-b1a3-127adc9b82be/summary.json",
+    "stream_sha256_at_close": "c3302271a008f7d8e196e4fc1a20cffdbfdff61f86dc258c2d3c8bf22df13517",
+    "spend": {
+      "input": 5918390,
+      "cached": 5350016,
+      "output": 64460,
+      "total": 5982850,
+      "cost_usd_ticks": 7137477200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/home/grok-stream/sessions/<snapshot-encoded>/b30d882c-9e12-4964-b1a3-127adc9b82be/summary.json",
+      "messages": 310
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-conf/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The ladder batch, unit 1 (the lane conf), tests only: write the tests plan section 2 names for unit 1, red at this ref, one commit per file (ops/conductor/tests/test_laneconf.py, ops/devlane/dispatch/tests/test_launch_lane_conf.py, and the additions to test_dispatch_wrapper.py, test_instrument_conventions.py, test_land_lever.py), from the contract in the input files. Unit 2 (the driver) is a later run; do not write its tests. No implementation exists; do not write one.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T060817Z-code-grok-48112f/in/contract-laneconf.md",
+        "sha256": "086db2ea7016eee10918498d32256de207954841a0a07338054e27464076046e"
+      }
+    ],
+    "sha256": "3481724e843c595bb791f79212fbc0e0b82ec34e70bcd02c411084c715bcee2a",
+    "bytes": 2816
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T06:08:17Z",
+      "ended": "2026-09-04T06:30:08Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "afde6ddf275629981cd31d1333bbe912841886e2",
+    "changed_paths": [
+      "ops/conductor/tests/test_dispatch_wrapper.py",
+      "ops/conductor/tests/test_instrument_conventions.py",
+      "ops/conductor/tests/test_land_lever.py",
+      "ops/conductor/tests/test_laneconf.py",
+      "ops/devlane/dispatch/tests/test_launch_lane_conf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_laneconf.py PIN_SCAN_ROOT",
+          "claim": "The contract names closure and literals over a scratch tree but does not name how the scan root is selected. Tests pin it as the git toplevel of the file named by LANE_CONF.",
+          "reproduce": null
+        }
+      ],
+      "artifacts": {
+        "ops/conductor/tests/test_laneconf.py": "get, env-beats-conf, local-key, syntax, bash/python parity, closure, literals; 21 collected, 29 failed, 0 passed, 0 errors at c7681ac",
+        "ops/devlane/dispatch/tests/test_launch_lane_conf.py": "WALL_DEFAULT, SCOPE_CAP, LANE_NAME jobs root, TRUNK_BRANCH record-target, conf-key; 6 collected, 6 failed, 0 passed, 0 errors at c7681ac",
+        "ops/conductor/tests/test_dispatch_wrapper.py": "CONF_ENV=LANE_CONF plus SCOPE_CAP, LANE_NAME, lane.local.conf, missing SCOPE_CAP rows; 5 new tests failed on their contracted assertions at c7681ac",
+        "ops/conductor/tests/test_instrument_conventions.py": "registry row (laneconf.py, get NO_SUCH_KEY, class key, no identity); laneconf subtests fail, other instruments still speak the wire",
+        "ops/conductor/tests/test_land_lever.py": "LANE_NAME=lanex selects ~/.local/state/lanex/dispatch; red is record refusal under agentscient"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5982850,
+        "out": 64460,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c7681ace990000846343b2f1f71851e2927ea77e",
+        "started": "2026-09-04T06:08:17Z",
+        "ended": "2026-09-04T06:29:40Z"
+      },
+      "note": "Unit 1 tests only, one commit per named file, detached HEAD afde6ddf275629981cd31d1333bbe912841886e2. Proven red against c7681ac before each commit. No ops/conductor/tools/laneconf.py and no ops/lane.conf. Unit 2 tests were not written."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T06:30:08.484Z"
+    }
+  },
+  "status": "closed"
+}
