@@ -3424,6 +3424,65 @@ class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
             f"payload: {leaked!r}",
         )
 
+    def test_empty_changes_with_a_leak_stops_envelope_not_withheld(self):
+        empty_counts = {"p1": 0, "p2": 0, "p3": 0, "opinions": 0}
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            stage_findings={"check-tests": []},
+            leak_implement_into="check-tests",
+            envelope_patches={
+                "check-tests": {
+                    "verdict": "changes",
+                    "findings": [],
+                    "counts": dict(empty_counts),
+                },
+            },
+        )
+        planted = self.load_plant()
+        self.assertEqual(planted["verdicts"]["check-tests"], "changes")
+        self.assertEqual(planted["stage_findings"]["check-tests"], [])
+        self.assertEqual(planted["leak_implement_into"], "check-tests")
+        self.assertEqual(
+            planted["envelope_patches"]["check-tests"]["findings"],
+            [],
+        )
+        self.assertEqual(
+            planted["envelope_patches"]["check-tests"]["counts"],
+            empty_counts,
+        )
+        before = self.files_before_run()
+        proc = self.run_ladder()
+        rec_id = self.record_id_for("check-tests")
+        last = self.assert_stopped(
+            proc, stage="check-tests", record=rec_id, reason="envelope",
+        )
+        self.assertNotIn("reason=withheld", last)
+        env = self.check_tests_envelope()
+        self.assertEqual(env.get("verdict"), "changes", env)
+        self.assertEqual(env.get("findings"), [], env)
+        self.assertEqual(env.get("counts"), empty_counts, env)
+        self.assertEqual(
+            env.get("note"),
+            IMPLEMENT_LINE,
+            "the leak must be present in the judged envelope so a "
+            f"leak-first driver would stop withheld, not envelope: {env!r}",
+        )
+        names = self.dispatch_names()
+        self.assertNotIn(
+            "tests-fix",
+            names,
+            "empty changes with a leak must not mint tests-fix: "
+            f"{names!r} {self.combined(proc)}",
+        )
+        self.assertNotIn("code", names, names)
+        leaked = self.findings_payload_files(before)
+        self.assertEqual(
+            leaked,
+            [],
+            "an empty changes envelope must not write a findings "
+            f"payload even when it also leaks: {leaked!r}",
+        )
+
     def test_findings_none_does_not_move_to_tests_fix(self):
         planted = [dict(CHECK_TESTS_FINDING)]
         self.patch_plant(
