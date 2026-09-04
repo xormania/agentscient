@@ -40,8 +40,9 @@ monotonic = time.monotonic
 with contextlib.suppress(Exception):
     faulthandler.enable()
 sleep = time.sleep
-# The wait loop's tick. Once a second is enough for walls measured in
-# minutes; the old 50 ms re-read the session stream twenty times a second.
+# How often the wait loop reads the session stream (the expensive part:
+# a glob of the job home and a regex over a multi-megabyte file). The
+# cheap checks, the child's exit, the wall and the grace, run every 50 ms.
 TICK = float(os.environ.get("DISPATCH_TICK", "1"))
 
 
@@ -760,27 +761,31 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         grace = float(os.environ.get("DISPATCH_STREAM_GRACE", "120"))
         started_clock = monotonic()
         runtime_note = None
+        last_read = -TICK
+        stream = None
         while proc.poll() is None:
             elapsed = monotonic() - started_clock
-            stream, _ran, _sid, _mis = _stream(
-                job_dir, harness, rec["session"]["id"], snapshot,
-                rec["snapshot"]["ref_sha"],
-            )
-            over = False
-            if stream and rec["caps"].get("cap-out") is not None:
-                with contextlib.suppress(OSError):
-                    over = any(int(n) > int(rec["caps"]["cap-out"])
-                               for n in re.findall(r'"output_tokens"\s*:\s*(\d+)', stream.read_text()))
-            if over:
-                runtime_note = "trip: output cap exceeded"
-                break
+            if elapsed - last_read >= TICK:
+                last_read = elapsed
+                stream, _ran, _sid, _mis = _stream(
+                    job_dir, harness, rec["session"]["id"], snapshot,
+                    rec["snapshot"]["ref_sha"],
+                )
+                over = False
+                if stream and rec["caps"].get("cap-out") is not None:
+                    with contextlib.suppress(OSError):
+                        over = any(int(n) > int(rec["caps"]["cap-out"])
+                                   for n in re.findall(r'"output_tokens"\s*:\s*(\d+)', stream.read_text()))
+                if over:
+                    runtime_note = "trip: output cap exceeded"
+                    break
             if elapsed >= timeout:
                 runtime_note = "timeout: harness exceeded runtime"
                 break
             if not stream and elapsed >= grace:
                 runtime_note = "unsupervised: no session stream within grace"
                 break
-            sleep(min(TICK, max(0.0, min(timeout, grace) - elapsed)))
+            sleep(min(0.05, max(0.0, min(timeout, grace) - elapsed)))
         if runtime_note:
             with contextlib.suppress(OSError, ProcessLookupError):
                 os.killpg(proc.pid, signal.SIGKILL)
