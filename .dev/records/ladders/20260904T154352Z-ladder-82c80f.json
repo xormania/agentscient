@@ -57,9 +57,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/.dev/records/dispatches/20260904T154353Z-tests-grok-ea5f39.json",
+        "proof": {
+          "given": [
+            "### 3.1 Closure \u2014 `closure.cue`, `closure.py`, `closure.json`",
+            "20260904T154353Z-tests-grok-ea5f39"
+          ],
+          "withheld": []
+        },
+        "sha256": "ec076ddba828c3853ae1755800549b6d88a41a894ab8e5b39f2d29d41ac58420"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
