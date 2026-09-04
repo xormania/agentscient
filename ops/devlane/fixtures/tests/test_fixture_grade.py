@@ -14,6 +14,7 @@ copy-or-stub so each assertion goes red on the grading promise.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import re
@@ -25,6 +26,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
+ENVELOPE_SRC = REPO / "ops" / "devlane" / "task" / "envelope.py"
+RECORD_SRC = REPO / "ops" / "devlane" / "dispatch" / "record.py"
 
 APP = "synth"
 REC_ID = "20260904T000000Z-review-grok-synth01"
@@ -140,6 +143,7 @@ class _GradeFixture(unittest.TestCase):
         self.staged = self.repo / "ops" / "bin" / "fixture.sh"
         self.capture = root / "calibrate.stdin"
         self._stage_lever()
+        self._plant_contract_modules()
         self._plant_findings_stub()
         self._plant_manifest()
 
@@ -161,6 +165,17 @@ class _GradeFixture(unittest.TestCase):
             self.assertEqual(landed, ABSENT_STUB)
             self.assertEqual(len(landed), len(ABSENT_STUB))
         self.staged.chmod(self.staged.stat().st_mode | stat.S_IXUSR)
+
+    def _plant_contract_modules(self) -> None:
+        copies = (
+            (ENVELOPE_SRC, self.repo / "ops" / "devlane" / "task" / "envelope.py"),
+            (RECORD_SRC, self.repo / "ops" / "devlane" / "dispatch" / "record.py"),
+        )
+        for src, dest in copies:
+            self.assertTrue(src.is_file(), f"INVALID: {src} missing from the tree")
+            data = src.read_bytes()
+            _plant_bytes(self, dest, data)
+            self.assertEqual(dest.read_bytes(), data)
 
     def _plant_findings_stub(self) -> None:
         path = self.repo / "ops" / "conductor" / "tools" / "findings.py"
@@ -235,6 +250,7 @@ class _GradeFixture(unittest.TestCase):
         job: str = "security-audit",
         findings: list[dict] | None = None,
         rec_id: str = REC_ID,
+        status: str = "closed",
     ) -> dict:
         if findings is None:
             findings = [
@@ -245,10 +261,69 @@ class _GradeFixture(unittest.TestCase):
             ]
         return {
             "id": rec_id,
+            "lane": "dev",
+            "stage": "review",
+            "unit": "synth",
+            "lineage": {"branch": "lane/synth", "base_sha": "a" * 40},
+            "follows": [],
             "job": job,
-            "harness": {"name": HARNESS},
-            "model": {"ran": MODEL, "requested": MODEL},
+            "role": "read",
+            "dispatched_by": AGENT,
+            "at": {
+                "launched": "2026-09-04T00:00:00Z",
+                "closed": "2026-09-04T00:00:01Z",
+            },
+            "snapshot": {
+                "mode": "whole",
+                "ref_name": "HEAD",
+                "ref_sha": "b" * 40,
+                "behind_tip": 0,
+                "root": "/tmp/jobs/synth/snapshot",
+            },
+            "harness": {
+                "name": HARNESS,
+                "version": "test",
+                "isolation": {
+                    "mechanism": "home",
+                    "env": {"GROK_HOME": "/tmp/jobs/synth/home/grok"},
+                    "home": "/tmp/jobs/synth/home/grok",
+                    "auth_files": ["auth.json"],
+                    "store": "/tmp/jobs/synth/home/grok/sessions",
+                    "observed": {
+                        "unresolved": "behavioural probe has not run",
+                    },
+                },
+                "sandbox": "plan",
+                "containment": "policy",
+                "argv": ["grok", "-s", "uuid"],
+            },
+            "model": {
+                "requested": MODEL,
+                "effort_requested": None,
+                "effort_argv": [],
+                "ran": MODEL,
+                "read_from": "stream",
+            },
+            "session": {
+                "id": "00000000-0000-4000-8000-000000000001",
+                "stream": None,
+                "stream_sha256_at_close": None,
+            },
+            "brief": {
+                "template": {
+                    "path": "ops/devlane/task/jobs.json",
+                    "sha256": "c" * 64,
+                },
+                "scope": "synth",
+                "inputs": [],
+                "sha256": "d" * 64,
+                "bytes": 3,
+            },
+            "caps": {"cap-out": 500000, "source": "wires.py"},
+            "overrides": [],
+            "attempts": [],
             "result": {"envelope": _valid_envelope(job, findings)},
+            "status": status,
         }
 
     def plant_record(
@@ -603,6 +678,73 @@ class GradeClassifies(_GradeFixture):
 
 
 class GradeRefuses(_GradeFixture):
+    def test_complete_record_helper_passes_record_validate(self):
+        self.assertTrue(RECORD_SRC.is_file(), "INVALID: record.py missing")
+        spec = importlib.util.spec_from_file_location(
+            "dispatch_record_for_grade", RECORD_SRC
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        payload = self.record_payload()
+        mod.validate(payload)
+        died = self.record_payload(status="died")
+        mod.validate(died)
+        with self.assertRaises(mod.RecordError):
+            broken = self.record_payload()
+            del broken["lineage"]
+            mod.validate(broken)
+
+    def test_grade_refuses_a_findings_only_envelope(self):
+        findings = [_finding("p1", "src/a.py:10-12", "LEGACY_FINDINGS_ONLY")]
+        payload = self.record_payload(findings=findings)
+        payload["result"]["envelope"] = {"findings": findings}
+        self.assertEqual(set(payload["result"]["envelope"]), {"findings"})
+        rec = self.plant_record(payload)
+        proc = self.grade(str(rec))
+        self.assert_refusal(proc, "record")
+        self.assertFalse(
+            self.capture.exists(),
+            "a findings-only envelope must not write calibrate rows",
+        )
+
+    def test_grade_refuses_an_outer_tripped_record(self):
+        payload = self.record_payload(status="tripped")
+        self.assertEqual(payload["status"], "tripped")
+        self.assertEqual(payload["result"]["envelope"]["status"], "ok")
+        rec = self.plant_record(payload)
+        proc = self.grade(str(rec))
+        self.assert_refusal(proc, "record")
+        self.assertFalse(
+            self.capture.exists(),
+            "an outer tripped record must not write calibrate rows",
+        )
+
+    def test_grade_refuses_a_died_record_even_when_the_envelope_is_ok(self):
+        payload = self.record_payload(status="died")
+        self.assertEqual(payload["status"], "died")
+        self.assertEqual(payload["result"]["envelope"]["status"], "ok")
+        rec = self.plant_record(payload)
+        proc = self.grade(str(rec))
+        self.assert_refusal(proc, "record")
+        self.assertFalse(
+            self.capture.exists(),
+            "a died record must not write calibrate rows",
+        )
+
+    def test_grade_refuses_a_record_that_fails_record_validate(self):
+        payload = self.record_payload()
+        del payload["lineage"]
+        self.assertNotIn("lineage", payload)
+        rec = self.plant_record(payload)
+        proc = self.grade(str(rec))
+        self.assert_refusal(proc, "record")
+        self.assertFalse(
+            self.capture.exists(),
+            "a record that fails record.validate must not write calibrate rows",
+        )
+
     def test_grade_refuses_record_when_the_job_is_not_a_review_job(self):
         rec = self.plant_record(self.record_payload(job="plan"))
         proc = self.grade(str(rec))
