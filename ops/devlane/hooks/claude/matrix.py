@@ -25,12 +25,15 @@ row that cannot look refuses: "could not look" is not a pass.
     contract-vet    harness contracts do not vet as a package     cue vet
     dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
                     worktree, DISPATCH_TIMEOUT and WF_AGENT       text
+    dispatch-by-hand a driver job sent straight to dispatch.sh    job, command word
+    test-form       unittest given a path instead of discovery    tokens
     prune           rm -r of records, state, worktrees, .git      statement
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
-path -- and only for hand-write and direct-launch.  The other rows have no
-escape: a launch that would refuse at mint refuses here, before the mint.
+path -- and only for hand-write and direct-launch.  An unscoped open grant
+also permits dispatch-by-hand.  The other rows have no escape: a launch that
+would refuse at mint refuses here, before the mint.
 """
 
 import json
@@ -57,6 +60,12 @@ RECORD_PREFIXES = (
     "ops/conductor/probes/",
 )
 WRITE_JOBS = ("author-tests", "implement")
+ALLOWED_BY_HAND = {
+    "plan": "planning is a session-owned read job",
+    "adjudicate": "adjudication is a session-owned decision job",
+    "sweep": "sweeping is a session-owned read job",
+    "verify": "verification is a session-owned read job",
+}
 DISPATCHERS = ("dispatch.sh", "go.sh")
 LAUNCHER = "launch.py"
 DRIVER = "ladder.sh"
@@ -69,7 +78,7 @@ WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
 PY_WRITE = re.compile(r"open\([^)]*['\"][wa]['\"]|write_text\(|write_bytes\(|\.writelines\(")
-PY_PATH = re.compile(r"['\"]((?:[./\w-]*/)?(?:ops|docs|packages|src|\.github|\.claude|config|bin)/[^'\"\s]+)['\"]")
+PY_PATH = re.compile(r"(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)")
 ASSIGN = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(\S+)", re.MULTILINE)
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
@@ -289,7 +298,7 @@ def dispatch_args(tokens):
             break
     if kind is None:
         return None, {}
-    flags = {"input": []}
+    flags = {"input": [], "command": name}
     it = iter(tokens)
     for flag in it:
         if flag in ("--scope-file", "--worktree", "--job", "--model", "--effort", "--harness", "--stage", "--unit"):
@@ -302,6 +311,25 @@ def dispatch_args(tokens):
             key, _, value = flag[2:].partition("=")
             flags[key] = value
     return kind, flags
+
+
+def path_form_unittest(tokens):
+    """The path argument of ``python -m unittest``, or None."""
+    if not tokens or not re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", base(tokens[0])):
+        return None
+    try:
+        module = tokens.index("-m")
+    except ValueError:
+        return None
+    if module + 1 >= len(tokens) or tokens[module + 1] != "unittest":
+        return None
+    args = tokens[module + 2:]
+    if "discover" in args:
+        return None
+    for argument in args:
+        if not argument.startswith("-") and ("/" in argument or argument.endswith(".py")):
+            return argument
+    return None
 
 
 def expand(script_text, cwd):
@@ -343,6 +371,11 @@ def check_dispatch(kind, flags, cwd, text, grant):
             return deny("input-absent", "a literal input path", f"unresolved {path}", "write the path out in the run script")
         if not os.path.isfile(absolute) or os.path.getsize(absolute) == 0:
             return deny("input-absent", "a readable non-empty input", f"{path} missing or empty", "write it before dispatch")
+        content = read_text(absolute)
+        unresolved = re.search(r"\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[^}]+\})", content or "")
+        if unresolved:
+            return deny("input-absent", "inputs with literal resolved paths",
+                        f"unresolved {unresolved.group(0)} in {path}", "write the resolved value into the input")
     scope_file = flags.get("scope-file", "")
     cap = int(conf.get("SCOPE_CAP", SCOPE_CAP_DEFAULT))
     if scope_file:
@@ -358,6 +391,12 @@ def check_dispatch(kind, flags, cwd, text, grant):
             return deny("bucket-command", "the bucket's tests as the named command",
                         f'"{hit.group(0)}" in {scope_file}',
                         "name the bucket's test files; the whole suite is not a bucket (ranking K2)")
+        for statement in commands(scope_text):
+            argument = path_form_unittest(tokens_of(statement))
+            if argument:
+                return deny("bucket-command", "the bucket's tests in unittest discover form",
+                            f"path-form unittest argument {argument} in {scope_file}",
+                            "name the tests with discover -s and -p")
     if job in WRITE_JOBS:
         inputs_text = "\n".join(read_text(os.path.normpath(os.path.join(cwd, p))) or "" for p in flags["input"])
         if not (WALK_HEADING.search(inputs_text) and WALK_LINE.search(inputs_text)):
@@ -399,6 +438,10 @@ def check_dispatch(kind, flags, cwd, text, grant):
         for name in ("DISPATCH_TIMEOUT", "WF_AGENT"):
             if f"{name}=" not in text:
                 return deny("dispatch-env", f"{name} set for the launch", f"no {name}", "export it in the run script")
+    if job and job not in ALLOWED_BY_HAND and not (grant is not None and not grant[1]):
+        command = flags["command"]
+        return deny("dispatch-by-hand", f"the ladder driver to run {job} (ops/bin/ladder.sh)",
+                    f"{command} --job {job} from the session", "start or resume a ladder for the lane")
     return None
 
 
@@ -411,10 +454,11 @@ def check_text(text, cwd, depth=0):
     grant = open_grant(text, lane)
     if PY_WRITE.search(text):
         for match in PY_PATH.finditer(text):
-            _, rel = relative(match.group(1), cwd)
+            path = match.group("path")
+            _, rel = relative(path, cwd)
             if is_code(rel) and not grant_covers(grant, rel):
                 return deny("hand-write", "code changed through the ladder (freeze)",
-                            f"a script writing {match.group(1)}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
+                            f"a script writing {path}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
     for statement in commands(text):
         toks = tokens_of(statement)
         if not toks:
@@ -437,6 +481,10 @@ def check_text(text, cwd, depth=0):
             refusal = check_dispatch(kind, flags, cwd, text, grant)
             if refusal:
                 return refusal
+        unittest_path = path_form_unittest(toks)
+        if unittest_path:
+            return deny("test-form", "the discover form (python3 -m unittest discover -s <tests dir> -p <file>) or ops/bin/suites.sh",
+                        f"a path-form unittest argument {unittest_path}", "the discover form")
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
                 refusal = check_text(toks[2], cwd, depth + 1)
