@@ -1,0 +1,58 @@
+#!/usr/bin/env php
+<?php
+
+require $GLOBALS['_composer_autoload_path'];
+
+use PHPUnit\Framework\TestCase;
+
+$arguments = array_slice($argv, 1);
+$files = [];
+for ($index = 0; $index < count($arguments); ++$index) {
+    if ('--bootstrap' === $arguments[$index]) {
+        require $arguments[++$index];
+        continue;
+    }
+    if (str_ends_with($arguments[$index], '.php')) {
+        $files[] = $arguments[$index];
+    }
+}
+if (!$files) {
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('tests'));
+    foreach ($iterator as $file) {
+        if ($file->isFile() && str_ends_with($file->getFilename(), 'Test.php')) {
+            $files[] = $file->getPathname();
+        }
+    }
+}
+
+$before = get_declared_classes();
+foreach ($files as $file) {
+    require_once $file;
+}
+$classes = array_diff(get_declared_classes(), $before);
+$tests = 0;
+$failures = [];
+foreach ($classes as $class) {
+    if (!is_subclass_of($class, TestCase::class)) {
+        continue;
+    }
+    $case = new $class();
+    foreach (get_class_methods($case) as $method) {
+        if (!str_starts_with($method, 'test')) {
+            continue;
+        }
+        ++$tests;
+        try {
+            $case->$method();
+        } catch (Throwable $error) {
+            $failures[] = $class.'::'.$method.': '.$error->getMessage();
+        }
+    }
+}
+
+if ($failures) {
+    fwrite(STDERR, implode("\n", $failures)."\nTests: $tests, Failures: ".count($failures)."\n");
+    exit(1);
+}
+
+fwrite(STDOUT, "OK ($tests tests, ".TestCase::$assertions." assertions)\n");

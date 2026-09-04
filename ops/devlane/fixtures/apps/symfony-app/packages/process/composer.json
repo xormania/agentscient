@@ -1,0 +1,6 @@
+{
+  "name": "symfony/process",
+  "version": "v8.1.0",
+  "type": "library",
+  "autoload": {"psr-4": {"Symfony\\Component\\Process\\": "src/"}}
+}
