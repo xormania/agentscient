@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import ast
+import contextlib
 import os
 import re
 import subprocess
@@ -244,11 +246,35 @@ def _reads(text: str) -> set[str]:
         r"\bos\.environ\.get\(\s*['\"]([A-Z][A-Z0-9_]*)['\"]",
         r"\$\{([A-Z][A-Z0-9_]*)",
     )
-    return {
+    reads = {
         match.group(1)
         for pattern in patterns
         for match in re.finditer(pattern, text)
     }
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return reads
+    iterates_conf_keys = any(
+        isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension))
+        and isinstance(node.iter, ast.Name)
+        and node.iter.id == "CONF_KEYS"
+        for node in ast.walk(tree)
+    )
+    if not iterates_conf_keys:
+        return reads
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or not any(
+            isinstance(target, ast.Name) and target.id == "CONF_KEYS"
+            for target in node.targets
+        ):
+            continue
+        with contextlib.suppress(ValueError, TypeError):
+            reads.update(
+                key for key in ast.literal_eval(node.value)
+                if isinstance(key, str) and re.fullmatch(r"[A-Z][A-Z0-9_]*", key)
+            )
+    return reads
 
 
 def _workflow_jobs(text: str) -> set[str]:
