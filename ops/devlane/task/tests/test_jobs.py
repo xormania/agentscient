@@ -471,19 +471,19 @@ class ContractSlotsMatchPracticedPrompts(unittest.TestCase):
             blob, "adjudicate", ("plan", "check-tests"),
         )
         self.assertTrue(
-            self.PLAN_SLOTS <= plan_tokens,
+            plan_tokens >= self.PLAN_SLOTS,
             "CONTRACT.md must document plan's practiced slots "
             "{ref, out, scope}; "
             f"found {sorted(plan_tokens)} in {plan_seg!r}",
         )
         self.assertTrue(
-            self.CHECK_TESTS_SLOTS <= check_tokens,
+            check_tokens >= self.CHECK_TESTS_SLOTS,
             "CONTRACT.md must document that check-tests names "
             "{ref, inputs, scope}; "
             f"found {sorted(check_tokens)} in {check_seg!r}",
         )
         self.assertTrue(
-            self.ADJUDICATE_SLOTS <= adj_tokens,
+            adj_tokens >= self.ADJUDICATE_SLOTS,
             "CONTRACT.md must document that adjudicate names "
             "{inputs, ref, out}; "
             f"found {sorted(adj_tokens)} in {adj_seg!r}",
