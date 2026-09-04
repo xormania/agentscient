@@ -706,20 +706,32 @@ class TableCompleteness(_WatchFixture):
 
 class ConfExpectedSet(_WatchFixture):
     """Without --expect-names the expected set is the conf's CHECK_NAMES.
-    The flag still wins; a conf without the key refuses conf-key.
+    The flag still wins; environment beats conf; a conf without the
+    key refuses conf-key.
+
+    Planted values are not the production literal 'lane app', so a
+    reader that only checks key presence and then hard-codes those
+    names cannot pass.
     """
 
-    def conf_env(self) -> dict[str, str]:
-        return {"LANE_CONF": str(self.conf_path)}
+    CONF_NAMES = "alpha beta"
+    ENV_NAMES = "gamma delta"
+
+    def conf_env(self, **extra: str) -> dict[str, str]:
+        env = {"LANE_CONF": str(self.conf_path)}
+        env.update(extra)
+        return env
 
     def test_default_expected_set_comes_from_planted_check_names(self):
-        conf = self.plant_lane_conf(CHECK_NAMES="lane app")
+        self.assertNotEqual(self.CONF_NAMES, "lane app")
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
         landed = conf.read_text(encoding="utf-8")
-        self.assertIn("CHECK_NAMES='lane app'", landed)
+        self.assertIn(f"CHECK_NAMES='{self.CONF_NAMES}'", landed)
         self.assertNotIn("CHECK_NAME=", landed)
+        self.assertNotIn("lane app", landed)
         self.plant_gh_rows([
-            {"name": "lane", "state": "SUCCESS"},
-            {"name": "app", "state": "SUCCESS"},
+            {"name": "alpha", "state": "SUCCESS"},
+            {"name": "beta", "state": "SUCCESS"},
         ])
         proc = self.watch(extra_env=self.conf_env())
         self.assertEqual(proc.returncode, 0, self.combined(proc))
@@ -729,18 +741,27 @@ class ConfExpectedSet(_WatchFixture):
             proc.stdout,
         )
 
-    def test_conf_check_names_do_not_settle_on_a_stranger_check(self):
-        conf = self.plant_lane_conf(CHECK_NAMES="lane app")
-        self.assertIn("CHECK_NAMES='lane app'", conf.read_text(encoding="utf-8"))
-        self.plant_gh_rows([{"name": "ci", "state": "SUCCESS"}])
+    def test_conf_check_names_do_not_settle_on_production_names(self):
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        self.assertIn(
+            f"CHECK_NAMES='{self.CONF_NAMES}'",
+            conf.read_text(encoding="utf-8"),
+        )
+        self.plant_gh_rows([
+            {"name": "lane", "state": "SUCCESS"},
+            {"name": "app", "state": "SUCCESS"},
+        ])
         proc = self.watch(extra_env=self.conf_env())
         self.assertEqual(proc.returncode, 3, self.combined(proc))
         self.assertIn("missing=", proc.stderr or "")
         self.assertIsNone(self.settled_line(proc.stdout or ""))
 
     def test_expect_names_flag_wins_over_the_conf(self):
-        conf = self.plant_lane_conf(CHECK_NAMES="lane app")
-        self.assertIn("CHECK_NAMES='lane app'", conf.read_text(encoding="utf-8"))
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        self.assertIn(
+            f"CHECK_NAMES='{self.CONF_NAMES}'",
+            conf.read_text(encoding="utf-8"),
+        )
         self.plant_gh_rows([{"name": "fast-lint", "state": "SUCCESS"}])
         proc = self.watch(
             extra=["--expect-names", "fast-lint"],
@@ -753,14 +774,52 @@ class ConfExpectedSet(_WatchFixture):
             proc.stdout,
         )
 
+    def test_environment_check_names_beats_the_conf(self):
+        self.assertNotEqual(self.ENV_NAMES, self.CONF_NAMES)
+        self.assertNotEqual(self.ENV_NAMES, "lane app")
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        landed = conf.read_text(encoding="utf-8")
+        self.assertIn(f"CHECK_NAMES='{self.CONF_NAMES}'", landed)
+        self.assertNotIn("gamma", landed)
+        self.assertNotIn("delta", landed)
+        self.plant_gh_rows([
+            {"name": "gamma", "state": "SUCCESS"},
+            {"name": "delta", "state": "SUCCESS"},
+        ])
+        proc = self.watch(
+            extra_env=self.conf_env(CHECK_NAMES=self.ENV_NAMES),
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            self.settled_line(proc.stdout or ""),
+            "settled rows=2 pass=2 fail=0 skip=0",
+            proc.stdout,
+        )
+
+    def test_environment_check_names_do_not_settle_on_the_conf_value(self):
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        landed = conf.read_text(encoding="utf-8")
+        self.assertIn(f"CHECK_NAMES='{self.CONF_NAMES}'", landed)
+        self.assertNotIn(self.ENV_NAMES, landed)
+        self.plant_gh_rows([
+            {"name": "alpha", "state": "SUCCESS"},
+            {"name": "beta", "state": "SUCCESS"},
+        ])
+        proc = self.watch(
+            extra_env=self.conf_env(CHECK_NAMES=self.ENV_NAMES),
+        )
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("missing=", proc.stderr or "")
+        self.assertIsNone(self.settled_line(proc.stdout or ""))
+
     def test_a_conf_without_check_names_refuses_conf_key(self):
         conf = self.plant_lane_conf(omit=("CHECK_NAMES",))
         landed = conf.read_text(encoding="utf-8")
         self.assertNotIn("CHECK_NAMES", landed)
         self.assertNotIn("CHECK_NAME", landed)
         self.plant_gh_rows([
-            {"name": "lane", "state": "SUCCESS"},
-            {"name": "app", "state": "SUCCESS"},
+            {"name": "alpha", "state": "SUCCESS"},
+            {"name": "beta", "state": "SUCCESS"},
         ])
         proc = self.watch(extra_env=self.conf_env())
         self.assert_refusal(proc, "conf-key")
