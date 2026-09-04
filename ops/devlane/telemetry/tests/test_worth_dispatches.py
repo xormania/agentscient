@@ -32,6 +32,8 @@ UNRESOLVED_ID = "20260822T100400Z-plan-codex-ff0006"
 MALFORMED_ID = "20260822T100500Z-plan-claude-aa0007"
 TRACKED_ID = "20260822T100600Z-plan-grok-aa0008"
 FOREIGN_ID = "20260822T100700Z-plan-claude-aa0009"
+AT_SINCE_ID = "20260822T090000Z-plan-claude-aa0010"
+AT_UNTIL_ID = "20260822T120000Z-plan-codex-aa0011"
 
 CLAUDE_SPEND = {
     "input": 100,
@@ -66,6 +68,24 @@ FOREIGN_SPEND = {
     "source": "stream",
     "messages": 2,
     "cost_usd": 88.88,
+}
+AT_SINCE_SPEND = {
+    "input": 40,
+    "cached": 10,
+    "output": 10,
+    "total": 43210,
+    "source": "stream",
+    "messages": 1,
+    "cost_usd": 1.25,
+}
+AT_UNTIL_SPEND = {
+    "input": 30,
+    "cached": 30,
+    "output": 30,
+    "total": 654321,
+    "source": "stream",
+    "messages": 1,
+    "cost_usd": 12.34,
 }
 
 
@@ -566,6 +586,60 @@ class DispatchMeterTests(unittest.TestCase):
         self.assertNotIn("888888", plain)
         self.assertNotIn("888888", json.dumps(data))
         self.assertNotIn("99.99", plain)
+
+    def test_window_includes_launched_at_since_and_excludes_until(self):
+        self._plant_dispatch(
+            AT_SINCE_ID,
+            job="plan",
+            harness="claude",
+            stage="plan",
+            launched=WINDOW_SINCE,
+            spend=AT_SINCE_SPEND,
+        )
+        self._plant_dispatch(
+            CLAUDE_ID,
+            job="plan",
+            harness="claude",
+            stage="plan",
+            launched="2026-08-22T10:00:00Z",
+            spend=CLAUDE_SPEND,
+        )
+        self._plant_dispatch(
+            AT_UNTIL_ID,
+            job="check-tests",
+            harness="codex",
+            stage="check-tests",
+            launched=WINDOW_UNTIL,
+            spend=AT_UNTIL_SPEND,
+        )
+        since_record = json.loads(
+            (self.dispatch / AT_SINCE_ID / "record.json").read_text(
+                encoding="utf-8",
+            )
+        )
+        until_record = json.loads(
+            (self.dispatch / AT_UNTIL_ID / "record.json").read_text(
+                encoding="utf-8",
+            )
+        )
+        self.assertEqual(since_record["at"]["launched"], WINDOW_SINCE)
+        self.assertEqual(until_record["at"]["launched"], WINDOW_UNTIL)
+
+        plain = self._plain("report")
+        data = self._report()
+        ids = [row.get("id") for row in self._dispatch_block(data)["rows"]]
+        self.assertIn(AT_SINCE_ID, ids)
+        self.assertIn(CLAUDE_ID, ids)
+        self.assertNotIn(
+            AT_UNTIL_ID,
+            ids,
+            "a dispatch launched at until is inside [since, until)",
+        )
+        combined = plain + json.dumps(data)
+        self.assertIn("43210", combined)
+        self.assertNotIn(AT_UNTIL_ID, combined)
+        self.assertNotIn("654321", combined)
+        self.assertNotIn("12.34", combined)
 
     def test_a_dispatch_for_another_repository_is_not_charged(self):
         home_sha = self.w._git("rev-parse", "HEAD").stdout.strip()
