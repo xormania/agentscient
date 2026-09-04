@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import copy
+import os
+from pathlib import Path
 
 FIELDS = (
     "id", "lane", "stage", "unit", "lineage", "follows", "job", "role",
@@ -42,7 +44,30 @@ def _need(condition, field, detail="is invalid"):
         raise RecordError(f"record field {field} {detail}")
 
 
-def validate(rec):
+def validate_context(rec, *, expected_id=None, expected_snapshot=None):
+    _need(isinstance(rec, dict), "record", "must be an object")
+    ident = rec.get("id")
+    _need(isinstance(ident, str) and bool(ident)
+          and ident not in {".", ".."}
+          and "/" not in ident and "\\" not in ident and "\0" not in ident,
+          "id", "must be one path component")
+    if expected_id is not None:
+        _need(ident == expected_id, "id", f"must equal {expected_id}")
+    snapshot = rec.get("snapshot")
+    _need(isinstance(snapshot, dict), "snapshot")
+    snapshot_root = snapshot.get("root")
+    _need(isinstance(snapshot_root, str) and Path(snapshot_root).is_absolute(),
+          "snapshot.root", "must be an absolute path")
+    if expected_snapshot is not None:
+        expected = Path(os.path.abspath(expected_snapshot))
+        _need(expected.resolve(strict=False) == expected,
+              "expected_snapshot", "must be a canonical path")
+        _need(Path(snapshot_root).resolve(strict=False) == expected,
+              "snapshot.root", f"must resolve to {expected}")
+    return rec
+
+
+def validate(rec, *, expected_id=None, expected_snapshot=None):
     _need(isinstance(rec, dict), "record", "must be an object")
     for field in FIELDS:
         _need(field in rec, field, "is missing")
@@ -57,6 +82,9 @@ def validate(rec):
     snapshot = rec["snapshot"]
     _need(isinstance(snapshot, dict), "snapshot")
     _need(snapshot.get("mode") in {"whole", "fileset"}, "snapshot.mode")
+    validate_context(
+        rec, expected_id=expected_id, expected_snapshot=expected_snapshot,
+    )
     harness = rec["harness"]
     _need(isinstance(harness, dict), "harness")
     _need(harness.get("containment") in {"os", "policy"}, "containment")

@@ -171,6 +171,55 @@ def _jobs_root():
     return base / _lane_values("LANE_NAME")["LANE_NAME"] / "dispatch"
 
 
+def _job_paths(job_id):
+    """Return the only job directory and snapshot a selected id may name."""
+    if (not isinstance(job_id, str) or not job_id or job_id in {".", ".."}
+            or "/" in job_id or "\\" in job_id or "\0" in job_id):
+        _refuse("record-target", "one dispatch id path component", repr(job_id),
+                "name the exact dispatch id")
+    root = _jobs_root().resolve(strict=False)
+    job_dir = root / job_id
+    resolved_job = job_dir.resolve(strict=False)
+    if resolved_job != job_dir:
+        _refuse("record-target", f"the canonical job directory {job_dir}",
+                str(resolved_job), "restore the job below the current dispatch store")
+    snapshot = job_dir / "snapshot"
+    resolved_snapshot = snapshot.resolve(strict=False)
+    if resolved_snapshot != snapshot:
+        _refuse("record-target", f"the exact snapshot {snapshot}",
+                str(resolved_snapshot), "replace the escaped snapshot with the job snapshot")
+    return job_dir, snapshot
+
+
+def _bind_record(rec, selected_id):
+    """Validate record identity, then rebase a portable record to this store."""
+    job_dir, snapshot = _job_paths(selected_id)
+    record.validate_context(rec, expected_id=selected_id)
+    stored = Path(rec["snapshot"]["root"])
+    if (".." in stored.parts or stored.name != "snapshot"
+            or stored.parent.name != selected_id):
+        _refuse("record-target", f"a snapshot ending in {selected_id}/snapshot",
+                str(stored), "restore the dispatch record's snapshot path")
+    if (stored.exists() or stored.is_symlink()) and stored.resolve(strict=False) != snapshot:
+        _refuse("record-target", f"the current dispatch snapshot {snapshot}",
+                str(stored.resolve(strict=False)),
+                "move the job into the current dispatch store without an escaped symlink")
+    rec["snapshot"]["root"] = str(snapshot)
+    rec = _absolute_paths(rec)
+    record.validate_context(
+        rec, expected_id=selected_id, expected_snapshot=snapshot,
+    )
+    return job_dir, snapshot, rec
+
+
+def _bound_snapshot(rec):
+    job_dir, snapshot = _job_paths(rec.get("id"))
+    record.validate_context(
+        rec, expected_id=rec["id"], expected_snapshot=snapshot,
+    )
+    return job_dir, snapshot
+
+
 def _repo():
     p = _git(Path.cwd(), "rev-parse", "--show-toplevel")
     return Path(p.stdout.strip()).resolve()
@@ -517,6 +566,35 @@ def _invalidate_envelope(data, note):
     return data
 
 
+def _retain_findings(data, prior):
+    """A resumed result may add evidence, but cannot erase earlier findings."""
+    prior_findings = prior.get("findings")
+    if not isinstance(prior_findings, list) or not prior_findings:
+        return data
+    resumed = data.get("findings")
+    resumed = resumed if isinstance(resumed, list) else []
+    data["findings"] = prior_findings + [
+        item for item in resumed if item not in prior_findings
+    ]
+    counts = data.get("counts")
+    counts = counts if isinstance(counts, dict) else {}
+    prior_counts = prior.get("counts")
+    prior_counts = prior_counts if isinstance(prior_counts, dict) else {}
+    for severity in ("p1", "p2", "p3"):
+        found = sum(
+            item.get("severity") == severity
+            for item in data["findings"] if isinstance(item, dict)
+        )
+        counts[severity] = max(
+            counts.get(severity, 0), prior_counts.get(severity, 0), found,
+        )
+    counts["opinions"] = max(
+        counts.get("opinions", 0), prior_counts.get("opinions", 0),
+    )
+    data["counts"] = counts
+    return data
+
+
 def _json_objects(text):
     decoder = json.JSONDecoder()
     found = []
@@ -705,12 +783,16 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
 
 def _write_record(repo, rec):
     rec.pop("_envelope_cause", None)
+    job_dir, _snapshot_path = _bound_snapshot(rec)
     path = repo / ".dev/records/dispatches" / f"{rec['id']}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     record.validate(rec)
+    record.validate_context(
+        rec, expected_id=rec["id"], expected_snapshot=_snapshot_path,
+    )
     body = json.dumps(_portable_paths(rec), indent=2) + "\n"
     path.write_text(body, encoding="utf-8")
-    job_path = Path(rec["snapshot"]["root"]).parent / "record.json"
+    job_path = job_dir / "record.json"
     if job_path.parent.is_dir():
         job_path.write_text(body, encoding="utf-8")
     return path
@@ -733,7 +815,11 @@ def _commit_record(repo, path, rec, subject=None):
 
 def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     harness = rec["harness"]["name"]
-    snapshot = Path(rec["snapshot"]["root"])
+    bound_job_dir, snapshot = _bound_snapshot(rec)
+    if Path(job_dir).resolve(strict=False) != bound_job_dir:
+        _refuse("record-target", f"the canonical job directory {bound_job_dir}",
+                str(Path(job_dir).resolve(strict=False)), "use the record's dispatch id")
+    job_dir = bound_job_dir
     prompt = job_dir / "prompt.txt"
     iso_env = rec["harness"]["isolation"].get("env", {})
     flags = rec["harness"]["isolation"].get("flags", [])
@@ -956,7 +1042,7 @@ def _launch(args):
                 f"an empty comparison at {ref_sha}",
                 f"name a ref on {lineage} with changes to review")
     job_id = mint_id(stage, args.harness)
-    job_dir = root / job_id
+    job_dir, snapshot = _job_paths(job_id)
     record_path = repo / ".dev/records/dispatches" / f"{job_id}.json"
     _preflight_isolation(args.harness, job_dir / "home" / args.harness, os.environ)
     if job_dir.exists() or record_path.exists():
@@ -964,7 +1050,6 @@ def _launch(args):
     job_dir.mkdir(parents=True)
     for name in ("in", "out"):
         (job_dir / name).mkdir()
-    snapshot = job_dir / "snapshot"
     _snapshot(repo, lineage, ref_sha, snapshot)
     copied = []
     for source in args.input:
@@ -1332,9 +1417,9 @@ def _residual(snapshot):
             if not any(seg in line[3:] for seg in CACHE_RESIDUAL)]
 
 
-def _settle(repo, record_path, rec, env):
+def _settle(repo, record_path, rec, env, *, subject=None):
     """Collect the snapshot's state, finalize the record, commit it."""
-    snapshot = Path(rec["snapshot"]["root"])
+    job_dir, snapshot = _bound_snapshot(rec)
     ref_sha = rec["snapshot"]["ref_sha"]
     role, job_id = rec["role"], rec["id"]
     _fill_envelope_spend(rec, env)
@@ -1343,7 +1428,7 @@ def _settle(repo, record_path, rec, env):
     if role == "write" and rec["harness"]["name"] == "codex" and residual and not tripped:
         _commit_for_harness(snapshot, rec, env)
         residual = _residual(snapshot)
-    residual_patch = _write_residual_patch(snapshot, Path(rec["snapshot"]["root"]).parent) if residual else None
+    residual_patch = _write_residual_patch(snapshot, job_dir) if residual else None
     head = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
     changed = _git(snapshot, "diff", "--name-only", f"{ref_sha}..{head}").stdout.splitlines()
     if role == "read" and head != ref_sha:
@@ -1359,7 +1444,7 @@ def _settle(repo, record_path, rec, env):
                      "residual_paths": residual, "envelope": env}
     if residual_patch:
         rec["result"]["residual_patch"] = residual_patch
-    cause = _cause(rec, Path(rec["snapshot"]["root"]).parent, env)
+    cause = _cause(rec, job_dir, env)
     rec.pop("_envelope_cause", None)
     rec["result"]["cause"] = cause
     if env.get("status") == "invalid" and str(env.get("note", "")).startswith("envelope-parse"):
@@ -1367,7 +1452,7 @@ def _settle(repo, record_path, rec, env):
     rec["at"]["closed"] = _now()
     rec["status"] = "closed"
     _write_record(repo, rec)
-    _commit_record(repo, record_path, rec)
+    _commit_record(repo, record_path, rec, subject=subject)
 
 
 def _job_state(d):
@@ -1387,7 +1472,7 @@ def _job_state(d):
 
 def _status(args):
     root = _jobs_root()
-    dirs = [root / args.id] if args.id else sorted(
+    dirs = [_job_paths(args.id)[0]] if args.id else sorted(
         path for path in root.glob("*") if path.is_dir())
     rows = []
     for d in dirs:
@@ -1399,16 +1484,20 @@ def _status(args):
 
 
 def _find_record(repo, job_id):
+    _job_paths(job_id)
     path = repo / ".dev/records/dispatches" / f"{job_id}.json"
     if not path.is_file():
         raise RuntimeError(f"record not found: {job_id}")
-    return path, _absolute_paths(json.loads(path.read_text()))
+    _job_dir, _snapshot_path, rec = _bind_record(
+        json.loads(path.read_text()), job_id,
+    )
+    return path, rec
 
 
 def _resume(args):
     repo = _repo()
     path, rec = _find_record(repo, args.id)
-    job_dir = _jobs_root() / args.id
+    job_dir, _snapshot_path = _bound_snapshot(rec)
     prior_session = copy.deepcopy(rec.get("session") or {})
     prior_model = copy.deepcopy(rec.get("model") or {})
     prior_result = copy.deepcopy(rec.get("result") or {})
@@ -1493,17 +1582,36 @@ def _resume(args):
                             rec=rec)
             if settled_refusal is not None:
                 env.update(settled_refusal)
+            _retain_findings(env, prior_envelope)
             _fill_envelope_spend(rec, env)
             rec.setdefault("result", {})["envelope"] = env
             rec["result"]["cause"] = _cause(rec, job_dir, env)
         else:
             rec["result"] = prior_result
-    _write_record(repo, rec)
+            if rec["role"] == "read" and note:
+                env = copy.deepcopy(prior_envelope) or _invalid(
+                    rec["job"], rec["snapshot"]["ref_sha"], note,
+                )
+                if env.get("note") != note:
+                    _invalidate_envelope(env, note)
+                rec.setdefault("result", {})["envelope"] = env
+                rec["result"]["cause"] = _cause(rec, job_dir, env)
     attempt = rec["attempts"][-1]["n"]
-    _commit_record(
-        repo, path, rec,
-        subject=f"dispatch: record {rec['id']} after attempt {attempt}",
-    )
+    if rec["role"] == "read":
+        envelope = (rec.get("result") or {}).get("envelope") or _invalid(
+            rec["job"], rec["snapshot"]["ref_sha"],
+            "resume-envelope: no prior or resumed envelope",
+        )
+        _settle(
+            repo, path, rec, envelope,
+            subject=f"dispatch: record {rec['id']} after attempt {attempt}",
+        )
+    else:
+        _write_record(repo, rec)
+        _commit_record(
+            repo, path, rec,
+            subject=f"dispatch: record {rec['id']} after attempt {attempt}",
+        )
     return 0
 
 
@@ -1609,8 +1717,8 @@ def _collect(args):
 def _wait(args):
     stdout, stderr = sys.stdout, sys.stderr
     repo = _repo()
+    job_dir, _snapshot_path = _job_paths(args.id)
     record_path = repo / ".dev/records/dispatches" / f"{args.id}.json"
-    job_dir = _jobs_root() / args.id
     if not record_path.is_file():
         _refuse("wait-target", f"a record for {args.id}", "none",
                 "name a launched dispatch")
@@ -1654,7 +1762,7 @@ def _close(args):
     lineage = rec["lineage"]["branch"]
     if branch != lineage:
         _refuse("record-target", f"the checkout on {lineage}", branch, f"run from a worktree of {lineage}")
-    job_dir = _jobs_root() / args.id
+    job_dir, _snapshot_path = _bound_snapshot(rec)
     state = json.loads((job_dir / "state.json").read_text())
     try:
         os.kill(int(state["pid"]), 0)
@@ -1712,7 +1820,8 @@ def _close(args):
 def _brief(args):
     repo = _repo()
     _path, rec = _find_record(repo, args.check)
-    prompt = _jobs_root() / args.check / "prompt.txt"
+    job_dir, _snapshot_path = _bound_snapshot(rec)
+    prompt = job_dir / "prompt.txt"
     ok = prompt.is_file() and _sha(prompt) == rec["brief"]["sha256"]
     print("brief matches" if ok else "brief digest mismatch")
     return 0 if ok else 1
