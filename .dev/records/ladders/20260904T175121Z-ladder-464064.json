@@ -57,9 +57,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/.dev/records/dispatches/20260904T175121Z-tests-grok-a0a65d.json",
+        "proof": {
+          "given": [
+            "Item 49 slice session-budget (S), plan 20260904T172250Z-plan-grok-2c8a8f. Owner 2026-09-04: watchdog should have stopped you. A matrix row on every tool call; no grant escape. Ceilings SESSION_TURNS_CEILING=100 SESSION_AVG_CONTEXT_CEILING=200000 SESSION_REFUSALS_CEILING=10 from the churn analysis (finding 1: merge is the ruling). Frozen command: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py",
+            "20260904T175121Z-tests-grok-a0a65d"
+          ],
+          "withheld": []
+        },
+        "sha256": "8013405c13879516fe901aceb901a67775644ad25908aac23a09e4f4551ec2f2"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
