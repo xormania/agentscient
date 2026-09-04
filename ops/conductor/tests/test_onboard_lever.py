@@ -594,8 +594,11 @@ class _OnboardFixture(unittest.TestCase):
         *,
         cwd: Path | None = None,
         xdg: Path | str | None = None,
+        extra_env: dict[str, str] | None = None,
     ):
         env = self.env(xdg=xdg)
+        if extra_env:
+            env.update(extra_env)
         self.assertNotIn("WF_AGENT", env)
         try:
             return subprocess.run(
@@ -1029,6 +1032,48 @@ class ReviewPins(_OnboardFixture):
         self.assertIn("unavailable:", out)
         self.assertIn("brief complete", out)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
+
+
+class LaneNameSelectsStore(_OnboardFixture):
+    """LANE_NAME from the conf selects the dispatch store under HOME."""
+
+    def test_lane_name_from_conf_selects_the_dispatch_store(self):
+        self.ready(plant_store=False)
+        conf = self.scratch / "lane.conf"
+        text = (
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='trunkx'\n"
+            "RELEASE_BRANCH='relx'\n"
+            "REPO_SLUG='org/projx'\n"
+            "CHECK_NAME='checkx'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        self._plant_bytes(conf, text.encode("utf-8"))
+        rec_id = "20260901T140000Z-lanex-run"
+        lanex_store = self.home / ".local" / "state" / "lanex" / "dispatch"
+        self.plant_dispatch(store=lanex_store, running=(rec_id,), closed=())
+        self.assertTrue((lanex_store / rec_id).is_dir())
+        self.assertFalse(
+            self.store.exists(),
+            "plant: agentscient dispatch store must stay absent",
+        )
+        proc = self.invoke(extra_env={"LANE_CONF": str(conf)})
+        line = self.labelled_line(proc.stdout or "", "dispatches")
+        self.assertIn(rec_id, line)
+        self.assertFalse(
+            self.store.exists(),
+            "tool created the literal agentscient store",
+        )
 
 
 if __name__ == "__main__":

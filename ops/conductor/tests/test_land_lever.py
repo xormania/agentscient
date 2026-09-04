@@ -40,7 +40,11 @@ PRODUCER = "Producer Author"
 PRODUCER_EMAIL = "producer@example.invalid"
 REPO_USER = "Repo Config"
 REPO_EMAIL = "repo-config@example.invalid"
-TRAILER = "Source: original"
+LANE_AUTHOR_NAME = "Lane Owner"
+LANE_AUTHOR_EMAIL = "lane-owner@example.invalid"
+LANE_AUTHOR = f"{LANE_AUTHOR_NAME} <{LANE_AUTHOR_EMAIL}>"
+CO_AUTHOR = "Worker Model <noreply@vendor.example>"
+TRAILER = f"Source: original\nCo-Authored-By: {CO_AUTHOR}"
 SUBJECT = "producer-one"
 RUN_CAP = 30
 
@@ -148,6 +152,8 @@ class _LandFixture(unittest.TestCase):
         )
         self.staged = self.scratch / "land.py"
         self._stage_tool_bytes()
+        self.conf_path = self.scratch / "lane.conf"
+        self.plant_lane_conf()
         self.base = ""
         self.origin: Path | None = None
 
@@ -208,6 +214,42 @@ class _LandFixture(unittest.TestCase):
             self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
             self.assertEqual(len(landed), len(ABSENT_STUB))
         self.assertTrue(self.staged.is_file())
+
+    def _lane_conf_text(self, **overrides: object) -> str:
+        omit = tuple(overrides.pop("omit", ()) or ())
+        keys = {
+            "LANE_NAME": "agentscient",
+            "TRUNK_BRANCH": "dev",
+            "RELEASE_BRANCH": "master",
+            "REPO_SLUG": "uscient/agentscient",
+            "CHECK_NAME": "ci",
+            "WF_AGENT_DEFAULT": AGENT,
+            "LANE_AUTHOR": LANE_AUTHOR,
+            "MODEL_GROK": "model-grok",
+            "MODEL_CODEX": "model-codex",
+            "MODEL_CLAUDE_READ": "model-claude-read",
+            "MODEL_CLAUDE_PLAN": "model-claude-plan",
+            "EFFORT_GROK": "high",
+            "EFFORT_CODEX": "high",
+            "EFFORT_CLAUDE": "high",
+            "WALL_DEFAULT": "900",
+            "SCOPE_CAP": "1024",
+        }
+        for name, value in overrides.items():
+            keys[name] = str(value)
+        for name in omit:
+            keys.pop(name, None)
+        lines = ["# scratch lane conf\n"]
+        for name, value in keys.items():
+            lines.append(f"{name}='{value}'\n")
+        return "".join(lines)
+
+    def plant_lane_conf(self, **overrides: object) -> Path:
+        text = self._lane_conf_text(**overrides)
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertEqual(landed, text, "conf plant did not land intact")
+        return self.conf_path
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -303,7 +345,12 @@ class _LandFixture(unittest.TestCase):
         shas = [ln.strip() for ln in out.splitlines() if ln.strip()]
         return shas
 
-    def env(self, *, agent: str | None = AGENT) -> dict[str, str]:
+    def env(
+        self,
+        *,
+        agent: str | None = AGENT,
+        extra: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         env = {
             "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             "HOME": str(self.home),
@@ -317,12 +364,21 @@ class _LandFixture(unittest.TestCase):
             "GIT_OPTIONAL_LOCKS": "0",
         }
         self.assertNotIn("XDG_STATE_HOME", env)
+        env["LANE_CONF"] = str(self.conf_path)
         if agent is not None:
             env["WF_AGENT"] = agent
+        if extra:
+            env.update(extra)
         return env
 
-    def invoke(self, argv: list[str], *, agent: str | None = AGENT):
-        env = self.env(agent=agent)
+    def invoke(
+        self,
+        argv: list[str],
+        *,
+        agent: str | None = AGENT,
+        extra_env: dict[str, str] | None = None,
+    ):
+        env = self.env(agent=agent, extra=extra_env)
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         else:
@@ -346,11 +402,12 @@ class _LandFixture(unittest.TestCase):
         extra: list[str] | None = None,
         *,
         agent: str | None = AGENT,
+        extra_env: dict[str, str] | None = None,
     ):
         argv = [record]
         if extra:
             argv.extend(extra)
-        return self.invoke(argv, agent=agent)
+        return self.invoke(argv, agent=agent, extra_env=extra_env)
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
@@ -439,6 +496,8 @@ class _LandFixture(unittest.TestCase):
         commits: list[tuple[str, str, str, bool]],
         *,
         record: str = REC,
+        author_name: str = PRODUCER,
+        author_email: str = PRODUCER_EMAIL,
     ) -> list[str]:
         """commits: (relpath, content, subject, with_trailer).
 
@@ -463,8 +522,8 @@ class _LandFixture(unittest.TestCase):
                 ],
                 cwd=str(self.repo),
                 env=self.git_env(
-                    author_name=PRODUCER,
-                    author_email=PRODUCER_EMAIL,
+                    author_name=author_name,
+                    author_email=author_email,
                 ),
                 capture_output=True,
                 text=True,
@@ -472,7 +531,9 @@ class _LandFixture(unittest.TestCase):
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             sha = self.sha("HEAD")
-            self.assertEqual(self.author(sha), f"{PRODUCER} <{PRODUCER_EMAIL}>")
+            self.assertEqual(
+                self.author(sha), f"{author_name} <{author_email}>",
+            )
             trailers = self.parsed_trailers(sha)
             if with_trailer:
                 self.assertIn("Source:", trailers)
@@ -580,7 +641,11 @@ class HappyPath(_LandFixture):
         )
         self.assertEqual(self.message("HEAD"), original)
         self.assertNotIn("cherry picked from commit", self.message("HEAD"))
-        self.assertEqual(
+        self.assertIn("Source:", original)
+        self.assertIn("Co-Authored-By:", original)
+        self.assertIn(CO_AUTHOR, original)
+        self.assertEqual(self.author("HEAD"), LANE_AUTHOR)
+        self.assertNotEqual(
             self.author("HEAD"),
             f"{PRODUCER} <{PRODUCER_EMAIL}>",
         )
@@ -836,7 +901,7 @@ class ConflictAbort(_LandFixture):
         kept = self.range_shas(start, "HEAD")
         self.assertEqual(len(kept), 1, kept)
         self.assertEqual(self.subject("HEAD"), "producer-one")
-        self.assertEqual(self.author("HEAD"), f"{PRODUCER} <{PRODUCER_EMAIL}>")
+        self.assertEqual(self.author("HEAD"), LANE_AUTHOR)
         stdout_lines = [
             ln for ln in (proc.stdout or "").splitlines() if ln.strip()
         ]
@@ -1166,5 +1231,122 @@ class EnvelopeStatusNamesCollect(_LandFixture):
         self.assertEqual(self.sha("HEAD"), pre, "nothing may land")
 
 
+class LaneNameSelectsStore(_LandFixture):
+    """LANE_NAME from the conf selects the store under HOME.
+
+    Unit 1 contract: every state-root reader reads LANE_NAME through
+    the reader. Tests plant LANE_CONF and never write the tracked file.
+    """
+
+    def test_lane_name_from_conf_selects_the_store(self):
+        self.seed_repo()
+        self.plant_producers(
+            [("landed.txt", "landed-body\n", SUBJECT, True)]
+        )
+        conf = self.scratch / "lane.conf"
+        text = (
+            "# scratch lane conf\n"
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='dev'\n"
+            "RELEASE_BRANCH='master'\n"
+            "REPO_SLUG='uscient/agentscient'\n"
+            "CHECK_NAME='ci'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            f"LANE_AUTHOR='{LANE_AUTHOR}'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        self._plant_bytes(conf, text.encode("utf-8"))
+        landed = conf.read_text(encoding="utf-8")
+        self.assertIn("LANE_NAME='lanex'", landed)
+        store = self.home / ".local" / "state" / "lanex" / "dispatch"
+        rec_dir = store / REC
+        rec_dir.mkdir(parents=True)
+        self._plant_bytes(rec_dir / "exit", b"0\n")
+        self.assertTrue((store / REC / "exit").is_file())
+        self.assertFalse(
+            (self.store / REC).exists(),
+            "plant: agentscient record dir must be absent",
+        )
+        proc = self.land(extra_env={"LANE_CONF": str(conf)})
+        stdout = proc.stdout or ""
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            self.summary_line(stdout),
+            f"landed n=1 ref={REF}",
+            stdout,
+        )
+        self.assertEqual(
+            (self.repo / "landed.txt").read_text(encoding="utf-8"),
+            "landed-body\n",
+        )
+        self.assertEqual(self.author("HEAD"), LANE_AUTHOR)
+
+
+class LaneAuthor(_LandFixture):
+    """LANE_AUTHOR is the author of every landed commit. The worker's
+    message, including Source and Co-Authored-By trailers, is kept
+    verbatim. A commit already authored as LANE_AUTHOR is landed
+    unchanged. Missing LANE_AUTHOR or LANE_NAME is conf-key before any
+    pick.
+    """
+
+    def test_already_correct_author_is_landed_unchanged(self):
+        self.assertNotEqual(LANE_AUTHOR, f"{PRODUCER} <{PRODUCER_EMAIL}>")
+        self.seed_repo()
+        shas = self.plant_producers(
+            [("landed.txt", "landed-body\n", SUBJECT, True)],
+            author_name=LANE_AUTHOR_NAME,
+            author_email=LANE_AUTHOR_EMAIL,
+        )
+        self.assertEqual(len(shas), 1)
+        producer = shas[0]
+        self.assertEqual(self.author(producer), LANE_AUTHOR)
+        original = self.message(producer)
+        self.assertIn("Source:", original)
+        self.assertIn("Co-Authored-By:", original)
+        self.plant_record()
+        proc = self.land()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(self.message("HEAD"), original)
+        self.assertEqual(self.author("HEAD"), LANE_AUTHOR)
+
+    def test_missing_lane_author_refuses_conf_key_before_any_pick(self):
+        self.plant_lane_conf(omit=("LANE_AUTHOR",))
+        planted = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("LANE_AUTHOR=", planted)
+        self.ready()
+        pre = self.sha("HEAD")
+        proc = self.land()
+        self.assert_refusal(proc, "conf-key")
+        err = proc.stderr or ""
+        self.assertIn("LANE_AUTHOR", err)
+        self.assertIn(str(self.conf_path), err)
+        self.assertEqual(self.sha("HEAD"), pre, "nothing may land")
+        self.assertEqual(self.landed_rows(proc.stdout or ""), [])
+
+    def test_missing_lane_name_refuses_conf_key_before_any_pick(self):
+        self.plant_lane_conf(omit=("LANE_NAME",))
+        planted = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("LANE_NAME=", planted)
+        self.ready()
+        pre = self.sha("HEAD")
+        proc = self.land()
+        self.assert_refusal(proc, "conf-key")
+        err = proc.stderr or ""
+        self.assertIn("LANE_NAME", err)
+        self.assertIn(str(self.conf_path), err)
+        self.assertEqual(self.sha("HEAD"), pre, "nothing may land")
+        self.assertEqual(self.landed_rows(proc.stdout or ""), [])
+
+
 if __name__ == "__main__":
     unittest.main()
+
