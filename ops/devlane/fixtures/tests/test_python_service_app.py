@@ -124,8 +124,8 @@ DECLARED = {
     ),
 }
 INSTALL_CMD = (
-    "python3 -m venv .venv && .venv/bin/python -m pip install -r "
-    "requirements.lock"
+    "python3 -m venv .venv && .venv/bin/python -m pip install "
+    "--require-hashes -r requirements.lock"
 )
 READY_CMD = "test -x .venv/bin/python && .venv/bin/python -c 'import pytest'"
 CHECK_CMD = ".venv/bin/python -m pytest -q tests && ruff check ."
@@ -896,6 +896,50 @@ class PythonServiceLayout(unittest.TestCase):
             ),
             f"requirements.lock must carry a {planted_line} line, not a comment",
         )
+
+    def test_requirements_lock_is_hashed_and_ruff_is_pinned_in_dev(self):
+        lock_text = _file_text(APP / "requirements.lock")
+        self.assertIn(
+            "--hash=sha256:",
+            lock_text,
+            "requirements.lock must hash packages so pip can --require-hashes",
+        )
+        pins = _lock_pins(lock_text)
+        self.assertIn("ruff", pins, "requirements.lock must pin ruff")
+        packages = [name for name in _lock_names(lock_text) if name]
+        hash_lines = [
+            line for line in lock_text.splitlines() if "--hash=sha256:" in line
+        ]
+        self.assertGreaterEqual(
+            len(hash_lines),
+            len(packages),
+            "every locked package must carry at least one sha256 hash",
+        )
+        data = _load_toml(APP / "pyproject.toml")
+        project = data.get("project") if isinstance(data.get("project"), dict) else {}
+        optional = (
+            project.get("optional-dependencies")
+            if isinstance(project.get("optional-dependencies"), dict)
+            else {}
+        )
+        dev = optional.get("dev") if isinstance(optional.get("dev"), list) else []
+        ruff_specs = [
+            item
+            for item in dev
+            if _norm_name(_dep_name_spec(str(item))[0]) == "ruff"
+        ]
+        self.assertTrue(ruff_specs, f"dev extra must pin ruff; found {dev!r}")
+        self.assertTrue(
+            any(_is_exact_pin(_dep_name_spec(str(item))[1]) for item in ruff_specs),
+            f"dev extra must pin ruff with ==; found {ruff_specs!r}",
+        )
+        toolchain = load_json_object(MANIFEST).get("toolchain")
+        toolchain = toolchain if isinstance(toolchain, dict) else {}
+        install = (
+            toolchain.get("install") if isinstance(toolchain.get("install"), str) else ""
+        )
+        self.assertIn("--require-hashes", install)
+        self.assertEqual(install, INSTALL_CMD)
 
     def test_readme_itself_declares_apparatus(self):
         text = _file_text(APP / "README.md")
