@@ -1,0 +1,104 @@
+{
+  "id": "20260904T155934Z-check-tests-codex-49dad2",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/context-contracts",
+  "lineage": {
+    "branch": "lane/context-contracts",
+    "base_sha": "f16edd24ff99cf472199f8d15ba712de478571ea"
+  },
+  "follows": [
+    "20260904T154353Z-tests-grok-ea5f39"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T15:59:34Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f16edd24ff99cf472199f8d15ba712de478571ea",
+    "ref_sha": "f16edd24ff99cf472199f8d15ba712de478571ea",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "855244f6-4cca-495a-b658-c22478211a64",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "### 3.1 Closure \u2014 `closure.cue`, `closure.py`, `closure.json`\n`#ClosureIndex: close({contracts: [...#Row, ...]})`. `#Row: close({path: #NonEmpty, consumer: #NonEmpty | #DeclaredAbsent, fixture: #NonEmpty | #DeclaredAbsent})`. `closure.py check` walks `git ls-files '*.cue' 'ops/conductor/*-lever.md'`, diffs against the index, vets the index as `#ClosureIndex`, and for every closed row subprocess-checks that the fixture path exists. Cue missing: class `cue-missing`, exit 2. Cue version other than `#CueVersion`: `cue-version`. CLI stdlib only.\n### 3.2 Job-kind manifests \u2014 `manifest.cue`\nReuse `#NonEmpty`, `#Digest`, `#DeclaredAbsent`, `#HarnessName`, `#IsolationObserved` from `context.cue`. New: `#CueVersion`, `#Section`, `#HarnessFacts`, `#Custody`, `#Manifest`, `#Launchable`, `#ReadProbe`, one closed definition per kind.\n| kind | required slots | optional (max) | writes |\n|---|---|---|---|\n| `author-tests` | scope, brief, diff | plan (1), previous (1), report (1), findings (2) | snapsho\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/in/PLAN-context-contracts-2-closure-index.md",
+        "sha256": "3c7aaf65bf72d9380ee40987bf9d0d3f3ae022f3eb081046149bc03163c6e809"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T155934Z-check-tests-codex-49dad2/in/20260904T154353Z-tests-grok-ea5f39.json",
+        "sha256": "ec076ddba828c3853ae1755800549b6d88a41a894ab8e5b39f2d29d41ac58420"
+      }
+    ],
+    "sha256": "f0a989c027fe8d4ce5b236368a5422686482b09a4dea581ce412a023524dcebd",
+    "bytes": 3826
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
