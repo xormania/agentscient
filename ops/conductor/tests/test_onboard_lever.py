@@ -18,6 +18,7 @@ the contract promise rather than Python's missing-file exit 2.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -258,10 +259,8 @@ class _OnboardFixture(unittest.TestCase):
             for proc in self._workers:
                 if proc.poll() is None:
                     proc.kill()
-                    try:
+                    with contextlib.suppress(subprocess.TimeoutExpired):
                         proc.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        pass
             self.assertEqual(
                 _without_new_job_dirs(
                     self._live_before,
