@@ -417,8 +417,8 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
     if name == "codex":
         # codex exec takes the brief on stdin; "-" says so explicitly. With
         # DEVNULL it exits 1 "No prompt provided via stdin" before any work.
-        # A job that produces a document under out/ grants only that directory;
-        # the read-only sandbox continues to protect the snapshot itself.
+        # Check-tests uses workspace-write for out/; mode hardening plus the
+        # read-role settlement checks require its snapshot to stay unchanged.
         argv = [executable, "exec", "--sandbox", sandbox]
         if sandbox == "workspace-write" or writable_out:
             argv += ["-c", f'sandbox_workspace_write.writable_roots=["{out}"]']
