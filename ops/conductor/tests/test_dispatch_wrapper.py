@@ -39,7 +39,7 @@ NAME_KEYS = (
     "TRUNK_BRANCH",
     "RELEASE_BRANCH",
     "REPO_SLUG",
-    "CHECK_NAME",
+    "CHECK_NAMES",
 )
 
 SCOPE_CAP = 1024
@@ -300,7 +300,7 @@ class _WrapperFixture(unittest.TestCase):
             "TRUNK_BRANCH": "dev",
             "RELEASE_BRANCH": "master",
             "REPO_SLUG": "uscient/agentscient",
-            "CHECK_NAME": "ci",
+            "CHECK_NAMES": "lane app",
             "SCOPE_CAP": str(SCOPE_CAP),
         }
         keys.update(overrides)
@@ -1256,6 +1256,67 @@ class RowMissingScopeCap(_WrapperFixture):
         self.assert_wire_abort(
             proc, "conf-key",
             named=("SCOPE_CAP", str(self.conf_path)),
+        )
+
+
+class RowCheckNames(_WrapperFixture):
+    """The wrapper exports CHECK_NAMES and refuses a conf that still
+    says CHECK_NAME.
+
+    The exported value is not the production literal 'lane app', so a
+    wrapper that writes that literal without reading the key cannot
+    pass.
+    """
+
+    EXPORT_VALUE = "audit lint"
+
+    def test_wrapper_exports_check_names(self):
+        self.assertNotEqual(self.EXPORT_VALUE, "lane app")
+        keys = self._conf_kwargs(CHECK_NAMES=self.EXPORT_VALUE)
+        self.assertIn("CHECK_NAMES", keys)
+        self.assertNotIn("CHECK_NAME", keys)
+        self.assertEqual(keys["CHECK_NAMES"], self.EXPORT_VALUE)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("CHECK_NAMES=", landed)
+        self.assertIn(self.EXPORT_VALUE, landed)
+        self.assertNotIn("lane app", landed)
+        self.assertNotIn("CHECK_NAME=", landed)
+        proc = self.invoke(self.full_flags())
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        _argv, env = self.parse_dry_run(proc)
+        self.assertEqual(env.get("CHECK_NAMES"), self.EXPORT_VALUE)
+        self.assertNotEqual(env.get("CHECK_NAMES"), "lane app")
+        self.assertNotIn("CHECK_NAME", env)
+        self.assert_no_launch()
+
+    def test_a_conf_that_still_says_check_name_is_refused(self):
+        keys = self._conf_kwargs()
+        keys["CHECK_NAME"] = "ci"
+        self.assertIn("CHECK_NAMES", keys)
+        self.assertIn("CHECK_NAME", keys)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("CHECK_NAME=", landed)
+        self.assertIn("CHECK_NAMES=", landed)
+        proc = self.invoke(self.full_flags(dry_run=False))
+        self.assert_wire_abort(
+            proc, "conf-key",
+            named=("CHECK_NAME", str(self.conf_path)),
+        )
+
+    def test_a_conf_missing_check_names_refuses_naming_the_key_and_file(self):
+        keys = self._conf_kwargs()
+        self.assertIn("CHECK_NAMES", keys)
+        del keys["CHECK_NAMES"]
+        self.assertNotIn("CHECK_NAMES", keys)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("CHECK_NAMES", landed)
+        proc = self.invoke(self.full_flags(dry_run=False))
+        self.assert_wire_abort(
+            proc, "conf-key",
+            named=("CHECK_NAMES", str(self.conf_path)),
         )
 
 
