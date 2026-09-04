@@ -26,9 +26,9 @@ HOOK = support.CLAUDE_DIR / "matrix.py"
 
 LANE_NAME = "testlane"
 SCOPE_CAP = 64
-SESSION_TURNS_CEILING = 100
-SESSION_AVG_CONTEXT_CEILING = 200000
-SESSION_REFUSALS_CEILING = 10
+SESSION_TURNS_CEILING = 500
+SESSION_AVG_CONTEXT_CEILING = 400000
+SESSION_REFUSALS_CEILING = 25
 GRANT_SCOPED = 11
 GRANT_OPEN = 22
 GRANT_SETTLED = 33
@@ -70,9 +70,9 @@ EFFORT_CODEX='xhigh'
 EFFORT_CLAUDE='high'
 WALL_DEFAULT='900'
 SCOPE_CAP='64'
-SESSION_TURNS_CEILING='100'
-SESSION_AVG_CONTEXT_CEILING='200000'
-SESSION_REFUSALS_CEILING='10'
+SESSION_TURNS_CEILING='500'
+SESSION_AVG_CONTEXT_CEILING='400000'
+SESSION_REFUSALS_CEILING='25'
 """
 
 CUE_OK = """\
@@ -1411,9 +1411,9 @@ class MatrixHookTests(unittest.TestCase):
     ):
         usage = self._usage_turn(
             n=0,
-            input_tokens=100000,
-            cache_creation=50000,
-            cache_read=50001,
+            input_tokens=SESSION_AVG_CONTEXT_CEILING // 2,
+            cache_creation=SESSION_AVG_CONTEXT_CEILING // 4,
+            cache_read=SESSION_AVG_CONTEXT_CEILING // 4 + 1,
         )
         mean = (
             usage["message"]["usage"]["input_tokens"]
