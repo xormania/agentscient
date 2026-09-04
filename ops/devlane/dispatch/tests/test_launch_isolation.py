@@ -465,9 +465,16 @@ class GrokArgvCarriesTheSandboxTheRecordStates(ls._TempLaunch):
 class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
     """Project permissions.allow/deny from .claude/settings.json land on
     argv after the floor; network-reaching rules are dropped; the
-    record's harness.permissions names what applied."""
+    record's harness.permissions names what applied.
 
-    ALLOW_KEEP = "Bash(php *)"
+    Interpreters and worker-editable shell scripts from the untrusted
+    snapshot are dropped the same way: they are not a network prefix,
+    but they run host-level code with the operator's UID and HOME.
+    """
+
+    ALLOW_KEEP = "Bash(ruff *)"
+    ALLOW_DROP_PHP = "Bash(php *)"
+    ALLOW_DROP_BASH_SCRIPTS = "Bash(bash ops/bin/*)"
     ALLOW_DROP_GH = "Bash(gh pr *)"
     ALLOW_DROP_GIT = "Bash(git *)"
     ALLOW_DROP_COMPOSER = "Bash(composer *)"
@@ -606,3 +613,52 @@ class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
         self.assertIn("unresolved", perms, perms)
         self.assertTrue(str(perms["unresolved"]).strip(), perms)
         self.assertNotEqual(perms.get("applied"), "argv", perms)
+
+    def test_php_star_and_editable_script_rules_are_dropped(self):
+        """Security finding 2: Bash(php *) and Bash(bash ops/bin/*) from
+        the untrusted snapshot must not reach --allowedTools."""
+        path, digest = self._plant_settings({
+            "permissions": {
+                "allow": [
+                    self.ALLOW_KEEP,
+                    self.ALLOW_DROP_PHP,
+                    self.ALLOW_DROP_BASH_SCRIPTS,
+                    self.ALLOW_DROP_GH,
+                ],
+                "deny": [self.DENY_KEEP],
+            }
+        })
+        planted = json.loads(path.read_text(encoding="utf-8"))
+        allow_rules = planted["permissions"]["allow"]
+        self.assertIn(self.ALLOW_DROP_PHP, allow_rules)
+        self.assertIn(self.ALLOW_DROP_BASH_SCRIPTS, allow_rules)
+        self.assertIn(self.ALLOW_KEEP, allow_rules)
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="claude", stage="plan",
+        )
+        argv = [str(a) for a in witness["argv"]]
+        allow = self._flag_values(argv, "--allowedTools")
+        deny = self._flag_values(argv, "--disallowedTools")
+        self.assertIn(self.ALLOW_KEEP, allow)
+        self.assertNotIn(
+            self.ALLOW_DROP_PHP, allow,
+            f"Bash(php *) is an interpreter and must be dropped: {allow!r}",
+        )
+        self.assertNotIn(
+            self.ALLOW_DROP_BASH_SCRIPTS, allow,
+            f"Bash(bash ops/bin/*) is a worker-editable script rule "
+            f"and must be dropped: {allow!r}",
+        )
+        self.assertNotIn(self.ALLOW_DROP_GH, allow)
+        self.assertNotIn(self.ALLOW_DROP_PHP, deny)
+        self.assertNotIn(self.ALLOW_DROP_BASH_SCRIPTS, deny)
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(perms, dict, rec.get("harness"))
+        dropped = list(perms.get("dropped") or [])
+        self.assertIn(self.ALLOW_DROP_PHP, dropped, perms)
+        self.assertIn(self.ALLOW_DROP_BASH_SCRIPTS, dropped, perms)
+        self.assertIn(self.ALLOW_DROP_GH, dropped, perms)
+        self.assertEqual(perms.get("sha256"), digest)
+        self.assertEqual(perms.get("applied"), "argv")
+        self.assertEqual(perms.get("allow"), 1, perms)
+        self.assertEqual(perms.get("deny"), 1, perms)
