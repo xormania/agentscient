@@ -12,6 +12,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -178,6 +179,18 @@ def run(argv: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
 def git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     executable = shutil.which("git") or "git"
     return run([executable, *args], cwd)
+
+
+def replace_text(path: Path, body: str) -> None:
+    """Atomically replace a text file without following its target symlink."""
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary_path = Path(temporary)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(body)
+        os.replace(temporary_path, path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
 
 
 def git_out(cwd: Path, *args: str) -> str:
@@ -802,6 +815,7 @@ class Driver:
             or counts != tally
             or verdict not in {"approve", "changes"}
             or (verdict == "approve" and bool(findings))
+            or (verdict == "changes" and not findings)
         ):
             raise Stopped(
                 pending.name,
@@ -998,9 +1012,9 @@ class Driver:
             findings_file = self.inputs_dir / "check-tests-findings.json"
             findings_file.parent.mkdir(parents=True, exist_ok=True)
             findings_payload = self.inputs_dir / "check-tests-findings.payload.json"
-            findings_payload.write_text(
+            replace_text(
+                findings_payload,
                 json.dumps(envelope.get("findings"), indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
             )
             findings_file.symlink_to(findings_payload.name)
             row["findings_file"] = str(findings_file)
