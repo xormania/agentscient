@@ -32,6 +32,21 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
+ALLOWLIST = REPO / "ops" / "devlane" / "fixtures" / "probe-allowlist.json"
+EXPECTED_ALLOWLIST = {
+    "forms": [
+        {
+            "id": "python-probe-script",
+            "env": {"PYTHONPATH": "."},
+            "argv": ["python3", "probes/*.py"],
+        },
+        {
+            "id": "sh-probe-script",
+            "env": {},
+            "argv": ["sh", "probes/*.sh"],
+        },
+    ]
+}
 
 APP = "synth"
 AGENT = "Fixture Lever Tester <fixture-tester@example.invalid>"
@@ -247,6 +262,7 @@ class _LeverFixture(unittest.TestCase):
         self.repo.mkdir()
         self.staged = self.repo / "ops" / "bin" / "fixture.sh"
         self._stage_lever_bytes()
+        self._stage_allowlist()
         self.app_root = (
             self.repo / "ops" / "devlane" / "fixtures" / "apps" / APP
         )
@@ -312,6 +328,37 @@ class _LeverFixture(unittest.TestCase):
         self.staged.chmod(self.staged.stat().st_mode | stat.S_IXUSR)
         self.assertTrue(self.staged.is_file())
         self.assertTrue(os.access(self.staged, os.X_OK), self.staged)
+
+    def _stage_allowlist(self) -> None:
+        path = (
+            self.repo / "ops" / "devlane" / "fixtures" / "probe-allowlist.json"
+        )
+        data = (json.dumps(EXPECTED_ALLOWLIST, indent=2) + "\n").encode("utf-8")
+        self._plant_bytes(path, data)
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(loaded, EXPECTED_ALLOWLIST)
+
+    def _rewrite_fault(self, made: Path, fault_id: str, **fields) -> None:
+        path = made / "FAULTS.json"
+        before = path.read_bytes()
+        data = json.loads(before.decode("utf-8"))
+        found = False
+        for row in data.get("faults") or []:
+            if row.get("id") == fault_id:
+                row.update(fields)
+                found = True
+                break
+        self.assertTrue(found, f"plant: {fault_id} missing from {path}")
+        planted = (json.dumps(data, indent=2) + "\n").encode("utf-8")
+        self._plant_bytes(path, planted)
+        self.assertNotEqual(path.read_bytes(), before)
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        for row in loaded["faults"]:
+            if row.get("id") == fault_id:
+                for key, value in fields.items():
+                    self.assertEqual(row.get(key), value, key)
+                return
+        self.fail(f"plant: {fault_id} missing after rewrite")
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -691,6 +738,16 @@ class TheLeverFile(unittest.TestCase):
             os.access(LEVER, os.X_OK),
             f"{LEVER} must be executable",
         )
+
+
+class TheAllowlistFile(unittest.TestCase):
+    def test_the_allowlist_file_is_present_and_readable(self):
+        self.assertTrue(
+            ALLOWLIST.is_file(),
+            f"{ALLOWLIST} is missing; probe forms are data, not a shell string",
+        )
+        data = json.loads(ALLOWLIST.read_text(encoding="utf-8"))
+        self.assertEqual(data, EXPECTED_ALLOWLIST)
 
 
 class RefusalShape(_LeverFixture):
@@ -1222,8 +1279,17 @@ class ProveColours(_LeverFixture):
         dump_path = made / "probes" / "env-dump.txt"
         self.assertTrue(dump_path.is_file(), "the SYN-01 probe dumps its environment")
         dump = dump_path.read_text(encoding="utf-8")
-        self.assertIn("PATH=", dump)
-        self.assertIn("HOME=" + str(self.home), dump)
+        keys = {
+            line.split("=", 1)[0]
+            for line in dump.splitlines()
+            if "=" in line
+        }
+        self.assertIn("PATH", keys)
+        self.assertNotIn(
+            "HOME",
+            keys,
+            "read-only probes do not receive HOME; identity is stripped",
+        )
         self.assertNotIn(HOST_SECRET_NAME, dump)
         self.assertNotIn(HOST_SECRET_VALUE, dump)
         self.assertNotIn("COMPOSER_AUTH", dump)
@@ -1306,6 +1372,114 @@ class ProveColours(_LeverFixture):
         self.assertNotEqual(proc.returncode, 0, proc.stdout)
         self.assertIn(MARKER_01, after.decode("utf-8"))
         self.assertIn(MARKER_02, after.decode("utf-8"))
+
+    def test_prove_refuses_probe_when_the_allowlist_file_is_absent(self):
+        made = self.plant_made_dir("no-allowlist")
+        path = (
+            self.repo / "ops" / "devlane" / "fixtures" / "probe-allowlist.json"
+        )
+        self.assertTrue(path.is_file(), "plant: staging helper put the allowlist")
+        path.unlink()
+        self.assertFalse(path.exists())
+        proc = self.invoke(["prove", str(made)], agent=None)
+        self.assert_refusal(proc, "probe")
+
+    def test_prove_refuses_probe_when_the_allowlist_file_is_malformed(self):
+        made = self.plant_made_dir("bad-allowlist")
+        path = (
+            self.repo / "ops" / "devlane" / "fixtures" / "probe-allowlist.json"
+        )
+        planted = b"{not-json\n"
+        self._plant_bytes(path, planted)
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(planted)
+        proc = self.invoke(["prove", str(made)], agent=None)
+        self.assert_refusal(proc, "probe")
+
+    def test_prove_refuses_an_off_list_probe_and_does_not_write_outside(self):
+        made = self.plant_made_dir("off-list-probe")
+        outside = made.parent / "outside.txt"
+        self.assertFalse(outside.exists())
+        planted_probe = "true; echo PWNED > ../outside.txt"
+        self._rewrite_fault(made, "SYN-01", probe=planted_probe)
+        proc = self.invoke(["prove", str(made)], agent=None)
+        self.assert_refusal(proc, "probe")
+        self.assertFalse(
+            outside.exists(),
+            "an off-list probe must not write outside the fixture",
+        )
+
+    def test_prove_refuses_a_probe_script_symlink_that_escapes_the_fixture(self):
+        made = self.plant_made_dir("escape-probe")
+        outside = self.root / "outside-probe.sh"
+        self._plant_bytes(outside, b"#!/bin/sh\nexit 0\n")
+        escape = made / "probes" / "escape.sh"
+        escape.symlink_to(outside)
+        self.assertTrue(escape.is_symlink())
+        self.assertEqual(escape.resolve(), outside.resolve())
+        self._rewrite_fault(made, "SYN-01", probe="sh probes/escape.sh")
+        proc = self.invoke(["prove", str(made)], agent=None)
+        self.assert_refusal(proc, "probe")
+
+    def test_prove_fixed_refuses_a_fix_symlink_that_escapes_the_fixture(self):
+        made = self.plant_made_repo("escape-patch")
+        original = made / "fixes" / "syn-01.patch"
+        payload = original.read_bytes()
+        self.assertIn(FIXED_01.encode("utf-8"), payload)
+        outside = self.root / "outside.patch"
+        self._plant_bytes(outside, payload)
+        original.unlink()
+        original.symlink_to(outside)
+        self.assertTrue(original.is_symlink())
+        self.assertEqual(original.resolve(), outside.resolve())
+        before = (made / "src" / "cli.py").read_bytes()
+        self.assertIn(MARKER_01.encode("utf-8"), before)
+        proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
+        self.assert_refusal(proc, "fix")
+        self.assertEqual(
+            (made / "src" / "cli.py").read_bytes(),
+            before,
+            "an escaping patch symlink must not rewrite the supplied tree",
+        )
+
+    def test_prove_fixed_does_not_copy_ignored_vendor_and_refuses_toolchain(
+        self,
+    ):
+        made = self.plant_made_repo("ignored-vendor")
+        marker = b"IGNORED_VENDOR_PHPUNIT_MUST_NOT_RIDE\n"
+        vendor_bin = made / "vendor" / "bin" / "phpunit"
+        self._plant_bytes(vendor_bin, marker)
+        vendor_bin.chmod(vendor_bin.stat().st_mode | stat.S_IXUSR)
+        self.assertEqual(vendor_bin.read_bytes(), marker)
+        tracked = self.git("ls-files", cwd=made).stdout.splitlines()
+        self.assertNotIn(
+            "vendor/bin/phpunit",
+            tracked,
+            "plant: vendor/bin/phpunit must stay untracked",
+        )
+        self._rewrite_fault(made, "SYN-01", needs=["vendor/bin/phpunit"])
+        proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
+        self.assert_refusal(proc, "toolchain")
+        self.assertEqual(
+            vendor_bin.read_bytes(),
+            marker,
+            "prove --fixed must not consume the ignored vendor marker",
+        )
+
+    def test_prove_fixed_refuses_toolchain_when_a_fault_names_vendor_and_trial_has_none(
+        self,
+    ):
+        made = self.plant_made_repo("no-vendor")
+        self.assertFalse((made / "vendor" / "bin" / "phpunit").exists())
+        self._rewrite_fault(made, "SYN-01", needs=["vendor/bin/phpunit"])
+        proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
+        self.assert_refusal(proc, "toolchain")
+        err = (proc.stderr or "").lower()
+        self.assertIn("vendor/bin/phpunit", err)
+        self.assertFalse(
+            (made / "vendor").exists(),
+            "prove --fixed must not install vendor/ into the supplied tree",
+        )
 
 
 class GradeRefusesOnTheLever(_LeverFixture):
