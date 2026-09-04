@@ -7,15 +7,17 @@ per record, the lines the contract (`ops/conductor/watchdog-lever.md`)
 names: a record closed, a harness process gone with no exit written,
 an exit written that the launcher never collected, a run past its
 warning fraction of the wall, a record it cannot judge, CI red or
-cancelled on an open pull request into the trunk, and a heartbeat on
-cadence. A tick that raises prints the error as a line and the loop
-goes on: silence is never the report of a crash.
+cancelled on an open pull request into the trunk, mechanical deviations
+from the declared plan, and a heartbeat on cadence. A tick that raises
+prints the error as a line and the loop goes on: silence is never the
+report of a crash.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -34,6 +36,24 @@ DEFAULT_HEARTBEAT = 6
 DEFAULT_WARN_FRACTION = 2 / 3
 FALLBACK_WARN_MIN = 40
 SETTLING_TICKS = 2
+ASSUMPTION_WORDS = (
+    "assumption",
+    "assume",
+    "substitute",
+    "stub",
+    "hermetic substitute",
+)
+LOCK_FILES = ("composer.lock", "Cargo.lock", "requirements.lock", "symfony.lock")
+REFUSAL_CLASSES = ("empty-comparison", "scope-cap", "conf-key", "toolchain")
+BUCKET_LIMITS = {
+    "S": {"files": 3, "lines": 2_000},
+}
+BUCKET_OVERRUN_FACTOR = 4
+MINUTES_OVERRUN_FACTOR = 4
+CALIBRATION_MINUTES = {
+    "S": {"implement": 4, "author-tests": 21, "check-tests": 10},
+}
+ROUND_JOBS = {"implement", "author-tests"}
 
 
 def _laneconf():
@@ -245,6 +265,47 @@ def entries(store, caps):
     return out
 
 
+def text_values(value):
+    """Yield only values from a JSON-shaped object, never its keys."""
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from text_values(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from text_values(item)
+
+
+def bucket_from(entry):
+    """The first bucket line in the copied plan, or in the record scope."""
+    try:
+        plan = (entry.path / "in" / "plan.md").read_text(encoding="utf-8")
+    except FileNotFoundError:
+        brief = entry.rec.get("brief")
+        plan = brief.get("scope") if isinstance(brief, dict) else None
+    if not isinstance(plan, str):
+        return None, set()
+    for line in plan.splitlines():
+        fields = line.split()
+        if len(fields) >= 3 and fields[0].lower() == "bucket":
+            return fields[2].upper(), set(fields[3:])
+    return None, set()
+
+
+def held_text(entry, names):
+    """Text from held launcher files; absent files are an empty reading."""
+    chunks = []
+    for name in names:
+        try:
+            chunks.append((entry.path / name).read_text(
+                encoding="utf-8", errors="replace"
+            ))
+        except FileNotFoundError:
+            continue
+    return "\n".join(chunks)
+
+
 class Watch:
     def __init__(self, args):
         self.args = args
@@ -256,6 +317,7 @@ class Watch:
         self.launcher_pairs = set()
         self.ci_seen = set()
         self.startup_closed = set()
+        self.deviations = 0
         if not args.report_existing:
             self.startup_closed = {e.name for e in entries(args.store, self.caps) if e.kind == "closed"}
 
@@ -263,6 +325,112 @@ class Watch:
         if key not in self.reported:
             self.reported.add(key)
             say(line)
+            return True
+        return False
+
+    def deviation(self, kind, record_id):
+        if self.once(
+            ("deviation", kind, record_id),
+            f"deviation {kind} {record_id}",
+        ):
+            self.deviations += 1
+
+    def scan_deviations(self, entry):
+        result = entry.rec.get("result")
+        result = result if isinstance(result, dict) else {}
+        envelope = result.get("envelope")
+        envelope = envelope if isinstance(envelope, dict) else {}
+        changed = result.get("changed_paths")
+        changed = [p for p in changed if isinstance(p, str)] if isinstance(changed, list) else []
+        bucket_class, bucket_paths = bucket_from(entry)
+        limit = BUCKET_LIMITS.get(bucket_class)
+
+        assumption_text = "\n".join(text_values({
+            "note": envelope.get("note"),
+            "findings": envelope.get("findings"),
+        })).lower()
+        if any(word in assumption_text for word in ASSUMPTION_WORDS):
+            self.deviation("assumption", entry.name)
+
+        if any(
+            Path(path).name in LOCK_FILES and path not in bucket_paths
+            for path in changed
+        ):
+            self.deviation("lock", entry.name)
+
+        if bucket_class is not None and (
+            any(path not in bucket_paths for path in changed)
+            or (
+                limit is not None
+                and len(changed) > limit["files"] * BUCKET_OVERRUN_FACTOR
+            )
+        ):
+            self.deviation("bucket", entry.name)
+
+        landed_lines = result.get("landed_lines")
+        if entry.job in ROUND_JOBS and limit is not None and (
+            len(changed) > limit["files"]
+            or (
+                isinstance(landed_lines, (int, float))
+                and landed_lines > limit["lines"]
+            )
+        ):
+            self.deviation("size", entry.name)
+
+        findings = envelope.get("findings")
+        has_findings = isinstance(findings, list) and bool(findings)
+        if envelope.get("status") in {"tripped", "invalid"} and (
+            has_findings or changed
+        ):
+            self.deviation("envelope", entry.name)
+
+        if entry.job == "author-tests":
+            suite_text = "\n".join(
+                filter(None, (
+                    envelope.get("note") if isinstance(envelope.get("note"), str) else "",
+                    held_text(entry, ("stdout", "stderr", "launcher.log")),
+                ))
+            )
+            if re.search(r"\berrored\b|\berrors\s*=\s*[1-9]\d*\b", suite_text, re.IGNORECASE):
+                self.deviation("errors", entry.name)
+
+        refused_text = held_text(entry, ("launcher.log", "stderr"))
+        refusal = "|".join(re.escape(item) for item in REFUSAL_CLASSES)
+        if re.search(rf"(?m)^\s*(?:{refusal}):", refused_text):
+            self.deviation("refused", entry.name)
+
+        minutes = entry.minutes(entry.closed_at)
+        minute_limit = CALIBRATION_MINUTES.get(bucket_class, {}).get(entry.job)
+        if (
+            minutes is not None
+            and minute_limit is not None
+            and minutes > minute_limit * MINUTES_OVERRUN_FACTOR
+        ):
+            self.deviation("minutes", entry.name)
+
+    def scan_ladders(self):
+        ladder_root = self.args.store.parent / "ladders"
+        try:
+            paths = sorted(ladder_root.glob("*.json"))
+        except OSError:
+            return
+        for path in paths:
+            ladder = read_json(path)
+            if ladder is None:
+                continue
+            record_id = ladder.get("id")
+            if not isinstance(record_id, str) or not record_id:
+                record_id = path.stem
+            stages = ladder.get("stages")
+            stages = stages if isinstance(stages, list) else []
+            retried = any(
+                isinstance(stage, dict)
+                and isinstance(stage.get("attempt"), (int, float))
+                and stage["attempt"] > 1
+                for stage in stages
+            )
+            if ladder.get("status") == "stopped" or retried:
+                self.deviation("retry", record_id)
 
     def run_tick(self):
         self.tick += 1
@@ -275,6 +443,7 @@ class Watch:
             if e.kind == "no-copy":
                 self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
                 continue
+            self.scan_deviations(e)
             if e.kind == "closed":
                 if e.name not in self.startup_closed:
                     self.once(("closed", e.name), f"closed {e.name} {e.summary()} after {e.minutes(e.closed_at)} min")
@@ -301,6 +470,7 @@ class Watch:
                     self.once(("long", e.name), f"long {e.name}: {m} min running, wall unknown")
             elif m >= e.wall_min * self.args.warn_fraction:
                 self.once(("long", e.name), f"long {e.name}: {m} min running, wall {int(e.wall_min)} min")
+        self.scan_ladders()
         launchers = self.launcher_count()
         if launchers is not None and launchers < len(running):
             pair = (launchers, len(running))
@@ -318,7 +488,7 @@ class Watch:
             else:
                 n, unreachable = forge
                 prs = str(n) + (f" (checks unreachable for {', '.join('#' + str(p) for p in unreachable)})" if unreachable else "")
-            say(f"heartbeat: running={live}; settling={settling}; launchers={launchers_txt}; open PRs into {self.trunk}={prs}")
+            say(f"heartbeat: running={live}; settling={settling}; launchers={launchers_txt}; open PRs into {self.trunk}={prs}; deviations={self.deviations}")
 
     def launcher_count(self):
         if shutil.which("pgrep") is None:
