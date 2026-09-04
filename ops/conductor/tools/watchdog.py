@@ -473,6 +473,10 @@ def _refusal_stream_matches(stream):
     whitespace = b" \t\n\r\v\f"
     while chunk := stream.read(64 * 1024):
         for byte in chunk:
+            if not at_line_start and not prefix:
+                if byte == ord("\n"):
+                    at_line_start = True
+                continue
             if at_line_start and not prefix and byte in whitespace:
                 continue
             prefix.append(byte)
