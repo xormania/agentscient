@@ -92,6 +92,42 @@ def _finding(severity: str, where: str, claim: str) -> dict:
     }
 
 
+def _tally(findings: list[dict]) -> dict[str, int]:
+    counts = {"p1": 0, "p2": 0, "p3": 0, "opinions": 0}
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        severity = finding.get("severity")
+        if severity in counts:
+            counts[severity] += 1
+        reproduce = finding.get("reproduce")
+        if reproduce is None or (
+            isinstance(reproduce, str) and not reproduce.strip()
+        ):
+            counts["opinions"] += 1
+    return counts
+
+
+def _valid_envelope(job: str, findings: list[dict], *, status: str = "ok") -> dict:
+    if status == "invalid":
+        verdict = None
+    elif findings:
+        verdict = "changes"
+    else:
+        verdict = "approve"
+    return {
+        "job": job,
+        "status": status,
+        "verdict": verdict,
+        "counts": _tally(findings),
+        "findings": findings,
+        "artifacts": {},
+        "spend": {"harness": HARNESS, "total": 0, "out": 0, "runs": 0},
+        "stamp": {"ref": "synth", "started": None, "ended": None},
+        "note": None if status != "invalid" else "incomplete envelope",
+    }
+
+
 class _GradeFixture(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory(prefix="fixture-grade-")
@@ -212,7 +248,7 @@ class _GradeFixture(unittest.TestCase):
             "job": job,
             "harness": {"name": HARNESS},
             "model": {"ran": MODEL, "requested": MODEL},
-            "result": {"envelope": {"findings": findings}},
+            "result": {"envelope": _valid_envelope(job, findings)},
         }
 
     def plant_record(
@@ -532,6 +568,22 @@ class GradeClassifies(_GradeFixture):
         self.assertEqual(counts["unmatched"], 1)
         self.assertEqual(counts["missed"], 2)
 
+    def test_repo_relative_where_overlaps_an_app_relative_location(self):
+        findings = [
+            _finding(
+                "p1",
+                f"ops/devlane/fixtures/apps/{APP}/src/a.py:10",
+                "REPO_RELATIVE_CLAIM_SYN",
+            ),
+        ]
+        rec = self.plant_record(self.record_payload(findings=findings))
+        proc = self.grade(str(rec))
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        counts = self.parse_counts(proc.stdout)
+        self.assertEqual(counts["caught"], 1, proc.stdout)
+        self.assertEqual(counts["unmatched"], 0, proc.stdout)
+        self.assertEqual(counts["missed"], 1, proc.stdout)
+
     def test_grade_resolves_a_record_id_from_repo_flag(self):
         other = self.root / "other-repo"
         payload = self.record_payload()
@@ -557,11 +609,57 @@ class GradeRefuses(_GradeFixture):
         self.assert_refusal(proc, "record")
         self.assertFalse(self.capture.exists())
 
-    def test_check_tests_is_a_review_job(self):
+    def test_check_tests_is_refused_as_not_a_review_job(self):
         rec = self.plant_record(self.record_payload(job="check-tests"))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
-        self.parse_counts(proc.stdout)
+        self.assert_refusal(proc, "record")
+        err = (proc.stderr or "").lower()
+        self.assertIn("security-audit", err)
+        self.assertIn("adversarial-review", err)
+        self.assertNotIn("check-tests", err)
+        self.assertFalse(self.capture.exists())
+
+    def test_grade_refuses_a_tripped_envelope(self):
+        findings = [_finding("p1", "src/a.py:10-12", "TRIPPED_CLAIM_SYN")]
+        payload = self.record_payload(findings=findings)
+        payload["result"]["envelope"] = _valid_envelope(
+            "security-audit",
+            findings,
+            status="tripped",
+        )
+        rec = self.plant_record(payload)
+        proc = self.grade(str(rec))
+        self.assert_refusal(proc, "record")
+        self.assertFalse(self.capture.exists())
+
+    def test_grade_refuses_a_finding_without_a_claim(self):
+        findings = [
+            {
+                "severity": "p1",
+                "where": "src/a.py:10-12",
+                "reproduce": "true",
+            }
+        ]
+        payload = self.record_payload(
+            findings=[_finding("p1", "src/a.py:10-12", "PLACEHOLDER")]
+        )
+        payload["result"]["envelope"]["findings"] = findings
+        rec = self.plant_record(payload)
+        proc = self.grade(str(rec))
+        self.assert_refusal(proc, "record")
+        blob = ((proc.stdout or "") + (proc.stderr or "")).lower()
+        self.assertNotIn("unnamed finding", blob)
+        self.assertFalse(self.capture.exists())
+
+    def test_grade_refuses_a_string_finding(self):
+        payload = self.record_payload()
+        payload["result"]["envelope"]["findings"] = ["just a string"]
+        rec = self.plant_record(payload)
+        proc = self.grade(str(rec))
+        self.assert_refusal(proc, "record")
+        blob = ((proc.stdout or "") + (proc.stderr or "")).lower()
+        self.assertNotIn("unnamed finding", blob)
+        self.assertFalse(self.capture.exists())
 
     def test_adversarial_review_is_a_review_job(self):
         rec = self.plant_record(
