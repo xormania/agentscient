@@ -16,7 +16,8 @@ is land-specific.
 
 ## Instrument
 
-`python3 ops/conductor/tools/land.py RECORD_ID [--push] [--no-fetch]`
+`python3 ops/conductor/tools/land.py RECORD_ID [--push] [--no-fetch]
+[--author 'Name <address>'] [--co-author 'Name <address>']`
 — run inside the lineage worktree, on the lineage branch. Landing
 writes commits, so identity is required. subprocess is used only to
 run `git`.
@@ -29,8 +30,15 @@ The dispatch store is `$XDG_STATE_HOME/agentscient/dispatch` (else
 The snapshot ref `refs/dispatch/RECORD_ID` holds the producer's
 commits on top of the tree it was dispatched from. Landing cherry-picks
 every commit in `HEAD..refs/dispatch/RECORD_ID`, in order, onto the
-current branch — messages verbatim (records land verbatim; no `-x`
-line), authorship preserved, committer identity from `WF_AGENT`.
+current branch. With no re-authoring flags, messages remain verbatim
+(records land verbatim; no `-x` line), each author is `LANE_AUTHOR`,
+and the committer is `WF_AGENT`.
+
+`--author` replaces `LANE_AUTHOR` as the author of every landed commit.
+`--co-author` adds a matching `Co-Authored-By:` trailer when absent from
+each landed message, leaving existing `Source:` and other attribution
+trailers intact. A matching trailer already present is not duplicated.
+The flags are independent and additive; neither changes the committer.
 
 ## Preconditions, checked in this order
 
@@ -49,6 +57,8 @@ invocation fails fast at `record`:
 | dirty | the working tree has staged or unstaged changes |
 | stale | the branch is behind `origin/<branch>` — a three-way ruling. With a remote and the fetch allowed: the upstream branch is probed first (`ls-remote --exit-code`); an upstream that lacks the branch is fresh evidence (a first landing on an unpushed branch is the normal case), a probe or fetch failure refuses — an unperformed freshness check is not freshness. With `--no-fetch`: the last-known `origin/<branch>` ref is the comparison, and its absence refuses — skipping the fetch presumes prior evidence. With no origin remote: a planted origin ref compares, otherwise there is nothing to be behind |
 | attribution | a commit to be landed carries no git-parseable trailer, checked before any pick |
+| author | `--author` is not in full `Name <address>` form |
+| co-author | `--co-author` is not in full `Name <address>` form |
 
 Refusal text is one line by the inherited wire even when git's
 diagnostics are not: embedded newlines are normalized before the
