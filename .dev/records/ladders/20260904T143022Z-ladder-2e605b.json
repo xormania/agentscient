@@ -136,6 +136,7 @@
         "82dfef5809ac36e3fae19d804397e431c09a11df",
         "d47352951dcf48af23bd7e67d523b037606d6664"
       ],
+      "minutes": 13.849307,
       "name": "tests-fix",
       "outcome": "ok",
       "record": "20260904T145002Z-tests-grok-87e902",
