@@ -56,6 +56,7 @@ class TheRefusalWireIsUniform(unittest.TestCase):
                 [sys.executable, str(TOOLS / tool), *argv],
                 cwd=home,
                 env=env,
+                input="",
                 capture_output=True,
                 text=True,
                 check=False,
@@ -80,15 +81,21 @@ class TheRefusalWireIsUniform(unittest.TestCase):
                 self.assertEqual(
                     len(lines), 1, f"refusal must be one line: {err!r}"
                 )
-                self.assertIn(cls, lines[0].lower())
-                lower = lines[0].lower()
+                line = lines[0]
+                head = line.split(":", 1)[0].strip().lower().replace("_", "-")
+                self.assertEqual(
+                    head,
+                    cls,
+                    f"refusal class must be the leading token {cls!r}: {line!r}",
+                )
+                lower = line.lower()
                 for word in ("expected", "found", "needed"):
-                    self.assertIn(word, lower, lines[0])
+                    self.assertIn(word, lower, line)
                 self.assertLess(
-                    lower.index("expected"), lower.index("found"), lines[0]
+                    lower.index("expected"), lower.index("found"), line
                 )
                 self.assertLess(
-                    lower.index("found"), lower.index("needed"), lines[0]
+                    lower.index("found"), lower.index("needed"), line
                 )
                 self.assertEqual(
                     (proc.stdout or "").strip(), "",
@@ -99,11 +106,18 @@ class TheRefusalWireIsUniform(unittest.TestCase):
         for tool, argv, _cls, ident in REGISTRY:
             if not ident:
                 continue
-            with self.subTest(tool=tool):
+            with self.subTest(tool=tool, argv=tuple(argv)):
                 proc = self.invoke(tool, argv, identity=False)
-                err = (proc.stderr or "").lower()
-                self.assertEqual(proc.returncode, 2, proc.stderr)
-                self.assertIn("identity", err)
+                err = proc.stderr or ""
+                self.assertEqual(proc.returncode, 2, err)
+                lines = [ln for ln in err.splitlines() if ln.strip()]
+                self.assertEqual(len(lines), 1, err)
+                head = lines[0].split(":", 1)[0].strip().lower().replace("_", "-")
+                self.assertEqual(
+                    head,
+                    "identity",
+                    f"identity refusal must be the leading token: {lines[0]!r}",
+                )
 
 
 if __name__ == "__main__":
