@@ -59,7 +59,7 @@ class GrokHeadCommitIsJudgedAgainstTheRef(ls._TempLaunch):
             f"plant: snapshot tree must be clean, got {porcelain!r}",
         )
 
-        stream = rec.get("session", {}).get("stream") or ""
+        stream = ls.resolve_record_paths(rec).get("session", {}).get("stream") or ""
         self.assertTrue(stream, "a grok stream path is recorded")
         stream_path = Path(stream)
         self.assertTrue(stream_path.is_file(), f"stream missing: {stream}")
