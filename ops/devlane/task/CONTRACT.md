@@ -120,7 +120,7 @@ does not change the runner.
 | `author-tests` | a test file that has been run and is red for the stated reason |
 | `sweep` | structured findings over disjoint categories, merged |
 | `plan` | a plan written to the job's `out/PLAN.md`, and an envelope naming it |
-| `check-tests` | a skeptic's report at `out/SKEPTIC.md`; verdict `changes` when any test is refuted |
+| `check-tests` | the JSON envelope on stdout: verdict, counts, and findings as quotation pairs with reproduce commands; no file |
 | `implement` | commits in the snapshot that make the named test command pass, trailers per `AGENTS.md` |
 | `adjudicate` | a ruling at `out/RULING.md` — UPHELD / PARTIAL / REJECTED per finding, and what the reviewers missed |
 
@@ -130,13 +130,12 @@ or a diff, not another opinion.
 
 The last four are the dev-lane pipeline's own stages as jobs (dispatched
 by the dispatch app; see `ops/devlane/dispatch/CONTRACT.md`). They are data
-in `jobs.json` today. Three of them — `plan`,
-`check-tests`, `adjudicate` — name `{out}` or `{inputs}`, which `run.py`
-does not yet supply, so `render` refuses each by name rather than
-launching a brief with a hole in it. `implement` names only `{ref}` and
-`{scope}` and renders today; what it still lacks is the launcher's
-whole-mode snapshot and collect, without which its commits have nowhere
-to land.
+in `jobs.json` today. `plan` and `adjudicate` name `{out}`; all three read
+jobs name `{inputs}`, which `run.py` does not yet supply, so `render`
+refuses each by name rather than launching a brief with a hole in it.
+`implement` names only `{ref}` and `{scope}` and renders today; what it
+still lacks is the launcher's whole-mode snapshot and collect, without
+which its commits have nowhere to land.
 
 ## What the runner does, and does not
 

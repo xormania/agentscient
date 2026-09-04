@@ -947,8 +947,18 @@ class Driver:
         row["findings"] = sum(
             int(counts.get(key) or 0) for key in ("p1", "p2", "p3")
         )
+        extra = [destination]
+        if pending.name == "check-tests":
+            findings_file = self.inputs_dir / "check-tests-findings.json"
+            findings_file.parent.mkdir(parents=True, exist_ok=True)
+            findings_file.write_text(
+                json.dumps(envelope.get("findings"), indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            row["findings_file"] = str(findings_file)
+            extra.append(findings_file)
         row["outcome"] = "ok"
-        self.commit(destination)
+        self.commit(*extra)
 
     def finish(self, pending: Pending, *, already_closed: tuple[dict, dict] | None = None) -> dict:
         if already_closed is None:
@@ -980,20 +990,9 @@ class Driver:
         elif name == "tests-fix" and "check-tests" in records:
             record_path = dispatch_dir / f"{records['check-tests']}.json"
             inputs.append(record_path)
-            try:
-                payload = json.loads(record_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                payload = {}
-            artifacts = (
-                (((payload.get("result") or {}).get("envelope") or {}).get("artifacts"))
-                or {}
-            )
-            if isinstance(artifacts, dict):
-                for value in artifacts.values():
-                    if isinstance(value, str):
-                        artifact = Path(value)
-                        if artifact.name == "SKEPTIC.md" and artifact.is_file():
-                            inputs.append(artifact)
+            findings_file = self.row("check-tests").get("findings_file")
+            if isinstance(findings_file, str):
+                inputs.append(Path(findings_file))
         elif name == "code" or name.startswith("code-"):
             inputs.append(self.scope)
             if command_file is not None:
