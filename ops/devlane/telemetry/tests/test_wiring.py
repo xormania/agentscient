@@ -1,7 +1,9 @@
 """Guard against process-doc recipes whose tool paths or flags silently rot."""
 
 import ast
+import json
 import re
+import sys
 import unittest
 from pathlib import Path
 
@@ -1858,6 +1860,74 @@ class RoundThreeSkepticShapeTests(unittest.TestCase):
         mutated = text.replace(" --terminate", " ", 1)
         self.assertNotEqual(mutated, text)
         self.assertTrue(battery_wiring_errors(mutated))
+
+
+WORTH = REPO / "ops/devlane/telemetry/worth.py"
+
+
+class DispatchDirWiringTests(unittest.TestCase):
+    """Unit A: --dispatch-dir is a real flag whose default matches the jobs root."""
+
+    def test_worth_declares_dispatch_dir(self):
+        source = WORTH.read_text(encoding="utf-8")
+        flags = declared_flags(source)
+        self.assertIn(
+            "--dispatch-dir",
+            flags,
+            f"{WORTH} does not declare --dispatch-dir; found {sorted(flags)}",
+        )
+
+    def test_dispatch_dir_default_names_the_same_jobs_root_as_the_launcher(self):
+        tests_dir = Path(__file__).resolve().parent
+        if str(tests_dir) not in sys.path:
+            sys.path.insert(0, str(tests_dir))
+        import test_worth_dispatches as dispatch_meter
+
+        meter = dispatch_meter.DispatchMeterTests(
+            "test_jobs_root_falls_back_from_dispatch_jobs_to_xdg_to_home"
+        )
+        meter.setUp()
+        self.addCleanup(meter.doCleanups)
+        home_jobs = (
+            meter.home / ".local" / "state" / "agentscient" / "dispatch"
+        )
+        meter._plant_dispatch(
+            dispatch_meter.CLAUDE_ID,
+            job="plan",
+            harness="claude",
+            stage="plan",
+            launched="2026-08-22T10:00:00Z",
+            spend=dispatch_meter.CLAUDE_SPEND,
+            root=home_jobs,
+        )
+        planted = home_jobs / dispatch_meter.CLAUDE_ID / "record.json"
+        self.assertTrue(
+            planted.is_file(),
+            f"plant: default jobs root has no record at {planted}",
+        )
+        self.assertEqual(
+            json.loads(planted.read_text(encoding="utf-8"))["id"],
+            dispatch_meter.CLAUDE_ID,
+        )
+        proc = meter._run_worth(
+            "report",
+            *dispatch_meter.window_args(),
+            "--format",
+            "json",
+            dispatch_dir=None,
+            extra_env={},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        data = json.loads(proc.stdout)
+        ids = [
+            row.get("id")
+            for row in meter._dispatch_block(data)["rows"]
+        ]
+        self.assertEqual(
+            ids,
+            [dispatch_meter.CLAUDE_ID],
+            "worth did not read the launcher's default jobs root",
+        )
 
 
 if __name__ == "__main__":

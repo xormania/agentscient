@@ -192,3 +192,26 @@ def build_grok_store(root, cwd, *, base_timestamp, session_id, model,
         {"type": "loop_started", "ts": _iso_ms(base_timestamp + 80)},
         {"type": "phase_changed", "ts": _iso_ms(base_timestamp + 90)},
     ])
+
+
+def build_dispatch_store(root, *, record, streams, base_timestamp,
+                         marker="FIXTUREPROMPTMARKER"):
+    """Write the deterministic launcher artifacts for one dispatch."""
+    job_dir = Path(root) / record["id"]
+    job_dir.mkdir(parents=True, exist_ok=True)
+    (job_dir / "record.json").write_text(
+        json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    state = {
+        "pid": int(base_timestamp),
+        "pgid": int(base_timestamp),
+        "session": {"id": record["session"]["id"]},
+        "stream": record["session"].get("stream"),
+        "attempt": max(1, len(record.get("attempts") or [])),
+    }
+    (job_dir / "state.json").write_text(json.dumps(state) + "\n",
+                                         encoding="utf-8")
+    (job_dir / "exit").write_text("0\n", encoding="utf-8")
+    (job_dir / "raw.out").write_bytes(streams.get("raw.out", b""))
+    (job_dir / "prompt.txt").write_text(
+        f"{marker} at {_iso_ms(base_timestamp)}\n", encoding="utf-8")
+    return job_dir
