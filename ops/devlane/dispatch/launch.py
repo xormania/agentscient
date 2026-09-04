@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import hashlib
 import importlib.util
 import json
@@ -12,7 +13,6 @@ import os
 import re
 import shutil
 import signal
-import string
 import subprocess
 import sys
 import time
@@ -201,12 +201,15 @@ def _sha(path):
 
 
 def _render(template, values):
-    fields = [name for _, name, _, _ in string.Formatter().parse(template) if name]
+    fields = re.findall(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", template)
     missing = [name for name in fields if name not in values]
     if missing:
         _refuse("render", "every template value supplied", missing[0],
                 f"supply {missing[0]} before rendering")
-    return template.format(**values)
+    rendered = template
+    for name in fields:
+        rendered = rendered.replace(f"{{{name}}}", str(values[name]))
+    return rendered
 
 
 def _harness_meta(name, role, job_dir, env):
@@ -280,6 +283,33 @@ CLAUDE_TOOL_RULES = (
 # Tools no dispatch may use: the network (jobs say "no network") and
 # sub-agents (the owner's hard rule, 2026-08-29).
 CLAUDE_DENIED_TOOLS = ("WebFetch", "WebSearch", "Agent", "Task")
+CLAUDE_NETWORK_RULE_PREFIXES = ("Bash(gh ", "Bash(composer ", "Bash(git ")
+
+
+def _project_permissions(snapshot):
+    """Carry trusted project rules on argv without changing operator config."""
+    path = Path(snapshot) / ".claude" / "settings.json"
+    if not path.is_file():
+        return ({"unresolved": "project settings absent: .claude/settings.json"},
+                (), ())
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return ({"unresolved": f"project settings unreadable: {exc}"}, (), ())
+    permissions = data.get("permissions") if isinstance(data, dict) else None
+    allow = permissions.get("allow") if isinstance(permissions, dict) else None
+    deny = permissions.get("deny") if isinstance(permissions, dict) else None
+    if not isinstance(allow, list) or not isinstance(deny, list):
+        return ({"unresolved": "permissions.allow and permissions.deny must be lists"},
+                (), ())
+    if not all(isinstance(rule, str) for rule in [*allow, *deny]):
+        return ({"unresolved": "permission rules must be strings"}, (), ())
+    dropped = [rule for rule in allow
+               if rule.startswith(CLAUDE_NETWORK_RULE_PREFIXES)]
+    applied = [rule for rule in allow if rule not in dropped]
+    return ({"source": ".claude/settings.json", "sha256": _sha(path),
+             "allow": len(applied), "deny": len(deny), "dropped": dropped,
+             "applied": "argv"}, tuple(applied), tuple(deny))
 
 
 def _grok_permission(sandbox):
@@ -302,7 +332,8 @@ def _effort_argv(harness, effort):
     return ["--reasoning-effort", effort]
 
 
-def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
+def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
+          project_allow=(), project_deny=()):
     executable = shutil.which(name) or name
     last_message = str((Path(prompt).parent / "out" / "last-message.json").resolve())
     if resume:
@@ -316,8 +347,8 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
             return [executable, *flags, "-r", session, "--print",
                     "--permission-mode", sandbox, "--add-dir", out,
                     "--add-dir", incoming, "--add-dir", context,
-                    "--allowedTools", *CLAUDE_TOOL_RULES,
-                    "--disallowedTools", *CLAUDE_DENIED_TOOLS,
+                    "--allowedTools", *CLAUDE_TOOL_RULES, *project_allow,
+                    "--disallowedTools", *CLAUDE_DENIED_TOOLS, *project_deny,
                     "--model", model, *_effort_argv(name, effort),
                     "--output-format", "json",
                     "--json-schema", ENVELOPE_SCHEMA_JSON]
@@ -336,8 +367,8 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
         return [executable, *flags, "--session-id", session, "--print",
                 "--permission-mode", sandbox, "--add-dir", out,
                 "--add-dir", incoming, "--add-dir", context,
-                "--allowedTools", *CLAUDE_TOOL_RULES,
-                "--disallowedTools", *CLAUDE_DENIED_TOOLS,
+                "--allowedTools", *CLAUDE_TOOL_RULES, *project_allow,
+                "--disallowedTools", *CLAUDE_DENIED_TOOLS, *project_deny,
                 "--model", model, *_effort_argv(name, effort),
                 "--output-format", "json",
                 "--json-schema", ENVELOPE_SCHEMA_JSON]
@@ -631,6 +662,7 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
 
 
 def _write_record(repo, rec):
+    rec.pop("_envelope_cause", None)
     path = repo / ".dev/records/dispatches" / f"{rec['id']}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     record.validate(rec)
@@ -642,12 +674,13 @@ def _write_record(repo, rec):
     return path
 
 
-def _commit_record(repo, path, rec):
+def _commit_record(repo, path, rec, subject=None):
     rel = path.relative_to(repo)
     env = dict(os.environ)
     env.update(GIT_AUTHOR_NAME=OWNER_NAME, GIT_AUTHOR_EMAIL=OWNER_EMAIL,
                GIT_COMMITTER_NAME=OWNER_NAME, GIT_COMMITTER_EMAIL=OWNER_EMAIL)
-    msg = (f"dispatch: record {rec['id']}\n\nSource: generated: ops/devlane/dispatch/launch.py\n"
+    msg = (f"{subject or f'dispatch: record {rec['id']}'}\n\n"
+           "Source: generated: ops/devlane/dispatch/launch.py\n"
            f"Co-Authored-By: {rec['dispatched_by']}")
     for item in rec.get("overrides", []):
         msg += f"\n\nOverride: {item['refusal']}: {item['reason']}"
@@ -661,8 +694,27 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     prompt = job_dir / "prompt.txt"
     iso_env = rec["harness"]["isolation"].get("env", {})
     flags = rec["harness"]["isolation"].get("flags", [])
+    project_allow = project_deny = ()
+    if harness == "claude":
+        permissions, project_allow, project_deny = _project_permissions(snapshot)
+        rec["harness"]["permissions"] = permissions
+    if resume and harness in {"codex", "grok"}:
+        live = job_dir / "home" / harness / "sessions"
+        streamed = job_dir / "home" / f"{harness}-stream" / "sessions"
+        if not live.exists() and streamed.exists():
+            live.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(streamed), str(live))
+        elif not live.exists():
+            _refuse(
+                "resume-store",
+                f"the session store for {rec['session']['id']} under "
+                f"{live} or {streamed}",
+                "neither",
+                "resume a job whose store survived, or launch afresh",
+            )
     argv = _argv(harness, rec["model"]["requested"], rec["model"]["effort_requested"],
-                 rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"], resume)
+                 rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"],
+                 resume, project_allow, project_deny)
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
@@ -833,9 +885,20 @@ def _launch(args):
               "out": str((job_dir / "out").resolve()),
               "inputs": " ".join(item["path"] for item in copied), "scope": args.scope or ""}
     prompt_text = _render(job["prompt"], values)
+    if args.harness in {"codex", "grok"}:
+        prompt_text += (
+            "\n\nThe envelope shape, as JSON Schema. Every key in `required` "
+            "is present; no other top-level key; the types are exact "
+            "(findings are objects, counts are integers, artifacts is an "
+            "object of strings):\n" + ENVELOPE_SCHEMA_JSON
+        )
     prompt = job_dir / "prompt.txt"
     prompt.write_text(prompt_text)
     _iso_env, _flags, sandbox, containment, isolation_data = _harness_meta(args.harness, role, job_dir, os.environ)
+    permissions = None
+    project_allow = project_deny = ()
+    if args.harness == "claude":
+        permissions, project_allow, project_deny = _project_permissions(snapshot)
     session = str(uuid.uuid4())
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
@@ -850,8 +913,10 @@ def _launch(args):
                      "root": str(snapshot.resolve())},
         "harness": {"name": args.harness, "version": "unknown", "isolation": isolation_data,
                     "sandbox": sandbox, "containment": containment,
+                    **({"permissions": permissions} if permissions is not None else {}),
                     "argv": _argv(args.harness, args.model, args.effort, session,
-                                  prompt, _flags, sandbox)},
+                                  prompt, _flags, sandbox, False,
+                                  project_allow, project_deny)},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
@@ -861,6 +926,7 @@ def _launch(args):
         "caps": {"cap-out": wires.budget(role), "source": "wires.py"},
         "overrides": overrides, "attempts": [], "result": None, "status": "launched"})
     _write_record(repo, rec)
+    print(f"record: {job_id}", flush=True)
     _run_attempt(rec, job_dir, job_caps=job.get("caps"))
     path, ran, found_id, mismatch = _stream(
         job_dir, args.harness, session, snapshot, ref_sha,
@@ -906,7 +972,7 @@ MODEL_NAMES = {"gpt-5.6-sol": "GPT-5.6 Sol", "grok-4.6": "Grok 4.6",
                "claude-sonnet-5": "Claude Sonnet 5"}
 
 
-def _commit_message(rec, env=None, job_dir=None):
+def _commit_message(rec, env=None, job_dir=None, *, collected=False):
     """The message the launcher commits with: the harness's own subject and
     body when it wrote out/COMMIT_MSG or its envelope carries
     `commit: {subject, body}`, else the generic line; either way the
@@ -957,12 +1023,16 @@ def _commit_message(rec, env=None, job_dir=None):
     for line in [*sources, "Source: original", *others, *coauthors, mine]:
         if line not in block:
             block.append(line)
+    explanation = (
+        f"the {rec['harness']['name']} run was tripped before it committed"
+        if collected else f"the {rec['harness']['name']} sandbox denies .git"
+    )
     return (f"{subject}\n\n" + (f"{body}\n\n" if body else "")
-            + f"Committed by the launcher: the {rec['harness']['name']} sandbox denies .git.\n"
+            + f"Committed by the launcher: {explanation}.\n"
             f"Dispatch: {rec['id']}\n\n" + "\n".join(block) + "\n")
 
 
-def _commit_for_harness(snapshot, rec, env=None):
+def _commit_for_harness(snapshot, rec, env=None, *, collected=False):
     """codex's sandbox keeps .git read-only, so a write job leaves its work
     uncommitted in the snapshot (2026-08-28: an implement job made the
     named test green and could not commit). The launcher commits it,
@@ -975,7 +1045,8 @@ def _commit_for_harness(snapshot, rec, env=None):
                      GIT_COMMITTER_EMAIL=OWNER_EMAIL)
     _git(snapshot, "add", "-A", env=owner_env)
     _git(snapshot, "commit", "-q", "-F", "-", env=owner_env,
-         input=_commit_message(rec, env, snapshot.parent))
+         input=_commit_message(rec, env, snapshot.parent,
+                               collected=collected))
 
 
 def _cause(rec, job_dir, env=None):
@@ -1058,12 +1129,19 @@ def _spend(rec, stream, job_dir):
     records carried `spend: null`, so no cost could be measured)."""
     harness = rec["harness"]["name"]
     session = (rec.get("session") or {}).get("id")
+    fallback_roots = [job_dir / "home" / f"{harness}-stream",
+                      job_dir / "home" / harness]
+
+    def unreachable(reason, roots=None):
+        return {"unresolved": f"UNREACHABLE: {reason}",
+                "looked_in": [str(path) for path in (roots or fallback_roots)]}
+
     if not stream:
-        return {"unresolved": "no session stream discovered"}
+        return unreachable("no session stream discovered")
     try:
         usage = _module("usage", TELEMETRY_APP / "usage.py")
     except (OSError, ImportError, SyntaxError) as exc:
-        return {"unresolved": f"usage.py not loadable: {exc}"}
+        return unreachable(f"usage.py not loadable: {exc}")
     stream = Path(stream)
     try:
         if harness == "claude":
@@ -1080,15 +1158,19 @@ def _spend(rec, stream, job_dir):
                 root = job_dir / "home" / "grok"
             sessions = list(usage.grok_sessions(root, None))
         else:
-            return {"unresolved": f"no usage parser for {harness}"}
+            return unreachable(f"no usage parser for {harness}")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-        return {"unresolved": f"usage parse failed: {type(exc).__name__}: {exc}"}
+        return unreachable(
+            f"usage parse failed: {type(exc).__name__}: {exc}", [root])
     match = next((s for s in sessions if isinstance(s, dict) and str(s.get("session")) == str(session)), None)
     if match is None:
-        return {"unresolved": f"session {session} not in the store ({len(sessions)} sessions read)"}
+        return unreachable(
+            f"session {session} not in the store ({len(sessions)} sessions read)",
+            [root],
+        )
     tokens = match.get("tokens")
     if not isinstance(tokens, dict) or not any(isinstance(v, (int, float)) for v in tokens.values()):
-        return {"unresolved": "the store carries no usage for this session", "source": str(stream)}
+        return unreachable("the store carries no usage for this session", [root])
     spend = {k: tokens.get(k) for k in ("input", "cached", "output", "total") if tokens.get(k) is not None}
     if match.get("cost_usd_ticks") is not None:
         spend["cost_usd_ticks"] = match["cost_usd_ticks"]
@@ -1097,6 +1179,20 @@ def _spend(rec, stream, job_dir):
     spend["source"] = str(stream)
     spend["messages"] = match.get("messages")
     return spend
+
+
+def _fill_envelope_spend(rec, env):
+    measured = (rec.get("session") or {}).get("spend") or {}
+    supplied = env.get("spend") if isinstance(env, dict) else None
+    fields = {"harness", "total", "out", "runs"}
+    if (isinstance(measured, dict) and measured.get("total") is not None
+            and isinstance(supplied, dict) and set(supplied) == fields):
+        env["spend"] = {
+            "harness": rec["harness"]["name"],
+            "total": measured["total"],
+            "out": measured.get("output", 0),
+            "runs": len(rec.get("attempts") or []),
+        }
 
 
 def _write_residual_patch(snapshot, job_dir):
@@ -1137,6 +1233,7 @@ def _settle(repo, record_path, rec, env):
     snapshot = Path(rec["snapshot"]["root"])
     ref_sha = rec["snapshot"]["ref_sha"]
     role, job_id = rec["role"], rec["id"]
+    _fill_envelope_spend(rec, env)
     residual = _residual(snapshot)
     tripped = bool(rec.get("attempts") and rec["attempts"][-1].get("tripped"))
     if role == "write" and rec["harness"]["name"] == "codex" and residual and not tripped:
@@ -1169,24 +1266,28 @@ def _settle(repo, record_path, rec, env):
     _commit_record(repo, record_path, rec)
 
 
+def _job_state(d):
+    if not d.exists():
+        return "unlaunched"
+    if (d / "TRIPPED.md").exists():
+        return "tripped"
+    if (d / "exit").exists():
+        return "finished"
+    try:
+        pid = json.loads((d / "state.json").read_text()).get("pid")
+        os.kill(int(pid), 0)
+        return "running"
+    except (json.JSONDecodeError, OSError, TypeError, ValueError):
+        return "DIED"
+
+
 def _status(args):
     root = _jobs_root()
-    dirs = [root / args.id] if args.id else sorted(p for p in root.glob("*") if p.is_dir())
+    dirs = [root / args.id] if args.id else sorted(
+        path for path in root.glob("*") if path.is_dir())
     rows = []
     for d in dirs:
-        if not d.exists():
-            state = "unlaunched"
-        elif (d / "TRIPPED.md").exists():
-            state = "tripped"
-        elif (d / "exit").exists():
-            state = "finished"
-        else:
-            try:
-                pid = json.loads((d / "state.json").read_text()).get("pid")
-                os.kill(int(pid), 0)
-                state = "running"
-            except (json.JSONDecodeError, OSError, TypeError, ValueError):
-                state = "DIED"
+        state = _job_state(d)
         rows.append({"id": d.name, "status": state})
     payload = rows[0] if args.id and rows else rows
     print(json.dumps(payload) if args.json else "\n".join(f"{r['id']} {r['status']}" for r in rows))
@@ -1202,8 +1303,11 @@ def _find_record(repo, job_id):
 
 def _resume(args):
     repo = _repo()
-    _path, rec = _find_record(repo, args.id)
+    path, rec = _find_record(repo, args.id)
     job_dir = _jobs_root() / args.id
+    prior_session = copy.deepcopy(rec.get("session") or {})
+    prior_model = copy.deepcopy(rec.get("model") or {})
+    prior_result = copy.deepcopy(rec.get("result") or {})
     prior_envelope = (rec.get("result") or {}).get("envelope") or {}
     settled_refusal = None
     if rec.get("status") == "closed" and prior_envelope.get("status") == "invalid":
@@ -1216,30 +1320,50 @@ def _resume(args):
         rec["caps"]["cap-out"] = args.cap_out
         rec["caps"]["source"] = "resume"
     jobs = json.loads(Path(JOBS_PATH).read_text())
+    raw_path = job_dir / "raw.out"
+    raw_offset = raw_path.stat().st_size if raw_path.is_file() else 0
     _run_attempt(rec, job_dir, job_caps=jobs[rec["job"]].get("caps"),
                  resume=True, reason=args.reason)
     runtime_note = rec.pop("_runtime_note", None)
+    stream, ran, found_id, mismatch = _stream(
+        job_dir, rec["harness"]["name"], rec["session"]["id"],
+        Path(rec["snapshot"]["root"]), rec["snapshot"]["ref_sha"],
+    )
+    if rec["harness"]["name"] in {"codex", "grok"}:
+        harness = rec["harness"]["name"]
+        live = job_dir / "home" / harness / "sessions"
+        streamed = job_dir / "home" / f"{harness}-stream" / "sessions"
+        if live.exists():
+            streamed.parent.mkdir(parents=True, exist_ok=True)
+            if streamed.exists():
+                shutil.copytree(live, streamed, dirs_exist_ok=True)
+                shutil.rmtree(live)
+            else:
+                shutil.move(str(live), str(streamed))
+            if stream is not None:
+                stream = streamed / stream.relative_to(live)
+                if harness == "grok":
+                    portable = _portable_paths({
+                        "snapshot": rec["snapshot"], "stream": str(stream),
+                    })["stream"]
+                    portable_stream = Path(portable)
+                    if portable_stream != stream and not portable_stream.exists():
+                        portable_stream.parent.mkdir(parents=True, exist_ok=True)
+                        portable_stream.symlink_to(os.path.relpath(
+                            stream, portable_stream.parent))
+                    stream = portable_stream
+    raw = raw_path.read_bytes()[raw_offset:]
     if runtime_note:
         envelope = (rec.get("result") or {}).get("envelope") or {}
         envelope.update(status="tripped" if runtime_note.startswith("trip") else "invalid",
                         verdict=None, note=runtime_note)
         rec.setdefault("result", {})["envelope"] = envelope
+        rec["result"]["cause"] = _cause(rec, job_dir, envelope)
     else:
-        raw = (job_dir / "raw.out").read_bytes()
         code = rec["attempts"][-1]["exit"]
         note = f"harness-cli: exited {code}" if code else None
-        stream, ran, found_id, mismatch = _stream(
-            job_dir, rec["harness"]["name"], rec["session"]["id"],
-            Path(rec["snapshot"]["root"]), rec["snapshot"]["ref_sha"],
-        )
-        if stream and rec["harness"]["name"] in {"codex", "grok"}:
-            old_store = job_dir / "home" / rec["harness"]["name"] / "sessions"
-            new_store = job_dir / "home" / f"{rec['harness']['name']}-stream" / "sessions"
-            if old_store.exists():
-                new_store.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(old_store, new_store, dirs_exist_ok=True)
-                stream = new_store / stream.relative_to(old_store)
-                shutil.rmtree(old_store)
+        prior_digest = prior_session.get("stream_sha256_at_close")
+        stream_changed = bool(stream and _sha(stream) != prior_digest)
         if stream:
             rec["session"].update(
                 stream=str(stream), stream_sha256_at_close=_sha(stream),
@@ -1248,18 +1372,152 @@ def _resume(args):
             rec["model"].pop("note", None)
             if rec["harness"]["name"] == "codex" and found_id:
                 rec["session"]["id"] = found_id
-        rec["session"]["spend"] = _spend(rec, stream, job_dir)
+        last_message = job_dir / "out" / "last-message.json"
+        has_candidate = bool(_json_objects(raw.decode("utf-8", "replace")))
+        if rec["harness"]["name"] == "codex" and last_message.is_file():
+            has_candidate = True
+        if stream_changed or has_candidate:
+            rec["session"]["spend"] = _spend(rec, stream, job_dir)
+        else:
+            rec["session"] = prior_session
+            rec["model"] = prior_model
         if mismatch:
             note = f"{note}; {mismatch}" if note else mismatch
-        env = _envelope(raw, rec["job"], rec["snapshot"]["ref_sha"], note,
-                        harness=rec["harness"]["name"], job_dir=job_dir,
-                        rec=rec)
-        if settled_refusal is not None:
-            env.update(settled_refusal)
-        rec.setdefault("result", {})["envelope"] = env
-        rec["result"]["cause"] = _cause(rec, job_dir, env)
+        if has_candidate:
+            env = _envelope(raw, rec["job"], rec["snapshot"]["ref_sha"], note,
+                            harness=rec["harness"]["name"], job_dir=job_dir,
+                            rec=rec)
+            if settled_refusal is not None:
+                env.update(settled_refusal)
+            _fill_envelope_spend(rec, env)
+            rec.setdefault("result", {})["envelope"] = env
+            rec["result"]["cause"] = _cause(rec, job_dir, env)
+        else:
+            rec["result"] = prior_result
     _write_record(repo, rec)
+    attempt = rec["attempts"][-1]["n"]
+    _commit_record(
+        repo, path, rec,
+        subject=f"dispatch: record {rec['id']} after attempt {attempt}",
+    )
     return 0
+
+
+def _collect(args):
+    agent = _identity()
+    repo = _repo()
+    try:
+        path, rec = _find_record(repo, args.id)
+    except RuntimeError:
+        _refuse("record-target", f"a record for {args.id}", "none",
+                "name a launched dispatch")
+    branch = _branch(repo)
+    lineage = rec["lineage"]["branch"]
+    if branch != lineage:
+        _refuse("record-target", f"the checkout on {lineage}", branch,
+                f"run from a worktree of {lineage}")
+    if rec.get("role") != "write":
+        _refuse("collect-role", "a write role", rec.get("role"),
+                "collect only a tripped write job")
+    result = rec.get("result") or {}
+    if result.get("collected"):
+        _refuse("collect-state", "an uncollected failed write job",
+                "already collected", "use the recorded collected head")
+    attempts = rec.get("attempts") or []
+    last = attempts[-1] if attempts else {}
+    residual = result.get("residual_paths") or []
+    failed = bool(last.get("tripped") or last.get("exit"))
+    if not failed or not residual:
+        _refuse(
+            "collect-state",
+            "a tripped or non-zero write job with residual paths",
+            f"exit={last.get('exit')} tripped={bool(last.get('tripped'))} "
+            f"residual={len(residual)}",
+            "let a normal finish settle itself or name a failed job with residue",
+        )
+    snapshot = Path(rec["snapshot"]["root"])
+    timeout = float((rec.get("caps") or {}).get("timeout") or 900)
+    try:
+        verified = subprocess.run(
+            ["bash", "-c", args.verify],
+            cwd=snapshot,
+            env=_child_env(os.environ, {}, rec["id"]),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        tail = (exc.stderr or "")[-200:]
+        _refuse("verify", f"{args.verify!r} to exit 0 within {timeout:g}s",
+                f"timeout; stderr tail {tail!r}",
+                "fix the residual tree or pass a verification that completes")
+    if verified.returncode:
+        _refuse("verify", f"{args.verify!r} to exit 0",
+                f"exit {verified.returncode}; stderr tail {verified.stderr[-200:]!r}",
+                "fix the residual tree and rerun collect")
+    envelope = result.get("envelope") or {}
+    _commit_for_harness(snapshot, rec, envelope, collected=True)
+    head = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
+    _git(repo, "-c", "core.logAllRefUpdates=always", "fetch",
+         "--no-write-fetch-head", str(snapshot),
+         f"{head}:refs/dispatch/{rec['id']}")
+    result["head"] = head
+    result["changed_paths"] = _git(
+        snapshot, "diff", "--name-only",
+        f"{rec['snapshot']['ref_sha']}..{head}",
+    ).stdout.splitlines()
+    result["residual_paths"] = _residual(snapshot)
+    result["collected"] = {
+        "at": _now(), "by": agent, "head": head,
+        "verify": {"command": args.verify, "exit": 0},
+        "reason": args.reason,
+    }
+    rec["result"] = result
+    rec["status"] = "closed"
+    _write_record(repo, rec)
+    _commit_record(
+        repo, path, rec,
+        subject=f"dispatch: record {rec['id']} after collection",
+    )
+    return 0
+
+
+def _wait(args):
+    stdout, stderr = sys.stdout, sys.stderr
+    repo = _repo()
+    record_path = repo / ".dev/records/dispatches" / f"{args.id}.json"
+    job_dir = _jobs_root() / args.id
+    if not record_path.is_file():
+        _refuse("wait-target", f"a record for {args.id}", "none",
+                "name a launched dispatch")
+    started = monotonic()
+    while True:
+        elapsed = monotonic() - started
+        state = _job_state(job_dir)
+        print(f"poll {args.id} {state} elapsed={elapsed:.1f}s",
+              file=stderr, flush=True)
+        try:
+            rec = _absolute_paths(json.loads(record_path.read_text()))
+        except (OSError, json.JSONDecodeError):
+            rec = {}
+        if rec.get("status") in {"closed", "died"}:
+            attempt = ((rec.get("attempts") or [{}])[-1])
+            envelope = ((rec.get("result") or {}).get("envelope") or {})
+            tripped = bool(attempt.get("tripped"))
+            code = attempt.get("exit")
+            code = -1 if code is None else code
+            print(f"{args.id} {rec['status']} attempt={attempt.get('n', 0)} "
+                  f"exit={code} tripped={str(tripped).lower()} "
+                  f"envelope={envelope.get('status', 'invalid')}",
+                  file=stdout)
+            clean = (rec["status"] == "closed" and code == 0
+                     and not tripped and envelope.get("status") == "ok")
+            return 0 if clean else 1
+        if elapsed >= args.timeout:
+            return 2
+        sleep(min(args.interval, max(0.0, args.timeout - elapsed)))
 
 
 def _close(args):
@@ -1351,6 +1609,14 @@ def _parser():
     r.add_argument("--cap-out", type=int)
     c = sub.add_parser("close")
     c.add_argument("id")
+    collect = sub.add_parser("collect")
+    collect.add_argument("id")
+    collect.add_argument("--verify", required=True)
+    collect.add_argument("--reason")
+    wait = sub.add_parser("wait")
+    wait.add_argument("id")
+    wait.add_argument("--timeout", type=float, default=3600)
+    wait.add_argument("--interval", type=float, default=5)
     b = sub.add_parser("brief")
     b.add_argument("--check", required=True)
     return p
@@ -1376,9 +1642,12 @@ def _launch_parser():
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     try:
-        if argv[:1] and argv[0] in {"status", "resume", "close", "brief"}:
+        if argv[:1] and argv[0] in {
+                "status", "resume", "close", "collect", "wait", "brief"}:
             args = _parser().parse_args(argv)
-            return {"status": _status, "resume": _resume, "close": _close, "brief": _brief}[args.verb](args)
+            return {"status": _status, "resume": _resume, "close": _close,
+                    "collect": _collect, "wait": _wait,
+                    "brief": _brief}[args.verb](args)
         return _launch(_launch_parser().parse_args(argv))
     except Refused as exc:
         print(f"launch.py: refusal: {exc}", file=sys.stderr)

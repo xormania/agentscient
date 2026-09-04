@@ -126,10 +126,9 @@ pipeline, and this session it did exactly that twice.
 - **Run from a worktree of the lineage**, or the launcher refuses `record-target`.
 - **Shell state does not persist between calls.** `WF_AGENT` and
   `DISPATCH_TIMEOUT` go *inside* every launch script.
-- **A successful launch prints nothing.** `_launch` has no `print()`, so a
-  21-minute success and a no-op look identical in a piped script. This is the
-  real finding behind A-1, and the reason a launch is worth wrapping in a
-  script that echoes its own exit.
+- **A launch prints its record id at mint.** This closes the earlier A-1
+  finding: a detached caller can identify the run immediately, then use
+  `launch.py wait ID` for its terminal result.
 - **Effort is per-harness.** codex takes `-c model_reasoning_effort="xhigh"`,
   not `--reasoning-effort`; the launcher forwards the dial through each
   harness adapter.

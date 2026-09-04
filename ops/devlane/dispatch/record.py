@@ -94,4 +94,17 @@ def validate(rec):
               "cannot copy requested without a stream")
     if rec["status"] == "launched":
         _need(rec["result"] is None, "result", "must be null while launched")
+    result = rec.get("result")
+    if isinstance(result, dict) and "collected" in result:
+        collected = result["collected"]
+        valid = (
+            isinstance(collected, dict)
+            and all(isinstance(collected.get(key), str)
+                    and bool(collected[key].strip())
+                    for key in ("at", "by", "head"))
+            and isinstance(collected.get("verify"), dict)
+            and collected["verify"].get("exit") == 0
+        )
+        _need(valid, "result.collected",
+              "must carry at, by, head, and verify.exit equal to 0")
     return rec
