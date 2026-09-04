@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T13:28:32Z",
-    "closed": null
+    "closed": "2026-09-04T13:43:40Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok-stream/sessions/<snapshot-encoded>/b8ccb368-1026-435e-94e2-e39a6089313e/summary.json"
   },
   "session": {
     "id": "b8ccb368-1026-435e-94e2-e39a6089313e",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok-stream/sessions/<snapshot-encoded>/b8ccb368-1026-435e-94e2-e39a6089313e/summary.json",
+    "stream_sha256_at_close": "39e67d803912a2045ea6a6db8963588bf84479fa67889b853d2a4852bcef4776",
+    "spend": {
+      "input": 5963967,
+      "cached": 5506816,
+      "output": 52542,
+      "total": 6016509,
+      "cost_usd_ticks": 6771035400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132832Z-tests-grok-2707e5/home/grok-stream/sessions/<snapshot-encoded>/b8ccb368-1026-435e-94e2-e39a6089313e/summary.json",
+      "messages": 434
+    }
   },
   "brief": {
     "template": {
@@ -91,10 +99,63 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:28:32Z",
+      "ended": "2026-09-04T13:43:40Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "731c940b50abc3d85831266aaeeea1092b5af1ff",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_isolation.py",
+      "ops/devlane/fixtures/tests/test_fixture_grade.py",
+      "ops/devlane/fixtures/tests/test_fixture_lever.py",
+      "ops/devlane/fixtures/tests/test_python_service_app.py",
+      "ops/devlane/fixtures/tests/test_rust_crate_app.py",
+      "ops/devlane/fixtures/tests/test_symfony_app_app.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "out/TESTS.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6016509,
+        "out": 52542,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2bad238b44472b52e176afa6987aac39357e2213",
+        "started": "2026-09-04T13:30:02Z",
+        "ended": "2026-09-04T13:43:26Z"
+      },
+      "note": "Six test files, six commits, HEAD 731c940. Each file was run and failed on its intended assertion before commit. Did not open ops/bin/fixture.sh or ops/devlane/dispatch/launch.py. Onboard counted 3 absences in the isolated grok home (decisions.db, handwork.db, dispatch dir)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T13:43:40.078Z"
+    }
+  },
+  "status": "closed"
 }
