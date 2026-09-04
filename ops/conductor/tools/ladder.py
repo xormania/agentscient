@@ -12,6 +12,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -802,6 +803,7 @@ class Driver:
             or counts != tally
             or verdict not in {"approve", "changes"}
             or (verdict == "approve" and bool(findings))
+            or (verdict == "changes" and not findings)
         ):
             raise Stopped(
                 pending.name,
@@ -998,10 +1000,21 @@ class Driver:
             findings_file = self.inputs_dir / "check-tests-findings.json"
             findings_file.parent.mkdir(parents=True, exist_ok=True)
             findings_payload = self.inputs_dir / "check-tests-findings.payload.json"
-            findings_payload.write_text(
-                json.dumps(envelope.get("findings"), indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
+            body = json.dumps(
+                envelope.get("findings"), indent=2, sort_keys=True,
+            ) + "\n"
+            descriptor, temporary_name = tempfile.mkstemp(
+                dir=findings_payload.parent,
+                prefix=f".{findings_payload.name}.",
+                text=True,
             )
+            temporary = Path(temporary_name)
+            try:
+                with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                    stream.write(body)
+                os.replace(temporary, findings_payload)
+            finally:
+                temporary.unlink(missing_ok=True)
             findings_file.symlink_to(findings_payload.name)
             row["findings_file"] = str(findings_file)
             extra.extend((findings_file, findings_payload))

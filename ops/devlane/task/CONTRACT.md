@@ -130,9 +130,11 @@ or a diff, not another opinion.
 
 The last four are the dev-lane pipeline's own stages as jobs (dispatched
 by the dispatch app; see `ops/devlane/dispatch/CONTRACT.md`). They are data
-in `jobs.json` today. `plan` and `adjudicate` name `{out}`; all three read
-jobs name `{inputs}`, which `run.py` does not yet supply, so `render`
-refuses each by name rather than launching a brief with a hole in it.
+in `jobs.json` today. `plan` names `{ref}`, `{out}`, and `{scope}`;
+`check-tests` names `{ref}`, `{inputs}`, and `{scope}`; `adjudicate` names
+`{inputs}`, `{ref}`, and `{out}`. `run.py` does not yet supply `{inputs}`, so
+`render` refuses the latter two by name rather than launching a brief with
+a hole in it.
 `implement` names only `{ref}` and `{scope}` and renders today; what it
 still lacks is the launcher's whole-mode snapshot and collect, without
 which its commits have nowhere to land.
