@@ -90,6 +90,19 @@ def identity() -> tuple[str, str]:
     return match.group("name"), match.group("email")
 
 
+def option_identity(value: str, kind: str) -> tuple[str, str]:
+    """Parse an optional CLI identity on the refusal wire."""
+    match = IDENTITY.fullmatch(value)
+    if match is None:
+        refuse(
+            kind,
+            f"--{kind} in the Name <address> form",
+            value or "empty",
+            f"pass --{kind} 'Name <address>'",
+        )
+    return match.group("name"), match.group("email")
+
+
 def record_exit(record: Path) -> tuple[bool, str]:
     exit_file = record / "exit"
     try:
@@ -342,6 +355,12 @@ def land(args: argparse.Namespace) -> int:
     commits, ref, name, email, author_name, author_email = preconditions(
         args.record_id, args.no_fetch
     )
+    if args.author is not None:
+        author_name, author_email = option_identity(args.author, "author")
+    co_author = None
+    if args.co_author is not None:
+        co_name, co_email = option_identity(args.co_author, "co-author")
+        co_author = f"{co_name} <{co_email}>"
     if not commits:
         print("landed n=0")
         return 0
@@ -362,13 +381,24 @@ def land(args: argparse.Namespace) -> int:
             "ref", "the landed author", "repair the repository", "show", "-s",
             "--format=%an <%ae>", "HEAD",
         )
+        amend_args = ["commit", "--amend", "--no-edit"]
+        needs_amend = False
         if landed_author != f"{author_name} <{author_email}>":
+            amend_args.append(f"--author={author_name} <{author_email}>")
+            needs_amend = True
+        if co_author is not None:
+            message = git_value(
+                "ref", "the landed message", "repair the repository", "show",
+                "-s", "--format=%B", "HEAD",
+            )
+            trailer = f"Co-Authored-By: {co_author}"
+            if trailer not in message.splitlines():
+                amend_args.extend(["--trailer", trailer])
+                needs_amend = True
+        if needs_amend:
             amended = git(
                 *identity_args,
-                "commit",
-                "--amend",
-                "--no-edit",
-                f"--author={author_name} <{author_email}>",
+                *amend_args,
             )
             if amended.returncode != 0:
                 detail = (
@@ -401,6 +431,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("record_id", metavar="RECORD_ID")
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--no-fetch", action="store_true")
+    parser.add_argument("--author")
+    parser.add_argument("--co-author")
     return parser.parse_args()
 
 
