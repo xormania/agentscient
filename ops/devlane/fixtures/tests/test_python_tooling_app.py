@@ -1047,6 +1047,20 @@ class PythonToolingMakeProve(_RepoFreeze):
         # Merged lever: exit 0 when every probe has the expected colour.
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
 
+    def test_pt01_probe_leaves_no_marker_file(self):
+        target = self.root / "pt01-cleanup"
+        self.make(target)
+        marker = target / "pt01-shell-marker"
+        self.assertFalse(marker.exists(), "precondition: marker absent before prove")
+        proc = self.invoke(["prove", str(target)], agent=None)
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertFalse(
+            marker.exists(),
+            "PT-01 probe must unlink pt01-shell-marker; prove left the marker",
+        )
+        leftovers = sorted(target.glob("pt01-shell-marker*"))
+        self.assertEqual(leftovers, [], leftovers)
+
     def test_prove_fixed_reports_every_probe_green(self):
         target = self.root / "prove-fixed"
         self.make(target)
