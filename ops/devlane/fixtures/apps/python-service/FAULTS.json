@@ -2,7 +2,7 @@
   "name": "python-service",
   "check": ".venv/bin/python -m pytest -q tests && ruff check .",
   "toolchain": {
-    "install": "python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.lock",
+    "install": "python3 -m venv .venv && .venv/bin/python -m pip install --require-hashes -r requirements.lock",
     "ready": "test -x .venv/bin/python && .venv/bin/python -c 'import pytest'"
   },
   "not_planted": {

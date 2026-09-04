@@ -1,1 +1,1 @@
-include!("../probes/rc06.rs");
+fn main() {}
