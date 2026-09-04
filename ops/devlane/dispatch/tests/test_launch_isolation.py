@@ -17,10 +17,15 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import time
 from pathlib import Path
 
 import launch_support as ls
+
+CONTRACT = Path(__file__).resolve().parent.parent / "CONTRACT.md"
+WRITABLE_ROOTS_PREFIX = "sandbox_workspace_write.writable_roots="
 
 
 class ClaudeIsolationIsFlagsAndHomeUntouched(ls._TempLaunch):
@@ -662,3 +667,133 @@ class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
         self.assertEqual(perms.get("applied"), "argv")
         self.assertEqual(perms.get("allow"), 1, perms)
         self.assertEqual(perms.get("deny"), 1, perms)
+
+
+def _codex_writable_roots(argv):
+    """Parse Codex workspace-write roots from argv. Missing is None."""
+    for item in argv:
+        text = str(item)
+        if text.startswith(WRITABLE_ROOTS_PREFIX):
+            return json.loads(text[len(WRITABLE_ROOTS_PREFIX):])
+        if WRITABLE_ROOTS_PREFIX in text:
+            return json.loads(text.split(WRITABLE_ROOTS_PREFIX, 1)[1])
+    return None
+
+
+class JobDirectoryScratchIsTheChildTmp(ls._TempLaunch):
+    """CONTRACT.md §The job directory, §The child's environment, §Isolation.
+
+    A write dispatch's tempfile, git index, and Codex writable roots stay
+    inside the job directory. Host /tmp is not a named writable root.
+    """
+
+    def _codex_write(self):
+        return self.launch_ok(
+            job="implement", harness="codex", stage="code",
+        )
+
+    def test_codex_write_child_env_tmp_is_the_job_tmp(self):
+        rec, witness, *_ = self._codex_write()
+        job_dir = self.the_job_dir()
+        tmp = str(job_dir / "tmp")
+        env = witness["env"]
+        self.assertEqual(
+            env.get("TMPDIR"), tmp,
+            f"TMPDIR must be the job tmp, not host /tmp: {env.get('TMPDIR')!r}",
+        )
+        self.assertEqual(env.get("TMP"), tmp)
+        self.assertEqual(env.get("TEMP"), tmp)
+
+    def test_job_directory_has_tmp_and_scratch_before_spawn(self):
+        rec, witness, *_ = self._codex_write()
+        job_dir = self.the_job_dir()
+        tmp = job_dir / "tmp"
+        scratch = job_dir / "scratch"
+        self.assertTrue(
+            tmp.is_dir(),
+            f"launcher must create <job>/tmp before spawn: {tmp}",
+        )
+        self.assertTrue(
+            scratch.is_dir(),
+            f"launcher must create <job>/scratch before spawn: {scratch}",
+        )
+        listing = CONTRACT.read_text(encoding="utf-8")
+        self.assertIn(
+            "tmp/           child TMPDIR; mktemp and tempfile land here",
+            listing,
+        )
+        self.assertIn(
+            "scratch/       worker git index and objects when .git is "
+            "read-only; not a deliverable",
+            listing,
+        )
+
+    def test_codex_write_writable_roots_are_job_out_tmp_scratch(self):
+        rec, witness, *_ = self._codex_write()
+        job_dir = self.the_job_dir().resolve()
+        argv = [str(p) for p in witness["argv"]]
+        roots = _codex_writable_roots(argv)
+        self.assertIsNotNone(
+            roots,
+            f"Codex write argv must name writable_roots: {argv!r}",
+        )
+        self.assertIsInstance(roots, list, roots)
+        resolved = [Path(item).resolve() for item in roots]
+        expected = sorted(
+            [
+                (job_dir / "out").resolve(),
+                (job_dir / "tmp").resolve(),
+                (job_dir / "scratch").resolve(),
+            ]
+        )
+        self.assertEqual(sorted(resolved), expected)
+        for root in resolved:
+            root.relative_to(job_dir)
+        self.assertNotIn(Path("/tmp").resolve(), resolved)
+        self.assertFalse(
+            any(str(Path(item).resolve()) == "/tmp" for item in roots),
+            f"/tmp must not be a writable root: {roots!r}",
+        )
+
+    def test_tempfile_under_child_env_lands_in_job_tmp(self):
+        rec, witness, *_ = self._codex_write()
+        job_dir = self.the_job_dir()
+        tmp = (job_dir / "tmp").resolve()
+        env = dict(witness["env"])
+        env.setdefault("PATH", os.environ.get("PATH", "/usr/bin:/bin"))
+        created = None
+        try:
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import tempfile, sys; sys.stdout.write("
+                    "tempfile.mkdtemp())",
+                ],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=10,
+            )
+            self.assertEqual(
+                proc.returncode,
+                0,
+                f"mkdtemp under the child env must run: {proc.stderr!r}",
+            )
+            created = Path(proc.stdout.strip()).resolve()
+            self.assertTrue(created.is_dir(), created)
+            try:
+                created.relative_to(tmp)
+            except ValueError:
+                self.fail(
+                    f"tempfile landed at {created}, not under job tmp {tmp}"
+                )
+        finally:
+            if created is not None and created.is_dir():
+                # The directory is a leftover of the probe, not of the
+                # launcher; remove only what this test created.
+                try:
+                    created.rmdir()
+                except OSError:
+                    pass
