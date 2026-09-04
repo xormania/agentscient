@@ -1,0 +1,177 @@
+{
+  "id": "20260904T132059Z-review-grok-2e7e4b",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "dfbf4666746f69be68d2590594918dd89931eb6f"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:21:00Z",
+    "closed": "2026-09-04T13:31:08Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "dfbf4666746f69be68d2590594918dd89931eb6f",
+    "ref_sha": "dfbf4666746f69be68d2590594918dd89931eb6f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4e2b80ec-21ca-4162-aca9-6359ca078f31",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/home/grok-stream/sessions/<snapshot-encoded>/4e2b80ec-21ca-4162-aca9-6359ca078f31/summary.json"
+  },
+  "session": {
+    "id": "4e2b80ec-21ca-4162-aca9-6359ca078f31",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/home/grok-stream/sessions/<snapshot-encoded>/4e2b80ec-21ca-4162-aca9-6359ca078f31/summary.json",
+    "stream_sha256_at_close": "bb8e3b0440269ec39c4ebbda0e05ebb0ba1b35952c0f03843ca275ac41ee7302",
+    "spend": {
+      "input": 1558199,
+      "cached": 1153024,
+      "output": 32932,
+      "total": 1591131,
+      "cost_usd_ticks": 2693571800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/home/grok-stream/sessions/<snapshot-encoded>/4e2b80ec-21ca-4162-aca9-6359ca078f31/summary.json",
+      "messages": 225
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "Audit the batch on lane/check-tests-json against its merge-base with dev: item 31, the skeptic's report is its JSON envelope, not a file. Changed: ops/devlane/task/jobs.json (check-tests prompt and deliverable), ops/devlane/task/CONTRACT.md, ops/conductor/tools/ladder.py (tests-fix input is a driver-owned findings file written from the check-tests record and named in the ladder record), ops/conductor/ladder-lever.md, and the tests that pin them. The contract is the input file. Quote declared words and practiced evidence with file:line for every finding; classes to hunt: a read-role prompt that still names a write path, a findings file written from an untrusted envelope without validation, a path under the ladder input directory that can escape it, the wire unchanged for every other job, a test that pins absence only. Review only; do not edit.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132059Z-review-grok-2e7e4b/in/contract-check-tests-json.md",
+        "sha256": "a8a2e31c817d7de9227618db516f245108418b780092aeb8fe232d57167d63fa"
+      }
+    ],
+    "sha256": "62b3c94979b9e7a3a3011f1464358843882a369e09ec907938a911afdbd2a19b",
+    "bytes": 3162
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:21:00Z",
+      "ended": "2026-09-04T13:31:08Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "dfbf4666746f69be68d2590594918dd89931eb6f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/task/tests/test_check_tests_json.py:78-125",
+          "claim": "Declared: the check-tests prompt 'asks for no file and names no path in artifacts' and 'Return the JSON envelope on stdout and leave artifacts empty' (in/contract-check-tests-json.md:29-32; jobs.json:72). Practiced: CheckTestsPromptCarriesNoFilePath only asserts absence of 'SKEPTIC.md', '{out}', and denylist PROMPT_OUTPUT_PATH (test_check_tests_json.py:42-50, 81-125). It never requires the stdout / empty-artifacts clause. launch.py:964 renders job['prompt'] only, so deliverable tests cannot save a prompt regression. Replacing that clause with 'Persist the skeptic findings under reports/findings.json.' leaves all four prompt tests green.",
+          "reproduce": "PYTHONPATH=ops/devlane/task/tests python3 -c 'import json,unittest; from pathlib import Path; import test_check_tests_json as t; jobs=json.loads(Path(\"ops/devlane/task/jobs.json\").read_text()); jobs[\"check-tests\"][\"prompt\"]=jobs[\"check-tests\"][\"prompt\"].replace(\"Return the JSON envelope on stdout and leave artifacts empty.\",\"Persist the skeptic findings under reports/findings.json.\");\nclass Fake:\n    def is_file(self): return True\n    def read_text(self, encoding=None): return json.dumps(jobs)\nt.JOBS_PATH=Fake(); r=unittest.TextTestRunner(verbosity=0).run(unittest.defaultTestLoader.loadTestsFromTestCase(t.CheckTestsPromptCarriesNoFilePath)); raise SystemExit(0 if r.wasSuccessful() else 1)'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:951-958",
+          "claim": "Declared: tests-fix input is 'a file the driver writes from the record' (in/contract-check-tests-json.md:33-35; ladder-lever.md:39,108-111). envelope.py:241-268: 'Worker output is untrusted, so a wrong TYPE must refuse'; validate() also refuses a counts tally that disagrees with findings (envelope.py:299-305). Practiced: ledger_result writes json.dumps(envelope.get('findings')) with no list check and no validate(). load_envelope (ladder.py:717-723) accepts any closed record whose envelope.status is 'ok'. ladder.py never imports envelope. launch.py _schema_valid (531-568) does not check the tally, so a truncated findings list can close ok and become the tests-fix spec. json.dumps(None) writes 'null'.",
+          "reproduce": "python3 -c 'from pathlib import Path; import json,importlib.util; src=Path(\"ops/conductor/tools/ladder.py\").read_text(); assert \"json.dumps(envelope.get(\\\"findings\\\")\" in src; assert \"envelope.validate\" not in src; spec=importlib.util.spec_from_file_location(\"envelope\",\"ops/devlane/task/envelope.py\"); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); print(json.dumps(None, indent=2, sort_keys=True)); env={\"job\":\"check-tests\",\"status\":\"ok\",\"verdict\":\"changes\",\"counts\":{\"p1\":0,\"p2\":1,\"p3\":0,\"opinions\":0},\"findings\":None,\"artifacts\":{},\"spend\":{\"harness\":\"x\",\"total\":0,\"out\":0,\"runs\":0},\"stamp\":{\"ref\":\"x\",\"started\":None,\"ended\":None},\"note\":None};\ntry:\n    m.validate(env); raise SystemExit(\"validate accepted findings=None\")\nexcept m.EnvelopeError as e:\n    print(e)'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:993-995",
+          "claim": "Declared: a recorded path must stay inside the worktree (recorded_file, ladder.py:359-374: refuse when not candidate.is_relative_to(worktree); test_resume_refuses_a_scope_path_outside_the_worktree). The findings file is written under inputs_dir (ladder.py:952). Practiced: tests-fix does inputs.append(Path(findings_file)) from the ladder record with no is_relative_to(inputs_dir) and no recorded_file() check. A mutated findings_file of '/etc/passwd' is passed as --input. launch.py:946-951 then shutil.copyfile's that host path into the job's in/ under src.name. The write is confined; the read-back can leave the input directory.",
+          "reproduce": "python3 -c 'from pathlib import Path; src=Path(\"ops/conductor/tools/ladder.py\").read_text(); assert \"inputs.append(Path(findings_file))\" in src; assert \"if not candidate.is_relative_to(worktree.resolve()):\" in src; launch=Path(\"ops/devlane/dispatch/launch.py\").read_text(); assert \"shutil.copyfile(src, dest)\" in launch; inputs_dir=Path(\"/tmp/ladders/id\"); p=Path(\"/etc/passwd\"); print(\"relative_to_inputs_dir\", p.is_relative_to(inputs_dir)); print(\"would_copy_basename\", p.name)'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/CONTRACT.md:133-135",
+          "claim": "Declared: '`plan` and `adjudicate` name `{out}`; all three read jobs name `{inputs}`, which `run.py` does not yet supply, so `render` refuses each by name'. Practiced: plan's prompt fields are {ref}, {out}, {scope} \u2014 no {inputs} (jobs.json:60). Only check-tests and adjudicate name {inputs} (jobs.json:72,95). run.py:171-200 refuses a missing template field, not those jobs by name.",
+          "reproduce": "python3 -c 'import json,re; from pathlib import Path; jobs=json.loads(Path(\"ops/devlane/task/jobs.json\").read_text());\nfor name in (\"plan\",\"check-tests\",\"adjudicate\"):\n    print(name, re.findall(r\"\\{([A-Za-z_][A-Za-z0-9_]*)\\}\", jobs[name][\"prompt\"]))\ntext=Path(\"ops/devlane/task/CONTRACT.md\").read_text(); assert \"all three read jobs name `{inputs}`\" in text'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 1591131,
+        "out": 32932,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "dfbf4666746f69be68d2590594918dd89931eb6f",
+        "started": "2026-09-04T13:21:00Z",
+        "ended": "2026-09-04T13:29:05Z"
+      },
+      "note": "Looked: current check-tests prompt has no SKEPTIC.md and no {out} (jobs.json:72). Other-job canonical SHA fdab3e7b2d9b6673f9fd5567b557b56b54ecab0394b3e310ab692e2183219c9c matches merge-base 0cea17ab. Did not run ops/conductor/tests/test_ladder_lever.py as a suite. Role card ops/process/roles/test-skeptic.md still asks for the CONTRIB.md wire; out of this bucket."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T13:31:07.995Z"
+    }
+  },
+  "status": "closed"
+}
