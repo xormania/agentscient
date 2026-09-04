@@ -1,0 +1,116 @@
+{
+  "base_sha": "7972be166efc7299416f1536cae8f5f51641ba82",
+  "branch": "lane/fixture-fix-2",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix-2/ops/lane.conf",
+    "sha256": "667798dffcd3790f7fedf19673aaa15caaa45b140a00b9e04191dc4a940ef809"
+  },
+  "id": "20260904T132831Z-ladder-50b74b",
+  "implementation_markers": [],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/PLAN-fixture-fix2-fixture-lever-reaudit.md",
+    "sha256": "2de4c0162c60caeaaa1e267ab06d2666bafaf27fa5a04e9836eab545433eb2f4"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/scope-fixture-fix2.md",
+    "sha256": "28b9ee8141b677f0b7682f6fd55a1836e2f112768abb22b405d65abc84ab6d45"
+  },
+  "stages": [
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "check-tests",
+      "name": "check-tests",
+      "outcome": "pending",
+      "stage": "check-tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests-fix",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "running",
+  "stopped": null,
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-fixture-fix-2"
+}
