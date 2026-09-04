@@ -1,0 +1,181 @@
+{
+  "id": "20260904T230842Z-adjudicate-grok-04248c",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "repo/watchdog-review-20260904",
+  "lineage": {
+    "branch": "repo/watchdog-review-20260904",
+    "base_sha": "00bc3e02816ab32a71bb1009225d9214635ead75"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-04T23:08:42Z",
+    "closed": "2026-09-04T23:24:41Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "00bc3e02816ab32a71bb1009225d9214635ead75",
+    "ref_sha": "00bc3e02816ab32a71bb1009225d9214635ead75",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "90de83a3-970f-4b9c-b9d3-72ba3e1a812b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/home/grok-stream/sessions/<snapshot-encoded>/90de83a3-970f-4b9c-b9d3-72ba3e1a812b/summary.json"
+  },
+  "session": {
+    "id": "90de83a3-970f-4b9c-b9d3-72ba3e1a812b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/home/grok-stream/sessions/<snapshot-encoded>/90de83a3-970f-4b9c-b9d3-72ba3e1a812b/summary.json",
+    "stream_sha256_at_close": "5866272c7a345803fc733bd735c0909a60f06ee6d3cb6aeb18d1c282c1269914",
+    "spend": {
+      "input": 2806728,
+      "cached": 2540928,
+      "output": 56118,
+      "total": 2862846,
+      "cost_usd_ticks": 3635912400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/home/grok-stream/sessions/<snapshot-encoded>/90de83a3-970f-4b9c-b9d3-72ba3e1a812b/summary.json",
+      "messages": 239
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-watchdog-review.LokiAw/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read ../in/watchdog-implementation-findings.md WHOLE. Independently adjudicate the two concrete integration findings against current watchdog.py and its proposed efficiency contract, with safe isolated probes. Inspect the bounded efficiency properties for additional real defects. Return UPHELD/PARTIAL/REJECTED findings in the review envelope. No implementation/tests, broad suites, real-store mutations, vendor/GitHub calls. Do not claim suite green proves the new boundaries.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/in/watchdog-implementation-findings.md",
+        "sha256": "71eb772f0192a36a7b7a9e74181c8ca1d92986821d51665c7880c0d3c564dbf7"
+      }
+    ],
+    "sha256": "dee82cfec13b5ff15a2207cb33576a974d920f5235d6206a35bba050d6836e90",
+    "bytes": 2790
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T23:08:42Z",
+      "ended": "2026-09-04T23:24:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "00bc3e02816ab32a71bb1009225d9214635ead75",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/watchdog.py:376",
+          "claim": "UPHELD candidate P2 A: held_matches memory-maps a mutable regular file then regex-searches the mapping; truncating that file after mmap delivers SIGBUS (child exit -7, empty stderr) instead of a Python exception, so the tick guard never runs and the loop does not outlive the input error. A bounded pread/streaming reader is the necessary correction: the same truncate after fstat+pread returned zero bytes and exited 0. CPython 3.12 makes Pattern.search read-only, so the candidate's injected-search recipe does not run here; wrapping mmap.mmap inside held_matches reproduces the same SIGBUS. launch.py opens raw.out with wb (truncate) on a non-resume attempt, which is a real truncate window against a live mapping.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/out/repro/p2a_sigbus.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/watchdog.py:301",
+          "claim": "UPHELD candidate P2 B: entries() calls input_fingerprint() outside the per-record OSError handler, and fingerprint only swallows FileNotFoundError. A permission or ENOTDIR failure on one job's watched input raises out of entries(); Watch.__init__ stores it as startup_error so the armed line says unreachable closed records ignored; --once then prints one watchdog error and classifies no later record. Contrast: record.json as a directory is caught per-record and scanning continues, including deviation errors on a sibling closed job. Isolated chmod 000 on a job directory and a PermissionError monkeypatch on stderr.stat reproduced the same abort. Error entries are not cached as success; amended and resumed closed records do invalidate. Store-directory enumeration failure still reaches the tick guard.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/out/repro/p2b_fingerprint.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py:56",
+          "claim": "Additional: ERROR_BYTES_RE is the old Unicode ERROR_TEXT_RE compiled as ASCII bytes, which does not preserve the pre-existing lexical deviation definitions. Measured: e-acute+errored is a bytes match and a text non-match; errors with NBSP before =2 is a text match and a bytes non-match; ASCII 'the tests errored' still matches both.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/out/repro/p3_lexical.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/watchdog.py:197",
+          "claim": "Additional: run() uses subprocess text=True and does not catch UnicodeDecodeError, so malformed non-UTF8 forge bytes never become the unavailable reading the efficiency contract requires. A local gh stub writing 0xff 0xfe made run() raise UnicodeDecodeError rather than return None; forge() therefore cannot label that output unreachable. JSON-shaped malformations already return None.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/out/repro/p3_forge_decode.py"
+        }
+      ],
+      "artifacts": {
+        "ruling": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/out/RULING.md",
+        "probe-results": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/out/probe-results.json",
+        "probe-results-2": "/home/scientdb/.local/state/agentscient/dispatch/20260904T230842Z-adjudicate-grok-04248c/out/probe-results-2.json"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2862846,
+        "out": 56118,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "00bc3e02816ab32a71bb1009225d9214635ead75",
+        "started": "2026-09-04T23:17:04Z",
+        "ended": "2026-09-04T23:23:53Z"
+      },
+      "note": "Candidate P2 A UPHELD; candidate P2 B UPHELD; no candidate REJECTED or PARTIAL. Inspected and holding: --forge-every schedule and cached/fresh heartbeat labels; 200+ page-full label; JSON malformed/unavailable forge readings stay unreachable; closed-record amend/resume cache invalidation; error entries not cached as success; startup parses record.json once; store iterdir failure reaches the tick guard. Existing test_watchdog.py has 56 test_ functions counted from source and was not executed; suite green is not proof of the new boundaries. No implementation or tests authored; no real-store mutation; no vendor/GitHub calls; probes confined to this job's out/. CPython 3.12 Pattern.search is read-only so the candidate's injected-search recipe was not used; SIGBUS was reproduced through held_matches. Gaps: no live-launcher concurrent truncate, no real gh."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T23:24:40.371Z"
+    }
+  },
+  "status": "closed"
+}
