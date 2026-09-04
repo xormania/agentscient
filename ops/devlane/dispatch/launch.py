@@ -382,8 +382,7 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
             argv = [executable, "exec", "resume", session, "--model", model,
                     *_effort_argv(name, effort), "--json", "-o", last_message]
             if writable_out:
-                argv += ["--sandbox", sandbox, "-c",
-                         f'sandbox_workspace_write.writable_roots=["{out}"]']
+                argv += ["-c", f'sandbox_workspace_write.writable_roots=["{out}"]']
             return argv
         if name == "claude":
             incoming = str((Path(prompt).parent / "in").resolve())
@@ -767,9 +766,26 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
     env = _child_env(os.environ, iso_env, rec["id"])
     if harness == "codex" and rec["job"] == "check-tests":
+        for root, dirs, files in os.walk(snapshot):
+            for name in [*dirs, *files]:
+                path = Path(root) / name
+                if not path.is_symlink():
+                    path.chmod(path.stat().st_mode & ~0o222)
+        snapshot.chmod(snapshot.stat().st_mode & ~0o222)
         tmpdir = job_dir / "out" / "tmp"
-        tmpdir.mkdir(exist_ok=True)
-        env["TMPDIR"] = str(tmpdir.resolve())
+        if tmpdir.is_symlink():
+            _refuse("tmpdir-symlink", f"a real directory at {tmpdir}",
+                    "a symlink", "remove the symlink and resume the job")
+        try:
+            tmpdir.mkdir(exist_ok=True)
+        except OSError as exc:
+            _refuse("tmpdir", f"a real directory at {tmpdir}", str(exc),
+                    "remove the non-directory entry and resume the job")
+        if not tmpdir.is_dir():
+            _refuse("tmpdir", f"a real directory at {tmpdir}",
+                    "a non-directory entry",
+                    "remove the non-directory entry and resume the job")
+        env["TMPDIR"] = str(tmpdir.absolute())
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -980,6 +996,8 @@ def _launch(args):
     prompt = job_dir / "prompt.txt"
     prompt.write_text(prompt_text)
     _iso_env, _flags, sandbox, containment, isolation_data = _harness_meta(args.harness, role, job_dir, os.environ)
+    if args.harness == "codex" and args.job == "check-tests":
+        sandbox = "workspace-write"
     permissions = None
     project_allow = project_deny = ()
     if args.harness == "claude":
