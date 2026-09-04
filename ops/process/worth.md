@@ -33,8 +33,14 @@ the user's home directory, and a missing key refuses as `conf-key`.
 
 Ranks sessions by total tokens and names, for each: the harness, the
 session id, messages (or runs), out, and cached tokens. Claude rows also carry
-turns, mean context tokens, and tool-result deny refusals; an unreadable
-transcript reports those three as `unrecorded`. Signals are
+turns after last-write-per-message-id dedup, mean context tokens over that
+same retained population, and tool-result deny refusals (both `is_error=true`
+and the deny marker are required). A retained usage row with malformed token
+types is an explicit gap rather than a partial measurement. An unreadable
+candidate found under Claude's slash-and-dot encoded repository directory is
+appended outside the measured `--top` ranking as `kind=gap`: its session id
+stays discoverable, but its repo, window, turns, mean context, and refusals are
+`unrecorded`, and it does not count as a known session. Signals are
 numbers with provenance, never verdicts: `cache-churn` carries the
 cached-read and output figures whose ratio breached, and
 `heavy-turn` names the single heaviest message (for codex, the
@@ -79,9 +85,16 @@ agent decides what to change; the tool only points.
    `heavy-turn` names the single largest out-token message (claude /
    codex) or run (grok) in each listed session. Signals carry the
    session id and harness so the transcript can be opened. Every ranked
-   Claude row carries assistant-usage `turns`, mean `avg_context`
-   (input plus both caches), and tool-result deny `refusals`; all three
-   are `unrecorded` when the transcript is unreadable.
+   Claude row carries `turns` from the retained, id-bearing assistant-usage
+   population after last-write-per-message-id dedup, mean `avg_context`
+   (input plus both caches) over that population, and tool-result deny
+   `refusals`. A refusal requires `is_error=true` as well as the deny marker.
+   Malformed retained usage values produce an explicit unrecorded gap. An
+   unreadable Claude candidate is discovered using the store's encoding
+   (every `/` and `.` in the repo path replaced by `-`) and appended after the
+   `--top` measured sessions with `kind=gap`, its file-stem session id, and
+   repo/window/turns/avg_context/refusals all `unrecorded`; it is not counted
+   as a known session.
 7. **JSON is the same truth**: `--format json` emits one object with
    `stamp`, `cost`, `results` (report) or `stamp`, `sessions`,
    `signals` (waste); every plain-format figure appears in it, and
