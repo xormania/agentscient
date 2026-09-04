@@ -208,7 +208,7 @@ satisfy it. `override` marks the only overridable one.
 | `ref` | `--ref` does not resolve to a commit | expected a ref naming a commit in `<repo>`; found `<ref>` (`<git's message>`); commit the work, then name the commit — uncommitted work is never dispatched |
 | `record-target` | the invoking checkout is detached, on `dev` or `main`, or on a branch other than `lineage.branch`; re-checked at close | expected the checkout on `<lineage>`; found `<branch or detached>`; run from a worktree of `<lineage>` (at close: the record file is left in place, nothing is committed, and `close ID` is re-run from the right branch) |
 | `stale-base` (**override**) | `ref_sha` is not an ancestor of `lineage.branch` | expected `<ref_sha>` reachable from `<lineage>`; found it is not (`<lineage>` is at `<tip>`); name a commit on the branch, or `--override stale-base:<reason>` |
-| `model` | no `--model`; or `--effort` on a harness whose adapter cannot pass it | expected a model — a job never names one and the launcher never defaults one; found none; pass `--model` (for effort on codex: the CLI has no effort flag, so the dial is refused rather than dropped) |
+| `model` | no `--model`; or `--effort` on a harness whose adapter cannot pass it | expected a model — a job never names one and the launcher never defaults one; found none; pass `--model` (effort is forwarded through each harness adapter) |
 | `isolation` | no `HARNESSES` entry, a credential missing, or a minimal home that is not empty | `isolation.NotIsolated`'s own text |
 | `history-vs-withheld` | the job declares `withheld` and mode `whole` | expected one of history or withholding; found both on `<job>`; a withheld file is recoverable from `.git`, so declare `fileset` |
 | `mode-unavailable` | the job declares a mode the launcher does not yet mint (`fileset`) | expected `whole`; found `fileset` on `<job>`; stage it by hand with `stage.py` and name the dispatch in the PR body until fileset mode lands |
@@ -231,8 +231,8 @@ fetched into the invoking repository as `refs/dispatch/<id>` with
 `--no-write-fetch-head`; `changed_paths` is `git diff --name-only
 ref_sha..head`; `residual_paths` is `git status --porcelain` in the
 snapshot. Read roles: `head` must equal `ref_sha`; a non-empty
-`residual_paths` is recorded, not judged — records are evidence, never
-authority.
+`residual_paths` is recorded; a changed head or non-empty residual makes the
+envelope invalid.
 
 ### The record
 
@@ -258,7 +258,7 @@ harness {name, version,
                               checked_at, harness_version}
                     | {unresolved}},
          sandbox, containment (os|policy), argv},
-model {requested, effort_requested, ran, read_from},
+model {requested, effort_requested, effort_argv, ran, read_from},
 session {id, stream, stream_sha256_at_close},
 brief {template {path, sha256}, scope, inputs [{path, sha256}], sha256, bytes},
 caps {..., source},

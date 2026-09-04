@@ -74,8 +74,15 @@ def validate(rec):
     _need(isinstance(effort_argv, list), "model.effort_argv")
     effort = model.get("effort_requested")
     if effort:
-        _need(bool(effort_argv) and any(effort in token for token in effort_argv),
+        carriers = {effort, f'model_reasoning_effort="{effort}"'}
+        _need(bool(effort_argv) and any(token in carriers for token in effort_argv),
               "model.effort_argv", "must carry model.effort_requested")
+        argv = harness.get("argv")
+        _need(isinstance(argv, list), "harness.argv", "must be a list")
+        width = len(effort_argv)
+        _need(any(argv[index:index + width] == effort_argv
+                  for index in range(len(argv) - width + 1)),
+              "harness.argv", "must carry model.effort_argv in order")
     else:
         _need(effort_argv == [], "model.effort_argv",
               "must be empty without model.effort_requested")

@@ -163,14 +163,9 @@ def _harness_meta(name, role, job_dir, env):
         _refuse("isolation", "an isolated harness with credentials", str(exc),
                 "add the isolation entry and required credential")
     spec = isolation.HARNESSES[name]
-    # Read roles still write: plan, check-tests and adjudicate deliver a
-    # file under the job's out/, and check-tests runs a suite that needs a
-    # writable tempdir. codex read-only denied both (2026-08-28: "sandbox
-    # rejected writes as read-only ... no affected assertion ran"), and
-    # plan mode on claude and grok ends the turn at a plan. The snapshot's
-    # integrity is proved after the run instead: a read role's HEAD must
-    # equal ref_sha and residual_paths is recorded.
     sandbox = {"claude": "acceptEdits", "codex": "workspace-write", "grok": "always-approve"}[name]
+    if name == "codex" and role == "read":
+        sandbox = "read-only"
     containment = "os" if name == "codex" else "policy"
     home = iso_env.get(spec.get("home_env", ""))
     store_base = Path(home) if spec["sessions"]["under"] == "minimal" else Path(env["HOME"]) / ".claude"
@@ -297,9 +292,10 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False):
         # DEVNULL it exits 1 "No prompt provided via stdin" before any work.
         # out/ sits outside the snapshot, so the workspace sandbox is told
         # it is writable; nothing else outside cwd and /tmp is.
-        return [executable, "exec", "--sandbox", sandbox,
-                "-c", f'sandbox_workspace_write.writable_roots=["{out}"]',
-                "--model", model, *_effort_argv(name, effort),
+        argv = [executable, "exec", "--sandbox", sandbox]
+        if sandbox == "workspace-write":
+            argv += ["-c", f'sandbox_workspace_write.writable_roots=["{out}"]']
+        return [*argv, "--model", model, *_effort_argv(name, effort),
                 "--json", "-o", last_message, "-"]
     # grok: the record states `sandbox`; the argv must carry it, or the
     # record claims a permission mode the child never had. plain output
@@ -1092,6 +1088,8 @@ def _settle(repo, record_path, rec, env):
     changed = _git(snapshot, "diff", "--name-only", f"{ref_sha}..{head}").stdout.splitlines()
     if role == "read" and head != ref_sha:
         _invalidate_envelope(env, "read-role-head: HEAD must equal ref_sha")
+    elif role == "read" and residual:
+        _invalidate_envelope(env, "read-role-snapshot: snapshot must be unchanged")
     elif role == "write" and _git(snapshot, "merge-base", "--is-ancestor", ref_sha, head, check=False).returncode:
         _invalidate_envelope(env, "off-lineage-head: HEAD does not descend from ref_sha")
     elif role == "write":
@@ -1209,7 +1207,10 @@ def _close(args):
     repo = _repo()
     path, rec = _find_record(repo, args.id)
     # Records launched before effort_argv joined the wire remain closable.
-    rec["model"].setdefault("effort_argv", [])
+    rec["model"].setdefault(
+        "effort_argv",
+        _effort_argv(rec["harness"]["name"], rec["model"].get("effort_requested")),
+    )
     branch = _branch(repo)
     lineage = rec["lineage"]["branch"]
     if branch != lineage:

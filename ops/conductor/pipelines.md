@@ -131,8 +131,8 @@ pipeline, and this session it did exactly that twice.
   real finding behind A-1, and the reason a launch is worth wrapping in a
   script that echoes its own exit.
 - **Effort is per-harness.** codex takes `-c model_reasoning_effort="xhigh"`,
-  not `--reasoning-effort`; the launcher refuses `--effort` on codex until
-  `de72c11` lands.
+  not `--reasoning-effort`; the launcher forwards the dial through each
+  harness adapter.
 - **Landing is** `git fetch -q <dispatch>/snapshot HEAD && git cherry-pick -x
   FETCH_HEAD`.
 - **Paired dispatches take a byte-identical scope.** Take the sha when you write
