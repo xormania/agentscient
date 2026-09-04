@@ -1,0 +1,100 @@
+{
+  "id": "20260904T132749Z-tests-grok-872f3a",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/dispatch-job-scratch",
+  "lineage": {
+    "branch": "lane/dispatch-job-scratch",
+    "base_sha": "f6e052c908585d7679f23b97c9e2222850410261"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:27:50Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f6e052c908585d7679f23b97c9e2222850410261",
+    "ref_sha": "f6e052c908585d7679f23b97c9e2222850410261",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f04f7a40-fc59-42e2-bca1-bc11f1e49b44",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "f04f7a40-fc59-42e2-bca1-bc11f1e49b44",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dispatch-job-scratch/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture batch (four fixture apps, `ops/bin/fixture.sh`, the findings lever) had its one fix round (two implement runs) and its security re-audit returned changes again. By D-LADDER-1 the batch gets no second fix round; the unresolved findings are this slice's scope and it runs the whole ladder: tests (Grok) \u2192 skeptic \u2192 implement (Codex) per S bucket \u2192 audits once \u2192 one fix round \u2192 security re-audit \u2192 draft PR.\nD-LADDER-1 (register, standing ratified, `ops/conductor/decisions.seed.json`, decided_by owner 2026-09-04): an implement run covers at most one S bucket and an M slice is implemented in two runs the plan names; the security and adversarial audits run once per batch on the merged tree, never per slice, with one fix round and the security re-audit only; the skeptic runs once on the first tests and never on the fixed tests.\nBucket sizes (owner, 2026-09-04): S = 1\u20133 files, one implement run under 10 minutes; M = two named S buckets (run A, run B), each landed and green alone; L = split.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/in/PLAN-fixture-fix2-dispatch-job-scratch.md",
+        "sha256": "949edbb04a0b8192eff9cf8f057f32d9f10b78711440350ff1125bf47e244d10"
+      }
+    ],
+    "sha256": "640440e604bf3eca7405625aa4962f745288459c96d277ffb792333563e31035",
+    "bytes": 3365
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
