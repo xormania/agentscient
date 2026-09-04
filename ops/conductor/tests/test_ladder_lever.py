@@ -588,6 +588,9 @@ summary = "ok"
 if name in plant.get("invalid_envelope_stages", []):
     envelope["status"] = "invalid"
     summary = "invalid"
+patch = (plant.get("envelope_patches") or {}).get(name)
+if isinstance(patch, dict):
+    envelope.update(patch)
 payload["status"] = "closed"
 payload["at"]["closed"] = "2026-09-04T12:00:01Z"
 payload["result"] = {"envelope": envelope}
@@ -866,6 +869,7 @@ class _LadderFixture(unittest.TestCase):
             "skeptic_md": False,
             "skeptic_text": SKEPTIC_BODY,
             "stage_findings": {},
+            "envelope_patches": {},
             "land_extra_path": None,
             "ran_grok": RAN_GROK,
             "ran_codex": RAN_CODEX,
@@ -1862,6 +1866,87 @@ class _LadderFixture(unittest.TestCase):
             artifacts,
         )
         return rec_id
+
+    def save_ladder_record(self, payload: dict) -> dict:
+        ident = payload.get("id")
+        self.assertTrue(ident, payload)
+        path = self.repo / ".dev" / "records" / "ladders" / (
+            str(ident) + ".json"
+        )
+        text = json.dumps(payload, indent=2) + "\n"
+        self._plant_bytes(path, text.encode("utf-8"))
+        self.git("add", "-A", ".dev/records")
+        self.git("commit", "-m", "rewrite ladder record\n")
+        self.assertEqual(self.porcelain(), "")
+        landed = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(landed.get("id"), ident)
+        return landed
+
+    def replace_findings_file_paths(self, payload: dict, new_path: str) -> int:
+        replaced = 0
+
+        def walk(value) -> None:
+            nonlocal replaced
+            if isinstance(value, dict):
+                for key, item in list(value.items()):
+                    if "finding" in str(key).lower() and isinstance(item, str):
+                        value[key] = new_path
+                        replaced += 1
+                    else:
+                        walk(item)
+            elif isinstance(value, list):
+                for item in value:
+                    walk(item)
+
+        walk(payload)
+        return replaced
+
+    def new_files_under(self, root: Path, before: set[Path]) -> list[Path]:
+        found: list[Path] = []
+        if not root.exists():
+            return found
+        for path in root.rglob("*"):
+            if path.is_file() and path.resolve() not in before:
+                found.append(path)
+        return found
+
+    def findings_payload_files(self, before: set[Path]) -> list[Path]:
+        """New files that are a findings list or the literal null dump."""
+        dispatch = self.dispatch_record_paths()
+        found: list[Path] = []
+        roots = [self.wt, self.xdg]
+        for root in roots:
+            for path in self.new_files_under(root, before):
+                if path.resolve() in dispatch:
+                    continue
+                if path.parent.name == "ladders" and path.suffix == ".json":
+                    continue
+                try:
+                    text = path.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    continue
+                stripped = text.strip()
+                if stripped == "null":
+                    found.append(path)
+                    continue
+                try:
+                    data = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(data, list):
+                    found.append(path)
+        return found
+
+    def host_secret(self, name: str, body: str) -> Path:
+        path = self.root / name
+        self._plant_bytes(path, body.encode("utf-8"))
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertFalse(
+            str(path.resolve()).startswith(str(self.wt.resolve()) + os.sep),
+            path,
+        )
+        return path
 
 
 class ToolPresence(_LadderFixture):
@@ -3277,6 +3362,346 @@ class TestsFixContractText(unittest.TestCase):
         self.assertIn("findings", blob.lower(), blob)
         for line in lines:
             self.assertNotIn("SKEPTIC.md", line, line)
+
+
+class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
+    """Validate verdict, counts, and findings shape before writing.
+
+    A check-tests envelope that is merely status=ok is not enough:
+    findings must be a list of quotation-pair objects, counts must
+    tally that list, and verdict must agree. tests-fix runs only when
+    the validated verdict is changes.
+    """
+
+    def test_findings_none_does_not_move_to_tests_fix(self):
+        planted = [dict(CHECK_TESTS_FINDING)]
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            stage_findings={"check-tests": planted},
+            envelope_patches={"check-tests": {"findings": None}},
+        )
+        before = self.files_before_run()
+        proc = self.run_ladder()
+        names = self.dispatch_names()
+        self.assertNotIn(
+            "tests-fix",
+            names,
+            "findings=None must not become the tests-fix spec: "
+            f"{names!r} {self.combined(proc)}",
+        )
+        self.assertNotIn("code", names, names)
+        leaked = self.findings_payload_files(before)
+        self.assertEqual(
+            leaked,
+            [],
+            "findings=None must not be written (json.dumps(None) is "
+            f"'null') before the driver refuses: {leaked!r}",
+        )
+
+    def test_counts_that_disagree_with_findings_do_not_move_to_tests_fix(self):
+        planted = [dict(CHECK_TESTS_FINDING)]
+        self.assertEqual(self.counts_from_findings(planted)["p2"], 1)
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            stage_findings={"check-tests": planted},
+            envelope_patches={
+                "check-tests": {
+                    "counts": {
+                        "p1": 0, "p2": 0, "p3": 0, "opinions": 0,
+                    },
+                },
+            },
+        )
+        before = self.files_before_run()
+        proc = self.run_ladder()
+        names = self.dispatch_names()
+        self.assertNotIn(
+            "tests-fix",
+            names,
+            "a truncated counts tally must not become the tests-fix "
+            f"spec: {names!r} {self.combined(proc)}",
+        )
+        self.assertNotIn("code", names, names)
+        leaked = self.findings_payload_files(before)
+        self.assertEqual(
+            leaked,
+            [],
+            "disagreeing counts must be refused before the findings "
+            f"file is written: {leaked!r}",
+        )
+
+    def test_a_finding_missing_its_shape_does_not_move_to_tests_fix(self):
+        planted = [dict(CHECK_TESTS_FINDING)]
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            stage_findings={"check-tests": planted},
+            envelope_patches={
+                "check-tests": {
+                    "findings": [{"severity": "p2", "where": "x.py:1"}],
+                    "counts": {
+                        "p1": 0, "p2": 1, "p3": 0, "opinions": 0,
+                    },
+                },
+            },
+        )
+        before = self.files_before_run()
+        proc = self.run_ladder()
+        names = self.dispatch_names()
+        self.assertNotIn(
+            "tests-fix",
+            names,
+            "a finding without claim/reproduce is not a quotation "
+            f"pair: {names!r} {self.combined(proc)}",
+        )
+        self.assertNotIn("code", names, names)
+        leaked = self.findings_payload_files(before)
+        self.assertEqual(
+            leaked,
+            [],
+            "a malformed findings list must not be written: "
+            f"{leaked!r}",
+        )
+
+    def test_approve_with_findings_does_not_skip_to_implement(self):
+        planted = self.plant_check_tests_findings(verdict="approve")
+        self.assertTrue(planted)
+        before = self.files_before_run()
+        proc = self.run_ladder()
+        names = self.dispatch_names()
+        self.assertNotIn(
+            "tests-fix",
+            names,
+            "tests-fix runs only on verdict changes, never to paper "
+            f"over an approve that still carries findings: {names!r}",
+        )
+        self.assertNotIn(
+            "code",
+            names,
+            "an approve envelope that still carries findings must not "
+            f"move to implement: {names!r} {self.combined(proc)}",
+        )
+        leaked = self.findings_payload_files(before)
+        self.assertEqual(
+            leaked,
+            [],
+            "verdict and findings that disagree must be refused "
+            f"before the findings file is written: {leaked!r}",
+        )
+
+    def test_validated_changes_still_moves_to_tests_fix(self):
+        self.plant_check_tests_findings(verdict="changes")
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        names = self.dispatch_names()
+        self.assertIn("tests-fix", names, names)
+        self.assertIn("code", names, names)
+        self.assertLess(
+            names.index("check-tests"), names.index("tests-fix"), names,
+        )
+
+
+class FindingsFilePathStaysInsideLadderInputs(_LadderFixture):
+    """The findings file is resolved against the worktree, inside inputs.
+
+    A mutated absolute path, a ../ escape, or a symlink that resolves
+    outside the ladder input directory is refused. tests-fix must not
+    receive that path as --input.
+    """
+
+    def _run_to_tripped_tests_fix(self) -> tuple[list, Path, str]:
+        planted = self.plant_check_tests_findings(verdict="changes")
+        self.patch_plant(trip_stages=["tests-fix"])
+        before = self.files_before_run()
+        first = self.run_ladder()
+        rec_id = self.record_id_for("tests-fix")
+        self.assert_stopped(
+            first, stage="tests-fix", record=rec_id, reason="tripped",
+        )
+        self.assertIn("tests-fix", self.dispatch_names())
+        record = self.ladder_record()
+        named = self.record_named_findings_file(
+            record, planted, before=before,
+        )
+        self.assertTrue(named.is_file(), named)
+        return planted, named, record["id"]
+
+    def _resume_must_refuse_escaped_path(
+        self,
+        ladder_id: str,
+        secret: Path,
+        token: str,
+    ) -> None:
+        self.patch_plant(trip_stages=[])
+        before_names = list(self.dispatch_names())
+        second = self.invoke(["resume", ladder_id])
+        text = self.combined(second)
+        self.assertIn(second.returncode, {2, 3}, text)
+        self.assertNotEqual(second.returncode, 0, text)
+        self.assertNotIn(token, text)
+        later = self.dispatch_names()
+        self.assertEqual(
+            later.count("tests-fix"),
+            before_names.count("tests-fix"),
+            f"escaped findings path dispatched tests-fix again: "
+            f"{later!r} {text}",
+        )
+        for row in self.dispatch_calls():
+            argv = row.get("argv") or []
+            self.assertNotIn(str(secret), argv, argv)
+            blob = self.inputs_text(argv)
+            self.assertNotIn(token, blob)
+
+    def test_resume_refuses_a_findings_file_outside_the_worktree(self):
+        _planted, _named, ladder_id = self._run_to_tripped_tests_fix()
+        secret = self.host_secret(
+            "host-secret-findings-aa32",
+            "credential-findings-aa32\n",
+        )
+        payload = self.ladder_record(ladder_id)
+        n = self.replace_findings_file_paths(payload, str(secret))
+        self.assertGreater(
+            n, 0,
+            "ladder record has no findings path field to mutate: "
+            f"{payload!r}",
+        )
+        self.save_ladder_record(payload)
+        self._resume_must_refuse_escaped_path(
+            ladder_id, secret, "credential-findings-aa32",
+        )
+
+    def test_resume_refuses_a_findings_file_dotdot_escape(self):
+        _planted, _named, ladder_id = self._run_to_tripped_tests_fix()
+        rel = os.path.join("..", "escaped-findings-aa32.json")
+        self.assertIn("..", Path(rel).parts, rel)
+        body = json.dumps([dict(CHECK_TESTS_FINDING)], indent=2) + "\n"
+        planted_outsides = [
+            (self.wt / rel).resolve(),
+            (self.invoke_cwd / rel).resolve(),
+        ]
+        for outside in planted_outsides:
+            self._plant_bytes(outside, body.encode("utf-8"))
+            self.assertEqual(outside.read_text(encoding="utf-8"), body)
+            self.assertFalse(
+                str(outside).startswith(str(self.wt.resolve()) + os.sep),
+                outside,
+            )
+        payload = self.ladder_record(ladder_id)
+        n = self.replace_findings_file_paths(payload, rel)
+        self.assertGreater(n, 0, payload)
+        self.save_ladder_record(payload)
+        self.patch_plant(trip_stages=[])
+        before_names = list(self.dispatch_names())
+        second = self.invoke(["resume", ladder_id])
+        text = self.combined(second)
+        self.assertIn(
+            second.returncode, {2, 3},
+            f"../ findings path must refuse, not crash or proceed: {text}",
+        )
+        self.assertNotEqual(second.returncode, 0, text)
+        later = self.dispatch_names()
+        self.assertEqual(
+            later.count("tests-fix"),
+            before_names.count("tests-fix"),
+            f"../ findings path dispatched tests-fix again: "
+            f"{later!r} {text}",
+        )
+        forbidden = {p.resolve() for p in planted_outsides}
+        for row in self.dispatch_calls():
+            argv = row.get("argv") or []
+            for value in self.flag_values(argv, "--input"):
+                raw = Path(value)
+                resolved = raw.resolve() if raw.is_absolute() else (
+                    self.wt / raw
+                ).resolve()
+                self.assertNotIn(
+                    resolved, forbidden,
+                    f"tests-fix --input escaped via {rel!r}: {argv!r}",
+                )
+
+    def test_resume_refuses_a_findings_file_symlink_outside_inputs(self):
+        _planted, named, ladder_id = self._run_to_tripped_tests_fix()
+        secret = self.host_secret(
+            "host-secret-symlink-aa32",
+            "credential-symlink-aa32\n",
+        )
+        self.assertTrue(named.is_file(), named)
+        named.unlink()
+        named.symlink_to(secret)
+        self.assertTrue(named.is_symlink(), named)
+        self.assertEqual(named.resolve(), secret.resolve())
+        self.assertEqual(
+            secret.read_text(encoding="utf-8"),
+            "credential-symlink-aa32\n",
+        )
+        try:
+            rel = str(named.relative_to(self.wt))
+        except ValueError:
+            rel = None
+        if rel is not None:
+            self.git("add", "-A", "--", rel)
+            self.git("commit", "-m", "plant findings symlink\n")
+            self.assertEqual(self.porcelain(), "")
+        self._resume_must_refuse_escaped_path(
+            ladder_id, secret, "credential-symlink-aa32",
+        )
+
+    def test_a_relative_findings_file_is_resolved_against_the_worktree(self):
+        planted, named, ladder_id = self._run_to_tripped_tests_fix()
+        rel = os.path.relpath(named, start=self.wt)
+        self.assertFalse(os.path.isabs(rel), rel)
+        decoy = self.invoke_cwd / rel
+        decoy.parent.mkdir(parents=True, exist_ok=True)
+        decoy_body = json.dumps(
+            [{"severity": "p1", "where": "decoy", "claim": "DECOY_FINDINGS_aa32",
+              "reproduce": "false"}],
+            indent=2,
+        ) + "\n"
+        self._plant_bytes(decoy, decoy_body.encode("utf-8"))
+        self.assertEqual(decoy.read_text(encoding="utf-8"), decoy_body)
+        self.assertNotEqual(decoy.resolve(), named.resolve())
+        payload = self.ladder_record(ladder_id)
+        n = self.replace_findings_file_paths(payload, rel)
+        self.assertGreater(n, 0, payload)
+        self.save_ladder_record(payload)
+        self.patch_plant(trip_stages=[])
+        second = self.invoke(["resume", ladder_id])
+        text = self.combined(second)
+        for row in self.dispatch_calls():
+            argv = row.get("argv") or []
+            for value in self.flag_values(argv, "--input"):
+                raw = Path(value)
+                from_cwd = (
+                    raw.resolve()
+                    if raw.is_absolute()
+                    else (self.invoke_cwd / raw).resolve()
+                )
+                self.assertNotEqual(
+                    from_cwd,
+                    decoy.resolve(),
+                    "a relative findings path must resolve against the "
+                    f"worktree, not cwd: {argv!r}",
+                )
+                self.assertNotIn("DECOY_FINDINGS_aa32", value)
+        if second.returncode == 0:
+            argv = None
+            for row in self.dispatch_calls():
+                if row.get("name") == "tests-fix":
+                    argv = row.get("argv") or []
+            self.assertIsNotNone(argv, self.dispatch_names())
+            input_paths = []
+            for value in self.flag_values(argv, "--input"):
+                raw = Path(value)
+                resolved = (
+                    raw.resolve()
+                    if raw.is_absolute()
+                    else (self.wt / raw).resolve()
+                )
+                input_paths.append(resolved)
+            self.assertIn(named.resolve(), input_paths, argv)
+            self.assertNotIn(decoy.resolve(), input_paths, argv)
+            self.assertEqual(self.serialized_findings(named), planted)
+        else:
+            self.assertIn(second.returncode, {2, 3}, text)
 
 
 if __name__ == "__main__":
