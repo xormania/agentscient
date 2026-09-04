@@ -1,0 +1,106 @@
+{
+  "id": "20260904T150457Z-code-codex-a3279b",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "149c3b95af9379165cf6d31f25795103ad363ae5"
+  },
+  "follows": [
+    "20260904T145002Z-tests-grok-87e902"
+  ],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T15:04:57Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "149c3b95af9379165cf6d31f25795103ad363ae5",
+    "ref_sha": "149c3b95af9379165cf6d31f25795103ad363ae5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "1c1cd050-2139-40b5-bf42-899b891304d6",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py && python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_json.py && python3 -m unittest discover -s ops/devlane/task/tests -p test_jobs.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/in/PLAN-check-tests-json-2.md",
+        "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T150457Z-code-codex-a3279b/in/scope-check-tests-json-2.md",
+        "sha256": "214b6f495e79557a7f5b0f1415b55bb71c4169b67380d7af2dfd369b743c7771"
+      }
+    ],
+    "sha256": "1db44c1c630c4d0bada5d1f2562f5366bd41214cc5a23467326a5be14adc8905",
+    "bytes": 4082
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
