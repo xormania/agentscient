@@ -45,6 +45,7 @@
       "landed_shas": [
         "a486c25c202e8e74401ef8e72503c432698b7e2d"
       ],
+      "minutes": 9.762764,
       "name": "tests",
       "outcome": "ok",
       "record": "20260904T175121Z-tests-grok-a0a65d",
