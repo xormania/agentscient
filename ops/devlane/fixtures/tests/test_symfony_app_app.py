@@ -705,10 +705,19 @@ class SymfonyAppLayout(unittest.TestCase):
             flex_ver.startswith("v2."),
             f"symfony/flex is ^2; lock must be a v2. version, found {flex_ver!r}",
         )
+        manifest = json.loads(_read(APP / "composer.json"))
+        pinned = {
+            name
+            for section in ("require", "require-dev")
+            for name, constraint in (manifest.get(section) or {}).items()
+            if name.startswith("symfony/") and str(constraint).startswith("8.1.")
+        }
+        # Transitive symfony/* contracts and polyfills carry their own
+        # versions; only what the manifest pins at 8.1.* must be v8.1.
         others = [
             (name, str(item.get("version") or ""))
             for name, item in by_name.items()
-            if name.startswith("symfony/") and name != "symfony/flex"
+            if name in pinned
         ]
         self.assertTrue(
             others,

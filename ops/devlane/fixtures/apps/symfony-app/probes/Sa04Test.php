@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/RecordingLogger.php';
+
 use App\Probes\RecordingLogger;
 use App\Service\Ledger;
 use PHPUnit\Framework\TestCase;
