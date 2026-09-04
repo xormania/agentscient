@@ -20,6 +20,7 @@
         "symfony/phpunit-bridge": "8.1.*"
     },
     "config": {
+        "cache-read-only": true,
         "allow-plugins": {
             "symfony/flex": true,
             "symfony/runtime": true
