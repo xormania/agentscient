@@ -67,9 +67,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix-2/.dev/records/dispatches/20260904T132832Z-tests-grok-2707e5.json",
+        "proof": {
+          "given": [
+            "The fixture batch (four fixture apps, `ops/bin/fixture.sh`, the findings lever) had its one fix round (two implement runs) and its security re-audit returned changes again. By D-LADDER-1 the batch gets no second fix round; the unresolved findings are this slice's scope and it runs the whole ladder: tests (Grok) \u2192 skeptic \u2192 implement (Codex) per S bucket \u2192 audits once \u2192 one fix round \u2192 security re-audit \u2192 draft PR.",
+            "20260904T132832Z-tests-grok-2707e5"
+          ],
+          "withheld": []
+        },
+        "sha256": "60955f980ee10c3480f63c2ef273b2aefe441913a5b93aaa80ee8d0df99ed6fa"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
