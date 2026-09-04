@@ -279,16 +279,33 @@ class _GradeFixture(unittest.TestCase):
 
     def assert_refusal(self, proc, class_name: str) -> None:
         err = proc.stderr or ""
-        compact = err.lower().replace("_", "-")
-        token = class_name.lower().replace("_", "-")
-        self.assertIn(token, compact, err)
         self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual((proc.stdout or "").strip(), "")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, err)
-        lower = err.lower()
+        line = lines[0]
+        token = class_name.lower().replace("_", "-")
+        head = line.split(":", 1)[0].strip().lower().replace("_", "-")
+        self.assertEqual(
+            head,
+            token,
+            f"refusal class must be the leading token {token!r}: {line!r}",
+        )
+        lower = line.lower()
         self.assertLess(lower.index("expected"), lower.index("found"), err)
         self.assertLess(lower.index("found"), lower.index("needed"), err)
-        self.assertEqual((proc.stdout or "").strip(), "")
+
+    def assert_grade_stdout_only_report(self, stdout: str) -> None:
+        lines = [ln for ln in stdout.splitlines() if ln.strip()]
+        self.assertGreaterEqual(len(lines), 2, stdout)
+        self.assertLessEqual(
+            len(lines),
+            4,
+            f"grade prints reviewer, counts and rates, nothing else: {stdout!r}",
+        )
+        self.assertNotIn("{", stdout)
+        self.parse_counts(stdout)
+        self.parse_rates(stdout)
 
     def parse_counts(self, stdout: str) -> dict[str, int]:
         match = COUNTS_RE.search(stdout)
@@ -330,14 +347,29 @@ class _GradeFixture(unittest.TestCase):
         return rows
 
 
+class RefusalShape(_GradeFixture):
+    def test_embedded_class_token_is_not_a_refusal(self):
+        proc = subprocess.CompletedProcess(
+            args=["fixture.sh"],
+            returncode=2,
+            stdout="",
+            stderr="not-identity garbage expected x; found y; needed z\n",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_refusal(proc, "identity")
+
+
 class GradeClassifies(_GradeFixture):
     def test_grade_counts_caught_missed_false_positive_unmatched_unlocated(self):
         rec = self.plant_record()
+        before = rec.read_bytes()
         proc = self.grade(str(rec))
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(rec.read_bytes(), before, "grade writes nothing to the record")
         out = proc.stdout
         self.assertIn(HARNESS, out)
         self.assertIn(MODEL, out)
+        self.assert_grade_stdout_only_report(out)
         counts = self.parse_counts(out)
         self.assertEqual(
             counts,
@@ -426,6 +458,80 @@ class GradeClassifies(_GradeFixture):
         self.assertEqual(counts["caught"], 1)
         self.assertEqual(counts["missed"], 1)
 
+    def test_two_findings_on_one_fault_count_as_one_caught_fault(self):
+        findings = [
+            _finding("p1", "src/a.py:10-12", "DUP_A_CLAIM_SYN"),
+            _finding("p1", "src/a.py:11-11", "DUP_B_CLAIM_SYN"),
+        ]
+        rec = self.plant_record(self.record_payload(findings=findings))
+        proc = self.grade(str(rec))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        counts = self.parse_counts(proc.stdout)
+        self.assertEqual(counts["caught"], 1)
+        self.assertEqual(counts["missed"], 1)
+        rates = self.parse_rates(proc.stdout)
+        self.assertEqual(rates["caught"], 0.5)
+        rows = self.parse_rows()
+        caught = [row for row in rows if row["class"] == "caught"]
+        self.assertEqual({row["fault_id"] for row in caught}, {"SYN-01"})
+        self.assertEqual(
+            {row["finding_key"] for row in caught},
+            {f"{REC_ID}#1", f"{REC_ID}#2"},
+        )
+        self.assertEqual(
+            {row["claim"] for row in caught},
+            {"DUP_A_CLAIM_SYN", "DUP_B_CLAIM_SYN"},
+        )
+
+    def test_one_finding_overlapping_two_faults_catches_both(self):
+        findings = [
+            _finding(
+                "p1",
+                "src/a.py:10-12, src/b.py:5-8",
+                "MULTI_FAULT_CLAIM_SYN",
+            ),
+        ]
+        rec = self.plant_record(self.record_payload(findings=findings))
+        proc = self.grade(str(rec))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        counts = self.parse_counts(proc.stdout)
+        self.assertEqual(counts["caught"], 2)
+        self.assertEqual(counts["missed"], 0)
+        rates = self.parse_rates(proc.stdout)
+        self.assertEqual(rates["caught"], 1.0)
+        rows = self.parse_rows()
+        caught = [row for row in rows if row["class"] == "caught"]
+        self.assertEqual({row["fault_id"] for row in caught}, {"SYN-01", "SYN-02"})
+        self.assertEqual({row["finding_key"] for row in caught}, {f"{REC_ID}#1"})
+        self.assertEqual(
+            {row["claim"] for row in caught},
+            {"MULTI_FAULT_CLAIM_SYN"},
+        )
+
+    def test_closed_span_endpoints_that_touch_overlap(self):
+        findings = [
+            _finding("p1", "src/a.py:8-10", "ENDPOINT_TOUCH_CLAIM_SYN"),
+        ]
+        rec = self.plant_record(self.record_payload(findings=findings))
+        proc = self.grade(str(rec))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        counts = self.parse_counts(proc.stdout)
+        self.assertEqual(counts["caught"], 1)
+        self.assertEqual(counts["missed"], 1)
+        self.assertEqual(counts["unmatched"], 0)
+
+    def test_closed_spans_that_do_not_share_a_line_do_not_overlap(self):
+        findings = [
+            _finding("p1", "src/a.py:8-9", "NO_TOUCH_CLAIM_SYN"),
+        ]
+        rec = self.plant_record(self.record_payload(findings=findings))
+        proc = self.grade(str(rec))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        counts = self.parse_counts(proc.stdout)
+        self.assertEqual(counts["caught"], 0)
+        self.assertEqual(counts["unmatched"], 1)
+        self.assertEqual(counts["missed"], 2)
+
     def test_grade_resolves_a_record_id_from_repo_flag(self):
         other = self.root / "other-repo"
         payload = self.record_payload()
@@ -503,6 +609,16 @@ class GradeWritesCalibrate(_GradeFixture):
         self.assertIsNone(unlocated[0]["fault_id"])
         self.assertEqual(unlocated[0]["finding_key"], f"{REC_ID}#4")
         self.assertEqual(unlocated[0]["claim"], "UNLOCATED_CLAIM_SYN")
+        false_positive = [row for row in rows if row["class"] == "false-positive"]
+        self.assertEqual(len(false_positive), 1)
+        self.assertEqual(false_positive[0]["fault_id"], "SYN-01")
+        self.assertEqual(false_positive[0]["finding_key"], f"{REC_ID}#2")
+        self.assertEqual(false_positive[0]["claim"], "FP_CLAIM_SYN")
+        unmatched = [row for row in rows if row["class"] == "unmatched"]
+        self.assertEqual(len(unmatched), 1)
+        self.assertIsNone(unmatched[0]["fault_id"])
+        self.assertEqual(unmatched[0]["finding_key"], f"{REC_ID}#3")
+        self.assertEqual(unmatched[0]["claim"], "UNMATCHED_CLAIM_SYN")
 
     def test_grade_invokes_the_repo_findings_py_not_a_path_lookup(self):
         rec = self.plant_record()
