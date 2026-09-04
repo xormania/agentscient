@@ -15,7 +15,11 @@ Grok's review of the first cut (record
   `$HOME/.local/state/agentscient/dispatch` — the launcher's own rule.
   A store that is not a directory is refusal class `store`.
 - Per job directory: `record.json` (the record copy), `state.json`
-  (the harness pid), the `exit` file, and the `exit` file's mtime.
+  (the harness pid), the `exit` file and its mtime, the copied
+  `in/plan.md` (falling back to `brief.scope`), and held `stdout`,
+  `stderr`, and `launcher.log` text.
+- Ladder records: JSON files in the state root's sibling `ladders/`
+  directory.
 - The job caps: the record's `caps.timeout`, else the job's
   `caps.timeout` in `ops/devlane/task/jobs.json` (found beside this
   file, or beside the working directory when the file runs as a staged
@@ -62,13 +66,46 @@ reported unless `--report-existing`.
 - `ci <fail|cancel> #<pr> at <sha>: <check>` — the head's full sha; once
   per pull request head and check name; every failing or cancelled
   check, not the first.
-- `heartbeat: running=<id m/wall, ...>; settling=<n>; launchers=<L|unreachable>; open PRs into dev=<n|unreachable|not watched>`
+- `heartbeat: running=<id m/wall, ...>; settling=<n>; launchers=<L|unreachable>; open PRs into dev=<n|unreachable|not watched>; deviations=<n>`
   — every `--heartbeat-every` ticks (default 6); a pull request whose
-  checks could not be read is named inside the count as unreachable.
+  checks could not be read is named inside the count as unreachable;
+  deviations counts deviation lines printed since the process started.
 - `watchdog error: <type>: <message> (tick <t>; the loop continues)` —
   any exception in a tick; the loop never dies quietly.
 - `watchdog armed: store <path>, <n> closed records ignored, tick <s>s`
   — the first line, always.
+
+## Deviations
+
+Closed records are compared even when their ordinary `closed` line is
+suppressed at startup. Each matching comparison prints once per record:
+
+- `deviation assumption <id>` — an envelope note or finding contains
+  one of `assumption`, `assume`, `substitute`, `stub`, or
+  `hermetic substitute` (case-insensitive).
+- `deviation lock <id>` — a changed path named
+  `composer.lock`, `Cargo.lock`, `requirements.lock`, or `symfony.lock`
+  is absent from the bucket line's paths.
+- `deviation bucket <id>` — a changed path is outside the bucket line,
+  or the changed count is more than four times its class maximum.
+- `deviation size <id>` — an `implement` or `author-tests` record is
+  over its class maximum. This S-bucket contract fixes the maximum at
+  3 files or 2,000 landed lines; other classes are not inferred.
+- `deviation envelope <id>` — a `tripped` or `invalid` envelope carries
+  findings or changed paths.
+- `deviation errors <id>` — an `author-tests` envelope note or held
+  output reports `errored` or an `errors=` count above zero.
+- `deviation refused <id>` — held launcher text starts a refusal line
+  with `empty-comparison`, `scope-cap`, `conf-key`, or `toolchain`.
+- `deviation retry <id>` — a ladder is stopped or has a stage attempt
+  above one.
+- `deviation minutes <id>` — elapsed minutes are more than four times
+  the S calibration maximum for the job: implement 4, author-tests 21,
+  check-tests 10 minutes.
+
+The words, filenames, class limits, factors, jobs, and refusal classes
+above are the comparison data. Deviation detection reads the local
+records and plans only; it makes no forge call and recommends no action.
 
 ## Seams
 
@@ -91,8 +128,8 @@ One line on stderr, exit 2, stdout empty, expected–found–needed.
 
 ## What it is not
 
-It judges nothing: bucket drift against the plan, a stage whose
-findings have gone flat, a recurring failure class, and "closed ok but
-landed nothing" as a verdict belong to the reporting model of idea
-I-017, which reads these lines and the records. The `closed` line's
-`env=` and `changed=` are that model's hook, not this loop's judgment.
+It does not choose a remedy. A stage whose findings have gone flat, a
+recurring failure class, and "closed ok but landed nothing" remain work
+for the reporting model of idea I-017. The watchdog names only the
+mechanical deviations and their record ids; the conductor decides what
+to do about them.
