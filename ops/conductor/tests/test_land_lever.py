@@ -1347,6 +1347,53 @@ class LaneAuthor(_LandFixture):
         self.assertEqual(self.landed_rows(proc.stdout or ""), [])
 
 
+class Reauthor(_LandFixture):
+    """--author and --co-author are additive. Without them the lever
+    behaves as today. --author sets each landed commit's author and
+    keeps the committer from WF_AGENT. --co-author appends
+    Co-Authored-By once and does not duplicate one already present.
+    """
+
+    AUTHOR = "Scratch Owner <scratch-owner@example.invalid>"
+    CO = "Ladder Coauthor <noreply-ladder@example.invalid>"
+
+    def test_author_sets_the_landed_author_and_keeps_the_wf_agent_committer(self):
+        self.assertNotEqual(self.AUTHOR, LANE_AUTHOR)
+        self.assertNotEqual(self.AUTHOR, f"{PRODUCER} <{PRODUCER_EMAIL}>")
+        self.ready()
+        proc = self.land(extra=["--author", self.AUTHOR])
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(self.author("HEAD"), self.AUTHOR)
+        self.assertNotEqual(self.author("HEAD"), LANE_AUTHOR)
+        self.assertEqual(self.committer("HEAD"), AGENT)
+        self.assertNotEqual(
+            self.committer("HEAD"),
+            f"{REPO_USER} <{REPO_EMAIL}>",
+        )
+
+    def test_co_author_appends_the_trailer_once(self):
+        producers = self.ready()
+        original = self.message(producers[0])
+        self.assertIn("Co-Authored-By:", original)
+        self.assertNotIn(self.CO, original)
+        proc = self.land(extra=["--co-author", self.CO])
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        msg = self.message("HEAD")
+        self.assertIn(f"Co-Authored-By: {self.CO}", msg)
+        self.assertEqual(msg.count(f"Co-Authored-By: {self.CO}"), 1)
+        self.assertIn("Source:", msg)
+
+    def test_co_author_does_not_duplicate_an_already_present_trailer(self):
+        producers = self.ready()
+        original = self.message(producers[0])
+        self.assertEqual(original.count(f"Co-Authored-By: {CO_AUTHOR}"), 1)
+        proc = self.land(extra=["--co-author", CO_AUTHOR])
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        msg = self.message("HEAD")
+        self.assertEqual(msg.count(f"Co-Authored-By: {CO_AUTHOR}"), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
