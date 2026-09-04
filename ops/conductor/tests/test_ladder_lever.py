@@ -9,6 +9,8 @@ subprocess inside a scratch git repository whose `ops/` carries stub
 levers; a stub `gh` sits first on PATH. No environment knob selects
 the stubs — the driver must locate levers relative to the worktree.
 
+The named branch is checked out in a linked worktree; the driver is
+invoked from a different checkout so a cwd-relative driver fails.
 The live dispatch store and this repo must stay untouched — asserted
 in tearDown.
 
@@ -41,6 +43,7 @@ SHIM = REPO / "ops" / "bin" / "ladder.sh"
 LANECONF = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
 
 BRANCH = "lane/ladder-aa32"
+SLUG = "ladder-aa32"
 TRUNK = "trunkx"
 RELEASE = "relx"
 REPO_SLUG = "org/projx"
@@ -70,6 +73,9 @@ TEST_ALPHA = "ops/conductor/tests/test_alpha.py"
 TEST_BETA = "ops/conductor/tests/test_beta.py"
 PR_URL = "https://example.invalid/org/projx/pull/7"
 RUN_CAP = 60
+SLICE_M = "ladder-driver-slice"
+BUCKET_S1 = "land-flags"
+BUCKET_S2 = "ladder-driver"
 
 ABSENT_STUB = (
     b'"""Absent-tool stand-in: exit 0, no output."""\n'
@@ -98,6 +104,11 @@ STAGE_NAMES = (
     "pr",
 )
 
+WRITE_STAGES = frozenset(
+    {"tests", "tests-fix", "code", "code-2", "fix-tests", "fix-code"}
+)
+WITHHELD_STAGES = ("tests", "check-tests", "tests-fix", "fix-tests")
+
 QUOTED_LITERALS = (
     "'dev'",
     '"dev"',
@@ -117,7 +128,38 @@ QUOTED_LITERALS = (
     f'"{MODEL_CODEX_SECURITY}"',
 )
 
+DEFAULT_PLAN = "# plan\nunit 2 named files for the ladder driver\n"
+
+BUCKET_PLAN = (
+    "# plan\n"
+    "unit 2 named files for the ladder driver\n"
+    f"slice\t{SLICE_M}\tM\n"
+    f"bucket\t{BUCKET_S1}\tS\t"
+    "ops/conductor/tools/land.py ops/conductor/land-lever.md\n"
+    f"bucket\t{BUCKET_S2}\tS\t"
+    "ops/conductor/tools/ladder.py ops/bin/ladder.sh\n"
+)
+
 _JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
+
+
+def stage_model_effort(name: str) -> tuple[str, str]:
+    grok = (MODEL_GROK, EFFORT_GROK)
+    codex = (MODEL_CODEX, EFFORT_CODEX)
+    security = (MODEL_CODEX_SECURITY, EFFORT_CODEX)
+    mapping = {
+        "tests": grok,
+        "check-tests": codex,
+        "tests-fix": grok,
+        "code": codex,
+        "code-2": codex,
+        "security": security,
+        "adversarial": grok,
+        "fix-tests": grok,
+        "fix-code": codex,
+        "security-re": security,
+    }
+    return mapping[name]
 
 
 def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
@@ -191,6 +233,8 @@ with log.open("a", encoding="utf-8") as fh:
     fh.write(json.dumps(argv) + "\n")
 plant_path = STUB / "plant.json"
 plant = json.loads(plant_path.read_text(encoding="utf-8"))
+plant.setdefault("cwds", []).append(os.getcwd())
+plant.setdefault("script_paths", []).append(str(Path(__file__).resolve()))
 
 
 def conf_map():
@@ -262,35 +306,51 @@ launch_argv = [
     "--stage", stage or "",
 ]
 if dry:
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
     sys.stdout.write(json.dumps({"argv": launch_argv, "env": {}}) + "\n")
     raise SystemExit(0)
 
-counts = plant.setdefault("dispatch_counts", {})
-key = job + ":" + stage
-n = counts.get(key, 0) + 1
-counts[key] = n
+seen = [c.get("name") for c in plant.get("calls", [])]
 
 
 def logical_name():
     if job == "author-tests" and stage == "tests":
-        return {1: "tests", 2: "tests-fix", 3: "fix-tests"}.get(
-            n, "author-tests-" + str(n)
-        )
+        if "adversarial" in seen or "security" in seen:
+            return "fix-tests"
+        if "check-tests" in seen:
+            return "tests-fix"
+        return "tests"
     if job == "implement" and stage == "code":
-        return {1: "code", 2: "fix-code"}.get(n, "code-" + str(n))
+        if "fix-tests" in seen or "fix-code" in seen:
+            return "fix-code"
+        code_n = sum(
+            1 for n in seen if n == "code" or str(n).startswith("code-")
+        )
+        if code_n == 0:
+            return "code"
+        return "code-" + str(code_n + 1)
     if job == "security-audit" and stage == "review":
-        return {1: "security", 2: "security-re"}.get(n, "security-" + str(n))
+        if "fix-code" in seen or "fix-tests" in seen or "security" in seen:
+            return "security-re"
+        return "security"
     if job == "check-tests":
         return "check-tests"
     if job == "adversarial-review":
         return "adversarial"
-    return job + ":" + stage + ":" + str(n)
+    return job + ":" + stage + ":" + str(len(seen) + 1)
 
 
 name = logical_name()
 plant.setdefault("calls", []).append(
     {"name": name, "job": job, "stage": stage, "argv": argv}
 )
+if "--detach" not in argv:
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
+    sys.stderr.write(
+        "arguments: expected --detach; found a wait-and-hold dispatch; "
+        "needed pass --detach\n"
+    )
+    raise SystemExit(3)
 if name in plant.get("refuse_stages", []) or job in plant.get("refuse_jobs", []):
     plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
     sys.stderr.write(
@@ -310,14 +370,18 @@ if name == "tests":
     else:
         artifacts = dict(plant.get("artifacts", {}))
 mismatch = name in plant.get("model_mismatch_stages", [])
+effort_mismatch = name in plant.get("effort_mismatch_stages", [])
 requested = "wrong-model-aa32" if mismatch else model
+effort_requested = "wrong-effort-aa32" if effort_mismatch else effort
 ran = plant.get("ran_" + (harness or ""), (harness or "h") + "-ran-aa32")
 note = None
-if name == "code":
+if name == "code" or str(name).startswith("code-"):
     note = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
 if plant.get("leak_implement_into") == name:
     note = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
 tripping = name in plant.get("trip_stages", [])
+crashing = name in plant.get("crash_stages", [])
+walling = name in plant.get("wait_wall_stages", [])
 envelope = {
     "job": job,
     "status": "ok",
@@ -344,7 +408,7 @@ record = {
     "dispatched_by": "stub",
     "at": {
         "launched": "2026-09-04T12:00:00Z",
-        "closed": None if tripping else "2026-09-04T12:00:01Z",
+        "closed": None,
     },
     "snapshot": {
         "mode": "whole",
@@ -366,8 +430,8 @@ record = {
     },
     "model": {
         "requested": requested,
-        "effort_requested": effort,
-        "effort_argv": ["--reasoning-effort", effort or ""],
+        "effort_requested": effort_requested,
+        "effort_argv": ["--reasoning-effort", effort_requested or ""],
         "ran": ran,
         "read_from": None,
         "note": None,
@@ -383,8 +447,8 @@ record = {
     "caps": {"timeout": 1800, "source": "jobs.json"},
     "overrides": [],
     "attempts": [],
-    "result": None if tripping else {"envelope": envelope},
-    "status": "launched" if tripping else "closed",
+    "result": None,
+    "status": "launched",
 }
 dest = REPO / ".dev" / "records" / "dispatches" / (rec_id + ".json")
 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -394,6 +458,7 @@ plant.setdefault("records", {})[rec_id] = {
     "job": job,
     "path": str(dest),
 }
+plant.setdefault("envelopes", {})[rec_id] = envelope
 plant["last_id"] = rec_id
 plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
 sys.stdout.write("record: " + rec_id + "\n")
@@ -404,6 +469,7 @@ raise SystemExit(0)
 LAUNCH_PY = r'''
 from __future__ import annotations
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -412,8 +478,11 @@ argv = sys.argv[1:]
 log = STUB / "launch-argv.jsonl"
 with log.open("a", encoding="utf-8") as fh:
     fh.write(json.dumps(argv) + "\n")
-plant = json.loads((STUB / "plant.json").read_text(encoding="utf-8"))
+plant_path = STUB / "plant.json"
+plant = json.loads(plant_path.read_text(encoding="utf-8"))
+plant.setdefault("cwds", []).append(os.getcwd())
 if not argv or argv[0] != "wait" or len(argv) < 2:
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
     sys.stderr.write(
         "arguments: expected wait ID; found "
         + json.dumps(argv)
@@ -421,15 +490,47 @@ if not argv or argv[0] != "wait" or len(argv) < 2:
     )
     raise SystemExit(2)
 rec_id = argv[1]
-info = plant.get("records", {}).get(rec_id, {})
+info = plant.get("records", {}).get(rec_id)
+if not info:
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
+    sys.stderr.write(
+        "wait: expected a minted record; found unknown id "
+        + rec_id
+        + "; needed wait the detach id\n"
+    )
+    raise SystemExit(2)
 name = info.get("name")
+plant.setdefault("waits", []).append({"id": rec_id, "name": name, "cwd": os.getcwd()})
+path = Path(info["path"])
+if name in plant.get("crash_stages", []):
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
+    sys.stdout.write(
+        rec_id + " died attempt=1 exit=137 tripped=false envelope=none\n"
+    )
+    raise SystemExit(1)
 if name in plant.get("trip_stages", []):
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
     sys.stdout.write(
         rec_id + " died attempt=1 exit=137 tripped=true envelope=none\n"
     )
     raise SystemExit(1)
+if name in plant.get("wait_wall_stages", []):
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
+    sys.stdout.write(rec_id + " running attempt=1 wall=1\n")
+    raise SystemExit(2)
+payload = json.loads(path.read_text(encoding="utf-8"))
+envelope = dict(plant.get("envelopes", {}).get(rec_id) or {})
+summary = "ok"
+if name in plant.get("invalid_envelope_stages", []):
+    envelope["status"] = "invalid"
+    summary = "invalid"
+payload["status"] = "closed"
+payload["at"]["closed"] = "2026-09-04T12:00:01Z"
+payload["result"] = {"envelope": envelope}
+path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
 sys.stdout.write(
-    rec_id + " closed attempt=1 exit=0 tripped=false envelope=ok\n"
+    rec_id + " closed attempt=1 exit=0 tripped=false envelope=" + summary + "\n"
 )
 raise SystemExit(0)
 '''.lstrip()
@@ -437,6 +538,7 @@ raise SystemExit(0)
 LAND_PY = r'''
 from __future__ import annotations
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -447,16 +549,39 @@ argv = sys.argv[1:]
 log = STUB / "land-argv.jsonl"
 with log.open("a", encoding="utf-8") as fh:
     fh.write(json.dumps(argv) + "\n")
-plant = json.loads((STUB / "plant.json").read_text(encoding="utf-8"))
+plant_path = STUB / "plant.json"
+plant = json.loads(plant_path.read_text(encoding="utf-8"))
+plant.setdefault("cwds", []).append(os.getcwd())
+plant.setdefault("land_cwds", []).append(os.getcwd())
+if plant.get("land_abort"):
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
+    sys.stdout.write("abort conflict sha=deadbeef remainder=1\n")
+    raise SystemExit(3)
 if plant.get("land_lineage_break"):
-    blob = subprocess.run(
-        ["git", "hash-object", "-w", "--stdin"],
-        input=b"orphan-blob-aa32\n",
+    env = os.environ.copy()
+    env["GIT_AUTHOR_NAME"] = "Unrelated"
+    env["GIT_AUTHOR_EMAIL"] = "unrelated-aa32@example.invalid"
+    env["GIT_COMMITTER_NAME"] = "Unrelated"
+    env["GIT_COMMITTER_EMAIL"] = "unrelated-aa32@example.invalid"
+    tree = subprocess.run(
+        ["git", "mktree"],
+        input=b"",
         cwd=str(REPO),
         capture_output=True,
         check=False,
+        env=env,
     )
-    sha = (blob.stdout or b"").decode("utf-8").strip()
+    tree_sha = (tree.stdout or b"").decode("utf-8").strip()
+    commit = subprocess.run(
+        ["git", "commit-tree", tree_sha, "-m", "unrelated-aa32"],
+        cwd=str(REPO),
+        capture_output=True,
+        check=False,
+        env=env,
+    )
+    sha = (commit.stdout or b"").decode("utf-8").strip()
+    plant["lineage_break_sha"] = sha
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
     sys.stdout.write("LANDED\t" + sha + "\tnot-descended\n")
     sys.stdout.write("landed n=1 ref=refs/dispatch/planted\n")
     raise SystemExit(0)
@@ -476,6 +601,7 @@ sha_proc = subprocess.run(
 )
 sha = (sha_proc.stdout or "").strip()
 rec = argv[0] if argv and not argv[0].startswith("-") else "planted"
+plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
 sys.stdout.write("LANDED\t" + sha + "\tlanded-stub\n")
 sys.stdout.write("landed n=1 ref=refs/dispatch/" + rec + "\n")
 raise SystemExit(0)
@@ -484,6 +610,7 @@ raise SystemExit(0)
 FINDINGS_PY = r'''
 from __future__ import annotations
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -492,6 +619,16 @@ argv = sys.argv[1:]
 log = STUB / "findings-argv.jsonl"
 with log.open("a", encoding="utf-8") as fh:
     fh.write(json.dumps(argv) + "\n")
+plant_path = STUB / "plant.json"
+plant = json.loads(plant_path.read_text(encoding="utf-8"))
+plant.setdefault("cwds", []).append(os.getcwd())
+plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
+if plant.get("ledger_fail"):
+    sys.stderr.write(
+        "ledger: expected a writable findings export; found a write error; "
+        "needed a writable ledger\n"
+    )
+    raise SystemExit(3)
 if argv and argv[0] == "export":
     sys.stdout.write("{}\n")
 raise SystemExit(0)
@@ -514,9 +651,10 @@ raise SystemExit(0)
 
 
 class _LadderFixture(unittest.TestCase):
-    """Scratch HOME + git worktree, staged driver, stub levers, live store frozen."""
+    """Scratch HOME + linked worktree, staged driver, stub levers."""
 
     def setUp(self):
+        self.maxDiff = None
         self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
         self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
         self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO).strip()
@@ -534,7 +672,10 @@ class _LadderFixture(unittest.TestCase):
         self.scratch = root / "scratch"
         self.bin = root / "bin"
         self.stub_dir = root / "stubs"
-        self.repo = root / "repo"
+        self.main = root / "main"
+        self.wt = root / WORKTREE_ROOT / ("ag-" + SLUG)
+        self.repo = self.wt
+        self.invoke_cwd = self.main
         for path in (
             self.home, self.xdg, self.scratch, self.bin, self.stub_dir,
         ):
@@ -551,9 +692,10 @@ class _LadderFixture(unittest.TestCase):
         self.staged = self.scratch / "ladder.py"
         self._stage_tool_bytes()
         self.gh = self.bin / "gh"
-        self.scope_path = self.repo / "scope.md"
-        self.plan_path = self.repo / "plan.md"
-        self.conf_path = self.repo / "ops" / "lane.conf"
+        self.scope_path = self.wt / "scope.md"
+        self.plan_path = self.wt / "plan.md"
+        self.conf_path = self.wt / "ops" / "lane.conf"
+        self.origin = root / "origin.git"
         self._write_plant()
         self._plant_stub_scripts()
         self.seed_repo()
@@ -562,6 +704,8 @@ class _LadderFixture(unittest.TestCase):
             (self.stub_dir / "dispatch-argv.jsonl").exists(),
             "plant: dispatch argv log must start absent",
         )
+        self.assertNotEqual(self.wt.resolve(), self.main.resolve())
+        self.assertEqual(self.invoke_cwd.resolve(), self.main.resolve())
 
     def tearDown(self):
         try:
@@ -632,15 +776,23 @@ class _LadderFixture(unittest.TestCase):
             "refuse_stages": [],
             "refuse_jobs": [],
             "trip_stages": [],
+            "crash_stages": [],
+            "wait_wall_stages": [],
+            "invalid_envelope_stages": [],
             "model_mismatch_stages": [],
+            "effort_mismatch_stages": [],
             "land_lineage_break": False,
+            "land_abort": False,
+            "ledger_fail": False,
             "leak_implement_into": None,
             "ran_grok": RAN_GROK,
             "ran_codex": RAN_CODEX,
             "n": 0,
             "calls": [],
             "records": {},
-            "dispatch_counts": {},
+            "envelopes": {},
+            "cwds": [],
+            "waits": [],
         }
 
     def _write_plant(self, updates: dict | None = None) -> dict:
@@ -675,7 +827,7 @@ class _LadderFixture(unittest.TestCase):
         return (
             template
             .replace("@@STUB@@", str(self.stub_dir))
-            .replace("@@REPO@@", str(self.repo))
+            .replace("@@REPO@@", str(self.wt))
             .replace("@@PR_URL@@", PR_URL)
         )
 
@@ -739,6 +891,18 @@ class _LadderFixture(unittest.TestCase):
         self.assertEqual(landed, text, "conf plant did not land intact")
         return self.conf_path
 
+    def plant_plan(self, text: str) -> None:
+        self._plant_bytes(self.plan_path, text.encode("utf-8"))
+        rel = str(self.plan_path.relative_to(self.repo))
+        self.git("add", rel)
+        self.git("commit", "-m", "plant plan\n")
+        self.assertEqual(
+            self.plan_path.read_text(encoding="utf-8"),
+            text,
+            "plan plant did not land intact",
+        )
+        self.assertEqual(self.porcelain(), "")
+
     def jobs_json(self) -> str:
         data = {
             name: {
@@ -795,37 +959,37 @@ class _LadderFixture(unittest.TestCase):
             )
         return proc
 
-    def sha(self, rev: str) -> str:
-        out = self.git("rev-parse", rev).stdout.strip()
+    def sha(self, rev: str, cwd: Path | None = None) -> str:
+        out = self.git("rev-parse", rev, cwd=cwd).stdout.strip()
         self.assertRegex(out, r"^[0-9a-f]{40}$", out)
         return out
 
-    def porcelain(self) -> str:
-        return self.git("status", "--porcelain").stdout
+    def porcelain(self, cwd: Path | None = None) -> str:
+        return self.git("status", "--porcelain", cwd=cwd).stdout
 
     def seed_repo(self, **conf_overrides: object) -> str:
-        if not self.repo.exists():
-            self.repo.mkdir()
-        init = self.git("init", "-b", BRANCH, cwd=self.repo, check=False)
+        dest = self.main
+        dest.mkdir()
+        init = self.git("init", "-b", TRUNK, cwd=dest, check=False)
         self.assertEqual(init.returncode, 0, init.stderr)
-        self.git("config", "user.name", REPO_USER)
-        self.git("config", "user.email", REPO_EMAIL)
-        name = self.git("config", "--get", "user.name").stdout.strip()
-        email = self.git("config", "--get", "user.email").stdout.strip()
+        self.git("config", "user.name", REPO_USER, cwd=dest)
+        self.git("config", "user.email", REPO_EMAIL, cwd=dest)
+        name = self.git("config", "--get", "user.name", cwd=dest).stdout.strip()
+        email = self.git("config", "--get", "user.email", cwd=dest).stdout.strip()
         self.assertEqual(name, REPO_USER)
         self.assertEqual(email, REPO_EMAIL)
-        self.plant_conf(**conf_overrides)
+        conf_text = self.conf_text(**conf_overrides)
+        self._plant_bytes(dest / "ops" / "lane.conf", conf_text.encode("utf-8"))
         scope = SCOPE_FIRST + "\nrest of the scope for the ladder slice\n"
-        plan = "# plan\nunit 2 named files for the ladder driver\n"
-        self._plant_bytes(self.scope_path, scope.encode("utf-8"))
-        self._plant_bytes(self.plan_path, plan.encode("utf-8"))
+        self._plant_bytes(dest / "scope.md", scope.encode("utf-8"))
+        self._plant_bytes(dest / "plan.md", DEFAULT_PLAN.encode("utf-8"))
         self.assertEqual(
-            self.scope_path.read_text(encoding="utf-8").splitlines()[0],
+            (dest / "scope.md").read_text(encoding="utf-8").splitlines()[0],
             SCOPE_FIRST,
         )
         jobs_text = self.jobs_json()
         self._plant_bytes(
-            self.repo / "ops" / "devlane" / "task" / "jobs.json",
+            dest / "ops" / "devlane" / "task" / "jobs.json",
             jobs_text.encode("utf-8"),
         )
         wrapper = (
@@ -833,7 +997,7 @@ class _LadderFixture(unittest.TestCase):
             f"exec {shlex.quote(sys.executable)} "
             f"{shlex.quote(str(self.stub_dir / 'dispatch.py'))} \"$@\"\n"
         )
-        dispatch_sh = self.repo / "ops" / "bin" / "dispatch.sh"
+        dispatch_sh = dest / "ops" / "bin" / "dispatch.sh"
         self._plant_bytes(dispatch_sh, wrapper.encode("utf-8"))
         self._make_executable(dispatch_sh)
         for rel, src in (
@@ -845,26 +1009,65 @@ class _LadderFixture(unittest.TestCase):
                 "#!/usr/bin/env python3\n"
                 + src.read_text(encoding="utf-8")
             )
-            dest = self.repo / rel
-            self._plant_bytes(dest, body.encode("utf-8"))
-            self._make_executable(dest)
+            dest_path = dest / rel
+            self._plant_bytes(dest_path, body.encode("utf-8"))
+            self._make_executable(dest_path)
         if LANECONF.is_file():
             data = LANECONF.read_bytes()
-            dest = self.repo / "ops" / "conductor" / "tools" / "laneconf.py"
-            self._plant_bytes(dest, data)
-            self.assertEqual(dest.read_bytes(), data)
-            self.assertNotEqual(dest.read_bytes(), ABSENT_STUB)
-        readme = self.repo / "README"
-        self._plant_bytes(readme, b"scratch ladder repo\n")
-        self.git("add", "-A")
-        self.git("commit", "-m", "seed ladder scratch\n")
-        self.git("branch", TRUNK)
+            dest_conf = dest / "ops" / "conductor" / "tools" / "laneconf.py"
+            self._plant_bytes(dest_conf, data)
+            self.assertEqual(dest_conf.read_bytes(), data)
+            self.assertNotEqual(dest_conf.read_bytes(), ABSENT_STUB)
+        self._plant_bytes(dest / "README", b"scratch ladder repo\n")
+        self.git("add", "-A", cwd=dest)
+        self.git("commit", "-m", "seed ladder scratch\n", cwd=dest)
+        self.git("branch", BRANCH, cwd=dest)
+        self.origin.mkdir()
+        origin_init = subprocess.run(
+            ["git", "init", "--bare", "-b", BRANCH],
+            cwd=str(self.origin),
+            env=self.git_env(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(origin_init.returncode, 0, origin_init.stderr)
+        self.git("remote", "add", "origin", str(self.origin), cwd=dest)
+        common = self.git(
+            "rev-parse", "--git-common-dir", cwd=dest,
+        ).stdout.strip()
+        hook = Path(common) / "hooks" / "pre-push"
+        hook_body = (
+            "#!/bin/sh\n"
+            f"printf '%s\\n' \"$*\" >> "
+            f"{shlex.quote(str(self.stub_dir / 'push-log.txt'))}\n"
+            "exit 0\n"
+        )
+        self._plant_bytes(hook, hook_body.encode("utf-8"))
+        self._make_executable(hook)
+        self.wt.parent.mkdir(parents=True, exist_ok=True)
+        self.git("worktree", "add", str(self.wt), BRANCH, cwd=dest)
+        self.repo = self.wt
+        self.scope_path = self.wt / "scope.md"
+        self.plan_path = self.wt / "plan.md"
+        self.conf_path = self.wt / "ops" / "lane.conf"
+        self.invoke_cwd = self.main
         self.base = self.sha("HEAD")
-        head_branch = self.git("symbolic-ref", "--short", "HEAD").stdout.strip()
-        self.assertEqual(head_branch, BRANCH)
+        main_head = self.git(
+            "symbolic-ref", "--short", "HEAD", cwd=self.main,
+        ).stdout.strip()
+        wt_head = self.git(
+            "symbolic-ref", "--short", "HEAD", cwd=self.wt,
+        ).stdout.strip()
+        self.assertEqual(main_head, TRUNK)
+        self.assertEqual(wt_head, BRANCH)
         self.assertEqual(self.porcelain(), "")
-        listed = self.git("worktree", "list", "--porcelain").stdout
+        self.assertEqual(self.porcelain(cwd=self.main), "")
+        listed = self.git(
+            "worktree", "list", "--porcelain", cwd=self.main,
+        ).stdout
         self.assertIn("branch refs/heads/" + BRANCH, listed)
+        self.assertIn(str(self.wt), listed)
         return self.base
 
     def path_without_gh(self) -> str:
@@ -941,7 +1144,7 @@ class _LadderFixture(unittest.TestCase):
         try:
             return subprocess.run(
                 [sys.executable, str(self.staged), *argv],
-                cwd=str(cwd or self.repo),
+                cwd=str(cwd or self.invoke_cwd),
                 env=env,
                 capture_output=True,
                 text=True,
@@ -995,6 +1198,22 @@ class _LadderFixture(unittest.TestCase):
     def gh_argvs(self) -> list:
         return self.jsonl("gh-argv.jsonl")
 
+    def launch_argvs(self) -> list:
+        return self.jsonl("launch-argv.jsonl")
+
+    def waited_ids(self) -> list[str]:
+        ids: list[str] = []
+        for row in self.launch_argvs():
+            if row and row[0] == "wait" and len(row) > 1:
+                ids.append(row[1])
+        return ids
+
+    def push_log(self) -> list[str]:
+        path = self.stub_dir / "push-log.txt"
+        if not path.is_file():
+            return []
+        return [ln for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
+
     def flag_values(self, argv: list[str], flag: str) -> list[str]:
         values: list[str] = []
         i = 0
@@ -1008,20 +1227,33 @@ class _LadderFixture(unittest.TestCase):
 
     def inputs_text(self, argv: list[str]) -> str:
         chunks: list[str] = []
-        for flag in ("--input", "--scope-file", "--scope"):
+        for flag in ("--input", "--scope-file", "--scope", "--follows"):
             for value in self.flag_values(argv, flag):
+                chunks.append(value)
                 path = Path(value)
                 if path.is_file():
                     chunks.append(path.read_text(encoding="utf-8"))
-                else:
-                    chunks.append(value)
         return "\n".join(chunks)
 
-    def implement_record_id(self) -> str:
+    def implement_ids(self) -> list[str]:
+        ids = []
         for rec_id, info in self.load_plant().get("records", {}).items():
-            if info.get("name") == "code":
+            name = info.get("name")
+            if name == "code" or str(name).startswith("code-"):
+                ids.append(rec_id)
+        return ids
+
+    def implement_record_id(self) -> str:
+        ids = self.implement_ids()
+        if not ids:
+            self.fail("no implement record was planted")
+        return ids[0]
+
+    def record_id_for(self, name: str) -> str:
+        for rec_id, info in self.load_plant().get("records", {}).items():
+            if info.get("name") == name:
                 return rec_id
-        self.fail("no implement record was planted")
+        self.fail(f"no record named {name}")
         return ""
 
     def ladder_paths(self) -> list[Path]:
@@ -1030,10 +1262,22 @@ class _LadderFixture(unittest.TestCase):
             return []
         return sorted(p for p in folder.glob("*.json") if p.is_file())
 
-    def ladder_record(self) -> dict:
+    def ladder_record(self, ladder_id: str | None = None) -> dict:
         paths = self.ladder_paths()
         self.assertGreaterEqual(len(paths), 1, "ladder record was not written")
-        payload = json.loads(paths[-1].read_text(encoding="utf-8"))
+        if ladder_id is not None:
+            for path in paths:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+                if payload.get("id") == ladder_id:
+                    self.assertIsInstance(payload, dict, payload)
+                    return payload
+            self.fail(f"ladder record {ladder_id} missing from {paths!r}")
+        self.assertEqual(
+            len(paths),
+            1,
+            "multiple ladder records; pass the named id, do not pick newest",
+        )
+        payload = json.loads(paths[0].read_text(encoding="utf-8"))
         self.assertIsInstance(payload, dict, payload)
         return payload
 
@@ -1046,6 +1290,23 @@ class _LadderFixture(unittest.TestCase):
                 return row
         self.fail(f"stage {name!r} missing from {stages!r}")
         return {}
+
+    def proof_strings(self, value) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            out: list[str] = []
+            for item in value:
+                if isinstance(item, str):
+                    out.append(item)
+                else:
+                    out.append(json.dumps(item))
+            return out
+        if isinstance(value, dict):
+            return [json.dumps(value)]
+        return [str(value)]
 
     def parse_stage_table(self, proc) -> list[dict]:
         text = self.combined(proc)
@@ -1071,6 +1332,9 @@ class _LadderFixture(unittest.TestCase):
 
     def argv_has(self, argv: list, token: str) -> bool:
         return token in [str(item) for item in argv]
+
+    def is_write_stage(self, name: str) -> bool:
+        return name in WRITE_STAGES or str(name).startswith("code")
 
     def assert_refusal(self, proc, class_name: str, *, named: tuple[str, ...] = ()) -> str:
         err = proc.stderr or ""
@@ -1105,6 +1369,7 @@ class _LadderFixture(unittest.TestCase):
     ) -> str:
         text = self.combined(proc)
         self.assertEqual(proc.returncode, exit_code, text)
+        self.assertIn(proc.returncode, {0, 1, 2, 3}, proc.returncode)
         lines = [ln for ln in text.splitlines() if ln.strip()]
         self.assertTrue(lines, f"stop printed nothing: {text!r}")
         last = lines[-1]
@@ -1115,6 +1380,98 @@ class _LadderFixture(unittest.TestCase):
         if verdict is not None:
             self.assertIn(f"verdict={verdict}", last)
         return last
+
+    def assert_gh_draft_pr(self, argv: list) -> None:
+        self.assertIn("--draft", argv)
+        self.assertIn("--base", argv)
+        self.assertEqual(argv[argv.index("--base") + 1], TRUNK)
+        self.assertIn("--head", argv)
+        self.assertEqual(argv[argv.index("--head") + 1], BRANCH)
+        self.assertIn("--repo", argv)
+        self.assertEqual(argv[argv.index("--repo") + 1], REPO_SLUG)
+        self.assertIn("--title", argv)
+        self.assertTrue(str(argv[argv.index("--title") + 1]).strip(), argv)
+        self.assertIn("--body-file", argv)
+        body = Path(argv[argv.index("--body-file") + 1])
+        self.assertTrue(body.is_file(), f"gh --body-file missing: {body}")
+        self.assertTrue(body.read_text(encoding="utf-8").strip(), body)
+
+    def assert_dispatches_waited_and_detached(self) -> None:
+        plant = self.load_plant()
+        rec_ids = list(plant.get("records", {}))
+        self.assertTrue(rec_ids, "no dispatch records were minted")
+        self.assertEqual(sorted(self.waited_ids()), sorted(rec_ids))
+        for row in self.dispatch_calls():
+            self.assertIn("--detach", row["argv"], row)
+
+    def assert_lands_match_write_records(self) -> None:
+        plant = self.load_plant()
+        landed_ids = [
+            argv[0] for argv in self.land_argvs()
+            if argv and not str(argv[0]).startswith("-")
+        ]
+        for rec_id, info in plant.get("records", {}).items():
+            name = info.get("name")
+            if self.is_write_stage(name):
+                self.assertIn(
+                    rec_id, landed_ids,
+                    f"write stage {name} record {rec_id} was not landed",
+                )
+            else:
+                self.assertNotIn(
+                    rec_id, landed_ids,
+                    f"review stage {name} record {rec_id} was landed",
+                )
+        for argv in self.land_argvs():
+            self.assertNotIn("--push", argv, argv)
+
+    def assert_branch_pushed_once(self) -> None:
+        self.assertEqual(len(self.push_log()), 1, self.push_log())
+        remote = subprocess.run(
+            [
+                "git", "--git-dir", str(self.origin),
+                "rev-parse", f"refs/heads/{BRANCH}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(
+            remote.returncode, 0,
+            f"branch was not pushed to origin: {remote.stderr}",
+        )
+        self.assertRegex(remote.stdout.strip(), r"^[0-9a-f]{40}$")
+
+    def ladder_record_commits(self) -> list[str]:
+        log = self.git("log", "--format=%s", f"{self.base}..HEAD").stdout
+        return [
+            ln.strip() for ln in log.splitlines()
+            if ln.strip().startswith("ladder: record")
+        ]
+
+    def plant_decoy_ladder(self, real_id: str) -> str:
+        decoy_id = "20990909T000000Z-ladder-ffff32"
+        self.assertGreater(decoy_id, real_id, (decoy_id, real_id))
+        folder = self.repo / ".dev" / "records" / "ladders"
+        folder.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "id": decoy_id,
+            "status": "done",
+            "branch": BRANCH,
+            "worktree": str(self.wt),
+            "stages": [],
+            "stopped": None,
+            "pr": {"number": 99, "url": "https://example.invalid/decoy"},
+        }
+        path = folder / (decoy_id + ".json")
+        text = json.dumps(payload, indent=2) + "\n"
+        self._plant_bytes(path, text.encode("utf-8"))
+        rel = str(path.relative_to(self.repo))
+        self.git("add", rel)
+        self.git("commit", "-m", f"decoy ladder {decoy_id}\n")
+        self.assertEqual(self.porcelain(), "")
+        self.assertGreaterEqual(len(self.ladder_paths()), 2)
+        return decoy_id
 
     def close_tripped_record(self) -> str:
         plant = self.load_plant()
@@ -1200,6 +1557,7 @@ class RefusalsBeforeLaunch(_LadderFixture):
         self._plant_bytes(tracked, b"dirty-uncommitted-aa32\n")
         self.assertNotEqual(tracked.read_bytes(), before)
         self.assertTrue(self.porcelain().strip(), "plant: tree still clean")
+        self.assertEqual(self.porcelain(cwd=self.main), "")
         proc = self.run_ladder()
         self.assert_refusal(proc, "dirty")
         self.assertEqual(self.dispatch_calls(), [])
@@ -1235,37 +1593,26 @@ class DryRun(_LadderFixture):
         for name in STAGE_NAMES:
             self.assertIn(name, names, names)
         by_name = {row["name"]: row for row in stages}
-        for name in ("tests", "check-tests", "code", "security", "adversarial"):
+        for name in STAGE_NAMES:
+            if name == "pr":
+                continue
             argv = by_name[name]["argv"]
             self.assertIsInstance(argv, list, argv)
             self.assertTrue(argv, f"{name} argv empty")
-        self.assertTrue(
-            self.argv_has(by_name["tests"]["argv"], MODEL_GROK),
-            by_name["tests"]["argv"],
-        )
-        self.assertTrue(
-            self.argv_has(by_name["tests"]["argv"], EFFORT_GROK),
-            by_name["tests"]["argv"],
-        )
-        self.assertTrue(
-            self.argv_has(by_name["code"]["argv"], MODEL_CODEX),
-            by_name["code"]["argv"],
-        )
-        self.assertTrue(
-            self.argv_has(by_name["code"]["argv"], EFFORT_CODEX),
-            by_name["code"]["argv"],
-        )
-        self.assertTrue(
-            self.argv_has(by_name["security"]["argv"], MODEL_CODEX_SECURITY),
-            by_name["security"]["argv"],
-        )
-        self.assertTrue(
-            self.argv_has(by_name["security-re"]["argv"], MODEL_CODEX_SECURITY),
-            by_name["security-re"]["argv"],
-        )
+            model, effort = stage_model_effort(name)
+            self.assertTrue(
+                self.argv_has(argv, model),
+                f"{name} missing model {model}: {argv!r}",
+            )
+            self.assertTrue(
+                self.argv_has(argv, effort),
+                f"{name} missing effort {effort}: {argv!r}",
+            )
         self.assertFalse(
             self.argv_has(by_name["security"]["argv"], MODEL_CODEX)
-            and not self.argv_has(by_name["security"]["argv"], MODEL_CODEX_SECURITY),
+            and not self.argv_has(
+                by_name["security"]["argv"], MODEL_CODEX_SECURITY,
+            ),
             "security stage must carry MODEL_CODEX_SECURITY_AUDIT, not the"
             f" generic codex model: {by_name['security']['argv']!r}",
         )
@@ -1273,6 +1620,7 @@ class DryRun(_LadderFixture):
         self.assertIn("--draft", pr_argv)
         self.assertIn(TRUNK, pr_argv)
         self.assertIn(REPO_SLUG, pr_argv)
+        self.assertIn(BRANCH, pr_argv)
         self.assertEqual(self.land_argvs(), [])
         self.assertEqual(self.findings_argvs(), [])
         self.assertEqual(self.gh_argvs(), [])
@@ -1307,13 +1655,11 @@ class HappyPath(_LadderFixture):
             )
         gh = self.gh_argvs()
         self.assertGreaterEqual(len(gh), 1, "gh was not invoked")
-        argv = gh[0]
-        self.assertIn("--draft", argv)
-        self.assertIn("--base", argv)
-        self.assertEqual(argv[argv.index("--base") + 1], TRUNK)
-        self.assertIn("--repo", argv)
-        self.assertEqual(argv[argv.index("--repo") + 1], REPO_SLUG)
+        self.assert_gh_draft_pr(gh[0])
         self.assertIn(PR_URL, self.combined(proc))
+        self.assert_dispatches_waited_and_detached()
+        self.assert_lands_match_write_records()
+        self.assert_branch_pushed_once()
 
 
 class SkepticChanges(_LadderFixture):
@@ -1347,9 +1693,10 @@ class AuditChanges(_LadderFixture):
             ["adversarial", "fix-tests", "fix-code", "security-re"],
             names,
         )
+        self.assertNotIn("tests-fix", names)
         gh = self.gh_argvs()
         self.assertGreaterEqual(len(gh), 1, names)
-        self.assertIn("--draft", gh[0])
+        self.assert_gh_draft_pr(gh[0])
 
 
 class SecurityReChanges(_LadderFixture):
@@ -1361,6 +1708,7 @@ class SecurityReChanges(_LadderFixture):
         )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertIn(proc.returncode, {0, 1, 2, 3})
         self.assertNotEqual(proc.returncode, 0)
         record = self.ladder_record()
         self.assertEqual(record.get("status"), "stopped")
@@ -1382,6 +1730,7 @@ class SecurityReChanges(_LadderFixture):
         self.assertIn("security-re", names)
         self.assertEqual(names[-1], "security-re", names)
         self.assertEqual(self.gh_argvs(), [])
+        self.assertEqual(self.push_log(), [])
 
 
 class DerivedCommand(_LadderFixture):
@@ -1413,49 +1762,120 @@ class DerivedCommand(_LadderFixture):
         self.assertNotIn("code", names, names)
 
 
+class Buckets(_LadderFixture):
+    """An M slice of two S buckets: two implements, audits once after both."""
+
+    def test_m_slice_of_two_s_buckets_implements_twice_then_audits_once(self):
+        self.plant_plan(BUCKET_PLAN)
+        planted = self.plan_path.read_text(encoding="utf-8")
+        self.assertIn(f"slice\t{SLICE_M}\tM", planted)
+        self.assertIn(f"bucket\t{BUCKET_S1}\tS\t", planted)
+        self.assertIn(f"bucket\t{BUCKET_S2}\tS\t", planted)
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        names = self.dispatch_names()
+        self.assertEqual(
+            names,
+            [
+                "tests", "check-tests", "code", "code-2",
+                "security", "adversarial",
+            ],
+            names,
+        )
+        self.assertLess(names.index("code"), names.index("code-2"))
+        self.assertLess(names.index("code-2"), names.index("security"))
+        self.assertEqual(names.count("security"), 1, names)
+        self.assertEqual(names.count("adversarial"), 1, names)
+        self.assert_lands_match_write_records()
+        record = self.ladder_record()
+        cal = record.get("calibration")
+        self.assertIsInstance(cal, list, record)
+        self.assertGreaterEqual(len(cal), 1, cal)
+        slice_row = cal[0]
+        self.assertEqual(slice_row.get("declared") or slice_row.get("bucket"), "M")
+        self.assertEqual(slice_row.get("slice") or slice_row.get("name"), SLICE_M)
+        measured = slice_row.get("measured")
+        self.assertIsInstance(measured, dict, slice_row)
+        for key in ("files", "tests", "lines", "minutes", "findings"):
+            self.assertIn(key, measured, measured)
+        self.assertIsInstance(measured["files"], int)
+        self.assertIsInstance(measured["tests"], int)
+        self.assertIsInstance(measured["lines"], int)
+        self.assertIsInstance(measured["minutes"], dict)
+        self.assertIsInstance(measured["findings"], dict)
+        buckets = slice_row.get("buckets")
+        self.assertIsInstance(buckets, list, slice_row)
+        self.assertEqual(len(buckets), 2, buckets)
+        declared = [
+            row.get("declared") or row.get("bucket") for row in buckets
+        ]
+        self.assertEqual(declared, ["S", "S"], buckets)
+        names_b = [row.get("name") for row in buckets]
+        self.assertEqual(names_b, [BUCKET_S1, BUCKET_S2], buckets)
+
+
 class Withholding(_LadderFixture):
     """Stages 1, 2, 3, 7a never see implement records; 7b does; a leak stops."""
 
-    def test_fix_tests_inputs_withhold_the_implement_record_and_envelope(self):
-        self.patch_plant(verdicts={"adversarial": "changes"})
+    def test_withholding_is_proved_on_dispatched_bytes_at_every_stage(self):
+        self.patch_plant(
+            verdicts={"check-tests": "changes", "adversarial": "changes"},
+        )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        implement_id = self.implement_record_id()
-        implement_path = Path(
-            self.load_plant()["records"][implement_id]["path"]
-        )
-        envelope_text = implement_path.read_text(encoding="utf-8")
-        self.assertIn(IMPLEMENT_LINE, envelope_text)
-        withheld_stages = ("tests", "check-tests", "fix-tests")
-        for name in withheld_stages:
+        names = self.dispatch_names()
+        self.assertIn("tests-fix", names)
+        self.assertIn("fix-tests", names)
+        implement_ids = self.implement_ids()
+        self.assertGreaterEqual(len(implement_ids), 1, implement_ids)
+        for rec_id in implement_ids:
+            envelope_text = Path(
+                self.load_plant()["records"][rec_id]["path"]
+            ).read_text(encoding="utf-8")
+            self.assertIn(IMPLEMENT_LINE, envelope_text)
+        record = self.ladder_record()
+        previous = None
+        for name in names:
             argv = self.dispatch_argv_for(name)
             text = self.inputs_text(argv)
-            self.assertNotIn(
-                implement_id, text,
-                f"{name} input leaked the implement record id",
-            )
-            self.assertNotIn(
-                IMPLEMENT_LINE, text,
-                f"{name} input leaked an implement envelope line",
-            )
-        fix_code = self.inputs_text(self.dispatch_argv_for("fix-code"))
-        self.assertIn(implement_id, fix_code)
-        record = self.ladder_record()
-        for name in ("tests", "check-tests", "fix-tests"):
             row = self.stage_row(record, name)
-            proof = (row.get("input") or {}).get("proof") or row.get("proof")
+            proof = ((row.get("input") or {}).get("proof"))
             self.assertIsInstance(proof, dict, row)
-            given = proof.get("given")
-            withheld = proof.get("withheld")
-            self.assertTrue(given, row)
-            self.assertTrue(withheld, row)
-            given_text = given if isinstance(given, str) else json.dumps(given)
-            withheld_text = (
-                withheld if isinstance(withheld, str) else json.dumps(withheld)
+            given = self.proof_strings(proof.get("given"))
+            withheld = self.proof_strings(proof.get("withheld"))
+            given_blob = "\n".join(given)
+            withheld_blob = "\n".join(withheld)
+            for item in given:
+                self.assertIn(
+                    item, text,
+                    f"{name} proof.given {item!r} missing from dispatched bytes",
+                )
+            for item in withheld:
+                self.assertNotIn(
+                    item, text,
+                    f"{name} proof.withheld {item!r} present in dispatched bytes",
+                )
+            self.assertTrue(
+                any(SCOPE_FIRST in item for item in given) or SCOPE_FIRST in given_blob,
+                row,
             )
-            self.assertIn(SCOPE_FIRST, given_text)
-            self.assertIn(IMPLEMENT_LINE, withheld_text)
-            self.assertIn(implement_id, withheld_text)
+            self.assertIn(SCOPE_FIRST, text)
+            if previous is not None:
+                prev_id = self.record_id_for(previous)
+                self.assertIn(prev_id, given_blob)
+                self.assertIn(prev_id, text)
+            if name in WITHHELD_STAGES:
+                self.assertNotIn(IMPLEMENT_LINE, text)
+                for rec_id in implement_ids:
+                    self.assertNotIn(rec_id, text)
+                if name == "fix-tests":
+                    self.assertIn(IMPLEMENT_LINE, withheld_blob)
+                    for rec_id in implement_ids:
+                        self.assertIn(rec_id, withheld_blob)
+            previous = name
+        fix_code = self.inputs_text(self.dispatch_argv_for("fix-code"))
+        for rec_id in implement_ids:
+            self.assertIn(rec_id, fix_code)
 
     def test_a_leaked_implement_line_in_a_security_envelope_stops_withheld(self):
         self.patch_plant(
@@ -1467,6 +1887,16 @@ class Withholding(_LadderFixture):
         text = self.combined(proc)
         self.assertIn("reason=withheld", text)
         self.assertNotIn("fix-tests", self.dispatch_names())
+
+    def test_a_leaked_implement_line_in_check_tests_stops_tests_fix_withheld(self):
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            leak_implement_into="check-tests",
+        )
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("reason=withheld", self.combined(proc))
+        self.assertNotIn("tests-fix", self.dispatch_names())
 
 
 class Landing(_LadderFixture):
@@ -1499,6 +1929,7 @@ class Landing(_LadderFixture):
             "land must not run on read stages: "
             f"land={len(lands)} findings={len(findings)}",
         )
+        self.assert_lands_match_write_records()
 
 
 class Lineage(_LadderFixture):
@@ -1512,10 +1943,19 @@ class Lineage(_LadderFixture):
             reason="lineage",
         )
         self.assertIn("lineage", last)
+        sha = self.load_plant().get("lineage_break_sha")
+        self.assertTrue(sha, "land stub did not plant an unrelated commit")
+        typ = self.git("cat-file", "-t", sha).stdout.strip()
+        self.assertEqual(typ, "commit", sha)
+        probe = self.git("merge-base", "--is-ancestor", self.base, sha, check=False)
+        self.assertNotEqual(
+            probe.returncode, 0,
+            f"planted sha {sha} is a descendant of {self.base}",
+        )
 
 
 class ModelGuarantee(_LadderFixture):
-    """A record whose model.requested differs from the dry-run --model stops."""
+    """A record whose model or effort differs from the dry-run argv stops."""
 
     def test_a_record_model_mismatch_stops_with_class_model(self):
         self.patch_plant(model_mismatch_stages=["tests"])
@@ -1524,6 +1964,92 @@ class ModelGuarantee(_LadderFixture):
         self.assert_stopped(
             proc, stage="tests", record=rec_id, reason="model",
         )
+
+    def test_a_record_effort_mismatch_stops_with_class_model(self):
+        self.patch_plant(effort_mismatch_stages=["tests"])
+        proc = self.run_ladder()
+        rec_id = self.load_plant().get("last_id") or "none"
+        self.assert_stopped(
+            proc, stage="tests", record=rec_id, reason="model",
+        )
+
+    def test_a_record_model_mismatch_at_security_stops_with_class_model(self):
+        self.patch_plant(model_mismatch_stages=["security"])
+        proc = self.run_ladder()
+        rec_id = self.load_plant().get("last_id") or "none"
+        self.assert_stopped(
+            proc, stage="security", record=rec_id, reason="model",
+        )
+
+    def test_a_record_effort_mismatch_at_tests_fix_stops_with_class_model(self):
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            effort_mismatch_stages=["tests-fix"],
+        )
+        proc = self.run_ladder()
+        rec_id = self.load_plant().get("last_id") or "none"
+        self.assert_stopped(
+            proc, stage="tests-fix", record=rec_id, reason="model",
+        )
+
+    def test_every_stage_dispatch_carries_conf_model_and_effort(self):
+        self.patch_plant(
+            verdicts={"check-tests": "changes", "adversarial": "changes"},
+        )
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        names = self.dispatch_names()
+        expected = [
+            "tests", "check-tests", "tests-fix", "code",
+            "security", "adversarial", "fix-tests", "fix-code", "security-re",
+        ]
+        self.assertEqual(names, expected, names)
+        record = self.ladder_record()
+        for name in expected:
+            argv = self.dispatch_argv_for(name)
+            model, effort = stage_model_effort(name)
+            self.assertTrue(
+                self.argv_has(argv, model),
+                f"{name} argv missing model {model}: {argv!r}",
+            )
+            self.assertTrue(
+                self.argv_has(argv, effort),
+                f"{name} argv missing effort {effort}: {argv!r}",
+            )
+            row = self.stage_row(record, name)
+            dispatched = row.get("dispatched") or {}
+            recorded = row.get("recorded") or {}
+            self.assertEqual(dispatched.get("model"), model, row)
+            self.assertEqual(dispatched.get("effort"), effort, row)
+            self.assertEqual(recorded.get("model_requested"), model, row)
+            self.assertEqual(recorded.get("effort"), effort, row)
+
+
+class WorktreeNotCwd(_LadderFixture):
+    """Levers run in the named branch's worktree, not the invoke cwd."""
+
+    def test_levers_run_in_the_branch_worktree_not_the_invoke_cwd(self):
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertNotEqual(self.wt.resolve(), self.main.resolve())
+        self.assertEqual(self.invoke_cwd.resolve(), self.main.resolve())
+        plant = self.load_plant()
+        cwds = plant.get("cwds") or []
+        self.assertTrue(cwds, "stubs recorded no cwd")
+        wt = self.wt.resolve()
+        main = self.main.resolve()
+        for raw in cwds:
+            cwd = Path(raw).resolve()
+            self.assertEqual(cwd, wt, f"lever cwd {cwd} is not the worktree {wt}")
+            self.assertNotEqual(cwd, main)
+        argv = self.dispatch_argv_for("tests")
+        if "--worktree" in argv:
+            given = Path(argv[argv.index("--worktree") + 1]).resolve()
+            self.assertEqual(given, wt)
+        elif "--branch" in argv:
+            self.assertEqual(argv[argv.index("--branch") + 1], BRANCH)
+        else:
+            self.fail(f"dispatch had neither --branch nor --worktree: {argv!r}")
 
 
 class RefusalAndResume(_LadderFixture):
@@ -1569,6 +2095,43 @@ class RefusalAndResume(_LadderFixture):
         )
         self.assertEqual(self.dispatch_names().count("security"), 2)
 
+    def test_resume_uses_the_named_record_not_the_newest(self):
+        self.patch_plant(refuse_stages=["security"])
+        first = self.run_ladder()
+        self.assertEqual(first.returncode, 3, self.combined(first))
+        real_id = self.ladder_record().get("id")
+        self.assertTrue(real_id)
+        decoy_id = self.plant_decoy_ladder(real_id)
+        self.patch_plant(refuse_stages=[])
+        second = self.invoke(["resume", real_id])
+        self.assertEqual(second.returncode, 0, self.combined(second))
+        self.assertEqual(self.dispatch_names().count("security"), 2)
+        decoy = json.loads(
+            (self.repo / ".dev" / "records" / "ladders" / (decoy_id + ".json"))
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(decoy.get("status"), "done")
+        self.assertEqual((decoy.get("pr") or {}).get("number"), 99)
+        resumed = self.ladder_record(real_id)
+        self.assertNotEqual(resumed.get("id"), decoy_id)
+        self.assertEqual(resumed.get("id"), real_id)
+
+    def test_each_stage_transition_commits_the_ladder_record(self):
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        record = self.ladder_record()
+        ran = [
+            row for row in record.get("stages") or []
+            if row.get("outcome") != "skipped"
+        ]
+        self.assertGreaterEqual(len(ran), 5, ran)
+        commits = self.ladder_record_commits()
+        self.assertGreaterEqual(
+            len(commits),
+            len(ran),
+            f"transitions={len(ran)} record-commits={commits!r}",
+        )
+
 
 class TripAndResume(_LadderFixture):
     """wait tripped=true stops naming collect; resume of a closed ok record lands it."""
@@ -1600,7 +2163,7 @@ class TripAndResume(_LadderFixture):
 
 
 class ExitClasses(_LadderFixture):
-    """Every exit the suite observes is one of the wire's four."""
+    """Every contract-named failure returns one of the wire's four exits."""
 
     def test_every_observed_exit_is_in_the_wire_four(self):
         codes = []
@@ -1623,6 +2186,42 @@ class ExitClasses(_LadderFixture):
             any(code in (1, 3) for code in codes),
             f"suite must observe a stop, not only refusals: {codes!r}",
         )
+
+    def test_invalid_envelope_stops_exit_3(self):
+        self.patch_plant(invalid_envelope_stages=["tests"])
+        proc = self.run_ladder()
+        self.assertIn(proc.returncode, {0, 1, 2, 3}, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("stage=tests", self.combined(proc))
+
+    def test_landing_abort_stops_exit_3(self):
+        self.patch_plant(land_abort=True)
+        proc = self.run_ladder()
+        self.assertIn(proc.returncode, {0, 1, 2, 3}, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("stage=tests", self.combined(proc))
+
+    def test_wait_wall_stops_exit_3(self):
+        self.patch_plant(wait_wall_stages=["tests"])
+        proc = self.run_ladder()
+        self.assertIn(proc.returncode, {0, 1, 2, 3}, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("stage=tests", self.combined(proc))
+
+    def test_ledger_failure_stops_exit_3(self):
+        self.patch_plant(ledger_fail=True)
+        proc = self.run_ladder()
+        self.assertIn(proc.returncode, {0, 1, 2, 3}, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertGreaterEqual(len(self.findings_argvs()), 1)
+
+    def test_a_stage_crash_stops_exit_3_naming_collect(self):
+        self.patch_plant(crash_stages=["tests"])
+        proc = self.run_ladder()
+        rec_id = self.load_plant().get("last_id") or "none"
+        self.assertIn(proc.returncode, {0, 1, 2, 3}, self.combined(proc))
+        self.assert_stopped(proc, stage="tests", record=rec_id)
+        self.assertIn("launch.py collect", self.combined(proc))
 
 
 class Literals(_LadderFixture):
