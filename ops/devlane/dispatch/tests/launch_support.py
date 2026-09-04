@@ -138,6 +138,7 @@ env_keys = [
     "GIT_EDITOR", "EDITOR", "PYTHONUNBUFFERED", "PYTHONIOENCODING",
     "LC_ALL", "WF_LANE", "DISPATCH_JOB", "CODEX_HOME", "GROK_HOME",
     "HOME", "CLAUDE_CONFIG_DIR", "WF_AGENT",
+    "TMPDIR", "TMP", "TEMP",
 ]
 env_shot = {k: os.environ[k] for k in env_keys if k in os.environ}
 
@@ -208,6 +209,8 @@ start_witness.write_text(json.dumps({
     "schema_how": schema_how,
     "rollout_present": rollout_present,
     "summary_present": summary_present,
+    "job_tmp_is_dir": (job_parent / "tmp").is_dir(),
+    "job_scratch_is_dir": (job_parent / "scratch").is_dir(),
 }) + "\n", encoding="utf-8")
 
 commit_msg = os.environ.get("TASK_LAUNCH_COMMIT_MSG") or ""

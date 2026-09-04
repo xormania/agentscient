@@ -1,7 +1,8 @@
 """Isolation, child env, stream discovery, session ids.
 
 Written from CONTRACT.md §Dispatch Isolation, child's environment,
-Watching. Plan items (g)(h)(j)(k)(t)(u).
+Watching. Plan items (g)(h)(j)(k)(t)(u). Finding 4 (job-scoped tmp
+and scratch) is I9.
 
   I1  claude flags; HOME untouched; CLAUDE_CONFIG_DIR unset
   I2  CODEX_HOME / GROK_HOME+HOME point at a home holding exactly auth.json
@@ -11,12 +12,17 @@ Watching. Plan items (g)(h)(j)(k)(t)(u).
   I6  minted session id on argv; codex from session_meta
   I7  a fake that ignores --session-id is a recorded mismatch
   I8  observed is unresolved or verbatim, never false
+  I9  Codex write: TMPDIR/TMP/TEMP = <job>/tmp; tmp/ and scratch/
+      exist before spawn; writable_roots are job out/tmp/scratch,
+      never /tmp; tempfile under that env lands in <job>/tmp
 """
 
 from __future__ import annotations
 
 import json
 import os
+import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -662,3 +668,136 @@ class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
         self.assertEqual(perms.get("applied"), "argv")
         self.assertEqual(perms.get("allow"), 1, perms)
         self.assertEqual(perms.get("deny"), 1, perms)
+
+
+class CodexWriteJobStaysInsideTheJobDirectory(ls._TempLaunch):
+    """I9 / CONTRACT.md §The job directory, §The child's environment,
+    §Isolation. A write child must not be pointed at host /tmp.
+    """
+
+    _ROOTS_MARKER = "sandbox_workspace_write.writable_roots="
+
+    def _launch_codex_write(self):
+        rec, witness, *_ = self.launch_ok(
+            job="implement", harness="codex", stage="code",
+        )
+        self.assertEqual(rec["job"], "implement", rec)
+        self.assertEqual(rec["role"], "write", rec)
+        self.assertEqual(rec["harness"]["name"], "codex", rec)
+        return rec, witness, self.the_job_dir()
+
+    def _writable_roots(self, argv):
+        found = []
+        for item in argv:
+            text = str(item)
+            if self._ROOTS_MARKER not in text:
+                continue
+            payload = text.split(self._ROOTS_MARKER, 1)[1]
+            found.append(json.loads(payload))
+        self.assertEqual(
+            len(found), 1,
+            f"expected one writable_roots JSON list in argv: {argv!r}",
+        )
+        roots = found[0]
+        self.assertIsInstance(roots, list, roots)
+        return [os.path.realpath(p) for p in roots]
+
+    def test_codex_write_child_env_tmpdir_is_the_job_tmp(self):
+        rec, witness, job_dir = self._launch_codex_write()
+        del rec
+        job_tmp = os.path.realpath(job_dir / "tmp")
+        env = witness["env"]
+        for key in ("TMPDIR", "TMP", "TEMP"):
+            self.assertIn(key, env, f"{key} must be set on the write child")
+            self.assertEqual(
+                os.path.realpath(env[key]), job_tmp,
+                f"{key}={env[key]!r} must be {job_tmp}",
+            )
+
+    def test_job_directory_has_tmp_and_scratch_before_spawn(self):
+        rec, witness, job_dir = self._launch_codex_write()
+        del rec, witness
+        started = self.read_start_witness()
+        self.assertTrue(
+            started.get("job_tmp_is_dir"),
+            f"tmp/ must exist before spawn: start={started!r} "
+            f"job={list(job_dir.iterdir())}",
+        )
+        self.assertTrue(
+            started.get("job_scratch_is_dir"),
+            f"scratch/ must exist before spawn: start={started!r} "
+            f"job={list(job_dir.iterdir())}",
+        )
+        self.assertTrue(
+            (job_dir / "tmp").is_dir(), f"tmp/ missing on {job_dir}",
+        )
+        self.assertTrue(
+            (job_dir / "scratch").is_dir(), f"scratch/ missing on {job_dir}",
+        )
+        contract = (
+            Path(__file__).resolve().parents[1] / "CONTRACT.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "tmp/           child TMPDIR; mktemp and tempfile land here",
+            contract,
+        )
+        self.assertIn(
+            "scratch/       worker git index and objects when .git is "
+            "read-only; not a deliverable",
+            contract,
+        )
+
+    def test_codex_write_writable_roots_are_job_out_tmp_and_scratch(self):
+        rec, witness, job_dir = self._launch_codex_write()
+        del rec
+        argv = [str(p) for p in witness["argv"]]
+        self.assertIn("--sandbox", argv)
+        self.assertEqual(
+            argv[argv.index("--sandbox") + 1], "workspace-write", argv,
+        )
+        roots = self._writable_roots(argv)
+        expected = [
+            os.path.realpath(job_dir / "out"),
+            os.path.realpath(job_dir / "tmp"),
+            os.path.realpath(job_dir / "scratch"),
+        ]
+        self.assertEqual(roots, expected, argv)
+        self.assertNotIn(os.path.realpath("/tmp"), roots)
+
+    def test_tempfile_under_the_child_env_lands_in_job_tmp(self):
+        rec, witness, job_dir = self._launch_codex_write()
+        del rec
+        job_tmp = (job_dir / "tmp").resolve()
+        child_env = os.environ.copy()
+        for key in ("TMPDIR", "TMP", "TEMP"):
+            if key in witness["env"]:
+                child_env[key] = witness["env"][key]
+            else:
+                child_env.pop(key, None)
+        script = (
+            "import tempfile\n"
+            "from pathlib import Path\n"
+            "with tempfile.TemporaryDirectory() as name:\n"
+            "    print(Path(name).resolve())\n"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            env=child_env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(
+            proc.returncode, 0,
+            f"tempfile under the child env failed: {proc.stderr!r} "
+            f"{proc.stdout!r}",
+        )
+        landed = Path(proc.stdout.strip()).resolve()
+        self.assertTrue(
+            str(landed).strip(),
+            f"tempfile printed no path: {proc.stdout!r}",
+        )
+        self.assertTrue(
+            landed.is_relative_to(job_tmp),
+            f"tempfile landed at {landed}, not under {job_tmp}",
+        )
