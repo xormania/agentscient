@@ -229,12 +229,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "reason": "wall",
-    "record": "20260904T150457Z-code-codex-a3279b",
-    "stage": "code",
-    "verdict": null
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-check-tests-json"
 }
