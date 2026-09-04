@@ -1860,5 +1860,50 @@ class RoundThreeSkepticShapeTests(unittest.TestCase):
         self.assertTrue(battery_wiring_errors(mutated))
 
 
+WORTH = REPO / "ops/devlane/telemetry/worth.py"
+
+
+class DispatchDirWiringTests(unittest.TestCase):
+    """Unit A: --dispatch-dir is a real flag whose default matches the jobs root."""
+
+    def test_worth_declares_dispatch_dir(self):
+        source = WORTH.read_text(encoding="utf-8")
+        flags = declared_flags(source)
+        self.assertIn(
+            "--dispatch-dir",
+            flags,
+            f"{WORTH} does not declare --dispatch-dir; found {sorted(flags)}",
+        )
+
+    def test_dispatch_dir_default_names_the_same_jobs_root_as_the_launcher(self):
+        source = WORTH.read_text(encoding="utf-8")
+        missing = [
+            token
+            for token in (
+                "DISPATCH_JOBS",
+                "XDG_STATE_HOME",
+                "agentscient/dispatch",
+            )
+            if token not in source
+        ]
+        self.assertEqual(
+            missing,
+            [],
+            (
+                f"{WORTH} default jobs root must name DISPATCH_JOBS, "
+                f"XDG_STATE_HOME, and agentscient/dispatch; missing {missing}"
+            ),
+        )
+        self.assertRegex(
+            source,
+            r"DISPATCH_JOBS[\s\S]{0,400}XDG_STATE_HOME"
+            r"[\s\S]{0,400}\.local/state",
+            (
+                "--dispatch-dir default must resolve DISPATCH_JOBS, else "
+                "XDG_STATE_HOME, else ~/.local/state, the same as launch.py"
+            ),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
