@@ -218,6 +218,36 @@ class ReadRolePromptRejectsAnyWritePath(_CheckTestsJob):
             "misses Create REVIEW in the repository",
         )
 
+    def test_create_notes_in_the_repository_is_a_write_path(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        prompt = "Create NOTES in the repository"
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a write verb plus an extensionless relative name is a "
+            "write path; a slash/extension matcher plus a special-case "
+            "for Create REVIEW misses Create NOTES in the repository",
+        )
+
+    def test_extensionless_relative_names_are_write_paths_by_shape(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        names = ("NOTES", "CHANGELOG", "TODO")
+        missed = []
+        for name in names:
+            prompt = f"Create {name} in the repository"
+            match = write_path_ask(prompt)
+            if match is None:
+                missed.append(prompt)
+        self.assertEqual(
+            missed,
+            [],
+            "path-shaped includes an extensionless relative name, not "
+            "only slash, extension, {out}, or Create REVIEW; missed "
+            f"{missed!r}",
+        )
+
     def test_the_live_read_role_prompt_is_not_a_write_path(self):
         spec = self.check_tests()
         self.assertEqual(spec.get("role"), "read", spec)
