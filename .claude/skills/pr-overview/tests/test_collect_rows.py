@@ -430,6 +430,82 @@ class CollectRows(unittest.TestCase):
         )
         self.assertIn("checks: unreadable", checks_line_for(stdout, 10))
 
+    def test_repo_slug_from_conf_is_the_default_repo(self):
+        prs = self.pair()
+        conf_dir = Path(tempfile.mkdtemp(prefix="pr-overview-laneconf-"))
+        argv_log = conf_dir / "gh-argv.jsonl"
+        conf = conf_dir / "lane.conf"
+        text = (
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='trunkx'\n"
+            "RELEASE_BRANCH='relx'\n"
+            "REPO_SLUG='org/projx'\n"
+            "CHECK_NAME='checkx'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        conf.write_text(text, encoding="utf-8")
+        self.assertEqual(conf.read_text(encoding="utf-8"), text)
+        argv_log.write_text("", encoding="utf-8")
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        argv = ["pr_overview.py"]
+        code = 0
+        try:
+            with gh_on_path(prs, self.trees), non_git_cwd():
+                stub = Path(shutil.which("gh") or "")
+                original = stub.read_text(encoding="utf-8")
+                marker = "args = sys.argv[1:]\n"
+                self.assertIn(marker, original)
+                inject = (
+                    "from pathlib import Path as _LaneConfPath\n"
+                    f"_LaneConfPath({str(argv_log)!r}).open('a').write("
+                    "json.dumps(args) + '\\n')\n"
+                )
+                stub.write_text(
+                    original.replace(marker, marker + inject, 1),
+                    encoding="utf-8",
+                )
+                planted = stub.read_text(encoding="utf-8")
+                self.assertIn("org/projx", text)
+                self.assertIn("_LaneConfPath", planted)
+                with mock.patch.dict(
+                    os.environ, {"LANE_CONF": str(conf)},
+                ), mock.patch.object(
+                    self.overview,
+                    "expected_checks",
+                    return_value=frozenset({OK_CHECK}),
+                ), mock.patch.object(
+                    sys, "argv", argv,
+                ), mock.patch.object(
+                    self.overview.sys, "argv", argv,
+                ), contextlib.redirect_stdout(
+                    stdout,
+                ), contextlib.redirect_stderr(stderr):
+                    try:
+                        returned = self.overview.main()
+                        code = 0 if returned is None else int(returned)
+                    except SystemExit as exc:
+                        code = 0 if exc.code is None else int(exc.code)
+            log = argv_log.read_text(encoding="utf-8")
+            self.assertEqual(code, 0, stderr.getvalue() or stdout.getvalue())
+            self.assertIn("org/projx", log)
+            self.assertNotIn(
+                "uscient/agentscient", log,
+                f"overview still used the literal slug: {log!r}",
+            )
+        finally:
+            shutil.rmtree(conf_dir, ignore_errors=True)
+
 
 if __name__ == "__main__":
     unittest.main()
