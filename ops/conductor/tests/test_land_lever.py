@@ -1352,6 +1352,7 @@ class Reauthor(_LandFixture):
     behaves as today. --author sets each landed commit's author and
     keeps the committer from WF_AGENT. --co-author appends
     Co-Authored-By once and does not duplicate one already present.
+    Both flags apply to every cherry-picked commit, not only the tip.
     """
 
     AUTHOR = "Scratch Owner <scratch-owner@example.invalid>"
@@ -1360,37 +1361,70 @@ class Reauthor(_LandFixture):
     def test_author_sets_the_landed_author_and_keeps_the_wf_agent_committer(self):
         self.assertNotEqual(self.AUTHOR, LANE_AUTHOR)
         self.assertNotEqual(self.AUTHOR, f"{PRODUCER} <{PRODUCER_EMAIL}>")
-        self.ready()
+        producers = self.ready(producers=2)
+        self.assertEqual(len(producers), 2)
         proc = self.land(extra=["--author", self.AUTHOR])
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assertEqual(self.author("HEAD"), self.AUTHOR)
-        self.assertNotEqual(self.author("HEAD"), LANE_AUTHOR)
-        self.assertEqual(self.committer("HEAD"), AGENT)
-        self.assertNotEqual(
-            self.committer("HEAD"),
-            f"{REPO_USER} <{REPO_EMAIL}>",
-        )
+        landed = self.range_shas(self.base, "HEAD")
+        self.assertEqual(len(landed), 2, landed)
+        self.assertEqual(len(self.landed_rows(proc.stdout or "")), 2)
+        for sha in landed:
+            self.assertEqual(self.author(sha), self.AUTHOR)
+            self.assertNotEqual(self.author(sha), LANE_AUTHOR)
+            self.assertEqual(self.committer(sha), AGENT)
+            self.assertNotEqual(
+                self.committer(sha),
+                f"{REPO_USER} <{REPO_EMAIL}>",
+            )
 
     def test_co_author_appends_the_trailer_once(self):
-        producers = self.ready()
-        original = self.message(producers[0])
-        self.assertIn("Co-Authored-By:", original)
-        self.assertNotIn(self.CO, original)
+        producers = self.ready(producers=2)
+        self.assertEqual(len(producers), 2)
+        for sha in producers:
+            original = self.message(sha)
+            self.assertIn("Co-Authored-By:", original)
+            self.assertNotIn(self.CO, original)
         proc = self.land(extra=["--co-author", self.CO])
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        msg = self.message("HEAD")
-        self.assertIn(f"Co-Authored-By: {self.CO}", msg)
-        self.assertEqual(msg.count(f"Co-Authored-By: {self.CO}"), 1)
-        self.assertIn("Source:", msg)
+        landed = self.range_shas(self.base, "HEAD")
+        self.assertEqual(len(landed), 2, landed)
+        for sha in landed:
+            msg = self.message(sha)
+            self.assertIn(f"Co-Authored-By: {self.CO}", msg)
+            self.assertEqual(msg.count(f"Co-Authored-By: {self.CO}"), 1)
+            self.assertIn("Source:", msg)
 
     def test_co_author_does_not_duplicate_an_already_present_trailer(self):
-        producers = self.ready()
-        original = self.message(producers[0])
-        self.assertEqual(original.count(f"Co-Authored-By: {CO_AUTHOR}"), 1)
+        producers = self.ready(producers=2)
+        self.assertEqual(len(producers), 2)
+        for sha in producers:
+            original = self.message(sha)
+            self.assertEqual(original.count(f"Co-Authored-By: {CO_AUTHOR}"), 1)
         proc = self.land(extra=["--co-author", CO_AUTHOR])
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        msg = self.message("HEAD")
-        self.assertEqual(msg.count(f"Co-Authored-By: {CO_AUTHOR}"), 1)
+        landed = self.range_shas(self.base, "HEAD")
+        self.assertEqual(len(landed), 2, landed)
+        for sha in landed:
+            msg = self.message(sha)
+            self.assertEqual(msg.count(f"Co-Authored-By: {CO_AUTHOR}"), 1)
+
+    def test_both_flags_apply_to_every_cherry_picked_commit(self):
+        producers = self.ready(producers=2)
+        self.assertEqual(len(producers), 2)
+        proc = self.land(
+            extra=["--author", self.AUTHOR, "--co-author", self.CO],
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        landed = self.range_shas(self.base, "HEAD")
+        self.assertEqual(len(landed), 2, landed)
+        self.assertEqual(len(self.landed_rows(proc.stdout or "")), 2)
+        for sha in landed:
+            self.assertEqual(self.author(sha), self.AUTHOR)
+            self.assertEqual(self.committer(sha), AGENT)
+            msg = self.message(sha)
+            self.assertIn(f"Co-Authored-By: {self.CO}", msg)
+            self.assertEqual(msg.count(f"Co-Authored-By: {self.CO}"), 1)
+            self.assertIn("Source:", msg)
 
 
 if __name__ == "__main__":
