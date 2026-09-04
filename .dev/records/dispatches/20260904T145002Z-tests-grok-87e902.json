@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T14:50:03Z",
-    "closed": null
+    "closed": "2026-09-04T15:04:54Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -67,14 +67,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T145002Z-tests-grok-87e902/home/grok-stream/sessions/<snapshot-encoded>/912dc85e-2ed7-4a01-a66b-fffdf12306a7/summary.json"
   },
   "session": {
     "id": "912dc85e-2ed7-4a01-a66b-fffdf12306a7",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T145002Z-tests-grok-87e902/home/grok-stream/sessions/<snapshot-encoded>/912dc85e-2ed7-4a01-a66b-fffdf12306a7/summary.json",
+    "stream_sha256_at_close": "576f55521cac088dc069589c344430e9ff625ca06ddaa549b84225eb0b20b3e9",
+    "spend": {
+      "input": 4204251,
+      "cached": 3803904,
+      "output": 49893,
+      "total": 4254144,
+      "cost_usd_ticks": 5103406800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T145002Z-tests-grok-87e902/home/grok-stream/sessions/<snapshot-encoded>/912dc85e-2ed7-4a01-a66b-fffdf12306a7/summary.json",
+      "messages": 283
+    }
   },
   "brief": {
     "template": {
@@ -101,10 +109,63 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T14:50:03Z",
+      "ended": "2026-09-04T15:04:54Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d83a937d02637947e15d54a79ae2bef2af20f64c",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/devlane/task/tests/test_check_tests_json.py",
+      "ops/devlane/task/tests/test_jobs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever": "ops/conductor/tests/test_ladder_lever.py",
+        "test_check_tests_json": "ops/devlane/task/tests/test_check_tests_json.py",
+        "test_jobs": "ops/devlane/task/tests/test_jobs.py",
+        "test-command.md": "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py && python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_json.py && python3 -m unittest discover -s ops/devlane/task/tests -p test_jobs.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4254144,
+        "out": 49893,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0a27b269b94b39676f1efcf566b3b03e3d273c1e",
+        "started": "2026-09-04T14:50:03Z",
+        "ended": "2026-09-04T15:04:04Z"
+      },
+      "note": "Three commits on lane/check-tests-json (e1023d6, 7d0d474, d83a937), only the three named test files, HEAD d83a937d02637947e15d54a79ae2bef2af20f64c. Finding 2: test_payload_symlink_is_not_followed and test_payload_relative_dotdot_host_symlink_is_not_followed red at 0a27b269b94b39676f1efcf566b3b03e3d273c1e \u2014 host file no longer reads HOST (write followed both the absolute plant and the relative ../../ plant); second.returncode in {2,3} pins silent success. Finding 3: test_create_notes_in_the_repository_is_a_write_path red under a slash/extension matcher plus a REVIEW special-case (assertIsNotNone); REVIEW stayed green on that mutant; test_extensionless_relative_names_are_write_paths_by_shape missed NOTES, CHANGELOG, TODO; mutant deleted; write_path.py absent. Finding 5: test_contract_documents_practiced_read_job_slots red \u2014 slots paragraph never names check-tests; deleting the stale all-three-read-jobs phrase made test_contract_does_not_claim_all_three_read_jobs_name_inputs green while the mapping test stayed red; CONTRACT.md restored. Findings 1 and 4 tests were already in the tree and were not rewritten."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T15:04:54.343Z"
+    }
+  },
+  "status": "closed"
 }
