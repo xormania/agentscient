@@ -1,0 +1,176 @@
+{
+  "id": "20260904T162448Z-plan-grok-d5892c",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/context-contracts",
+  "lineage": {
+    "branch": "lane/context-contracts",
+    "base_sha": "90b8c2721a8f3da06fd98f334026c20aba640ede"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:24:49Z",
+    "closed": "2026-09-04T16:41:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+    "ref_sha": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "c02e454d-e7f7-4e2c-bd1d-b52eb389a6a7",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/home/grok-stream/sessions/<snapshot-encoded>/c02e454d-e7f7-4e2c-bd1d-b52eb389a6a7/summary.json"
+  },
+  "session": {
+    "id": "c02e454d-e7f7-4e2c-bd1d-b52eb389a6a7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/home/grok-stream/sessions/<snapshot-encoded>/c02e454d-e7f7-4e2c-bd1d-b52eb389a6a7/summary.json",
+    "stream_sha256_at_close": "418b22fc2e569612664801f69729506875c261224c114fb628a92e121dd4fede",
+    "spend": {
+      "input": 3211096,
+      "cached": 2537088,
+      "output": 55956,
+      "total": 3267052,
+      "cost_usd_ticks": 5856955600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/home/grok-stream/sessions/<snapshot-encoded>/c02e454d-e7f7-4e2c-bd1d-b52eb389a6a7/summary.json",
+      "messages": 407
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Census and guard design for \"no hardcoded lane values, no guessing\": measure across ops/ every hardcoded lane value, every defaulted conf/env read, and a sample of today's worker assumption deviations, as the input file directs; then design the guard (a defaults check with a declared exception table) and where it runs at each boundary (land.py, the driver, the matrix hook, CI), composed with item 45's manifests. Measure first with commands, cite file:line or record id for every claim. Output the plan only, in the driver's grammar, S slices, one slice per plan file.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/in/input-noguess-investigation.md",
+        "sha256": "88dec277626e87cb39cbe24f8a6205f9886b0fe3b2873cb5c51c7184519dc48f"
+      }
+    ],
+    "sha256": "4cafa6c9591ea6383b3ca29ab740f55abc0c470d340d403d25468547d243763f",
+    "bytes": 4372
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T16:24:49Z",
+      "ended": "2026-09-04T16:41:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "in/input-noguess-investigation.md:9",
+          "claim": "The live watchdog count of 65 deviation-assumption records at 16:1xZ was not re-measured. Isolated HOME is this job's grok home; ~/.local/state/agentscient/dispatch under that home is absent. The job prompt forbids reading outside the snapshot, so the live store was not listed. The plan sampled 88 tracked envelopes under .dev/records/dispatches/ (21 assumption-word hits, 20 dated 20260904) instead. The number 65 is neither measured at write time nor a refusal a later stage will hit.",
+          "reproduce": "python3 -c \"from pathlib import Path; print(Path.home()); print((Path.home()/'.local/state/agentscient/dispatch').exists())\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/wip/calibration-buckets.md",
+          "claim": "The named calibration-row shape file is absent from the snapshot. Rows in the plan copy watchdog.py:53-55 / watchdog-lever.md:103-104 (S: implement 4, author-tests 21, check-tests 10) plus the files/tests/lines columns used in .dev/ladder-inputs/PLAN-context-contracts-2-closure-index.md. That substitute is not a measurement of the named file.",
+          "reproduce": "ls .dev/wip/calibration-buckets.md"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN.md",
+        "slice-1": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s1.md",
+        "slice-2": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s2.md",
+        "slice-3": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s3.md",
+        "slice-4": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s4.md",
+        "slice-5": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s5.md",
+        "slice-6": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s6.md",
+        "slice-7": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s7.md",
+        "slice-8": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s8.md",
+        "slice-9": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162448Z-plan-grok-d5892c/out/PLAN-s9.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3267052,
+        "out": 55956,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+        "started": "2026-09-04T16:24:49Z",
+        "ended": "2026-09-04T16:41:27Z"
+      },
+      "note": "Nine S slices, driver files PLAN-s1.md..PLAN-s9.md; do not pass PLAN.md to parse_plan. First slice is defaults-verb. Item 45 binaries are absent at this ref; composition skips them when missing and refuses a present context key without the binary."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T16:41:51.866Z"
+    }
+  },
+  "status": "closed"
+}
