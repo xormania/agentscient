@@ -1066,20 +1066,60 @@ class MatrixHookTests(unittest.TestCase):
         )
         self.assertEqual(reason.strip(), expected)
 
-    def test_dispatch_by_hand_fires_before_sibling_dispatch_rows(self):
+    def test_dispatch_by_hand_refuses_when_every_content_row_passes(self):
+        self.assertLessEqual(self.scope_ok.stat().st_size, SCOPE_CAP)
+        self.assertGreater(self.scope_ok.stat().st_size, 0)
+        scope_text = self.scope_ok.read_text(encoding="utf-8")
+        self.assertNotIn("suites.sh", scope_text)
+        self.assertNotIn("unittest discover", scope_text)
+        walk = self.input_ok.read_text(encoding="utf-8")
+        self.assertIn("First-run walkthrough", walk)
+        self.assertRegex(walk, r"- assumption.+(measured|refusal)")
         rows = (
-            self.dispatch(job="implement", extra="--model grok-4.6"),
-            self.dispatch(job="implement", scope_file=self.scope_suites),
-            self.dispatch(
-                job="author-tests", input_file=self.input_no_heading
-            ),
+            self.dispatch(job="implement"),
+            self.dispatch(job="author-tests"),
         )
         self.assertGreater(len(rows), 0)
         for cmd in rows:
             with self.subTest(cmd=cmd):
+                self.assertIn("LAUNCHER_PIN=", cmd)
+                self.assertIn("DISPATCH_TIMEOUT=", cmd)
+                self.assertIn("WF_AGENT=", cmd)
+                self.assertNotRegex(cmd, r"(^|\s)--model(\s|=)")
+                self.assertNotRegex(cmd, r"(^|\s)--effort(\s|=)")
                 self.assert_denied(
                     self.run_bash(cmd), "dispatch-by-hand"
                 )
+
+    def test_dispatch_by_hand_is_last_among_the_dispatch_rows(self):
+        self.assertGreater(
+            self.scope_big.stat().st_size,
+            SCOPE_CAP,
+            "INVALID: oversize plant is not over SCOPE_CAP",
+        )
+        self.assertLessEqual(
+            self.scope_ok.stat().st_size,
+            SCOPE_CAP,
+            "INVALID: clean plant exceeded SCOPE_CAP",
+        )
+        walk = self.input_ok.read_text(encoding="utf-8")
+        self.assertIn("First-run walkthrough", walk)
+        self.assertRegex(walk, r"- assumption.+(measured|refusal)")
+        oversize = self.dispatch(job="implement", scope_file=self.scope_big)
+        self.assertIn("--job implement", oversize)
+        self.assertIn("ops/bin/dispatch.sh", oversize)
+        self.assertIn(str(self.scope_big), oversize)
+        self.assertNotRegex(oversize, r"(^|\s)--model(\s|=)")
+        self.assertNotRegex(oversize, r"(^|\s)--effort(\s|=)")
+        self.assert_denied(self.run_bash(oversize), "scope-cap")
+        clean = self.dispatch(job="implement")
+        self.assertIn("--job implement", clean)
+        self.assertIn("ops/bin/dispatch.sh", clean)
+        self.assertIn(str(self.scope_ok), clean)
+        self.assertNotIn(str(self.scope_big), clean)
+        self.assertNotRegex(clean, r"(^|\s)--model(\s|=)")
+        self.assertNotRegex(clean, r"(^|\s)--effort(\s|=)")
+        self.assert_denied(self.run_bash(clean), "dispatch-by-hand")
 
     # --- test-form ---
 
