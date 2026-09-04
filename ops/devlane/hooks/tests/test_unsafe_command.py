@@ -15,8 +15,8 @@ class UnsafeCommandCorpus(unittest.TestCase):
         self.assertEqual(len(corpus.UNSAFE_BLOCK), corpus.COUNTS["UNSAFE_BLOCK"])
         self.assertEqual(len(corpus.UNSAFE_PASS), corpus.COUNTS["UNSAFE_PASS"])
         self.assertEqual(len(corpus.UNSAFE_AMEND), corpus.COUNTS["UNSAFE_AMEND"])
-        self.assertEqual(corpus.COUNTS["UNSAFE_BLOCK"], 22)
-        self.assertEqual(corpus.COUNTS["UNSAFE_PASS"], 54)
+        self.assertEqual(corpus.COUNTS["UNSAFE_BLOCK"], 21)
+        self.assertEqual(corpus.COUNTS["UNSAFE_PASS"], 55)
         self.assertEqual(corpus.COUNTS["UNSAFE_AMEND"], 15)
 
     def test_refuses_each_block_row(self):
@@ -46,6 +46,25 @@ class UnsafeCommandCorpus(unittest.TestCase):
                 self.assertEqual(
                     self.mod.is_amend(cmd), want,
                     f"is_amend({cmd!r}) wanted {want}",
+                )
+
+    def test_clipped_sweep_skips_tail(self):
+        """Keep | head. Skip | tail. A multi-alternation grep clipped by tail is PASS."""
+        tail_10 = (
+            'grep -n "record\\|write_text\\|0o600\\|chmod\\|touch(" '
+            "scripts/live_test_client_setup.py | tail -10"
+        )
+        measured = "grep -E 'a|b|c' ops/lane.conf | tail -3"
+        self.assertIn(tail_10, corpus.UNSAFE_PASS)
+        self.assertNotIn(tail_10, corpus.UNSAFE_BLOCK)
+        rows = (tail_10, measured)
+        self.assertGreater(len(rows), 0)
+        for cmd in rows:
+            with self.subTest(cmd=cmd[:70]):
+                hit = self.mod.check(cmd)
+                self.assertFalse(
+                    hit,
+                    f"clipped-sweep must skip tail; found {hit!r} on {cmd!r}",
                 )
 
     def test_plan_d3_writing_a_dot_sh_file_is_not_running_it(self):
