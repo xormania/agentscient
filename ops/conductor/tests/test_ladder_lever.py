@@ -3370,8 +3370,59 @@ class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
     A check-tests envelope that is merely status=ok is not enough:
     findings must be a list of quotation-pair objects, counts must
     tally that list, and verdict must agree. tests-fix runs only when
-    the validated verdict is changes.
+    the validated verdict is changes. verdict=changes with an empty
+    findings list is an envelope stop, not a tests-fix dispatch.
     """
+
+    def test_changes_with_no_findings_is_an_envelope_stop(self):
+        empty_counts = {"p1": 0, "p2": 0, "p3": 0, "opinions": 0}
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            stage_findings={"check-tests": []},
+            envelope_patches={
+                "check-tests": {
+                    "verdict": "changes",
+                    "findings": [],
+                    "counts": dict(empty_counts),
+                },
+            },
+        )
+        planted = self.load_plant()
+        self.assertEqual(planted["verdicts"]["check-tests"], "changes")
+        self.assertEqual(planted["stage_findings"]["check-tests"], [])
+        self.assertEqual(
+            planted["envelope_patches"]["check-tests"]["findings"],
+            [],
+        )
+        self.assertEqual(
+            planted["envelope_patches"]["check-tests"]["counts"],
+            empty_counts,
+        )
+        before = self.files_before_run()
+        proc = self.run_ladder()
+        rec_id = self.record_id_for("check-tests")
+        self.assert_stopped(
+            proc, stage="check-tests", record=rec_id, reason="envelope",
+        )
+        env = self.check_tests_envelope()
+        self.assertEqual(env.get("verdict"), "changes", env)
+        self.assertEqual(env.get("findings"), [], env)
+        self.assertEqual(env.get("counts"), empty_counts, env)
+        names = self.dispatch_names()
+        self.assertNotIn(
+            "tests-fix",
+            names,
+            "verdict=changes with no findings must not mint tests-fix: "
+            f"{names!r} {self.combined(proc)}",
+        )
+        self.assertNotIn("code", names, names)
+        leaked = self.findings_payload_files(before)
+        self.assertEqual(
+            leaked,
+            [],
+            "an empty changes envelope must not write a findings "
+            f"payload: {leaked!r}",
+        )
 
     def test_findings_none_does_not_move_to_tests_fix(self):
         planted = [dict(CHECK_TESTS_FINDING)]
