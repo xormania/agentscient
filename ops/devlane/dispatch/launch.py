@@ -16,6 +16,7 @@ import string
 import subprocess
 import sys
 import time
+import urllib.parse
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -80,6 +81,59 @@ def _now():
 def mint_id(stage, harness):
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"{stamp}-{stage}-{harness}-{os.urandom(3).hex()}"
+
+
+def _portable_paths(rec):
+    """A deep copy of the record with every host-absolute path rewritten to
+    the two encodings the harnesses derive from the snapshot path, Claude's
+    project slug and Grok's URL-encoded cwd, rewritten as
+    ``<snapshot-slug>`` and ``<snapshot-encoded>``. Plain ``/home/<user>/``
+    paths stay as they are: the term wall exempts that one form on purpose,
+    and every reader of a record treats them as real paths. The two
+    encodings are what the wall refuses (2026-09-03: a branch refused in 5 s
+    over eight committed records). ``_absolute_paths`` inverts it on
+    load."""
+    snapshot = str((rec.get("snapshot") or {}).get("root") or "")
+    subs = []
+    if snapshot.startswith("/"):
+        subs.append((re.sub(r"[/.]", "-", snapshot), "<snapshot-slug>"))
+        subs.append((urllib.parse.quote(snapshot, safe=""), "<snapshot-encoded>"))
+
+    def walk(value):
+        if isinstance(value, str):
+            for old, new in subs:
+                if old in value:
+                    value = value.replace(old, new)
+            return value
+        if isinstance(value, list):
+            return [walk(x) for x in value]
+        if isinstance(value, dict):
+            return {k: walk(x) for k, x in value.items()}
+        return value
+
+    return walk(rec)
+
+
+def _absolute_paths(rec):
+    """The inverse of ``_portable_paths``: resolve the two placeholders from
+    the record's own snapshot root, so readers see the real stream paths."""
+    def walk(value, subs):
+        if isinstance(value, str):
+            for old, new in subs:
+                if old in value:
+                    value = value.replace(old, new)
+            return value
+        if isinstance(value, list):
+            return [walk(x, subs) for x in value]
+        if isinstance(value, dict):
+            return {k: walk(x, subs) for k, x in value.items()}
+        return value
+
+    snapshot = str((rec.get("snapshot") or {}).get("root") or "")
+    if snapshot.startswith("/"):
+        rec = walk(rec, [("<snapshot-slug>", re.sub(r"[/.]", "-", snapshot)),
+                         ("<snapshot-encoded>", urllib.parse.quote(snapshot, safe=""))])
+    return rec
 
 
 def _jobs_root():
@@ -571,7 +625,8 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
 def _write_record(repo, rec):
     path = repo / ".dev/records/dispatches" / f"{rec['id']}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(record.validate(rec), indent=2) + "\n", encoding="utf-8")
+    record.validate(rec)
+    path.write_text(json.dumps(_portable_paths(rec), indent=2) + "\n", encoding="utf-8")
     return path
 
 
@@ -1127,7 +1182,7 @@ def _find_record(repo, job_id):
     path = repo / ".dev/records/dispatches" / f"{job_id}.json"
     if not path.is_file():
         raise RuntimeError(f"record not found: {job_id}")
-    return path, json.loads(path.read_text())
+    return path, _absolute_paths(json.loads(path.read_text()))
 
 
 def _resume(args):
