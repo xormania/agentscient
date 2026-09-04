@@ -658,6 +658,12 @@ class Row7ConfEnvFlagPrecedence(_WrapperFixture):
         text = self.combined(proc)
         self.assertEqual(proc.returncode, 3, text)
         self.assertIn("DEFAULT_TIMEOUT", text)
+        self.assertIn(self.conf_timeout, text)
+        self.assertIn(str(self.conf_path), text)
+        lower = text.lower()
+        self.assertIn("expected", lower, text)
+        self.assertIn("found", lower, text)
+        self.assertIn("needed", lower, text)
         self.assert_no_launch()
 
 
@@ -840,6 +846,34 @@ class Row10TwoInputsBothReachArgv(_WrapperFixture):
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assert_no_launch()
 
+    def test_two_input_flags_reach_the_foreground_launcher_in_order(self):
+        first = self.scratch / "input-a.txt"
+        second = self.scratch / "input-b.txt"
+        self._plant_bytes(first, b"bytes-a\n")
+        self._plant_bytes(second, b"bytes-b\n")
+        argv_log = self.scratch / "launcher-argv.json"
+        self._plant_python_sentinel(
+            self.pin,
+            "import json, pathlib, sys\n"
+            f"pathlib.Path({str(argv_log)!r}).write_text("
+            "json.dumps(sys.argv))\n"
+            f"pathlib.Path({str(self.marker)!r}).write_text('launched')\n",
+        )
+        proc = self.invoke(
+            self.full_flags(input_paths=[first, second], dry_run=False),
+            timeout=8,
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertTrue(self.marker.exists(), "foreground path must launch")
+        self.assertTrue(argv_log.is_file(), "sentinel recorded argv")
+        launched = json.loads(argv_log.read_text(encoding="utf-8"))
+        self.assertIsInstance(launched, list, launched)
+        input_at = [i for i, tok in enumerate(launched) if tok == "--input"]
+        self.assertEqual(len(input_at), 2, launched)
+        self.assertEqual(launched[input_at[0] + 1], str(first))
+        self.assertEqual(launched[input_at[1] + 1], str(second))
+        self.assertLess(input_at[0], input_at[1])
+
     def test_a_missing_input_file_refuses_before_launch(self):
         missing = Path("/no/such")
         self.assertFalse(missing.exists(), "plant: missing path must not exist")
@@ -852,6 +886,10 @@ class Row10TwoInputsBothReachArgv(_WrapperFixture):
         text = self.combined(proc)
         self.assertEqual(proc.returncode, 3, text)
         self.assertIn(str(missing), text)
+        lower = text.lower()
+        self.assertIn("expected", lower, text)
+        self.assertIn("found", lower, text)
+        self.assertIn("needed", lower, text)
         self.assert_no_launch()
 
 
@@ -895,6 +933,13 @@ class Row11LauncherSource(_WrapperFixture):
         proc = self.invoke(self.full_flags())
         self._assert_launcher_source(proc, source="conf", pin=self.pin)
 
+    def test_foreground_prints_launcher_provenance(self):
+        proc = self.invoke(self.full_flags(dry_run=False), timeout=8)
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 0, text)
+        self.assertIn(f"launcher: {self.pin} (conf)", text)
+        self.assertTrue(self.marker.exists(), "foreground path must launch")
+
 
 class Row12Detach(_WrapperFixture):
     """--detach returns the record id without waiting for the launcher."""
@@ -923,8 +968,25 @@ class Row12Detach(_WrapperFixture):
                 f"detach returned after {elapsed:.2f}s; must not wait for the launcher",
             )
             self.assertIn(f"record: {record_id}", proc.stdout or "")
+            pid_lines = [
+                ln for ln in (proc.stdout or "").splitlines()
+                if ln.startswith("launcher-pid:")
+            ]
+            self.assertEqual(
+                len(pid_lines), 1,
+                f"detach prints launcher-pid: got {pid_lines!r} from "
+                f"{proc.stdout!r}",
+            )
+            raw_pid = pid_lines[0].split(":", 1)[1].strip()
+            self.assertTrue(raw_pid.isdigit(), pid_lines[0])
             log_path = job_dir / "launcher.log"
             self.assertTrue(log_path.is_file(), f"missing launcher.log at {log_path}")
+            log_text = log_path.read_text(encoding="utf-8")
+            self.assertIn(
+                f"record: {record_id}", log_text,
+                f"launcher.log must carry the launcher stdout, not be empty: "
+                f"{log_text!r}",
+            )
         finally:
             self._reap_reported_pid(proc)
 
