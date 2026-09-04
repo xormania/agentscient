@@ -74,6 +74,8 @@
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
       },
+      "findings": 3,
+      "findings_file": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/ladders/20260904T143022Z-ladder-2e605b/check-tests-findings.json",
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/dispatches/20260904T143022Z-tests-grok-ebbae8.json",
@@ -87,10 +89,20 @@
         "sha256": "da6ec42c61982680171fc0eb660fa8fb6e701b0fb5cfaf6bb5a3da441056c92a"
       },
       "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "check-tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260904T144439Z-check-tests-codex-ffaf2b",
-      "stage": "check-tests"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
