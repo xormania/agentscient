@@ -983,6 +983,35 @@ class SymfonyAppManifest(unittest.TestCase):
         self.assertIn("K7", blob)
         self.assertIn("K9", blob)
 
+    def test_k9_not_planted_reason_matches_composer_ranges(self):
+        composer = load_json_object(APP / "composer.json")
+        require = (
+            composer.get("require") if isinstance(composer.get("require"), dict) else {}
+        )
+        require_dev = (
+            composer.get("require-dev")
+            if isinstance(composer.get("require-dev"), dict)
+            else {}
+        )
+        ranged = []
+        flex = str(require.get("symfony/flex") or "")
+        phpunit = str(require_dev.get("phpunit/phpunit") or "")
+        if any(token in flex for token in "^~><"):
+            ranged.append(f"symfony/flex:{flex}")
+        if any(token in phpunit for token in "^~><"):
+            ranged.append(f"phpunit/phpunit:{phpunit}")
+        data = load_json_object(MANIFEST)
+        not_planted = (
+            data.get("not_planted") if isinstance(data.get("not_planted"), dict) else {}
+        )
+        reason = str(not_planted.get("K9") or "")
+        self.assertTrue(ranged, "composer.json must still show the flex/phpunit ranges")
+        self.assertNotRegex(
+            reason,
+            r"because the Symfony dependencies are pinned and locked",
+            f"K9 absence reason is false while ranges exist {ranged}: {reason!r}",
+        )
+
     def test_check_command_names_composer_php_lint_and_phpunit(self):
         check = load_json_object(MANIFEST).get("check")
         text = check if isinstance(check, str) else ""
