@@ -68,9 +68,14 @@ def _object(value: object, where: str, keys: set[str]) -> dict[str, object]:
 
 
 def _number(value: object, where: str, *, minimum: float | None = None) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
         refuse("config", f"{where} to be a finite number", repr(value), "supply a finite JSON number")
-    result = float(value)
+    try:
+        result = float(value)
+    except OverflowError:
+        refuse("config", f"{where} to be a finite number", repr(value), "supply a finite JSON number")
+    if not math.isfinite(result):
+        refuse("config", f"{where} to be a finite number", repr(value), "supply a finite JSON number")
     if minimum is not None and result < minimum:
         refuse("config", f"{where} >= {minimum:g}", repr(value), "raise the value to the declared bound")
     return result
@@ -104,10 +109,14 @@ def _consumer(value: object, where: str) -> str:
 
 
 def _path(value: object, where: str, base: Path) -> str:
-    if not isinstance(value, str) or not value:
+    if not isinstance(value, str) or not value or not value.isprintable():
         refuse("config", f"{where} to be a nonempty path", repr(value), "supply the explicit source path")
-    path = Path(value)
-    return str((base / path).resolve() if not path.is_absolute() else path.resolve())
+    try:
+        os.fsencode(value)
+        path = Path(value)
+        return str((base / path).resolve() if not path.is_absolute() else path.resolve())
+    except (OSError, RuntimeError, UnicodeError, ValueError):
+        refuse("config", f"{where} to be a valid path", repr(value), "supply the explicit source path")
 
 
 def _dispatch_params(value: object, base: Path) -> dict[str, object]:
@@ -140,13 +149,13 @@ def _github_params(value: object, _base: Path) -> dict[str, object]:
 def load_config(path: Path) -> dict[str, object]:
     try:
         text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as exc:
+    except (OSError, UnicodeError, ValueError) as exc:
         refuse("config", f"a readable UTF-8 registry at {path}", type(exc).__name__, "restore the registry or pass --config FILE")
     try:
         data = json.loads(text, object_pairs_hook=_pairs, parse_constant=lambda value: refuse("config", "finite JSON numbers", value, "replace the nonfinite value"))
     except Refusal:
         raise
-    except (json.JSONDecodeError, UnicodeError) as exc:
+    except (json.JSONDecodeError, UnicodeError, ValueError, RecursionError) as exc:
         refuse("config", f"valid JSON at {path}", f"{type(exc).__name__} at line {getattr(exc, 'lineno', '?')}", "repair the registry JSON")
     root = _object(data, "registry", {"version", "monitors", "schedules", "conditions", "routes"})
     if type(root["version"]) is not int or root["version"] != 1:
@@ -166,7 +175,7 @@ def load_config(path: Path) -> dict[str, object]:
         entry = _object(raw, f"monitors.{ident}", {"enabled", "adapter", "schedule", "params"})
         _enabled(entry, f"monitors.{ident}")
         adapter = entry["adapter"]
-        if adapter not in ADAPTERS:
+        if not isinstance(adapter, str) or adapter not in ADAPTERS:
             refuse("config", f"monitors.{ident}.adapter in {sorted(ADAPTERS)}", repr(adapter), "choose a registered observation adapter")
         schedule = entry["schedule"]
         if not isinstance(schedule, str) or schedule not in schedules:
@@ -182,7 +191,7 @@ def load_config(path: Path) -> dict[str, object]:
         if not isinstance(monitor, str) or monitor not in monitors:
             refuse("reference", f"conditions.{ident}.monitor to name a monitor", repr(monitor), "add the target or correct the reference")
         op = entry["op"]
-        if op not in {"changed", "gt", "lt", "unavailable"}:
+        if not isinstance(op, str) or op not in {"changed", "gt", "lt", "unavailable"}:
             refuse("config", f"conditions.{ident}.op to be changed, gt, lt, or unavailable", repr(op), "choose a declared operator")
         field = entry["field"]
         threshold = entry["threshold"]
@@ -195,7 +204,7 @@ def load_config(path: Path) -> dict[str, object]:
             if op == "changed" and threshold is not None:
                 refuse("config", f"conditions.{ident}.threshold to be null for changed", repr(threshold), "set threshold to null")
             if op in {"gt", "lt"}:
-                _number(threshold, f"conditions.{ident}.threshold")
+                threshold = _number(threshold, f"conditions.{ident}.threshold")
         cooldown = _number(entry["cooldown_s"], f"conditions.{ident}.cooldown_s", minimum=0)
         normalized["conditions"][ident] = {
             "enabled": entry["enabled"], "monitor": monitor, "op": op,
@@ -207,11 +216,12 @@ def load_config(path: Path) -> dict[str, object]:
         condition = entry["condition"]
         if not isinstance(condition, str) or condition not in conditions:
             refuse("reference", f"routes.{ident}.condition to name a condition", repr(condition), "add the target or correct the reference")
-        if entry["adapter"] not in {"queue", "stdout", "unsupported"}:
-            refuse("config", f"routes.{ident}.adapter to be queue, stdout, or unsupported", repr(entry["adapter"]), "choose a declared delivery adapter")
+        adapter = entry["adapter"]
+        if not isinstance(adapter, str) or adapter not in {"queue", "stdout", "unsupported"}:
+            refuse("config", f"routes.{ident}.adapter to be queue, stdout, or unsupported", repr(adapter), "choose a declared delivery adapter")
         normalized["routes"][ident] = {
             "enabled": entry["enabled"], "condition": condition,
-            "adapter": entry["adapter"], "consumer": _consumer(entry["consumer"], f"routes.{ident}.consumer"),
+            "adapter": adapter, "consumer": _consumer(entry["consumer"], f"routes.{ident}.consumer"),
         }
     return normalized
 
@@ -242,30 +252,38 @@ def _positive_int(value: object) -> bool:
     return type(value) is int and value > 0
 
 
+def _finite_number(value: object) -> bool:
+    try:
+        return type(value) in {int, float} and math.isfinite(value)
+    except OverflowError:
+        return False
+
+
 def _process_status(pid: object, rec: dict[str, object]) -> str:
     if not _positive_int(pid):
         return "unknown"
     harness = rec.get("harness") if isinstance(rec.get("harness"), dict) else {}
     argv = harness.get("argv") if isinstance(harness.get("argv"), list) else []
-    expected = Path(argv[0]).name if argv and isinstance(argv[0], str) and argv[0] else None
+    expected = argv[0] if argv and isinstance(argv[0], str) and argv[0] else None
     proc = Path("/proc") / str(pid)
     if proc.is_dir():
         if expected is None:
             return "unknown"
         try:
-            cmdline = (proc / "cmdline").read_bytes().replace(b"\0", b" ").decode("utf-8", "replace")
+            cmdline = [os.fsdecode(token) for token in (proc / "cmdline").read_bytes().split(b"\0") if token]
         except OSError:
             return "unknown"
-        return "running" if expected in cmdline else "unknown"
+        matches = any(token == expected or Path(token).name == Path(expected).name for token in cmdline)
+        return "running" if matches else "unknown"
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return "death" if expected else "unknown"
     except PermissionError:
-        return "running" if expected else "unknown"
+        return "unknown"
     except OSError:
         return "unknown"
-    return "running" if expected else "unknown"
+    return "unknown"
 
 
 def read_dispatch(params: dict[str, object], now: datetime) -> list[dict[str, object]]:
@@ -490,7 +508,8 @@ def _claim_due(conn: sqlite3.Connection, config: dict[str, object], now_epoch: f
             if not active:
                 conn.execute("INSERT INTO schedules(monitor,fingerprint,next_due) VALUES(?,?,NULL) ON CONFLICT(monitor) DO UPDATE SET fingerprint=excluded.fingerprint,next_due=NULL", (ident, fingerprint))
                 continue
-            if row is None or row[0] != fingerprint or row[1] is None or now_epoch >= row[1]:
+            clock_rewound = row is not None and row[1] is not None and row[1] - now_epoch > schedule["every_s"]
+            if row is None or row[0] != fingerprint or row[1] is None or now_epoch >= row[1] or clock_rewound:
                 due.append(ident)
                 conn.execute("INSERT INTO schedules(monitor,fingerprint,next_due) VALUES(?,?,?) ON CONFLICT(monitor) DO UPDATE SET fingerprint=excluded.fingerprint,next_due=excluded.next_due", (ident, fingerprint, now_epoch + schedule["every_s"]))
         conn.commit()
@@ -526,14 +545,25 @@ def _evaluate(conn: sqlite3.Connection, config: dict[str, object], observations:
     routes = config["routes"]
     try:
         conn.execute("BEGIN IMMEDIATE")
+        known_conditions = set(conditions)
+        stale = conn.execute("SELECT DISTINCT condition_id FROM condition_state").fetchall()
+        for (condition_id,) in stale:
+            if condition_id not in known_conditions:
+                conn.execute(
+                    "UPDATE condition_state SET fingerprint=?,baseline=NULL,matching=0,pending=0,last_emit=NULL WHERE condition_id=?",
+                    (_fingerprint({"removed": condition_id}), condition_id),
+                )
         for ident, condition in conditions.items():
-            if not condition["enabled"] or not monitors[condition["monitor"]]["enabled"]:
-                conn.execute("DELETE FROM condition_state WHERE condition_id=?", (ident,))
-                continue
             monitor_id = condition["monitor"]
+            fingerprint = _fingerprint({"condition": condition, "source": monitors[monitor_id]})
+            if not condition["enabled"] or not monitors[monitor_id]["enabled"]:
+                conn.execute(
+                    "UPDATE condition_state SET fingerprint=?,baseline=NULL,matching=0,pending=0,last_emit=NULL WHERE condition_id=?",
+                    (_fingerprint({"inactive": fingerprint}), ident),
+                )
+                continue
             if monitor_id not in observations:
                 continue
-            fingerprint = _fingerprint({"condition": condition, "source": monitors[monitor_id]})
             for reading in observations[monitor_id]:
                 if set(reading) != READING_KEYS:
                     raise ValueError("reader returned an invalid reading shape")
@@ -551,11 +581,11 @@ def _evaluate(conn: sqlite3.Connection, config: dict[str, object], observations:
                     epoch, baseline, matching, pending, last_emit, sequence = row[2], row[3], bool(row[4]), bool(row[5]), row[6], row[7]
                 op = condition["op"]
                 field = condition["field"]
-                known = field is None or (reading["state"] == "ok" and field in reading["metrics"])
+                known = field is None or field in reading["metrics"]
                 current = reading["metrics"].get(field) if field is not None else None
                 if op in {"gt", "lt"}:
-                    numeric = type(current) in {int, float} and math.isfinite(current)
-                    matches = bool(known and numeric and (current > condition["threshold"] if op == "gt" else current < condition["threshold"]))
+                    numeric = _finite_number(current)
+                    matches = bool(reading["state"] == "ok" and known and numeric and (current > condition["threshold"] if op == "gt" else current < condition["threshold"]))
                 elif op == "unavailable":
                     matches = reading["state"] == "unavailable"
                 else:
@@ -570,9 +600,19 @@ def _evaluate(conn: sqlite3.Connection, config: dict[str, object], observations:
                 eligible = last_emit is None or now_epoch - last_emit >= condition["cooldown_s"]
                 should_emit = matches and pending and eligible
                 if should_emit:
-                    for route_id, route in routes.items():
-                        if not route["enabled"] or route["condition"] != ident:
-                            continue
+                    active_routes = [
+                        (route_id, route) for route_id, route in routes.items()
+                        if route["enabled"] and route["condition"] == ident
+                    ]
+                    while any(
+                        conn.execute(
+                            "SELECT 1 FROM events WHERE dedup_key=?",
+                            (_fingerprint([ident, subject, epoch, sequence, route_id]),),
+                        ).fetchone()
+                        for route_id, _route in active_routes
+                    ):
+                        sequence += 1
+                    for route_id, route in active_routes:
                         delivery = "unsupported" if route["adapter"] == "unsupported" else ("stdout" if route["adapter"] == "stdout" else "queued")
                         dedup = _fingerprint([ident, subject, epoch, sequence, route_id])
                         evidence = _canonical(reading["evidence"])
@@ -602,10 +642,11 @@ def _evaluate(conn: sqlite3.Connection, config: dict[str, object], observations:
     return emitted
 
 
-def run_once(config: dict[str, object], state: Path, now: datetime) -> tuple[dict[str, int], list[dict[str, object]]]:
+def run_once(config: dict[str, object], state: Path, now: datetime, *, clock_epoch: float | None = None) -> tuple[dict[str, int], list[dict[str, object]]]:
     conn = _connect(state, write=True)
     try:
-        due = _claim_due(conn, config, now.timestamp())
+        due_clock = now.timestamp() if clock_epoch is None else clock_epoch
+        due = _claim_due(conn, config, due_clock)
         observed: dict[str, list[dict[str, object]]] = {}
         for ident in due:
             monitor = config["monitors"][ident]
@@ -614,7 +655,7 @@ def run_once(config: dict[str, object], state: Path, now: datetime) -> tuple[dic
             except (ArithmeticError, LookupError, OSError, TypeError, ValueError) as exc:
                 rows = [_reading(ident, "unavailable", now, evidence=ident, reason=f"reader {type(exc).__name__}")]
             observed[ident] = rows
-        events = _evaluate(conn, config, observed, now.timestamp())
+        events = _evaluate(conn, config, observed, due_clock)
         count = sum(len(rows) for rows in observed.values())
         unavailable = sum(row["state"] == "unavailable" for rows in observed.values() for row in rows)
         return {"observations": count, "events": len(events), "unavailable": unavailable}, events
@@ -809,13 +850,19 @@ def main(argv: list[str] | None = None) -> int:
                     print(json.dumps(event, ensure_ascii=False, separators=(",", ":")))
             print(json.dumps(counts, separators=(",", ":")))
             return 0
+        # Persist epoch-shaped deadlines, but advance the live clock only by
+        # monotonic elapsed time. A restart translates them through wall time.
+        wall_anchor = datetime.now(timezone.utc).timestamp()
+        monotonic_anchor = time.monotonic()
         while True:
             try:
                 cycle = load_config(config_path)
             except Refusal as exc:
                 print(exc.line(), file=sys.stderr)
                 return 3
-            counts, events = run_once(cycle, state, datetime.now(timezone.utc))
+            now = datetime.now(timezone.utc)
+            live_epoch = wall_anchor + time.monotonic() - monotonic_anchor
+            counts, events = run_once(cycle, state, now, clock_epoch=live_epoch)
             for event in events:
                 if event["delivery"] == "stdout":
                     print(json.dumps(event, ensure_ascii=False, separators=(",", ":")), flush=True)
