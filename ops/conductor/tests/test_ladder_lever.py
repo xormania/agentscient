@@ -3380,6 +3380,10 @@ class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
     tally that list, and verdict must agree. tests-fix runs only when
     the validated verdict is changes. verdict=changes with an empty
     findings list is an envelope stop, not a tests-fix dispatch.
+
+    Adversarial P2: pin the refusal, not the absence. Each malformed
+    envelope method must assert_stopped(..., reason="envelope"). A
+    driver that silently returns success must not pass.
     """
 
     def test_changes_with_no_findings_is_an_envelope_stop(self):
@@ -3542,6 +3546,10 @@ class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
         )
         before = self.files_before_run()
         proc = self.run_ladder()
+        rec_id = self.record_id_for("check-tests")
+        self.assert_stopped(
+            proc, stage="check-tests", record=rec_id, reason="envelope",
+        )
         names = self.dispatch_names()
         self.assertNotIn(
             "tests-fix",
@@ -3574,6 +3582,10 @@ class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
         )
         before = self.files_before_run()
         proc = self.run_ladder()
+        rec_id = self.record_id_for("check-tests")
+        self.assert_stopped(
+            proc, stage="check-tests", record=rec_id, reason="envelope",
+        )
         names = self.dispatch_names()
         self.assertNotIn(
             "tests-fix",
@@ -3595,6 +3607,10 @@ class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
         self.assertTrue(planted)
         before = self.files_before_run()
         proc = self.run_ladder()
+        rec_id = self.record_id_for("check-tests")
+        self.assert_stopped(
+            proc, stage="check-tests", record=rec_id, reason="envelope",
+        )
         names = self.dispatch_names()
         self.assertNotIn(
             "tests-fix",
