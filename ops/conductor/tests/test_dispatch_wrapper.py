@@ -6,7 +6,7 @@ Contract: `ops/docs/scratch/dispatch-wrapper-spec.md` Acceptance rows
     bash <repo>/ops/conductor/tools/dispatch.sh <flags>
 
 with a scratch conf and scratch scope file per case. They never write
-`ops/conductor/tools/dispatch.conf` and never add or remove worktrees.
+`ops/lane.conf` and never add or remove worktrees.
 
 Argv assertions compare exact lists, never a substring of a joined
 command line.
@@ -31,8 +31,16 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 WRAPPER = REPO / "ops" / "conductor" / "tools" / "dispatch.sh"
-REAL_CONF = REPO / "ops" / "conductor" / "tools" / "dispatch.conf"
+REAL_CONF = REPO / "ops" / "lane.conf"
+OLD_CONF = REPO / "ops" / "conductor" / "tools" / "dispatch.conf"
 TOOLS_DIR = WRAPPER.parent
+NAME_KEYS = (
+    "LANE_NAME",
+    "TRUNK_BRANCH",
+    "RELEASE_BRANCH",
+    "REPO_SLUG",
+    "CHECK_NAME",
+)
 
 SCOPE_CAP = 1024
 FLAG_AGENT = "Wrap Agent <noreply@example.invalid>"
@@ -153,6 +161,8 @@ class _WrapperFixture(unittest.TestCase):
         self._tools_existed = TOOLS_DIR.exists()
         self._conf_existed = REAL_CONF.exists()
         self._conf_bytes = REAL_CONF.read_bytes() if self._conf_existed else None
+        self._old_existed = OLD_CONF.exists()
+        self._old_bytes = OLD_CONF.read_bytes() if self._old_existed else None
         self._guarded = []
         for root in _jobs_roots_to_guard():
             if root.is_dir():
@@ -223,6 +233,9 @@ class _WrapperFixture(unittest.TestCase):
             self.assertEqual(REAL_CONF.exists(), self._conf_existed)
             if self._conf_existed:
                 self.assertEqual(REAL_CONF.read_bytes(), self._conf_bytes)
+            self.assertEqual(OLD_CONF.exists(), self._old_existed)
+            if self._old_existed:
+                self.assertEqual(OLD_CONF.read_bytes(), self._old_bytes)
             for root, before in self._guarded:
                 after = frozenset(os.listdir(root))
                 self.assertEqual(
@@ -275,6 +288,7 @@ class _WrapperFixture(unittest.TestCase):
         keys = {
             "LAUNCHER_PIN": str(self.pin),
             "WF_AGENT_DEFAULT": CONF_AGENT,
+            "LANE_AUTHOR": "Lane Owner <lane-owner@example.invalid>",
             "MODEL_GROK": self.conf_model_grok,
             "MODEL_CODEX": "wrap-model-conf-codex",
             "MODEL_CLAUDE_READ": "wrap-model-conf-claude-read",
@@ -467,6 +481,38 @@ class _WrapperFixture(unittest.TestCase):
             [],
             "isolated jobs root must stay empty when there is no launch",
         )
+
+    def assert_wire_abort(
+        self,
+        proc: subprocess.CompletedProcess,
+        class_name: str,
+        *,
+        named: tuple[str, ...] = (),
+    ) -> str:
+        """Unit-1 wrapper abort: class token, expected/found/needed in
+        order, one stderr line, empty stdout, exit 3, no launch.
+        """
+        err = proc.stderr or ""
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertEqual(
+            (proc.stdout or "").strip(),
+            "",
+            f"refusal text belongs on stderr, not stdout: {proc.stdout!r}",
+        )
+        lines = [ln for ln in err.splitlines() if ln.strip()]
+        self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
+        line = lines[0]
+        lower = line.lower()
+        token = class_name.lower().replace("_", "-")
+        self.assertIn(token, lower, line)
+        for word in ("expected", "found", "needed"):
+            self.assertIn(word, lower, line)
+        self.assertLess(lower.index("expected"), lower.index("found"), line)
+        self.assertLess(lower.index("found"), lower.index("needed"), line)
+        for item in named:
+            self.assertIn(item, line, line)
+        self.assert_no_launch()
+        return line
 
 
 class Row1FullFlagSetArgv(_WrapperFixture):
@@ -1107,15 +1153,13 @@ class RowScopeCapFromConf(_WrapperFixture):
         self._plant_bytes(self.scope_path, data)
         self.assertEqual(self.scope_path.stat().st_size, 11)
         proc = self.invoke(self.full_flags(dry_run=False))
-        text = self.combined(proc)
-        self.assertEqual(proc.returncode, 3, text)
+        line = self.assert_wire_abort(proc, "scope-cap", named=("11",))
         self.assertRegex(
-            text,
+            line,
             r"\b11\b",
-            f"must name the byte count 11 as a token: {text!r}",
+            f"must name the byte count 11 as a token: {line!r}",
         )
-        self.assertNotIn("record-target", text.lower())
-        self.assert_no_launch()
+        self.assertNotIn("record-target", line.lower())
 
 
 class RowLaneNameJobsRoot(_WrapperFixture):
@@ -1184,21 +1228,17 @@ class RowLocalConf(_WrapperFixture):
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assert_no_launch()
 
-    def test_local_conf_setting_lane_name_refuses_local_key(self):
-        local = self.conf_path.parent / "lane.local.conf"
-        self._plant_bytes(local, b"LANE_NAME='from-local'\n")
-        self.assertIn("LANE_NAME", local.read_text(encoding="utf-8"))
-        proc = self.invoke(self.full_flags(dry_run=False))
-        text = self.combined(proc)
-        self.assertEqual(proc.returncode, 3, text)
-        lower = text.lower()
-        self.assertIn("local-key", lower)
-        self.assertIn("LANE_NAME", text)
-        self.assertIn(str(local), text)
-        self.assertIn("expected", lower, text)
-        self.assertIn("found", lower, text)
-        self.assertIn("needed", lower, text)
-        self.assert_no_launch()
+    def test_local_conf_setting_a_name_key_refuses_local_key(self):
+        self.assertEqual(len(NAME_KEYS), 5, NAME_KEYS)
+        for key in NAME_KEYS:
+            with self.subTest(key=key):
+                local = self.conf_path.parent / "lane.local.conf"
+                self._plant_bytes(local, f"{key}='from-local'\n".encode())
+                self.assertIn(key, local.read_text(encoding="utf-8"))
+                proc = self.invoke(self.full_flags(dry_run=False))
+                self.assert_wire_abort(
+                    proc, "local-key", named=(key, str(local)),
+                )
 
 
 class RowMissingScopeCap(_WrapperFixture):
@@ -1213,14 +1253,202 @@ class RowMissingScopeCap(_WrapperFixture):
         landed = self.conf_path.read_text(encoding="utf-8")
         self.assertNotIn("SCOPE_CAP", landed)
         proc = self.invoke(self.full_flags(dry_run=False))
-        text = self.combined(proc)
-        self.assertEqual(proc.returncode, 3, text)
-        self.assertIn("SCOPE_CAP", text)
-        self.assertIn(str(self.conf_path), text)
-        lower = text.lower()
-        self.assertIn("expected", lower, text)
-        self.assertIn("found", lower, text)
-        self.assertIn("needed", lower, text)
+        self.assert_wire_abort(
+            proc, "conf-key",
+            named=("SCOPE_CAP", str(self.conf_path)),
+        )
+
+
+class RowHarnessModelEffortTable(_WrapperFixture):
+    """Grok, Codex, Claude-read, and Claude-plan each resolve their own
+    model and effort keys. Env beats conf; the flag beats env; a
+    MODEL_<HARNESS>_<JOB> suffix beats the harness key. A wrapper that
+    routes every harness through MODEL_GROK fails."""
+
+    CASES = (
+        ("grok", "wrap-job", "MODEL_GROK", "EFFORT_GROK",
+         "wrap-model-conf-grok", "wrap-effort-conf-grok"),
+        ("codex", "wrap-job", "MODEL_CODEX", "EFFORT_CODEX",
+         "wrap-model-conf-codex", "wrap-effort-conf-codex"),
+        ("claude", "review", "MODEL_CLAUDE_READ", "EFFORT_CLAUDE",
+         "wrap-model-conf-claude-read", "wrap-effort-conf-claude"),
+        ("claude", "plan", "MODEL_CLAUDE_PLAN", "EFFORT_CLAUDE",
+         "wrap-model-conf-claude-plan", "wrap-effort-conf-claude"),
+    )
+
+    def test_conf_model_and_effort_by_harness_and_job_class(self):
+        self.assertEqual(len(self.CASES), 4, self.CASES)
+        for harness, job, model_key, effort_key, model, effort in self.CASES:
+            with self.subTest(harness=harness, job=job, layer="conf"):
+                self._plant_conf(self.conf_path, **self._conf_kwargs())
+                proc = self.invoke(self.full_flags(
+                    harness=harness, job=job, omit=("model", "effort"),
+                ))
+                argv, _env = self.parse_dry_run(proc)
+                self.assertEqual(proc.returncode, 0, self.combined(proc))
+                self.assertEqual(argv[argv.index("--harness") + 1], harness)
+                self.assertEqual(argv[argv.index("--model") + 1], model)
+                self.assertEqual(argv[argv.index("--effort") + 1], effort)
+                if harness != "grok":
+                    self.assertNotEqual(
+                        argv[argv.index("--model") + 1],
+                        self.conf_model_grok,
+                    )
+                    self.assertNotEqual(
+                        argv[argv.index("--effort") + 1],
+                        self.conf_effort_grok,
+                    )
+                self.assert_no_launch()
+
+    def test_env_beats_conf_for_each_harness_model(self):
+        self.assertEqual(len(self.CASES), 4, self.CASES)
+        for harness, job, model_key, _effort_key, _model, _effort in self.CASES:
+            with self.subTest(harness=harness, job=job, layer="env"):
+                env_model = f"env-{harness}-{job}"
+                self.assertNotEqual(env_model, _model)
+                proc = self.invoke(
+                    self.full_flags(
+                        harness=harness, job=job, omit=("model",),
+                    ),
+                    extra_env={model_key: env_model},
+                )
+                argv, _env = self.parse_dry_run(proc)
+                self.assertEqual(proc.returncode, 0, self.combined(proc))
+                self.assertEqual(argv[argv.index("--model") + 1], env_model)
+                self.assert_no_launch()
+
+    def test_flag_beats_env_for_each_harness_model(self):
+        self.assertEqual(len(self.CASES), 4, self.CASES)
+        for harness, job, model_key, _effort_key, _model, _effort in self.CASES:
+            with self.subTest(harness=harness, job=job, layer="flag"):
+                env_model = f"env-{harness}-{job}"
+                flag_model = f"flag-{harness}-{job}"
+                self.assertNotEqual(flag_model, env_model)
+                proc = self.invoke(
+                    self.full_flags(
+                        harness=harness, job=job, model=flag_model,
+                    ),
+                    extra_env={model_key: env_model},
+                )
+                argv, _env = self.parse_dry_run(proc)
+                self.assertEqual(proc.returncode, 0, self.combined(proc))
+                self.assertEqual(argv[argv.index("--model") + 1], flag_model)
+                self.assertNotEqual(
+                    argv[argv.index("--model") + 1], env_model,
+                )
+                self.assert_no_launch()
+
+    def test_job_suffix_beats_harness_model_except_when_keys_collide(self):
+        cases = [c for c in self.CASES if c[1] != "plan"]
+        self.assertGreaterEqual(len(cases), 3, cases)
+        for harness, job, _model_key, _effort_key, _model, _effort in cases:
+            with self.subTest(harness=harness, job=job, layer="suffix"):
+                suffix = (
+                    f"MODEL_{harness.upper()}_"
+                    f"{job.upper().replace('-', '_')}"
+                )
+                suffix_model = f"job-{harness}-{job}"
+                self._plant_conf(
+                    self.conf_path,
+                    **self._conf_kwargs(**{suffix: suffix_model}),
+                )
+                landed = self.conf_path.read_text(encoding="utf-8")
+                self.assertIn(suffix, landed)
+                proc = self.invoke(self.full_flags(
+                    harness=harness, job=job, omit=("model",),
+                ))
+                argv, _env = self.parse_dry_run(proc)
+                self.assertEqual(proc.returncode, 0, self.combined(proc))
+                self.assertEqual(
+                    argv[argv.index("--model") + 1], suffix_model,
+                )
+                self.assert_no_launch()
+
+
+class RowThreeLayer(_WrapperFixture):
+    """Environment beats local file beats conf, for an allowed key."""
+
+    def test_env_beats_local_file_beats_conf_for_model_grok(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(MODEL_GROK="from-conf"),
+        )
+        local = self.conf_path.parent / "lane.local.conf"
+        self._plant_bytes(local, b"MODEL_GROK='from-local'\n")
+        self.assertTrue(local.is_file())
+        proc = self.invoke(
+            self.full_flags(omit=("model",)),
+            extra_env={"MODEL_GROK": "from-env"},
+        )
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--model") + 1], "from-env")
+        self.assertNotEqual(argv[argv.index("--model") + 1], "from-local")
+        self.assertNotEqual(argv[argv.index("--model") + 1], "from-conf")
+        self.assert_no_launch()
+
+
+class RowInvalidForm(_WrapperFixture):
+    """Double-quoted, unquoted, export, and command-substitution lines
+    refuse syntax through the Bash reader; substitution must not run."""
+
+    def test_double_quoted_assignment_refuses_syntax(self):
+        text = "MODEL_GROK=\"double-quoted\"\n"
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        proc = self.invoke(self.full_flags(dry_run=False))
+        self.assert_wire_abort(proc, "syntax")
+
+    def test_unquoted_assignment_refuses_syntax(self):
+        text = "MODEL_GROK=unquoted\n"
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        proc = self.invoke(self.full_flags(dry_run=False))
+        self.assert_wire_abort(proc, "syntax")
+
+    def test_export_assignment_refuses_syntax(self):
+        text = "export MODEL_GROK='from-export'\n"
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        proc = self.invoke(self.full_flags(dry_run=False))
+        self.assert_wire_abort(proc, "syntax")
+
+    def test_command_substitution_does_not_run_and_refuses_syntax(self):
+        witness = self.scratch / "pwned-wrapper"
+        self.assertFalse(witness.exists(), "plant: witness must start absent")
+        text = f'MODEL_GROK="$(printf PWNED > {witness})"\n'
+        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        proc = self.invoke(self.full_flags(dry_run=False))
+        self.assert_wire_abort(proc, "syntax")
+        self.assertFalse(
+            witness.exists(),
+            "command substitution must not execute; "
+            f"witness="
+            f"{witness.read_text(encoding='utf-8') if witness.exists() else ''!r}",
+        )
+
+
+class RowDispatchConfRetired(_WrapperFixture):
+    """DISPATCH_CONF is retired; a decoy on that name must not win."""
+
+    def test_dispatch_conf_env_does_not_affect_dispatch(self):
+        decoy = self.scratch / "old-dispatch.conf"
+        self._plant_conf(
+            decoy, **self._conf_kwargs(MODEL_GROK="from-dispatch-conf"),
+        )
+        self._plant_conf(
+            self.conf_path, **self._conf_kwargs(MODEL_GROK="from-lane-conf"),
+        )
+        self.assertNotEqual("from-lane-conf", "from-dispatch-conf")
+        proc = self.invoke(
+            self.full_flags(omit=("model",)),
+            extra_env={"DISPATCH_CONF": str(decoy)},
+        )
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            argv[argv.index("--model") + 1], "from-lane-conf",
+        )
+        self.assertNotEqual(
+            argv[argv.index("--model") + 1], "from-dispatch-conf",
+        )
         self.assert_no_launch()
 
 
