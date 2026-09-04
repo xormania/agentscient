@@ -410,5 +410,58 @@ class TestFindingShape(DoctorFixture):
         self.assertTrue(any("P-HOOK-2" in ln for ln in findings))
 
 
+class TestPLev1(DoctorFixture):
+    """P-LEV-1: an unset LAUNCHER_PIN examines the sibling launcher."""
+
+    def _conf(self) -> Path:
+        return self.repo / "ops" / "conductor" / "tools" / "dispatch.conf"
+
+    def _sibling_launcher(self) -> Path:
+        return self.repo / "ops" / "devlane" / "dispatch" / "launch.py"
+
+    def _plant_conf_without_launcher_pin(self) -> None:
+        conf = self._conf()
+        before = conf.read_text(encoding="utf-8")
+        self.assertIn("LAUNCHER_PIN", before, "plant: default fixture pins")
+        body = "# pin unset; sibling default applies\n"
+        conf.write_text(body, encoding="utf-8")
+        landed = conf.read_text(encoding="utf-8")
+        self.assertEqual(landed, body, "plant: conf without pin did not land")
+        self.assertNotIn("LAUNCHER_PIN=", landed)
+
+    def _plant_live_sibling_launcher(self) -> Path:
+        path = self._sibling_launcher()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        body = "#!/usr/bin/env python3\nprint('launch')\n"
+        path.write_text(body, encoding="utf-8")
+        path.chmod(0o755)
+        self.assertEqual(path.read_text(encoding="utf-8"), body)
+        self.assertTrue(os.access(path, os.X_OK), f"sibling not executable: {path}")
+        return path
+
+    def test_unset_pin_with_a_live_sibling_launcher_is_no_finding(self):
+        self._plant_conf_without_launcher_pin()
+        sibling = self._plant_live_sibling_launcher()
+        self.assertTrue(sibling.is_file())
+        proc, out = self._run()
+        self.assertIn("sibling default", out)
+        classified = [
+            ln for ln in out.splitlines()
+            if ln.startswith("[") and "P-LEV-1" in ln and "INVALID" not in ln
+        ]
+        self.assertEqual(classified, [], "P-LEV-1 must not be a finding:\n" + out)
+        self.assertEqual(proc.returncode, 0, out)
+
+    def test_unset_pin_with_an_absent_sibling_is_inert(self):
+        self._plant_conf_without_launcher_pin()
+        sibling = self._sibling_launcher()
+        self.assertFalse(sibling.exists(), "plant: sibling launcher must be absent")
+        proc, out = self._run()
+        self.assertIn("sibling default", out)
+        self.assertIn("P-LEV-1", out)
+        self.assertRegex(out, r"inert", re.IGNORECASE)
+        self.assertEqual(proc.returncode, 1, out)
+
+
 if __name__ == "__main__":
     unittest.main()
