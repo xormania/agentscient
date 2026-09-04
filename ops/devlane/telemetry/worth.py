@@ -458,13 +458,26 @@ def gather(args, window):
 
 
 def _same_repo(record, repo):
-    root = ((record.get("snapshot") or {}).get("root"))
-    if not root:
-        return True
-    found = run_git(root, "rev-parse", "--show-toplevel")
+    """A dispatch is another repository's only when both signs say so.
+
+    A snapshot rooted in this checkout is this repository's, and a root
+    that cannot be looked at is counted, not dropped. A launcher snapshot
+    is a bare fetch of one commit with no remote, so its top level is
+    never this checkout; the repository identity it carries is
+    ``snapshot.ref_sha``. A snapshot elsewhere whose base commit this
+    checkout does not hold was dispatched for another repository.
+    """
+    snapshot = record.get("snapshot") or {}
+    root = snapshot.get("root")
+    found = run_git(root, "rev-parse", "--show-toplevel") if root else None
     if found is None:
         return True
-    return Path(found.strip()).resolve() == Path(repo).resolve()
+    if Path(found.strip()).resolve() == Path(repo).resolve():
+        return True
+    sha = snapshot.get("ref_sha")
+    if not sha:
+        return True
+    return run_git(repo, "cat-file", "-e", f"{sha}^{{commit}}") is not None
 
 
 def dispatch_rows(root, repo, window):
