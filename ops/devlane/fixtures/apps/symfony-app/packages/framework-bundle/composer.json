@@ -1,0 +1,11 @@
+{
+  "name": "symfony/framework-bundle",
+  "version": "v8.1.0",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "Symfony\\Component\\HttpFoundation\\": "src/HttpFoundation/",
+      "Symfony\\Component\\Routing\\": "src/Routing/"
+    }
+  }
+}

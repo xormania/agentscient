@@ -1,0 +1,7 @@
+{
+  "name": "phpunit/phpunit",
+  "version": "13.3.2",
+  "type": "library",
+  "autoload": {"psr-4": {"PHPUnit\\Framework\\": "src/Framework/"}},
+  "bin": ["bin/phpunit"]
+}
