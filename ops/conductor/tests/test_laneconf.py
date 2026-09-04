@@ -52,7 +52,7 @@ REQUIRED_KEYS = (
     "TRUNK_BRANCH",
     "RELEASE_BRANCH",
     "REPO_SLUG",
-    "CHECK_NAME",
+    "CHECK_NAMES",
     "WF_AGENT_DEFAULT",
     "LANE_AUTHOR",
     "MODEL_GROK",
@@ -71,7 +71,7 @@ NAME_KEYS = (
     "TRUNK_BRANCH",
     "RELEASE_BRANCH",
     "REPO_SLUG",
-    "CHECK_NAME",
+    "CHECK_NAMES",
 )
 
 REQUIRED_DEFAULTS = {
@@ -79,7 +79,7 @@ REQUIRED_DEFAULTS = {
     "TRUNK_BRANCH": "trunktest",
     "RELEASE_BRANCH": "reltest",
     "REPO_SLUG": "org/proj",
-    "CHECK_NAME": "ci",
+    "CHECK_NAMES": "lane app",
     "WF_AGENT_DEFAULT": "Conf Agent <conf@example.invalid>",
     "LANE_AUTHOR": "Lane Owner <lane-owner@example.invalid>",
     "MODEL_GROK": "model-grok",
@@ -94,6 +94,38 @@ REQUIRED_DEFAULTS = {
 }
 
 DECL_RE = re.compile(r"^([A-Z][A-Z0-9_]*)='([^']*)'\s*$")
+
+TWO_JOB_WORKFLOW = """\
+name: ci
+"on": [push]
+jobs:
+  lane:
+    runs-on: self-hosted
+    steps:
+      - run: echo lane
+  app:
+    runs-on: self-hosted
+    steps:
+      - run: echo app
+"""
+
+THREE_JOB_WORKFLOW = """\
+name: ci
+"on": [push]
+jobs:
+  lane:
+    runs-on: self-hosted
+    steps:
+      - run: echo lane
+  app:
+    runs-on: self-hosted
+    steps:
+      - run: echo app
+  extra:
+    runs-on: self-hosted
+    steps:
+      - run: echo extra
+"""
 
 
 def conf_text(**overrides: object) -> str:
@@ -525,6 +557,9 @@ class TrackedConfRequiredKeys(_LaneconfFixture):
             with self.subTest(key=name):
                 self.assertIn(name, keys)
         self.assertNotIn("DEFAULT_TIMEOUT", keys)
+        self.assertIn("CHECK_NAMES", keys)
+        self.assertNotIn("CHECK_NAME", keys)
+        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "app"])
         for line in text.splitlines():
             if DECL_RE.match(line):
                 self.assertFalse(
@@ -535,7 +570,8 @@ class TrackedConfRequiredKeys(_LaneconfFixture):
 
 class ClosureVerb(_LaneconfFixture):
     """`closure` exits 0 on the tree; unread and undeclared keys and a
-    CHECK_NAME mismatch each exit 1 naming what they found."""
+    CHECK_NAMES mismatch against workflow jobs each exit 1 naming what
+    they found."""
 
     def test_closure_exits_0_on_the_tree(self):
         proc = self.invoke(["closure"], lane_conf=None, cwd=REPO)
@@ -630,28 +666,95 @@ class ClosureVerb(_LaneconfFixture):
         self.assertIn(ghost_get, text)
         self.assertIn(rel_get, text)
 
-    def test_check_name_not_equal_to_the_workflow_name_exits_1_naming_both(
-            self):
-        workflow_name = "other-check"
-        check_name = "ci"
-        self.assertNotEqual(workflow_name, check_name)
+    def test_matching_jobs_and_check_names_exit_0(self):
         repo = self.plant_scratch_repo(
             {
                 "ops/conductor/tools/reads.py": reader_source(),
-                ".github/workflows/ci.yml": f"name: {workflow_name}\n",
+                ".github/workflows/ci.yml": TWO_JOB_WORKFLOW,
             },
-            conf_overrides={"CHECK_NAME": check_name},
+            conf_overrides={"CHECK_NAMES": "lane app"},
         )
         conf = repo / "ops" / "lane.conf"
         keys = declared_keys(conf.read_text(encoding="utf-8"))
-        self.assertEqual(keys["CHECK_NAME"], check_name)
+        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "app"])
         yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-        self.assertIn(workflow_name, yml)
+        self.assertEqual(yml, TWO_JOB_WORKFLOW)
+        self.assertIn("\n  lane:\n", yml)
+        self.assertIn("\n  app:\n", yml)
+        self.assertNotIn("\n  extra:\n", yml)
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_a_planted_third_job_exits_1_naming_the_job(self):
+        repo = self.plant_scratch_repo(
+            {
+                "ops/conductor/tools/reads.py": reader_source(),
+                ".github/workflows/ci.yml": THREE_JOB_WORKFLOW,
+            },
+            conf_overrides={"CHECK_NAMES": "lane app"},
+        )
+        conf = repo / "ops" / "lane.conf"
+        keys = declared_keys(conf.read_text(encoding="utf-8"))
+        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "app"])
+        self.assertNotIn("extra", keys["CHECK_NAMES"].split())
+        yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertEqual(yml, THREE_JOB_WORKFLOW)
+        self.assertIn("\n  extra:\n", yml)
         proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
         text = self.combined(proc)
         self.assertEqual(proc.returncode, 1, text)
-        self.assertIn(check_name, text)
-        self.assertIn(workflow_name, text)
+        self.assertIn("extra", text)
+
+    def test_a_planted_extra_check_name_exits_1_naming_the_name(self):
+        extra = "ghost-job"
+        self.assertNotEqual(extra, "lane")
+        self.assertNotEqual(extra, "app")
+        repo = self.plant_scratch_repo(
+            {
+                "ops/conductor/tools/reads.py": reader_source(),
+                ".github/workflows/ci.yml": TWO_JOB_WORKFLOW,
+            },
+            conf_overrides={"CHECK_NAMES": f"lane app {extra}"},
+        )
+        conf = repo / "ops" / "lane.conf"
+        keys = declared_keys(conf.read_text(encoding="utf-8"))
+        self.assertEqual(keys["CHECK_NAMES"].split(), ["lane", "app", extra])
+        yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertEqual(yml, TWO_JOB_WORKFLOW)
+        self.assertNotIn(extra, yml)
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 1, text)
+        self.assertIn(extra, text)
+
+    def test_same_cardinality_mismatched_name_exits_1_naming_the_name(self):
+        extra = "ghost-job"
+        self.assertNotEqual(extra, "lane")
+        self.assertNotEqual(extra, "app")
+        repo = self.plant_scratch_repo(
+            {
+                "ops/conductor/tools/reads.py": reader_source(),
+                ".github/workflows/ci.yml": TWO_JOB_WORKFLOW,
+            },
+            conf_overrides={"CHECK_NAMES": f"lane {extra}"},
+        )
+        conf = repo / "ops" / "lane.conf"
+        keys = declared_keys(conf.read_text(encoding="utf-8"))
+        names = keys["CHECK_NAMES"].split()
+        self.assertEqual(names, ["lane", extra])
+        self.assertEqual(len(names), 2)
+        yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertEqual(yml, TWO_JOB_WORKFLOW)
+        self.assertIn("\n  lane:\n", yml)
+        self.assertIn("\n  app:\n", yml)
+        self.assertNotIn(f"\n  {extra}:\n", yml)
+        self.assertEqual(len(names), 2)
+        self.assertNotEqual(set(names), {"lane", "app"})
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 1, text)
+        self.assertIn(extra, text)
+        self.assertIn("app", text)
 
 
 class LiteralsVerb(_LaneconfFixture):
@@ -682,7 +785,7 @@ class LiteralsVerb(_LaneconfFixture):
             "TRUNK_BRANCH": "trunkx",
             "RELEASE_BRANCH": "relx",
             "REPO_SLUG": "org/projx",
-            "CHECK_NAME": "checkx",
+            "CHECK_NAMES": "checkx",
         }
         plants = (
             ("ops/bin/legacy-dev.sh", '"dev"'),
@@ -703,8 +806,8 @@ class LiteralsVerb(_LaneconfFixture):
             ("ops/conductor/tools/cfg_rel.py", configured["RELEASE_BRANCH"]),
             ("ops/bin/cfg-slug.sh", configured["REPO_SLUG"]),
             ("ops/conductor/tools/cfg_slug.py", configured["REPO_SLUG"]),
-            ("ops/bin/cfg-check.sh", configured["CHECK_NAME"]),
-            ("ops/conductor/tools/cfg_check.py", configured["CHECK_NAME"]),
+            ("ops/bin/cfg-check.sh", configured["CHECK_NAMES"]),
+            ("ops/conductor/tools/cfg_check.py", configured["CHECK_NAMES"]),
         )
         self.assertEqual(len(plants), 20, plants)
         for rel, token in plants:

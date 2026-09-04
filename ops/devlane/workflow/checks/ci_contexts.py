@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
 DEV = "ci-dev.yml"
 APPS = "ci-dev-apps.yml"
+CI = "ci.yml"
 
 # Quoted `name:` at job indent. Workflow `name: CI` is unquoted and
 # unindented; step names in these files are unquoted or dashed.
@@ -145,6 +146,15 @@ def _job_blocks(text, filename="workflow"):
 
 def job_ids(text, filename="workflow"):
     return list(_job_blocks(text, filename))
+
+
+def workflow_job_names(root=None):
+    """Return every job id from the repository's always-on workflow."""
+    root = Path(root) if root is not None else ROOT
+    names = job_ids(read_workflow(root, CI), CI)
+    if not names:
+        raise DerivationError(CI, "-", "at least one workflow job", "none")
+    return sorted(names)
 
 
 def job_block(text, job_id, filename="workflow"):

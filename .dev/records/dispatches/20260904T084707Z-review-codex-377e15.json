@@ -1,0 +1,164 @@
+{
+  "id": "20260904T084707Z-review-codex-377e15",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/registry-rows",
+  "lineage": {
+    "branch": "lane/registry-rows",
+    "base_sha": "d42ac94fd9ce0a872413ea236551c39123e1d025"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:47:07Z",
+    "closed": "2026-09-04T08:52:49Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d42ac94fd9ce0a872413ea236551c39123e1d025",
+    "ref_sha": "d42ac94fd9ce0a872413ea236551c39123e1d025",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-47-08-01a06b99-ab7a-7c12-bd5c-0f0fdb6dfb44.jsonl"
+  },
+  "session": {
+    "id": "01a06b99-ab7a-7c12-bd5c-0f0fdb6dfb44",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-47-08-01a06b99-ab7a-7c12-bd5c-0f0fdb6dfb44.jsonl",
+    "stream_sha256_at_close": "d027ce786a4c4b2c611fca5393670d93f7e73c4dc858a9a52a7d34363ccda5dc",
+    "spend": {
+      "input": 546665,
+      "cached": 493312,
+      "output": 14964,
+      "total": 561629,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-47-08-01a06b99-ab7a-7c12-bd5c-0f0fdb6dfb44.jsonl",
+      "messages": 131
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-registry-rows/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Fix scope item 35 (the conventions registry as one row-file per instrument under ops/conductor/registry/), the skeptic pass: judge the rewritten ops/conductor/tests/test_instrument_conventions.py on this ref against the contract in the input file. Judge whether the three original assertions keep their meaning while reading the directory, whether the closure rules discriminate (a file for a missing tool, a declaring tool with no file, a malformed file, each caught on planted fixtures; a clean planted registry passing), whether the gate stays hermetic, and whether a wrong gate or a wrong seed would pass. No implementation exists yet (the directory is absent); do not write one.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/in/contract-registry-rows.md",
+        "sha256": "083c00258c079bc582c8733b737ce499a65b6706ed3eb9d407e21b77b4bf0ecc"
+      }
+    ],
+    "sha256": "1ac3474c9b16549a8bf42faa5e307eed6d96d1b7f295f356dd0a7cdac2003594",
+    "bytes": 3345
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:47:07Z",
+      "ended": "2026-09-04T08:52:49Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d42ac94fd9ce0a872413ea236551c39123e1d025",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "test-skeptic",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_instrument_conventions.py:159",
+          "claim": "The three live tests preserve per-row wire behavior and hermetic invocation, but never pin the required 10 files and original 11 exact rows. A seed omitting findings.py's calibration row passes all live gate tests, silently losing an original assertion.",
+          "reproduce": "Run the live gate against a temporary declaring findings.py and findings.py.json containing only the disposition row; the four live tests pass. Measured output: \u201cSURVIVING WRONG-SEED FIXTURE: all 4 live gate tests pass with findings.py calibration row absent\u201d."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_instrument_conventions.py:315",
+          "claim": "Malformed-file fixtures cover only a non-object, empty rows, and an uppercase class. A parser mutant that defaults an absent identity field to false passes all seven planted closure/clean/sort tests while accepting a registry row outside the required shape.",
+          "reproduce": "Replace the missing-identity rejection with identity = item.get(\"identity\", False) in an in-memory copy, then run the seven RegistryClosure fixture tests with TMPDIR=/dev/shm; all pass. Measured output: \u201cSURVIVING WRONG-GATE MUTANT: 7 fixture tests pass; missing identity accepted\u201d."
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T084707Z-review-codex-377e15/out/SKEPTIC.md",
+        "report_status": "not written: the read-only sandbox rejected apply_patch; the path remained absent"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 561629,
+        "out": 14964,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d42ac94fd9ce0a872413ea236551c39123e1d025",
+        "started": "2026-09-04T04:47:22-04:00",
+        "ended": "2026-09-04T04:52:17-04:00"
+      },
+      "note": "Review completed without reading implementation. The seven planted fixture tests and test-guard passed; ruff passed with its cache disabled. The complete suite was not run because the contracted registry directory is intentionally absent."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
+}

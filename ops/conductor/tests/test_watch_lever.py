@@ -170,7 +170,13 @@ class _WatchFixture(unittest.TestCase):
         self._plant_gh(body)
         self.assertFalse(self.counter.exists(), "plant: sequence counter still absent")
 
-    def env(self, *, path: str | None = None, agent: str | None = None) -> dict[str, str]:
+    def env(
+        self,
+        *,
+        path: str | None = None,
+        agent: str | None = None,
+        extra: dict[str, str | None] | None = None,
+    ) -> dict[str, str]:
         env = {
             "PATH": path if path is not None else (
                 str(self.bin) + os.pathsep + os.environ.get("PATH", "/usr/bin:/bin")
@@ -184,6 +190,12 @@ class _WatchFixture(unittest.TestCase):
         }
         if agent is not None:
             env["WF_AGENT"] = agent
+        if extra:
+            for name, value in extra.items():
+                if value is None:
+                    env.pop(name, None)
+                else:
+                    env[name] = value
         return env
 
     def path_without_gh(self) -> str:
@@ -210,8 +222,9 @@ class _WatchFixture(unittest.TestCase):
         *,
         path: str | None = None,
         agent: str | None = None,
+        extra: dict[str, str | None] | None = None,
     ):
-        env = self.env(path=path, agent=agent)
+        env = self.env(path=path, agent=agent, extra=extra)
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         else:
@@ -229,11 +242,52 @@ class _WatchFixture(unittest.TestCase):
         except subprocess.TimeoutExpired as exc:
             self.fail(f"watch exceeded {RUN_CAP}s: {exc}")
 
-    def watch(self, number: str = PR, extra: list[str] | None = None, **kw):
+    def watch(
+        self,
+        number: str = PR,
+        extra: list[str] | None = None,
+        expect_names: str | None = None,
+        extra_env: dict[str, str | None] | None = None,
+        **kw,
+    ):
         argv = ["pr", number, *WALL]
+        if expect_names is not None:
+            argv.extend(["--expect-names", expect_names])
         if extra:
             argv.extend(extra)
-        return self.invoke(argv, **kw)
+        return self.invoke(argv, extra=extra_env, **kw)
+
+    def plant_lane_conf(self, **overrides: object) -> Path:
+        omit = tuple(overrides.pop("omit", ()) or ())
+        keys = {
+            "LANE_NAME": "lanetest",
+            "TRUNK_BRANCH": "trunktest",
+            "RELEASE_BRANCH": "reltest",
+            "REPO_SLUG": "org/proj",
+            "CHECK_NAMES": "lane app",
+            "WF_AGENT_DEFAULT": "Conf Agent <conf@example.invalid>",
+            "LANE_AUTHOR": "Lane Owner <lane-owner@example.invalid>",
+            "MODEL_GROK": "model-grok",
+            "MODEL_CODEX": "model-codex",
+            "MODEL_CLAUDE_READ": "model-claude-read",
+            "MODEL_CLAUDE_PLAN": "model-claude-plan",
+            "EFFORT_GROK": "high",
+            "EFFORT_CODEX": "high",
+            "EFFORT_CLAUDE": "high",
+            "WALL_DEFAULT": "900",
+            "SCOPE_CAP": "1024",
+        }
+        for name, value in overrides.items():
+            keys[name] = str(value)
+        for name in omit:
+            keys.pop(name, None)
+        path = self.scratch / "lane.conf"
+        text = "".join(f"{name}='{value}'\n" for name, value in keys.items())
+        self._plant_bytes(path, text.encode("utf-8"))
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, text, f"conf plant did not land: {path}")
+        self.conf_path = path
+        return path
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
@@ -313,7 +367,7 @@ class SettledGreen(_WatchFixture):
                 {"name": "docs", "state": "SKIPPED"},
             ]
         )
-        proc = self.watch()
+        proc = self.watch(expect_names="lint,docs")
         stdout = proc.stdout or ""
         self.assertIn(
             check_line("PASS", "lint"),
@@ -341,7 +395,7 @@ class SettledFailure(_WatchFixture):
 
     def test_failure_row_settles_exit_1_naming_fail(self):
         self.plant_gh_rows([{"name": "broken", "state": "FAILURE"}])
-        proc = self.watch()
+        proc = self.watch(expect_names="broken")
         stdout = proc.stdout or ""
         self.assertIn(
             check_line("FAIL", "broken"),
@@ -390,7 +444,7 @@ class PendingThenSettled(_WatchFixture):
                 [{"name": "progress-check", "state": "SUCCESS"}],
             ]
         )
-        proc = self.watch()
+        proc = self.watch(expect_names="progress-check")
         self.assertTrue(
             self.counter.is_file(),
             "poll loop did not re-read gh (counter file missing)",
@@ -443,7 +497,7 @@ class StateMapping(_WatchFixture):
         self.plant_gh_rows(
             [{"name": "cancelled-check", "state": "CANCELLED"}]
         )
-        proc = self.watch()
+        proc = self.watch(expect_names="cancelled-check")
         stdout = proc.stdout or ""
         self.assertIn(
             check_line("FAIL", "cancelled-check"),
@@ -461,7 +515,7 @@ class StateMapping(_WatchFixture):
         self.plant_gh_rows(
             [{"name": "timed-out-check", "state": "TIMED_OUT"}]
         )
-        proc = self.watch()
+        proc = self.watch(expect_names="timed-out-check")
         stdout = proc.stdout or ""
         self.assertIn(
             check_line("FAIL", "timed-out-check"),
@@ -474,7 +528,7 @@ class StateMapping(_WatchFixture):
         self.plant_gh_rows(
             [{"name": "neutral-check", "state": "NEUTRAL"}]
         )
-        proc = self.watch()
+        proc = self.watch(expect_names="neutral-check")
         stdout = proc.stdout or ""
         self.assertIn(
             check_line("SKIP", "neutral-check"),
@@ -561,7 +615,7 @@ class NoIdentity(_WatchFixture):
 
     def test_unset_wf_agent_still_runs_a_settled_read(self):
         self.plant_gh_rows([{"name": "read-check", "state": "SUCCESS"}])
-        proc = self.watch(agent=None)
+        proc = self.watch(agent=None, expect_names="read-check")
         err = (proc.stderr or "").lower()
         self.assertNotIn("identity", err)
         stdout = proc.stdout or ""
@@ -578,7 +632,7 @@ class RepoPassthrough(_WatchFixture):
 
     def test_repo_flag_is_passed_through_to_gh(self):
         self.plant_gh_rows([{"name": "repo-check", "state": "SUCCESS"}])
-        proc = self.watch(extra=["--repo", REPO_SLUG])
+        proc = self.watch(extra=["--repo", REPO_SLUG], expect_names="repo-check")
         argvs = self.gh_argvs()
         self.assertTrue(
             argvs,
@@ -627,7 +681,7 @@ class TableCompleteness(_WatchFixture):
             {"name": "secret-scan", "state": "SUCCESS"},
         ]
         self.plant_gh_sequence([one, three, three])
-        proc = self.watch()
+        proc = self.watch(expect_names="fast-lint,tests,secret-scan")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertIn("settled rows=3", proc.stdout or "")
         self.assertNotIn("settled rows=1", proc.stdout or "")
@@ -648,6 +702,127 @@ class TableCompleteness(_WatchFixture):
         proc = self.watch(extra=["--expect-names", "fast-lint,secret-scan"])
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertIn("settled rows=2", proc.stdout or "")
+
+
+class ConfExpectedSet(_WatchFixture):
+    """Without --expect-names the expected set is the conf's CHECK_NAMES.
+    The flag still wins; environment beats conf; a conf without the
+    key refuses conf-key.
+
+    Planted values are not the production literal 'lane app', so a
+    reader that only checks key presence and then hard-codes those
+    names cannot pass.
+    """
+
+    CONF_NAMES = "alpha beta"
+    ENV_NAMES = "gamma delta"
+
+    def conf_env(self, **extra: str) -> dict[str, str]:
+        env = {"LANE_CONF": str(self.conf_path)}
+        env.update(extra)
+        return env
+
+    def test_default_expected_set_comes_from_planted_check_names(self):
+        self.assertNotEqual(self.CONF_NAMES, "lane app")
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        landed = conf.read_text(encoding="utf-8")
+        self.assertIn(f"CHECK_NAMES='{self.CONF_NAMES}'", landed)
+        self.assertNotIn("CHECK_NAME=", landed)
+        self.assertNotIn("lane app", landed)
+        self.plant_gh_rows([
+            {"name": "alpha", "state": "SUCCESS"},
+            {"name": "beta", "state": "SUCCESS"},
+        ])
+        proc = self.watch(extra_env=self.conf_env())
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            self.settled_line(proc.stdout or ""),
+            "settled rows=2 pass=2 fail=0 skip=0",
+            proc.stdout,
+        )
+
+    def test_conf_check_names_do_not_settle_on_production_names(self):
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        self.assertIn(
+            f"CHECK_NAMES='{self.CONF_NAMES}'",
+            conf.read_text(encoding="utf-8"),
+        )
+        self.plant_gh_rows([
+            {"name": "lane", "state": "SUCCESS"},
+            {"name": "app", "state": "SUCCESS"},
+        ])
+        proc = self.watch(extra_env=self.conf_env())
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("missing=", proc.stderr or "")
+        self.assertIsNone(self.settled_line(proc.stdout or ""))
+
+    def test_expect_names_flag_wins_over_the_conf(self):
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        self.assertIn(
+            f"CHECK_NAMES='{self.CONF_NAMES}'",
+            conf.read_text(encoding="utf-8"),
+        )
+        self.plant_gh_rows([{"name": "fast-lint", "state": "SUCCESS"}])
+        proc = self.watch(
+            extra=["--expect-names", "fast-lint"],
+            extra_env=self.conf_env(),
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            self.settled_line(proc.stdout or ""),
+            "settled rows=1 pass=1 fail=0 skip=0",
+            proc.stdout,
+        )
+
+    def test_environment_check_names_beats_the_conf(self):
+        self.assertNotEqual(self.ENV_NAMES, self.CONF_NAMES)
+        self.assertNotEqual(self.ENV_NAMES, "lane app")
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        landed = conf.read_text(encoding="utf-8")
+        self.assertIn(f"CHECK_NAMES='{self.CONF_NAMES}'", landed)
+        self.assertNotIn("gamma", landed)
+        self.assertNotIn("delta", landed)
+        self.plant_gh_rows([
+            {"name": "gamma", "state": "SUCCESS"},
+            {"name": "delta", "state": "SUCCESS"},
+        ])
+        proc = self.watch(
+            extra_env=self.conf_env(CHECK_NAMES=self.ENV_NAMES),
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            self.settled_line(proc.stdout or ""),
+            "settled rows=2 pass=2 fail=0 skip=0",
+            proc.stdout,
+        )
+
+    def test_environment_check_names_do_not_settle_on_the_conf_value(self):
+        conf = self.plant_lane_conf(CHECK_NAMES=self.CONF_NAMES)
+        landed = conf.read_text(encoding="utf-8")
+        self.assertIn(f"CHECK_NAMES='{self.CONF_NAMES}'", landed)
+        self.assertNotIn(self.ENV_NAMES, landed)
+        self.plant_gh_rows([
+            {"name": "alpha", "state": "SUCCESS"},
+            {"name": "beta", "state": "SUCCESS"},
+        ])
+        proc = self.watch(
+            extra_env=self.conf_env(CHECK_NAMES=self.ENV_NAMES),
+        )
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("missing=", proc.stderr or "")
+        self.assertIsNone(self.settled_line(proc.stdout or ""))
+
+    def test_a_conf_without_check_names_refuses_conf_key(self):
+        conf = self.plant_lane_conf(omit=("CHECK_NAMES",))
+        landed = conf.read_text(encoding="utf-8")
+        self.assertNotIn("CHECK_NAMES", landed)
+        self.assertNotIn("CHECK_NAME", landed)
+        self.plant_gh_rows([
+            {"name": "alpha", "state": "SUCCESS"},
+            {"name": "beta", "state": "SUCCESS"},
+        ])
+        proc = self.watch(extra_env=self.conf_env())
+        self.assert_refusal(proc, "conf-key")
 
 
 if __name__ == "__main__":
