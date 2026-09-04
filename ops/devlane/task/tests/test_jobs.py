@@ -387,5 +387,65 @@ class OtherJobWiresAreUnchanged(unittest.TestCase):
                 )
 
 
+class ContractSlotsMatchPracticedPrompts(unittest.TestCase):
+    """CONTRACT.md slots sentence matches practiced jobs.json prompts.
+
+    plan names {ref, out, scope}; check-tests names {ref, inputs, scope};
+    adjudicate names {inputs, ref, out}. The doc must not claim that
+    all three read jobs name {inputs}. Do not retitle or drop the job
+    table; TheDocAndTheRegistryAgree owns that comparison.
+    """
+
+    def test_contract_does_not_claim_all_three_read_jobs_name_inputs(self):
+        path = support.APP / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"CONTRACT.md missing: {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "CONTRACT.md is empty")
+        collapsed = " ".join(text.split())
+        needle = "all three read jobs name `{inputs}`"
+        idx = collapsed.find(needle)
+        window = (
+            collapsed[max(0, idx - 80): idx + len(needle) + 80]
+            if idx >= 0
+            else collapsed[collapsed.find("`plan`"): collapsed.find("`plan`") + 240]
+        )
+        self.assertEqual(
+            idx,
+            -1,
+            "CONTRACT.md still claims all three read jobs name "
+            "{inputs}; plan's prompt names {ref, out, scope} only. "
+            f"slots window: {window!r}",
+        )
+        plain = collapsed.replace("`", "")
+        self.assertNotIn(
+            "all three read jobs name {inputs}",
+            plain,
+            "CONTRACT.md still claims all three read jobs name "
+            "{inputs} (ignoring backticks)",
+        )
+
+    def test_practiced_read_job_slots_are_plan_without_inputs(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        plan = jobs["plan"]["prompt"]
+        check = jobs["check-tests"]["prompt"]
+        adj = jobs["adjudicate"]["prompt"]
+        self.assertIsInstance(plan, str)
+        self.assertIsInstance(check, str)
+        self.assertIsInstance(adj, str)
+        for token in ("{ref}", "{out}", "{scope}"):
+            self.assertIn(token, plan, f"plan prompt missing {token}")
+        self.assertNotIn(
+            "{inputs}",
+            plan,
+            "plan's prompt must not name {inputs}",
+        )
+        for token in ("{ref}", "{inputs}", "{scope}"):
+            self.assertIn(token, check, f"check-tests prompt missing {token}")
+        for token in ("{inputs}", "{ref}", "{out}"):
+            self.assertIn(token, adj, f"adjudicate prompt missing {token}")
+
+
 if __name__ == "__main__":
     unittest.main()
