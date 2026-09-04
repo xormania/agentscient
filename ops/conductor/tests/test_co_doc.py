@@ -444,13 +444,16 @@ class TestPLev1(DoctorFixture):
         sibling = self._plant_live_sibling_launcher()
         self.assertTrue(sibling.is_file())
         proc, out = self._run()
-        self.assertIn("sibling default", out)
         classified = [
             ln for ln in out.splitlines()
             if ln.startswith("[") and "P-LEV-1" in ln and "INVALID" not in ln
         ]
         self.assertEqual(classified, [], "P-LEV-1 must not be a finding:\n" + out)
         self.assertEqual(proc.returncode, 0, out)
+        self.assertIn("P-LEV-1", out)
+        self.assertRegex(out, r"(?i)live")
+        self.assertIn("sibling default", out)
+        self.assertIn(str(sibling), out)
 
     def test_unset_pin_with_an_absent_sibling_is_inert(self):
         self._plant_conf_without_launcher_pin()
@@ -459,6 +462,7 @@ class TestPLev1(DoctorFixture):
         proc, out = self._run()
         self.assertIn("sibling default", out)
         self.assertIn("P-LEV-1", out)
+        self.assertIn(str(sibling), out)
         self.assertRegex(out, r"inert", re.IGNORECASE)
         self.assertEqual(proc.returncode, 1, out)
 
