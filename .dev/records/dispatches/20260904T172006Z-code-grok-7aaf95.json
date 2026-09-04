@@ -1,0 +1,162 @@
+{
+  "id": "20260904T172006Z-code-grok-7aaf95",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "ebdca503a295f5647caa5794d4680941a258568f"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T17:20:06Z",
+    "closed": "2026-09-04T17:34:59Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ebdca503a295f5647caa5794d4680941a258568f",
+    "ref_sha": "ebdca503a295f5647caa5794d4680941a258568f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "5f464835-811c-4e9b-967c-60398e594c82",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/home/grok-stream/sessions/<snapshot-encoded>/5f464835-811c-4e9b-967c-60398e594c82/summary.json"
+  },
+  "session": {
+    "id": "5f464835-811c-4e9b-967c-60398e594c82",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/home/grok-stream/sessions/<snapshot-encoded>/5f464835-811c-4e9b-967c-60398e594c82/summary.json",
+    "stream_sha256_at_close": "c3253784a50ceeda74ee5726eb884a7067a9a88628b972353773848c23bd08f6",
+    "spend": {
+      "input": 5139430,
+      "cached": 4975872,
+      "output": 50843,
+      "total": 5190273,
+      "cost_usd_ticks": 5304187000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/home/grok-stream/sessions/<snapshot-encoded>/5f464835-811c-4e9b-967c-60398e594c82/summary.json",
+      "messages": 326
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "39b25f2dee8786bec13132454679620f900370693b40e6287c364235f65780d5"
+    },
+    "scope": "Item 31 batch on lane/check-tests-json, the audit fix round, tests only: the security audit and the adversarial review judged the merged tree of slices 1 and 2 and their envelopes are in the input verbatim (security: 1 P1, 2 P2; adversarial: 1 P1, 3 P2). Pin every finding as a red test at this ref, one commit per file, in the suite that owns the code (ops/conductor/tests for ladder.py; ops/devlane/task/tests for write_path.py and the check-tests job). Where both audits name the same declared-versus-practiced gap, one test naming both findings. Also fix the three ruff SIM300 Yoda conditions in the test file the ruff block in the input names. Do not change implementation code. Run suites with the discover form: python3 -m unittest discover -s <dir> -p <file>.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T172006Z-code-grok-7aaf95/in/input-check-tests-json-2-fix-tests.md",
+        "sha256": "672b186d689bea4d4f2001ddc9f485ec28791131adc8042a8eb6abfa9e13cd78"
+      }
+    ],
+    "sha256": "465321d0e2e9e3eb7d219627e3343fc79a3b61477a175b417c6482e6093449d3",
+    "bytes": 3111
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T17:20:06Z",
+      "ended": "2026-09-04T17:34:59Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "32b773c228c38e193684aa355a11cab5ba6c4da6",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_audit_fix.py",
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/devlane/task/tests/test_check_tests_json.py",
+      "ops/devlane/task/tests/test_jobs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ladder_audit": "ops/conductor/tests/test_ladder_audit_fix.py",
+        "ladder_lever": "ops/conductor/tests/test_ladder_lever.py",
+        "check_tests": "ops/devlane/task/tests/test_check_tests_json.py",
+        "jobs": "ops/devlane/task/tests/test_jobs.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5190273,
+        "out": 50843,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ebdca503a295f5647caa5794d4680941a258568f",
+        "started": "2026-09-04T17:20:06Z",
+        "ended": "2026-09-04T17:34:07Z"
+      },
+      "note": "Tests only at ebdca503a295f5647caa5794d4680941a258568f; implementation untouched (git diff --name-only ebdca50..HEAD is the four test files). Five unique gaps from seven audit findings; overlapping declared-versus-practiced gaps share one test. HEAD 32b773c228c38e193684aa355a11cab5ba6c4da6 on lane/check-tests-json, five commits (one file each, plus a later re-export commit on test_ladder_lever.py so the frozen discover -p test_ladder_lever.py command collects the new reds).\n\nRed at this ref, intended assertion, discover form: (1) python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_json.py -k test_write_verb_plus_path_token_is_not_a_verb_blacklist failed: missed Generate REVIEW in the repository, Create REVIEW on disk, Dump REVIEW in the repository, and the NOTES/CHANGELOG/TODO shape copies \u2014 security P2 and adversarial P2, one test. Same discover without -k: 22 tests, 1 failure. (2) python3 -m unittest discover -s ops/conductor/tests -p test_ladder_audit_fix.py \u2014 3 tests, 3 failures, 0 errors: directory-symlink payload landed on host (security P1 and adversarial P1, one test); validate_check_tests accepted artifacts=/etc/passwd (security P2); second ledger_result raised FileExistsError (adversarial P2). The same three failed under python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k each method name after the re-export.\n\nNot red against the live driver: the three CheckTestsEnvelopeValidatedBeforeFindingsFile methods now call assert_stopped(..., reason=\"envelope\") (adversarial P2 absence-only). python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever.py -k each of test_counts_that_disagree_with_findings_do_not_move_to_tests_fix, test_a_finding_missing_its_shape_does_not_move_to_tests_fix, test_approve_with_findings_does_not_skip_to_implement: 1 test, OK each \u2014 the driver already stops as envelope; a silent success can no longer pass.\n\nGreen lint: ruff check ops/devlane/task/tests/test_jobs.py exits 0 after flipping the three SIM300 Yoda comparisons (was lines 474, 480, 486). python3 -m unittest discover -s ops/devlane/task/tests -p test_jobs.py \u2014 16 tests, OK."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T17:34:59.477Z"
+    }
+  },
+  "status": "closed"
+}
