@@ -25,6 +25,8 @@ row that cannot look refuses: "could not look" is not a pass.
     contract-vet    harness contracts do not vet as a package     cue vet
     dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
                     worktree, DISPATCH_TIMEOUT and WF_AGENT       text
+    dispatch-by-hand a driver-owned job run from the session      job name
+    test-form       unittest invoked with a path argument          tokens
     prune           rm -r of records, state, worktrees, .git      statement
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
@@ -58,6 +60,13 @@ RECORD_PREFIXES = (
 )
 WRITE_JOBS = ("author-tests", "implement")
 DISPATCHERS = ("dispatch.sh", "go.sh")
+DRIVER_JOBS = ("author-tests", "check-tests", "implement", "security-audit", "adversarial-review")
+ALLOWED_BY_HAND = {
+    "plan": "the ladder has no plan verb",
+    "adjudicate": "the ladder has no adjudicate verb",
+    "sweep": "the ladder has no sweep verb",
+    "verify": "the ladder has no verify verb",
+}
 LAUNCHER = "launch.py"
 DRIVER = "ladder.sh"
 SCOPE_CAP_DEFAULT = 1024
@@ -69,7 +78,7 @@ WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
 PY_WRITE = re.compile(r"open\([^)]*['\"][wa]['\"]|write_text\(|write_bytes\(|\.writelines\(")
-PY_PATH = re.compile(r"['\"]((?:[./\w-]*/)?(?:ops|docs|packages|src|\.github|\.claude|config|bin)/[^'\"\s]+)['\"]")
+PY_PATH = re.compile(r"(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)")
 ASSIGN = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(\S+)", re.MULTILINE)
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
@@ -275,18 +284,16 @@ def prune_targets(tokens, cwd, conf):
 def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
-    for token in tokens[:3]:
-        if "=" in token:
-            continue
-        name = base(token)
-        if name in DISPATCHERS:
-            kind = "dispatcher"
-        elif name == LAUNCHER:
-            kind = "launcher"
-        elif name == DRIVER:
-            kind = "driver"
-        if kind:
-            break
+    name = base(tokens[0]) if tokens else ""
+    if name in DISPATCHERS:
+        kind = "dispatcher"
+    elif name == LAUNCHER:
+        kind = "launcher"
+    elif name == DRIVER:
+        kind = "driver"
+    elif (re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", name) and len(tokens) > 1
+          and base(tokens[1]) == LAUNCHER):
+        kind = "launcher"
     if kind is None:
         return None, {}
     flags = {"input": []}
@@ -320,6 +327,29 @@ def read_text(path):
         return None
 
 
+def unittest_path_argument(tokens):
+    """The forbidden path argument in a unittest invocation, if any."""
+    if (len(tokens) < 3 or not re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", base(tokens[0]))
+            or tokens[1:3] != ["-m", "unittest"]):
+        return None
+    args = tokens[3:]
+    if args and args[0] == "discover":
+        return None
+    takes_value = False
+    for arg in args:
+        if takes_value:
+            takes_value = False
+            continue
+        if arg in ("-k", "--durations"):
+            takes_value = True
+            continue
+        if arg.startswith("-"):
+            continue
+        if arg.endswith(".py") or "/" in arg:
+            return arg
+    return None
+
+
 def check_dispatch(kind, flags, cwd, text, grant):
     if kind == "launcher":
         if grant is None:
@@ -341,8 +371,12 @@ def check_dispatch(kind, flags, cwd, text, grant):
         absolute = os.path.normpath(os.path.join(cwd, path))
         if "$" in path:
             return deny("input-absent", "a literal input path", f"unresolved {path}", "write the path out in the run script")
-        if not os.path.isfile(absolute) or os.path.getsize(absolute) == 0:
+        contents = read_text(absolute)
+        if contents is None or not contents:
             return deny("input-absent", "a readable non-empty input", f"{path} missing or empty", "write it before dispatch")
+        if "$" in contents:
+            return deny("input-absent", "resolved input content", f"unresolved $ in {path}",
+                        "write the resolved content before dispatch")
     scope_file = flags.get("scope-file", "")
     cap = int(conf.get("SCOPE_CAP", SCOPE_CAP_DEFAULT))
     if scope_file:
@@ -354,9 +388,12 @@ def check_dispatch(kind, flags, cwd, text, grant):
     scope_text = read_text(os.path.normpath(os.path.join(cwd, scope_file))) or "" if scope_file else ""
     if job == "implement":
         hit = WHOLE_SUITE.search(scope_text)
-        if hit:
+        path_arg = next((arg for statement in commands(scope_text)
+                         if (arg := unittest_path_argument(tokens_of(statement)))), None)
+        if hit or path_arg:
+            found = hit.group(0) if hit else path_arg
             return deny("bucket-command", "the bucket's tests as the named command",
-                        f'"{hit.group(0)}" in {scope_file}',
+                        f'"{found}" in {scope_file}',
                         "name the bucket's test files; the whole suite is not a bucket (ranking K2)")
     if job in WRITE_JOBS:
         inputs_text = "\n".join(read_text(os.path.normpath(os.path.join(cwd, p))) or "" for p in flags["input"])
@@ -399,6 +436,10 @@ def check_dispatch(kind, flags, cwd, text, grant):
         for name in ("DISPATCH_TIMEOUT", "WF_AGENT"):
             if f"{name}=" not in text:
                 return deny("dispatch-env", f"{name} set for the launch", f"no {name}", "export it in the run script")
+    if (job in DRIVER_JOBS or job.endswith("-fix")) and not grant_covers(grant, ""):
+        return deny("dispatch-by-hand", f"the ladder driver to run {job} (ops/bin/ladder.sh)",
+                    f"dispatch.sh --job {job} from the session",
+                    "start or resume a ladder for the lane")
     return None
 
 
@@ -411,10 +452,10 @@ def check_text(text, cwd, depth=0):
     grant = open_grant(text, lane)
     if PY_WRITE.search(text):
         for match in PY_PATH.finditer(text):
-            _, rel = relative(match.group(1), cwd)
+            _, rel = relative(match.group("path"), cwd)
             if is_code(rel) and not grant_covers(grant, rel):
                 return deny("hand-write", "code changed through the ladder (freeze)",
-                            f"a script writing {match.group(1)}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
+                            f"a script writing {match.group('path')}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
     for statement in commands(text):
         toks = tokens_of(statement)
         if not toks:
@@ -437,6 +478,11 @@ def check_text(text, cwd, depth=0):
             refusal = check_dispatch(kind, flags, cwd, text, grant)
             if refusal:
                 return refusal
+        path_arg = unittest_path_argument(toks)
+        if path_arg:
+            return deny("test-form",
+                        "the discover form (python3 -m unittest discover -s <tests dir> -p <file>) or ops/bin/suites.sh",
+                        f"a path-form unittest argument {path_arg}", "the discover form")
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
                 refusal = check_text(toks[2], cwd, depth + 1)
