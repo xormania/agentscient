@@ -124,13 +124,14 @@ RUNNER = re.compile(r"\b(playwright test|pytest|poe\s+(?!lint|format|fmt|type)[a
                     r"mutation-check\.sh|mutation-live\.sh|npm (?:test|run test)|cargo test|"
                     r"go test|jest|vitest|tox|make\s+(?:test|check|lint)|rspec|phpunit)\b")
 CLIPPED = re.compile(r"\|\s*(?:tail|head)\s+-(\d+)\b")
+SWEEP_CLIPPED = re.compile(r"\|\s*head\s+-(\d+)\b")
 # `[^|]*` here was a bug: `grep -iE "warning|error"` contains a pipe INSIDE the quoted
 # pattern, so the class stopped before reaching the word that made it safe. Look for a
 # grep and a failure word anywhere in the command instead.
 FAIL_GREP = re.compile(r"grep(?s:.)*?(fail|passed|error|✘|✗)", re.IGNORECASE)
 
 # A multi-alternation grep at the head of a pipeline is a COMPLETENESS question — "does any
-# of these appear?" — and a head/tail on it silently truncates the answer. A head -8 on
+# of these appear?" — and a head on it silently truncates the answer. A head -8 on
 # exactly that shape ended before nixd_ls.py:114 (where which("nix") raises), and the
 # absence conclusion drawn from the first eight matches was wrong. Same class as the
 # 30-per-page GitHub listing read as a total. Scope, tuned on the session's real commands:
@@ -258,11 +259,11 @@ def check(cmd: str):
     for stmt in statements(cmd):
         if not SWEEP_GREP.search(stmt):
             continue
-        clip = CLIPPED.search(stmt)
+        clip = SWEEP_CLIPPED.search(stmt)
         if clip and quoted_pipe_count(stmt[: clip.start()]) >= 2:
             return ("clipped-sweep",
                     ("This clips a multi-alternation grep — a completeness question (\"does any of "
-                    "these appear?\") whose answer head/tail truncates SILENTLY. A head -8 on exactly "
+                    "these appear?\") whose answer head truncates SILENTLY. A head -8 on exactly "
                     "this shape ended before the line that mattered, and the absence conclusion drawn "
                     "from the first eight matches was wrong. Same class as a 30-per-page API listing "
                     "read as a total.\n\n"
