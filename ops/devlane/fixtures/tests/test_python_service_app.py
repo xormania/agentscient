@@ -128,7 +128,7 @@ INSTALL_CMD = (
     "--require-hashes -r requirements.lock"
 )
 READY_CMD = "test -x .venv/bin/python && .venv/bin/python -c 'import pytest'"
-CHECK_CMD = ".venv/bin/python -m pytest -q tests && ruff check ."
+CHECK_CMD = ".venv/bin/python -m pytest -q tests && .venv/bin/ruff check ."
 PYPROJECT_NAME = "fixture-python-service"
 PINNED_RUNTIME = "python-dotenv"
 PINNED_RUNTIME_VERSION = "1.0.1"
@@ -1236,7 +1236,7 @@ class PythonServiceManifest(unittest.TestCase):
         self.assertEqual(
             text,
             CHECK_CMD,
-            "check is the venv pytest over tests/ and ruff check .",
+            "check is the venv pytest over tests/ and the venv ruff",
         )
         stripped = _strip_shell_comments(text)
         self.assertRegex(
@@ -1244,10 +1244,15 @@ class PythonServiceManifest(unittest.TestCase):
             r"\bpytest\b",
             "check is pytest over tests/ from the venv (comments do not count)",
         )
-        self.assertRegex(
+        self.assertIn(
+            ".venv/bin/ruff",
             stripped,
-            r"\bruff\b",
-            "check includes ruff check . from the app root (comments do not count)",
+            "check runs the ruff the lock installed, not a PATH ruff",
+        )
+        self.assertNotRegex(
+            stripped,
+            r"(?:^|[;&])\s*ruff\s",
+            "a bare ruff token would bless a host binary over the pin",
         )
         self.assertIn(
             ".venv",
@@ -2310,12 +2315,32 @@ class PythonServiceMakeProve(_RepoFreeze):
 
     def test_ruff_check_green_on_a_fresh_make(self):
         made = self.made_app("ruff-fresh")
-        ruff = shutil.which("ruff")
-        self.assertIsNotNone(ruff, "INVALID: ruff not on PATH")
+        manifest = load_json_object(made / "FAULTS.json")
+        check = (
+            manifest.get("check") if isinstance(manifest.get("check"), str) else ""
+        )
+        self.assertEqual(
+            check,
+            CHECK_CMD,
+            "fresh make must carry the venv ruff check, not a PATH ruff",
+        )
+        self.assertIn(".venv/bin/ruff", check)
+        install = self.toolchain_install(made)
+        if install.returncode != 0:
+            self.skipTest(
+                "UNREACHABLE: toolchain.install could not run "
+                f"(exit {install.returncode}): "
+                f"{(install.stderr or install.stdout or '').strip()[:400]}"
+            )
+        ruff = made / ".venv" / "bin" / "ruff"
+        self.assertTrue(
+            ruff.is_file(),
+            "toolchain.install must leave .venv/bin/ruff; a PATH ruff is not the pin",
+        )
         env = self.scratch_env()
         try:
             lint = subprocess.run(
-                [ruff, "check", "."],
+                [str(ruff), "check", "."],
                 cwd=str(made),
                 env=env,
                 capture_output=True,
@@ -2324,11 +2349,11 @@ class PythonServiceMakeProve(_RepoFreeze):
                 timeout=CHECK_CAP,
             )
         except subprocess.TimeoutExpired as exc:
-            self.fail(f"ruff check exceeded {CHECK_CAP}s: {exc}")
+            self.fail(f".venv/bin/ruff check exceeded {CHECK_CAP}s: {exc}")
         self.assertEqual(
             lint.returncode,
             0,
-            f"ruff check . must be green on a fresh make: "
+            f".venv/bin/ruff check . must be green on a fresh make: "
             f"stdout={lint.stdout!r} stderr={lint.stderr!r}",
         )
 
