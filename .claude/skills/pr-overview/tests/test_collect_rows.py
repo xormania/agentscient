@@ -7,7 +7,7 @@ when it could read none of the open PRs.
 
 The fake gh is a PATH stub in the shape of
 ops/devlane/hooks/tests/gh_stub.py and the neighboring
-test_pr_head_expected.GH_STUB, with per-PR checks errors injected.
+support.GH_STUB, with per-PR checks errors injected.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from test_pr_head_expected import (
+from support import (
     GH_STUB,
     REPO,
     ROOT,

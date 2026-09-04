@@ -14,7 +14,7 @@ set -u
 here=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 root=$(CDPATH='' cd -- "$here/../.." && pwd)
 cd "$root" || exit 2
-suites=(ops/devlane/{dispatch,harness,task,telemetry,hooks,fixtures,workflow}/tests ops/conductor/tests)
+suites=(ops/devlane/{dispatch,harness,task,telemetry,hooks,fixtures,workflow}/tests ops/conductor/tests .claude/skills/pr-overview/tests)
 logs=$(mktemp -d "${TMPDIR:-/tmp}/suites.XXXXXX") || exit 2
 trap 'rm -rf "$logs"' EXIT
 run_one() {  # run_one <tests dir> <log key>
@@ -33,7 +33,7 @@ done
 wait
 rc=0
 for d in "${suites[@]}"; do
-    app=${d%/tests}; app=${app#ops/}
+    app=${d%/tests}; app=${app#ops/}; app=${app#.claude/skills/}
     [[ -d $d ]] || { printf '== %-18s ABSENT (no tests directory)\n' "$app"; continue; }
     key=${d//\//_}
     printf '== %s\n' "$app"
