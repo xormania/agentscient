@@ -97,6 +97,7 @@ def minimum_payload(job_id=JOB_ID):
         "model": {
             "requested": "alias-requested",
             "effort_requested": None,
+            "effort_argv": [],
             "ran": None,
             "read_from": None,
         },
