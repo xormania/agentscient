@@ -88,7 +88,8 @@
       },
       "job": "check-tests",
       "name": "check-tests",
-      "outcome": "launched",
+      "outcome": "stopped",
+      "reason": "wall",
       "record": "20260904T134347Z-check-tests-codex-ef1a43",
       "stage": "check-tests"
     },
@@ -165,7 +166,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "wall",
+    "record": "20260904T134347Z-check-tests-codex-ef1a43",
+    "stage": "check-tests",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-fixture-fix-2"
 }
