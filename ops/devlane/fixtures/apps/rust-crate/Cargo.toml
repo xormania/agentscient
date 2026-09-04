@@ -1,0 +1,19 @@
+[package]
+name = "fixture-rust-crate"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "fixture-rust-crate"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+hex = "=0.4.3"
+
+[lints.clippy]
+all = "deny"
