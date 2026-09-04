@@ -727,6 +727,35 @@ class ClosureVerb(_LaneconfFixture):
         self.assertEqual(proc.returncode, 1, text)
         self.assertIn(extra, text)
 
+    def test_same_cardinality_mismatched_name_exits_1_naming_the_name(self):
+        extra = "ghost-job"
+        self.assertNotEqual(extra, "lane")
+        self.assertNotEqual(extra, "app")
+        repo = self.plant_scratch_repo(
+            {
+                "ops/conductor/tools/reads.py": reader_source(),
+                ".github/workflows/ci.yml": TWO_JOB_WORKFLOW,
+            },
+            conf_overrides={"CHECK_NAMES": f"lane {extra}"},
+        )
+        conf = repo / "ops" / "lane.conf"
+        keys = declared_keys(conf.read_text(encoding="utf-8"))
+        names = keys["CHECK_NAMES"].split()
+        self.assertEqual(names, ["lane", extra])
+        self.assertEqual(len(names), 2)
+        yml = (repo / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertEqual(yml, TWO_JOB_WORKFLOW)
+        self.assertIn("\n  lane:\n", yml)
+        self.assertIn("\n  app:\n", yml)
+        self.assertNotIn(f"\n  {extra}:\n", yml)
+        self.assertEqual(len(names), 2)
+        self.assertNotEqual(set(names), {"lane", "app"})
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 1, text)
+        self.assertIn(extra, text)
+        self.assertIn("app", text)
+
 
 class LiteralsVerb(_LaneconfFixture):
     """`literals` exits 0 on the tree; a scratch lane file carrying a
