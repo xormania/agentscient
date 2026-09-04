@@ -1057,7 +1057,7 @@ class _TempLaunch(unittest.TestCase):
     def combined(self, out, err):
         return (out or "") + (err or "")
 
-    def assert_refusal(self, code, out, err, *, ident, phrases):
+    def assert_refusal(self, code, out, err, *, ident, phrases, named=()):
         text = self.combined(out, err)
         self.assertEqual(
             code, REFUSAL_EXIT,
@@ -1067,10 +1067,21 @@ class _TempLaunch(unittest.TestCase):
         self.assertIn("expected", lower, f"{ident} names expected: {text!r}")
         self.assertIn("found", lower, f"{ident} names found: {text!r}")
         self.assertIn("satisfy", lower, f"{ident} names satisfy: {text!r}")
+        self.assertRegex(
+            text,
+            rf"{re.escape(ident)}:\s*expected",
+            f"{ident}: expected is the refusal class token: {text!r}",
+        )
         for phrase in phrases:
             self.assertIn(
                 phrase.lower(), lower,
                 f"{ident} text must name {phrase!r}: {text!r}",
+            )
+        for item in named:
+            self.assertIn(
+                str(item), text,
+                f"{ident} names {item!r} (session id, path, or value): "
+                f"{text!r}",
             )
         return text
 
