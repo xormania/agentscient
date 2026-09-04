@@ -1,0 +1,104 @@
+{
+  "id": "20260904T170521Z-check-tests-codex-db4449",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/noguess",
+  "lineage": {
+    "branch": "lane/noguess",
+    "base_sha": "99f76083d904d5f01d89248b909ed969ddf1d682"
+  },
+  "follows": [
+    "20260904T164941Z-tests-grok-41ff0e"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T17:05:22Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "99f76083d904d5f01d89248b909ed969ddf1d682",
+    "ref_sha": "99f76083d904d5f01d89248b909ed969ddf1d682",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170521Z-check-tests-codex-db4449/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170521Z-check-tests-codex-db4449/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170521Z-check-tests-codex-db4449/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170521Z-check-tests-codex-db4449/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T170521Z-check-tests-codex-db4449/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "ad991cd5-6cf5-4a0c-9549-9154e4fe931b",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-noguess/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "### Verb\n`python3 ops/conductor/tools/laneconf.py defaults [--paths FILE\u2026] [--strict]`\n- Scan the same source set `literals()` uses (`ops/` and `.claude/`, suffixes `.py` `.sh`, skip `tests` `fixtures` `archive` `infra`), unless `--paths` names files; `--paths` still skips those four directory names if a named file sits under them.\n- Do **not** read `DEFERRED_LITERAL_PATHS`. That list is why today's identity fallbacks are invisible to `literals()`.\n- Hits, two families:\n  1. Hardcoded lane value: a literal equal to a `lane.conf` value, or a compare/assign of `dev` / `master` / `agentscient` / `uscient/agentscient` / `../wt` / a `MODEL_*` / `EFFORT_*` / `ADDRESS_*` / `LANE_AUTHOR` / `WALL_DEFAULT` / `SCOPE_CAP` value, outside `lane.conf` itself and outside `laneconf.py`'s own token table. `NAME_KEYS` expands to every identity key including `WORKTREE_ROOT` and the address/model/effort/author/wall/scope keys. The `len >= 4` filter goes. Short `dev` is a token as `'\"dev\"'` and `\"'dev'\"` ",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170521Z-check-tests-codex-db4449/in/PLAN-noguess-s1.md",
+        "sha256": "3239502de5092b7b92bc42076e81000dacc57831a423eadfa38d0095c036b27d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T170521Z-check-tests-codex-db4449/in/20260904T164941Z-tests-grok-41ff0e.json",
+        "sha256": "ec15f951d014bb46f5780ed24bed10887d2a9eaf23ae53dd65c6b4a5ab80d6b9"
+      }
+    ],
+    "sha256": "085793ced24d2b0c02285629f99554b50b5f5b85ade1dcc3bd3b7fee79fbcd2b",
+    "bytes": 3798
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
