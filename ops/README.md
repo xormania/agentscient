@@ -38,8 +38,8 @@ responsibilities; it is the thing the twins are measured against.
 | run | does |
 |---|---|
 | `ops/bin/suites.sh` | runs every lane suite exactly as CI does; the local answer and the CI answer are one command |
-| `ops/bin/dispatch.sh` | the shim for `ops/conductor/tools/dispatch.sh`: one job to one harness on a worktree, through the launcher; reads the tracked `ops/conductor/tools/dispatch.conf` (model names are the owner's) |
-| `ops/bin/go.sh` | the one-word front of `dispatch.sh`: `go.sh <intent> <branch|.> <scope…>` |
+| `ops/bin/dispatch.sh` | the shim for `ops/conductor/tools/dispatch.sh`: one job to one harness through the launcher in the same worktree; `--detach` returns the minted record id at once |
+| `ops/bin/go.sh` | the one-word front of `dispatch.sh`: `go.sh <intent> <branch|.> <scope…>`; `DETACH=1` passes the detached-launch mode through |
 | `ops/bin/board.sh` | what is open, measured now: PRs and worktrees per repository |
 | `ops/bin/link-ops.sh` | makes this lane reachable from sibling package clones as a locally-excluded symlink |
 
