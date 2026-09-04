@@ -1713,6 +1713,24 @@ class SymfonyAppMakeProve(_RepoFreeze):
             f"{proc.stderr or proc.stdout}",
         )
 
+    def test_prove_fixed_refuses_toolchain_when_vendor_is_absent(self):
+        target = self.root / "prove-fixed-no-vendor"
+        proc = self.make(target)
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertTrue(target.is_dir())
+        self.assertFalse(
+            (target / "vendor" / "bin" / "phpunit").exists(),
+            "make copies tracked files; an ignored vendor/ must not ride",
+        )
+        fixed = self.invoke(["prove", "--fixed", str(target)], agent=None)
+        assert_refusal_wire(self, fixed, "toolchain")
+        err = (fixed.stderr or "").lower()
+        self.assertIn("vendor/bin/phpunit", err)
+        self.assertFalse(
+            (target / "vendor" / "bin" / "phpunit").exists(),
+            "prove --fixed must not install vendor/ into the supplied tree",
+        )
+
     def test_each_fix_is_confined_to_the_declared_span(self):
         made = self.made_app("independent-fixes")
         _faults, snapshots = self.fault_snapshots(made)
@@ -1997,20 +2015,9 @@ class SymfonyAppMakeProve(_RepoFreeze):
             agent=None,
             timeout=PROVE_CAP,
         )
-        rows = self.parse_prove(fixed.stdout)
-        self.assertEqual(set(rows), set(EXPECTED_IDS), fixed.stdout)
-        for fault_id in EXPECTED_IDS:
-            self.assertEqual(
-                rows[fault_id],
-                "GREEN",
-                f"{fault_id} must be GREEN after planted fixes: {fixed.stdout!r}",
-            )
-        self.assertNotIn("RED", set(rows.values()))
-        self.assertNotIn("UNREACHABLE", set(rows.values()))
-        counts = self.parse_counts(fixed.stdout)
-        self.assertEqual(counts["green"], len(EXPECTED_IDS), fixed.stdout)
-        self.assertEqual(counts["unreachable"], 0, fixed.stdout)
-        self.assertEqual(fixed.returncode, 0, fixed.stderr or fixed.stdout)
+        assert_refusal_wire(self, fixed, "toolchain")
+        err = (fixed.stderr or "").lower()
+        self.assertIn("vendor/bin/phpunit", err)
 
 
 class SymfonyAppGrade(_RepoFreeze):
