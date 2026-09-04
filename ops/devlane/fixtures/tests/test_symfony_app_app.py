@@ -9,6 +9,17 @@ not read here beyond the paths the contract names. The lever change
 is not written here; it is pinned on a synthetic app staged in a
 scratch repository.
 
+Fix round: Codex skeptic (record 20260904T094604Z-review-codex-a01f03)
+found 2 P1 and 6 P2. This file addresses all eight. The lock assertion
+follows the contract (symfony/flex ^2 / a v2. lock version, the rest
+8.1.* / v8.1.); probes are proved by the contract behaviours, not the
+implementer's probe command; check is proved by running composer
+validate, php -l and phpunit; the manifest is pinned per id with
+severity, location, probe and fix; probe_timeout is proved on
+prove --fixed too; all six preflight exclusions are planted; each fix
+is one hunk confined to the declared span; a failed composer install
+is a failure, never a skip.
+
 Red at this ref because that directory is absent (the existence test
 fails on `FAULTS.json`) and because the lever ignores `probe_timeout`
 (a 3 s probe is UNREACHABLE where a colour is pinned) and copies
@@ -57,15 +68,90 @@ NEEDS_IDS = EXPECTED_IDS[:6]
 STATIC_ID = "SA-07"
 REQUIRED_KINDS = frozenset({"K1", "K2", "K3", "K4", "K5", "K6", "K8"})
 OMITTED_KINDS = frozenset({"K7", "K9"})
-EXPECTED_KIND_VISIBLE = {
-    "SA-01": ("K1", "audit"),
-    "SA-02": ("K2", "both"),
-    "SA-03": ("K3", "test"),
-    "SA-04": ("K4", "audit"),
-    "SA-05": ("K5", "test"),
-    "SA-06": ("K6", "test"),
-    "SA-07": ("K8", "audit"),
+EXPECTED_ROWS = {
+    "SA-01": {
+        "kind": "K1",
+        "visible_to": "audit",
+        "severity": "p1",
+        "location": "src/Command/ArchiveCommand.php",
+        "probe": "probes/sa01.sh",
+        "fix": "fixes/sa01.patch",
+    },
+    "SA-02": {
+        "kind": "K2",
+        "visible_to": "both",
+        "severity": "p1",
+        "location": "src/Controller/ServeController.php",
+        "probe": "probes/sa02.sh",
+        "fix": "fixes/sa02.patch",
+    },
+    "SA-03": {
+        "kind": "K3",
+        "visible_to": "test",
+        "severity": "p2",
+        "location": "src/Service/Ledger.php",
+        "probe": "probes/sa03.sh",
+        "fix": "fixes/sa03.patch",
+    },
+    "SA-04": {
+        "kind": "K4",
+        "visible_to": "audit",
+        "severity": "p1",
+        "location": "src/Service/Ledger.php",
+        "probe": "probes/sa04.sh",
+        "fix": "fixes/sa04.patch",
+    },
+    "SA-05": {
+        "kind": "K5",
+        "visible_to": "test",
+        "severity": "p2",
+        "location": "src/Service/Ledger.php",
+        "probe": "probes/sa05.sh",
+        "fix": "fixes/sa05.patch",
+    },
+    "SA-06": {
+        "kind": "K6",
+        "visible_to": "test",
+        "severity": "p2",
+        "location": "src/Model/Interval.php",
+        "probe": "probes/sa06.sh",
+        "fix": "fixes/sa06.patch",
+    },
+    "SA-07": {
+        "kind": "K8",
+        "visible_to": "audit",
+        "severity": "p3",
+        "location": "tests/Service/LedgerTest.php",
+        "probe": "probes/sa07.sh",
+        "fix": "fixes/sa07.patch",
+    },
 }
+EXPECTED_KIND_VISIBLE = {
+    fault_id: (row["kind"], row["visible_to"])
+    for fault_id, row in EXPECTED_ROWS.items()
+}
+# Contract behaviours, independent of FAULTS.json probe commands.
+FAULT_BEHAVIOUR = {
+    "SA-01": ("CommandTester", "; touch"),
+    "SA-02": ("../outside.txt",),
+    "SA-03": ("renderCount(0)",),
+    "SA-04": ("FIXTURE_TOKEN",),
+    "SA-05": ("LedgerException",),
+    "SA-06": ("contains(3)",),
+    "SA-07": ("Checksum::of('fixture');",),
+}
+PREFLIGHT_UNREADABLE = (
+    "vendor/blocked",
+    "target/blocked",
+    ".venv/blocked",
+    "var/blocked",
+    ".phpunit.cache/blocked",
+    "node_modules/blocked",
+)
+CHECK_SHORT_CIRCUIT_RE = re.compile(
+    r"(?:^|[;&\n])\s*(?:true|:)\s*\|\|",
+    re.MULTILINE,
+)
 COMPOSER_REQUIRE = {
     "php": ">=8.4",
     "symfony/console": "8.1.*",
@@ -154,10 +240,21 @@ GRADE_RATE_RE = re.compile(
 )
 HUNK_RE = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 UNITTEST_RAN_RE = re.compile(r"Ran ([1-9]\d*) tests?")
+PHPUNIT_RAN_RE = re.compile(
+    r"OK \((?P<ok>[1-9]\d*) tests?(?:, \d+ assertions?)?\)"
+    r"|Tests:\s+(?P<tests>[1-9]\d*)"
+)
 CONF_ASSIGN_RE = re.compile(
     r"^(?P<key>[A-Z][A-Z0-9_]*)='(?P<value>[^']*)'\s*$", re.MULTILINE
 )
 PHPUNIT_TESTS_DIR_RE = re.compile(r"<directory>\s*tests\s*</directory>")
+SA07_ORACLE = "Checksum::of('fixture');"
+DIRECT_INTERVAL_PHP = b"""<?php
+require 'tests/bootstrap.php';
+$v = (new \\App\\Model\\Interval(1, 3))->contains(3);
+fwrite(STDOUT, $v ? "true\\n" : "false\\n");
+exit($v ? 1 : 0);
+"""
 
 # Contract-derived dirty shapes at the practiced span (slice-4 PHP idiom).
 KIND_DIRTY = {
@@ -409,6 +506,47 @@ def _patch_removed_lines(text: str) -> dict[str, list[int]]:
     return {path: lines for path, lines in removed.items() if path}
 
 
+def _patch_hunks(text: str) -> list[tuple[str, int, int]]:
+    """Return (path, old_start, old_count) for every hunk in a unified diff."""
+    current: str | None = None
+    hunks: list[tuple[str, int, int]] = []
+    for line in text.splitlines():
+        if line.startswith("+++ "):
+            path = line[4:].strip().removeprefix("b/")
+            current = None if path == "/dev/null" else path
+            continue
+        hunk = HUNK_RE.match(line)
+        if hunk is None or current is None:
+            continue
+        start = int(hunk.group(1))
+        count = int(hunk.group(2)) if hunk.group(2) is not None else 1
+        hunks.append((current, start, count))
+    return hunks
+
+
+def _required_check_commands_are_executed(stripped: str) -> list[str]:
+    """Return required check commands that sit behind || or are missing."""
+    required = (
+        "composer validate --strict",
+        "php -l",
+        "vendor/bin/phpunit",
+    )
+    missing: list[str] = []
+    if CHECK_SHORT_CIRCUIT_RE.search(stripped):
+        missing.append("short-circuit wrapper (true || or : ||)")
+    for needle in required:
+        if needle not in stripped:
+            missing.append(needle)
+            continue
+        if re.search(rf"\|\|\s*{re.escape(needle)}", stripped):
+            missing.append(f"{needle} sits behind ||")
+    if not re.search(r"\bsrc\b", stripped):
+        missing.append("php -l covers src")
+    if not re.search(r"\btests\b", stripped):
+        missing.append("php -l covers tests")
+    return missing
+
+
 def _iter_app_php(root: Path) -> list[tuple[str, Path, str]]:
     found: list[tuple[str, Path, str]] = []
     for folder in ("src", "tests"):
@@ -533,18 +671,13 @@ class SymfonyAppLayout(unittest.TestCase):
         )
         check = _script_text(scripts.get("check"))
         stripped = _strip_shell_comments(check)
-        self.assertRegex(
-            stripped,
-            r"composer validate --strict",
-            "scripts.check must run composer validate --strict",
-        )
-        self.assertRegex(stripped, r"\bphp\s+-l\b", "scripts.check must lint with php -l")
-        self.assertRegex(stripped, r"\bsrc\b", "php -l covers src")
-        self.assertRegex(stripped, r"\btests\b", "php -l covers tests")
-        self.assertRegex(
-            stripped,
-            r"vendor/bin/phpunit",
-            "scripts.check must run vendor/bin/phpunit",
+        problems = _required_check_commands_are_executed(stripped)
+        self.assertEqual(
+            problems,
+            [],
+            "scripts.check must actually run composer validate --strict, "
+            "php -l over src and tests, and vendor/bin/phpunit; a true || "
+            f"no-op is not a check: {problems!r} in {stripped!r}",
         )
 
     def test_composer_lock_pins_symfony_v81(self):
@@ -557,18 +690,32 @@ class SymfonyAppLayout(unittest.TestCase):
             raw = lock.get(key)
             if isinstance(raw, list):
                 packages.extend(item for item in raw if isinstance(item, dict))
-        symfony = [
-            item
-            for item in packages
-            if str(item.get("name") or "").startswith("symfony/")
+        by_name = {}
+        for item in packages:
+            name = item.get("name")
+            if isinstance(name, str) and name:
+                by_name[name] = item
+        self.assertIn(
+            "symfony/flex",
+            by_name,
+            "composer.lock must name symfony/flex (^2 in composer.json)",
+        )
+        flex_ver = str(by_name["symfony/flex"].get("version") or "")
+        self.assertTrue(
+            flex_ver.startswith("v2."),
+            f"symfony/flex is ^2; lock must be a v2. version, found {flex_ver!r}",
+        )
+        others = [
+            (name, str(item.get("version") or ""))
+            for name, item in by_name.items()
+            if name.startswith("symfony/") and name != "symfony/flex"
         ]
         self.assertTrue(
-            symfony,
-            "composer.lock must name at least one symfony/* package",
+            others,
+            "composer.lock must name at least one 8.1.* symfony/* package "
+            "besides flex",
         )
-        for item in symfony:
-            name = item.get("name")
-            version = str(item.get("version") or "")
+        for name, version in others:
             with self.subTest(package=name):
                 self.assertTrue(
                     version.startswith("v8.1."),
@@ -629,6 +776,59 @@ class SymfonyAppLayout(unittest.TestCase):
             text.lower(),
             r"\babsent\b",
             "README.md must declare fix absent, not stub it",
+        )
+
+    def test_probe_files_name_contract_behaviours(self):
+        for fault_id, tokens in FAULT_BEHAVIOUR.items():
+            if fault_id == STATIC_ID:
+                path = APP / "tests" / "Service" / "LedgerTest.php"
+            else:
+                index = int(str(fault_id).split("-")[1])
+                path = APP / "probes" / f"Sa{index:02d}Test.php"
+            text = _read(path)
+            self.assertTrue(
+                text.strip(),
+                f"{path} must exist so {fault_id} can exercise its contract behaviour",
+            )
+            for token in tokens:
+                with self.subTest(fault=fault_id, token=token):
+                    self.assertIn(
+                        token,
+                        text,
+                        f"{fault_id} must exercise {token!r} in {path.name}, "
+                        "not a source-grep of a dirty token",
+                    )
+
+    def test_runtime_probe_shells_run_phpunit_not_grep(self):
+        for fault_id in NEEDS_IDS:
+            index = int(str(fault_id).split("-")[1])
+            rel = f"probes/sa{index:02d}.sh"
+            text = _strip_shell_comments(_read(APP / rel))
+            with self.subTest(fault=fault_id):
+                self.assertIn(
+                    "vendor/bin/phpunit",
+                    text,
+                    f"{rel} must run vendor/bin/phpunit",
+                )
+                self.assertIn(
+                    f"probes/Sa{index:02d}Test.php",
+                    text,
+                    f"{rel} must name probes/Sa{index:02d}Test.php",
+                )
+                self.assertNotRegex(
+                    text,
+                    r"\bgrep\b",
+                    f"{rel} is a runtime probe, not a grep of the planted span",
+                )
+
+    def test_sa07_probe_greps_the_checksum_oracle(self):
+        text = _read(APP / "probes" / "sa07.sh")
+        self.assertTrue(text.strip(), "probes/sa07.sh is missing")
+        self.assertRegex(text, r"\bgrep\b", "SA-07's probe is the static grep")
+        self.assertIn(
+            SA07_ORACLE,
+            text,
+            "probes/sa07.sh must grep for Checksum::of('fixture');",
         )
 
     def test_readme_carries_one_declaration_per_fault(self):
@@ -698,15 +898,31 @@ class SymfonyAppManifest(unittest.TestCase):
 
     def test_manifest_kind_and_visible_to_match_the_contract(self):
         faults = fault_rows(load_json_object(MANIFEST))
-        mapping = {
-            row.get("id"): (row.get("kind"), row.get("visible_to"))
-            for row in faults
-        }
         self.assertEqual(
-            mapping,
-            EXPECTED_KIND_VISIBLE,
-            "kind and visible_to must match the slice-4 fault table",
+            tuple(row.get("id") for row in faults),
+            EXPECTED_IDS,
+            "seven rows, ids SA-01 to SA-07, before per-id oracle checks",
         )
+        for row in faults:
+            fault_id = row.get("id")
+            expected = EXPECTED_ROWS[fault_id]
+            with self.subTest(fault=fault_id):
+                self.assertEqual(row.get("kind"), expected["kind"])
+                self.assertEqual(row.get("visible_to"), expected["visible_to"])
+                self.assertEqual(row.get("severity"), expected["severity"])
+                loc = (
+                    row.get("location")
+                    if isinstance(row.get("location"), dict)
+                    else {}
+                )
+                self.assertEqual(loc.get("path"), expected["location"])
+                probe = row.get("probe") if isinstance(row.get("probe"), str) else ""
+                self.assertIn(
+                    expected["probe"],
+                    probe,
+                    f"{fault_id} probe must name {expected['probe']}",
+                )
+                self.assertEqual(row.get("fix"), expected["fix"])
 
     def test_manifest_probe_timeout_toolchain_and_needs(self):
         data = load_json_object(MANIFEST)
@@ -762,12 +978,16 @@ class SymfonyAppManifest(unittest.TestCase):
         check = load_json_object(MANIFEST).get("check")
         text = check if isinstance(check, str) else ""
         stripped = _strip_shell_comments(text)
+        self.assertTrue(stripped.strip(), "manifest check is missing")
+        self.assertIsNone(
+            CHECK_SHORT_CIRCUIT_RE.search(stripped),
+            f"manifest check must not short-circuit: {stripped!r}",
+        )
         self.assertRegex(
             stripped,
             r"composer check|composer validate --strict",
             "check is composer check (comments do not count)",
         )
-        self.assertRegex(stripped, r"phpunit|php -l", "check covers phpunit or php -l")
 
     def test_manifest_sweep_accepts_faults_json(self):
         problems = validate_manifest(APP, set(KIND_IDS))
@@ -1094,7 +1314,7 @@ class SymfonyAppMakeProve(_RepoFreeze):
             snapshots.append((row, loc_path, loc_lines, span, path.read_bytes()))
         return faults, snapshots
 
-    def install_or_skip(self, directory: Path) -> None:
+    def install_from_lock(self, directory: Path) -> dict[str, str]:
         composer = shutil.which("composer")
         if composer is None:
             self.skipTest("UNREACHABLE: composer not on PATH")
@@ -1128,18 +1348,183 @@ class SymfonyAppMakeProve(_RepoFreeze):
                 "UNREACHABLE: composer install --prefer-dist --no-progress "
                 "--no-interaction exceeded 120s"
             )
-        if proc.returncode != 0:
-            self.skipTest(
-                "UNREACHABLE: composer install --prefer-dist --no-progress "
-                "--no-interaction could not run from the cache: "
-                f"stdout={proc.stdout!r} stderr={proc.stderr!r}"
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "composer install failed; a broken lock or manifest is a wrong "
+            "app, never a skip: "
+            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        phpunit = directory / "vendor" / "bin" / "phpunit"
+        self.assertTrue(
+            os.access(phpunit, os.X_OK),
+            "composer install left vendor/bin/phpunit unusable; that is a "
+            "wrong app, never a skip",
+        )
+        return env
+
+    def contract_probe_php(self, fault_id: str) -> str:
+        index = int(str(fault_id).split("-")[1])
+        return f"probes/Sa{index:02d}Test.php"
+
+    def contract_behaviour_colour(self, directory: Path, fault_id: str) -> str:
+        """Colour the contract behaviour, ignoring FAULTS.json probe commands."""
+        if fault_id == STATIC_ID:
+            text = _read(directory / "tests" / "Service" / "LedgerTest.php")
+            return "RED" if SA07_ORACLE in text else "GREEN"
+        phpunit = directory / "vendor" / "bin" / "phpunit"
+        self.assertTrue(
+            os.access(phpunit, os.X_OK),
+            f"{fault_id} contract probe needs vendor/bin/phpunit",
+        )
+        env = self.scratch_env()
+        host_home = os.environ.get("HOME")
+        if host_home:
+            env["HOME"] = host_home
+        env["APP_ENV"] = "test"
+        rel = self.contract_probe_php(fault_id)
+        try:
+            proc = subprocess.run(
+                [
+                    str(phpunit),
+                    "--no-configuration",
+                    "--bootstrap",
+                    "tests/bootstrap.php",
+                    rel,
+                ],
+                cwd=str(directory),
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=PROBE_CAP,
+            )
+        except subprocess.TimeoutExpired:
+            return "UNREACHABLE"
+        if proc.returncode in {126, 127} or proc.returncode < 0:
+            return "UNREACHABLE"
+        return "GREEN" if proc.returncode == 0 else "RED"
+
+    def assert_check_tools_ran(self, directory: Path, env: dict[str, str]) -> None:
+        composer = shutil.which("composer")
+        self.assertIsNotNone(composer, "INVALID: composer vanished after install")
+        try:
+            validate = subprocess.run(
+                [composer, "validate", "--strict"],
+                cwd=str(directory),
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=CHECK_CAP,
+            )
+        except subprocess.TimeoutExpired as exc:
+            self.fail(f"composer validate --strict exceeded {CHECK_CAP}s: {exc}")
+        self.assertEqual(
+            validate.returncode,
+            0,
+            "composer validate --strict must run and pass: "
+            f"stdout={validate.stdout!r} stderr={validate.stderr!r}",
+        )
+        php = shutil.which("php")
+        self.assertIsNotNone(php, "INVALID: php not on PATH after composer install")
+        php_files: list[Path] = []
+        for folder in ("src", "tests"):
+            base = directory / folder
+            self.assertTrue(base.is_dir(), f"fresh install must carry {folder}/")
+            found = sorted(base.rglob("*.php"))
+            self.assertTrue(
+                found,
+                f"{folder}/ must contain PHP files for php -l to lint",
+            )
+            php_files.extend(found)
+        for path in php_files:
+            try:
+                lint = subprocess.run(
+                    [php, "-l", str(path)],
+                    cwd=str(directory),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=CHECK_CAP,
+                )
+            except subprocess.TimeoutExpired as exc:
+                self.fail(f"php -l {path} exceeded {CHECK_CAP}s: {exc}")
+            combined = (lint.stdout or "") + (lint.stderr or "")
+            self.assertEqual(
+                lint.returncode,
+                0,
+                f"php -l must actually lint {path}: {combined!r}",
+            )
+            self.assertIn(
+                "No syntax errors detected",
+                combined,
+                f"php -l produced no lint proof for {path}: {combined!r}",
             )
         phpunit = directory / "vendor" / "bin" / "phpunit"
-        if not os.access(phpunit, os.X_OK):
-            self.skipTest(
-                "UNREACHABLE: composer install --prefer-dist --no-progress "
-                "--no-interaction left vendor/bin/phpunit unusable"
+        try:
+            unit = subprocess.run(
+                [str(phpunit)],
+                cwd=str(directory),
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=CHECK_CAP,
             )
+        except subprocess.TimeoutExpired as exc:
+            self.fail(f"vendor/bin/phpunit exceeded {CHECK_CAP}s: {exc}")
+        unit_out = (unit.stdout or "") + (unit.stderr or "")
+        self.assertEqual(
+            unit.returncode,
+            0,
+            f"vendor/bin/phpunit must run and pass: {unit_out!r}",
+        )
+        ran = PHPUNIT_RAN_RE.search(unit_out)
+        self.assertIsNotNone(
+            ran,
+            f"phpunit must collect tests, not a silent no-op: {unit_out!r}",
+        )
+
+    def assert_interval_contains_three_is_red(self, directory: Path) -> None:
+        php = shutil.which("php")
+        self.assertIsNotNone(php, "INVALID: php not on PATH after composer install")
+        script = self.root / "sa06-direct.php"
+        _plant_bytes(self, script, DIRECT_INTERVAL_PHP)
+        env = self.scratch_env()
+        host_home = os.environ.get("HOME")
+        if host_home:
+            env["HOME"] = host_home
+        try:
+            proc = subprocess.run(
+                [php, str(script)],
+                cwd=str(directory),
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=PROBE_CAP,
+            )
+        except subprocess.TimeoutExpired as exc:
+            self.fail(f"direct Interval::contains(3) exceeded {PROBE_CAP}s: {exc}")
+        self.assertNotIn(
+            proc.returncode,
+            {126, 127},
+            "direct Interval::contains(3) must be reachable after install: "
+            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        self.assertIn(
+            "true",
+            (proc.stdout or "") + (proc.stderr or ""),
+            "SA-06 planted: (new Interval(1, 3))->contains(3) must be true: "
+            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        self.assertNotEqual(
+            proc.returncode,
+            0,
+            "SA-06 planted: contains(3) true is RED, not a passing oracle",
+        )
 
     def test_make_symfony_app_into_a_temp_directory_succeeds(self):
         made = self.made_app("made")
@@ -1306,7 +1691,12 @@ class SymfonyAppMakeProve(_RepoFreeze):
                     f"{fault_id} practiced span must look like {kind}, not a label: "
                     f"{span!r}",
                 )
+            expected = EXPECTED_ROWS[fault_id]
+            self.assertEqual(kind, expected["kind"])
+            self.assertEqual(loc_path, expected["location"])
             probe_cmd = row.get("probe") if isinstance(row.get("probe"), str) else ""
+            self.assertIn(expected["probe"], probe_cmd)
+            self.assertEqual(fix_rel, expected["fix"])
             probe_files = _probe_script_paths(probe_cmd)
             self.assertTrue(
                 probe_files,
@@ -1350,6 +1740,18 @@ class SymfonyAppMakeProve(_RepoFreeze):
                     f"{fault_id} fix must change only {loc_path}, found {changed}",
                 )
                 removed = _patch_removed_lines(patch.decode("utf-8"))
+                hunks = _patch_hunks(patch.decode("utf-8"))
+                self.assertEqual(
+                    len(hunks),
+                    1,
+                    f"{fault_id} fix must be one hunk, found {len(hunks)}: "
+                    f"{hunks!r}",
+                )
+                self.assertEqual(
+                    hunks[0][0],
+                    loc_path,
+                    f"{fault_id} hunk must target {loc_path}, found {hunks[0]!r}",
+                )
                 self.assertEqual(
                     set(removed),
                     {loc_path},
@@ -1439,19 +1841,17 @@ class SymfonyAppMakeProve(_RepoFreeze):
                     f"found clean {kind} spans: {candidates!r} vs {neighbour!r}",
                 )
 
-    def test_full_proof_after_composer_install_else_skip(self):
+    def test_full_proof_after_composer_install(self):
         made = self.made_app("full-proof")
-        self.install_or_skip(made)
-        env = self.scratch_env()
-        host_home = os.environ.get("HOME")
-        if host_home:
-            env["HOME"] = host_home
-        for key, value in os.environ.items():
-            if key.startswith("COMPOSER"):
-                env[key] = value
+        env = self.install_from_lock(made)
+        self.assert_check_tools_ran(made, env)
         manifest = load_json_object(made / "FAULTS.json")
         check = manifest.get("check") if isinstance(manifest.get("check"), str) else ""
         self.assertTrue(check.strip(), "fresh make must carry a check command")
+        self.assertIsNone(
+            CHECK_SHORT_CIRCUIT_RE.search(_strip_shell_comments(check)),
+            f"manifest check must not short-circuit: {check!r}",
+        )
         try:
             proc = subprocess.run(
                 ["bash", "-c", check],
@@ -1487,34 +1887,57 @@ class SymfonyAppMakeProve(_RepoFreeze):
         self.assertEqual(prove.returncode, 0, prove.stderr or prove.stdout)
 
         faults, snapshots = self.fault_snapshots(made)
+        self.assert_interval_contains_three_is_red(made)
         for row, loc_path, loc_lines, span, loc_before in snapshots:
             fault_id = row.get("id")
+            expected = EXPECTED_ROWS[fault_id]
             probe_cmd = row.get("probe") if isinstance(row.get("probe"), str) else ""
-            fix_rel = row.get("fix") if isinstance(row.get("fix"), str) else ""
+            fix_rel = expected["fix"]
+            self.assertEqual(row.get("fix"), fix_rel)
+            if fault_id == STATIC_ID:
+                behaviour_source = made / expected["location"]
+            else:
+                behaviour_source = made / self.contract_probe_php(fault_id)
+            behaviour_text = _read(behaviour_source)
+            for token in FAULT_BEHAVIOUR[fault_id]:
+                self.assertIn(
+                    token,
+                    behaviour_text,
+                    f"{fault_id} must name {token!r} in {behaviour_source.name}",
+                )
             with self.subTest(fault=fault_id, stage="probe-red"):
-                colour = self.run_probe(made, probe_cmd)
+                colour = self.contract_behaviour_colour(made, fault_id)
                 self.assertEqual(
                     colour,
                     "RED",
-                    f"{fault_id} probe must be RED while planted: {probe_cmd!r}",
+                    f"{fault_id} contract behaviour must be RED while planted",
+                )
+                manifest_colour = self.run_probe(made, probe_cmd)
+                self.assertEqual(
+                    manifest_colour,
+                    "RED",
+                    f"{fault_id} manifest probe must agree it is RED: {probe_cmd!r}",
                 )
             with self.subTest(fault=fault_id, stage="probe-green"):
                 self.apply_fix(made, fix_rel)
-                colour = self.run_probe(made, probe_cmd)
+                colour = self.contract_behaviour_colour(made, fault_id)
                 self.assertEqual(
                     colour,
                     "GREEN",
-                    f"{fault_id} probe must be GREEN after its own fix",
+                    f"{fault_id} contract behaviour must be GREEN after its own fix",
+                )
+                manifest_colour = self.run_probe(made, probe_cmd)
+                self.assertEqual(
+                    manifest_colour,
+                    "GREEN",
+                    f"{fault_id} manifest probe must agree it is GREEN after the fix",
                 )
             with self.subTest(fault=fault_id, stage="others-stay-red"):
                 for other in faults:
                     other_id = other.get("id")
                     if other_id == fault_id:
                         continue
-                    other_probe = (
-                        other.get("probe") if isinstance(other.get("probe"), str) else ""
-                    )
-                    colour = self.run_probe(made, other_probe)
+                    colour = self.contract_behaviour_colour(made, other_id)
                     self.assertEqual(
                         colour,
                         "RED",
@@ -1523,11 +1946,11 @@ class SymfonyAppMakeProve(_RepoFreeze):
             self.reset_tree(made)
             reset = (made / loc_path).read_bytes()
             self.assertEqual(reset, loc_before, f"{fault_id} reset did not restore")
-            colour = self.run_probe(made, probe_cmd)
+            colour = self.contract_behaviour_colour(made, fault_id)
             self.assertEqual(
                 colour,
                 "RED",
-                f"{fault_id} probe must be RED again after reset",
+                f"{fault_id} contract behaviour must be RED again after reset",
             )
             del loc_lines, span
 
@@ -1853,8 +2276,43 @@ class SymfonyAppLeverChange(_LeverFixture):
             f"{proc.stdout!r}",
         )
 
+        coloured_fixed = self.plant_made_repo("timeout-five-fixed")
+        self._plant_sleeper(coloured_fixed)
+        self._plant_timeout_key(coloured_fixed, 5)
+        proc = self.invoke(
+            ["prove", "--fixed", str(coloured_fixed)],
+            agent=None,
+            timeout=SLEEP_PROVE_CAP,
+        )
+        self.assertNotEqual(proc.returncode, 3, "timeout is UNREACHABLE, not abort")
+        rows = self.parse_prove(proc.stdout)
+        self.assertIn("SYN-01", rows, proc.stdout)
+        self.assertIn(
+            rows["SYN-01"],
+            {"RED", "GREEN"},
+            "probe_timeout 5 must colour a 3 s probe on prove --fixed too, "
+            f"not UNREACHABLE: {proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        self.assertNotEqual(rows["SYN-01"], "UNREACHABLE")
+
+        default_fixed = self.plant_made_repo("timeout-default-fixed")
+        self._plant_sleeper(default_fixed)
+        self._plant_timeout_key(default_fixed, None)
+        proc = self.invoke(
+            ["prove", "--fixed", str(default_fixed)],
+            agent=None,
+            timeout=SLEEP_PROVE_CAP,
+        )
+        rows = self.parse_prove(proc.stdout)
+        self.assertEqual(
+            rows.get("SYN-01"),
+            "UNREACHABLE",
+            "prove --fixed without probe_timeout keeps the two-second default: "
+            f"{proc.stdout!r}",
+        )
+
     def test_probe_timeout_x_zero_and_301_refuse_manifest(self):
-        for value in ("x", 0, 301):
+        for value in ("x", 0, 301, True, False, -1, 1.5):
             with self.subTest(probe_timeout=value):
                 made = self.plant_made_dir(f"bad-timeout-{value}")
                 self._plant_timeout_key(made, value)
@@ -1864,11 +2322,46 @@ class SymfonyAppLeverChange(_LeverFixture):
                 self.assertIn("probe_timeout", err.lower())
                 self.assertRegex(err, r"1\.\.300")
 
+    def test_probe_timeout_1_and_300_are_accepted(self):
+        for value in (1, 300):
+            with self.subTest(probe_timeout=value, stage="no-refuse"):
+                made = self.plant_made_dir(f"ok-timeout-{value}")
+                self._plant_sleeper(made)
+                self._plant_timeout_key(made, value)
+                proc = self.invoke(
+                    ["prove", str(made)],
+                    agent=None,
+                    timeout=SLEEP_PROVE_CAP,
+                )
+                self.assertNotEqual(
+                    proc.returncode,
+                    2,
+                    f"probe_timeout {value} is in 1..300 and must not refuse: "
+                    f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+                )
+                rows = self.parse_prove(proc.stdout)
+                self.assertIn("SYN-01", rows, proc.stdout)
+                if value == 1:
+                    self.assertEqual(
+                        rows["SYN-01"],
+                        "UNREACHABLE",
+                        "probe_timeout 1 must not colour a 3 s probe: "
+                        f"{proc.stdout!r}",
+                    )
+                else:
+                    self.assertIn(
+                        rows["SYN-01"],
+                        {"RED", "GREEN"},
+                        "probe_timeout 300 must colour a 3 s probe, not "
+                        f"UNREACHABLE: {proc.stdout!r} stderr={proc.stderr!r}",
+                    )
+                    self.assertNotEqual(rows["SYN-01"], "UNREACHABLE")
+
     def test_prove_fixed_ignores_vendor_target_and_venv_with_unreadable_files(self):
         made = self.plant_made_repo("preflight-ignore")
         blocked: list[Path] = []
         try:
-            for rel in ("vendor/blocked", "target/blocked", ".venv/blocked"):
+            for rel in PREFLIGHT_UNREADABLE:
                 path = made / rel
                 self._plant_bytes(path, b"UNREADABLE_PREFLIGHT_BAIT\n")
                 path.chmod(0o000)
@@ -1882,8 +2375,8 @@ class SymfonyAppLeverChange(_LeverFixture):
             self.assertEqual(
                 proc.returncode,
                 0,
-                "prove --fixed must ignore vendor/, target/ and .venv/ in the "
-                "preflight copy: "
+                "prove --fixed must ignore vendor/, target/, .venv/, var/, "
+                ".phpunit.cache/ and node_modules/ in the preflight copy: "
                 f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
             )
             rows = self.parse_prove(proc.stdout)
