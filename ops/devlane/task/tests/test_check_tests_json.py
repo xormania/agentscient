@@ -9,30 +9,14 @@ The job wire is unchanged for every other job.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import unittest
 
 import support
+import test_jobs
 
 JOBS_PATH = support.APP / "jobs.json"
-
-# Canonical SHA-256 of every jobs.json entry except check-tests
-# (json.dumps sort_keys=True, ensure_ascii=False, separators=(",", ":")).
-OTHER_JOBS_SHA256 = (
-    "fdab3e7b2d9b6673f9fd5567b557b56b54ecab0394b3e310ab692e2183219c9c"
-)
-OTHER_JOB_NAMES = (
-    "verify",
-    "adversarial-review",
-    "security-audit",
-    "author-tests",
-    "sweep",
-    "plan",
-    "implement",
-    "adjudicate",
-)
 
 # The prompt must ask for the envelope on stdout and empty artifacts.
 # A regression that replaces this clause with a file write is the
@@ -343,30 +327,60 @@ class CheckTestsDeliverableIsTheJsonEnvelopeOnStdout(_CheckTestsJob):
         )
 
 
-class OtherJobWiresAreUnchanged(_CheckTestsJob):
-    """The job wire is unchanged for every other job."""
+class OtherJobWiresAreUnchanged(test_jobs.OtherJobWiresAreUnchanged):
+    """The job wire is unchanged for every other job.
 
-    def test_every_other_job_wire_is_unchanged(self):
-        jobs = self.jobs()
-        self.assertIn("check-tests", jobs)
-        others = {
-            name: spec for name, spec in jobs.items() if name != "check-tests"
-        }
-        self.assertEqual(
-            set(others),
-            set(OTHER_JOB_NAMES),
-            "another job was added or removed; check-tests is the only "
-            f"job in this bucket: {sorted(others)!r}",
+    Delegates to test_jobs.OtherJobWiresAreUnchanged so the merge-base
+    comparison exists once. Compare each other job to the catalogue at
+    git merge-base HEAD origin/dev, never to a frozen digest. If
+    origin/dev is absent, read base_sha from the ladder record or skip
+    with a declared reason.
+    """
+
+
+class NoFrozenJobWireDigestRemains(unittest.TestCase):
+    """No test under task/tests or conductor/tests pins a job wire
+    other than check-tests to a frozen SHA-256 digest.
+
+    Other jobs compare to the catalogue at merge-base, as in
+    test_jobs.OtherJobWiresAreUnchanged. A 64-hex literal in these
+    trees is a frozen pin; remaining pins must be none.
+    """
+
+    HEX64 = re.compile(r"""['"][0-9a-f]{64}['"]""")
+    ROOTS = (
+        support.REPO / "ops" / "devlane" / "task" / "tests",
+        support.REPO / "ops" / "conductor" / "tests",
+    )
+
+    def test_no_frozen_digest_literal_pins_a_job_wire(self):
+        pins = []
+        scanned = 0
+        for root in self.ROOTS:
+            self.assertTrue(root.is_dir(), f"tests directory missing: {root}")
+            files = sorted(root.glob("test_*.py"))
+            self.assertGreater(
+                len(files),
+                0,
+                f"no test_*.py under {root}; the sweep would pass vacuously",
+            )
+            for path in files:
+                scanned += 1
+                text = path.read_text(encoding="utf-8")
+                for match in self.HEX64.finditer(text):
+                    rel = path.relative_to(support.REPO).as_posix()
+                    pins.append(f"{rel}:{match.group(0)}")
+        self.assertGreater(
+            scanned,
+            0,
+            "scanned no test files; the sweep would pass vacuously",
         )
-        canonical = json.dumps(
-            others, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
-        )
-        digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
         self.assertEqual(
-            digest,
-            OTHER_JOBS_SHA256,
-            "another job's role, snapshot, deliverable, constraints, or "
-            "prompt changed; check-tests is the only job in this bucket",
+            pins,
+            [],
+            "a frozen SHA-256 literal still pins a job wire; compare "
+            "other jobs to the catalogue at merge-base instead: "
+            f"{pins!r}",
         )
 
 
