@@ -460,3 +460,98 @@ class GrokArgvCarriesTheSandboxTheRecordStates(ls._TempLaunch):
                 f"U10: grok output is plain, not json; argv={argv!r}",
             )
         self.assertIn("--prompt-file", argv)
+
+
+class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
+    """Project permissions.allow/deny from .claude/settings.json land on
+    argv after the floor; network-reaching rules are dropped; the
+    record's harness.permissions names what applied."""
+
+    ALLOW_KEEP = "Bash(php *)"
+    ALLOW_DROP = "Bash(gh pr *)"
+    DENY_KEEP = "WebFetch"
+
+    def _plant_settings(self):
+        payload = {
+            "permissions": {
+                "allow": [self.ALLOW_KEEP, self.ALLOW_DROP],
+                "deny": [self.DENY_KEEP],
+            }
+        }
+        path = self.repo / ".claude" / "settings.json"
+        body = json.dumps(payload, indent=2) + "\n"
+        self.assertFalse(path.is_file(), "plant: settings.json was already there")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(body, encoding="utf-8")
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertIn(self.ALLOW_KEEP, landed)
+        self.assertIn(self.ALLOW_DROP, landed)
+        self.assertIn(self.DENY_KEEP, landed)
+        self.ref = self._commit("plant project claude settings")
+        return path, ls.sha256_file(path)
+
+    def _flag_values(self, argv, flag):
+        argv = [str(a) for a in argv]
+        self.assertIn(flag, argv, argv)
+        start = argv.index(flag) + 1
+        values = []
+        for item in argv[start:]:
+            if str(item).startswith("--"):
+                break
+            values.append(item)
+        return values
+
+    def test_claude_argv_carries_the_project_permissions(self):
+        _path, digest = self._plant_settings()
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="claude", stage="plan",
+        )
+        argv = [str(a) for a in witness["argv"]]
+        allow = self._flag_values(argv, "--allowedTools")
+        deny = self._flag_values(argv, "--disallowedTools")
+        self.assertIn(self.ALLOW_KEEP, allow)
+        self.assertNotIn(self.ALLOW_DROP, allow)
+        self.assertNotIn(self.ALLOW_DROP, deny)
+        self.assertIn(self.DENY_KEEP, deny)
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(perms, dict, rec.get("harness"))
+        self.assertEqual(perms.get("source"), ".claude/settings.json")
+        self.assertEqual(perms.get("sha256"), digest)
+        self.assertEqual(perms.get("allow"), 1)
+        self.assertEqual(perms.get("deny"), 1)
+        self.assertEqual(perms.get("dropped"), [self.ALLOW_DROP])
+        self.assertEqual(perms.get("applied"), "argv")
+
+    def test_no_project_settings_is_declared_unresolved(self):
+        settings = self.repo / ".claude" / "settings.json"
+        self.assertFalse(settings.is_file(), "plant: no project settings")
+        rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
+        perms = (rec.get("harness") or {}).get("permissions")
+        self.assertIsInstance(
+            perms, dict,
+            f"harness.permissions must declare the absence: "
+            f"harness={rec.get('harness')!r}",
+        )
+        self.assertIn("unresolved", perms, perms)
+        self.assertTrue(str(perms["unresolved"]).strip(), perms)
+
+    def test_claude_resume_argv_carries_the_same_permissions(self):
+        self._plant_settings()
+        rec, first, *_ = self.launch_ok(
+            job="plan", harness="claude", stage="plan",
+        )
+        first_allow = self._flag_values(first["argv"], "--allowedTools")
+        first_deny = self._flag_values(first["argv"], "--disallowedTools")
+        self.assertIn(self.ALLOW_KEEP, first_allow)
+        self.witness.unlink()
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        second = self.read_witness()
+        second_allow = self._flag_values(second["argv"], "--allowedTools")
+        second_deny = self._flag_values(second["argv"], "--disallowedTools")
+        self.assertEqual(second_allow, first_allow)
+        self.assertEqual(second_deny, first_deny)
+        self.assertIn(self.ALLOW_KEEP, second_allow)
+        self.assertNotIn(self.ALLOW_DROP, second_allow)
+        self.assertIn(self.DENY_KEEP, second_deny)
