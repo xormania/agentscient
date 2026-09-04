@@ -8,6 +8,7 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -17,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import ModuleType
 from typing import NoReturn
+from urllib.parse import urlsplit
 
 IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<email>[^<>\s@]+@[^<>\s]+)>")
 RECORD_ID = re.compile(r"^record:\s+(\S+)\s*$", re.MULTILINE)
@@ -42,7 +44,8 @@ CONF_KEYS = (
     "LANE_NAME",
     "TRUNK_BRANCH",
     "REPO_SLUG",
-    "CHECK_NAME",
+    "CHECK_NAMES",
+    "LANE_AUTHOR",
     "SCOPE_CAP",
     "WALL_DEFAULT",
     "WORKTREE_ROOT",
@@ -334,9 +337,52 @@ def parse_plan(plan: Path | None) -> tuple[list[dict], list[dict]]:
                         "files": fields[3].split(),
                     }
                 )
+    for item in slices:
+        if item["declared"] != "M":
+            continue
+        valid = len(buckets) == 2 and all(
+            bucket["name"] and bucket["declared"] == "S"
+            for bucket in buckets
+        )
+        if not valid:
+            refuse(
+                "plan",
+                f"slice {item['name']} declared M with exactly two named S buckets",
+                f"{len(buckets)} buckets in {plan}",
+                "declare exactly two named S buckets",
+            )
     if not buckets:
         buckets.append({"name": "scope", "declared": "S", "files": []})
     return buckets, slices
+
+
+def recorded_file(worktree: Path, data: object, label: str) -> Path:
+    """Resolve and verify one file named by a durable ladder record."""
+    if not isinstance(data, dict):
+        refuse("record", f"a recorded {label}", repr(data), "repair the record")
+    raw_path = data.get("path")
+    expected = data.get("sha256")
+    if not isinstance(raw_path, str) or not raw_path:
+        refuse("record", f"a recorded {label} path", repr(raw_path), "repair the record")
+    candidate = Path(raw_path).resolve()
+    if not candidate.is_relative_to(worktree.resolve()):
+        refuse(
+            "record",
+            f"the {label} path inside {worktree}",
+            str(candidate),
+            "repair the record with an in-worktree path",
+        )
+    if not candidate.is_file():
+        refuse("record", f"a readable recorded {label}", str(candidate), "repair the record")
+    actual = digest(candidate)
+    if not isinstance(expected, str) or actual != expected:
+        refuse(
+            "record",
+            f"the recorded {label} sha256 {expected}",
+            actual,
+            "restore the recorded bytes or repair the digest",
+        )
+    return candidate
 
 
 class Driver:
@@ -514,6 +560,7 @@ class Driver:
         previous: str | None,
     ) -> list[str]:
         job, harness, flag = stage_spec(name)
+        scope = self.stage_scope(name, inputs)
         argv = [
             str(self.dispatch),
             "--branch",
@@ -527,13 +574,22 @@ class Driver:
             "--stage",
             flag,
             "--scope-file",
-            str(self.scope),
+            str(scope),
         ]
         for path in inputs:
+            if path == scope:
+                continue
             argv.extend(("--input", str(path)))
         if previous:
             argv.extend(("--follows", previous))
         return argv
+
+    def stage_scope(self, name: str, inputs: list[Path]) -> Path:
+        if name == "fix-code" or name == "code" or name.startswith("code-"):
+            for path in inputs:
+                if path.name == "test-command.md":
+                    return path
+        return self.scope
 
     def resolved(
         self,
@@ -665,6 +721,32 @@ class Driver:
                 "envelope",
                 detail="dispatch or envelope was not accepted",
             )
+        job, harness, stage = stage_spec(pending.name)
+        lineage = dispatch_record.get("lineage") or {}
+        binding = {
+            "job": dispatch_record.get("job"),
+            "stage": dispatch_record.get("stage"),
+            "harness": (dispatch_record.get("harness") or {}).get("name"),
+            "branch": lineage.get("branch"),
+            "unit": dispatch_record.get("unit"),
+        }
+        expected_binding = {
+            "job": job,
+            "stage": stage,
+            "harness": harness,
+            "branch": self.branch,
+            "unit": self.branch,
+        }
+        if binding != expected_binding:
+            raise Stopped(
+                pending.name,
+                pending.record_id,
+                "record",
+                detail=(
+                    f"dispatch record binding differs: expected {expected_binding!r}; "
+                    f"found {binding!r}"
+                ),
+            )
         requested = (dispatch_record.get("model") or {}).get("requested")
         effort = (dispatch_record.get("model") or {}).get("effort_requested")
         if requested != pending.model or effort != pending.effort:
@@ -700,7 +782,14 @@ class Driver:
             ) from error
         try:
             result = subprocess.run(
-                [sys.executable, str(self.launch), "wait", pending.record_id],
+                [
+                    sys.executable,
+                    str(self.launch),
+                    "wait",
+                    pending.record_id,
+                    "--timeout",
+                    str(wall + grace),
+                ],
                 cwd=self.worktree,
                 capture_output=True,
                 text=True,
@@ -754,7 +843,9 @@ class Driver:
         )
         try:
             dispatch_record, envelope = self.load_envelope(pending)
-        except Stopped:
+        except Stopped as error:
+            if error.reason == "record":
+                raise
             return None
         return pending, dispatch_record, envelope
 
@@ -765,9 +856,7 @@ class Driver:
         address = self.conf.get(f"ADDRESS_{str(harness).upper()}")
         if not isinstance(ran, str) or not ran or not address:
             raise Stopped(pending.name, pending.record_id, "model", detail="ran model has no address")
-        repo_name = git_out(self.worktree, "config", "--get", "user.name")
-        repo_email = git_out(self.worktree, "config", "--get", "user.email")
-        author = full_identity(f"{repo_name} <{repo_email}>", "worktree git identity")
+        author = full_identity(self.conf["LANE_AUTHOR"], "LANE_AUTHOR")
         coauthor = full_identity(f"{ran} <{address}>", "harness co-author")
         stage_base = git_out(self.worktree, "rev-parse", "HEAD")
         result = run(
@@ -792,10 +881,41 @@ class Driver:
                 raise Stopped(pending.name, pending.record_id, "lineage", detail=sha)
         row["landed_shas"] = shas
         row["landed"] = shas
+        if (pending.name == "code" or pending.name.startswith("code-")) and shas:
+            index = 0 if pending.name == "code" else int(pending.name.split("-", 1)[1]) - 1
+            bucket = self.buckets[index]
+            allowed = set(bucket["files"])
+            if allowed:
+                measured = git(
+                    self.worktree,
+                    "diff",
+                    "--name-only",
+                    stage_base,
+                    shas[-1],
+                    "--",
+                )
+                if measured.returncode != 0:
+                    raise Stopped(
+                        pending.name,
+                        pending.record_id,
+                        "bucket",
+                        detail=measured.stderr.strip(),
+                    )
+                outside = sorted(set(measured.stdout.splitlines()) - allowed)
+                if outside:
+                    raise Stopped(
+                        pending.name,
+                        pending.record_id,
+                        "bucket",
+                        detail=f"landed paths outside bucket {bucket['name']}: {outside!r}",
+                    )
         row["outcome"] = "ok"
         if pending.name == "code" or pending.name.startswith("code-") or pending.name == "fix-code":
-            note = ((dispatch_record.get("result") or {}).get("envelope") or {}).get("note")
-            for marker in (pending.record_id, note):
+            envelope = (dispatch_record.get("result") or {}).get("envelope") or {}
+            marker_values = [pending.record_id]
+            for key in ("note", "artifacts", "findings"):
+                marker_values.extend(self.strings(envelope.get(key)))
+            for marker in marker_values:
                 if isinstance(marker, str) and marker and marker not in self.implementation_markers:
                     self.implementation_markers.append(marker)
         self.commit()
@@ -858,8 +978,24 @@ class Driver:
         if name == "check-tests" and "tests" in records:
             inputs.append(dispatch_dir / f"{records['tests']}.json")
         elif name == "tests-fix" and "check-tests" in records:
-            inputs.append(dispatch_dir / f"{records['check-tests']}.json")
+            record_path = dispatch_dir / f"{records['check-tests']}.json"
+            inputs.append(record_path)
+            try:
+                payload = json.loads(record_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                payload = {}
+            artifacts = (
+                (((payload.get("result") or {}).get("envelope") or {}).get("artifacts"))
+                or {}
+            )
+            if isinstance(artifacts, dict):
+                for value in artifacts.values():
+                    if isinstance(value, str):
+                        artifact = Path(value)
+                        if artifact.name == "SKEPTIC.md" and artifact.is_file():
+                            inputs.append(artifact)
         elif name == "code" or name.startswith("code-"):
+            inputs.append(self.scope)
             if command_file is not None:
                 inputs.append(command_file)
         elif name in {"fix-tests", "fix-code"}:
@@ -867,6 +1003,7 @@ class Driver:
                 if audit in records:
                     inputs.append(dispatch_dir / f"{records[audit]}.json")
             if name == "fix-code" and command_file is not None:
+                inputs.append(self.scope)
                 inputs.append(command_file)
                 context = self.make_input(
                     "implementation-records",
@@ -949,11 +1086,16 @@ class Driver:
                 if not isinstance(value, str):
                     continue
                 path = Path(value)
-                if not path.name.startswith("test") or path.suffix != ".py":
+                if (
+                    path.suffix != ".py"
+                    or "tests" not in path.parts[:-1]
+                    or re.search(r"[;&|\r\n]", value)
+                ):
                     continue
                 commands.append(
-                    f"python3 -m unittest discover -s {path.parent.as_posix()} "
-                    f"-p {path.name}"
+                    "python3 -m unittest discover "
+                    f"-s {shlex.quote(path.parent.as_posix())} "
+                    f"-p {shlex.quote(path.name)}"
                 )
         if not commands:
             raise Stopped("code", reason="artifacts", detail="no test artifact")
@@ -966,12 +1108,21 @@ class Driver:
             )
         return self.make_input("test-command", command)
 
+    @classmethod
+    def strings(cls, value: object) -> list[str]:
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, dict):
+            return [item for child in value.values() for item in cls.strings(child)]
+        if isinstance(value, list):
+            return [item for child in value for item in cls.strings(child)]
+        return []
+
     def has_leak(self, envelope: dict) -> bool:
-        note = envelope.get("note")
-        if isinstance(note, str) and note:
-            return True
         encoded = json.dumps(envelope, sort_keys=True)
-        return any(marker in encoded for marker in self.implementation_markers)
+        return any(marker in encoded for marker in self.implementation_markers) or bool(
+            re.search(r"implement(?:ation)?[_ -]+envelope", encoded, re.IGNORECASE)
+        )
 
     def verify_custody(
         self,
@@ -1023,8 +1174,20 @@ class Driver:
             security.record_id,
         )
         records["adversarial"] = adversarial.record_id
-        security_envelope = self.finish(security)
-        adversarial_envelope = self.finish(adversarial)
+        first_error: Stopped | None = None
+        try:
+            security_envelope = self.finish(security)
+        except Stopped as error:
+            security_envelope = {}
+            first_error = error
+        try:
+            adversarial_envelope = self.finish(adversarial)
+        except Stopped:
+            if first_error is None:
+                raise
+            adversarial_envelope = {}
+        if first_error is not None:
+            raise first_error
         return security_envelope, adversarial_envelope, adversarial.record_id
 
     def calibrate(self) -> None:
@@ -1094,7 +1257,7 @@ class Driver:
                 "## What",
                 "",
                 f"Run the declared audit ladder for `{self.branch}` and open its draft review.",
-                f"The branch passed the configured `{self.conf['CHECK_NAME']}` gate sequence.",
+                f"The branch passed the configured `{self.conf['CHECK_NAMES']}` gate sequence.",
                 "",
                 "## Sources",
                 "",
@@ -1118,7 +1281,7 @@ class Driver:
         row = self.row("pr")
         row["attempt"] = 1
         self.commit(body)
-        pushed = git(self.worktree, "push", "origin", self.branch)
+        pushed = git(self.worktree, "push", "origin", "--", self.branch)
         if pushed.returncode != 0:
             raise Stopped("pr", reason="push", detail=pushed.stderr.strip())
         argv = [
@@ -1152,6 +1315,15 @@ class Driver:
                 detail="gh pr create returned no URL",
             )
         url = output[-1]
+        parsed = urlsplit(url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc or any(
+            character.isspace() for character in url
+        ):
+            raise Stopped(
+                "pr",
+                reason="pr",
+                detail="gh pr create returned an invalid URL",
+            )
         row["outcome"] = "ok"
         tail = url.rstrip("/").rsplit("/", 1)[-1]
         self.record["pr"] = {
@@ -1239,7 +1411,14 @@ def initial_conf_path(cwd: Path) -> Path:
 
 def load_conf(worktree: Path) -> dict[str, str]:
     os.environ["LANE_CONF"] = str(worktree / "ops" / "lane.conf")
-    values = {key: conf_value(key) for key in CONF_KEYS}
+    values: dict[str, str] = {}
+    for key in CONF_KEYS:
+        try:
+            values[key] = conf_value(key)
+        except Refused as error:
+            if key != "CHECK_NAMES" or error.kind != "conf-key":
+                raise
+            values[key] = conf_value("CHECK_NAME")
     try:
         values["LADDER_WAIT_GRACE"] = conf_value("LADDER_WAIT_GRACE")
     except Refused as error:
@@ -1294,6 +1473,7 @@ def validate_preconditions(
             "commit or stash them",
         )
     full_identity(agent, "WF_AGENT")
+    full_identity(conf["LANE_AUTHOR"], "LANE_AUTHOR")
     name = git_out(worktree, "config", "--get", "user.name")
     email = git_out(worktree, "config", "--get", "user.email")
     full_identity(f"{name} <{email}>", "worktree git identity")
@@ -1372,16 +1552,21 @@ def main(argv: list[str] | None = None) -> int:
                 )
             worktree, record = record_worktree(cwd, args[1])
             branch = record.get("branch")
-            scope_data = record.get("scope") or {}
-            plan_data = record.get("plan") or {}
             if not isinstance(branch, str) or not branch:
                 refuse("record", "a named branch", repr(branch), "repair the record")
-            scope = file_arg(str(scope_data.get("path") or ""), "scope")
-            plan = (
-                file_arg(str(plan_data.get("path")), "plan")
-                if plan_data
-                else None
-            )
+            current_branch = git_out(worktree, "symbolic-ref", "--short", "HEAD")
+            branch_check = git(worktree, "check-ref-format", f"refs/heads/{branch}")
+            if branch.startswith("-") or branch_check.returncode != 0 or branch != current_branch:
+                refuse(
+                    "record",
+                    f"the checked-out branch {current_branch}",
+                    branch,
+                    "repair the record branch",
+                )
+            scope = recorded_file(worktree, record.get("scope"), "scope")
+            plan_data = record.get("plan")
+            plan = recorded_file(worktree, plan_data, "plan") if plan_data else None
+            recorded_file(worktree, record.get("conf"), "conf")
         else:
             dry = args[0] == "--dry-run"
             positionals = args[1:] if dry else args
