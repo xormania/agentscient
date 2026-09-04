@@ -1,7 +1,9 @@
 """Guard against process-doc recipes whose tool paths or flags silently rot."""
 
 import ast
+import json
 import re
+import sys
 import unittest
 from pathlib import Path
 
@@ -1876,32 +1878,55 @@ class DispatchDirWiringTests(unittest.TestCase):
         )
 
     def test_dispatch_dir_default_names_the_same_jobs_root_as_the_launcher(self):
-        source = WORTH.read_text(encoding="utf-8")
-        missing = [
-            token
-            for token in (
-                "DISPATCH_JOBS",
-                "XDG_STATE_HOME",
-                "agentscient/dispatch",
-            )
-            if token not in source
+        tests_dir = Path(__file__).resolve().parent
+        if str(tests_dir) not in sys.path:
+            sys.path.insert(0, str(tests_dir))
+        import test_worth_dispatches as dispatch_meter
+
+        meter = dispatch_meter.DispatchMeterTests(
+            "test_jobs_root_falls_back_from_dispatch_jobs_to_xdg_to_home"
+        )
+        meter.setUp()
+        self.addCleanup(meter.doCleanups)
+        home_jobs = (
+            meter.home / ".local" / "state" / "agentscient" / "dispatch"
+        )
+        meter._plant_dispatch(
+            dispatch_meter.CLAUDE_ID,
+            job="plan",
+            harness="claude",
+            stage="plan",
+            launched="2026-08-22T10:00:00Z",
+            spend=dispatch_meter.CLAUDE_SPEND,
+            root=home_jobs,
+        )
+        planted = home_jobs / dispatch_meter.CLAUDE_ID / "record.json"
+        self.assertTrue(
+            planted.is_file(),
+            f"plant: default jobs root has no record at {planted}",
+        )
+        self.assertEqual(
+            json.loads(planted.read_text(encoding="utf-8"))["id"],
+            dispatch_meter.CLAUDE_ID,
+        )
+        proc = meter._run_worth(
+            "report",
+            *dispatch_meter.window_args(),
+            "--format",
+            "json",
+            dispatch_dir=None,
+            extra_env={},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        data = json.loads(proc.stdout)
+        ids = [
+            row.get("id")
+            for row in meter._dispatch_block(data)["rows"]
         ]
         self.assertEqual(
-            missing,
-            [],
-            (
-                f"{WORTH} default jobs root must name DISPATCH_JOBS, "
-                f"XDG_STATE_HOME, and agentscient/dispatch; missing {missing}"
-            ),
-        )
-        self.assertRegex(
-            source,
-            r"DISPATCH_JOBS[\s\S]{0,400}XDG_STATE_HOME"
-            r"[\s\S]{0,400}\.local/state",
-            (
-                "--dispatch-dir default must resolve DISPATCH_JOBS, else "
-                "XDG_STATE_HOME, else ~/.local/state, the same as launch.py"
-            ),
+            ids,
+            [dispatch_meter.CLAUDE_ID],
+            "worth did not read the launcher's default jobs root",
         )
 
 
