@@ -1318,6 +1318,29 @@ class LaneAuthor(_LandFixture):
         self.assertEqual(self.message("HEAD"), original)
         self.assertEqual(self.author("HEAD"), LANE_AUTHOR)
 
+    def test_author_flag_leaves_a_lane_author_commit_unchanged(self):
+        other = Reauthor.AUTHOR
+        self.assertNotEqual(other, LANE_AUTHOR)
+        self.assertNotEqual(other, f"{PRODUCER} <{PRODUCER_EMAIL}>")
+        self.seed_repo()
+        shas = self.plant_producers(
+            [("landed.txt", "landed-body\n", SUBJECT, True)],
+            author_name=LANE_AUTHOR_NAME,
+            author_email=LANE_AUTHOR_EMAIL,
+        )
+        self.assertEqual(len(shas), 1)
+        producer = shas[0]
+        self.assertEqual(self.author(producer), LANE_AUTHOR)
+        original = self.message(producer)
+        self.assertEqual(original.count(f"Co-Authored-By: {CO_AUTHOR}"), 1)
+        self.plant_record()
+        proc = self.land(extra=["--author", other, "--co-author", CO_AUTHOR])
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(self.author("HEAD"), LANE_AUTHOR)
+        self.assertNotEqual(self.author("HEAD"), other)
+        self.assertEqual(self.message("HEAD"), original)
+        self.assertEqual(self.committer("HEAD"), AGENT)
+
     def test_missing_lane_author_refuses_conf_key_before_any_pick(self):
         self.plant_lane_conf(omit=("LANE_AUTHOR",))
         planted = self.conf_path.read_text(encoding="utf-8")
