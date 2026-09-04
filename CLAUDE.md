@@ -28,3 +28,16 @@ explicitly requests minimal formatting, always format your responses
 without bullet points, headers, lists, or bold emphasis, as requested.
 In conversational, personal, or emotional exchanges, keep to plain
 prose.
+
+## The law, imported
+
+The founding law rides in every request as part of the cached prefix,
+so it survives compaction and is never re-read into the conversation.
+The lane's contracts under `ops/` are read when a task touches them.
+
+@AGENTS.md
+@docs/wire.md
+@docs/workflow.md
+@docs/probes.md
+@docs/concerns.md
+@docs/verified-couplings.md

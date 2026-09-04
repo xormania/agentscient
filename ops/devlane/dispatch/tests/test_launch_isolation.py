@@ -81,13 +81,15 @@ class MinimalHomesHoldExactlyAuthJson(ls._TempLaunch):
         self.assertEqual(rec["harness"]["containment"], "os")
         argv = [str(p) for p in witness["argv"]]
         self.assertIn("--sandbox", argv)
-        # workspace-write for read roles too: read-only denied the job its
-        # own out/ deliverable and a writable tempdir for the suite it must
-        # run (2026-08-28, check-tests: "no affected assertion ran"). The
-        # snapshot's integrity is proved after the run instead.
-        self.assertEqual(argv[argv.index("--sandbox") + 1], "workspace-write")
-        self.assertIn("-c", argv)
-        self.assertTrue(any(a.startswith("sandbox_workspace_write.writable_roots=") and a.endswith('/out"]') for a in argv))
+        # D2: a read role gets a read-only sandbox on Codex. Snapshot
+        # integrity is not a substitute for the sandbox the role claims.
+        self.assertEqual(rec["role"], "read")
+        self.assertEqual(argv[argv.index("--sandbox") + 1], "read-only")
+        self.assertFalse(
+            any(str(a).startswith("sandbox_workspace_write.writable_roots=")
+                for a in argv),
+            f"read-only sandbox must not grant workspace-write roots: {argv!r}",
+        )
 
     def test_grok_home_and_home_both_point_at_the_job_home(self):
         rec, witness, *_ = self.launch_ok(
