@@ -24,7 +24,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve()
-JOBS_JSON = HERE.parents[2] / "devlane" / "task" / "jobs.json"
+JOBS_JSON_CANDIDATES = (
+    HERE.parents[2] / "devlane" / "task" / "jobs.json",
+    Path.cwd() / "ops" / "devlane" / "task" / "jobs.json",
+)
 TERMINAL = {"closed", "died"}
 DEFAULT_TICK = 300.0
 DEFAULT_HEARTBEAT = 6
@@ -76,16 +79,26 @@ def stamp_of(name):
 
 
 def read_json(path):
-    """A dict, or None: absent and malformed both read as "no copy"."""
+    """A dict, or None when the file is absent or not a JSON object. Any
+    other failure to read (a directory in its place, a permission) is
+    raised, so the tick guard reports it rather than inferring absence."""
     try:
         data = json.loads(path.read_text())
-    except (OSError, ValueError):
+    except FileNotFoundError:
+        return None
+    except ValueError:
         return None
     return data if isinstance(data, dict) else None
 
 
 def job_caps():
-    data = read_json(JOBS_JSON) or {}
+    """The catalogue beside this file, or beside the working directory
+    when this file runs as a staged copy."""
+    data = {}
+    for candidate in JOBS_JSON_CANDIDATES:
+        if candidate.is_file():
+            data = read_json(candidate) or {}
+            break
     caps = {}
     for name, job in data.items():
         if isinstance(job, dict) and isinstance(job.get("caps"), dict):
@@ -142,6 +155,7 @@ class Entry:
         self.rec = rec
         self.state = state
         self.has_exit = has_exit
+        self.error = None
         at = rec.get("at") if isinstance(rec.get("at"), dict) else {}
         self.launched = parse_stamp(at.get("launched")) or stamp_of(self.name)
         self.closed_at = parse_stamp(at.get("closed"))
@@ -182,8 +196,14 @@ def entries(store, caps):
     except OSError:
         return out
     for d in dirs:
-        rec = read_json(d / "record.json")
-        state = read_json(d / "state.json") or {}
+        try:
+            rec = read_json(d / "record.json")
+            state = read_json(d / "state.json") or {}
+        except OSError as exc:
+            entry = Entry(d, "error", {}, {}, False, caps)
+            entry.error = exc
+            out.append(entry)
+            continue
         has_exit = (d / "exit").is_file()
         if rec is None:
             kind = "no-copy"
@@ -220,6 +240,9 @@ class Watch:
         running = []
         settling = 0
         for e in entries(self.args.store, self.caps):
+            if e.kind == "error":
+                self.once(("error", e.name, type(e.error).__name__), f"watchdog error: {type(e.error).__name__}: {e.error} (tick {self.tick}; the loop continues)")
+                continue
             if e.kind == "no-copy":
                 self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
                 continue
@@ -245,7 +268,7 @@ class Watch:
             if m is None:
                 continue
             if e.wall_min is None:
-                if m >= FALLBACK_WARN_MIN:
+                if m >= FALLBACK_WARN_MIN * self.args.warn_fraction:
                     self.once(("long", e.name), f"long {e.name}: {m} min running, wall unknown")
             elif m >= e.wall_min * self.args.warn_fraction:
                 self.once(("long", e.name), f"long {e.name}: {m} min running, wall {int(e.wall_min)} min")
@@ -290,7 +313,7 @@ class Watch:
         unreachable = []
         for pr in prs:
             number = pr.get("number")
-            sha = (pr.get("headRefOid") or "")[:7] or "unknown"
+            sha = pr.get("headRefOid") or "unknown"
             checks = run(["gh", "pr", "checks", str(number), "--json", "name,bucket"])
             try:
                 rows = json.loads(checks) if checks is not None else None

@@ -17,7 +17,9 @@ Grok's review of the first cut (record
 - Per job directory: `record.json` (the record copy), `state.json`
   (the harness pid), the `exit` file, and the `exit` file's mtime.
 - The job caps: the record's `caps.timeout`, else the job's
-  `caps.timeout` in `ops/devlane/task/jobs.json`, else unknown.
+  `caps.timeout` in `ops/devlane/task/jobs.json` (found beside this
+  file, or beside the working directory when the file runs as a staged
+  copy), else unknown.
 - The forge, unless `--no-forge`: `gh pr list --base dev --state open`
   and `gh pr checks` per open pull request.
 
@@ -26,6 +28,7 @@ Grok's review of the first cut (record
 | on disk | kind |
 |:--|:--|
 | no `record.json`, or one that is not a JSON object | no-copy: cannot judge; said once, never inferred |
+| a `record.json` or `state.json` that cannot be read (a directory in its place, a permission) | error: the watchdog error line, once per record and error type; the scan goes on |
 | `record.json` status `closed` or `died` | closed |
 | an `exit` file and a record not yet closed | settling: the harness exited, the launcher has not collected |
 | otherwise | running |
@@ -55,8 +58,9 @@ reported unless `--report-existing`.
 - `launchers fewer than running records: <L> launch.py processes, <R> running (heuristic: ...)`
   — once per (L, R) pair; a heuristic, and named as one, because the
   record does not carry its launcher's pid (fix scope item 32).
-- `ci <fail|cancel> #<pr> at <sha>: <check>` — once per pull request
-  head and check name; every failing or cancelled check, not the first.
+- `ci <fail|cancel> #<pr> at <sha>: <check>` — the head's full sha; once
+  per pull request head and check name; every failing or cancelled
+  check, not the first.
 - `heartbeat: running=<id m/wall, ...>; settling=<n>; launchers=<L|unreachable>; open PRs into dev=<n|unreachable|not watched>`
   — every `--heartbeat-every` ticks (default 6); a pull request whose
   checks could not be read is named inside the count as unreachable.
