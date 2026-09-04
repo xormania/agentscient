@@ -12,8 +12,11 @@ kill. Plan items (h)(i).
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -465,6 +468,32 @@ class ResumeFindsTheMovedStore(ls._TempLaunch):
     def _job_dir_of(self, rec):
         return Path(rec["snapshot"]["root"]).parent
 
+    def _assert_store_moved_forward(self, job_dir, harness, pattern, stream):
+        live = job_dir / "home" / harness / "sessions"
+        streamed = job_dir / "home" / f"{harness}-stream" / "sessions"
+        live_hits = list(live.rglob(pattern)) if live.exists() else []
+        stream_hits = list(streamed.rglob(pattern)) if streamed.exists() else []
+        self.assertTrue(
+            stream_hits,
+            f"after resume the {pattern} files sit under {streamed}, "
+            f"got live={live_hits!r} stream={stream_hits!r}",
+        )
+        self.assertEqual(
+            live_hits, [],
+            f"after resume {live} must not still hold {pattern}: {live_hits!r}",
+        )
+        path = Path(stream)
+        self.assertTrue(
+            path.is_file(),
+            f"recorded session.stream must be a file under {harness}-stream: "
+            f"{stream!r}",
+        )
+        stream_root = (job_dir / "home" / f"{harness}-stream").resolve()
+        self.assertTrue(
+            str(path.resolve()).startswith(str(stream_root)),
+            f"session.stream {path.resolve()} is not under {stream_root}",
+        )
+
     def test_a_codex_resume_finds_its_rollout_under_codex_home(self):
         rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
         job_dir = self._job_dir_of(rec)
@@ -497,6 +526,9 @@ class ResumeFindsTheMovedStore(ls._TempLaunch):
             f"after resume the stream sits under codex-stream again: "
             f"{stream!r}",
         )
+        self._assert_store_moved_forward(
+            job_dir, "codex", "rollout-*.jsonl", stream,
+        )
 
     def test_a_grok_resume_finds_its_summary_under_grok_home(self):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
@@ -521,6 +553,9 @@ class ResumeFindsTheMovedStore(ls._TempLaunch):
             "grok-stream", stream,
             f"after resume the stream sits under grok-stream again: "
             f"{stream!r}",
+        )
+        self._assert_store_moved_forward(
+            job_dir, "grok", "summary.json", stream,
         )
 
     def test_a_resume_with_no_store_anywhere_refuses_resume_store(self):
@@ -549,10 +584,13 @@ class ResumeFindsTheMovedStore(ls._TempLaunch):
         self.start_witness.unlink(missing_ok=True)
         self.witness.unlink(missing_ok=True)
         code, out, err = self.run_main(["resume", rec["id"]])
-        self.assert_refusal(
+        text = self.assert_refusal(
             code, out, err, ident="resume-store",
             phrases=["resume-store"],
         )
+        self.assertIn(rec["session"]["id"], text)
+        self.assertIn("codex/sessions", text)
+        self.assertIn("codex-stream/sessions", text)
         self.assert_not_started()
         rec2 = self.read_record()
         self.assertEqual(
@@ -562,9 +600,14 @@ class ResumeFindsTheMovedStore(ls._TempLaunch):
 
     def test_a_failed_resume_keeps_the_prior_stream_and_spend(self):
         rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
-        prior_stream = rec.get("session", {}).get("stream")
-        prior_spend = rec.get("session", {}).get("spend") or {}
-        self.assertTrue(prior_stream, "plant: first close recorded a stream")
+        prior_session = dict(rec.get("session") or {})
+        prior_model = dict(rec.get("model") or {})
+        prior_spend = dict(prior_session.get("spend") or {})
+        prior_cause = (rec.get("result") or {}).get("cause")
+        self.assertTrue(
+            prior_session.get("stream"),
+            "plant: first close recorded a stream",
+        )
         self.assertIn(
             "total", prior_spend,
             f"plant: first close recorded session.spend.total: "
@@ -572,19 +615,39 @@ class ResumeFindsTheMovedStore(ls._TempLaunch):
         )
         os.environ["TASK_LAUNCH_EXIT"] = "1"
         os.environ["TASK_LAUNCH_WRITE_STREAM"] = "0"
+        os.environ["TASK_LAUNCH_STDOUT"] = "none"
         self.start_witness.unlink(missing_ok=True)
         self.witness.unlink(missing_ok=True)
         _code, _out, _err = self.run_main(["resume", rec["id"]])
         rec2 = self.read_record()
+        session2 = rec2.get("session") or {}
+        model2 = rec2.get("model") or {}
         self.assertEqual(
-            rec2.get("session", {}).get("stream"), prior_stream,
+            session2.get("stream"), prior_session.get("stream"),
             "a failed resume must not drop the prior session.stream",
         )
-        spend2 = rec2.get("session", {}).get("spend") or {}
         self.assertEqual(
-            spend2.get("total"), prior_spend.get("total"),
-            f"a failed resume must keep the prior session.spend: "
+            session2.get("stream_sha256_at_close"),
+            prior_session.get("stream_sha256_at_close"),
+            "a failed resume keeps stream_sha256_at_close",
+        )
+        self.assertEqual(
+            model2.get("ran"), prior_model.get("ran"),
+            "a failed resume keeps model.ran",
+        )
+        self.assertEqual(
+            model2.get("read_from"), prior_model.get("read_from"),
+            "a failed resume keeps model.read_from",
+        )
+        spend2 = session2.get("spend") or {}
+        self.assertEqual(
+            spend2, prior_spend,
+            f"a failed resume must keep the prior session.spend in full: "
             f"before={prior_spend!r} after={spend2!r}",
+        )
+        self.assertEqual(
+            (rec2.get("result") or {}).get("cause"), prior_cause,
+            "result.cause changes only when the attempt produced an envelope",
         )
         self.assertNotIn(
             "_envelope_cause", rec2,
@@ -618,6 +681,15 @@ class WaitPollsTheRecord(ls._TempLaunch):
     """wait ID polls the record until closed or died. Launch prints
     record: <id> at mint."""
 
+    SUMMARY = (
+        r"^(?P<id>\S+) (?P<status>closed|died) attempt=(?P<attempt>\d+) "
+        r"exit=(?P<exit>-?\d+) tripped=(?P<tripped>true|false|True|False) "
+        r"envelope=(?P<envelope>\S+)$"
+    )
+    POLL = (
+        r"^poll (?P<id>\S+) (?P<status>\S+) elapsed=(?P<elapsed>\d+(?:\.\d+)?)s$"
+    )
+
     def test_wait_returns_when_the_record_closes(self):
         job_id = "20260826T000000Z-plan-grok-wa1t00"
         self.force_id(job_id)
@@ -641,30 +713,57 @@ class WaitPollsTheRecord(ls._TempLaunch):
             record_path.is_file(),
             "plant: the launched record exists before wait",
         )
+        started = time.monotonic()
         code, out, err = self.run_main(
             ["wait", job_id, "--interval", "0.2"],
         )
+        elapsed = time.monotonic() - started
         t.join(timeout=8)
+        self.assertGreaterEqual(
+            elapsed, 0.8,
+            f"wait must wait for the 1s child, not return immediately: "
+            f"elapsed={elapsed:.3f}s out={out!r} err={err!r}",
+        )
         self.assertEqual(
             code, 0,
             f"wait returns 0 on a clean close: out={out!r} err={err!r} "
             f"launch={launched!r}",
         )
-        line = out.strip().splitlines()[-1] if out.strip() else ""
-        self.assertIn(job_id, line)
-        self.assertIn("attempt=", line)
-        self.assertIn("exit=", line)
-        self.assertIn("tripped=", line)
-        self.assertIn("envelope=", line)
+        lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
+        self.assertEqual(
+            len(lines), 1,
+            f"wait prints one summary line on stdout, got {lines!r}",
+        )
+        match = re.fullmatch(self.SUMMARY, lines[0])
+        self.assertIsNotNone(
+            match,
+            f"summary is '<id> <status> attempt=N exit=N tripped=bool "
+            f"envelope=status', got {lines[0]!r}",
+        )
+        self.assertEqual(match.group("id"), job_id)
+        self.assertEqual(match.group("status"), "closed")
+        self.assertEqual(match.group("attempt"), "1")
+        self.assertEqual(match.group("exit"), "0")
+        self.assertEqual(match.group("tripped").lower(), "false")
+        self.assertEqual(match.group("envelope"), "ok")
+        polls = [
+            ln.strip() for ln in err.splitlines()
+            if ln.strip().startswith("poll ")
+        ]
+        self.assertTrue(
+            polls,
+            f"wait prints poll lines on stderr while waiting: {err!r}",
+        )
+        self.assertRegex(polls[-1], self.POLL)
 
     def test_wait_names_an_unknown_id(self):
-        code, out, err = self.run_main(
-            ["wait", "20260826T000000Z-plan-grok-none00"],
-        )
-        self.assert_refusal(
+        missing = "20260826T000000Z-plan-grok-none00"
+        code, out, err = self.run_main(["wait", missing])
+        text = self.assert_refusal(
             code, out, err, ident="wait-target",
             phrases=["wait-target"],
         )
+        self.assertIn(missing, text)
 
     def test_wait_returns_2_at_its_wall_with_the_last_poll(self):
         job_id = "20260826T000000Z-plan-grok-wa11zz"
@@ -713,39 +812,92 @@ class WaitPollsTheRecord(ls._TempLaunch):
         planted = json.loads(record_path.read_text(encoding="utf-8"))
         self.assertEqual(planted["status"], "launched")
         (d / "snapshot").mkdir()
+        started = time.monotonic()
         code, out, err = self.run_main(
-            ["wait", job_id, "--timeout", "0.6", "--interval", "0.2"],
+            ["wait", job_id, "--timeout", "0.8", "--interval", "0.2"],
         )
+        elapsed = time.monotonic() - started
+        self.assertGreaterEqual(
+            elapsed, 0.6,
+            f"the wall must actually wait, not emit one poll and return: "
+            f"elapsed={elapsed:.3f}s out={out!r} err={err!r}",
+        )
+        self.assertLess(elapsed, 3, f"wall overran: {elapsed:.3f}s")
         self.assertEqual(
             code, 2,
             f"wait's wall is exit 2: out={out!r} err={err!r}",
         )
         text = self.combined(out, err)
-        self.assertIn("poll", text)
-        self.assertIn(job_id, text)
-        self.assertIn("elapsed=", text)
-        last_poll = [
-            ln for ln in text.splitlines() if ln.strip().startswith("poll ")
+        polls = [
+            ln.strip() for ln in text.splitlines()
+            if ln.strip().startswith("poll ")
         ]
-        self.assertTrue(
-            last_poll,
-            f"the last poll line is printed at the wall: {text!r}",
+        self.assertGreaterEqual(
+            len(polls), 2,
+            f"the wall path emits more than one poll line, got {polls!r} "
+            f"from {text!r}",
         )
+        last = polls[-1]
+        match = re.fullmatch(self.POLL, last)
+        self.assertIsNotNone(
+            match,
+            f"last poll is 'poll <id> <status> elapsed=<n>s', got {last!r}",
+        )
+        self.assertEqual(match.group("id"), job_id)
 
     def test_launch_prints_the_record_id_at_mint(self):
-        rec, _witness, out, _err = self.launch_ok(
-            job="plan", harness="grok", stage="plan",
-        )
-        matching = [
-            ln for ln in out.splitlines()
-            if ln.strip().startswith("record:")
-        ]
-        self.assertEqual(
-            len(matching), 1,
-            f"launch prints exactly one record: line, got {matching!r} "
-            f"from stdout={out!r}",
-        )
-        self.assertEqual(
-            matching[0].strip(), f"record: {rec['id']}",
-            "the record: line carries the id and nothing else",
-        )
+        job_id = "20260826T000000Z-plan-grok-mint01"
+        self.force_id(job_id)
+        os.environ["TASK_LAUNCH_SLEEP"] = "3"
+        launch = self.load_launch()
+        argv = self.argv_for(job="plan", harness="grok", stage="plan")
+        box = {"code": None, "out": io.StringIO(), "err": io.StringIO()}
+
+        def _run():
+            old = os.getcwd()
+            try:
+                os.chdir(self.repo)
+                with contextlib.redirect_stdout(box["out"]), \
+                        contextlib.redirect_stderr(box["err"]):
+                    try:
+                        box["code"] = launch.main(list(argv))
+                    except SystemExit as exc:
+                        box["code"] = 0 if exc.code is None else int(exc.code)
+            finally:
+                os.chdir(old)
+
+        t = threading.Thread(target=_run)
+        t.start()
+        try:
+            seen = None
+            deadline = time.time() + 2.5
+            while time.time() < deadline:
+                text = box["out"].getvalue()
+                matching = [
+                    ln for ln in text.splitlines()
+                    if ln.strip().startswith("record:")
+                ]
+                if matching:
+                    seen = matching
+                    break
+                time.sleep(0.05)
+            job_dir = self.jobs_root / job_id
+            exit_file = job_dir / "exit"
+            self.assertTrue(
+                seen,
+                "record: <id> must print at mint, before the child finishes; "
+                f"stdout={box['out'].getvalue()!r} "
+                f"err={box['err'].getvalue()!r}",
+            )
+            self.assertEqual(seen[0].strip(), f"record: {job_id}")
+            self.assertFalse(
+                exit_file.is_file(),
+                f"record: printed while exit file already exists "
+                f"(printed at close, not mint): {exit_file}",
+            )
+            self.assertTrue(
+                t.is_alive(),
+                "record: must appear while the launch thread is still running",
+            )
+        finally:
+            t.join(timeout=8)
