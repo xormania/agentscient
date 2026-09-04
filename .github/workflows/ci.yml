@@ -36,6 +36,8 @@ jobs:
           ruff check .
       - name: lane suites
         run: bash ops/bin/suites.sh
+      - name: lane conf — every key read is declared and no lane literal is outside the conf
+        run: python3 ops/conductor/tools/laneconf.py closure && python3 ops/conductor/tools/laneconf.py literals
       - name: the host toolchain the self-hosted runner relies on
         run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version
       - name: composer validate — the manifest and the lock agree
