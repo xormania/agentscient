@@ -93,6 +93,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 5.0033,
       "name": "check-tests",
       "outcome": "ok",
       "record": "20260904T144439Z-check-tests-codex-ffaf2b",
