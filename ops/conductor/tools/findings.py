@@ -229,6 +229,8 @@ def do_export(argv):
     calibration = argv == ["--calibration"]
     if argv and not calibration:
         refuse("arguments", "nothing or --calibration after export", " ".join(argv), "drop or correct it")
+    if calibration:
+        identity()
     con = connect()
     if calibration:
         text = "".join(
