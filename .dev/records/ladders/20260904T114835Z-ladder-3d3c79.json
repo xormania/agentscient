@@ -59,9 +59,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-record-wall/.dev/records/dispatches/20260904T114835Z-tests-grok-dde0c3.json",
+        "proof": {
+          "given": [
+            "Fix scope item 36, S: the record copy written at mint carries the resolved wall. launch.py resolves caps.timeout and caps.timeout_source before the harness starts but writes them into the record only at close, so a running record's job-directory copy has no wall and every reader guesses (the watchdog fell back to the job catalogue and printed wall 30 against a true 60). Wanted: the copy at mint carries caps.timeout and caps.timeout_source in the closed record's shape, under DISPATCH_TIMEOUT, the conf default and --timeout; the watchdog's catalogue fallback stays only for records that predate the field. One S bucket: ops/devlane/dispatch/launch.py and ops/conductor/tools/watchdog.py with their tests. No new refusal; every suite green; ruff clean. The plan file carries the measurements, the wants and the acceptance in full.",
+            "20260904T114835Z-tests-grok-dde0c3"
+          ],
+          "withheld": []
+        },
+        "sha256": "beff08568c79c9f1bd081329188385f0accc40ed6a47003164b627b9ef0d6439"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
