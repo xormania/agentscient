@@ -807,8 +807,18 @@ class Driver:
             detail = "\n".join(
                 text.strip() for text in (result.stdout, result.stderr) if text.strip()
             )
-            lower = detail.lower()
-            reason = "tripped" if "tripped=true" in lower else "wall" if "running" in lower else "died"
+            terminal = next((
+                line.lower() for line in reversed(result.stdout.splitlines())
+                if re.search(r"\b(?:closed|died)\b", line) and "envelope=" in line
+            ), "")
+            if terminal:
+                reason = (
+                    "tripped" if "tripped=true" in terminal
+                    else "died" if re.search(r"\bdied\b", terminal)
+                    else "envelope"
+                )
+            else:
+                reason = "wall" if result.returncode == 2 else "died"
             if reason in {"tripped", "died"}:
                 detail = (
                     f"{detail}\nneeded run launch.py collect {pending.record_id} "

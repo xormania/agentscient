@@ -557,6 +557,33 @@ if name in plant.get("wait_wall_stages", []):
     plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
     sys.stdout.write(rec_id + " running attempt=1 wall=1\n")
     raise SystemExit(2)
+if name in plant.get("wait_poll_invalid_stages", []):
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    envelope = dict(plant.get("envelopes", {}).get(rec_id) or {})
+    envelope["status"] = "invalid"
+    payload["status"] = "closed"
+    payload["at"]["closed"] = "2026-09-04T12:00:01Z"
+    payload["result"] = {"envelope": envelope}
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    plant.setdefault("wait_io", []).append({
+        "id": rec_id,
+        "stderr": (
+            "poll " + rec_id + " running elapsed=12s\n"
+            "poll " + rec_id + " running elapsed=24s\n"
+        ),
+        "stdout": (
+            rec_id
+            + " closed attempt=1 exit=0 tripped=false envelope=invalid\n"
+        ),
+        "exit": 1,
+    })
+    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
+    sys.stderr.write("poll " + rec_id + " running elapsed=12s\n")
+    sys.stderr.write("poll " + rec_id + " running elapsed=24s\n")
+    sys.stdout.write(
+        rec_id + " closed attempt=1 exit=0 tripped=false envelope=invalid\n"
+    )
+    raise SystemExit(1)
 payload = json.loads(path.read_text(encoding="utf-8"))
 envelope = dict(plant.get("envelopes", {}).get(rec_id) or {})
 summary = "ok"
@@ -829,6 +856,7 @@ class _LadderFixture(unittest.TestCase):
             "trip_stages": [],
             "crash_stages": [],
             "wait_wall_stages": [],
+            "wait_poll_invalid_stages": [],
             "invalid_envelope_stages": [],
             "model_mismatch_stages": [],
             "effort_mismatch_stages": [],
@@ -2940,6 +2968,45 @@ class AuditPairTrip(_LadderFixture):
         self.invoke(["resume", ladder_id])
         later = self.dispatch_names()
         self.assertEqual(later.count("adversarial"), 1, later)
+
+
+class WaitClosedInvalidIsNotAWall(_LadderFixture):
+    """Poll lines that say running must not turn a closed invalid envelope into a wall.
+
+    launch.py wait prints `poll … running` on stderr every interval, then on
+    close prints stdout `… closed … envelope=invalid` and exits 1. wall is
+    only when wait exits because elapsed >= timeout while the record is
+    still not closed.
+    """
+
+    def test_poll_running_then_closed_invalid_stops_as_envelope_not_wall(self):
+        self.patch_plant(wait_poll_invalid_stages=["check-tests"])
+        planted = self.load_plant()
+        self.assertEqual(
+            planted["wait_poll_invalid_stages"],
+            ["check-tests"],
+        )
+        proc = self.run_ladder()
+        rec_id = self.record_id_for("check-tests")
+        wait_io = self.load_plant().get("wait_io") or []
+        self.assertTrue(wait_io, "plant: wait emitted no poll/close fixture")
+        blob = "\n".join(
+            str(row.get("stderr") or "") + str(row.get("stdout") or "")
+            for row in wait_io
+        )
+        self.assertIn("poll ", blob)
+        self.assertIn(" running ", blob)
+        self.assertIn("closed ", blob)
+        self.assertIn("envelope=invalid", blob)
+        last = self.assert_stopped(
+            proc, stage="check-tests", record=rec_id, reason="envelope",
+        )
+        self.assertNotIn("reason=wall", last)
+        self.assertNotRegex(
+            last,
+            r"reason=wall\b",
+            f"closed envelope=invalid must not be labelled wall: {last!r}",
+        )
 
 
 class PrUrl(_LadderFixture):
