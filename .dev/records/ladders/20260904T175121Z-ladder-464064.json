@@ -156,12 +156,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "reason": "wall",
-    "record": "20260904T180108Z-check-tests-codex-bb30da",
-    "stage": "check-tests",
-    "verdict": null
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-session-budget"
 }
