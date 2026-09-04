@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -124,7 +125,9 @@ RUNNER = re.compile(r"\b(playwright test|pytest|poe\s+(?!lint|format|fmt|type)[a
                     r"mutation-check\.sh|mutation-live\.sh|npm (?:test|run test)|cargo test|"
                     r"go test|jest|vitest|tox|make\s+(?:test|check|lint)|rspec|phpunit)\b")
 CLIPPED = re.compile(r"\|\s*(?:tail|head)\s+-(\d+)\b")
-SWEEP_CLIPPED = re.compile(r"\|\s*head\s+(?:-\d+|-n(?:\s+)?\d+|--lines(?:=|\s+)\d+)\b")
+HEAD_COUNT = re.compile(
+    r"^[+-]?\d+(?:b|kB|K|KiB|[MGTPEZYRQ](?:i?B)?)?$",
+)
 # `[^|]*` here was a bug: `grep -iE "warning|error"` contains a pipe INSIDE the quoted
 # pattern, so the class stopped before reaching the word that made it safe. Look for a
 # grep and a failure word anywhere in the command instead.
@@ -155,6 +158,51 @@ def quoted_pipe_count(stmt: str) -> int:
         elif ch in "'\"":
             quote = ch
     return count
+
+
+def head_clips_lines(command: str) -> bool:
+    """Whether an executing GNU head command selects a bounded line view."""
+    try:
+        tokens = shlex.split(command, posix=True)
+    except ValueError:
+        tokens = command.split()
+    if not tokens or tokens[0].rsplit("/", 1)[-1] != "head":
+        return False
+    category = "lines"
+    index = 1
+    while index < len(tokens):
+        argument = tokens[index]
+        if argument == "--":
+            break
+        if argument == "-":
+            index += 1
+            continue
+        if argument in ("--help", "--version"):
+            return False
+        if argument in ("-q", "--quiet", "--silent", "-v", "--verbose", "-z", "--zero-terminated"):
+            index += 1
+            continue
+        if argument in ("-n", "--lines", "-c", "--bytes"):
+            if index + 1 >= len(tokens) or not HEAD_COUNT.fullmatch(tokens[index + 1]):
+                return False
+            category = "bytes" if argument in ("-c", "--bytes") else "lines"
+            index += 2
+            continue
+        option = re.fullmatch(r"(-[nc]|--(?:lines|bytes)=)(.+)", argument)
+        if option:
+            if not HEAD_COUNT.fullmatch(option.group(2)):
+                return False
+            category = "bytes" if option.group(1) in ("-c", "--bytes=") else "lines"
+            index += 1
+            continue
+        if argument.startswith("-") and HEAD_COUNT.fullmatch(argument[1:]):
+            category = "lines"
+            index += 1
+            continue
+        if argument.startswith("-"):
+            return False
+        index += 1
+    return category == "lines"
 
 
 WRITES = re.compile(r"write_text\(|open\([^)]*['\"][wa]['\"]|\.writelines\(|>\s*\$?\w*\.py\b")
@@ -259,8 +307,9 @@ def check(cmd: str):
     for stmt in statements(cmd):
         if not SWEEP_GREP.search(stmt):
             continue
-        clip = SWEEP_CLIPPED.search(stmt)
-        if clip and quoted_pipe_count(stmt[: clip.start()]) >= 2:
+        pipeline = commands(stmt)
+        clip = any(head_clips_lines(command) for command in pipeline[1:])
+        if clip and pipeline and quoted_pipe_count(pipeline[0]) >= 2:
             return ("clipped-sweep",
                     ("This clips a multi-alternation grep — a completeness question (\"does any of "
                     "these appear?\") whose answer head truncates SILENTLY. A head -8 on exactly "
