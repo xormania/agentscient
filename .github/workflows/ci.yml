@@ -9,9 +9,14 @@ name: ci
 # dev into master is covered by the push run on dev, which stamps the
 # same commit, and nothing here reads a title or body, so `edited` is
 # not a trigger.
+# The merge_group trigger runs the same job on the tree the merge queue
+# builds (dev plus the queued PRs), so a queued PR is checked on exactly
+# what would land; without it a queue waits forever for this check.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches: [dev]
+  merge_group:
     branches: [dev]
   push:
     branches: [dev]
