@@ -26,6 +26,9 @@ line-length = 88
 # complaint is advice and never a failure.
 extend-exclude = [
     ".git",
+    # `ruff check ..` is the dispatch gate. The sibling `home/` is launcher
+    # runtime custody (harness installs and caches), not this repository.
+    "../home",
 ]
 
 [lint]
