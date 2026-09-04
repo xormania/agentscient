@@ -14,10 +14,12 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 
 import launch_support as ls
 
@@ -450,4 +452,300 @@ class RuntimeOutcomesStillCommitARecord(ls._TempLaunch):
         self.assertFalse(
             done.is_file(),
             "a tripped run must not be allowed to complete",
+        )
+
+
+class ResumeFindsTheMovedStore(ls._TempLaunch):
+    """After a normal launch the store is moved to <harness>-stream.
+    resume restores it under CODEX_HOME / GROK_HOME before the child
+    starts, then moves it forward again. A resume with no store in
+    either place refuses resume-store. A failed resume keeps the prior
+    stream and spend. A resume commits the record."""
+
+    def _job_dir_of(self, rec):
+        return Path(rec["snapshot"]["root"]).parent
+
+    def test_a_codex_resume_finds_its_rollout_under_codex_home(self):
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        job_dir = self._job_dir_of(rec)
+        stream_rollouts = list(
+            (job_dir / "home" / "codex-stream").rglob("rollout-*.jsonl")
+        )
+        live_rollouts = list(
+            (job_dir / "home" / "codex").rglob("rollout-*.jsonl")
+        )
+        self.assertTrue(
+            stream_rollouts or live_rollouts,
+            "plant: a codex launch left a rollout somewhere under home/",
+        )
+        self.start_witness.unlink(missing_ok=True)
+        self.witness.unlink(missing_ok=True)
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        started = self.read_start_witness()
+        self.assertTrue(
+            started.get("rollout_present"),
+            "resume must restore the rollout under CODEX_HOME/sessions "
+            f"before the child starts: witness={started!r} "
+            f"stream_rollouts={stream_rollouts!r} live={live_rollouts!r}",
+        )
+        rec2 = self.read_record()
+        stream = rec2.get("session", {}).get("stream") or ""
+        self.assertTrue(stream, rec2.get("session"))
+        self.assertIn(
+            "codex-stream", stream,
+            f"after resume the stream sits under codex-stream again: "
+            f"{stream!r}",
+        )
+
+    def test_a_grok_resume_finds_its_summary_under_grok_home(self):
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        job_dir = self._job_dir_of(rec)
+        summaries = list((job_dir / "home").rglob("summary.json"))
+        self.assertTrue(summaries, "plant: a grok launch left a summary.json")
+        self.start_witness.unlink(missing_ok=True)
+        self.witness.unlink(missing_ok=True)
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        started = self.read_start_witness()
+        self.assertTrue(
+            started.get("summary_present"),
+            "resume must restore the summary under GROK_HOME/sessions "
+            f"before the child starts: witness={started!r} "
+            f"summaries={summaries!r}",
+        )
+        rec2 = self.read_record()
+        stream = rec2.get("session", {}).get("stream") or ""
+        self.assertTrue(stream, rec2.get("session"))
+        self.assertIn(
+            "grok-stream", stream,
+            f"after resume the stream sits under grok-stream again: "
+            f"{stream!r}",
+        )
+
+    def test_a_resume_with_no_store_anywhere_refuses_resume_store(self):
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        job_dir = self._job_dir_of(rec)
+        before_attempts = list(rec.get("attempts") or [])
+        self.assertGreaterEqual(len(before_attempts), 1)
+        removed = []
+        for root in (
+            job_dir / "home" / "codex" / "sessions",
+            job_dir / "home" / "codex-stream" / "sessions",
+        ):
+            if root.exists():
+                shutil.rmtree(root)
+                removed.append(str(root))
+        self.assertTrue(
+            removed,
+            "plant: deleted the session store under home/codex and "
+            "home/codex-stream",
+        )
+        leftover = list((job_dir / "home").rglob("rollout-*.jsonl"))
+        self.assertEqual(
+            leftover, [],
+            f"plant: no rollout remains, found {leftover!r}",
+        )
+        self.start_witness.unlink(missing_ok=True)
+        self.witness.unlink(missing_ok=True)
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assert_refusal(
+            code, out, err, ident="resume-store",
+            phrases=["resume-store"],
+        )
+        self.assert_not_started()
+        rec2 = self.read_record()
+        self.assertEqual(
+            len(rec2.get("attempts") or []), len(before_attempts),
+            "a refused resume does not append an attempt",
+        )
+
+    def test_a_failed_resume_keeps_the_prior_stream_and_spend(self):
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        prior_stream = rec.get("session", {}).get("stream")
+        prior_spend = rec.get("session", {}).get("spend") or {}
+        self.assertTrue(prior_stream, "plant: first close recorded a stream")
+        self.assertIn(
+            "total", prior_spend,
+            f"plant: first close recorded session.spend.total: "
+            f"{prior_spend!r}",
+        )
+        os.environ["TASK_LAUNCH_EXIT"] = "1"
+        os.environ["TASK_LAUNCH_WRITE_STREAM"] = "0"
+        self.start_witness.unlink(missing_ok=True)
+        self.witness.unlink(missing_ok=True)
+        _code, _out, _err = self.run_main(["resume", rec["id"]])
+        rec2 = self.read_record()
+        self.assertEqual(
+            rec2.get("session", {}).get("stream"), prior_stream,
+            "a failed resume must not drop the prior session.stream",
+        )
+        spend2 = rec2.get("session", {}).get("spend") or {}
+        self.assertEqual(
+            spend2.get("total"), prior_spend.get("total"),
+            f"a failed resume must keep the prior session.spend: "
+            f"before={prior_spend!r} after={spend2!r}",
+        )
+        self.assertNotIn(
+            "_envelope_cause", rec2,
+            "a committed record does not carry private envelope-scan keys",
+        )
+        raw = (
+            self.repo / ".dev" / "records" / "dispatches"
+            / f"{rec['id']}.json"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("_envelope_cause", raw)
+
+    def test_a_resume_commits_its_record(self):
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        self.start_witness.unlink(missing_ok=True)
+        self.witness.unlink(missing_ok=True)
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        subject = self._git("log", "-1", "--format=%s").stdout.strip()
+        self.assertEqual(
+            subject,
+            f"dispatch: record {rec['id']} after attempt 2",
+            f"resume commits the record after attempt 2, got {subject!r}",
+        )
+        self.assertEqual(
+            self.porcelain(), "",
+            "a resume leaves no uncommitted record",
+        )
+
+
+class WaitPollsTheRecord(ls._TempLaunch):
+    """wait ID polls the record until closed or died. Launch prints
+    record: <id> at mint."""
+
+    def test_wait_returns_when_the_record_closes(self):
+        job_id = "20260826T000000Z-plan-grok-wa1t00"
+        self.force_id(job_id)
+        os.environ["TASK_LAUNCH_SLEEP"] = "1"
+        launched = {}
+
+        def _run():
+            launched["code"], launched["out"], launched["err"] = self.dispatch(
+                self.argv_for(job="plan", harness="grok", stage="plan"),
+            )
+
+        t = threading.Thread(target=_run)
+        t.start()
+        record_path = (
+            self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
+        )
+        deadline = time.time() + 5
+        while time.time() < deadline and not record_path.is_file():
+            time.sleep(0.05)
+        self.assertTrue(
+            record_path.is_file(),
+            "plant: the launched record exists before wait",
+        )
+        code, out, err = self.run_main(
+            ["wait", job_id, "--interval", "0.2"],
+        )
+        t.join(timeout=8)
+        self.assertEqual(
+            code, 0,
+            f"wait returns 0 on a clean close: out={out!r} err={err!r} "
+            f"launch={launched!r}",
+        )
+        line = out.strip().splitlines()[-1] if out.strip() else ""
+        self.assertIn(job_id, line)
+        self.assertIn("attempt=", line)
+        self.assertIn("exit=", line)
+        self.assertIn("tripped=", line)
+        self.assertIn("envelope=", line)
+
+    def test_wait_names_an_unknown_id(self):
+        code, out, err = self.run_main(
+            ["wait", "20260826T000000Z-plan-grok-none00"],
+        )
+        self.assert_refusal(
+            code, out, err, ident="wait-target",
+            phrases=["wait-target"],
+        )
+
+    def test_wait_returns_2_at_its_wall_with_the_last_poll(self):
+        job_id = "20260826T000000Z-plan-grok-wa11zz"
+        d = self.jobs_root / job_id
+        d.mkdir()
+        record_path = (
+            self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
+        )
+        record_path.parent.mkdir(parents=True, exist_ok=True)
+        seed = {
+            "id": job_id, "lane": "dev", "stage": "plan", "unit": "work",
+            "lineage": {"branch": "work", "base_sha": self.root_sha},
+            "follows": [], "job": "plan", "role": "read",
+            "dispatched_by": ls.AGENT,
+            "at": {"launched": "2026-08-26T00:00:00Z", "closed": None},
+            "snapshot": {
+                "mode": "whole", "ref_name": "HEAD",
+                "ref_sha": self.ref, "behind_tip": 0,
+                "root": str(d / "snapshot"),
+            },
+            "harness": {
+                "name": "grok", "version": "1.0.5",
+                "isolation": {
+                    "mechanism": "home",
+                    "observed": {"unresolved": "not run"},
+                },
+                "sandbox": "plan", "containment": "policy", "argv": [],
+            },
+            "model": {
+                "requested": ls.REQUESTED_MODEL,
+                "effort_requested": None, "ran": None, "read_from": None,
+            },
+            "session": {"id": None, "stream": None,
+                        "stream_sha256_at_close": None},
+            "brief": {
+                "template": {"path": "jobs.json", "sha256": "a" * 64},
+                "scope": "x", "inputs": [], "sha256": "b" * 64, "bytes": 1,
+            },
+            "caps": {"source": "wires.py"},
+            "overrides": [], "attempts": [],
+            "result": None, "status": "launched",
+        }
+        record_path.write_text(
+            json.dumps(seed, indent=2) + "\n", encoding="utf-8",
+        )
+        planted = json.loads(record_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["status"], "launched")
+        (d / "snapshot").mkdir()
+        code, out, err = self.run_main(
+            ["wait", job_id, "--timeout", "0.6", "--interval", "0.2"],
+        )
+        self.assertEqual(
+            code, 2,
+            f"wait's wall is exit 2: out={out!r} err={err!r}",
+        )
+        text = self.combined(out, err)
+        self.assertIn("poll", text)
+        self.assertIn(job_id, text)
+        self.assertIn("elapsed=", text)
+        last_poll = [
+            ln for ln in text.splitlines() if ln.strip().startswith("poll ")
+        ]
+        self.assertTrue(
+            last_poll,
+            f"the last poll line is printed at the wall: {text!r}",
+        )
+
+    def test_launch_prints_the_record_id_at_mint(self):
+        rec, _witness, out, _err = self.launch_ok(
+            job="plan", harness="grok", stage="plan",
+        )
+        matching = [
+            ln for ln in out.splitlines()
+            if ln.strip().startswith("record:")
+        ]
+        self.assertEqual(
+            len(matching), 1,
+            f"launch prints exactly one record: line, got {matching!r} "
+            f"from stdout={out!r}",
+        )
+        self.assertEqual(
+            matching[0].strip(), f"record: {rec['id']}",
+            "the record: line carries the id and nothing else",
         )
