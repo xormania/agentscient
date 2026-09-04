@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import unittest
 
 import support
@@ -317,6 +318,36 @@ class CheckTestsReadRolePromptRejectsAnyWritePath(unittest.TestCase):
             "misses Create REVIEW in the repository",
         )
 
+    def test_create_notes_in_the_repository_is_a_write_path(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        prompt = "Create NOTES in the repository"
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a write verb plus an extensionless relative name is a "
+            "write path; a slash/extension matcher plus a special-case "
+            "for Create REVIEW misses Create NOTES in the repository",
+        )
+
+    def test_extensionless_relative_names_are_write_paths_by_shape(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        names = ("NOTES", "CHANGELOG", "TODO")
+        missed = []
+        for name in names:
+            prompt = f"Create {name} in the repository"
+            match = write_path_ask(prompt)
+            if match is None:
+                missed.append(prompt)
+        self.assertEqual(
+            missed,
+            [],
+            "path-shaped includes an extensionless relative name, not "
+            "only slash, extension, {out}, or Create REVIEW; missed "
+            f"{missed!r}",
+        )
+
     def test_live_check_tests_prompt_is_not_a_write_path(self):
         spec = self.jobs()["check-tests"]
         prompt = spec.get("prompt")
@@ -394,7 +425,13 @@ class ContractSlotsMatchPracticedPrompts(unittest.TestCase):
     adjudicate names {inputs, ref, out}. The doc must not claim that
     all three read jobs name {inputs}. Do not retitle or drop the job
     table; TheDocAndTheRegistryAgree owns that comparison.
+    Deleting the stale sentence without writing that mapping is not
+    enough.
     """
+
+    PLAN_SLOTS = frozenset({"{ref}", "{out}", "{scope}"})
+    CHECK_TESTS_SLOTS = frozenset({"{ref}", "{inputs}", "{scope}"})
+    ADJUDICATE_SLOTS = frozenset({"{inputs}", "{ref}", "{out}"})
 
     def test_contract_does_not_claim_all_three_read_jobs_name_inputs(self):
         path = support.APP / "CONTRACT.md"
@@ -422,6 +459,84 @@ class ContractSlotsMatchPracticedPrompts(unittest.TestCase):
             plain,
             "CONTRACT.md still claims all three read jobs name "
             "{inputs} (ignoring backticks)",
+        )
+
+    def _slots_blob(self, text: str) -> str:
+        """Prose that documents read-job prompt slots, not the job table."""
+        paras = re.split(r"\n\s*\n", text)
+        found = []
+        for para in paras:
+            plain = " ".join(para.replace("`", "").split())
+            if plain.lstrip().startswith("|"):
+                continue
+            jobs = [
+                job for job in ("plan", "check-tests", "adjudicate")
+                if re.search(rf"\b{job}\b", plain)
+            ]
+            slots = re.findall(r"\{[a-z]+\}", plain)
+            if len(jobs) >= 2 and slots:
+                found.append(plain)
+        self.assertTrue(
+            found,
+            "CONTRACT.md has no slots paragraph documenting "
+            "plan/check-tests/adjudicate prompt slots",
+        )
+        return " ".join(found)
+
+    def _tokens_after(self, blob: str, job: str, stop_at: tuple[str, ...]) -> tuple[set[str], str]:
+        match = re.search(rf"\b{re.escape(job)}\b", blob)
+        self.assertIsNotNone(
+            match,
+            f"slots paragraph never names {job}: {blob[:240]!r}",
+        )
+        rest = blob[match.end():]
+        stops = []
+        for other in stop_at:
+            idx = re.search(rf"\b{re.escape(other)}\b", rest)
+            if idx is not None:
+                stops.append(idx.start())
+        end = min(stops) if stops else min(len(rest), 200)
+        segment = rest[:end]
+        return set(re.findall(r"\{[a-z]+\}", segment)), segment
+
+    def test_contract_documents_practiced_read_job_slots(self):
+        path = support.APP / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"CONTRACT.md missing: {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "CONTRACT.md is empty")
+        blob = self._slots_blob(text)
+        plan_tokens, plan_seg = self._tokens_after(
+            blob, "plan", ("check-tests", "adjudicate"),
+        )
+        check_tokens, check_seg = self._tokens_after(
+            blob, "check-tests", ("plan", "adjudicate"),
+        )
+        adj_tokens, adj_seg = self._tokens_after(
+            blob, "adjudicate", ("plan", "check-tests"),
+        )
+        self.assertTrue(
+            self.PLAN_SLOTS <= plan_tokens,
+            "CONTRACT.md must document plan's practiced slots "
+            "{ref, out, scope}; "
+            f"found {sorted(plan_tokens)} in {plan_seg!r}",
+        )
+        self.assertTrue(
+            self.CHECK_TESTS_SLOTS <= check_tokens,
+            "CONTRACT.md must document that check-tests names "
+            "{ref, inputs, scope}; "
+            f"found {sorted(check_tokens)} in {check_seg!r}",
+        )
+        self.assertTrue(
+            self.ADJUDICATE_SLOTS <= adj_tokens,
+            "CONTRACT.md must document that adjudicate names "
+            "{inputs, ref, out}; "
+            f"found {sorted(adj_tokens)} in {adj_seg!r}",
+        )
+        self.assertNotIn(
+            "all three read jobs name {inputs}",
+            blob,
+            "CONTRACT.md still claims all three read jobs name "
+            f"{{inputs}}: {blob[:240]!r}",
         )
 
     def test_practiced_read_job_slots_are_plan_without_inputs(self):
