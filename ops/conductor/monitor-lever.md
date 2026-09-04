@@ -1,0 +1,176 @@
+# Monitor lever — configurable observations and bounded messages
+
+Standing: PROPOSED, owner review required. Owner request 2026-09-04:
+dev-lane machinery first; configurable mini-cron for conditions, token/cache
+and GitHub usage; minimal conductor context; removable harness adapters.
+This tranche is stdlib Python in the existing lane, not Symfony work.
+It inherits `instrument-conventions.md`. No merge/readiness is implied.
+
+## Boundary and command wire
+
+Observation adapters only read; deterministic conditions decide whether an
+event exists; delivery adapters publish data; the conductor alone chooses
+remediation. No model calls, generated shell, merges, agent spawning,
+transcript forwarding, dynamic imports or expressions from configuration.
+
+`python3 ops/conductor/tools/monitor.py [--config FILE] [--state DIR] VERB`
+
+- `check`: read-only; validate everything before any source or state access.
+  Emit JSON `{"valid":true,"monitors":N,"schedules":N,"conditions":N,"routes":N}`.
+- `run --once|--loop [--now ISO]`: identity required; observe due monitors,
+  enqueue events, persist dedup/schedule/cooldown state. `--now` is an
+  injected UTC clock for once only; no live clock assumptions in tests.
+  Once emits JSON counts `observations,events,unavailable`; loop is silent
+  between events/errors. There is no LLM per tick.
+- `digest --consumer ID [--limit N] [--max-bytes N] [--ack]`: JSON, events
+  in increasing id order plus `more` boolean. Default 10 events and 4096
+  UTF-8 bytes, including metadata. Read-only unless explicit `--ack`,
+  which requires identity and advances only that consumer's cursor through
+  the last returned event. An omitted/foreign consumer must never leak a
+  different consumer's messages. Reading without ack is repeatable.
+  Acknowledgment means the named conductor consumed the data, NOT that an
+  unsupported external harness received it; delivery status is unchanged.
+
+Configuration defaults to `ops/conductor/monitor.example.json` relative to
+this instrument's checkout; `--config` overrides it. Paths in parameters
+resolve relative to the configuration file, not the caller's cwd.
+State is explicit `--state`, else `XDG_STATE_HOME/<LANE_NAME>/monitor`,
+else the user's `.local/state/<LANE_NAME>/monitor`, through laneconf.
+Use SQLite stdlib transactions and parameterized queries in this state
+directory; queued payloads, dedup and cursor state commit atomically.
+Do not write source stores, configuration, repository files or user config.
+
+## Registry schema, version 1
+
+The top-level keys are exactly `version,monitors,schedules,conditions,routes`.
+Each registry is an object keyed by an identifier matching
+`[a-z][a-z0-9_-]{0,63}`. Every entry explicitly has boolean `enabled`.
+
+- schedules: `{enabled,every_s}`, a finite positive number, at least 1.
+- monitors: `{enabled,adapter,schedule,params}`. Schedule reference required.
+  Adapter-specific validation and reading are registered together; generic
+  scheduler/condition/delivery code does not branch on provider names.
+- conditions: `{enabled,monitor,op,field,threshold,cooldown_s}`.
+  Ops: `changed,gt,lt,unavailable`. `gt/lt` require finite numeric threshold;
+  `changed/unavailable` require null threshold. `unavailable` requires null
+  field, others require a nonempty field. Cooldown is finite and >= 0.
+- routes: `{enabled,condition,adapter,consumer}`. Adapters: `queue,stdout`,
+  or `unsupported`; consumer is an explicit nonempty printable identifier
+  of at most 128 characters with no control characters or path separators.
+
+Reject unknown fields, duplicate JSON keys, wrong types (bool is not a
+number), nonfinite values, missing/dangling references and unknown adapters,
+even in disabled entries. Disabled entries are validated, never evaluated.
+Operators add/change/disable/remove entries by editing this file and running
+check. Reload and validate on each loop cycle; an invalid reload aborts
+without evaluating it or deleting the last valid state. Removing/disabling
+a route stops future events but never deletes already queued evidence.
+Changing a condition or source definition re-arms only affected condition
+state; changing an unrelated entry must not duplicate all other messages.
+
+## First observation adapters
+
+All readings are numeric/structural data only:
+`{subject,state,metrics,generation,observed_at,evidence,reason}`.
+States `ok,unknown,unavailable` are distinct; unknown is never zero.
+No raw stderr, prompts, tool text or transcript content enters a reading.
+An observation failure is an unavailable reading, not a successful empty
+measurement. A reader bug must be named and contained, not silently ignored.
+
+- `dispatch`: params `{store,ids}`, store path and explicit list of record
+  IDs (empty selects none; max 256). Reuse the existing watchdog's JSON
+  reader where useful, not its swallowed directory-error result. Read only
+  selected record/state/exit files. Metrics: `status,changed,input,cached,
+  output,total` where present; token values come from recorded session.spend,
+  not invented live-worker measurements. Status: `completion` for closed
+  env ok; `no-op` for that case with write role and changed_paths exactly [];
+  `invalid` for invalid/tripped envelope; `death` for died record or a
+  positively identified dead worker; `settling` for exit without closure;
+  `running` only with positive integer PID existence and matching harness
+  command evidence; otherwise `unknown`. Missing or unreadable records are
+  unknown/unavailable respectively. Never pass zero/negative/bool PID to kill.
+  Generation includes attempt count and launched timestamp, so a resumed
+  record may produce a new event even if it closes between observations.
+  No-op is an observation, not proof that the producer failed.
+- `codex-usage`: params `{path,max_bytes}`, one explicit rollout path and
+  integer byte bound 1024..8388608. Read at most that many bytes from its tail;
+  discard a cut leading fragment and an incomplete final JSONL row. Use the
+  last complete event_msg/token_count row in that bounded window. No matching
+  row means unknown with reason, NOT zero or a full-store fallback. Invalid
+  retained usage fields remain unknown. Use the existing usage.py last-count
+  semantics: input,cached,output,total from info.total_token_usage; last_input
+  and last_cached from info.last_token_usage; context_window from
+  info.model_context_window. Numeric values must be finite, nonnegative,
+  integers (not bool). Cache is a subset of input: never add it to input.
+  Derive cache_fraction=cached/input and context_fraction=last_input/window
+  only with positive denominators and valid operands. Keep the event's
+  timestamp separately from poll time. Cumulative input is re-prefill traffic,
+  last_input/window is a last-request context indicator, neither is USD.
+  The explicit source path is the subject; no scanning other sessions.
+- `github-rate`: params `{timeout_s}`, finite 0 < timeout <= 30.
+  Run only the code-built argv `gh api rate_limit`, resolving gh through PATH.
+  One call per due monitor, never per condition/route/PR. Each resources
+  core/graphql/search bucket gives a reading with limit,remaining,reset and
+  remaining_fraction. Validate nonnegative integer values, positive limit,
+  remaining <= limit. Missing/malformed buckets are unknown; process, timeout,
+  decode and authentication failures are unavailable without forwarding raw
+  stderr. Generation is the bucket reset epoch; a new quota window re-arms
+  its condition and is not charged as usage in the previous window.
+  No inferred dollar cost and no assumption that a full quota means no past use.
+
+Independent due monitors may observe concurrently with bounded worker count
+and subprocess deadlines. Each is read once per schedule, shared by its
+conditions/routes. Advance due times using monotonic deadlines; skip missed
+intervals rather than a catch-up storm. Source failures do not halt other
+due observations. Unchanged file readings may be cached only with change
+detection; no full transcript/store rescan every tick.
+
+## Conditions, queue and context
+
+Each condition evaluates per subject and generation. Numeric predicates
+require an ok reading and known finite field; unknown never crosses a
+threshold. Unavailable matches only state unavailable. Changed compares the
+named field, emitting its first known value then transitions. Numeric and
+unavailable conditions emit on entry into the matching state, not every
+poll. Persistent matching state does not re-alert merely because cooldown
+expired. A transition suppressed by cooldown stays pending while true,
+emits when eligible, and is canceled if it stops matching. A new generation
+re-arms without inheriting the previous generation's cooldown.
+
+Persist state across process restart. Event creation and its dedup state are
+one transaction; concurrent runs cannot double-enqueue the same transition.
+Events contain id, route, consumer, condition, monitor, subject, state,
+summary (<=240 UTF-8 bytes), evidence reference, observed_at and delivery.
+Summary comes from the named metric/status, not arbitrary source text.
+JSON must escape control characters and never emit terminal control bytes.
+No stdout message may expose events addressed to another consumer through
+digest. Queue is the default delivery; stdout is opt-in on a route.
+Unsupported routes remain queued with delivery=unsupported, never falsely
+marked delivered. Direct Codex hook/idle-wakeup integration is NOT admitted
+by this tranche; a configured external adapter must be probed before use.
+A queue/digest is a real usable conductor interface, not proof of wakeup.
+
+Keep stable operating instructions in the contract; volatile data is only
+the bounded digest. Evidence is referenced, not copied into every prompt.
+No automatic compaction, model switching, budget changes, or tool permission
+changes are authorized by a threshold notification.
+
+## Refusals and verification
+
+Before acting: config (unreadable/invalid JSON or schema), reference (missing
+registry target), arguments (invalid verb/options/bounds/clock), identity
+(write without valid WF_AGENT), consumer (invalid/missing consumer), state
+(unreadable/corrupt existing state), conf-key (missing lane setting).
+Inherited wire: one stderr line, expected/found/needed, exit 2, empty stdout.
+A source unavailable during a valid run is data, not a config refusal.
+Interrupted loop or invalid mid-loop reload exits 3 with state preserved.
+
+Independent tests must exercise malformed/disabled/removed configuration,
+controlled dispatch lifecycle/no-op/unknown PID, a bounded synthetic Codex
+tail with duplicates/partial rows/missing currencies, replayable gh mocks,
+quota resets, threshold recovery/cooldown, restart/concurrent dedup, and
+consumer/ack/output bounds. No credentials, real stores or vendor calls in
+tests. Real probes: one bounded quota read and one aggregate-only read of an
+explicit operator-selected rollout. External harness delivery stays unprobed
+until separately verified. Register the instrument's config refusal row.
+
