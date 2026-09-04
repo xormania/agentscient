@@ -3755,5 +3755,90 @@ class FindingsFilePathStaysInsideLadderInputs(_LadderFixture):
             self.assertIn(second.returncode, {2, 3}, text)
 
 
+class FindingsPayloadWriteDoesNotFollowASymlink(_LadderFixture):
+    """Write-time: the payload file is not a followed symlink.
+
+    Consume-time Path.resolve checks are a different finding. A
+    pre-existing check-tests-findings.payload.json symlink must not
+    redirect the driver's write onto the host.
+    """
+
+    def test_payload_symlink_is_not_followed(self):
+        host_body = "HOST"
+        secret = self.host_secret("host-payload-aa32", host_body)
+        self.patch_plant(trip_stages=["tests"])
+        first = self.run_ladder()
+        rec_id = self.record_id_for("tests")
+        self.assert_stopped(
+            first, stage="tests", record=rec_id, reason="tripped",
+        )
+        ladder_id = self.ladder_record()["id"]
+        inputs_dir = (
+            self.wt / ".dev" / "records" / "ladders" / ladder_id
+        )
+        inputs_dir.mkdir(parents=True, exist_ok=True)
+        payload = inputs_dir / "check-tests-findings.payload.json"
+        self.assertFalse(payload.exists(), payload)
+        payload.symlink_to(secret)
+        self.assertTrue(payload.is_symlink(), payload)
+        self.assertEqual(Path(os.readlink(payload)), secret)
+        self.assertEqual(payload.resolve(), secret.resolve())
+        self.assertEqual(secret.read_text(encoding="utf-8"), host_body)
+        rel = str(payload.relative_to(self.wt))
+        self.git("add", "-A", "--", rel)
+        self.git("commit", "-m", "plant findings payload symlink\n")
+        self.assertEqual(self.porcelain(), "")
+        self.assertTrue(payload.is_symlink(), payload)
+        self.assertEqual(secret.read_text(encoding="utf-8"), host_body)
+        self.close_tripped_record()
+        planted = self.plant_check_tests_findings(verdict="changes")
+        self.assertTrue(planted)
+        self.patch_plant(trip_stages=["tests-fix"])
+        second = self.invoke(["resume", ladder_id])
+        names = self.dispatch_names()
+        self.assertIn(
+            "check-tests",
+            names,
+            "plant must reach the findings write: "
+            f"{names!r} {self.combined(second)}",
+        )
+        env = self.check_tests_envelope()
+        self.assertEqual(env.get("verdict"), "changes", env)
+        self.assertEqual(env.get("findings"), planted, env)
+        after = secret.read_text(encoding="utf-8")
+        self.assertEqual(
+            after,
+            host_body,
+            "findings payload write followed a symlink onto the host; "
+            f"host now reads {after[:240]!r}",
+        )
+        self.assertFalse(
+            str(secret.resolve()).startswith(str(self.wt.resolve()) + os.sep),
+            secret,
+        )
+        for row in self.dispatch_calls():
+            argv = row.get("argv") or []
+            self.assertNotIn(str(secret), argv, argv)
+            blob = self.inputs_text(argv)
+            self.assertNotIn(host_body, blob)
+            for value in self.flag_values(argv, "--input"):
+                raw = Path(value)
+                resolved = (
+                    raw.resolve()
+                    if raw.is_absolute()
+                    else (self.wt / raw).resolve()
+                )
+                self.assertNotEqual(
+                    resolved,
+                    secret.resolve(),
+                    "tests-fix --input is the host target of the "
+                    f"payload symlink: {argv!r}",
+                )
+                self.assertTrue(
+                    str(resolved).startswith(str(self.wt.resolve()) + os.sep),
+                    f"tests-fix --input escaped the worktree: {argv!r}",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
