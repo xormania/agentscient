@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-03T22:26:21Z",
-    "closed": null
+    "closed": "2026-09-04T07:12:02Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -61,7 +61,8 @@
     "effort_requested": null,
     "ran": null,
     "read_from": null,
-    "note": "no stream found"
+    "note": "no stream found",
+    "effort_argv": []
   },
   "session": {
     "id": "eeeb37cb-613a-452d-9b63-b48f9a0e0f44",
@@ -89,6 +90,24 @@
   },
   "overrides": [],
   "attempts": [],
-  "result": null,
-  "status": "launched"
+  "result": {
+    "head": "b1203b5ae023918bb67c8b615cb08fbc03906ed9",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "b1203b5ae023918bb67c8b615cb08fbc03906ed9"
+      },
+      "note": "envelope-parse: no JSON object on stdout; DIED: process vanished without exit"
+    }
+  },
+  "status": "died",
+  "_envelope_cause": "envelope-parse"
 }
