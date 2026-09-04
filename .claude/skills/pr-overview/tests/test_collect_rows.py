@@ -16,6 +16,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import shutil
 import stat
 import sys
@@ -188,22 +189,36 @@ def gh_on_path(
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+ROW_HEADER = re.compile(r"^#(\d+)\b")
+
+
+def row_headers(rendered: str) -> list[int]:
+    """Distinct PR row blocks, in render order. A line that merely
+    mentions two numbers is not two rows."""
+    found = []
+    for line in rendered.splitlines():
+        match = ROW_HEADER.match(line.lstrip())
+        if match:
+            found.append(int(match.group(1)))
+    return found
+
+
 def pr_block(rendered: str, number: int) -> list[str]:
-    """Lines of the rendered block that names this PR number."""
+    """Lines of the rendered block whose header is this PR number."""
     lines = rendered.splitlines()
-    needle = f"#{number}"
     start = None
     for i, line in enumerate(lines):
-        if needle in line:
+        match = ROW_HEADER.match(line.lstrip())
+        if match and int(match.group(1)) == number:
             start = i
             break
     if start is None:
         raise AssertionError(
-            f"no rendered block names #{number}:\n{rendered}"
+            f"no rendered block header is #{number}:\n{rendered}"
         )
     end = len(lines)
     for i in range(start + 1, len(lines)):
-        if lines[i].lstrip().startswith("#"):
+        if ROW_HEADER.match(lines[i].lstrip()):
             end = i
             break
     return lines[start:end]
@@ -309,9 +324,14 @@ class CollectRows(unittest.TestCase):
         self.assertNotEqual(errors["10"]["rc"], 0)
         code, stdout, stderr = self.run_board(prs, errors)
         self.assertEqual(code, 0, stderr or stdout)
-        self.assertIn("#10", stdout)
-        self.assertIn("#11", stdout)
+        self.assertEqual(row_headers(stdout), [10, 11], stdout)
         self.assertIn("checks: no checks", checks_line_for(stdout, 10))
+        block10 = pr_block(stdout, 10)
+        self.assertFalse(
+            any(ROW_HEADER.match(ln.lstrip()) and ln.lstrip().startswith("#11")
+                for ln in block10[1:]),
+            f"#10's block must not also be #11: {block10!r}",
+        )
 
     def test_one_unreadable_pr_is_a_cannot_tell_row_not_a_refusal(self):
         prs = self.pair()
@@ -320,8 +340,7 @@ class CollectRows(unittest.TestCase):
         self.assertIn("authentication", errors["10"]["stderr"].lower())
         code, stdout, stderr = self.run_board(prs, errors)
         self.assertEqual(code, 0, stderr or stdout)
-        self.assertIn("#10", stdout)
-        self.assertIn("#11", stdout)
+        self.assertEqual(row_headers(stdout), [10, 11], stdout)
         blocking = blocking_line_for(stdout, 10)
         self.assertTrue(
             blocking.startswith(">> cannot tell"),
@@ -337,6 +356,11 @@ class CollectRows(unittest.TestCase):
         code, stdout, stderr = self.run_board(prs, errors)
         self.assertEqual(code, 2, stderr or stdout)
         self.assertIn("none of 2", stderr)
+        self.assertRegex(
+            stderr,
+            r"first:.*authentication failed",
+            f"refusal names the first underlying error: {stderr!r}",
+        )
         self.assertEqual(stdout.strip(), "")
 
 
