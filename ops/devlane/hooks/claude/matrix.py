@@ -75,8 +75,15 @@ GRANT = re.compile(r"^\s*(?:export\s+)?HAND_GRANT=(\d+)\b")
 WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
-PY_WRITE = re.compile(r"open\([^)]*['\"][wa]['\"]|write_text\(|write_bytes\(|\.writelines\(")
-PY_PATH = re.compile(r"(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)")
+PY_OPEN_WRITE = re.compile(
+    r"open\(\s*(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)\s*,\s*(?:mode\s*=\s*)?"
+    r"(?P<mode_quote>['\"])(?=[rwaxtb+]*[wax+])[rwaxtb+]+(?P=mode_quote)"
+)
+PY_PATH_WRITE = re.compile(
+    r"Path\(\s*(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)\s*\)"
+    r"\s*\.\s*(?:(?:write_text|write_bytes)\(|open\(\s*(?:mode\s*=\s*)?"
+    r"(?P<mode_quote>['\"])(?=[rwaxtb+]*[wax+])[rwaxtb+]+(?P=mode_quote))"
+)
 ASSIGN = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(\S+)", re.MULTILINE)
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
@@ -282,18 +289,21 @@ def prune_targets(tokens, cwd, conf):
 def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
-    for token in tokens[:3]:
-        if "=" in token:
-            continue
-        name = base(token)
-        if name in DISPATCHERS:
-            kind = "dispatcher"
-        elif name == LAUNCHER:
-            kind = "launcher"
-        elif name == DRIVER:
-            kind = "driver"
-        if kind:
-            break
+    program = 0
+    if base(tokens[program]) == "env":
+        program += 1
+        while program < len(tokens) and ENV_ASSIGN.match(tokens[program]):
+            program += 1
+    name = base(tokens[program]) if program < len(tokens) else ""
+    if re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", name):
+        program += 1
+        name = base(tokens[program]) if program < len(tokens) else ""
+    if name in DISPATCHERS:
+        kind = "dispatcher"
+    elif name == LAUNCHER:
+        kind = "launcher"
+    elif name == DRIVER:
+        kind = "driver"
     if kind is None:
         return None, {}
     flags = {"input": [], "command": name}
@@ -450,8 +460,8 @@ def check_text(text, cwd, depth=0):
     conf = lane_conf(root)
     lane = conf.get("LANE_NAME")
     grant = open_grant(text, lane)
-    if PY_WRITE.search(text):
-        for match in PY_PATH.finditer(text):
+    for pattern in (PY_OPEN_WRITE, PY_PATH_WRITE):
+        for match in pattern.finditer(text):
             path = match.group("path")
             _, rel = relative(path, cwd)
             if is_code(rel) and not grant_covers(grant, rel):

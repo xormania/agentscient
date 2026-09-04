@@ -137,7 +137,7 @@ env_keys = [
     "PAGER", "GH_PAGER", "GIT_PAGER", "LESS", "CI", "GIT_TERMINAL_PROMPT",
     "GIT_EDITOR", "EDITOR", "PYTHONUNBUFFERED", "PYTHONIOENCODING",
     "LC_ALL", "WF_LANE", "DISPATCH_JOB", "CODEX_HOME", "GROK_HOME",
-    "HOME", "CLAUDE_CONFIG_DIR", "WF_AGENT",
+    "HOME", "CLAUDE_CONFIG_DIR", "WF_AGENT", "TMPDIR",
 ]
 env_shot = {k: os.environ[k] for k in env_keys if k in os.environ}
 
@@ -191,6 +191,7 @@ try:
     pgid = os.getpgid(0)
 except OSError:
     pgid = os.getpid()
+tmpdir = os.environ.get("TMPDIR") or ""
 start_witness.parent.mkdir(parents=True, exist_ok=True)
 start_witness.write_text(json.dumps({
     "pid": os.getpid(),
@@ -208,6 +209,8 @@ start_witness.write_text(json.dumps({
     "schema_how": schema_how,
     "rollout_present": rollout_present,
     "summary_present": summary_present,
+    "tmpdir": tmpdir or None,
+    "tmpdir_is_dir": bool(tmpdir) and Path(tmpdir).is_dir(),
 }) + "\n", encoding="utf-8")
 
 commit_msg = os.environ.get("TASK_LAUNCH_COMMIT_MSG") or ""
@@ -785,6 +788,7 @@ class _TempLaunch(unittest.TestCase):
                 "TASK_LAUNCH_GROK_USAGE", "TASK_LAUNCH_COMMIT_MSG",
                 "CLICOLOR_FORCE", "FORCE_COLOR",
                 "NO_COLOR", "CODEX_HOME", "GROK_HOME", "CLAUDE_CONFIG_DIR",
+                "TMPDIR",
             )
         }
         self._saved_git = {k: os.environ[k] for k in list(os.environ)
@@ -797,6 +801,7 @@ class _TempLaunch(unittest.TestCase):
         os.environ.pop("CODEX_HOME", None)
         os.environ.pop("GROK_HOME", None)
         os.environ.pop("CLAUDE_CONFIG_DIR", None)
+        os.environ.pop("TMPDIR", None)
         os.environ.pop("TASK_LAUNCH_RAN_MODEL", None)
         os.environ.pop("TASK_LAUNCH_STORES", None)
         os.environ.pop("DISPATCH_STREAM_GRACE", None)
