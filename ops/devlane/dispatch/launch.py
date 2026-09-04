@@ -373,15 +373,19 @@ def _effort_argv(harness, effort):
 
 
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
-          project_allow=(), project_deny=()):
+          project_allow=(), project_deny=(), writable_out=False):
     executable = shutil.which(name) or name
-    last_message = str((Path(prompt).parent / "out" / "last-message.json").resolve())
+    out = str((Path(prompt).parent / "out").resolve())
+    last_message = str((Path(out) / "last-message.json").resolve())
     if resume:
         if name == "codex":
-            return [executable, "exec", "resume", session, "--model", model,
+            argv = [executable, "exec", "resume", session, "--model", model,
                     *_effort_argv(name, effort), "--json", "-o", last_message]
+            if writable_out:
+                argv += ["--sandbox", sandbox, "-c",
+                         f'sandbox_workspace_write.writable_roots=["{out}"]']
+            return argv
         if name == "claude":
-            out = str((Path(prompt).parent / "out").resolve())
             incoming = str((Path(prompt).parent / "in").resolve())
             context = str((Path(prompt).parent / "context").resolve())
             return [executable, *flags, "-r", session, "--print",
@@ -400,7 +404,6 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
         argv += _effort_argv(name, effort)
         argv += ["--prompt-file", str(prompt)]
         return argv
-    out = str((Path(prompt).parent / "out").resolve())
     if name == "claude":
         incoming = str((Path(prompt).parent / "in").resolve())
         context = str((Path(prompt).parent / "context").resolve())
@@ -415,10 +418,10 @@ def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
     if name == "codex":
         # codex exec takes the brief on stdin; "-" says so explicitly. With
         # DEVNULL it exits 1 "No prompt provided via stdin" before any work.
-        # out/ sits outside the snapshot, so the workspace sandbox is told
-        # it is writable; nothing else outside cwd and /tmp is.
+        # A job that produces a document under out/ grants only that directory;
+        # the read-only sandbox continues to protect the snapshot itself.
         argv = [executable, "exec", "--sandbox", sandbox]
-        if sandbox == "workspace-write":
+        if sandbox == "workspace-write" or writable_out:
             argv += ["-c", f'sandbox_workspace_write.writable_roots=["{out}"]']
         return [*argv, "--model", model, *_effort_argv(name, effort),
                 "--json", "-o", last_message, "-"]
@@ -755,13 +758,18 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
             )
     argv = _argv(harness, rec["model"]["requested"], rec["model"]["effort_requested"],
                  rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"],
-                 resume, project_allow, project_deny)
+                 resume, project_allow, project_deny,
+                 writable_out=rec["job"] == "check-tests")
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
     if harness == "codex":
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
     env = _child_env(os.environ, iso_env, rec["id"])
+    if harness == "codex" and rec["job"] == "check-tests":
+        tmpdir = job_dir / "out" / "tmp"
+        tmpdir.mkdir(exist_ok=True)
+        env["TMPDIR"] = str(tmpdir.resolve())
     for marker in ("exit", "TRIPPED.md"):
         (job_dir / marker).unlink(missing_ok=True)
     launched = _now()
@@ -993,7 +1001,8 @@ def _launch(args):
                     **({"permissions": permissions} if permissions is not None else {}),
                     "argv": _argv(args.harness, args.model, args.effort, session,
                                   prompt, _flags, sandbox, False,
-                                  project_allow, project_deny)},
+                                  project_allow, project_deny,
+                                  writable_out=args.job == "check-tests")},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
