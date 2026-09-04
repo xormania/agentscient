@@ -39,9 +39,30 @@
         "sha256": "2de4c0162c60caeaaa1e267ab06d2666bafaf27fa5a04e9836eab545433eb2f4"
       },
       "job": "author-tests",
+      "landed": [
+        "12f37da6c9e3f1d7af65021d706924fd315494ce",
+        "6677ab9bc0faa86fcdcd061c75b954716f3e4087",
+        "e565ac311d7ef4a0cf33933c2c5da7047a316d55",
+        "b228eec3ff07188e503f1ed124458f0ed6c3510b",
+        "a8e99a42322841d5db101b4b9ff13d4da4c3008d",
+        "4c75d3e8c87f7be5d4f5ff90f763fc8e6d215d15"
+      ],
+      "landed_shas": [
+        "12f37da6c9e3f1d7af65021d706924fd315494ce",
+        "6677ab9bc0faa86fcdcd061c75b954716f3e4087",
+        "e565ac311d7ef4a0cf33933c2c5da7047a316d55",
+        "b228eec3ff07188e503f1ed124458f0ed6c3510b",
+        "a8e99a42322841d5db101b4b9ff13d4da4c3008d",
+        "4c75d3e8c87f7be5d4f5ff90f763fc8e6d215d15"
+      ],
       "name": "tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260904T132832Z-tests-grok-2707e5",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
       "stage": "tests"
     },
     {
