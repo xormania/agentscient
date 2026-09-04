@@ -26,6 +26,12 @@ ENVELOPE_CLAUSE = (
     "stamp, note"
 )
 
+SPEND_TO_THE_LAUNCHER = (
+    'Leave `spend` as `{"harness": "<harness>", "total": 0, "out": 0, '
+    '"runs": 0}`; the launcher fills it from the session store. Do not '
+    "read the store."
+)
+
 
 class AuthorTestsBriefAsksForTheEnvelope(unittest.TestCase):
     """The author-tests brief asks for the envelope."""
@@ -89,6 +95,35 @@ class SecurityAuditIsInTheCatalogue(unittest.TestCase):
         self.assertEqual(
             audit_caps.get("timeout"), 1200,
             "security-audit declares caps.timeout 1200, like adversarial-review",
+        )
+
+
+class EveryHarnessPromptLeavesSpendToTheLauncher(unittest.TestCase):
+    """Harness jobs do not hunt usage; the launcher fills spend."""
+
+    def test_every_harness_prompt_leaves_spend_to_the_launcher(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        harness_jobs = [
+            name for name, spec in jobs.items()
+            if isinstance(spec, dict) and spec.get("adapter") == "harness"
+        ]
+        self.assertGreater(
+            len(harness_jobs), 0,
+            "jobs.json must name at least one harness job",
+        )
+        missing = []
+        for name in harness_jobs:
+            prompt = jobs[name].get("prompt")
+            self.assertIsInstance(prompt, str, f"{name} prompt is not a string")
+            self.assertTrue(prompt.strip(), f"{name} prompt is empty")
+            if SPEND_TO_THE_LAUNCHER not in prompt:
+                missing.append(name)
+        self.assertEqual(
+            missing, [],
+            "every harness job prompt leaves spend to the launcher; "
+            f"missing from {missing!r}",
         )
 
 
