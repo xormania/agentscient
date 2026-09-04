@@ -1,0 +1,363 @@
+{
+  "id": "20260904T072236Z-code-codex-205d8a",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps",
+  "lineage": {
+    "branch": "lane/fixture-apps",
+    "base_sha": "4059b5edc4cbdfae31f11aa643ae95c7e9c637e1"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T07:22:36Z",
+    "closed": "2026-09-04T07:30:06Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4059b5edc4cbdfae31f11aa643ae95c7e9c637e1",
+    "ref_sha": "4059b5edc4cbdfae31f11aa643ae95c7e9c637e1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T03-22-36-01a06b4c-4978-7630-911a-eb3f7465bd31.jsonl"
+  },
+  "session": {
+    "id": "01a06b4c-4978-7630-911a-eb3f7465bd31",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T03-22-36-01a06b4c-4978-7630-911a-eb3f7465bd31.jsonl",
+    "stream_sha256_at_close": "0a2b75319b9960856349f200191b38aa486f1e6b2d057e6af2d5a28134b8e71b",
+    "spend": {
+      "input": 2065538,
+      "cached": 1963648,
+      "output": 19861,
+      "total": 2085399,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T03-22-36-01a06b4c-4978-7630-911a-eb3f7465bd31.jsonl",
+      "messages": 236
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "python3 -m unittest ops/devlane/fixtures/tests/test_fixture_lever.py ops/devlane/fixtures/tests/test_fixture_manifests.py ops/devlane/fixtures/tests/test_fixture_root.py && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T072236Z-code-codex-205d8a/in/contract-fixtures-1-A.md",
+        "sha256": "b5d9604e51ea4090b22eb5a7de383516e70879297b8e0ce18e97aca4b4ba47e0"
+      }
+    ],
+    "sha256": "3d4624432861e0a3f7f493b8f253877d8dea0ed162c14743d3914aa2550b9c6c",
+    "bytes": 4032
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T07:22:36Z",
+      "ended": "2026-09-04T07:30:06Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "bb8e0b858f0969ca07a6aace72d2da06b4266473",
+    "changed_paths": [
+      "ops/README.md",
+      "ops/bin/fixture.sh",
+      "ops/devlane/fixtures/apps/FAULT-KINDS.md",
+      "ruff.toml"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "contract-fixtures-1-A",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 33,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Initial worktree was detached and clean.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Initial HEAD matched the requested ref 4059b5edc4cbdfae31f11aa643ae95c7e9c637e1.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "repository contracts",
+          "claim": "Enumerated documentation and ops files before implementation.",
+          "reproduce": "rg --files docs ops | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Found the single supplied brief contract-fixtures-1-A.md.",
+          "reproduce": "rg --files ../in 2>/dev/null | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "repository history",
+          "claim": "Inspected recent commits for required trailer conventions and lineage.",
+          "reproduce": "git log -5 --format=fuller"
+        },
+        {
+          "severity": "p3",
+          "where": "contracts and lane instructions",
+          "claim": "Read the supplied brief, founding docs, ops README, and nested AGENTS.md.",
+          "reproduce": "awk 'FNR == 1 { print \"===== \" FILENAME \" =====\" } { print }' ../in/contract-fixtures-1-A.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "contract inputs",
+          "claim": "Measured input and contract document lengths to ensure complete reads.",
+          "reproduce": "wc -l ../in/contract-fixtures-1-A.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md ops/devlane/AGENTS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-1-A.md",
+          "claim": "Read brief lines 1\u2013240.",
+          "reproduce": "sed -n '1,240p' ../in/contract-fixtures-1-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-1-A.md",
+          "claim": "Read brief lines 241\u2013480 during the initial parallel read.",
+          "reproduce": "sed -n '241,480p' ../in/contract-fixtures-1-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-1-A.md",
+          "claim": "Read brief lines 481\u2013677 during the initial parallel read.",
+          "reproduce": "sed -n '481,677p' ../in/contract-fixtures-1-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/concerns.md",
+          "claim": "Read the concerns contract during the initial parallel read.",
+          "reproduce": "cat docs/concerns.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read the Symfony/package mapping before implementation.",
+          "reproduce": "cat docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-1-A.md",
+          "claim": "Repeated the middle brief read after aggregate tool output was truncated.",
+          "reproduce": "sed -n '241,480p' ../in/contract-fixtures-1-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-1-A.md",
+          "claim": "Repeated the final brief read after aggregate tool output was truncated.",
+          "reproduce": "sed -n '481,677p' ../in/contract-fixtures-1-A.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/concerns.md",
+          "claim": "Repeated the concerns-contract read after aggregate tool output was truncated.",
+          "reproduce": "cat docs/concerns.md"
+        },
+        {
+          "severity": "p3",
+          "where": "4059b5edc4cbdfae31f11aa643ae95c7e9c637e1",
+          "claim": "The unchanged acceptance command initially exited 1 with 37 expected failures.",
+          "reproduce": "python3 -m unittest ops/devlane/fixtures/tests/test_fixture_lever.py ops/devlane/fixtures/tests/test_fixture_manifests.py ops/devlane/fixtures/tests/test_fixture_root.py && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py",
+          "claim": "Read lever acceptance-test lines 1\u2013420 without editing them.",
+          "reproduce": "sed -n '1,420p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py",
+          "claim": "Read lever acceptance-test lines 421\u2013840 without editing them.",
+          "reproduce": "sed -n '421,840p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_fixture_lever.py",
+          "claim": "Read lever acceptance-test lines 841\u20131250 without editing them.",
+          "reproduce": "sed -n '841,1250p' ops/devlane/fixtures/tests/test_fixture_lever.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_fixture_manifests.py",
+          "claim": "Read the complete manifest-sweep tests without editing them.",
+          "reproduce": "cat ops/devlane/fixtures/tests/test_fixture_manifests.py"
+        },
+        {
+          "severity": "p3",
+          "where": "root fixture pins",
+          "claim": "Read root-pin tests and Ruff configuration; confirmed the lever and fault taxonomy were initially absent.",
+          "reproduce": "cat ops/devlane/fixtures/tests/test_fixture_root.py && cat ruff.toml && ls -l ops/bin/fixture.sh ops/devlane/fixtures/apps/FAULT-KINDS.md 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "ops lane conventions",
+          "claim": "Inspected neighboring lever style, suite discovery, and commit-message validation.",
+          "reproduce": "sed -n '1,220p' ops/bin/suites.sh && sed -n '1,220p' ops/bin/board.sh && sed -n '1,240p' ops/devlane/hooks/commit-msg"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Git staging was refused because snapshot Git metadata is read-only, so launcher-side commit fallback is required.",
+          "reproduce": "git add ruff.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/fixture.sh",
+          "claim": "Marked the new fixture lever executable.",
+          "reproduce": "chmod +x ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "implemented tree",
+          "claim": "The unchanged acceptance command first exited 0 after implementation: 53 tests passed and Ruff was clean.",
+          "reproduce": "python3 -m unittest ops/devlane/fixtures/tests/test_fixture_lever.py ops/devlane/fixtures/tests/test_fixture_manifests.py ops/devlane/fixtures/tests/test_fixture_root.py && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Tracked changes passed Git whitespace validation.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "tracked diff",
+          "claim": "Tracked root pins contained five insertions across ops/README.md and ruff.toml; new files were untracked and therefore absent from this statistic.",
+          "reproduce": "git diff --stat"
+        },
+        {
+          "severity": "p3",
+          "where": "tracked diff",
+          "claim": "No tracked-file mode or rename summary was present.",
+          "reproduce": "git diff --summary"
+        },
+        {
+          "severity": "p3",
+          "where": "working tree",
+          "claim": "Final source changes consist of two modified root files plus the new lever and fixture-app taxonomy directory.",
+          "reproduce": "git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/fixture.sh",
+          "claim": "The fixture lever passed Bash syntax validation.",
+          "reproduce": "bash -n ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "new artifacts",
+          "claim": "The lever is executable and the shared fault-kinds document is a regular readable file.",
+          "reproduce": "stat -c '%A %n' ops/bin/fixture.sh ops/devlane/fixtures/apps/FAULT-KINDS.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../out",
+          "claim": "The launcher output directory was empty before COMMIT_MSG was written.",
+          "reproduce": "rg --files ../out | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Final execution of the exact required command exited 0: all 53 tests passed and Ruff reported all checks passed.",
+          "reproduce": "python3 -m unittest ops/devlane/fixtures/tests/test_fixture_lever.py ops/devlane/fixtures/tests/test_fixture_manifests.py ops/devlane/fixtures/tests/test_fixture_root.py && ruff check ."
+        }
+      ],
+      "artifacts": {
+        "lever": "ops/bin/fixture.sh",
+        "fault_kinds": "ops/devlane/fixtures/apps/FAULT-KINDS.md",
+        "ruff_config": "ruff.toml",
+        "ops_documentation": "ops/README.md",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2085399,
+        "out": 19861,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4059b5edc4cbdfae31f11aa643ae95c7e9c637e1"
+      },
+      "note": "Assumption: run A requires the grade argument/refusal wire pinned by test_fixture_lever.py, while grading semantics and ledger calibration remain explicitly reserved for run B. Git metadata was read-only, so the tree could not be staged or committed; out/COMMIT_MSG contains the launcher commit message. No unrelated defects were changed.",
+      "commit": {
+        "subject": "fixtures: add the fixture materialization lever",
+        "body": "Add the run-A fixture contract surface: make and prove materialized fixture repositories, preserve the grade refusal wire, publish the shared fault taxonomy, and document/exclude planted fixture apps at the repository root.\n\nVerified: python3 -m unittest ops/devlane/fixtures/tests/test_fixture_lever.py ops/devlane/fixtures/tests/test_fixture_manifests.py ops/devlane/fixtures/tests/test_fixture_root.py && ruff check .\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T07:30:05.667Z"
+    }
+  },
+  "status": "closed"
+}
