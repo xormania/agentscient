@@ -635,6 +635,30 @@ class MatrixHookTests(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 self.assert_allowed(self.run_bash(cmd))
 
+    def test_hand_write_allows_a_lane_path_as_data_or_a_read_argument(self):
+        """A code-root path is a write only when the statement's verb writes it."""
+        as_data = (
+            "python3 - <<'PY'\n"
+            "p=open('/tmp/x','w')\n"
+            "p.write('ops/lane.conf')\n"
+            "PY"
+        )
+        as_read = (
+            "python3 - <<'PY'\n"
+            "from pathlib import Path\n"
+            "Path('/tmp/x').write_text('hello')\n"
+            'Path("ops/lane.conf").read_text()\n'
+            "PY"
+        )
+        cases = (
+            ("as_data", as_data),
+            ("as_read", as_read),
+        )
+        self.assertGreater(len(cases), 0)
+        for label, cmd in cases:
+            with self.subTest(label=label):
+                self.assert_allowed(self.run_bash(cmd))
+
     # --- direct-launch ---
 
     def test_direct_launch_refuses_launch_py_as_the_command(self):
@@ -653,6 +677,17 @@ class MatrixHookTests(unittest.TestCase):
             self.dispatch(wrapper="ops/bin/go.sh"),
             self.dispatch(wrapper="ops/bin/ladder.sh"),
         )
+        for cmd in commands:
+            with self.subTest(cmd=cmd):
+                self.assert_allowed(self.run_bash(cmd))
+
+    def test_direct_launch_skips_a_pgrep_argument(self):
+        commands = (
+            "pgrep -fc launch.py",
+            "pgrep -f launch.py",
+            "pgrep -fc ops/devlane/dispatch/launch.py",
+        )
+        self.assertGreater(len(commands), 0)
         for cmd in commands:
             with self.subTest(cmd=cmd):
                 self.assert_allowed(self.run_bash(cmd))
