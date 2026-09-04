@@ -396,3 +396,46 @@ class EffortArgvCarriesTheDial(_RecordCase):
             rec["harness"]["argv"].index("--reasoning-effort"),
         )
         self._raises_naming(rec, "argv")
+
+
+class CollectedResultRequiresAGreenVerify(_RecordCase):
+    """A present result.collected must carry at, by, head, and verify.exit == 0."""
+
+    def _closed_with_collected(self, *, verify_exit):
+        rec = self.built()
+        rec["status"] = "closed"
+        rec["at"]["closed"] = "2026-09-03T00:00:01Z"
+        rec["result"] = {
+            "head": rec["snapshot"]["ref_sha"],
+            "changed_paths": [],
+            "residual_paths": [],
+            "envelope": {
+                "job": "implement",
+                "status": "invalid",
+                "verdict": None,
+                "counts": {"p1": 0, "p2": 0, "p3": 0, "opinions": 0},
+                "findings": [],
+                "artifacts": {},
+                "spend": {"harness": "codex", "total": 0, "out": 0, "runs": 1},
+                "stamp": {
+                    "ref": rec["snapshot"]["ref_sha"],
+                    "started": None,
+                    "ended": None,
+                },
+                "note": "timeout",
+            },
+            "collected": {
+                "at": "2026-09-03T00:00:02Z",
+                "by": ls.AGENT,
+                "head": "c" * 40,
+                "verify": {"command": "false", "exit": verify_exit},
+                "reason": None,
+            },
+        }
+        return rec
+
+    def test_a_collected_result_without_a_green_verify_is_refused(self):
+        rec = self._closed_with_collected(verify_exit=1)
+        self.assertEqual(rec["result"]["collected"]["verify"]["exit"], 1)
+        self.assertNotEqual(rec["result"]["collected"]["verify"]["exit"], 0)
+        self._raises_naming(rec, "result.collected")
