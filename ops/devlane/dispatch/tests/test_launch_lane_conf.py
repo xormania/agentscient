@@ -202,6 +202,37 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         self.assert_not_started()
 
 
+class RecordCommitAuthorFromConf(_LaneConfLaunch):
+    """A11: record commits use LANE_AUTHOR from the conf, not a
+    hardcoded owner identity."""
+
+    HARDCODED = "xormania <127287135+xormania@users.noreply.github.com>"
+
+    def test_record_commit_author_is_lane_author_from_conf(self):
+        ident = "Conf Author <conf-author@example.invalid>"
+        self.assertNotEqual(ident, self.HARDCODED)
+        self.assertNotEqual(ident, ls.AGENT)
+        self.plant_conf(LANE_AUTHOR=ident)
+        planted = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("LANE_AUTHOR='Conf Author <conf-author@example.invalid>'", planted)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        rel = f".dev/records/dispatches/{rec['id']}.json"
+        path = self.repo / rel
+        self.assertTrue(path.is_file(), path)
+        sha = self._git("log", "-1", "--format=%H", "--", rel).stdout.strip()
+        self.assertRegex(sha, r"^[0-9a-f]{40}$", rel)
+        author = self._git(
+            "log", "-1", "--format=%an <%ae>", sha,
+        ).stdout.strip()
+        self.assertEqual(author, ident)
+        self.assertNotEqual(author, self.HARDCODED)
+        committer = self._git(
+            "log", "-1", "--format=%cn <%ce>", sha,
+        ).stdout.strip()
+        self.assertEqual(committer, ident)
+        self.assertNotEqual(committer, self.HARDCODED)
+
+
 class MissingLauncherKeyIsConfKey(_LaneConfLaunch):
     """A conf missing any launcher key refuses conf-key naming the key
     and the file, exit 3, before anything is minted and without a child."""

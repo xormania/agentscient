@@ -355,6 +355,7 @@ def land(args: argparse.Namespace) -> int:
     commits, ref, name, email, author_name, author_email = preconditions(
         args.record_id, args.no_fetch
     )
+    lane_author = f"{author_name} <{author_email}>"
     if args.author is not None:
         author_name, author_email = option_identity(args.author, "author")
     co_author = None
@@ -383,7 +384,8 @@ def land(args: argparse.Namespace) -> int:
         )
         amend_args = ["commit", "--amend", "--no-edit"]
         needs_amend = False
-        if landed_author != f"{author_name} <{author_email}>":
+        if (landed_author != lane_author
+                and landed_author != f"{author_name} <{author_email}>"):
             amend_args.append(f"--author={author_name} <{author_email}>")
             needs_amend = True
         if co_author is not None:
