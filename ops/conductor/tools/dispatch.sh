@@ -95,6 +95,7 @@ done
 [[ -n $scope_file ]] || refuse "expected required --scope-file; found it missing; pass --scope-file FILE"
 [[ -n $branch || -n $worktree ]] || refuse "expected one of --branch or --worktree; found neither; select a lineage worktree"
 [[ -z $branch || -z $worktree ]] || refuse "expected one of --branch or --worktree; found both; pass exactly one"
+[[ $job =~ ^[a-z][a-z0-9-]*$ ]] || refuse "expected --job matching ^[a-z][a-z0-9-]*$; found $job; needed a catalogue-shaped job name"
 case $harness in grok|codex|claude) ;; *) refuse "expected --harness grok, codex, or claude; found $harness; choose a supported harness" ;; esac
 [[ -f $scope_file ]] || refuse "expected --scope-file to name a file; found $scope_file; create the file or correct the path"
 
