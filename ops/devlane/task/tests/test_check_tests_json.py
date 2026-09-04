@@ -233,44 +233,50 @@ class ReadRolePromptRejectsAnyWritePath(_CheckTestsJob):
         )
 
     def test_write_verb_plus_path_token_is_not_a_verb_blacklist(self):
-        """Security P2 and adversarial P2: shape, not a verb list.
+        """Write verb plus path-shaped token: not a closed verb list.
 
         Declared (PLAN-check-tests-json-2.md:89-92): a write verb plus a
         path-shaped token; path-shaped includes an extensionless relative
         name (`REVIEW`), not only slash, extension, or `{out}`. The tests
         say the read-role prompt rejects any write path, not a blacklist.
 
-        Practiced: `Generate REVIEW in the repository` (security P2) and
-        `Create REVIEW on disk` / `Dump REVIEW in the repository`
-        (adversarial P2) are not write paths, so planting either as the
-        live check-tests prompt leaves the existing guard tests green.
-        One test names both findings because they are the same
-        declared-versus-practiced gap.
+        `Produce REVIEW in the repository`, `Generate REVIEW in the
+        repository`, `Create REVIEW on disk`, `Dump REVIEW in the
+        repository` are writes. Item 50 P2 (23ee3d#3): Produce REVIEW
+        in the repository is a write path; a closed verb list that
+        omits produce misses it, so planting it as the live check-tests
+        prompt leaves the existing 21 guard tests green.
         """
         path = support.APP / "write_path.py"
         self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
         plants = (
+            "Produce REVIEW in the repository",
             "Generate REVIEW in the repository",
             "Create REVIEW on disk",
             "Dump REVIEW in the repository",
+            "Produce NOTES in the repository",
             "Generate NOTES in the repository",
             "Dump CHANGELOG in the repository",
             "Create TODO on disk",
         )
-        self.assertEqual(len(plants), 6)
+        self.assertEqual(len(plants), 8)
         missed = []
         for prompt in plants:
             if write_path_ask(prompt) is None:
                 missed.append(prompt)
+        planted_produce = (
+            "Produce REVIEW in the repository. " + STDOUT_EMPTY_ARTIFACTS
+        )
+        if write_path_ask(planted_produce) is None:
+            missed.append(planted_produce)
         self.assertEqual(
             missed,
             [],
-            "write-path detection remains a verb blacklist "
-            "(create|persist|save|store|write) and treats an "
-            "extensionless name as a path only with "
-            "'in the repository'; security P2 Generate REVIEW and "
-            "adversarial P2 Create REVIEW on disk / Dump REVIEW must "
-            f"be write paths: missed {missed!r}",
+            "write-path detection remains a closed verb list; "
+            "Produce REVIEW in the repository (Item 50 P2), "
+            "Generate REVIEW, Create REVIEW on disk, and Dump REVIEW "
+            "must be write paths: missed "
+            f"{missed!r}",
         )
         live = self.check_tests().get("prompt")
         self.assertIsInstance(live, str)
