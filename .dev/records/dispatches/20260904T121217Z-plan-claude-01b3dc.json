@@ -1,0 +1,277 @@
+{
+  "id": "20260904T121217Z-plan-claude-01b3dc",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/context-contracts",
+  "lineage": {
+    "branch": "lane/context-contracts",
+    "base_sha": "0cea17ab4023f80c92c99591e4aaf825f9bac98a"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T12:12:18Z",
+    "closed": "2026-09-04T12:29:54Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0cea17ab4023f80c92c99591e4aaf825f9bac98a",
+    "ref_sha": "0cea17ab4023f80c92c99591e4aaf825f9bac98a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T121217Z-plan-claude-01b3dc/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "47b5bf8a57ba4e9ae645d0370ca1d192addb8ad0872dab91fbca1077554831c7",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "24a11cb5-2af2-4705-bac1-189f83040358",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T121217Z-plan-claude-01b3dc/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T121217Z-plan-claude-01b3dc/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T121217Z-plan-claude-01b3dc/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-fable-5-1",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/24a11cb5-2af2-4705-bac1-189f83040358.jsonl"
+  },
+  "session": {
+    "id": "24a11cb5-2af2-4705-bac1-189f83040358",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/24a11cb5-2af2-4705-bac1-189f83040358.jsonl",
+    "stream_sha256_at_close": "6277dca8b180ef8d6570d3ec76289304eeb019eff8777fefdca8543703ef10a0",
+    "spend": {
+      "input": 642,
+      "cached": 4581817,
+      "output": 77992,
+      "total": 4660451,
+      "source": "result.usage",
+      "messages": 21,
+      "cost_usd": 13.14890725
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Plan the context-contracts batch from the scope in the input: a context manifest for every dispatched job (sections with source, digest, size; given and withheld with proof; the harness and isolation facts context.cue already names), vetted before launch with cue vet against one closed CUE definition per job kind extending ops/devlane/harness/context.cue, a context refusal on the wire, the manifest written into the record and reported by the meter, the dispatcher building it for hand launches and the driver per stage by construction, the definitions tracked with planted fixtures the gate refuses. Cut it into S buckets by the owner's rule (S: 1 to 3 files under 10 minutes; M: two implement runs), each with what it unblocks, its risk class, its edges and guarantees (docs/verified-couplings.md), what it depends on, and that it lands green alone; state the tests by file and why each is red at this ref; name the residue. Measure the tree, including context.cue and evidence.cue in full; write no code.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T121217Z-plan-claude-01b3dc/in/scope-context-contracts.md",
+        "sha256": "9c7eca93c12687bb1007ad34340d95c296e9af39ce1954193cfefdc937683b29"
+      }
+    ],
+    "sha256": "9b54354fbc3430e702265343beea5e915f610ea5b182ffdb133fe26c606e1234",
+    "bytes": 1784
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T12:12:18Z",
+      "ended": "2026-09-04T12:29:54Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0cea17ab4023f80c92c99591e4aaf825f9bac98a",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:1081-1109,587-592",
+          "claim": "The driver joins every test artifact of the first tests envelope into one command and hands that command to every implement stage, while land_result forbids a bucket's implement to touch the other bucket's files; a two-bucket M slice therefore asks the first implement to satisfy the second bucket's tests without editing its files. The plan runs the batch as seven one-bucket ladders and names the per-bucket command as a finding outside this scope.",
+          "reproduce": "sed -n 587,592p ops/conductor/tools/ladder.py; sed -n 1081,1109p ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/context.cue:355-360 and .dev/records/dispatches/*.json harness.isolation.observed",
+          "claim": "Every live record carries observed {unresolved: behavioural probe has not run} and harness.version unknown, so #Dispatchable's operator_config_present: false cannot be satisfied by any dispatch on this tree; the plan admits a declared-unresolved observation in the manifest law and names the unapplied #Dispatchable law as residue rather than manufacturing a false.",
+          "reproduce": "jq -r '.harness.version, .harness.isolation.observed' .dev/records/dispatches/20260904T090937Z-plan-claude-587307.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py:33,97-101 vs docs/wire.md and ops/conductor/instrument-conventions.md",
+          "claim": "The launcher refuses at exit 3 with a trailing 'satisfy by' clause and the driver at exit 2 on the bare wire, while the founding wire says exit 2; the new context, cue-missing and cue-version refusals follow each instrument's own contract and the divergence is left in place.",
+          "reproduce": "sed -n 33p ops/devlane/dispatch/launch.py; sed -n 97,101p ops/devlane/dispatch/launch.py; sed -n 16,24p ops/conductor/instrument-conventions.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/suites.sh and .github/workflows/ci.yml:24-45",
+          "claim": "Nothing in the suites or the lane CI job runs vet_context.py or cue vet; the definitions pass their 24 controls only when a person runs the script. The plan's bucket 1b adds the CI step and a suite test that goes red, never skipped, when cue is absent.",
+          "reproduce": "git grep -n -E 'cue vet|vet_context' -- ':!ops/archive' ':!ops/docs' ':!.dev'; sed -n 17p ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py:621-627,1134-1139",
+          "claim": "The custody check counts the previous record id as given by appending the id string to its own search domain, so that half of the proof is satisfied by construction; under the launcher's proof the plan makes --follows ids part of the declared domain so the claim is measured against something the harness is actually handed.",
+          "reproduce": "sed -n 621,627p ops/conductor/tools/ladder.py; sed -n 1134,1139p ops/conductor/tools/ladder.py"
+        }
+      ],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T121217Z-plan-claude-01b3dc/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4660451,
+        "out": 77992,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0cea17ab4023f80c92c99591e4aaf825f9bac98a",
+        "started": "2026-09-04T12:12:17Z",
+        "ended": null
+      },
+      "note": "Plan written for the context-contracts batch in seven S buckets across five units: 1a manifest.cue (one closed definition per job kind extending context.cue, slot table with caps, #Launchable law, #CueVersion pin) with generated controls from build.py; 1b vet_context.py runs the manifest fixtures and ci.yml runs the vet; 2a manifest.py builds, proves custody and vets through cue; 2b launch.py builds the manifest before minting, refuses context/cue-missing/cue-version on the launcher wire, writes context/manifest.json and the record field context between brief and caps; 3 dispatch.sh forwards --input KIND=PATH, --given, --withheld, --manifest and --scope-source; 4 ladder.py builds and vets a manifest per stage by construction, passes it as the expectation, compares the recorded one, adds guarantee 5 and a calibration column; 5 worth.py prints context bytes per dispatch row. Each bucket names its files (the exact landable set, generated controls enumerated), what it unblocks, risk class, edges and guarantees, dependencies, that it lands green alone, and its tests by file with why each is red at this ref; machine bucket lines close the plan. Eleven decisions the scope left open are listed for the owner to overrule. Residue named: sections are whole files not cut plan sections, the whole tree stays outside the manifest, observed isolation stays unresolved, caps declared not measured for plan/diff/report/document/markers, two refusal wires, the driver's whole-set test command. Could not measure: the four hand-built ladder inputs (not in the tree) and cue's exact error text for an omitted list slot (a scratch file could not be written outside the job directories). Snapshot untouched; git status clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
