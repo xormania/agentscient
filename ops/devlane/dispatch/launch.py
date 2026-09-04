@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import copy
+import faulthandler
 import hashlib
 import importlib.util
 import json
@@ -34,7 +35,11 @@ STAGES = ("plan", "tests", "check-tests", "code", "review", "adjudicate")
 OWNER_NAME = "xormania"
 OWNER_EMAIL = "127287135+xormania@users.noreply.github.com"
 monotonic = time.monotonic
+faulthandler.enable()
 sleep = time.sleep
+# The wait loop's tick. Once a second is enough for walls measured in
+# minutes; the old 50 ms re-read the session stream twenty times a second.
+TICK = float(os.environ.get("DISPATCH_TICK", "1"))
 
 
 class Refused(Exception):
@@ -772,7 +777,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
             if not stream and elapsed >= grace:
                 runtime_note = "unsupervised: no session stream within grace"
                 break
-            sleep(min(0.05, max(0.0, min(timeout, grace) - elapsed)))
+            sleep(min(TICK, max(0.0, min(timeout, grace) - elapsed)))
         if runtime_note:
             with contextlib.suppress(OSError, ProcessLookupError):
                 os.killpg(proc.pid, signal.SIGKILL)
