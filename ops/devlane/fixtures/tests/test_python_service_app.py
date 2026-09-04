@@ -8,6 +8,18 @@ file proves through the merged lever `ops/bin/fixture.sh`). The app
 under `ops/devlane/fixtures/apps/python-service` is the implementation
 and is not read here beyond the paths the contract names.
 
+Fix round: Codex skeptic (record 20260904T094422Z-review-codex-1cbf26)
+found 3 P1, 4 P2, 1 P3. This file addresses all eight. Planted faults
+are proved by the contract operations (export_archive, record_path,
+log_request, handle, page, the K7 test file, the K9 spec), not by an
+implementer-authored regex; clean neighbours are called, not classified
+by a positive regex; toolchain.install runs so a fresh make has its
+venv; python -m service is run (serve, export NAME, the wire, identity
+on export); FAULTS.json is pinned to each assigned probe and fix,
+severities per id, one confined hunk per fix; no empty needs keys;
+not_planted names K3/K8 coverage, the candidate eighth K9, and why it
+waits.
+
 Slice 3 assigns no lever change. `probe_timeout` and the preflight
 ignore list wait for slice 4; they are not pinned here.
 
@@ -21,15 +33,18 @@ implementer's.
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import re
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
+from contextlib import suppress
 from pathlib import Path
 
 from test_fixture_manifests import KIND_IDS, validate_manifest
@@ -60,6 +75,15 @@ EXPECTED_KIND_VISIBLE = {
     "PS-05": ("K6", "test"),
     "PS-06": ("K7", "audit"),
     "PS-07": ("K9", "audit"),
+}
+EXPECTED_SEVERITY = {
+    "PS-01": "p1",
+    "PS-02": "p1",
+    "PS-03": "p1",
+    "PS-04": "p2",
+    "PS-05": "p2",
+    "PS-06": "p3",
+    "PS-07": "p2",
 }
 EXPECTED_LOCATION_PATHS = {
     "PS-01": "service/export.py",
@@ -107,9 +131,24 @@ READY_CMD = "test -x .venv/bin/python && .venv/bin/python -c 'import pytest'"
 CHECK_CMD = ".venv/bin/python -m pytest -q tests && ruff check ."
 PYPROJECT_NAME = "fixture-python-service"
 PINNED_RUNTIME = "python-dotenv"
+PINNED_RUNTIME_VERSION = "1.0.1"
 PLANTED_RUNTIME = "python-json-logger"
 PLANTED_LOCK_VERSION = "2.0.7"
 DEV_PYTEST = "pytest==8.3.3"
+EXPECTED_LOCK_PINS = {
+    "python-dotenv": PINNED_RUNTIME_VERSION,
+    "python-json-logger": PLANTED_LOCK_VERSION,
+    "pytest": "8.3.3",
+}
+INSTALL_CAP = 120
+REFUSAL_LINE_RE = re.compile(
+    r"^[a-z][a-z0-9_-]*: expected .+; found .+; needed .+$"
+)
+PS06_STUB_MARK = 'monkeypatch.setattr(api, "parse_request"'
+GET_LINE = '{"verb": "get", "name": "fixture"}'
+MISSING_GET_LINE = '{"verb": "get"}'
+BEARER_TOKEN = "ps-03-planted-bearer-token"
+EXPORT_NAME = "records"
 RUFF_REQUIRED = ">=0.16,<0.17"
 RUFF_TARGET = "py312"
 RUFF_SELECT = ("E4", "E7", "E9", "F", "I", "B", "UP")
@@ -142,6 +181,8 @@ LAYOUT_DIRS = ("service", "tests")
 APPARATUS_DIRS = ("probes", "fixes")
 APPARATUS_PROBES = tuple(f"probes/ps{index:02d}.py" for index in range(1, 8))
 APPARATUS_FIXES = tuple(f"fixes/ps{index:02d}.patch" for index in range(1, 8))
+EXPECTED_PROBE_PATHS = dict(zip(EXPECTED_IDS, APPARATUS_PROBES, strict=True))
+EXPECTED_FIX_PATHS = dict(zip(EXPECTED_IDS, APPARATUS_FIXES, strict=True))
 
 LANE_COPY_PATHS = (
     "ops/devlane/fixtures/apps/FAULT-KINDS.md",
@@ -189,26 +230,38 @@ KIND_DIRTY = {
         r"shell\s*=\s*True|os\.system|os\.popen|/bin/sh|\bsh\s+-c\b|\bbash\s+-c\b"
     ),
     "K2": re.compile(r"root\s*/\s*name|os\.path\.join|\bPath\([^)]*\)\s*/"),
-    "K4": re.compile(r"headers\s*=|\bauthorization\b", re.IGNORECASE),
+    "K4": re.compile(r"headers\s*="),
     "K5": re.compile(r"except\s+Exception\s*:"),
     "K6": re.compile(r"stop\s*\+\s*1|start\s*:\s*stop\s*\+\s*1"),
     "K7": re.compile(r"monkeypatch\.setattr|patch\(|Mock\("),
     "K9": re.compile(r">=|~=|\^|>|\*"),
 }
 
-# Contract-derived clean neighbour shapes, discovered without FAULTS.json.
+# Contract-named clean neighbours, discovered without FAULTS.json.
+# These must not match a span that still contains the planted fault.
 KIND_CLEAN = {
     "K1": re.compile(
         r"subprocess\.(?:run|Popen|call|check_call|check_output)\s*\(\s*\["
+        r"[^\]\n]+\](?![^)\n]*shell\s*=\s*True)"
     ),
     "K2": re.compile(r"\.relative_to\(|\.is_relative_to\("),
-    "K4": re.compile(
-        r"\[REDACTED\]|redact|redacted|\*\*\*|mask_secret", re.IGNORECASE
-    ),
+    "K4": re.compile(r"authorization\s*=\s*\[REDACTED\]", re.IGNORECASE),
     "K5": re.compile(r"except KeyError"),
-    "K6": re.compile(r"range\(\s*0\s*,"),
-    "K7": re.compile(r"parse_request\(\s*[bBfFrRuU]*['\"]"),
-    "K9": re.compile(r"==\s*\d"),
+    "K6": re.compile(r"range\(\s*0\s*,\s*total\s*,\s*size\s*\)"),
+    "K7": re.compile(r"^def test_parser_reads_a_get\b", re.MULTILINE),
+    "K9": re.compile(r"python-dotenv==1\.0\.1"),
+}
+
+DIRTY_LOOKALIKES = {
+    "K1": 'subprocess.run(["tar"], shell=True)',
+    "K2": "candidate.relative_to(base); return root / name",
+    "K4": 'print(headers); print("authorization=[REDACTED]")',
+    "K5": "try: run()\nexcept KeyError: return []",
+    "K6": "range(0, total + 1, size)",
+    "K7": (
+        'monkeypatch.setattr(api, "parse_request", fake); parse_request("{}")'
+    ),
+    "K9": "python-dotenv==9.9.9",
 }
 
 CALIBRATE_STUB = r'''#!/usr/bin/env python3
@@ -336,6 +389,24 @@ def _lock_names(text: str) -> list[str]:
             continue
         names.append(name)
     return names
+
+
+def _lock_pins(text: str) -> dict[str, str]:
+    """name -> version for exact == pins; comments never count as a pin."""
+    pins: dict[str, str] = {}
+    for line in text.splitlines():
+        stripped = line.split("#", 1)[0].strip()
+        if not stripped or stripped.startswith("-"):
+            continue
+        stripped = stripped.rstrip("\\").strip()
+        if not stripped:
+            continue
+        body = stripped.split(";", 1)[0].split("--", 1)[0].strip()
+        name, spec = _dep_name_spec(body)
+        if not name or not _is_exact_pin(spec):
+            continue
+        pins[_norm_name(name)] = spec[2:].strip()
+    return pins
 
 
 def _store_snap(path: Path) -> tuple[str, tuple[str, ...] | None]:
@@ -495,6 +566,26 @@ def _patch_removed_lines(text: str) -> dict[str, list[int]]:
     return {path: lines for path, lines in removed.items() if path}
 
 
+def _patch_hunks(text: str) -> list[tuple[str, int, int, int, int]]:
+    """(path, old_start, old_count, new_start, new_count) per @@ hunk."""
+    current: str | None = None
+    hunks: list[tuple[str, int, int, int, int]] = []
+    for line in text.splitlines():
+        if line.startswith("+++ "):
+            path = line[4:].strip().removeprefix("b/")
+            current = None if path == "/dev/null" else path
+            continue
+        hunk = HUNK_RE.match(line)
+        if hunk is None or current is None:
+            continue
+        old_start = int(hunk.group(1))
+        old_count = int(hunk.group(2)) if hunk.group(2) is not None else 1
+        new_start = int(hunk.group(3))
+        new_count = int(hunk.group(4)) if hunk.group(4) is not None else 1
+        hunks.append((current, old_start, old_count, new_start, new_count))
+    return hunks
+
+
 def _iter_app_sources(root: Path) -> list[tuple[str, Path, str]]:
     found: list[tuple[str, Path, str]] = []
     for folder in ("service", "tests"):
@@ -510,6 +601,29 @@ def _iter_app_sources(root: Path) -> list[tuple[str, Path, str]]:
             ("pyproject.toml", pyproject, pyproject.read_text(encoding="utf-8"))
         )
     return found
+
+
+def _snippet_is_clean(kind: str, snippet: str, window: str | None = None) -> bool:
+    """A neighbour span is clean only if it matches the clean shape and not the fault."""
+    clean = KIND_CLEAN.get(kind)
+    dirty = KIND_DIRTY.get(kind)
+    if clean is None or not clean.search(snippet):
+        return False
+    body = window if window is not None else snippet
+    if dirty is not None and dirty.search(body):
+        return False
+    if kind == "K4" and (
+        re.search(r"print\(\s*headers\b", body)
+        or re.search(r"headers\s*=(?!\s*\[REDACTED\])", body)
+    ):
+        return False
+    if kind == "K5" and re.search(r"return\s*\[\s*\]", body):
+        return False
+    if kind == "K6" and re.search(r"total\s*\+\s*1", body):
+        return False
+    if kind == "K9":
+        return PINNED_RUNTIME_VERSION in snippet
+    return True
 
 
 def discover_clean_neighbours(root: Path) -> dict[str, list[tuple[str, int, int, str]]]:
@@ -528,9 +642,37 @@ def discover_clean_neighbours(root: Path) -> dict[str, list[tuple[str, int, int,
             for match in pattern.finditer(text):
                 start = text[: match.start()].count("\n") + 1
                 end = text[: match.end()].count("\n") + 1
-                snippet = "\n".join(text.splitlines()[start - 1 : end])
+                lines = text.splitlines()
+                take_end = end + 6 if kind == "K5" else end
+                snippet = "\n".join(lines[start - 1 : min(len(lines), take_end)])
+                if not _snippet_is_clean(kind, snippet):
+                    continue
                 found[kind].append((rel, start, end, snippet))
     return found
+
+
+def _drop_imported_service() -> None:
+    for key in list(sys.modules):
+        if key == "service" or key.startswith("service."):
+            del sys.modules[key]
+
+
+def _import_service(directory: Path):
+    _drop_imported_service()
+    inserted = str(directory)
+    added = False
+    if inserted not in sys.path:
+        sys.path.insert(0, inserted)
+        added = True
+    try:
+        pkg = importlib.import_module("service")
+        for name in ("api", "audit", "export", "paging", "store"):
+            setattr(pkg, name, importlib.import_module(f"service.{name}"))
+        return pkg
+    finally:
+        if added:
+            with suppress(ValueError):
+                sys.path.remove(inserted)
 
 
 class PythonServiceExists(unittest.TestCase):
@@ -673,15 +815,21 @@ class PythonServiceLayout(unittest.TestCase):
             f"runtime dependencies must be {PINNED_RUNTIME} and {PLANTED_RUNTIME}",
         )
         exact = [
-            name for name, spec in parsed if name and _is_exact_pin(spec)
+            (name, spec) for name, spec in parsed if name and _is_exact_pin(spec)
         ]
         unpinned = [
             name for name, spec in parsed if name and not _is_exact_pin(spec)
         ]
         self.assertEqual(
-            [_norm_name(name) for name in exact],
-            [_norm_name(PINNED_RUNTIME)],
-            f"every runtime dependency but the planted K9 is ==; exact={exact!r}",
+            [(_norm_name(name), spec.replace(" ", "")) for name, spec in exact],
+            [
+                (
+                    _norm_name(PINNED_RUNTIME),
+                    f"=={PINNED_RUNTIME_VERSION}",
+                )
+            ],
+            f"{PINNED_RUNTIME}=={PINNED_RUNTIME_VERSION} is the clean runtime pin; "
+            f"exact={exact!r}",
         )
         self.assertEqual(
             [_norm_name(name) for name in unpinned],
@@ -730,13 +878,23 @@ class PythonServiceLayout(unittest.TestCase):
             [],
             f"requirements.lock must name every package in the manifest: {missing}",
         )
+        pins = _lock_pins(lock_text)
+        self.assertTrue(pins, "requirements.lock must pin name==version, not comments")
+        for package, version in EXPECTED_LOCK_PINS.items():
+            with self.subTest(package=package):
+                self.assertEqual(
+                    pins.get(_norm_name(package)),
+                    version,
+                    f"requirements.lock must pin {package}=={version}; "
+                    "a comment or a drifted pin is not the lock",
+                )
+        planted_line = f"{PLANTED_RUNTIME}=={PLANTED_LOCK_VERSION}"
         self.assertTrue(
             any(
-                _norm_name(name) == _norm_name(PLANTED_RUNTIME)
-                and PLANTED_LOCK_VERSION in _file_text(APP / "requirements.lock")
-                for name in locked
+                line.split("#", 1)[0].replace(" ", "").strip() == planted_line
+                for line in lock_text.splitlines()
             ),
-            f"requirements.lock must name {PLANTED_RUNTIME}=={PLANTED_LOCK_VERSION}",
+            f"requirements.lock must carry a {planted_line} line, not a comment",
         )
 
     def test_readme_itself_declares_apparatus(self):
@@ -853,6 +1011,13 @@ class PythonServiceManifest(unittest.TestCase):
             EXPECTED_KIND_VISIBLE,
             "kind and visible_to must match the slice-3 fault table",
         )
+        severities = {row.get("id"): row.get("severity") for row in faults}
+        self.assertEqual(
+            severities,
+            EXPECTED_SEVERITY,
+            "per-id severity must match the slice-3 fault table; the sweep "
+            "accepts any p1/p2/p3 and is not this pin",
+        )
 
     def test_manifest_location_and_neighbour_paths_match_the_contract(self):
         faults = fault_rows(load_json_object(MANIFEST))
@@ -883,11 +1048,15 @@ class PythonServiceManifest(unittest.TestCase):
     def test_not_planted_names_k3_and_k8(self):
         data = load_json_object(MANIFEST)
         not_planted = data.get("not_planted")
+        self.assertTrue(
+            not_planted,
+            "not_planted must name K3/K8 coverage and the candidate eighth",
+        )
         if isinstance(not_planted, dict):
             blob = " ".join(f"{key} {value}" for key, value in not_planted.items())
             keys = {str(key) for key in not_planted}
         else:
-            blob = str(not_planted or "")
+            blob = str(not_planted)
             keys = set()
         self.assertTrue(
             "K3" in keys or bool(re.search(r"\bK3\b", blob)),
@@ -896,6 +1065,25 @@ class PythonServiceManifest(unittest.TestCase):
         self.assertTrue(
             "K8" in keys or bool(re.search(r"\bK8\b", blob)),
             "not_planted must name K8 (covered by python-tooling)",
+        )
+        self.assertRegex(
+            blob,
+            r"(?i)python-tooling",
+            "not_planted must say K3 and K8 are covered by python-tooling",
+        )
+        self.assertTrue(
+            "K9" in keys or bool(re.search(r"\bK9\b", blob)),
+            "not_planted must name the candidate eighth as a second K9",
+        )
+        self.assertRegex(
+            blob,
+            r"(?i)lock",
+            "not_planted must say the eighth is a lock that contradicts the pin",
+        )
+        self.assertRegex(
+            blob,
+            r"(?i)grad",
+            "not_planted must say the eighth waits on the first grading run",
         )
 
     def test_toolchain_install_and_ready_present(self):
@@ -931,11 +1119,71 @@ class PythonServiceManifest(unittest.TestCase):
         )
         for row in faults:
             with self.subTest(fault=row.get("id")):
-                needs = row.get("needs")
-                self.assertTrue(
-                    needs in (None, [], ()) or "needs" not in row,
-                    f"{row.get('id')} must carry no needs; prove is stdlib-reachable: "
-                    f"{needs!r}",
+                self.assertNotIn(
+                    "needs",
+                    row,
+                    f"{row.get('id')} must not carry a needs key, empty or not; "
+                    "prove is stdlib-reachable on python3 alone",
+                )
+
+    def test_manifest_rows_name_assigned_probes_fixes_and_spans(self):
+        faults = fault_rows(load_json_object(MANIFEST))
+        self.assertEqual(
+            tuple(row.get("id") for row in faults),
+            EXPECTED_IDS,
+            "seven planted faults before probe/fix/span pins run",
+        )
+        for row in faults:
+            fault_id = row.get("id")
+            probe = row.get("probe") if isinstance(row.get("probe"), str) else ""
+            fix = row.get("fix") if isinstance(row.get("fix"), str) else ""
+            declared = (
+                row.get("declared") if isinstance(row.get("declared"), dict) else {}
+            )
+            practiced = (
+                row.get("practiced") if isinstance(row.get("practiced"), dict) else {}
+            )
+            location = (
+                row.get("location") if isinstance(row.get("location"), dict) else {}
+            )
+            with self.subTest(fault=fault_id, field="probe"):
+                self.assertIn(
+                    EXPECTED_PROBE_PATHS[fault_id],
+                    _probe_script_paths(probe),
+                    f"{fault_id} probe must name {EXPECTED_PROBE_PATHS[fault_id]}",
+                )
+                self.assertEqual(
+                    _probe_script_paths(probe),
+                    [EXPECTED_PROBE_PATHS[fault_id]],
+                    f"{fault_id} probe must be exactly {EXPECTED_PROBE_PATHS[fault_id]}",
+                )
+            with self.subTest(fault=fault_id, field="fix"):
+                self.assertEqual(
+                    fix,
+                    EXPECTED_FIX_PATHS[fault_id],
+                    f"{fault_id} fix must be {EXPECTED_FIX_PATHS[fault_id]}",
+                )
+            with self.subTest(fault=fault_id, field="declared"):
+                self.assertEqual(
+                    declared.get("path"),
+                    "README.md",
+                    f"{fault_id} declared.path must be the README declaration",
+                )
+                self.assertEqual(
+                    declared.get("text"),
+                    DECLARED[fault_id],
+                    f"{fault_id} declared.text must be the contract sentence",
+                )
+            with self.subTest(fault=fault_id, field="practiced"):
+                self.assertEqual(
+                    practiced.get("path"),
+                    location.get("path"),
+                    f"{fault_id} practiced.path must equal location.path",
+                )
+                self.assertEqual(
+                    _as_lines(practiced.get("lines")),
+                    _as_lines(location.get("lines")),
+                    f"{fault_id} practiced.lines must equal location.lines",
                 )
 
     def test_check_command_names_pytest_and_ruff(self):
@@ -1335,6 +1583,161 @@ class PythonServiceMakeProve(_RepoFreeze):
         except subprocess.TimeoutExpired as exc:
             self.fail(f"toolchain.ready exceeded {CHECK_CAP}s: {exc}")
 
+    def install_env(self) -> dict[str, str]:
+        env = self.scratch_env()
+        for key in (
+            "PIP_CACHE_DIR",
+            "PIP_CONFIG_FILE",
+            "PIP_INDEX_URL",
+            "PIP_EXTRA_INDEX_URL",
+            "XDG_CACHE_HOME",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "NO_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "no_proxy",
+        ):
+            if key in os.environ:
+                env[key] = os.environ[key]
+        if "PIP_CACHE_DIR" not in env:
+            env["PIP_CACHE_DIR"] = str(Path.home() / ".cache" / "pip")
+        return env
+
+    def toolchain_install(self, directory: Path) -> subprocess.CompletedProcess:
+        manifest = load_json_object(directory / "FAULTS.json")
+        toolchain = (
+            manifest.get("toolchain")
+            if isinstance(manifest.get("toolchain"), dict)
+            else {}
+        )
+        install = (
+            toolchain.get("install") if isinstance(toolchain.get("install"), str) else ""
+        )
+        self.assertEqual(
+            install,
+            INSTALL_CMD,
+            "fresh make must carry toolchain.install before check runs",
+        )
+        try:
+            return subprocess.run(
+                ["/bin/sh", "-c", install],
+                cwd=str(directory),
+                env=self.install_env(),
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=INSTALL_CAP,
+            )
+        except subprocess.TimeoutExpired as exc:
+            self.fail(f"toolchain.install exceeded {INSTALL_CAP}s: {exc}")
+
+    def work_dir(self, name: str) -> Path:
+        path = self.root / name
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def python_service(self, directory: Path, argv: list[str], **kwargs):
+        env = kwargs.pop("env", None) or self.scratch_env()
+        env = dict(env)
+        env["PYTHONPATH"] = str(directory)
+        env.setdefault("PYTHONDONTWRITEBYTECODE", "1")
+        try:
+            return subprocess.run(
+                [sys.executable, "-m", "service", *argv],
+                cwd=str(directory),
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=kwargs.pop("timeout", PROBE_CAP),
+                **kwargs,
+            )
+        except subprocess.TimeoutExpired as exc:
+            self.fail(f"python -m service {argv} exceeded cap: {exc}")
+
+    def contract_planted(self, directory: Path, fault_id: str) -> bool:
+        """True while the contract operation still shows the planted fault."""
+        if fault_id == "PS-01":
+            return self._ps01_marker_appears(directory)
+        if fault_id == "PS-02":
+            return self._ps02_escapes(directory)
+        if fault_id == "PS-03":
+            return self._ps03_token_logged(directory)
+        if fault_id == "PS-04":
+            return self._ps04_empty_success(directory)
+        if fault_id == "PS-05":
+            return self._ps05_inclusive(directory)
+        if fault_id == "PS-06":
+            return self._ps06_stub_present(directory)
+        if fault_id == "PS-07":
+            return self._ps07_unpinned(directory)
+        self.fail(f"no contract operation for {fault_id}")
+        return False
+
+    def _ps01_marker_appears(self, directory: Path) -> bool:
+        service = _import_service(directory)
+        work = self.work_dir("ps01-work")
+        payload = work / "payload"
+        payload.mkdir(exist_ok=True)
+        (payload / "item.txt").write_text("x\n", encoding="utf-8")
+        marker = work / "INJECTED"
+        if marker.exists():
+            marker.unlink()
+        name = f"payload; touch {marker}"
+        with suppress(Exception):
+            service.export.export_archive(work, name)
+        return marker.is_file()
+
+    def _ps02_escapes(self, directory: Path) -> bool:
+        service = _import_service(directory)
+        work = self.work_dir("ps02-work")
+        try:
+            service.store.record_path(work, "../outside.json")
+        except ValueError:
+            return False
+        return True
+
+    def _ps03_token_logged(self, directory: Path) -> bool:
+        service = _import_service(directory)
+        dest = self.work_dir("ps03-work") / "request.log"
+        if dest.exists():
+            dest.unlink()
+        request = {"headers": {"authorization": f"Bearer {BEARER_TOKEN}"}}
+        with suppress(Exception):
+            service.audit.log_request(request, dest)
+        body = dest.read_text(encoding="utf-8") if dest.is_file() else ""
+        return BEARER_TOKEN in body
+
+    def _ps04_empty_success(self, directory: Path) -> bool:
+        service = _import_service(directory)
+        store = self.work_dir("ps04-store")
+        result = service.api.handle("not json", store)
+        self.assertIsInstance(result, dict, "handle must return a dict")
+        return result.get("ok") is True
+
+    def _ps05_inclusive(self, directory: Path) -> bool:
+        service = _import_service(directory)
+        result = service.paging.page([1, 2, 3], 0, 2)
+        return list(result) != [1, 2]
+
+    def _ps06_stub_present(self, directory: Path) -> bool:
+        text = (directory / "tests" / "test_api.py").read_text(encoding="utf-8")
+        return PS06_STUB_MARK in text
+
+    def _ps07_unpinned(self, directory: Path) -> bool:
+        data = tomllib.loads(
+            (directory / "pyproject.toml").read_text(encoding="utf-8")
+        )
+        project = data.get("project") if isinstance(data.get("project"), dict) else {}
+        deps = project.get("dependencies")
+        self.assertIsInstance(deps, list)
+        for item in deps:
+            _name, spec = _dep_name_spec(str(item))
+            if not _is_exact_pin(spec):
+                return True
+        return False
+
     def test_make_python_service_into_a_temp_directory_succeeds(self):
         made = self.made_app("made")
         for name in LAYOUT_FILES:
@@ -1521,6 +1924,22 @@ class PythonServiceMakeProve(_RepoFreeze):
             kind = row.get("kind")
             probe_cmd = row.get("probe") if isinstance(row.get("probe"), str) else ""
             fix_rel = row.get("fix") if isinstance(row.get("fix"), str) else ""
+            with self.subTest(fault=fault_id, stage="assigned-paths"):
+                self.assertEqual(
+                    loc_path,
+                    EXPECTED_LOCATION_PATHS[fault_id],
+                    f"{fault_id} location.path must be the contract file",
+                )
+                self.assertIn(
+                    EXPECTED_PROBE_PATHS[fault_id],
+                    _probe_script_paths(probe_cmd),
+                    f"{fault_id} probe command must name {EXPECTED_PROBE_PATHS[fault_id]}",
+                )
+                self.assertEqual(
+                    fix_rel,
+                    EXPECTED_FIX_PATHS[fault_id],
+                    f"{fault_id} fix must be {EXPECTED_FIX_PATHS[fault_id]}",
+                )
             with self.subTest(fault=fault_id, stage="kind-and-red"):
                 dirty = KIND_DIRTY.get(kind)
                 self.assertIsNotNone(dirty, f"no dirty shape for {kind}")
@@ -1529,6 +1948,12 @@ class PythonServiceMakeProve(_RepoFreeze):
                     dirty,
                     f"{fault_id} practiced span must look like {kind}, not a label: "
                     f"{span!r}",
+                )
+                self.assertTrue(
+                    self.contract_planted(made, fault_id),
+                    f"{fault_id} contract operation must still show the planted "
+                    "fault; a comment, a sentinel probe, or a matching regex is "
+                    "not the proof",
                 )
                 colour = self.run_probe(made, probe_cmd)
                 self.assertEqual(
@@ -1580,13 +2005,39 @@ class PythonServiceMakeProve(_RepoFreeze):
                     {loc_path},
                     f"{fault_id} fix must change only {loc_path}, found {changed}",
                 )
-                removed = _patch_removed_lines(patch.decode("utf-8"))
+                patch_text = patch.decode("utf-8")
+                hunks = _patch_hunks(patch_text)
+                self.assertEqual(
+                    len(hunks),
+                    1,
+                    f"{fault_id} fix must be one hunk; found {len(hunks)}: {hunks!r}",
+                )
+                hunk_path, old_start, old_count, _new_start, _new_count = hunks[0]
+                self.assertEqual(
+                    hunk_path,
+                    loc_path,
+                    f"{fault_id} hunk path must be {loc_path}, found {hunk_path}",
+                )
+                start, end = loc_lines
+                old_end = old_start if old_count == 0 else old_start + old_count - 1
+                self.assertGreaterEqual(
+                    old_start,
+                    start,
+                    f"{fault_id} hunk old start {old_start} is before declared "
+                    f"span {start}-{end}",
+                )
+                self.assertLessEqual(
+                    old_end,
+                    end,
+                    f"{fault_id} hunk old end {old_end} is after declared span "
+                    f"{start}-{end}",
+                )
+                removed = _patch_removed_lines(patch_text)
                 self.assertEqual(
                     set(removed),
                     {loc_path},
                     f"{fault_id} fix must touch only {loc_path}, found {sorted(removed)}",
                 )
-                start, end = loc_lines
                 self.assertTrue(
                     removed[loc_path],
                     f"{fault_id} fix has no changed lines to constrain",
@@ -1621,6 +2072,10 @@ class PythonServiceMakeProve(_RepoFreeze):
                             f"{fault_id} fix must not touch {other_path} "
                             f"({other_row.get('id')})",
                         )
+                self.assertFalse(
+                    self.contract_planted(made, fault_id),
+                    f"{fault_id} contract operation must go green after its own fix",
+                )
                 colour = self.run_probe(made, probe_cmd)
                 self.assertEqual(
                     colour,
@@ -1633,6 +2088,11 @@ class PythonServiceMakeProve(_RepoFreeze):
                     other_id = other.get("id")
                     if other_id == fault_id:
                         continue
+                    self.assertTrue(
+                        self.contract_planted(made, other_id),
+                        f"{other_id} contract operation must stay planted while "
+                        f"only {fault_id} is fixed",
+                    )
                     other_probe = (
                         other.get("probe") if isinstance(other.get("probe"), str) else ""
                     )
@@ -1646,6 +2106,10 @@ class PythonServiceMakeProve(_RepoFreeze):
             self.reset_tree(made)
             reset = (made / loc_path).read_bytes()
             self.assertEqual(reset, loc_before, f"{fault_id} reset did not restore")
+            self.assertTrue(
+                self.contract_planted(made, fault_id),
+                f"{fault_id} contract operation must be planted again after reset",
+            )
             colour = self.run_probe(made, probe_cmd)
             self.assertEqual(
                 colour,
@@ -1655,6 +2119,13 @@ class PythonServiceMakeProve(_RepoFreeze):
 
     def test_clean_neighbours_are_found_apart_from_the_manifest(self):
         made = self.made_app("neighbours")
+        for kind, sample in DIRTY_LOOKALIKES.items():
+            with self.subTest(kind=kind, stage="lookalike"):
+                self.assertFalse(
+                    _snippet_is_clean(kind, sample, sample),
+                    f"{kind} classifier must not accept a span that still "
+                    f"contains its fault: {sample!r}",
+                )
         faults = self.load_faults(made)
         locations = []
         for row in faults:
@@ -1699,6 +2170,97 @@ class PythonServiceMakeProve(_RepoFreeze):
                     f"found clean {kind} spans: {candidates!r} vs {neighbour!r}",
                 )
 
+    def test_clean_neighbours_are_exercised(self):
+        made = self.made_app("neighbours-live")
+        service = _import_service(made)
+
+        with self.subTest(kind="K1"):
+            work = self.work_dir("nb-k1")
+            marker = work / "INJECTED"
+            target = work / f"sum-me; touch {marker}"
+            target.write_text("payload\n", encoding="utf-8")
+            with suppress(Exception):
+                service.export.checksum_file(target)
+            self.assertFalse(
+                marker.exists(),
+                "checksum_file must pass the path as an argv entry; a shell "
+                "interpolation would create the marker",
+            )
+
+        with self.subTest(kind="K2"):
+            work = self.work_dir("nb-k2")
+            with self.assertRaises(
+                ValueError,
+                msg="checked_record_path must refuse a path that escapes the root",
+            ):
+                service.store.checked_record_path(work, "../outside.json")
+
+        with self.subTest(kind="K4"):
+            dest = self.work_dir("nb-k4") / "redacted.log"
+            request = {"headers": {"authorization": f"Bearer {BEARER_TOKEN}"}}
+            service.audit.log_request_redacted(request, dest)
+            body = dest.read_text(encoding="utf-8") if dest.is_file() else ""
+            self.assertNotIn(
+                BEARER_TOKEN,
+                body,
+                "log_request_redacted must not write the bearer token",
+            )
+            self.assertRegex(
+                body,
+                r"\[REDACTED\]",
+                "log_request_redacted must write authorization=[REDACTED]",
+            )
+
+        with self.subTest(kind="K5"):
+            store = self.work_dir("nb-k5")
+            result = service.api.handle(MISSING_GET_LINE, store)
+            self.assertIsInstance(result, dict)
+            self.assertNotEqual(
+                result.get("ok"),
+                True,
+                "a get missing its field must be a problem, not empty success",
+            )
+            blob = json.dumps(result)
+            self.assertRegex(
+                blob,
+                r"(?i)name|field|missing|needed",
+                "the get KeyError path must name the missing field",
+            )
+
+        with self.subTest(kind="K6"):
+            self.assertEqual(
+                service.paging.page_count(4, 2),
+                2,
+                "page_count must use range(0, total, size); total+1 is inclusive",
+            )
+
+        with self.subTest(kind="K7"):
+            parsed = service.api.parse_request(GET_LINE)
+            self.assertIsNotNone(
+                parsed,
+                "test_parser_reads_a_get's neighbour is a real parse_request "
+                "call on a literal line",
+            )
+
+        with self.subTest(kind="K9"):
+            data = tomllib.loads((made / "pyproject.toml").read_text(encoding="utf-8"))
+            project = (
+                data.get("project") if isinstance(data.get("project"), dict) else {}
+            )
+            deps = project.get("dependencies")
+            self.assertIsInstance(deps, list)
+            pins = [_dep_name_spec(str(item)) for item in deps]
+            dotenv = [
+                spec.replace(" ", "")
+                for name, spec in pins
+                if _norm_name(name) == _norm_name(PINNED_RUNTIME)
+            ]
+            self.assertEqual(
+                dotenv,
+                [f"=={PINNED_RUNTIME_VERSION}"],
+                "the K9 neighbour is python-dotenv==1.0.1, not any == pin",
+            )
+
     def test_ruff_check_green_on_a_fresh_make(self):
         made = self.made_app("ruff-fresh")
         ruff = shutil.which("ruff")
@@ -1733,9 +2295,24 @@ class PythonServiceMakeProve(_RepoFreeze):
             1,
             "tests/ must contain at least one test_*.py; an empty suite is not a check",
         )
+        self.assertFalse(
+            (made / ".venv" / "bin" / "python").exists(),
+            "make copies tracked files only; a fresh scratch has no venv until install",
+        )
+        install = self.toolchain_install(made)
+        if install.returncode != 0:
+            self.skipTest(
+                "UNREACHABLE: toolchain.install could not run "
+                f"(exit {install.returncode}): "
+                f"{(install.stderr or install.stdout or '').strip()[:400]}"
+            )
         ready = self.toolchain_ready(made)
-        if ready.returncode != 0:
-            self.skipTest("UNREACHABLE: no venv at .venv")
+        self.assertEqual(
+            ready.returncode,
+            0,
+            "toolchain.install must leave toolchain.ready green on a fresh make: "
+            f"stdout={ready.stdout!r} stderr={ready.stderr!r}",
+        )
         manifest = load_json_object(made / "FAULTS.json")
         check = manifest.get("check") if isinstance(manifest.get("check"), str) else ""
         self.assertEqual(check, CHECK_CMD, "fresh make must carry the contract check")
@@ -1766,6 +2343,100 @@ class PythonServiceMakeProve(_RepoFreeze):
         )
         self.assertGreaterEqual(int(passed.group(1)), 1, combined)
         self.assertNotRegex(combined, r"\bfailed\b", combined)
+
+    def test_python_m_service_speaks_the_wire(self):
+        made = self.made_app("service-run")
+        with self.subTest(stage="no-args"):
+            proc = self.python_service(made, [])
+            self.assertEqual(
+                proc.returncode,
+                2,
+                "python -m service with no verb refuses before acting",
+            )
+            self.assertEqual(
+                (proc.stdout or "").strip(),
+                "",
+                "a refusal has empty stdout",
+            )
+            err_lines = [ln for ln in (proc.stderr or "").splitlines() if ln.strip()]
+            self.assertEqual(
+                len(err_lines),
+                1,
+                f"one stderr refusal line: {proc.stderr!r}",
+            )
+            self.assertRegex(
+                err_lines[0],
+                REFUSAL_LINE_RE,
+                "refusal is class: expected …; found …; needed …",
+            )
+
+        with self.subTest(stage="serve"):
+            proc = self.python_service(
+                made,
+                ["serve"],
+                input=GET_LINE + "\n",
+            )
+            self.assertIn(
+                proc.returncode,
+                {0, 1},
+                "serve of a well-formed get is success or findings, not a refusal: "
+                f"exit={proc.returncode} stderr={proc.stderr!r}",
+            )
+            out_lines = [ln for ln in (proc.stdout or "").splitlines() if ln.strip()]
+            self.assertEqual(
+                len(out_lines),
+                1,
+                "serve writes one response line per request line: "
+                f"{proc.stdout!r}",
+            )
+            payload = json.loads(out_lines[0])
+            self.assertIsInstance(
+                payload,
+                dict,
+                "the JSON-lines response is an object",
+            )
+
+        with self.subTest(stage="export-without-identity"):
+            env = self.scratch_env()
+            self.assertNotIn("WF_AGENT", env)
+            proc = self.python_service(made, ["export", EXPORT_NAME], env=env)
+            self.assertEqual(
+                proc.returncode,
+                2,
+                "export without identity refuses class identity",
+            )
+            self.assertEqual((proc.stdout or "").strip(), "", proc.stdout)
+            err_lines = [ln for ln in (proc.stderr or "").splitlines() if ln.strip()]
+            self.assertEqual(len(err_lines), 1, proc.stderr)
+            self.assertRegex(err_lines[0], REFUSAL_LINE_RE)
+            self.assertTrue(
+                err_lines[0].startswith("identity:"),
+                f"export identity gate is class identity: {err_lines[0]!r}",
+            )
+            self.assertIn("expected", err_lines[0])
+            self.assertIn("found", err_lines[0])
+            self.assertIn("needed", err_lines[0])
+
+        with self.subTest(stage="export-with-identity"):
+            env = self.scratch_env()
+            env["WF_AGENT"] = AGENT
+            proc = self.python_service(made, ["export", EXPORT_NAME], env=env)
+            err = proc.stderr or ""
+            if proc.returncode == 2:
+                err_lines = [ln for ln in err.splitlines() if ln.strip()]
+                self.assertTrue(err_lines, err)
+                self.assertFalse(
+                    err_lines[0].startswith("identity:"),
+                    "export with WF_AGENT must not refuse class identity: "
+                    f"{err_lines[0]!r}",
+                )
+            else:
+                self.assertIn(
+                    proc.returncode,
+                    {0, 1},
+                    f"export with identity is not an abort: exit={proc.returncode} "
+                    f"stderr={err!r}",
+                )
 
 
 class PythonServiceGrade(_RepoFreeze):
