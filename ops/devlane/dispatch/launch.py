@@ -35,7 +35,10 @@ STAGES = ("plan", "tests", "check-tests", "code", "review", "adjudicate")
 OWNER_NAME = "xormania"
 OWNER_EMAIL = "127287135+xormania@users.noreply.github.com"
 monotonic = time.monotonic
-faulthandler.enable()
+# The Python stack on a crash lands in the job's stderr; a stderr with no
+# file descriptor (a test loading the module) is not a place to write it.
+with contextlib.suppress(Exception):
+    faulthandler.enable()
 sleep = time.sleep
 # The wait loop's tick. Once a second is enough for walls measured in
 # minutes; the old 50 ms re-read the session stream twenty times a second.
