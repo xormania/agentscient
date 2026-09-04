@@ -76,11 +76,13 @@ WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
 PY_OPEN_WRITE = re.compile(
-    r"open\(\s*(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)\s*,\s*['\"][wa]['\"]"
+    r"open\(\s*(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)\s*,\s*(?:mode\s*=\s*)?"
+    r"(?P<mode_quote>['\"])(?=[rwaxtb+]*[wax+])[rwaxtb+]+(?P=mode_quote)"
 )
 PY_PATH_WRITE = re.compile(
     r"Path\(\s*(?P<quote>['\"])(?P<path>[^'\"\s]+)(?P=quote)\s*\)"
-    r"\s*\.\s*(?:write_text|write_bytes)\("
+    r"\s*\.\s*(?:(?:write_text|write_bytes)\(|open\(\s*(?:mode\s*=\s*)?"
+    r"(?P<mode_quote>['\"])(?=[rwaxtb+]*[wax+])[rwaxtb+]+(?P=mode_quote))"
 )
 ASSIGN = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(\S+)", re.MULTILINE)
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
@@ -287,7 +289,15 @@ def prune_targets(tokens, cwd, conf):
 def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
-    name = base(tokens[0])
+    program = 0
+    if base(tokens[program]) == "env":
+        program += 1
+        while program < len(tokens) and ENV_ASSIGN.match(tokens[program]):
+            program += 1
+    name = base(tokens[program]) if program < len(tokens) else ""
+    if re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", name):
+        program += 1
+        name = base(tokens[program]) if program < len(tokens) else ""
     if name in DISPATCHERS:
         kind = "dispatcher"
     elif name == LAUNCHER:
