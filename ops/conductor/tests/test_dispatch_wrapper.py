@@ -40,8 +40,9 @@ CONF_AGENT = "Conf Agent <noreply@example.invalid>"
 NO_WORKTREE_BRANCH = "no-wt-dispatch-wrapper-9f3c1e2a"
 
 # PIN_CONF_OVERRIDE: spec names only the real conf path. Tests point at a
-# scratch conf through DISPATCH_CONF so the real file is never touched.
-CONF_ENV = "DISPATCH_CONF"
+# scratch conf through LANE_CONF so the real file is never touched.
+# DISPATCH_CONF retires with the file it named.
+CONF_ENV = "LANE_CONF"
 
 # PIN_DRY_RUN_SHAPE: spec says dry-run prints argv and env deltas, not
 # how. Tests parse one JSON object {"argv": [str, ...], "env": {k: v}}.
@@ -281,6 +282,12 @@ class _WrapperFixture(unittest.TestCase):
             "EFFORT_GROK": self.conf_effort_grok,
             "EFFORT_CODEX": "wrap-effort-conf-codex",
             "EFFORT_CLAUDE": "wrap-effort-conf-claude",
+            "LANE_NAME": "agentscient",
+            "TRUNK_BRANCH": "dev",
+            "RELEASE_BRANCH": "master",
+            "REPO_SLUG": "uscient/agentscient",
+            "CHECK_NAME": "ci",
+            "SCOPE_CAP": str(SCOPE_CAP),
         }
         keys.update(overrides)
         return keys
@@ -297,7 +304,7 @@ class _WrapperFixture(unittest.TestCase):
             self.assertIn(name, landed)
             self.assertIn(value, landed)
 
-    def env(self, extra: dict[str, str] | None = None) -> dict[str, str]:
+    def env(self, extra: dict[str, str | None] | None = None) -> dict[str, str]:
         env = {
             "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
             "HOME": str(self.home),
@@ -311,14 +318,18 @@ class _WrapperFixture(unittest.TestCase):
             "GIT_CONFIG_NOSYSTEM": "1",
         }
         if extra:
-            env.update(extra)
+            for name, value in extra.items():
+                if value is None:
+                    env.pop(name, None)
+                else:
+                    env[name] = value
         return env
 
     def invoke(
         self,
         flags: list[str],
         *,
-        extra_env: dict[str, str] | None = None,
+        extra_env: dict[str, str | None] | None = None,
         timeout: float | None = 30,
     ):
         argv = ["bash", str(WRAPPER), *flags]
@@ -1081,5 +1092,138 @@ class Row12Detach(_WrapperFixture):
         self.assert_no_launch()
 
 
+class RowScopeCapFromConf(_WrapperFixture):
+    """SCOPE_CAP='10' in the scratch conf and an 11-byte scope refuse
+    exit 3 naming 11."""
+
+    def test_scope_cap_from_conf_refuses_eleven_bytes_naming_the_count(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(SCOPE_CAP="10"),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("SCOPE_CAP='10'", landed)
+        data = b"S" * 11
+        self._plant_bytes(self.scope_path, data)
+        self.assertEqual(self.scope_path.stat().st_size, 11)
+        proc = self.invoke(self.full_flags(dry_run=False))
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        self.assertRegex(
+            text,
+            r"\b11\b",
+            f"must name the byte count 11 as a token: {text!r}",
+        )
+        self.assertNotIn("record-target", text.lower())
+        self.assert_no_launch()
+
+
+class RowLaneNameJobsRoot(_WrapperFixture):
+    """A detached launch with LANE_NAME='lanex' creates the job
+    directory under <xdg>/lanex/dispatch."""
+
+    RECORD_ID = "20260901T000000Z-plan-grok-lanex1"
+
+    def test_lane_name_from_conf_creates_the_job_dir_under_xdg(self):
+        record_id = self.RECORD_ID
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(LANE_NAME="lanex"),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("LANE_NAME='lanex'", landed)
+        expected = self.xdg / "lanex" / "dispatch" / record_id
+        self._plant_python_sentinel(
+            self.pin,
+            "import os, pathlib, sys\n"
+            "jobs = os.environ.get('DISPATCH_JOBS') or ''\n"
+            "if jobs:\n"
+            f"    pathlib.Path(jobs).joinpath({record_id!r})"
+            ".mkdir(parents=True, exist_ok=True)\n"
+            f"sys.stdout.write('record: {record_id}\\n')\n"
+            "sys.stdout.flush()\n",
+        )
+        proc = self.invoke(
+            self.full_flags("--detach", dry_run=False),
+            extra_env={"DISPATCH_JOBS": None},
+            timeout=8,
+        )
+        try:
+            self.assertEqual(proc.returncode, 0, self.combined(proc))
+            self.assertTrue(
+                expected.is_dir(),
+                f"job dir missing under lanex: {expected}",
+            )
+            agentscient = (
+                self.xdg / "agentscient" / "dispatch" / record_id
+            )
+            self.assertFalse(
+                agentscient.exists(),
+                f"job dir used the literal lane name: {agentscient}",
+            )
+        finally:
+            self._reap_reported_pid(proc)
+
+
+class RowLocalConf(_WrapperFixture):
+    """A sibling lane.local.conf overriding MODEL_GROK wins in the
+    dry-run argv; one setting LANE_NAME refuses naming local-key."""
+
+    def test_local_conf_model_grok_wins_in_the_dry_run_argv(self):
+        local = self.conf_path.parent / "lane.local.conf"
+        self._plant_bytes(local, b"MODEL_GROK='from-local'\n")
+        self.assertEqual(
+            local.read_text(encoding="utf-8"), "MODEL_GROK='from-local'\n",
+        )
+        proc = self.invoke(self.full_flags(omit=("model",)))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv[argv.index("--model") + 1], "from-local")
+        self.assertNotEqual(
+            argv[argv.index("--model") + 1], self.conf_model_grok,
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_no_launch()
+
+    def test_local_conf_setting_lane_name_refuses_local_key(self):
+        local = self.conf_path.parent / "lane.local.conf"
+        self._plant_bytes(local, b"LANE_NAME='from-local'\n")
+        self.assertIn("LANE_NAME", local.read_text(encoding="utf-8"))
+        proc = self.invoke(self.full_flags(dry_run=False))
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        lower = text.lower()
+        self.assertIn("local-key", lower)
+        self.assertIn("LANE_NAME", text)
+        self.assertIn(str(local), text)
+        self.assertIn("expected", lower, text)
+        self.assertIn("found", lower, text)
+        self.assertIn("needed", lower, text)
+        self.assert_no_launch()
+
+
+class RowMissingScopeCap(_WrapperFixture):
+    """A conf missing SCOPE_CAP refuses naming the key and the file."""
+
+    def test_a_conf_missing_scope_cap_refuses_naming_the_key_and_file(self):
+        keys = self._conf_kwargs()
+        self.assertIn("SCOPE_CAP", keys)
+        del keys["SCOPE_CAP"]
+        self.assertNotIn("SCOPE_CAP", keys)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("SCOPE_CAP", landed)
+        proc = self.invoke(self.full_flags(dry_run=False))
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        self.assertIn("SCOPE_CAP", text)
+        self.assertIn(str(self.conf_path), text)
+        lower = text.lower()
+        self.assertIn("expected", lower, text)
+        self.assertIn("found", lower, text)
+        self.assertIn("needed", lower, text)
+        self.assert_no_launch()
+
+
 if __name__ == "__main__":
     unittest.main()
+
