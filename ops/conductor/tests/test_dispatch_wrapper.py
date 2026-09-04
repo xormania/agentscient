@@ -940,6 +940,28 @@ class Row11LauncherSource(_WrapperFixture):
         self.assertIn(f"launcher: {self.pin} (conf)", text)
         self.assertTrue(self.marker.exists(), "foreground path must launch")
 
+    def test_the_sibling_launcher_in_the_tree_is_executable(self):
+        """Adversarial finding 2: the wrapper execs argv[0] without
+        python3, so the real sibling launch.py must stay mode 100755."""
+        sibling = (
+            REPO / "ops" / "devlane" / "dispatch" / "launch.py"
+        ).resolve()
+        self.assertTrue(sibling.is_file(), f"plant: sibling at {sibling}")
+        self.assertTrue(
+            os.access(sibling, os.X_OK),
+            f"sibling launch.py must be executable for exec: "
+            f"mode={oct(sibling.stat().st_mode)}",
+        )
+        listed = subprocess.check_output(
+            ["git", "ls-files", "-s", "--", "ops/devlane/dispatch/launch.py"],
+            cwd=str(REPO),
+            text=True,
+        )
+        self.assertTrue(
+            listed.startswith("100755"),
+            f"git index mode must be 100755, not a 644 regression: {listed!r}",
+        )
+
 
 class Row12Detach(_WrapperFixture):
     """--detach returns the record id without waiting for the launcher."""
@@ -1026,6 +1048,37 @@ class Row12Detach(_WrapperFixture):
         self.assertTrue(lines, proc.stdout)
         self.assertEqual(lines[-1], f"record: {record_id}")
         self.assertNotIn(decoy, proc.stdout or "")
+
+    def test_dry_run_with_detach_declares_detach_in_the_plan(self):
+        """Adversarial finding 3: --dry-run --detach must not silently
+        become a foreground plan."""
+        proc = self.invoke(self.full_flags("--detach", dry_run=True))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        payload = self.parse_dry_run_object(proc)
+        self.assertIn("detach", payload, payload)
+        self.assertTrue(payload["detach"], payload)
+        self.assert_no_launch()
+
+    def test_dry_run_names_that_argv0_is_executed_directly(self):
+        """Adversarial finding 3: dry-run JSON names that argv[0] is
+        exec'd, with no python3 interpreter prefix."""
+        proc = self.invoke(self.full_flags(dry_run=True))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        payload = self.parse_dry_run_object(proc)
+        argv = payload.get("argv")
+        self.assertIsInstance(argv, list, payload)
+        self.assertTrue(argv, payload)
+        self.assertFalse(
+            argv[0].rstrip("/").endswith("python3"),
+            f"argv[0] is the launcher path, not python3: {argv!r}",
+        )
+        launcher = payload.get("launcher")
+        self.assertIsInstance(launcher, dict, payload)
+        self.assertTrue(
+            payload.get("exec") is True or launcher.get("exec") is True,
+            f"dry-run JSON must name that argv[0] is exec'd: {payload!r}",
+        )
+        self.assert_no_launch()
 
 
 if __name__ == "__main__":
