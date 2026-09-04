@@ -218,15 +218,16 @@ class TheRefusalWireIsUniform(unittest.TestCase):
 
     def test_seed_is_ten_files_named_by_the_instrument(self):
         names = sorted(path.name for path in REGISTRY_DIR.glob("*.json"))
-        self.assertEqual(len(names), 10)
-        self.assertEqual(names, list(SEED_FILES))
+        # The seed is present, byte for byte; later instruments join beside it.
+        self.assertGreaterEqual(len(names), 10)
+        self.assertEqual([n for n in names if n in SEED_FILES], list(SEED_FILES))
 
     def test_seed_is_the_original_eleven_rows(self):
         rows, failures = read_registry(REGISTRY_DIR)
         self.assertEqual(failures, [], f"malformed registry files: {failures}")
         pins = [row_pin(row) for row in rows]
-        self.assertEqual(len(pins), 11)
-        self.assertEqual(pins, list(SEED_ROWS))
+        self.assertGreaterEqual(len(pins), 11)
+        self.assertEqual([pin for pin in pins if pin in SEED_ROWS], list(SEED_ROWS))
         findings = [row for row in rows if row.tool == "findings.py"]
         self.assertEqual(len(findings), 2)
         self.assertEqual({row.source for row in findings}, {"findings.py.json"})
