@@ -1,0 +1,154 @@
+{
+  "id": "20260904T130753Z-plan-grok-d7fac2",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/fixture-fix-2",
+  "lineage": {
+    "branch": "lane/fixture-fix-2",
+    "base_sha": "f8f16e28a3d61bab2a90c955919d0a6ffb824fa7"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:07:54Z",
+    "closed": "2026-09-04T13:25:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f8f16e28a3d61bab2a90c955919d0a6ffb824fa7",
+    "ref_sha": "f8f16e28a3d61bab2a90c955919d0a6ffb824fa7",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "5e85d932-a118-411b-a525-bb46da73b158",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/home/grok-stream/sessions/<snapshot-encoded>/5e85d932-a118-411b-a525-bb46da73b158/summary.json"
+  },
+  "session": {
+    "id": "5e85d932-a118-411b-a525-bb46da73b158",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/home/grok-stream/sessions/<snapshot-encoded>/5e85d932-a118-411b-a525-bb46da73b158/summary.json",
+    "stream_sha256_at_close": "526177b716637e0c86763136a97f5543bb7f09dc2781b5be9406d41894dde8e8",
+    "spend": {
+      "input": 2681925,
+      "cached": 2218624,
+      "output": 56082,
+      "total": 2738007,
+      "cost_usd_ticks": 4595079600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/home/grok-stream/sessions/<snapshot-encoded>/5e85d932-a118-411b-a525-bb46da73b158/summary.json",
+      "messages": 375
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix-2/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Plan the fixture batch's second slice: the seven findings of the security re-audit (record 20260904T125539Z-review-codex-113849) in the input file, verbatim, on the tree of lane/fixture-fix. Rules, buckets, walkthrough and grammar are in the input. Output the plan only; no code, no tests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/in/input-fixture-fix2-plan.md",
+        "sha256": "591e68743e0c3dda63fcfe2bc7ed2624f03f3abef8bb4ce5078fd941ced229a3"
+      }
+    ],
+    "sha256": "29e630c43558e6a2afce0c08f0ec20de7ad41d23a76c561f838893bbbde6a358",
+    "bytes": 2593
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:07:54Z",
+      "ended": "2026-09-04T13:25:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f8f16e28a3d61bab2a90c955919d0a6ffb824fa7",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "plan": "/home/scientdb/.local/state/agentscient/dispatch/20260904T130753Z-plan-grok-d7fac2/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2738007,
+        "out": 56082,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f8f16e28a3d61bab2a90c955919d0a6ffb824fa7",
+        "started": "2026-09-04T13:07:54Z",
+        "ended": "2026-09-04T13:22:30Z"
+      },
+      "note": "Plan for lane/fixture-fix-2 at f8f16e28: five S buckets in three slices; dispatch-job-scratch is its own PR; the other four buckets are one fixture PR."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T13:25:26.478Z"
+    }
+  },
+  "status": "closed"
+}
