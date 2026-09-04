@@ -25,6 +25,7 @@ missing-file exit 2.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -69,11 +70,17 @@ REPO_EMAIL = "scratch-owner@example.invalid"
 LANE_AUTHOR = "Lane Owner <lane-owner@example.invalid>"
 SCOPE_FIRST = "SCOPE_FIRST_LINE_aa32 the slice pointer"
 IMPLEMENT_LINE = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
+IMPLEMENT_BODY = "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers"
 TEST_ALPHA = "ops/conductor/tests/test_alpha.py"
 TEST_BETA = "ops/conductor/tests/test_beta.py"
 TEST_RELAY = "packages/relay/spec/test_relay.py"
 SKEPTIC_MD = "ops/conductor/tests/SKEPTIC.md"
+SKEPTIC_BODY = "SKEPTIC_MD_BODY_aa32 the skeptic report"
 PR_URL = "https://example.invalid/org/projx/pull/7"
+NOT_A_URL = "not-a-url"
+PWN_ARTIFACT = "tests/test_ok.py; printf PWNED; #.py"
+HELPER_UNDER_TESTS = "ops/conductor/tests/conftest.py"
+OUTSIDE_BUCKET = "ops/pwn-aa32.sh"
 RUN_CAP = 60
 SLICE_M = "ladder-driver-slice"
 BUCKET_S1 = "land-flags"
@@ -377,6 +384,18 @@ if name == "tests":
         artifacts = {}
     else:
         artifacts = dict(plant.get("artifacts", {}))
+if name == "check-tests" and plant.get("skeptic_md"):
+    body = plant.get("skeptic_text") or "SKEPTIC_MD_BODY_aa32 the skeptic report"
+    dest = REPO / "SKEPTIC.md"
+    dest.write_text(body, encoding="utf-8")
+    artifacts["skeptic"] = str(dest)
+    xdg = os.environ.get("XDG_STATE_HOME")
+    if xdg:
+        lane = conf.get("LANE_NAME") or "lanex"
+        outp = Path(xdg) / lane / "dispatch" / rec_id / "out" / "SKEPTIC.md"
+        outp.parent.mkdir(parents=True, exist_ok=True)
+        outp.write_text(body, encoding="utf-8")
+        artifacts["skeptic"] = str(outp)
 mismatch = name in plant.get("model_mismatch_stages", [])
 effort_mismatch = name in plant.get("effort_mismatch_stages", [])
 requested = "wrong-model-aa32" if mismatch else model
@@ -385,8 +404,20 @@ ran = plant.get("ran_" + (harness or ""), (harness or "h") + "-ran-aa32")
 note = None
 if name == "code" or str(name).startswith("code-"):
     note = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
+    artifacts["body"] = "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers"
 if plant.get("leak_implement_into") == name:
     note = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
+notes = plant.get("notes") or {}
+if name in notes:
+    note = notes[name]
+findings = []
+if plant.get("leak_implement_into_findings") == name:
+    findings.append({
+        "severity": "p2",
+        "where": "planted",
+        "claim": "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers",
+        "reproduce": None,
+    })
 tripping = name in plant.get("trip_stages", [])
 crashing = name in plant.get("crash_stages", [])
 walling = name in plant.get("wait_wall_stages", [])
@@ -395,7 +426,7 @@ envelope = {
     "status": "ok",
     "verdict": verdict,
     "counts": {"p1": 0, "p2": 0, "p3": 0, "opinions": 0},
-    "findings": [],
+    "findings": findings,
     "artifacts": artifacts,
     "spend": {"harness": harness, "total": 0, "out": 0, "runs": 0},
     "stamp": {"ref": "planted", "started": None, "ended": None},
@@ -593,6 +624,19 @@ if plant.get("land_lineage_break"):
     sys.stdout.write("LANDED\t" + sha + "\tnot-descended\n")
     sys.stdout.write("landed n=1 ref=refs/dispatch/planted\n")
     raise SystemExit(0)
+rec = argv[0] if argv and not argv[0].startswith("-") else "planted"
+extra = plant.get("land_extra_path")
+info = (plant.get("records") or {}).get(rec) or {}
+if extra and str(info.get("name") or "").startswith("code"):
+    path = REPO / extra
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("outside-bucket-aa32\n", encoding="utf-8")
+    subprocess.run(
+        ["git", "add", "--", extra],
+        cwd=str(REPO),
+        capture_output=True,
+        check=False,
+    )
 subprocess.run(
     ["git", "-c", "commit.gpgsign=false", "commit", "--allow-empty",
      "-m", "landed-stub\n\nSource: original\n"],
@@ -608,7 +652,6 @@ sha_proc = subprocess.run(
     check=False,
 )
 sha = (sha_proc.stdout or "").strip()
-rec = argv[0] if argv and not argv[0].startswith("-") else "planted"
 plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
 sys.stdout.write("LANDED\t" + sha + "\tlanded-stub\n")
 sys.stdout.write("landed n=1 ref=refs/dispatch/" + rec + "\n")
@@ -793,6 +836,11 @@ class _LadderFixture(unittest.TestCase):
             "land_abort": False,
             "ledger_fail": False,
             "leak_implement_into": None,
+            "leak_implement_into_findings": None,
+            "notes": {},
+            "skeptic_md": False,
+            "skeptic_text": SKEPTIC_BODY,
+            "land_extra_path": None,
             "ran_grok": RAN_GROK,
             "ran_codex": RAN_CODEX,
             "n": 0,
@@ -1133,6 +1181,95 @@ class _LadderFixture(unittest.TestCase):
         self.assertNotEqual(landed, before, "silent gh plant did not replace stub")
         self.assertNotIn(PR_URL.encode("utf-8"), landed)
         self.assertIn(b"raise SystemExit(0)", landed)
+
+    def plant_gh_stdout(self, text: str) -> None:
+        body = (
+            "#!/usr/bin/env python3\n"
+            "from __future__ import annotations\n"
+            "import json\n"
+            "import sys\n"
+            "from pathlib import Path\n"
+            f"STUB = Path({str(self.stub_dir)!r})\n"
+            "argv = sys.argv[1:]\n"
+            "log = STUB / 'gh-argv.jsonl'\n"
+            "with log.open('a', encoding='utf-8') as fh:\n"
+            "    fh.write(json.dumps(argv) + '\\n')\n"
+            f"sys.stdout.write({text!r} + '\\n')\n"
+            "raise SystemExit(0)\n"
+        )
+        before = self.gh.read_bytes()
+        self._plant_bytes(self.gh, body.encode("utf-8"))
+        self._make_executable(self.gh)
+        landed = self.gh.read_bytes()
+        self.assertNotEqual(landed, before, "gh stdout plant did not replace stub")
+        self.assertIn(text.encode("utf-8"), landed)
+
+    def plant_git_wrapper(self) -> Path:
+        real = shutil.which("git")
+        self.assertIsNotNone(real, "INVALID: git not on PATH")
+        log = self.stub_dir / "git-argv.jsonl"
+        body = (
+            "#!/usr/bin/env python3\n"
+            "from __future__ import annotations\n"
+            "import json\n"
+            "import os\n"
+            "import sys\n"
+            "from pathlib import Path\n"
+            f"LOG = Path({str(log)!r})\n"
+            f"REAL = {real!r}\n"
+            "with LOG.open('a', encoding='utf-8') as fh:\n"
+            "    fh.write(json.dumps(sys.argv[1:]) + '\\n')\n"
+            "os.execv(REAL, [REAL, *sys.argv[1:]])\n"
+        )
+        dest = self.bin / "git"
+        self._plant_bytes(dest, body.encode("utf-8"))
+        self._make_executable(dest)
+        self.assertTrue(os.access(dest, os.X_OK), dest)
+        return dest
+
+    def git_argvs(self) -> list:
+        return self.jsonl("git-argv.jsonl")
+
+    def commit_conf(self, message: str = "plant conf") -> None:
+        rel = str(self.conf_path.relative_to(self.repo))
+        self.git("add", rel)
+        self.git("commit", "-m", message + "\n")
+        self.assertEqual(self.porcelain(), "")
+
+    def rewrite_ladder_record(self, ladder_id: str | None = None, **updates):
+        payload = self.ladder_record(ladder_id)
+        payload.update(updates)
+        path = self.repo / ".dev" / "records" / "ladders" / (
+            str(payload["id"]) + ".json"
+        )
+        text = json.dumps(payload, indent=2) + "\n"
+        self._plant_bytes(path, text.encode("utf-8"))
+        self.git("add", "-A", ".dev/records")
+        self.git("commit", "-m", "rewrite ladder record\n")
+        self.assertEqual(self.porcelain(), "")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def implement_scope_text(self, argv: list[str]) -> str:
+        chunks: list[str] = []
+        for flag in ("--scope-file", "--scope"):
+            for value in self.flag_values(argv, flag):
+                path = Path(value)
+                if path.is_file():
+                    chunks.append(path.read_text(encoding="utf-8"))
+                else:
+                    chunks.append(value)
+        return "\n".join(chunks)
+
+    def wait_timeouts(self) -> list[str]:
+        found: list[str] = []
+        for row in self.launch_argvs():
+            if not row or row[0] != "wait":
+                continue
+            if "--timeout" in row:
+                idx = row.index("--timeout")
+                if idx + 1 < len(row):
+                    found.append(str(row[idx + 1]))
+        return found
 
     def env(
         self,
@@ -1797,37 +1934,43 @@ class DerivedCommand(_LadderFixture):
         self.assertIn(" && ", scope)
         self.assertEqual(len(scope.split(" && ")), 2, scope)
 
-    def test_a_package_layout_test_file_is_kept_as_the_derived_command(self):
+    def test_a_test_file_outside_tests_is_not_a_discover_target(self):
         planted = {"relay": TEST_RELAY}
         self.patch_plant(artifacts=planted)
         self.assertEqual(self.load_plant()["artifacts"], planted)
+        self.assertFalse(
+            TEST_RELAY.split("/")[0] == "tests"
+            or "/tests/" in "/" + TEST_RELAY,
+            TEST_RELAY,
+        )
+        proc = self.run_ladder()
+        self.assert_stopped(
+            proc, stage="code", record="none", reason="artifacts",
+        )
+        names = self.dispatch_names()
+        self.assertNotIn("code", names, names)
+        text = self.combined(proc)
+        self.assertNotIn("packages/relay/spec", text)
+        self.assertNotIn("test_relay.py", text)
+
+    def test_a_non_test_star_file_under_tests_is_a_discover_target(self):
+        planted = {"helper": HELPER_UNDER_TESTS}
+        self.patch_plant(artifacts=planted)
+        self.assertEqual(self.load_plant()["artifacts"], planted)
+        self.assertIn("/tests/", "/" + HELPER_UNDER_TESTS)
+        self.assertFalse(
+            Path(HELPER_UNDER_TESTS).name.startswith("test"),
+            HELPER_UNDER_TESTS,
+        )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertNotIn("reason=artifacts", self.combined(proc))
         scope = self.inputs_text(self.dispatch_argv_for("code"))
         self.assertIn(
-            "python3 -m unittest discover -s packages/relay/spec "
-            "-p test_relay.py",
-            scope,
-        )
-
-    def test_a_non_test_file_under_tests_is_not_a_discover_target(self):
-        planted = {
-            "test_alpha": TEST_ALPHA,
-            "skeptic": SKEPTIC_MD,
-        }
-        self.patch_plant(artifacts=planted)
-        self.assertEqual(self.load_plant()["artifacts"], planted)
-        proc = self.run_ladder()
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        scope = self.inputs_text(self.dispatch_argv_for("code"))
-        self.assertIn(
             "python3 -m unittest discover -s ops/conductor/tests "
-            "-p test_alpha.py",
+            "-p conftest.py",
             scope,
         )
-        self.assertNotIn("SKEPTIC.md", scope)
-        self.assertNotIn(" && ", scope)
 
     def test_no_test_artifact_stops_with_class_artifacts(self):
         self.patch_plant(empty_artifacts=True, artifacts={})
@@ -1977,14 +2120,14 @@ class Withholding(_LadderFixture):
 
 
 class Landing(_LadderFixture):
-    """Land after write stages with --author from git identity and --co-author."""
+    """Land after write stages with --author LANE_AUTHOR and --co-author."""
 
     def test_land_is_called_after_write_stages_with_author_and_co_author(self):
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         lands = self.land_argvs()
         self.assertGreaterEqual(len(lands), 2, lands)
-        author = f"{REPO_USER} <{REPO_EMAIL}>"
+        worktree_author = f"{REPO_USER} <{REPO_EMAIL}>"
         grok_co = f"{RAN_GROK} <{ADDRESS_GROK}>"
         codex_co = f"{RAN_CODEX} <{ADDRESS_CODEX}>"
         authors = []
@@ -1994,8 +2137,10 @@ class Landing(_LadderFixture):
             authors.append(argv[argv.index("--author") + 1])
             self.assertIn("--co-author", argv, argv)
             coauthors.append(argv[argv.index("--co-author") + 1])
-        self.assertIn(author, authors)
-        self.assertNotIn(LANE_AUTHOR, authors)
+        self.assertTrue(authors, lands)
+        for value in authors:
+            self.assertEqual(value, LANE_AUTHOR, authors)
+        self.assertNotIn(worktree_author, authors)
         self.assertIn(grok_co, coauthors)
         self.assertIn(codex_co, coauthors)
         findings = self.findings_argvs()
@@ -2421,6 +2566,396 @@ class Literals(_LadderFixture):
                 token, text,
                 f"driver carries quoted lane literal {token}",
             )
+
+
+class CheckNamesConf(_LadderFixture):
+    """S2: the tracked conf key is CHECK_NAMES; the driver loads it."""
+
+    def test_check_names_without_singular_check_name_is_enough_to_start(self):
+        self.plant_conf(omit=("CHECK_NAME",), CHECK_NAMES=CHECK_NAME)
+        planted = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("CHECK_NAMES=", planted)
+        self.assertNotIn("CHECK_NAME=", planted)
+        self.commit_conf("plant CHECK_NAMES without CHECK_NAME")
+        proc = self.run_ladder("--dry-run")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertNotIn("CHECK_NAME", proc.stderr or "")
+        self.assertEqual(self.dispatch_calls(), [])
+
+
+class DerivedCommandContract(_LadderFixture):
+    """S3, A3, A9: the named command is the tests/ rule, quoted, as scope."""
+
+    def test_an_artifact_path_with_shell_separators_is_not_unquoted(self):
+        planted = {"pwn": PWN_ARTIFACT}
+        self.patch_plant(artifacts=planted)
+        self.assertEqual(self.load_plant()["artifacts"], planted)
+        proc = self.run_ladder()
+        names = self.dispatch_names()
+        if "code" in names:
+            scope = self.inputs_text(self.dispatch_argv_for("code"))
+            tokens = shlex.split(scope, posix=True)
+            self.assertNotIn("printf", tokens, scope)
+            self.assertNotIn("PWNED", tokens, scope)
+            self.assertNotRegex(
+                scope,
+                r"(^|[;&\n]|&&|\|\|)\s*printf PWNED",
+                scope,
+            )
+        else:
+            self.assertIn(proc.returncode, {2, 3}, self.combined(proc))
+            self.assertNotIn("printf PWNED", self.combined(proc))
+
+    def test_implement_scope_is_the_derived_command_not_the_work_order(self):
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv = self.dispatch_argv_for("code")
+        scope = self.implement_scope_text(argv)
+        self.assertIn("python3 -m unittest discover", scope)
+        self.assertIn("test_alpha.py", scope)
+        self.assertNotIn(
+            SCOPE_FIRST, scope,
+            "implement {scope} is the named command, not the work-order",
+        )
+        self.assertTrue(
+            self.flag_values(argv, "--scope-file")
+            or self.flag_values(argv, "--scope"),
+            argv,
+        )
+
+
+class WithholdingEnvelope(_LadderFixture):
+    """S7, A2: leak proof searches every implement-envelope string;
+    a summary note is not a leak."""
+
+    def test_a_changes_envelope_with_a_summary_note_is_not_a_withheld_leak(self):
+        summary = "skeptic summary: tests need another round"
+        self.assertNotIn(IMPLEMENT_LINE, summary)
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            notes={"check-tests": summary},
+        )
+        self.assertEqual(self.load_plant()["notes"]["check-tests"], summary)
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertNotIn("reason=withheld", self.combined(proc))
+        names = self.dispatch_names()
+        self.assertIn("tests-fix", names, names)
+
+    def test_implementation_text_in_findings_is_a_withheld_leak(self):
+        self.patch_plant(
+            verdicts={"security": "changes"},
+            leak_implement_into_findings="security",
+        )
+        self.assertEqual(
+            self.load_plant()["leak_implement_into_findings"],
+            "security",
+        )
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertIn("reason=withheld", self.combined(proc))
+        self.assertNotIn("fix-tests", self.dispatch_names())
+
+
+class TestsFixInputs(_LadderFixture):
+    """A8: tests-fix is given the skeptic envelope and SKEPTIC.md."""
+
+    def test_tests_fix_is_given_skeptic_md(self):
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            skeptic_md=True,
+            skeptic_text=SKEPTIC_BODY,
+        )
+        self.assertTrue(self.load_plant()["skeptic_md"])
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv = self.dispatch_argv_for("tests-fix")
+        text = self.inputs_text(argv)
+        self.assertIn(SKEPTIC_BODY, text)
+        inputs = self.flag_values(argv, "--input")
+        self.assertTrue(
+            any(Path(value).name == "SKEPTIC.md" for value in inputs),
+            argv,
+        )
+
+
+class ResumeDigests(_LadderFixture):
+    """S4: resume verifies recorded SHA-256 digests and stays in-tree."""
+
+    def test_resume_refuses_a_scope_digest_mismatch(self):
+        self.patch_plant(trip_stages=["tests"])
+        first = self.run_ladder()
+        self.assertEqual(first.returncode, 3, self.combined(first))
+        rec_id = self.close_tripped_record()
+        self.assertTrue(rec_id)
+        payload = self.ladder_record()
+        scope = payload.get("scope")
+        self.assertIsInstance(scope, dict, payload)
+        self.assertIn("sha256", scope, payload)
+        self.assertIn("path", scope, payload)
+        self.assertNotEqual(scope["sha256"], "0" * 64)
+        scope["sha256"] = "0" * 64
+        ladder_id = payload["id"]
+        self.rewrite_ladder_record(ladder_id, scope=scope)
+        self.patch_plant(trip_stages=[])
+        second = self.invoke(["resume", ladder_id])
+        text = self.combined(second)
+        self.assertIn(second.returncode, {2, 3}, text)
+        self.assertNotEqual(second.returncode, 0)
+        lower = text.lower()
+        self.assertTrue(
+            "sha256" in lower or "digest" in lower or "scope" in lower,
+            text,
+        )
+        self.assertEqual(self.dispatch_names().count("check-tests"), 0)
+
+    def test_resume_refuses_a_scope_path_outside_the_worktree(self):
+        self.patch_plant(trip_stages=["tests"])
+        first = self.run_ladder()
+        self.assertEqual(first.returncode, 3, self.combined(first))
+        rec_id = self.close_tripped_record()
+        self.assertTrue(rec_id)
+        secret = self.root / "host-secret-aa32"
+        body = "credential-aa32\n"
+        secret.write_text(body, encoding="utf-8")
+        self.assertEqual(secret.read_text(encoding="utf-8"), body)
+        self.assertFalse(
+            str(secret.resolve()).startswith(str(self.wt.resolve()) + os.sep),
+            secret,
+        )
+        digest = hashlib.sha256(secret.read_bytes()).hexdigest()
+        payload = self.ladder_record()
+        scope = dict(payload.get("scope") or {})
+        self.assertIn("path", scope, payload)
+        scope["path"] = str(secret)
+        scope["sha256"] = digest
+        ladder_id = payload["id"]
+        self.rewrite_ladder_record(ladder_id, scope=scope)
+        self.patch_plant(trip_stages=[])
+        second = self.invoke(["resume", ladder_id])
+        text = self.combined(second)
+        self.assertIn(second.returncode, {2, 3}, text)
+        self.assertNotIn("credential-aa32", text)
+        for row in self.dispatch_calls():
+            argv = row.get("argv") or []
+            blob = self.inputs_text(argv)
+            self.assertNotIn("credential-aa32", blob)
+            self.assertNotIn(str(secret), argv)
+
+
+class ResumeBindsJob(_LadderFixture):
+    """S5: existing_result binds job, stage, harness, lineage, and branch."""
+
+    def test_resume_does_not_accept_an_unrelated_jobs_closed_record(self):
+        self.patch_plant(trip_stages=["tests"])
+        first = self.run_ladder()
+        self.assertEqual(first.returncode, 3, self.combined(first))
+        rec_id = self.close_tripped_record()
+        path = Path(self.load_plant()["records"][rec_id]["path"])
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(payload["job"], "author-tests")
+        payload["job"] = "adversarial-review"
+        payload["stage"] = "review"
+        raw = json.dumps(payload, indent=2) + "\n"
+        self._plant_bytes(path, raw.encode("utf-8"))
+        landed = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(landed["job"], "adversarial-review")
+        self.assertEqual(landed["status"], "closed")
+        self.patch_plant(trip_stages=[])
+        ladder_id = self.ladder_record().get("id")
+        second = self.invoke(["resume", ladder_id])
+        text = self.combined(second)
+        tests_row = self.stage_row(self.ladder_record(ladder_id), "tests")
+        if tests_row.get("outcome") == "ok":
+            bound = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                bound.get("job"),
+                "author-tests",
+                "tests must not consume a review record",
+            )
+        self.assertTrue(
+            self.dispatch_names().count("tests") >= 2
+            or second.returncode in {2, 3},
+            text,
+        )
+        if second.returncode == 0:
+            self.assertGreaterEqual(self.dispatch_names().count("tests"), 2)
+
+
+class PushRefspec(_LadderFixture):
+    """S6: git push uses -- before a validated refspec."""
+
+    def test_git_push_separates_the_refspec_from_options(self):
+        self.plant_git_wrapper()
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        pushes = [row for row in self.git_argvs() if row and row[0] == "push"]
+        self.assertTrue(pushes, self.git_argvs())
+        for row in pushes:
+            self.assertIn("--", row, row)
+            dash = row.index("--")
+            self.assertIn(BRANCH, row[dash + 1 :], row)
+            self.assertNotIn("--mirror", row)
+
+    def test_a_mirror_branch_value_is_refused_before_push(self):
+        self.plant_git_wrapper()
+        self.patch_plant(trip_stages=["tests"])
+        first = self.run_ladder()
+        self.assertEqual(first.returncode, 3, self.combined(first))
+        self.close_tripped_record()
+        payload = self.ladder_record()
+        ladder_id = payload["id"]
+        self.rewrite_ladder_record(ladder_id, branch="--mirror")
+        self.patch_plant(trip_stages=[])
+        second = self.invoke(["resume", ladder_id])
+        pushes = [row for row in self.git_argvs() if row and row[0] == "push"]
+        for row in pushes:
+            self.assertNotIn("--mirror", row, row)
+        self.assertIn(second.returncode, {2, 3}, self.combined(second))
+        self.assertNotEqual(second.returncode, 0)
+
+
+class BucketFiles(_LadderFixture):
+    """S8: a landed path outside the bucket's files stops the driver."""
+
+    def test_a_landed_path_outside_the_bucket_stops_the_driver(self):
+        self.plant_plan(BUCKET_PLAN)
+        planted = self.plan_path.read_text(encoding="utf-8")
+        self.assertIn("ops/conductor/tools/land.py", planted)
+        self.assertNotIn(OUTSIDE_BUCKET, planted)
+        self.patch_plant(land_extra_path=OUTSIDE_BUCKET)
+        self.assertEqual(self.load_plant()["land_extra_path"], OUTSIDE_BUCKET)
+        proc = self.run_ladder()
+        text = self.combined(proc)
+        self.assertIn(proc.returncode, {2, 3}, text)
+        self.assertNotEqual(proc.returncode, 0)
+        last = [ln for ln in text.splitlines() if ln.strip()][-1]
+        lower = last.lower()
+        self.assertTrue(
+            any(token in lower for token in ("bucket", "files", "paths")),
+            last,
+        )
+        self.assertNotIn("adversarial", self.dispatch_names())
+
+
+class PlanGrammar(_LadderFixture):
+    """S9: an M slice is two named S buckets; undocumented plans refuse."""
+
+    def test_an_m_slice_without_buckets_is_refused(self):
+        plan = (
+            "# plan\n"
+            "ordinary markdown with no bucket lines\n"
+            f"slice\t{SLICE_M}\tM\n"
+        )
+        self.plant_plan(plan)
+        planted = self.plan_path.read_text(encoding="utf-8")
+        self.assertIn(f"slice\t{SLICE_M}\tM", planted)
+        self.assertNotIn("bucket\t", planted)
+        proc = self.run_ladder()
+        text = self.combined(proc)
+        self.assertIn(proc.returncode, {2, 3}, text)
+        self.assertEqual(
+            self.dispatch_count(job="implement", stage="code"),
+            0,
+            self.dispatch_names(),
+        )
+        lower = text.lower()
+        self.assertTrue(
+            any(token in lower for token in ("bucket", "plan", "slice")),
+            text,
+        )
+
+    def test_an_m_slice_with_more_than_two_s_buckets_is_refused(self):
+        lines = [
+            "# plan\n",
+            f"slice\t{SLICE_M}\tM\n",
+        ]
+        for i in range(7):
+            lines.append(f"bucket\tb{i}\tS\tfile{i}.py\n")
+        self.plant_plan("".join(lines))
+        planted = self.plan_path.read_text(encoding="utf-8")
+        self.assertEqual(planted.count("bucket\t"), 7)
+        proc = self.run_ladder()
+        text = self.combined(proc)
+        self.assertIn(proc.returncode, {2, 3}, text)
+        self.assertLess(
+            self.dispatch_count(job="implement", stage="code"),
+            3,
+            self.dispatch_names(),
+        )
+        self.assertEqual(
+            self.dispatch_count(job="implement", stage="code"),
+            0,
+            self.dispatch_names(),
+        )
+
+
+class WaitWall(_LadderFixture):
+    """A6: wait is invoked with --timeout of caps.timeout + grace."""
+
+    def test_wait_passes_the_contracted_wall_as_timeout(self):
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        waits = [row for row in self.launch_argvs() if row and row[0] == "wait"]
+        self.assertTrue(waits, self.launch_argvs())
+        timeouts = self.wait_timeouts()
+        self.assertEqual(len(timeouts), len(waits), waits)
+        for raw in timeouts:
+            self.assertEqual(int(float(raw)), 1800 + 12, waits)
+
+
+class AuditPairTrip(_LadderFixture):
+    """A7: a trip at security waits the sibling; resume does not mint another."""
+
+    def test_a_trip_at_security_waits_the_adversarial_sibling(self):
+        self.patch_plant(trip_stages=["security"])
+        first = self.run_ladder()
+        rec_id = self.record_id_for("security")
+        self.assert_stopped(
+            first, stage="security", record=rec_id, reason="tripped",
+        )
+        names = self.dispatch_names()
+        self.assertIn("adversarial", names, names)
+        waited = set(self.waited_ids())
+        minted = set(self.load_plant().get("records") or {})
+        self.assertTrue(minted, names)
+        self.assertEqual(
+            minted, waited,
+            "a live sibling dispatch must be waited before stop",
+        )
+
+    def test_resume_after_a_security_trip_does_not_mint_a_second_adversarial(
+            self):
+        self.patch_plant(trip_stages=["security"])
+        first = self.run_ladder()
+        rec_id = self.record_id_for("security")
+        self.assert_stopped(
+            first, stage="security", record=rec_id, reason="tripped",
+        )
+        names = self.dispatch_names()
+        self.assertIn("adversarial", names, names)
+        self.assertEqual(names.count("adversarial"), 1, names)
+        self.patch_plant(trip_stages=[])
+        ladder_id = self.ladder_record().get("id")
+        self.invoke(["resume", ladder_id])
+        later = self.dispatch_names()
+        self.assertEqual(later.count("adversarial"), 1, later)
+
+
+class PrUrl(_LadderFixture):
+    """S11: exit 0 records a URL, not an arbitrary gh stdout line."""
+
+    def test_a_non_url_gh_stdout_is_not_recorded_as_the_pr(self):
+        self.plant_gh_stdout(NOT_A_URL)
+        proc = self.run_ladder()
+        text = self.combined(proc)
+        self.assertNotEqual(proc.returncode, 0, text)
+        self.assertIn(proc.returncode, {1, 2, 3}, text)
+        if self.ladder_paths():
+            record = self.ladder_record()
+            pr = record.get("pr") or {}
+            self.assertNotEqual(pr.get("url"), NOT_A_URL, record)
+            self.assertNotEqual(record.get("status"), "done", record)
 
 
 if __name__ == "__main__":
