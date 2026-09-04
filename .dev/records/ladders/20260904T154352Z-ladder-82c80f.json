@@ -20,9 +20,23 @@
   },
   "stages": [
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
       "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/.dev/ladder-inputs/PLAN-context-contracts-2-closure-index.md",
+        "proof": {
+          "given": [
+            "### 3.1 Closure \u2014 `closure.cue`, `closure.py`, `closure.json`"
+          ],
+          "withheld": []
+        },
+        "sha256": "3c7aaf65bf72d9380ee40987bf9d0d3f3ae022f3eb081046149bc03163c6e809"
+      },
       "job": "author-tests",
       "name": "tests",
       "outcome": "pending",
