@@ -946,6 +946,42 @@ class TrackedConfMove(_LaneconfFixture):
         self.assertIn("lane.local.conf", proc.stdout)
 
 
+class IteratedConfKeys(_LaneconfFixture):
+    """S2: a CONF_KEYS iteration is a read of each member. Closure
+    names an undeclared key reached that way, and the file.
+    """
+
+    def test_iterated_conf_keys_count_as_reads_for_closure(self):
+        ghost = "GHOST_ITERATED"
+        rel = "ops/conductor/tools/iter_keys.py"
+        src = (
+            f"CONF_KEYS = ({ghost!r},)\n"
+            "def get(key):\n"
+            "    return key\n"
+            "def conf_value(key):\n"
+            "    return get(key)\n"
+            "values = {key: conf_value(key) for key in CONF_KEYS}\n"
+        )
+        repo = self.plant_scratch_repo(
+            {
+                "ops/conductor/tools/reads.py": reader_source(),
+                rel: src,
+            },
+        )
+        conf = repo / "ops" / "lane.conf"
+        planted = declared_keys(conf.read_text(encoding="utf-8"))
+        self.assertNotIn(ghost, planted)
+        self.assertIn(
+            ghost,
+            (repo / rel).read_text(encoding="utf-8"),
+        )
+        proc = self.invoke(["closure"], lane_conf=conf, cwd=repo)
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 1, text)
+        self.assertIn(ghost, text)
+        self.assertIn(rel, text)
+
+
 class Unit2DriverKeys(_LaneconfFixture):
     """Unit 2 required keys: the tracked conf declares them and closure
     finds the ladder driver as their reader.
