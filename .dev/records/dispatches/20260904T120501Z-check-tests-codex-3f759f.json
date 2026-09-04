@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T12:05:02Z",
-    "closed": null
+    "closed": "2026-09-04T12:09:47Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-05-05-01a06c4e-e6aa-7951-8c69-9cf3bdc5184f.jsonl"
   },
   "session": {
-    "id": "b8a6326d-67fc-48d3-8ef1-5b293a46599d",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a06c4e-e6aa-7951-8c69-9cf3bdc5184f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-05-05-01a06c4e-e6aa-7951-8c69-9cf3bdc5184f.jsonl",
+    "stream_sha256_at_close": "b4ed8657e1c089d027ff8e02d80dcba378afb2812629dfeae81b450b6010488c",
+    "spend": {
+      "input": 871146,
+      "cached": 792192,
+      "output": 12009,
+      "total": 883155,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T08-05-05-01a06c4e-e6aa-7951-8c69-9cf3bdc5184f.jsonl",
+      "messages": 149
+    }
   },
   "brief": {
     "template": {
@@ -95,10 +102,68 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T12:05:02Z",
+      "ended": "2026-09-04T12:09:47Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "10ae0b444d3b76792969b83d396be251023ed637",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "tripped",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_record_wall_at_mint.py \u00a7capture_mint_copy",
+          "claim": "The observer waits for start_witness before opening either record. A broken launcher that mints a wall-less copy, starts the harness, then patches both copies can pass all four tests while preserving the post-mint race the contract removes.",
+          "reproduce": "nl -ba ops/devlane/dispatch/tests/test_launch_record_wall_at_mint.py | sed -n '141,204p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_watchdog.py \u00a7RecordWallNotCatalogue",
+          "claim": "The current-record cases keep the real catalogue available and prove only that the record value wins. A broken watchdog that unconditionally reads/parses the catalogue before preferring record.caps.timeout passes, despite violating the requirement that the catalogue fallback be used only for predating records. Test with the catalogue unavailable or malformed when the record carries timeout.",
+          "reproduce": "nl -ba ops/conductor/tests/test_watchdog.py | sed -n '1421,1495p'"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 883155,
+        "out": 12009,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "10ae0b444d3b76792969b83d396be251023ed637",
+        "started": "2026-09-04T12:05:01Z",
+        "ended": "2026-09-04T12:09:22Z"
+      },
+      "note": "Review completed, but the read-only sandbox rejected creation of SKEPTIC.md. At the stamped ref, the plant guard passed, the four launch tests reached and failed on the intended missing timeout assertion, the three watchdog tests passed, and ruff --no-cache was clean."
+    },
+    "cause": {
+      "reason": "tripped",
+      "note": null
+    }
+  },
+  "status": "closed"
 }
