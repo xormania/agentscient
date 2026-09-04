@@ -64,6 +64,12 @@ NOCOPY_ID = "20260904T100800Z-code-grok-aa3109"
 LONG_REC_ID = "20260904T100900Z-code-grok-aa3110"
 LONG_JOB_ID = "20260904T101000Z-code-grok-aa3111"
 LONG_UNK_ID = "20260904T101100Z-code-grok-aa3112"
+INCIDENT_ID = "20260904T102000Z-code-grok-aa3160"
+INCIDENT_LONG_ID = "20260904T102100Z-code-grok-aa3161"
+PREDATE_ID = "20260904T102200Z-code-grok-aa3162"
+RECORD_WALL_S = 3600
+RECORD_WALL_MIN = 60
+CATALOGUE_WALL_MIN = 30
 ERR_ID = "20260904T101200Z-code-grok-aa3113"
 DIED_ID = "20260904T101300Z-code-grok-aa3114"
 XDG_ID = "20260904T101400Z-code-grok-aa3115"
@@ -1399,6 +1405,93 @@ class NoIdentity(_WatchdogFixture):
         err = (proc.stderr or "").lower()
         self.assertNotIn("identity", err)
         self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+
+class RecordWallNotCatalogue(_WatchdogFixture):
+    """Plan item 36: a running record that carries caps.timeout is
+    judged against that wall, never the job catalogue. Catalogue
+    fallback stays only for records that predate the field.
+
+    The measured incident: DISPATCH_TIMEOUT=3600 (60 min) against
+    author-tests catalogue 1800 (30 min); at 20 min running the
+    watchdog printed wall 30 because the mint copy had no field.
+    """
+
+    def test_twenty_minutes_of_a_sixty_minute_record_wall_is_not_long(self):
+        pid = self.spawn_named(HARNESS)
+        catalogue = self.catalogue_timeout(CATALOGUE_JOB)
+        self.assertEqual(catalogue // 60, CATALOGUE_WALL_MIN)
+        rec = self.record_dict(
+            INCIDENT_ID,
+            job=CATALOGUE_JOB,
+            timeout=RECORD_WALL_S,
+            launched=utc_ago(20),
+        )
+        rec["caps"]["timeout_source"] = "DISPATCH_TIMEOUT"
+        self.assertEqual(rec["caps"]["timeout"], RECORD_WALL_S)
+        self.assertNotEqual(rec["caps"]["timeout"], catalogue)
+        self.assertIn("timeout", rec["caps"])
+        self.plant_job(INCIDENT_ID, pid=pid, record=rec)
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        self.assert_armed(proc, store=self.store)
+        self.assertFalse(
+            self.named_lines(proc, f"long {INCIDENT_ID}:"),
+            proc.stdout,
+        )
+        beats = self.heartbeat_lines(proc)
+        self.assertEqual(len(beats), 1, proc.stdout)
+        self.assertRegex(
+            beats[0],
+            rf"{re.escape(INCIDENT_ID)} \d+m/{RECORD_WALL_MIN}\b",
+        )
+        self.assertNotRegex(
+            beats[0],
+            rf"{re.escape(INCIDENT_ID)} \d+m/{CATALOGUE_WALL_MIN}\b",
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_long_line_names_the_record_wall_not_the_catalogue(self):
+        pid = self.spawn_named(HARNESS)
+        catalogue = self.catalogue_timeout(CATALOGUE_JOB)
+        self.assertEqual(catalogue // 60, CATALOGUE_WALL_MIN)
+        rec = self.record_dict(
+            INCIDENT_LONG_ID,
+            job=CATALOGUE_JOB,
+            timeout=RECORD_WALL_S,
+            launched=utc_ago(45),
+        )
+        rec["caps"]["timeout_source"] = "DISPATCH_TIMEOUT"
+        self.assertEqual(rec["caps"]["timeout"], RECORD_WALL_S)
+        self.plant_job(INCIDENT_LONG_ID, pid=pid, record=rec)
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        lines = self.named_lines(proc, f"long {INCIDENT_LONG_ID}:")
+        self.assertEqual(len(lines), 1, proc.stdout)
+        self.assertRegex(
+            lines[0],
+            rf"long {re.escape(INCIDENT_LONG_ID)}: \d+ min running, "
+            rf"wall {RECORD_WALL_MIN} min",
+        )
+        self.assertNotIn(f"wall {CATALOGUE_WALL_MIN} min", lines[0])
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_predating_record_without_timeout_still_uses_catalogue(self):
+        pid = self.spawn_named(HARNESS)
+        catalogue = self.catalogue_timeout(CATALOGUE_JOB)
+        self.assertEqual(catalogue // 60, CATALOGUE_WALL_MIN)
+        rec = self.record_dict(
+            PREDATE_ID,
+            job=CATALOGUE_JOB,
+            launched=utc_ago(20),
+        )
+        self.assertNotIn("timeout", rec["caps"])
+        self.assertNotIn("timeout_source", rec["caps"])
+        self.plant_job(PREDATE_ID, pid=pid, record=rec)
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        lines = self.named_lines(proc, f"long {PREDATE_ID}:")
+        self.assertEqual(len(lines), 1, proc.stdout)
+        self.assertIn(f"wall {CATALOGUE_WALL_MIN} min", lines[0])
+        self.assertNotIn(f"wall {RECORD_WALL_MIN} min", lines[0])
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
 
