@@ -626,7 +626,11 @@ def _write_record(repo, rec):
     path = repo / ".dev/records/dispatches" / f"{rec['id']}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     record.validate(rec)
-    path.write_text(json.dumps(_portable_paths(rec), indent=2) + "\n", encoding="utf-8")
+    body = json.dumps(_portable_paths(rec), indent=2) + "\n"
+    path.write_text(body, encoding="utf-8")
+    job_path = Path(rec["snapshot"]["root"]).parent / "record.json"
+    if job_path.parent.is_dir():
+        job_path.write_text(body, encoding="utf-8")
     return path
 
 
