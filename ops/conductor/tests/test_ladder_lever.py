@@ -38,6 +38,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import test_ladder_audit_fix
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "ladder.py"
 SHIM = REPO / "ops" / "bin" / "ladder.sh"
@@ -4022,6 +4024,24 @@ class FindingsPayloadWriteDoesNotFollowASymlink(_LadderFixture):
         self._assert_payload_write_did_not_follow(
             secret=secret, payload=payload, second=second, planted=planted,
         )
+
+
+class InputsDirDirectorySymlinkIsNotFollowed(
+    test_ladder_audit_fix.InputsDirDirectorySymlinkIsNotFollowed,
+):
+    """Collected by discover -p test_ladder_lever.py (frozen command)."""
+
+
+class CheckTestsArtifactsStayEmpty(
+    test_ladder_audit_fix.CheckTestsArtifactsStayEmpty,
+):
+    """Collected by discover -p test_ladder_lever.py (frozen command)."""
+
+
+class SecondFindingsPublishStopsOnTheWire(
+    test_ladder_audit_fix.SecondFindingsPublishStopsOnTheWire,
+):
+    """Collected by discover -p test_ladder_lever.py (frozen command)."""
 
 
 if __name__ == "__main__":
