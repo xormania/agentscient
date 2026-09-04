@@ -2108,7 +2108,10 @@ class SkepticChanges(_LadderFixture):
     """Planted changes at stage 2: tests-fix once, then implement; no re-check."""
 
     def test_changes_at_check_tests_runs_tests_fix_once_then_implement(self):
-        self.patch_plant(verdicts={"check-tests": "changes"})
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            stage_findings={"check-tests": [dict(CHECK_TESTS_FINDING)]},
+        )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         names = self.dispatch_names()
@@ -2300,6 +2303,7 @@ class Withholding(_LadderFixture):
     def test_withholding_is_proved_on_dispatched_bytes_at_every_stage(self):
         self.patch_plant(
             verdicts={"check-tests": "changes", "adversarial": "changes"},
+            stage_findings={"check-tests": [dict(CHECK_TESTS_FINDING)]},
         )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
@@ -2372,6 +2376,7 @@ class Withholding(_LadderFixture):
         self.patch_plant(
             verdicts={"check-tests": "changes"},
             leak_implement_into="check-tests",
+            stage_findings={"check-tests": [dict(CHECK_TESTS_FINDING)]},
         )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 3, self.combined(proc))
@@ -2467,6 +2472,7 @@ class ModelGuarantee(_LadderFixture):
         self.patch_plant(
             verdicts={"check-tests": "changes"},
             effort_mismatch_stages=["tests-fix"],
+            stage_findings={"check-tests": [dict(CHECK_TESTS_FINDING)]},
         )
         proc = self.run_ladder()
         rec_id = self.load_plant().get("last_id") or "none"
@@ -2477,6 +2483,7 @@ class ModelGuarantee(_LadderFixture):
     def test_every_stage_dispatch_carries_conf_model_and_effort(self):
         self.patch_plant(
             verdicts={"check-tests": "changes", "adversarial": "changes"},
+            stage_findings={"check-tests": [dict(CHECK_TESTS_FINDING)]},
         )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
@@ -2894,6 +2901,7 @@ class WithholdingEnvelope(_LadderFixture):
         self.patch_plant(
             verdicts={"check-tests": "changes"},
             notes={"check-tests": summary},
+            stage_findings={"check-tests": [dict(CHECK_TESTS_FINDING)]},
         )
         self.assertEqual(self.load_plant()["notes"]["check-tests"], summary)
         proc = self.run_ladder()
