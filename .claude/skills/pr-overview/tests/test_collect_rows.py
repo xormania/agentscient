@@ -91,6 +91,41 @@ REPO_VIEW = """if "repo" in args and "view" in args:
 
 """
 
+GRAPHQL_OLD = '''if "api" in args and "graphql" in args:
+    number = None
+    for i, a in enumerate(args):
+        if a.startswith("pr="):
+            number = a.split("=", 1)[1]
+        if a == "-F" and i + 1 < len(args) and args[i + 1].startswith("pr="):
+            number = args[i + 1].split("=", 1)[1]
+    if number is None:
+        sys.stderr.write("graphql: no pr=\\n")
+        sys.exit(2)
+    pr = pr_by_number(number)
+'''
+
+GRAPHQL_NEW = '''if "api" in args and "graphql" in args:
+    number = None
+    for i, a in enumerate(args):
+        if a.startswith("pr="):
+            number = a.split("=", 1)[1]
+        if a == "-F" and i + 1 < len(args) and args[i + 1].startswith("pr="):
+            number = args[i + 1].split("=", 1)[1]
+    if number is None:
+        sys.stderr.write("graphql: no pr=\\n")
+        sys.exit(2)
+    errors = state.get("review_errors") or {}
+    if str(number) in errors:
+        err = errors[str(number)]
+        stderr = err.get("stderr") or ""
+        if stderr and not stderr.endswith("\\n"):
+            stderr = stderr + "\\n"
+        sys.stderr.write(stderr)
+        sys.stdout.write(err.get("stdout") or "")
+        sys.exit(int(err["rc"]))
+    pr = pr_by_number(number)
+'''
+
 if CHECKS_OLD not in BASE_GH_STUB:
     raise AssertionError("plant: neighboring GH_STUB checks block moved")
 ROW_GH_STUB = BASE_GH_STUB.replace(CHECKS_OLD, CHECKS_NEW, 1)
@@ -100,6 +135,11 @@ if "check_errors" not in ROW_GH_STUB:
     raise AssertionError("plant: check_errors missing from GH_STUB")
 if ROW_GH_STUB.count("if \"pr\" in args and \"checks\" in args:") != 1:
     raise AssertionError("plant: checks handler count drifted")
+if GRAPHQL_OLD not in ROW_GH_STUB:
+    raise AssertionError("plant: neighboring GH_STUB graphql block moved")
+ROW_GH_STUB = ROW_GH_STUB.replace(GRAPHQL_OLD, GRAPHQL_NEW, 1)
+if "review_errors" not in ROW_GH_STUB:
+    raise AssertionError("plant: review_errors missing from GH_STUB")
 MARKER = 'args = sys.argv[1:]\n'
 if MARKER not in ROW_GH_STUB:
     raise AssertionError("plant: args assignment missing from GH_STUB")
@@ -150,6 +190,7 @@ def gh_on_path(
     prs: list[dict],
     trees: dict[str, dict[str, str]],
     check_errors: dict | None = None,
+    review_errors: dict | None = None,
 ):
     tmp = Path(tempfile.mkdtemp(prefix="pr-overview-rows-gh-"))
     state = tmp / "state.json"
@@ -161,12 +202,15 @@ def gh_on_path(
         "prs": prs,
         "trees": trees,
         "check_errors": {str(k): v for k, v in (check_errors or {}).items()},
+        "review_errors": {str(k): v for k, v in (review_errors or {}).items()},
         "repo": REPO,
     }
     state.write_text(json.dumps(payload), encoding="utf-8")
     landed_state = json.loads(state.read_text(encoding="utf-8"))
     if landed_state["check_errors"] != payload["check_errors"]:
         raise AssertionError("plant: check_errors did not land in stub state")
+    if landed_state["review_errors"] != payload["review_errors"]:
+        raise AssertionError("plant: review_errors did not land in stub state")
     stub.write_text(ROW_GH_STUB, encoding="utf-8")
     if "check_errors" not in stub.read_text(encoding="utf-8"):
         raise AssertionError("plant: GH_STUB write dropped check_errors")
@@ -284,7 +328,7 @@ class CollectRows(unittest.TestCase):
             raise AssertionError("plant: PR 10 still has checks")
         return prs
 
-    def run_board(self, prs, check_errors):
+    def run_board(self, prs, check_errors, review_errors=None):
         """Invoke main() against the PATH stub. expected_checks is pinned.
 
         This snapshot's workflows are ci.yml, not the ci-dev.yml pair
@@ -296,7 +340,11 @@ class CollectRows(unittest.TestCase):
         stderr = io.StringIO()
         argv = ["pr_overview.py", "--repo", REPO]
         code = 0
-        with gh_on_path(prs, self.trees, check_errors=check_errors), non_git_cwd():
+        with gh_on_path(
+            prs, self.trees,
+            check_errors=check_errors,
+            review_errors=review_errors,
+        ), non_git_cwd():
             with mock.patch.object(
                 self.overview,
                 "expected_checks",
@@ -362,6 +410,25 @@ class CollectRows(unittest.TestCase):
             f"refusal names the first underlying error: {stderr!r}",
         )
         self.assertEqual(stdout.strip(), "")
+
+    def test_one_unreadable_review_page_is_a_cannot_tell_row_not_a_refusal(self):
+        """Adversarial finding 4: review_pages raising is one PR's
+        cannot-tell row, not a board-wide exit 2."""
+        prs = self.pair()
+        self.assertEqual(len(prs), 2)
+        errors = {"10": auth_error()}
+        self.assertIn("authentication", errors["10"]["stderr"].lower())
+        code, stdout, stderr = self.run_board(
+            prs, check_errors=None, review_errors=errors,
+        )
+        self.assertEqual(code, 0, stderr or stdout)
+        self.assertEqual(row_headers(stdout), [10, 11], stdout)
+        blocking = blocking_line_for(stdout, 10)
+        self.assertTrue(
+            blocking.startswith(">> cannot tell"),
+            blocking,
+        )
+        self.assertIn("checks: unreadable", checks_line_for(stdout, 10))
 
 
 if __name__ == "__main__":
