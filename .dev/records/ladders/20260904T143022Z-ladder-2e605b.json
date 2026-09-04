@@ -148,9 +148,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/ladders/20260904T143022Z-ladder-2e605b/test-command.md",
+        "proof": {
+          "given": [
+            "One slice, size **S**, one named S bucket, three files, one implement run.",
+            "20260904T145002Z-tests-grok-87e902"
+          ],
+          "withheld": []
+        },
+        "sha256": "1d67fc8e5c6063c538498ae2b7bd6e81eeddffa698bb4b7e4ae05d8c79caf5a7"
+      },
       "job": "implement",
       "name": "code",
       "outcome": "pending",
