@@ -1,0 +1,104 @@
+{
+  "id": "20260904T120501Z-check-tests-codex-3f759f",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/record-wall",
+  "lineage": {
+    "branch": "lane/record-wall",
+    "base_sha": "10ae0b444d3b76792969b83d396be251023ed637"
+  },
+  "follows": [
+    "20260904T114835Z-tests-grok-dde0c3"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T12:05:02Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "10ae0b444d3b76792969b83d396be251023ed637",
+    "ref_sha": "10ae0b444d3b76792969b83d396be251023ed637",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "b8a6326d-67fc-48d3-8ef1-5b293a46599d",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-record-wall/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Fix scope item 36, S: the record copy written at mint carries the resolved wall. launch.py resolves caps.timeout and caps.timeout_source before the harness starts but writes them into the record only at close, so a running record's job-directory copy has no wall and every reader guesses (the watchdog fell back to the job catalogue and printed wall 30 against a true 60). Wanted: the copy at mint carries caps.timeout and caps.timeout_source in the closed record's shape, under DISPATCH_TIMEOUT, the conf default and --timeout; the watchdog's catalogue fallback stays only for records that predate the field. One S bucket: ops/devlane/dispatch/launch.py and ops/conductor/tools/watchdog.py with their tests. No new refusal; every suite green; ruff clean. The plan file carries the measurements, the wants and the acceptance in full.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/in/plan-record-wall.md",
+        "sha256": "173228995a468372b722e3a3e5e15148f38e8c6a6775d8299a3839d3147635d1"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T120501Z-check-tests-codex-3f759f/in/20260904T114835Z-tests-grok-dde0c3.json",
+        "sha256": "beff08568c79c9f1bd081329188385f0accc40ed6a47003164b627b9ef0d6439"
+      }
+    ],
+    "sha256": "bffe7e3aca4b19c8d3f2c79c68d0dea74e2c8ad968c106bfdee8da0b1b5a9be6",
+    "bytes": 3633
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
