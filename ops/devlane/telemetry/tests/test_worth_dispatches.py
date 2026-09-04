@@ -820,6 +820,14 @@ class DispatchMeterTests(unittest.TestCase):
             launched="2026-08-22T10:00:00Z",
             spend=CLAUDE_SPEND,
         )
+        planted = json.loads(
+            (self.dispatch / MALFORMED_ID / "record.json").read_text(
+                encoding="utf-8",
+            )
+        )
+        self.assertEqual(planted["at"]["launched"], "not-a-stamp")
+        self.assertEqual(planted["session"]["spend"]["total"], 2120)
+        self.assertEqual(planted["session"]["spend"]["cost_usd"], 5.16)
         proc = self._run_worth("report", *window_args())
         self.assertEqual(proc.returncode, 0, proc.stderr)
         data = self._report()
@@ -833,6 +841,14 @@ class DispatchMeterTests(unittest.TestCase):
             "counted=1/2",
             self._line_for_harness(proc.stdout, "claude"),
         )
+        gap = self._row_by_id(block["rows"], MALFORMED_ID)
+        rendered = json.dumps(gap).lower()
+        self.assertIn("unrecorded", rendered)
+        gap_text = json.dumps(gap)
+        self.assertNotIn("2120", gap_text)
+        self.assertNotIn("5.16", gap_text)
+        self.assertNotRegex(gap_text, r'"total"\s*:\s*2120\b')
+        self.assertNotRegex(gap_text, r'"cost_usd"\s*:\s*5\.16\b')
 
     def test_tracked_record_fallback_when_the_job_has_no_record_json(self):
         job_dir, _record = self._plant_dispatch(
