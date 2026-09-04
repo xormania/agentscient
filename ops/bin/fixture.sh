@@ -19,6 +19,30 @@ import tempfile
 from pathlib import Path, PurePosixPath
 
 
+def lane_name() -> str:
+    """The lane's name from the lane conf, through its reader; a missing
+    key is a refusal on the wire, never a literal here."""
+    tools = Path(sys.argv[1]).resolve() / "ops" / "conductor" / "tools"
+    if str(tools) not in sys.path:
+        sys.path.insert(0, str(tools))
+    try:
+        import laneconf  # noqa: PLC0415 - the reader lives beside the conf
+    except ImportError:
+        laneconf = None
+    if laneconf is not None:
+        try:
+            return laneconf.get("LANE_NAME")
+        except laneconf.ConfigError as error:
+            print(f"conf-key: expected LANE_NAME in the lane conf; found {error}; needed define it", file=sys.stderr)
+            sys.exit(2)
+    conf = Path(os.environ.get("LANE_CONF") or (Path(sys.argv[1]).resolve() / "ops" / "lane.conf"))
+    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", conf.read_text() if conf.is_file() else "")
+    if not match:
+        print(f"conf-key: expected LANE_NAME declared in the lane conf; found none in {conf}; needed define it", file=sys.stderr)
+        sys.exit(2)
+    return match.group(1)
+
+
 ROOT = Path(sys.argv[1]).resolve()
 ARGS = sys.argv[2:]
 APPS = ROOT / "ops" / "devlane" / "fixtures" / "apps"
@@ -91,14 +115,14 @@ def make(argv: list[str]) -> int:
     if len(argv) not in {1, 2}:
         refuse("arguments", "make <app> [DIR]", repr(argv), "supply an app and optional target")
     agent, agent_name, agent_email = identity()
-    conf_raw = os.environ.get("LANE_CONF", "")
+    conf_raw = os.environ.get("FIXTURE_COPY_LIST", "")
     conf = Path(conf_raw) if conf_raw else None
     if conf is None or not conf.is_file():
         refuse(
             "conf",
-            "LANE_CONF naming a readable copy list",
+            "FIXTURE_COPY_LIST naming a readable copy list",
             repr(conf_raw) if conf_raw else "unset",
-            "set LANE_CONF to the lane copy-list file",
+            "set FIXTURE_COPY_LIST to the lane copy-list file",
         )
     copy_roots = [
         line.strip()
@@ -138,7 +162,7 @@ def make(argv: list[str]) -> int:
         target = Path(argv[1]).expanduser().resolve()
     else:
         state = Path(os.environ.get("XDG_STATE_HOME") or (Path.home() / ".local" / "state"))
-        parent = state / "agentscient" / "fixtures"
+        parent = state / lane_name() / "fixtures"
         parent.mkdir(parents=True, exist_ok=True)
         target = Path(tempfile.mkdtemp(prefix=f"{app_name}-", dir=parent)).resolve()
 
