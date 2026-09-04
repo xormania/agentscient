@@ -24,6 +24,7 @@ ARGS = sys.argv[2:]
 APPS = ROOT / "ops" / "devlane" / "fixtures" / "apps"
 IDENTITY = re.compile(r"^(.+?) <([^<>\s]+)>$")
 PROBE_TIMEOUT = 2
+SPAN = re.compile(r"^(?:(?P<path>[^:]+):)?(?P<start>\d+)(?:-(?P<end>\d+))?$")
 
 
 def refuse(kind: str, expected: str, found: str, needed: str) -> None:
@@ -320,24 +321,167 @@ def prove(argv: list[str]) -> int:
     return 0 if rows and all(colour == expected for _, colour in rows) else 1
 
 
+def spans(raw: object) -> list[tuple[str, int, int]]:
+    if not isinstance(raw, str):
+        return []
+    found = []
+    path = None
+    for part in re.split(r"\s*(?:,|;|↔)\s*", raw):
+        match = SPAN.fullmatch(part.strip())
+        if match is None:
+            continue
+        path = (match.group("path") or path)
+        if path is None:
+            continue
+        start = int(match.group("start"))
+        end = int(match.group("end") or start)
+        if start <= end:
+            found.append((path.strip(), start, end))
+    return found
+
+
+def manifest_span(fault: dict, field: str) -> tuple[str, int, int]:
+    location = fault.get(field)
+    path = location.get("path") if isinstance(location, dict) else None
+    lines = location.get("lines") if isinstance(location, dict) else None
+    if (
+        not isinstance(path, str)
+        or not isinstance(lines, list)
+        or len(lines) != 2
+        or not all(isinstance(line, int) for line in lines)
+        or lines[0] > lines[1]
+    ):
+        refuse("manifest", f"a closed {field} span", repr(location), "repair FAULTS.json")
+    return path, lines[0], lines[1]
+
+
+def overlap(left: tuple[str, int, int], right: tuple[str, int, int]) -> bool:
+    return left[0] == right[0] and left[1] <= right[2] and right[1] <= left[2]
+
+
+def calibration_row(
+    *, record: str, app: str, fault_id: str | None, finding_key: str | None,
+    grade_class: str, harness: str, model: str, claim: str,
+) -> dict:
+    return {
+        "record": record,
+        "app": app,
+        "fault_id": fault_id,
+        "finding_key": finding_key,
+        "class": grade_class,
+        "harness": harness,
+        "model": model,
+        "claim": claim,
+    }
+
+
 def grade(argv: list[str]) -> int:
-    if len(argv) != 2:
-        refuse("arguments", "grade <record> <app>", repr(argv), "supply a review record and fixture app")
+    record_root = ROOT
+    if len(argv) == 4 and argv[2] == "--repo":
+        record_root = Path(argv[3]).expanduser().resolve()
+    elif len(argv) != 2:
+        refuse("arguments", "grade <record> <app> [--repo REPO]", repr(argv), "supply a review record and fixture app")
     identity()
     record = Path(argv[0]).expanduser()
+    if not record.is_file():
+        record = record_root / ".dev" / "records" / "dispatches" / f"{argv[0]}.json"
     if not record.is_file():
         refuse("record", "an existing review dispatch record", str(record), "supply its path")
     try:
         payload = json.loads(record.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         refuse("record", "a readable JSON review record", str(exc), "repair or replace the record")
-    review_jobs = {"security-audit", "adversarial-review"}
+    review_jobs = {"check-tests", "security-audit", "adversarial-review"}
     if not isinstance(payload, dict) or payload.get("job") not in review_jobs:
         refuse("record", "a security-audit or adversarial-review record", repr(payload.get("job") if isinstance(payload, dict) else payload), "supply a review record")
-    app = APPS / argv[1]
-    if safe_relative(argv[1]) != argv[1] or "/" in argv[1] or not (app / "FAULTS.json").is_file():
-        refuse("app", f"{argv[1]}/FAULTS.json", "no fixture manifest", "choose an app with a manifest")
-    abort("grading semantics from run B", "wire-only grade in run A", "land the grading implementation")
+    app_name = argv[1]
+    app = APPS / app_name
+    if safe_relative(app_name) != app_name or "/" in app_name or not (app / "FAULTS.json").is_file():
+        refuse("app", f"{app_name}/FAULTS.json", "no fixture manifest", "choose an app with a manifest")
+    manifest = load_manifest(app)
+    faults = []
+    for fault in manifest["faults"]:
+        fault_id = fault.get("id") if isinstance(fault, dict) else None
+        claim = fault.get("finding") if isinstance(fault, dict) else None
+        if not isinstance(fault_id, str) or not isinstance(claim, str) or not claim:
+            refuse("manifest", "fault ids and finding claims", repr(fault), "repair FAULTS.json")
+        faults.append((fault_id, claim, manifest_span(fault, "location"), manifest_span(fault, "neighbour")))
+
+    record_id = payload.get("id")
+    harness_value = payload.get("harness")
+    model_value = payload.get("model")
+    harness = harness_value.get("name") if isinstance(harness_value, dict) else None
+    model = model_value.get("ran") if isinstance(model_value, dict) else None
+    envelope = (payload.get("result") or {}).get("envelope") if isinstance(payload.get("result"), dict) else None
+    findings = envelope.get("findings") if isinstance(envelope, dict) else []
+    if (
+        not isinstance(record_id, str)
+        or not record_id
+        or not isinstance(harness, str)
+        or not harness
+        or not isinstance(model, str)
+        or not model
+        or not isinstance(findings, list)
+    ):
+        refuse("record", "review identity and a findings list", "incomplete envelope", "repair or replace the record")
+
+    rows = []
+    caught = set()
+    false_positives = set()
+    unmatched = 0
+    unlocated = 0
+    for n, finding in enumerate(findings, 1):
+        if not isinstance(finding, dict):
+            finding = {"claim": str(finding)}
+        claim = finding.get("claim") or finding.get("finding") or finding.get("title") or "unnamed finding"
+        finding_key = f"{record_id}#{n}"
+        located = spans(finding.get("where") or finding.get("file"))
+        fault_hits = [fault for fault in faults if any(overlap(span, fault[2]) for span in located)]
+        if fault_hits:
+            for fault_id, _expected, _location, _neighbour in fault_hits:
+                caught.add(fault_id)
+                rows.append(calibration_row(record=record_id, app=app_name, fault_id=fault_id, finding_key=finding_key, grade_class="caught", harness=harness, model=model, claim=str(claim)))
+            continue
+        neighbour_hits = [fault for fault in faults if any(overlap(span, fault[3]) for span in located)]
+        if neighbour_hits:
+            for fault_id, _expected, _location, _neighbour in neighbour_hits:
+                false_positives.add(fault_id)
+                rows.append(calibration_row(record=record_id, app=app_name, fault_id=fault_id, finding_key=finding_key, grade_class="false-positive", harness=harness, model=model, claim=str(claim)))
+        elif located:
+            unmatched += 1
+            rows.append(calibration_row(record=record_id, app=app_name, fault_id=None, finding_key=finding_key, grade_class="unmatched", harness=harness, model=model, claim=str(claim)))
+        else:
+            unlocated += 1
+            rows.append(calibration_row(record=record_id, app=app_name, fault_id=None, finding_key=finding_key, grade_class="unlocated", harness=harness, model=model, claim=str(claim)))
+
+    for fault_id, claim, _location, _neighbour in faults:
+        if fault_id not in caught:
+            rows.append(calibration_row(record=record_id, app=app_name, fault_id=fault_id, finding_key=None, grade_class="missed", harness=harness, model=model, claim=claim))
+
+    calibration = ROOT / "ops" / "conductor" / "tools" / "findings.py"
+    proc = subprocess.run(
+        [sys.executable, str(calibration), "calibrate"],
+        cwd=ROOT,
+        env=os.environ.copy(),
+        input="".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if proc.returncode != 0:
+        abort("calibration rows accepted", proc.stderr.strip() or f"exit {proc.returncode}", "repair findings.py and retry")
+
+    total = len(faults)
+    print(f"reviewer={harness} model={model}")
+    print(
+        f"caught={len(caught)} missed={total - len(caught)} "
+        f"false-positive={len(false_positives)} unmatched={unmatched} unlocated={unlocated}"
+    )
+    print(
+        f"caught/faults={len(caught) / total:.6f} "
+        f"false-positive/neighbours={len(false_positives) / total:.6f}"
+    )
+    return 0
 
 
 if not ARGS:
