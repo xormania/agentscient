@@ -27,6 +27,7 @@ REQUIRED_DEFAULTS = {
     "REPO_SLUG": "uscient/agentscient",
     "CHECK_NAME": "ci",
     "WF_AGENT_DEFAULT": ls.AGENT,
+    "LANE_AUTHOR": "Lane Owner <lane-owner@example.invalid>",
     "MODEL_GROK": "model-grok",
     "MODEL_CODEX": "model-codex",
     "MODEL_CLAUDE_READ": "model-claude-read",
@@ -37,6 +38,14 @@ REQUIRED_DEFAULTS = {
     "WALL_DEFAULT": "900",
     "SCOPE_CAP": "1024",
 }
+
+LAUNCHER_KEYS = (
+    "WALL_DEFAULT",
+    "SCOPE_CAP",
+    "LANE_NAME",
+    "TRUNK_BRANCH",
+    "RELEASE_BRANCH",
+)
 
 
 class _LaneConfLaunch(ls._TempLaunch):
@@ -110,8 +119,9 @@ class ScopeCapFromConf(_LaneConfLaunch):
         code, out, err = self.dispatch(self.argv_for(
             stage="plan", scope=scope,
         ))
-        self.assert_refusal(
+        self.assert_wire_refusal(
             code, out, err, ident="scope-cap",
+            named=("11",),
             phrases=["scope-cap", "11"],
         )
         self.assert_not_started()
@@ -154,8 +164,9 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         code, out, err = self.dispatch(
             self.argv_for(lineage="trunkx", stage="plan"),
         )
-        self.assert_refusal(
+        self.assert_wire_refusal(
             code, out, err, ident="record-target",
+            named=("trunkx",),
             phrases=["record-target", "trunkx"],
         )
         self.assertEqual(self.job_dirs(), [])
@@ -174,25 +185,46 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         text = str(rec)
         self.assertNotIn("record-target", text)
 
-
-class MissingWallDefaultIsConfKey(_LaneConfLaunch):
-    """A conf missing WALL_DEFAULT refuses conf-key naming the key and
-    the file, exit 3, before anything is minted."""
-
-    def test_missing_wall_default_refuses_conf_key_before_any_mint(self):
-        self.plant_conf(omit=("WALL_DEFAULT",))
+    def test_checkout_on_the_conf_release_refuses_record_target(self):
+        self.plant_conf(TRUNK_BRANCH="trunkx", RELEASE_BRANCH="relx")
         planted = self.conf_path.read_text(encoding="utf-8")
-        self.assertNotIn("WALL_DEFAULT=", planted)
-        self.assertTrue(self.conf_path.is_file())
-        before = list(self.jobs_root.iterdir())
-        self.assertEqual(before, [])
-        code, out, err = self.dispatch(self.argv_for(stage="plan"))
-        self.assert_refusal(
-            code, out, err, ident="conf-key",
-            phrases=["conf-key", "WALL_DEFAULT", str(self.conf_path)],
+        self.assertIn("RELEASE_BRANCH='relx'", planted)
+        self._git("checkout", "-b", "relx")
+        code, out, err = self.dispatch(
+            self.argv_for(lineage="relx", stage="plan"),
         )
+        self.assert_wire_refusal(
+            code, out, err, ident="record-target",
+            named=("relx",),
+            phrases=["record-target", "relx"],
+        )
+        self.assertEqual(self.job_dirs(), [])
         self.assert_not_started()
-        self.assertEqual(list(self.jobs_root.iterdir()), before)
+
+
+class MissingLauncherKeyIsConfKey(_LaneConfLaunch):
+    """A conf missing any launcher key refuses conf-key naming the key
+    and the file, exit 3, before anything is minted and without a child."""
+
+    def test_missing_launcher_key_refuses_conf_key_before_any_mint(self):
+        self.assertEqual(len(LAUNCHER_KEYS), 5, LAUNCHER_KEYS)
+        for key in LAUNCHER_KEYS:
+            with self.subTest(key=key):
+                self.plant_conf(omit=(key,))
+                planted = self.conf_path.read_text(encoding="utf-8")
+                self.assertNotIn(f"{key}=", planted)
+                self.assertTrue(self.conf_path.is_file())
+                if self.start_witness.is_file():
+                    self.start_witness.unlink()
+                before = list(self.jobs_root.iterdir())
+                code, out, err = self.dispatch(self.argv_for(stage="plan"))
+                self.assert_wire_refusal(
+                    code, out, err, ident="conf-key",
+                    named=(key, str(self.conf_path)),
+                    phrases=["conf-key", key],
+                )
+                self.assert_not_started()
+                self.assertEqual(list(self.jobs_root.iterdir()), before)
 
 
 if __name__ == "__main__":
