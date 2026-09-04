@@ -34,6 +34,7 @@ LANE_STEP_NEEDLES = (
     ("literals",),
 )
 APP_STEP_NEEDLES = (
+    ("GITHUB_PATH", ".local/bin", "user toolchain"),
     ("host toolchain", "php -v", "composer --version"),
     ("composer validate",),
     ("composer install",),
@@ -337,7 +338,7 @@ class CiTwoJobs(unittest.TestCase):
 
     def test_a_concatenated_decoy_name_is_not_the_app_step_order(self):
         decoy = (
-            "host toolchain composer validate composer install "
+            "GITHUB_PATH host toolchain composer validate composer install "
             "php -l kernel phpunit mate"
         )
         job = {

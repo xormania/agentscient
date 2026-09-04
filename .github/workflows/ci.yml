@@ -43,6 +43,8 @@ jobs:
   app:
     runs-on: self-hosted
     steps:
+      - name: the host's user toolchain on PATH (~/.local/bin)
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: the host toolchain the self-hosted runner relies on
         run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version
       - name: composer validate — the manifest and the lock agree
