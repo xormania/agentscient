@@ -1311,6 +1311,22 @@ class MatrixHookTests(unittest.TestCase):
 
     # --- session-budget ---
 
+    def test_session_budget_planted_ceilings_are_the_measured_production_set(
+        self,
+    ):
+        self.assertEqual(SESSION_TURNS_CEILING, 500)
+        self.assertEqual(SESSION_AVG_CONTEXT_CEILING, 400000)
+        self.assertEqual(SESSION_REFUSALS_CEILING, 25)
+        self.assertIn("SESSION_TURNS_CEILING='500'", LANE_CONF)
+        self.assertIn("SESSION_AVG_CONTEXT_CEILING='400000'", LANE_CONF)
+        self.assertIn("SESSION_REFUSALS_CEILING='25'", LANE_CONF)
+        self.assertNotIn("SESSION_TURNS_CEILING='100'", LANE_CONF)
+        self.assertNotIn("SESSION_AVG_CONTEXT_CEILING='200000'", LANE_CONF)
+        self.assertNotIn("SESSION_REFUSALS_CEILING='10'", LANE_CONF)
+        self.assertGreater(1377, SESSION_TURNS_CEILING)
+        self.assertGreater(448000, SESSION_AVG_CONTEXT_CEILING)
+        self.assertGreater(70, SESSION_REFUSALS_CEILING)
+
     def test_session_budget_refuses_when_transcript_path_is_missing(self):
         payload = json.dumps(
             {
