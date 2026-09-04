@@ -715,14 +715,26 @@ class MatrixHookTests(unittest.TestCase):
                 self.assert_denied(self.run_bash(cmd), "bucket-command")
 
     def test_bucket_command_allows_other_jobs_and_discover_with_p(self):
-        rows = (
+        allowed = (
             self.dispatch(job="verify", scope_file=self.scope_suites),
+        )
+        for cmd in allowed:
+            with self.subTest(cmd=cmd):
+                self.assert_allowed(self.run_bash(cmd))
+        driver = (
             self.dispatch(job="implement", scope_file=self.scope_discover_p),
             self.dispatch(job="implement"),
         )
-        for cmd in rows:
+        for cmd in driver:
             with self.subTest(cmd=cmd):
-                self.assert_allowed(self.run_bash(cmd))
+                proc = self.run_bash(cmd)
+                self.assert_denied(proc, "dispatch-by-hand")
+                self.assertNotIn(
+                    "[matrix:bucket-command]",
+                    proc.stdout,
+                    "content row bucket-command must pass on a good "
+                    f"implement plant; found {proc.stdout!r}",
+                )
 
     # --- walkthrough ---
 
@@ -746,14 +758,21 @@ class MatrixHookTests(unittest.TestCase):
                 self.assert_denied(self.run_bash(cmd), "walkthrough")
 
     def test_walkthrough_allows_when_heading_and_assumption_are_present(self):
-        rows = (
+        driver = (
             self.dispatch(job="author-tests", input_file=self.input_ok),
             self.dispatch(job="implement", input_file=self.input_ok),
-            self.dispatch(job="verify"),
         )
-        for cmd in rows:
+        for cmd in driver:
             with self.subTest(cmd=cmd):
-                self.assert_allowed(self.run_bash(cmd))
+                proc = self.run_bash(cmd)
+                self.assert_denied(proc, "dispatch-by-hand")
+                self.assertNotIn(
+                    "[matrix:walkthrough]",
+                    proc.stdout,
+                    "content row walkthrough must pass when the heading "
+                    f"and assumption are present; found {proc.stdout!r}",
+                )
+        self.assert_allowed(self.run_bash(self.dispatch(job="verify")))
 
     # --- stale-base ---
 
