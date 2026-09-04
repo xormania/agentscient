@@ -280,10 +280,14 @@ CLAUDE_TOOL_RULES = (
     "Bash(grep *)", "Bash(rg *)", "Bash(wc *)", "Bash(uniq *)", "Bash(diff *)",
     "Bash(sha256sum *)", "Bash(jq *)", "Bash(which *)", "Bash(test *)", "Bash(cd *)",
 )
-# Tools no dispatch may use: the network (jobs say "no network") and
-# sub-agents (the owner's hard rule, 2026-08-29).
+# Tools no dispatch may use: the network (jobs say "no network"),
+# project-supplied interpreters or scripts, and sub-agents (the owner's hard
+# rule, 2026-08-29).
 CLAUDE_DENIED_TOOLS = ("WebFetch", "WebSearch", "Agent", "Task")
-CLAUDE_NETWORK_RULE_PREFIXES = ("Bash(gh ", "Bash(composer ", "Bash(git ")
+CLAUDE_UNSAFE_RULE_PREFIXES = (
+    "Bash(gh ", "Bash(composer ", "Bash(git ", "Bash(php ",
+    "Bash(bash ops/bin/",
+)
 
 
 def _project_permissions(snapshot):
@@ -305,7 +309,7 @@ def _project_permissions(snapshot):
     if not all(isinstance(rule, str) for rule in [*allow, *deny]):
         return ({"unresolved": "permission rules must be strings"}, (), ())
     dropped = [rule for rule in allow
-               if rule.startswith(CLAUDE_NETWORK_RULE_PREFIXES)]
+               if rule.startswith(CLAUDE_UNSAFE_RULE_PREFIXES)]
     applied = [rule for rule in allow if rule not in dropped]
     return ({"source": ".claude/settings.json", "sha256": _sha(path),
              "allow": len(applied), "deny": len(deny), "dropped": dropped,
@@ -1426,22 +1430,37 @@ def _collect(args):
     attempts = rec.get("attempts") or []
     last = attempts[-1] if attempts else {}
     residual = result.get("residual_paths") or []
-    failed = bool(last.get("tripped") or last.get("exit"))
+    failed = any(bool(attempt.get("tripped") or attempt.get("exit"))
+                 for attempt in attempts)
     if not failed or not residual:
         _refuse(
             "collect-state",
-            "a tripped or non-zero write job with residual paths",
+            "an uncollected write job with a failed or tripped attempt and residual paths",
             f"exit={last.get('exit')} tripped={bool(last.get('tripped'))} "
             f"residual={len(residual)}",
-            "let a normal finish settle itself or name a failed job with residue",
+            "use the normal result or name a recoverable job with residue",
         )
     snapshot = Path(rec["snapshot"]["root"])
-    timeout = float((rec.get("caps") or {}).get("timeout") or 900)
+    job_dir = snapshot.parent
+    before = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
+    ref_sha = rec["snapshot"]["ref_sha"]
+    if _git(snapshot, "merge-base", "--is-ancestor", ref_sha, before,
+            check=False).returncode:
+        _refuse("off-lineage-head", f"HEAD to descend from {ref_sha}",
+                before, "restore the snapshot to the dispatched lineage")
+    recorded_timeout = float((rec.get("caps") or {}).get("timeout") or 900)
+    timeout = max(recorded_timeout, args.timeout or recorded_timeout)
+    verify_home = job_dir / "home" / "verify"
+    verify_home.mkdir(parents=True, exist_ok=True)
+    verify_base = {
+        "HOME": str(verify_home),
+        "PATH": os.environ.get("PATH", os.defpath),
+    }
     try:
         verified = subprocess.run(
             ["bash", "-c", args.verify],
             cwd=snapshot,
-            env=_child_env(os.environ, {}, rec["id"]),
+            env=_child_env(verify_base, {}, rec["id"]),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -1613,6 +1632,7 @@ def _parser():
     collect.add_argument("id")
     collect.add_argument("--verify", required=True)
     collect.add_argument("--reason")
+    collect.add_argument("--timeout", type=float)
     wait = sub.add_parser("wait")
     wait.add_argument("id")
     wait.add_argument("--timeout", type=float, default=3600)
