@@ -222,7 +222,7 @@ class _LandFixture(unittest.TestCase):
             "TRUNK_BRANCH": "dev",
             "RELEASE_BRANCH": "master",
             "REPO_SLUG": "uscient/agentscient",
-            "CHECK_NAME": "ci",
+            "CHECK_NAMES": "lane app",
             "WF_AGENT_DEFAULT": AGENT,
             "LANE_AUTHOR": LANE_AUTHOR,
             "MODEL_GROK": "model-grok",
@@ -1250,7 +1250,7 @@ class LaneNameSelectsStore(_LandFixture):
             "TRUNK_BRANCH='dev'\n"
             "RELEASE_BRANCH='master'\n"
             "REPO_SLUG='uscient/agentscient'\n"
-            "CHECK_NAME='ci'\n"
+            "CHECK_NAMES='lane app'\n"
             "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
             f"LANE_AUTHOR='{LANE_AUTHOR}'\n"
             "MODEL_GROK='model-grok'\n"
