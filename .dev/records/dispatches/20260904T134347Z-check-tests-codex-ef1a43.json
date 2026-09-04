@@ -1,0 +1,104 @@
+{
+  "id": "20260904T134347Z-check-tests-codex-ef1a43",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/fixture-fix-2",
+  "lineage": {
+    "branch": "lane/fixture-fix-2",
+    "base_sha": "933631ecab87f012c7c57b6f729c26c036dd251c"
+  },
+  "follows": [
+    "20260904T132832Z-tests-grok-2707e5"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:43:47Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "933631ecab87f012c7c57b6f729c26c036dd251c",
+    "ref_sha": "933631ecab87f012c7c57b6f729c26c036dd251c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "4addb3e6-5999-4443-8382-5584153a1955",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixture-fix-2/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "The fixture batch (four fixture apps, `ops/bin/fixture.sh`, the findings lever) had its one fix round (two implement runs) and its security re-audit returned changes again. By D-LADDER-1 the batch gets no second fix round; the unresolved findings are this slice's scope and it runs the whole ladder: tests (Grok) \u2192 skeptic \u2192 implement (Codex) per S bucket \u2192 audits once \u2192 one fix round \u2192 security re-audit \u2192 draft PR.\nD-LADDER-1 (register, standing ratified, `ops/conductor/decisions.seed.json`, decided_by owner 2026-09-04): an implement run covers at most one S bucket and an M slice is implemented in two runs the plan names; the security and adversarial audits run once per batch on the merged tree, never per slice, with one fix round and the security re-audit only; the skeptic runs once on the first tests and never on the fixed tests.\nBucket sizes (owner, 2026-09-04): S = 1\u20133 files, one implement run under 10 minutes; M = two named S buckets (run A, run B), each landed and green alone; L = split.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/in/PLAN-fixture-fix2-fixture-lever-reaudit.md",
+        "sha256": "2de4c0162c60caeaaa1e267ab06d2666bafaf27fa5a04e9836eab545433eb2f4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T134347Z-check-tests-codex-ef1a43/in/20260904T132832Z-tests-grok-2707e5.json",
+        "sha256": "60955f980ee10c3480f63c2ef273b2aefe441913a5b93aaa80ee8d0df99ed6fa"
+      }
+    ],
+    "sha256": "a6f43f0be2f0debf209e7f69baf9a756fbaf647061d93492fe3af3a61bd8b435",
+    "bytes": 3844
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
