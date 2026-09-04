@@ -1,6 +1,0 @@
-{
-  "name": "psr/log",
-  "version": "3.0.2",
-  "type": "library",
-  "autoload": {"psr-4": {"Psr\\Log\\": "src/"}}
-}

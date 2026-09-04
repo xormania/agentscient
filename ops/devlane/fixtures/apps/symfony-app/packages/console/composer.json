@@ -1,6 +1,0 @@
-{
-  "name": "symfony/console",
-  "version": "v8.1.0",
-  "type": "library",
-  "autoload": {"psr-4": {"Symfony\\Component\\Console\\": "src/"}}
-}
