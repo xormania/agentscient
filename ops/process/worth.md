@@ -27,8 +27,14 @@ test-definition count at each window edge with its delta.
     python3 ops/devlane/telemetry/worth.py waste --repo PATH \
         [--since ISO] [--until ISO] [--now ISO] [--top N] [--format plain|json]
 
+`--claude-dir` has no command-line default. When omitted it is read from
+`CLAUDE_DIR` in the lane configuration; a relative value is resolved against
+the user's home directory, and a missing key refuses as `conf-key`.
+
 Ranks sessions by total tokens and names, for each: the harness, the
-session id, messages (or runs), out, and cached tokens. Signals are
+session id, messages (or runs), out, and cached tokens. Claude rows also carry
+turns, mean context tokens, and tool-result deny refusals; an unreadable
+transcript reports those three as `unrecorded`. Signals are
 numbers with provenance, never verdicts: `cache-churn` carries the
 cached-read and output figures whose ratio breached, and
 `heavy-turn` names the single heaviest message (for codex, the
@@ -54,7 +60,9 @@ agent decides what to change; the tool only points.
    dedup for claude ids, same grok run-splitting, cost ticks, and
    incompleteness discipline. A harness whose stores are absent or
    unparseable prints `unrecorded`, never 0. `counted=N/M` and
-   `(incomplete)` propagate to every output format.
+   `(incomplete)` propagate to every output format. When `--claude-dir`
+   is omitted, `CLAUDE_DIR` comes from lane configuration and relative
+   values resolve against the user's home directory.
 4. **Results come from git only.** Merge commits on HEAD's
    first-parent line in the window; PR numbers parsed from `Merge
    pull request #N` subjects; commits with no PR number are listed as
@@ -70,7 +78,10 @@ agent decides what to change; the tool only points.
    cached reads exceed 20x its output tokens AND output is nonzero;
    `heavy-turn` names the single largest out-token message (claude /
    codex) or run (grok) in each listed session. Signals carry the
-   session id and harness so the transcript can be opened.
+   session id and harness so the transcript can be opened. Every ranked
+   Claude row carries assistant-usage `turns`, mean `avg_context`
+   (input plus both caches), and tool-result deny `refusals`; all three
+   are `unrecorded` when the transcript is unreadable.
 7. **JSON is the same truth**: `--format json` emits one object with
    `stamp`, `cost`, `results` (report) or `stamp`, `sessions`,
    `signals` (waste); every plain-format figure appears in it, and
@@ -78,7 +89,8 @@ agent decides what to change; the tool only points.
 8. **Exit codes**: 0 on success including empty windows (an empty
    window prints zeros for results and `sessions=0` per harness); 2
    on unusable arguments (malformed ISO, until <= since, unknown
-   format); stderr carries the reason.
+   format) or missing configured `CLAUDE_DIR`; stderr carries the reason,
+   with the missing key using the `conf-key` refusal class.
 
 ## Reading it
 
