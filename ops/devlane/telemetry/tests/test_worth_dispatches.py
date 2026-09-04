@@ -422,6 +422,27 @@ class DispatchMeterTests(unittest.TestCase):
         )
         return matches[0]
 
+    def _field_at(self, value, *path):
+        current = value
+        walked = []
+        for key in path:
+            location = ".".join(walked) if walked else "row"
+            self.assertIsInstance(
+                current,
+                dict,
+                f"expected a dict at {location}; found "
+                f"{type(current).__name__}: {current}",
+            )
+            self.assertIn(
+                key,
+                current,
+                f"missing {'.'.join(walked + [key])}; "
+                f"keys={sorted(current)}",
+            )
+            walked.append(key)
+            current = current[key]
+        return current
+
     def _ranked(self, data):
         sessions = data["sessions"]
         self.assertIsInstance(sessions, list)
@@ -881,8 +902,16 @@ class DispatchMeterTests(unittest.TestCase):
             spend=CLAUDE_SPEND,
             model_ran="claude-fable-5",
             unit="WO-7",
-            branch="work",
+            branch="lane/token-meter",
         )
+        planted = json.loads(
+            (self.dispatch / CLAUDE_ID / "record.json").read_text(
+                encoding="utf-8",
+            )
+        )
+        self.assertEqual(planted["unit"], "WO-7")
+        self.assertEqual(planted["lineage"]["branch"], "lane/token-meter")
+        self.assertEqual(planted["model"]["ran"], "claude-fable-5")
         data = self._report()
         row = self._row_by_id(self._dispatch_block(data)["rows"], CLAUDE_ID)
         for key in (
@@ -895,12 +924,14 @@ class DispatchMeterTests(unittest.TestCase):
         self.assertEqual(row["harness"], "claude")
         self.assertEqual(row["unit"], "WO-7")
         self.assertEqual(row["status"], "closed")
-        ran = row.get("model") if isinstance(row.get("model"), dict) else row
-        rendered = json.dumps(row)
-        self.assertIn("claude-fable-5", rendered)
-        self.assertIn("work", rendered)
-        if isinstance(ran, dict) and "ran" in ran:
-            self.assertEqual(ran["ran"], "claude-fable-5")
+        self.assertEqual(
+            self._field_at(row, "lineage", "branch"),
+            "lane/token-meter",
+        )
+        self.assertEqual(
+            self._field_at(row, "model", "ran"),
+            "claude-fable-5",
+        )
 
     def test_waste_ranks_dispatches_with_sessions_by_window_total(self):
         self._plant_claude("session-leader", [{
