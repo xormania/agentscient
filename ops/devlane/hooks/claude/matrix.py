@@ -70,8 +70,6 @@ DISPATCHERS = ("dispatch.sh", "go.sh")
 LAUNCHER = "launch.py"
 DRIVER = "ladder.sh"
 SCOPE_CAP_DEFAULT = 1024
-TRUNK_DEFAULT = "dev"
-LANE_DEFAULT = "agentscient"
 COPY_WORDS = ("cp", "mv", "install", "rsync", "ln")
 GRANT = re.compile(r"^\s*(?:export\s+)?HAND_GRANT=(\d+)\b")
 WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
@@ -267,7 +265,7 @@ def prune_targets(tokens, cwd, conf):
         return []
     hits = []
     wt_root = os.path.normpath(os.path.join(cwd, conf.get("WORKTREE_ROOT", "../wt")))
-    state = os.path.join(STATE_DIR, conf.get("LANE_NAME", LANE_DEFAULT))
+    state = os.path.join(STATE_DIR, conf.get("LANE_NAME"))
     for token in tokens[1:]:
         if token.startswith("-"):
             continue
@@ -333,7 +331,7 @@ def path_form_unittest(tokens):
 
 
 def expand(script_text, cwd):
-    """Expand $VAR / ${VAR} from the script's own assignments, then the environment."""
+    """Expand shell variables from the script's assignments, then the environment."""
     mapping = dict(os.environ)
     for match in ASSIGN.finditer(script_text):
         mapping[match.group(1)] = string.Template(match.group(2).strip("'\"")).safe_substitute(mapping)
@@ -406,7 +404,7 @@ def check_dispatch(kind, flags, cwd, text, grant):
                         "walk the first run against the isolated home, no network, the read-only .git, "
                         "the job prompt and the runner workspace before dispatch (planning rule)")
     if worktree:
-        trunk = conf.get("TRUNK_BRANCH", TRUNK_DEFAULT)
+        trunk = conf.get("TRUNK_BRANCH")
         probe = subprocess.run(["git", "-C", root, "merge-base", "--is-ancestor", f"origin/{trunk}", "HEAD"],  # noqa: S603, S607 - PATH git; root is a path this hook resolved
                                capture_output=True, text=True, check=False)
         if probe.returncode == 1:
@@ -450,7 +448,7 @@ def check_dispatch(kind, flags, cwd, text, grant):
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
-    lane = conf.get("LANE_NAME", LANE_DEFAULT)
+    lane = conf.get("LANE_NAME")
     grant = open_grant(text, lane)
     if PY_WRITE.search(text):
         for match in PY_PATH.finditer(text):
