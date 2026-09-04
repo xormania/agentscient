@@ -197,6 +197,53 @@ def is_python(word):
     return bool(re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", base(word)))
 
 
+def env_operand(tokens, program):
+    """The command operand after bounded GNU env options, or None."""
+    if program >= len(tokens) or base(tokens[program]) != "env":
+        return program
+    program += 1
+    while program < len(tokens):
+        argument = tokens[program]
+        if argument == "--":
+            return program + 1
+        if argument == "-" or ENV_ASSIGN.match(argument):
+            program += 1
+            continue
+        if argument in ("--help", "--version"):
+            return None
+        if argument in (
+                "--ignore-environment", "--null", "--debug",
+                "--block-signal", "--default-signal", "--ignore-signal",
+                "--list-signal-handling"):
+            program += 1
+            continue
+        if argument in ("--unset", "--chdir", "--split-string"):
+            program += 2
+            continue
+        if argument.startswith((
+                "--unset=", "--chdir=", "--split-string=",
+                "--block-signal=", "--default-signal=", "--ignore-signal=")):
+            program += 1
+            continue
+        if argument.startswith("-"):
+            options = argument[1:]
+            offset = 0
+            while offset < len(options) and options[offset] in "i0v":
+                offset += 1
+            if offset == len(options):
+                program += 1
+                continue
+            if options[offset] in "uCS" and offset + 1 == len(options):
+                program += 2
+                continue
+            if options[offset] in "uCS":
+                program += 1
+                continue
+            return None
+        return program
+    return None
+
+
 def python_operand(tokens, program):
     """The script operand after Python options, or the literal -c source."""
     program += 1
@@ -204,26 +251,40 @@ def python_operand(tokens, program):
         argument = tokens[program]
         if argument == "--":
             return program + 1, None
-        if argument == "-c":
-            return None, tokens[program + 1] if program + 1 < len(tokens) else None
-        if argument == "-m" or argument in ("-h", "-V", "--help", "--version"):
+        if argument == "-":
+            return program, None
+        if argument in ("-h", "-?", "-V", "--help", "--version", "--help-env",
+                        "--help-xoptions", "--help-all"):
             return None, None
-        if argument in ("-W", "-X", "--check-hash-based-pycs"):
+        if argument == "--check-hash-based-pycs":
             program += 2
             continue
-        if argument.startswith(("-W", "-X", "--check-hash-based-pycs=")):
+        if argument.startswith("--check-hash-based-pycs="):
             program += 1
             continue
         if argument in ("--debug", "--inspect", "--isolated", "--no-site", "--no-user-site", "--quiet", "--verbose"):
             program += 1
             continue
-        if re.fullmatch(r"-[bBdEiIOPqRsSuvx]+", argument):
-            program += 1
-            continue
         if argument.startswith("-"):
-            return None, None
+            options = argument[1:]
+            for offset, option in enumerate(options):
+                if option == "c":
+                    source = options[offset + 1:]
+                    if not source and program + 1 < len(tokens):
+                        source = tokens[program + 1]
+                    return None, source or None
+                if option == "m" or option in "h?V":
+                    return None, None
+                if option in "WX":
+                    program += 1 if options[offset + 1:] else 2
+                    break
+                if option not in "bBdEiIOPqRsSuvx":
+                    return None, None
+            else:
+                program += 1
+            continue
         return program, None
-    return None, None
+    return program, None
 
 
 def literal_arg(call, position, keyword, default=None):
@@ -240,9 +301,10 @@ def python_sources(text):
     sources = []
     for command in commands(text):
         tokens = tokens_of(command)
-        if not tokens or not is_python(tokens[0]):
+        program = env_operand(tokens, 0)
+        if program is None or program >= len(tokens) or not is_python(tokens[program]):
             continue
-        _program, source = python_operand(tokens, 0)
+        _program, source = python_operand(tokens, program)
         if source is not None:
             sources.append(source)
 
@@ -257,7 +319,26 @@ def python_sources(text):
         end = index + 1
         while end < len(lines) and lines[end].strip() != delimiter:
             end += 1
-        if any(is_python(tokens_of(command)[0]) for command in commands(lines[index]) if tokens_of(command)):
+        executes_python = False
+        for command in commands(lines[index]):
+            tokens = []
+            skip_delimiter = False
+            for token in tokens_of(command):
+                if skip_delimiter:
+                    skip_delimiter = False
+                elif token in ("<<", "<<-"):
+                    skip_delimiter = True
+                elif not token.startswith(("<<", "<<-")):
+                    tokens.append(token)
+            program = env_operand(tokens, 0)
+            if program is not None and program < len(tokens) and is_python(tokens[program]):
+                operand, source = python_operand(tokens, program)
+                executes_python = source is None and operand is not None and (
+                    operand >= len(tokens) or tokens[operand] == "-"
+                )
+                if executes_python:
+                    break
+        if executes_python:
             sources.append("\n".join(lines[index + 1:end]))
         index = end + 1
     return sources
@@ -271,11 +352,27 @@ def python_written_paths(text):
             tree = ast.parse(source)
         except (SyntaxError, ValueError):
             continue
+        module_names = {}
+        open_names = {"open"}
+        path_names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for item in node.names:
+                    if item.name in ("builtins", "io", "pathlib"):
+                        module_names[item.asname or item.name] = item.name
+            elif isinstance(node, ast.ImportFrom) and node.module in ("builtins", "io", "pathlib"):
+                for item in node.names:
+                    local = item.asname or item.name
+                    if item.name == "open" and node.module in ("builtins", "io"):
+                        open_names.add(local)
+                    elif item.name == "Path" and node.module == "pathlib":
+                        path_names.add(local)
         for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
             function = call.func
-            if (isinstance(function, ast.Name) and function.id == "open") or (
+            if (isinstance(function, ast.Name) and function.id in open_names) or (
                     isinstance(function, ast.Attribute) and function.attr == "open"
-                    and isinstance(function.value, ast.Name) and function.value.id == "io"):
+                    and isinstance(function.value, ast.Name)
+                    and module_names.get(function.value.id) in ("builtins", "io")):
                 path = literal_arg(call, 0, "file")
                 mode = literal_arg(call, 1, "mode", "r")
                 if path and mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+"):
@@ -285,9 +382,10 @@ def python_written_paths(text):
                 continue
             owner = function.value
             if not isinstance(owner, ast.Call) or not (
-                    (isinstance(owner.func, ast.Name) and owner.func.id == "Path") or
+                    (isinstance(owner.func, ast.Name) and owner.func.id in path_names) or
                     (isinstance(owner.func, ast.Attribute) and owner.func.attr == "Path"
-                     and isinstance(owner.func.value, ast.Name) and owner.func.value.id == "pathlib")):
+                     and isinstance(owner.func.value, ast.Name)
+                     and module_names.get(owner.func.value.id) == "pathlib")):
                 continue
             path = literal_arg(owner, 0, "")
             mode = literal_arg(call, 0, "mode", "r") if function.attr == "open" else "w"
@@ -385,26 +483,9 @@ def prune_targets(tokens, cwd, conf):
 def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
-    program = 0
-    if tokens and base(tokens[program]) == "env":
-        program += 1
-        while program < len(tokens):
-            argument = tokens[program]
-            if argument == "--":
-                program += 1
-                break
-            if ENV_ASSIGN.match(argument) or argument in ("-i", "--ignore-environment", "-0", "--null", "--debug"):
-                program += 1
-                continue
-            if argument in ("-u", "--unset", "-C", "--chdir"):
-                program += 2
-                continue
-            if argument.startswith(("--unset=", "--chdir=")):
-                program += 1
-                continue
-            if argument.startswith("-"):
-                return None, {}
-            break
+    program = env_operand(tokens, 0)
+    if program is None:
+        return None, {}
     name = base(tokens[program]) if program < len(tokens) else ""
     if is_python(name):
         program, _source = python_operand(tokens, program)
