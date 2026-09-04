@@ -62,11 +62,11 @@
     "requested": "grok-4.6",
     "effort_requested": "xhigh",
     "ran": "grok-4.6",
-    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T233939Z-code-grok-c9c4c4/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T233939Z-code-grok-c9c4c4%2Fsnapshot/d990c02d-cf66-47e4-be6d-cbc855dd4c3d/summary.json"
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260903T233939Z-code-grok-c9c4c4/home/grok-stream/sessions/%3Cjob%2020260903T233939Z-code-grok-c9c4c4%3E%2Fsnapshot/d990c02d-cf66-47e4-be6d-cbc855dd4c3d/summary.json"
   },
   "session": {
     "id": "d990c02d-cf66-47e4-be6d-cbc855dd4c3d",
-    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T233939Z-code-grok-c9c4c4/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T233939Z-code-grok-c9c4c4%2Fsnapshot/d990c02d-cf66-47e4-be6d-cbc855dd4c3d/summary.json",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260903T233939Z-code-grok-c9c4c4/home/grok-stream/sessions/%3Cjob%2020260903T233939Z-code-grok-c9c4c4%3E%2Fsnapshot/d990c02d-cf66-47e4-be6d-cbc855dd4c3d/summary.json",
     "stream_sha256_at_close": "7c958dcae0cc1b10a82ff6f636f6a8469b48907fd72b491082b60b2b4d98056b",
     "spend": {
       "input": 4445595,
@@ -74,7 +74,7 @@
       "output": 44169,
       "total": 4489764,
       "cost_usd_ticks": 4758442800,
-      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T233939Z-code-grok-c9c4c4/home/grok-stream/sessions/%2Fhome%2Fscientdb%2F.local%2Fstate%2Fagentscient%2Fdispatch%2F20260903T233939Z-code-grok-c9c4c4%2Fsnapshot/d990c02d-cf66-47e4-be6d-cbc855dd4c3d/summary.json",
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260903T233939Z-code-grok-c9c4c4/home/grok-stream/sessions/%3Cjob%2020260903T233939Z-code-grok-c9c4c4%3E%2Fsnapshot/d990c02d-cf66-47e4-be6d-cbc855dd4c3d/summary.json",
       "messages": 358
     }
   },
