@@ -1,0 +1,104 @@
+{
+  "id": "20260904T144439Z-check-tests-codex-ffaf2b",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "f6a2d6c4c0e2c04745d56d8e24464d86c21f8313"
+  },
+  "follows": [
+    "20260904T143022Z-tests-grok-ebbae8"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T14:44:40Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f6a2d6c4c0e2c04745d56d8e24464d86c21f8313",
+    "ref_sha": "f6a2d6c4c0e2c04745d56d8e24464d86c21f8313",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T144439Z-check-tests-codex-ffaf2b/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T144439Z-check-tests-codex-ffaf2b/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T144439Z-check-tests-codex-ffaf2b/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T144439Z-check-tests-codex-ffaf2b/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T144439Z-check-tests-codex-ffaf2b/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "95d8879f-7304-4cd9-9bf6-17f566d169e7",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "One slice, size **S**, one named S bucket, three files, one implement run.\nM was considered and rejected: at this ref the driver derives one test command from the first tests envelope (`ladder.py` `derive_command`, `stage_scope` passes `test-command.md` as `--scope-file` for every `code` / `code-N` stage). Two S buckets would therefore receive the same command. The first run could not go green without editing the second bucket's files, and the second run would have nothing left to do. That is not \"each landed and green alone\". L (two slices) is not required: three files is inside the S bound (1\u20133 files, under 10 minutes).\nThis slice is the batch's second slice and deserves its own draft PR (the ladder `pr` stage). It does not share a PR with slice 1. There is no second slice in this plan.\nValue order inside the one implement run: finding 1, then finding 2, then finding 4's pin, then finding 3, then finding 5. p1 first.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T144439Z-check-tests-codex-ffaf2b/in/PLAN-check-tests-json-2.md",
+        "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T144439Z-check-tests-codex-ffaf2b/in/20260904T143022Z-tests-grok-ebbae8.json",
+        "sha256": "da6ec42c61982680171fc0eb660fa8fb6e701b0fb5cfaf6bb5a3da441056c92a"
+      }
+    ],
+    "sha256": "4466fd3598766a9b5ddbf5d9e928f35baa427b64ff9b1fd9a605cba583f4acb5",
+    "bytes": 3701
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
