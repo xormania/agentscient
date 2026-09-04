@@ -24,6 +24,13 @@ BASE_EPOCH = 1_787_306_400
 SECOND_BASE_EPOCH = BASE_EPOCH + 86_400
 MARKER = "FIXTUREPROMPTMARKER"
 JOB_ID = "20260821T100000Z-plan-grok-abc123"
+LAUNCHER_ARTIFACTS = {
+    f"{JOB_ID}/record.json",
+    f"{JOB_ID}/state.json",
+    f"{JOB_ID}/exit",
+    f"{JOB_ID}/raw.out",
+    f"{JOB_ID}/prompt.txt",
+}
 
 
 def load_module(testcase, path, name):
@@ -294,12 +301,34 @@ class DispatchStoreBuilderShape(unittest.TestCase):
         )
         first = snapshot(first_root)
         second = snapshot(second_root)
-        self.assertGreater(len(first), 0)
-        self.assertGreater(len(second), 0)
-        self.assertNotEqual(
-            first,
-            second,
-            "distinct base_timestamp plants produced identical bytes",
+        self.assertEqual(
+            set(first),
+            LAUNCHER_ARTIFACTS,
+            (
+                "the builder wrote paths other than the launcher job "
+                f"artifacts under {first_root}: {sorted(first)}"
+            ),
+        )
+        self.assertEqual(
+            set(second),
+            LAUNCHER_ARTIFACTS,
+            (
+                "the builder wrote paths other than the launcher job "
+                f"artifacts under {second_root}: {sorted(second)}"
+            ),
+        )
+        differing = [
+            path
+            for path in LAUNCHER_ARTIFACTS
+            if first[path] != second[path]
+        ]
+        self.assertGreater(
+            len(differing),
+            0,
+            (
+                "distinct base_timestamp plants left every launcher "
+                "artifact unchanged"
+            ),
         )
 
 
