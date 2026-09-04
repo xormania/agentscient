@@ -1,0 +1,100 @@
+{
+  "id": "20260904T154353Z-tests-grok-ea5f39",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/context-contracts",
+  "lineage": {
+    "branch": "lane/context-contracts",
+    "base_sha": "d0565423a22bdc7007e874377a9833706543f2d1"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T15:43:53Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d0565423a22bdc7007e874377a9833706543f2d1",
+    "ref_sha": "d0565423a22bdc7007e874377a9833706543f2d1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "2475df20-ee01-40b8-9b34-70ed7ebdee95",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "2475df20-ee01-40b8-9b34-70ed7ebdee95",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "### 3.1 Closure \u2014 `closure.cue`, `closure.py`, `closure.json`\n`#ClosureIndex: close({contracts: [...#Row, ...]})`. `#Row: close({path: #NonEmpty, consumer: #NonEmpty | #DeclaredAbsent, fixture: #NonEmpty | #DeclaredAbsent})`. `closure.py check` walks `git ls-files '*.cue' 'ops/conductor/*-lever.md'`, diffs against the index, vets the index as `#ClosureIndex`, and for every closed row subprocess-checks that the fixture path exists. Cue missing: class `cue-missing`, exit 2. Cue version other than `#CueVersion`: `cue-version`. CLI stdlib only.\n### 3.2 Job-kind manifests \u2014 `manifest.cue`\nReuse `#NonEmpty`, `#Digest`, `#DeclaredAbsent`, `#HarnessName`, `#IsolationObserved` from `context.cue`. New: `#CueVersion`, `#Section`, `#HarnessFacts`, `#Custody`, `#Manifest`, `#Launchable`, `#ReadProbe`, one closed definition per kind.\n| kind | required slots | optional (max) | writes |\n|---|---|---|---|\n| `author-tests` | scope, brief, diff | plan (1), previous (1), report (1), findings (2) | snapsho\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/in/PLAN-context-contracts-2-closure-index.md",
+        "sha256": "3c7aaf65bf72d9380ee40987bf9d0d3f3ae022f3eb081046149bc03163c6e809"
+      }
+    ],
+    "sha256": "6b5c2898ef4ac87d87961ac95e605a9ab1942a6da4198c3699d98465cb2575e2",
+    "bytes": 3348
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
