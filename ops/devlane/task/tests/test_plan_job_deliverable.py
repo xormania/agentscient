@@ -1,0 +1,99 @@
+"""The plan job's deliverable line names every required section.
+
+Written from the contract (in/contract-plan-prompt.md) at
+0cea17ab4023f80c92c99591e4aaf825f9bac98a, before the catalogue was
+edited. The deliverable names the bucket rule, the first-run
+walkthrough, the assumption rule, the tests by file with why red, the
+machine lines, and the calibration row, so a plan missing any section
+is not the deliverable.
+"""
+
+from __future__ import annotations
+
+import json
+import unittest
+
+import support
+
+JOBS_PATH = support.APP / "jobs.json"
+
+MISSING_IS_NOT = "a plan missing any section is not the deliverable"
+BUCKETS = "bucket rule"
+WALKTHROUGH = "walkthrough of the first run"
+ASSUMPTION = "every assumption"
+TESTS_BY_FILE = "tests by file"
+MACHINE_LINES = "machine lines"
+CALIBRATION = "calibration row"
+
+
+def _squish(text):
+    return " ".join(text.split())
+
+
+class _PlanJob(unittest.TestCase):
+    def plan_spec(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertIsInstance(jobs, dict)
+        self.assertIn("plan", jobs)
+        spec = jobs["plan"]
+        self.assertIsInstance(spec, dict)
+        return spec
+
+    def plan_deliverable(self):
+        spec = self.plan_spec()
+        deliverable = spec.get("deliverable")
+        self.assertIsInstance(deliverable, str)
+        self.assertTrue(deliverable.strip(), "plan deliverable is empty")
+        return deliverable
+
+    def words(self):
+        return _squish(self.plan_deliverable())
+
+
+class PlanDeliverableNamesEveryRequiredSection(_PlanJob):
+    """A plan that omits a named section is not the deliverable."""
+
+    def test_the_deliverable_says_a_plan_missing_any_section_is_not_it(self):
+        self.assertIn(MISSING_IS_NOT, self.words())
+
+    def test_the_deliverable_names_the_bucket_rule(self):
+        self.assertIn(BUCKETS, self.words())
+
+    def test_the_deliverable_names_the_walkthrough(self):
+        self.assertIn(WALKTHROUGH, self.words())
+
+    def test_the_deliverable_names_the_assumption_rule(self):
+        self.assertIn(ASSUMPTION, self.words())
+
+    def test_the_deliverable_names_the_tests_by_file(self):
+        self.assertIn(TESTS_BY_FILE, self.words())
+
+    def test_the_deliverable_names_the_machine_lines(self):
+        self.assertIn(MACHINE_LINES, self.words())
+
+    def test_the_deliverable_names_the_calibration_row(self):
+        self.assertIn(CALIBRATION, self.words())
+
+    def test_every_deliverable_section_name_is_present_together(self):
+        required = (
+            MISSING_IS_NOT,
+            BUCKETS,
+            WALKTHROUGH,
+            ASSUMPTION,
+            TESTS_BY_FILE,
+            MACHINE_LINES,
+            CALIBRATION,
+        )
+        self.assertGreater(len(required), 0)
+        words = self.words()
+        missing = [sentence for sentence in required if sentence not in words]
+        self.assertEqual(
+            missing, [],
+            "plan deliverable must name every required section; "
+            f"missing {missing!r}",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
