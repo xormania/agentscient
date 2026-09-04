@@ -106,9 +106,24 @@
       "verdict": "changes"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
       "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/ladders/20260904T143022Z-ladder-2e605b/check-tests-findings.payload.json",
+        "proof": {
+          "given": [
+            "One slice, size **S**, one named S bucket, three files, one implement run.",
+            "20260904T144439Z-check-tests-codex-ffaf2b"
+          ],
+          "withheld": []
+        },
+        "sha256": "e2929293b12076dadd8625bf5bd9534ff715b79b3045455b248267fccbdbdec5"
+      },
       "job": "author-tests",
       "name": "tests-fix",
       "outcome": "pending",
