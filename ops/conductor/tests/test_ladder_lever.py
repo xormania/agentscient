@@ -3770,12 +3770,14 @@ class FindingsPayloadWriteDoesNotFollowASymlink(_LadderFixture):
 
     Consume-time Path.resolve checks are a different finding. A
     pre-existing check-tests-findings.payload.json symlink must not
-    redirect the driver's write onto the host.
+    redirect the driver's write onto the host. An absolute target and
+    a relative ../../ host target are both plants. Silent success
+    after check-tests is not a refusal of the bypass.
     """
 
-    def test_payload_symlink_is_not_followed(self):
-        host_body = "HOST"
-        secret = self.host_secret("host-payload-aa32", host_body)
+    HOST_BODY = "HOST"
+
+    def _stop_at_tests_inputs_dir(self) -> tuple[str, Path]:
         self.patch_plant(trip_stages=["tests"])
         first = self.run_ladder()
         rec_id = self.record_id_for("tests")
@@ -3787,19 +3789,42 @@ class FindingsPayloadWriteDoesNotFollowASymlink(_LadderFixture):
             self.wt / ".dev" / "records" / "ladders" / ladder_id
         )
         inputs_dir.mkdir(parents=True, exist_ok=True)
-        payload = inputs_dir / "check-tests-findings.payload.json"
+        self.assertTrue(inputs_dir.is_dir(), inputs_dir)
+        return ladder_id, inputs_dir
+
+    def _plant_payload_symlink(
+        self, payload: Path, secret: Path, *, relative: bool,
+    ) -> str:
         self.assertFalse(payload.exists(), payload)
-        payload.symlink_to(secret)
+        if relative:
+            target = os.path.relpath(secret, start=payload.parent)
+            self.assertFalse(os.path.isabs(target), target)
+            self.assertIn("..", Path(target).parts, target)
+        else:
+            target = str(secret)
+            self.assertTrue(os.path.isabs(target), target)
+            self.assertNotIn("..", Path(target).parts, target)
+        payload.symlink_to(target)
+        landed = os.readlink(payload)
+        self.assertEqual(landed, target)
+        if relative:
+            self.assertFalse(os.path.isabs(landed), landed)
+            self.assertIn("..", Path(landed).parts, landed)
+        else:
+            self.assertTrue(os.path.isabs(landed), landed)
         self.assertTrue(payload.is_symlink(), payload)
-        self.assertEqual(Path(os.readlink(payload)), secret)
         self.assertEqual(payload.resolve(), secret.resolve())
-        self.assertEqual(secret.read_text(encoding="utf-8"), host_body)
+        self.assertEqual(secret.read_text(encoding="utf-8"), self.HOST_BODY)
         rel = str(payload.relative_to(self.wt))
         self.git("add", "-A", "--", rel)
         self.git("commit", "-m", "plant findings payload symlink\n")
         self.assertEqual(self.porcelain(), "")
         self.assertTrue(payload.is_symlink(), payload)
-        self.assertEqual(secret.read_text(encoding="utf-8"), host_body)
+        self.assertEqual(os.readlink(payload), landed)
+        self.assertEqual(secret.read_text(encoding="utf-8"), self.HOST_BODY)
+        return landed
+
+    def _resume_through_check_tests(self, ladder_id: str):
         self.close_tripped_record()
         planted = self.plant_check_tests_findings(verdict="changes")
         self.assertTrue(planted)
@@ -3815,10 +3840,20 @@ class FindingsPayloadWriteDoesNotFollowASymlink(_LadderFixture):
         env = self.check_tests_envelope()
         self.assertEqual(env.get("verdict"), "changes", env)
         self.assertEqual(env.get("findings"), planted, env)
+        return planted, second
+
+    def _assert_payload_write_did_not_follow(
+        self,
+        *,
+        secret: Path,
+        payload: Path,
+        second,
+        planted: list,
+    ) -> None:
         after = secret.read_text(encoding="utf-8")
         self.assertEqual(
             after,
-            host_body,
+            self.HOST_BODY,
             "findings payload write followed a symlink onto the host; "
             f"host now reads {after[:240]!r}",
         )
@@ -3826,11 +3861,13 @@ class FindingsPayloadWriteDoesNotFollowASymlink(_LadderFixture):
             str(secret.resolve()).startswith(str(self.wt.resolve()) + os.sep),
             secret,
         )
+        names = self.dispatch_names()
+        text = self.combined(second)
         for row in self.dispatch_calls():
             argv = row.get("argv") or []
             self.assertNotIn(str(secret), argv, argv)
             blob = self.inputs_text(argv)
-            self.assertNotIn(host_body, blob)
+            self.assertNotIn(self.HOST_BODY, blob)
             for value in self.flag_values(argv, "--input"):
                 raw = Path(value)
                 resolved = (
@@ -3848,6 +3885,60 @@ class FindingsPayloadWriteDoesNotFollowASymlink(_LadderFixture):
                     str(resolved).startswith(str(self.wt.resolve()) + os.sep),
                     f"tests-fix --input escaped the worktree: {argv!r}",
                 )
+        # Replacing the symlink with a regular file inside inputs, or
+        # stopping before the write, are both refusals of the bypass.
+        # Silent success after check-tests is not.
+        still_planted = payload.is_symlink() or not payload.is_file()
+        if still_planted:
+            self.assertIn(
+                second.returncode, {2, 3},
+                "a planted payload symlink that is still a symlink must "
+                "refuse (exit 2 or 3), not return success: "
+                f"returncode={second.returncode} {text}",
+            )
+            self.assertNotEqual(second.returncode, 0, text)
+            self.assertNotIn(
+                "tests-fix",
+                names,
+                "stopping before the write must not mint tests-fix: "
+                f"{names!r} {text}",
+            )
+            return
+        self.assertFalse(payload.is_symlink(), payload)
+        self.assertTrue(payload.is_file(), payload)
+        self.assertTrue(
+            str(payload.resolve()).startswith(str(self.wt.resolve()) + os.sep),
+            payload,
+        )
+        self.assertEqual(self.serialized_findings(payload), planted)
+        self.assertIn(
+            "tests-fix",
+            names,
+            "replacing the payload symlink with a regular file must "
+            f"still move validated changes to tests-fix: {names!r} {text}",
+        )
+
+    def test_payload_symlink_is_not_followed(self):
+        secret = self.host_secret("host-payload-aa32", self.HOST_BODY)
+        ladder_id, inputs_dir = self._stop_at_tests_inputs_dir()
+        payload = inputs_dir / "check-tests-findings.payload.json"
+        self._plant_payload_symlink(payload, secret, relative=False)
+        planted, second = self._resume_through_check_tests(ladder_id)
+        self._assert_payload_write_did_not_follow(
+            secret=secret, payload=payload, second=second, planted=planted,
+        )
+
+    def test_payload_relative_dotdot_host_symlink_is_not_followed(self):
+        secret = self.host_secret("host-payload-rel-aa32", self.HOST_BODY)
+        ladder_id, inputs_dir = self._stop_at_tests_inputs_dir()
+        payload = inputs_dir / "check-tests-findings.payload.json"
+        target = self._plant_payload_symlink(payload, secret, relative=True)
+        self.assertFalse(os.path.isabs(target), target)
+        self.assertIn("..", Path(target).parts, target)
+        planted, second = self._resume_through_check_tests(ladder_id)
+        self._assert_payload_write_did_not_follow(
+            secret=secret, payload=payload, second=second, planted=planted,
+        )
 
 
 if __name__ == "__main__":
