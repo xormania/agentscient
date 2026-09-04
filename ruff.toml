@@ -121,6 +121,7 @@ ignore = [
 # instruments — each with a code-built argv; THIS-FILE-ONLY rows, as the
 # House kept them, so a future tool earns its own row or stays clean.
 "ops/conductor/tools/watch.py" = ["S603"]
+"ops/conductor/tools/watchdog.py" = ["S603", "BLE001"]  # gh and pgrep with code-built argv; the tick guard catches everything by design
 "ops/conductor/tools/ci.py" = ["S603"]
 "ops/conductor/tools/land.py" = ["S603"]
 "ops/conductor/tools/branches.py" = ["S603"]

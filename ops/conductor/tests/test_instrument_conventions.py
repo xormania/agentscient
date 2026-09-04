@@ -37,6 +37,7 @@ REGISTRY = (
     ("branches.py", ["census", "unexpected"], "arguments", False),
     ("findings.py", ["disposition", "NOSUCH#1", "fixed", "why"], "key", True),
     ("findings.py", ["calibrate"], "calibration", True),
+    ("watchdog.py", ["--store", "/dev/null"], "store", False),
 )
 
 
