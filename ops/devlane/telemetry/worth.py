@@ -79,7 +79,19 @@ def read_jsonl(path):
     return rows
 
 
-def claude_sessions(root, repo, window):
+def _tool_result_denied(message):
+    content = message.get("content") or []
+    if not isinstance(content, list):
+        return False
+    return any(
+        isinstance(item, dict)
+        and item.get("type") == "tool_result"
+        and "hook returned a deny decision" in str(item.get("content", ""))
+        for item in content
+    )
+
+
+def claude_sessions(root, repo, window, include_unreadable=False):
     """Per-message accounting, last write per message id wins (the
     measured re-emission double-count), cwd-filtered to the repo."""
     since, until = window
@@ -87,8 +99,17 @@ def claude_sessions(root, repo, window):
     for path in sorted(Path(root).glob("*/*.jsonl")):
         rows = read_jsonl(path)
         if rows is None:
+            slug = "-" + "-".join(repo.strip("/").split("/"))
+            if include_unreadable and path.parent.name == slug:
+                sessions[path.stem] = {
+                    "turns": "unrecorded",
+                    "avg_context": "unrecorded",
+                    "refusals": "unrecorded",
+                }
             continue
         in_window = {}
+        contexts = []
+        refusals = 0
         try:
             for row in rows:
                 if row.get("cwd") != repo:
@@ -97,18 +118,32 @@ def claude_sessions(root, repo, window):
                 usage = message.get("usage")
                 mid = message.get("id")
                 stamp = row.get("timestamp")
-                if not (isinstance(usage, dict) and mid and stamp):
-                    continue
-                if not set(usage) & _CLAUDE_CURRENCIES:
-                    # an empty usage dict is unknown spend, and an
-                    # unknown rendered as 0 is a false measurement
+                if not stamp:
                     continue
                 at = parse_stamp(stamp)
-                # last-wins among IN-WINDOW emissions: a re-emission
-                # after the window must not erase history from it
-                if since <= at < until:
-                    in_window[mid] = (at, stamp, usage)
+                if not since <= at < until:
+                    continue
+                if _tool_result_denied(message):
+                    refusals += 1
+                if (row.get("type") == "assistant"
+                        and isinstance(usage, dict)
+                        and set(usage) & _CLAUDE_CURRENCIES):
+                    contexts.append(
+                        usage.get("input_tokens", 0)
+                        + usage.get("cache_creation_input_tokens", 0)
+                        + usage.get("cache_read_input_tokens", 0)
+                    )
+                    if mid:
+                        # last-wins among IN-WINDOW emissions: a re-emission
+                        # after the window must not erase history from it
+                        in_window[mid] = (at, stamp, usage)
         except ValueError:
+            if include_unreadable:
+                sessions[path.stem] = {
+                    "turns": "unrecorded",
+                    "avg_context": "unrecorded",
+                    "refusals": "unrecorded",
+                }
             continue
         if not in_window:
             continue
@@ -129,6 +164,9 @@ def claude_sessions(root, repo, window):
         )
         sessions[sid] = {
             "messages": len(in_window),
+            "turns": len(contexts),
+            "avg_context": sum(contexts) / len(contexts),
+            "refusals": refusals,
             "in": totals["in"],
             "cached": totals["cached"],
             "out": totals["out"],
@@ -453,10 +491,11 @@ def plain_stamp(stamp):
     return line
 
 
-def gather(args, window):
+def gather(args, window, include_unreadable=False):
     repo = str(args.repo)
     return {
-        "claude": claude_sessions(args.claude_dir, repo, window),
+        "claude": claude_sessions(
+            args.claude_dir, repo, window, include_unreadable),
         "codex": codex_sessions(args.codex_dir, repo, window),
         "grok": grok_sessions(args.grok_dir, repo, window),
     }
@@ -499,6 +538,14 @@ def dispatch_rows(root, repo, window):
         try:
             rec = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
+            try:
+                launched = datetime.strptime(
+                    job_dir.name[:16], "%Y%m%dT%H%M%SZ"
+                ).replace(tzinfo=timezone.utc)
+            except ValueError:
+                launched = None
+            if launched is not None and not since <= launched < until:
+                continue
             rows.append({"id": job_dir.name, "harness": "grok",
                          "tokens": "unrecorded",
                          "reason": "record unavailable"})
@@ -611,11 +658,19 @@ def cmd_report(args, window, window_iso):
 
 
 def cmd_waste(args, window, window_iso):
-    per_harness = gather(args, window)
+    per_harness = gather(args, window, include_unreadable=True)
     ranked = []
     for harness, sessions in per_harness.items():
         for sid, s in sessions.items():
             if "total" not in s:
+                if harness == "claude" and "turns" in s:
+                    ranked.append((s, {
+                        "kind": "session", "id": sid,
+                        "harness": harness, "session": sid,
+                        "turns": s["turns"],
+                        "avg_context": s["avg_context"],
+                        "refusals": s["refusals"],
+                    }))
                 continue
             entry = {"kind": "session", "id": sid,
                      "harness": harness, "session": sid,
@@ -625,6 +680,9 @@ def cmd_waste(args, window, window_iso):
                 entry["runs"] = s["runs"]
             else:
                 entry["messages"] = s["messages"]
+                if harness == "claude":
+                    for key in ("turns", "avg_context", "refusals"):
+                        entry[key] = s[key]
             ranked.append((s, entry))
     dispatches = dispatch_rows(args.dispatch_dir, str(args.repo), window)
     for row in dispatches:
@@ -635,13 +693,17 @@ def cmd_waste(args, window, window_iso):
             "declared_absent": "record carries no per-turn usage"})
         ranked.append(({"out": row.get("output", 0),
                         "cached_read": row.get("cached", 0)}, entry))
-    ranked.sort(key=lambda item: (-item[1]["total"],
-                                  item[1].get("session", item[1].get("id"))))
+    ranked.sort(key=lambda item: (
+        "total" not in item[1],
+        -item[1].get("total", 0),
+        item[1].get("session", item[1].get("id")),
+    ))
     ranked = ranked[:args.top]
 
     signals = []
     for s, entry in ranked:
-        if s["out"] > 0 and s["cached_read"] > CHURN_FACTOR * s["out"]:
+        if (s.get("out", 0) > 0
+                and s.get("cached_read", 0) > CHURN_FACTOR * s["out"]):
             signal = {"kind": "cache-churn",
                             "harness": entry["harness"],
                             "cached": s["cached_read"],
@@ -687,7 +749,8 @@ def cmd_waste(args, window, window_iso):
         else:
             parts = [f"{entry['harness']:7s} session={entry['session']}"]
         for key in ("stage", "unit", "status", "input", "total", "out", "output",
-                    "cached", "messages", "runs", "cost_usd",
+                    "cached", "messages", "runs", "turns", "avg_context",
+                    "refusals", "cost_usd",
                     "cost_usd_ticks", "cost", "tokens"):
             if key in entry:
                 parts.append(f"{key}={entry[key]}")
@@ -718,8 +781,7 @@ def main(argv=None):
     parser.add_argument("--top", type=int, default=5)
     parser.add_argument("--format", choices=("plain", "json"),
                         default="plain")
-    parser.add_argument("--claude-dir",
-                        default=str(Path.home() / ".claude" / "projects"))
+    parser.add_argument("--claude-dir")
     parser.add_argument("--codex-dir", default=str(Path.home() / ".codex"))
     parser.add_argument("--grok-dir", default=str(Path.home() / ".grok"))
     default_state = Path(os.environ.get(
@@ -731,6 +793,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     try:
+        if args.claude_dir is None:
+            try:
+                configured = Path(laneconf.get("CLAUDE_DIR"))
+            except laneconf.ConfigError as exc:
+                kind = "conf-key" if exc.kind == "key" else exc.kind
+                raise SystemExit2(exc.line(kind)) from None
+            if not configured.is_absolute():
+                configured = Path.home() / configured
+            args.claude_dir = str(configured)
         if args.now is None:
             now = datetime.now(timezone.utc)
             args.now = now.isoformat(timespec="milliseconds").replace(
