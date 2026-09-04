@@ -49,6 +49,50 @@ SILENT_STUB = (
     "sys.exit(0)\n"
 )
 
+# Original 10 files and 11 rows at a59e8a5, ordered as the gate reads
+# them (sorted file name; findings.py rows in tuple encounter order).
+# The gate does not iterate this; it is the pin the directory must match.
+SEED_FILES = (
+    "branches.py.json",
+    "ci.py.json",
+    "decisions.py.json",
+    "findings.py.json",
+    "hand.py.json",
+    "land.py.json",
+    "laneconf.py.json",
+    "onboard.py.json",
+    "watch.py.json",
+    "watchdog.py.json",
+)
+SEED_ROWS = (
+    ("branches.py", ("census", "unexpected"), "arguments", False),
+    ("ci.py", ("report",), "store", False),
+    (
+        "decisions.py",
+        ("add", "bad-id", "should this stand as recorded", "--home", "x.md"),
+        "id-shape",
+        True,
+    ),
+    (
+        "findings.py",
+        ("disposition", "NOSUCH#1", "fixed", "why"),
+        "key",
+        True,
+    ),
+    ("findings.py", ("calibrate",), "calibration", True),
+    (
+        "hand.py",
+        ("declare", "some act", "a reason of at least four words", "nonsense"),
+        "class",
+        True,
+    ),
+    ("land.py", ("NOSUCH-RECORD",), "record", True),
+    ("laneconf.py", ("get", "NO_SUCH_KEY"), "key", False),
+    ("onboard.py", ("unexpected",), "arguments", False),
+    ("watch.py", ("pr", "0"), "number", False),
+    ("watchdog.py", ("--store", "/dev/null"), "store", False),
+)
+
 
 @dataclass(frozen=True)
 class RegistryRow:
@@ -57,6 +101,12 @@ class RegistryRow:
     argv: tuple[str, ...]
     refusal: str
     identity: bool
+
+
+def row_pin(
+    row: RegistryRow,
+) -> tuple[str, tuple[str, ...], str, bool]:
+    return (row.tool, row.argv, row.refusal, row.identity)
 
 
 @dataclass(frozen=True)
@@ -166,6 +216,30 @@ class TheRefusalWireIsUniform(unittest.TestCase):
         self.assertGreater(len(rows), 0, "registry has no rows")
         return rows
 
+    def test_seed_is_ten_files_named_by_the_instrument(self):
+        names = sorted(path.name for path in REGISTRY_DIR.glob("*.json"))
+        self.assertEqual(len(names), 10)
+        self.assertEqual(names, list(SEED_FILES))
+
+    def test_seed_is_the_original_eleven_rows(self):
+        rows, failures = read_registry(REGISTRY_DIR)
+        self.assertEqual(failures, [], f"malformed registry files: {failures}")
+        pins = [row_pin(row) for row in rows]
+        self.assertEqual(len(pins), 11)
+        self.assertEqual(pins, list(SEED_ROWS))
+        findings = [row for row in rows if row.tool == "findings.py"]
+        self.assertEqual(len(findings), 2)
+        self.assertEqual({row.source for row in findings}, {"findings.py.json"})
+        self.assertEqual(
+            findings[0].argv,
+            ("disposition", "NOSUCH#1", "fixed", "why"),
+        )
+        self.assertEqual(findings[1].argv, ("calibrate",))
+        self.assertEqual(findings[0].refusal, "key")
+        self.assertEqual(findings[1].refusal, "calibration")
+        self.assertTrue(findings[0].identity)
+        self.assertTrue(findings[1].identity)
+
     def invoke(self, tool: str, argv: list[str], *, identity: bool):
         with tempfile.TemporaryDirectory(prefix="conventions-") as home:
             env = {
@@ -272,6 +346,36 @@ class RegistryClosure(unittest.TestCase):
         self._plant_bytes(path, body)
         return path
 
+    def _plant_payload(self, registry: Path, filename: str, payload) -> Path:
+        if isinstance(payload, (bytes, bytearray)):
+            body = bytes(payload)
+        else:
+            body = json.dumps(payload).encode("utf-8")
+        path = registry / filename
+        self._plant_bytes(path, body)
+        return path
+
+    def _plant_seed_rows(self, registry: Path, pins: tuple) -> None:
+        grouped: dict[str, list[dict]] = {}
+        for tool, argv, cls, ident in pins:
+            grouped.setdefault(tool, []).append(
+                {"argv": list(argv), "class": cls, "identity": ident}
+            )
+        for tool, rows in grouped.items():
+            self._plant_registry(registry, tool, rows)
+
+    def _assert_malformed(self, filename: str, payload, field: str, prove) -> None:
+        tools, registry = self._scratch()
+        path = self._plant_payload(registry, filename, payload)
+        landed = path.read_bytes()
+        if isinstance(payload, (bytes, bytearray)):
+            prove(landed)
+        else:
+            parsed = json.loads(path.read_text(encoding="utf-8"))
+            self.assertTrue(prove(parsed), f"plant did not keep the fault: {parsed!r}")
+        failures = closure_failures(registry, tools)
+        self.assertEqual(failures, [GateFailure(filename, field)])
+
     def test_every_declaring_tool_has_a_registry_file(self):
         declaring = declaring_tools(TOOLS)
         self.assertGreater(
@@ -341,6 +445,208 @@ class RegistryClosure(unittest.TestCase):
         self.assertNotEqual(planted_class, planted_class.lower())
         failures = closure_failures(registry, tools)
         self.assertEqual(failures, [GateFailure("bad-class.py.json", "class")])
+
+    def test_malformed_file_with_absent_identity_names_the_file_and_the_field(self):
+        row = {"argv": ["unexpected"], "class": "arguments"}
+        self._assert_malformed(
+            "no-identity.py.json",
+            {"tool": "no-identity.py", "rows": [row]},
+            "identity",
+            lambda parsed: "identity" not in parsed["rows"][0]
+            and parsed["rows"][0]["class"] == "arguments",
+        )
+
+    def test_malformed_file_with_a_wrong_type_per_field_names_the_file_and_the_field(
+        self,
+    ):
+        cases = (
+            (
+                "tool-type.py.json",
+                {"tool": 1, "rows": [VALID_ROW]},
+                "tool",
+                lambda parsed: isinstance(parsed["tool"], int),
+            ),
+            (
+                "rows-type.py.json",
+                {"tool": "rows-type.py", "rows": {"n": 1}},
+                "rows",
+                lambda parsed: isinstance(parsed["rows"], dict),
+            ),
+            (
+                "argv-type.py.json",
+                {
+                    "tool": "argv-type.py",
+                    "rows": [
+                        {
+                            "argv": "unexpected",
+                            "class": "arguments",
+                            "identity": False,
+                        }
+                    ],
+                },
+                "argv",
+                lambda parsed: isinstance(parsed["rows"][0]["argv"], str),
+            ),
+            (
+                "argv-item-type.py.json",
+                {
+                    "tool": "argv-item-type.py",
+                    "rows": [
+                        {
+                            "argv": [1],
+                            "class": "arguments",
+                            "identity": False,
+                        }
+                    ],
+                },
+                "argv",
+                lambda parsed: parsed["rows"][0]["argv"] == [1],
+            ),
+            (
+                "class-type.py.json",
+                {
+                    "tool": "class-type.py",
+                    "rows": [
+                        {
+                            "argv": ["unexpected"],
+                            "class": 1,
+                            "identity": False,
+                        }
+                    ],
+                },
+                "class",
+                lambda parsed: isinstance(parsed["rows"][0]["class"], int),
+            ),
+            (
+                "identity-type.py.json",
+                {
+                    "tool": "identity-type.py",
+                    "rows": [
+                        {
+                            "argv": ["unexpected"],
+                            "class": "arguments",
+                            "identity": 0,
+                        }
+                    ],
+                },
+                "identity",
+                lambda parsed: parsed["rows"][0]["identity"] == 0
+                and not isinstance(parsed["rows"][0]["identity"], bool),
+            ),
+        )
+        for filename, payload, field, prove in cases:
+            with self.subTest(field=field, filename=filename):
+                self._assert_malformed(filename, payload, field, prove)
+
+    def test_malformed_file_with_an_absent_required_field_names_the_file_and_the_field(
+        self,
+    ):
+        cases = (
+            (
+                "no-tool.py.json",
+                {"rows": [VALID_ROW]},
+                "tool",
+                lambda parsed: "tool" not in parsed,
+            ),
+            (
+                "no-rows.py.json",
+                {"tool": "no-rows.py"},
+                "rows",
+                lambda parsed: "rows" not in parsed,
+            ),
+            (
+                "no-argv.py.json",
+                {
+                    "tool": "no-argv.py",
+                    "rows": [{"class": "arguments", "identity": False}],
+                },
+                "argv",
+                lambda parsed: "argv" not in parsed["rows"][0],
+            ),
+            (
+                "no-class.py.json",
+                {
+                    "tool": "no-class.py",
+                    "rows": [{"argv": ["unexpected"], "identity": False}],
+                },
+                "class",
+                lambda parsed: "class" not in parsed["rows"][0],
+            ),
+        )
+        for filename, payload, field, prove in cases:
+            with self.subTest(field=field, filename=filename):
+                self._assert_malformed(filename, payload, field, prove)
+
+    def test_malformed_file_that_is_not_an_object_or_valid_json_names_the_file_and_the_field(
+        self,
+    ):
+        cases = (
+            (
+                "null.py.json",
+                None,
+                "object",
+                lambda parsed: parsed is None,
+            ),
+            (
+                "string.py.json",
+                "nope",
+                "object",
+                lambda parsed: parsed == "nope",
+            ),
+            (
+                "row-type.py.json",
+                {"tool": "row-type.py", "rows": ["nope"]},
+                "rows",
+                lambda parsed: parsed["rows"] == ["nope"],
+            ),
+            (
+                "tool-mismatch.py.json",
+                {"tool": "other.py", "rows": [VALID_ROW]},
+                "tool",
+                lambda parsed: parsed["tool"] == "other.py",
+            ),
+        )
+        for filename, payload, field, prove in cases:
+            with self.subTest(field=field, filename=filename):
+                self._assert_malformed(filename, payload, field, prove)
+        tools, registry = self._scratch()
+        body = b"{not json\n"
+        path = self._plant_payload(registry, "bad-json.py.json", body)
+        landed = path.read_bytes()
+        self.assertEqual(landed, body)
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(landed.decode("utf-8"))
+        failures = closure_failures(registry, tools)
+        self.assertEqual(failures, [GateFailure("bad-json.py.json", "json")])
+
+    def test_a_seed_omitting_findings_calibration_fails_the_eleven_row_pin(self):
+        _tools, registry = self._scratch()
+        omitted = tuple(
+            pin
+            for pin in SEED_ROWS
+            if pin != ("findings.py", ("calibrate",), "calibration", True)
+        )
+        self._plant_seed_rows(registry, omitted)
+        findings_path = registry / "findings.py.json"
+        payload = json.loads(findings_path.read_text(encoding="utf-8"))
+        self.assertEqual(len(payload["rows"]), 1)
+        self.assertEqual(
+            payload["rows"][0]["argv"],
+            ["disposition", "NOSUCH#1", "fixed", "why"],
+        )
+        self.assertNotIn("calibrate", json.dumps(payload))
+        names = sorted(path.name for path in registry.glob("*.json"))
+        self.assertEqual(len(names), 10)
+        self.assertEqual(names, list(SEED_FILES))
+        rows, failures = read_registry(registry)
+        self.assertEqual(failures, [])
+        pins = [row_pin(row) for row in rows]
+        self.assertEqual(len(pins), 10)
+        self.assertNotEqual(pins, list(SEED_ROWS))
+        self.assertNotIn(
+            ("findings.py", ("calibrate",), "calibration", True),
+            pins,
+        )
 
     def test_clean_planted_registry_passes(self):
         tools, registry = self._scratch()
