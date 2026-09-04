@@ -4,11 +4,15 @@ name: ci
 # cached oracle), then the Symfony project: manifest and lock agree,
 # install from the lock, the kernel boots, every PHPUnit suite. Runs on
 # this repository's own self-hosted runners (the House's pattern; the
-# toolchain lives on the host), with CI_RUNNER as the override. `edited` is in the trigger set so a title or body
-# changed after checks passed is judged again.
+# toolchain lives on the host), with CI_RUNNER as the override. The
+# pull_request trigger is limited to PRs into dev: the release PR from
+# dev into master is covered by the push run on dev, which stamps the
+# same commit, and nothing here reads a title or body, so `edited` is
+# not a trigger.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
+    branches: [dev]
   push:
     branches: [dev]
 permissions:
