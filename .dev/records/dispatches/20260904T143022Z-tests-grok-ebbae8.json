@@ -1,0 +1,100 @@
+{
+  "id": "20260904T143022Z-tests-grok-ebbae8",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "4ed9c1189f577a3db756f5a778ad8323e56bd62c"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T14:30:23Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4ed9c1189f577a3db756f5a778ad8323e56bd62c",
+    "ref_sha": "4ed9c1189f577a3db756f5a778ad8323e56bd62c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "1b59ce20-ac45-4eaa-8317-2c16089f83a0",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "1b59ce20-ac45-4eaa-8317-2c16089f83a0",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "One slice, size **S**, one named S bucket, three files, one implement run.\nM was considered and rejected: at this ref the driver derives one test command from the first tests envelope (`ladder.py` `derive_command`, `stage_scope` passes `test-command.md` as `--scope-file` for every `code` / `code-N` stage). Two S buckets would therefore receive the same command. The first run could not go green without editing the second bucket's files, and the second run would have nothing left to do. That is not \"each landed and green alone\". L (two slices) is not required: three files is inside the S bound (1\u20133 files, under 10 minutes).\nThis slice is the batch's second slice and deserves its own draft PR (the ladder `pr` stage). It does not share a PR with slice 1. There is no second slice in this plan.\nValue order inside the one implement run: finding 1, then finding 2, then finding 4's pin, then finding 3, then finding 5. p1 first.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T143022Z-tests-grok-ebbae8/in/PLAN-check-tests-json-2.md",
+        "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
+      }
+    ],
+    "sha256": "c41bd6841a9615bc62c36d01b14954c47741b711d1400bff530c434a445abc6b",
+    "bytes": 3278
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
