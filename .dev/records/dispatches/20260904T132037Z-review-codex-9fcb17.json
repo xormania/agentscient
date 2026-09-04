@@ -1,0 +1,168 @@
+{
+  "id": "20260904T132037Z-review-codex-9fcb17",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "dfbf4666746f69be68d2590594918dd89931eb6f"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T13:20:38Z",
+    "closed": "2026-09-04T13:27:21Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "dfbf4666746f69be68d2590594918dd89931eb6f",
+    "ref_sha": "dfbf4666746f69be68d2590594918dd89931eb6f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-20-40-01a06c94-1b8d-7b31-a0b5-15767ff2f93d.jsonl"
+  },
+  "session": {
+    "id": "01a06c94-1b8d-7b31-a0b5-15767ff2f93d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-20-40-01a06c94-1b8d-7b31-a0b5-15767ff2f93d.jsonl",
+    "stream_sha256_at_close": "ecc3eda7c58a3d1afd4c42475f7c954dc9d9de1ba8dcd67d075cbe8040f35134",
+    "spend": {
+      "input": 4572173,
+      "cached": 4413453,
+      "output": 25629,
+      "total": 4597802,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-20-40-01a06c94-1b8d-7b31-a0b5-15767ff2f93d.jsonl",
+      "messages": 347
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "c02c4a1b48afbc04012a786c8074200297198468e781924cb96e18ab9a08c04f"
+    },
+    "scope": "Audit the batch on lane/check-tests-json against its merge-base with dev: item 31, the skeptic's report is its JSON envelope, not a file. Changed: ops/devlane/task/jobs.json (check-tests prompt and deliverable), ops/devlane/task/CONTRACT.md, ops/conductor/tools/ladder.py (tests-fix input is a driver-owned findings file written from the check-tests record and named in the ladder record), ops/conductor/ladder-lever.md, and the tests that pin them. The contract is the input file. Quote declared words and practiced evidence with file:line for every finding; classes to hunt: a read-role prompt that still names a write path, a findings file written from an untrusted envelope without validation, a path under the ladder input directory that can escape it, the wire unchanged for every other job, a test that pins absence only. Review only; do not edit.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132037Z-review-codex-9fcb17/in/contract-check-tests-json.md",
+        "sha256": "a8a2e31c817d7de9227618db516f245108418b780092aeb8fe232d57167d63fa"
+      }
+    ],
+    "sha256": "a87b5e35f149196224c68d55b5fe563b2290e65fcdd0f5ab12e77292de216398",
+    "bytes": 4187
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:20:38Z",
+      "ended": "2026-09-04T13:27:21Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "dfbf4666746f69be68d2590594918dd89931eb6f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/ladder.py:705-765,951-959,1353-1363",
+          "claim": "Declared: ../in/contract-check-tests-json.md:29-37 requires \u201cverdict, counts, findings as quotation pairs with reproduce commands\u201d and says verdict `changes` moves to tests-fix while `approve` moves to implementation. Practiced: ladder.py accepts merely `status == \"ok\"`, writes `json.dumps(envelope.get(\"findings\"))`, then routes solely on `check_envelope.get(\"verdict\") == \"changes\"`. A launcher-schema-valid `approve` envelope containing findings is therefore trusted, persisted, and allowed to skip tests-fix, breaking lane integrity.",
+          "reproduce": "PYTHONPATH=ops/conductor/tools:ops/devlane/dispatch python3 -c 'import json,ladder,launch; env={\"job\":\"check-tests\",\"status\":\"ok\",\"verdict\":\"approve\",\"counts\":{\"p1\":0,\"p2\":1,\"p3\":0,\"opinions\":0},\"findings\":[{\"severity\":\"p2\",\"where\":\"x.py:1\",\"claim\":\"declared vs practiced\",\"reproduce\":\"printf PWNED\"}],\"artifacts\":{},\"spend\":{\"harness\":\"codex\",\"total\":0,\"out\":0,\"runs\":0},\"stamp\":{\"ref\":\"deadbeef\",\"started\":None,\"ended\":None},\"note\":None}; rec={\"status\":\"closed\",\"job\":\"check-tests\",\"stage\":\"check-tests\",\"unit\":\"lane/x\",\"lineage\":{\"branch\":\"lane/x\"},\"harness\":{\"name\":\"codex\"},\"model\":{\"requested\":\"m\",\"effort_requested\":\"e\",\"ran\":\"m\"},\"result\":{\"envelope\":env}}; P=type(\"P\",(),{\"read_text\":lambda self,encoding=None:json.dumps(rec)}); d=object.__new__(ladder.Driver); d.branch=\"lane/x\"; d.stage_by_name={\"check-tests\":{}}; got=d.load_envelope(ladder.Pending(\"check-tests\",\"id\",P(),\"m\",\"e\",\"base\",0.0))[1]; assert launch._schema_valid(env) and got[\"verdict\"]==\"approve\" and got[\"findings\"] and got.get(\"verdict\")!=\"changes\"; print(\"schema-valid findings skipped\",got[\"verdict\"])'"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/ladder.py:648,952-959,990-995",
+          "claim": "Declared: ../in/contract-check-tests-json.md:33-35 calls this \u201ca file the driver writes from the record, named in the ladder record.\u201d Practiced: the producer uses `self.inputs_dir / \"check-tests-findings.json\"` without resolving against the worktree, while the resume consumer executes `inputs.append(Path(findings_file))` without containment or digest verification. A planted symlink can redirect the driver's write, and a modified durable record can stage an arbitrary host file such as `/etc/passwd` into the next job, reaching outside the worktree.",
+          "reproduce": "PYTHONPATH=ops/conductor/tools python3 -c 'from pathlib import Path; import ladder; d=object.__new__(ladder.Driver); d.worktree=Path.cwd(); d.plan=None; d.stage_by_name={\"check-tests\":{\"findings_file\":\"/etc/passwd\"}}; paths=d.inputs_for(\"tests-fix\",{\"check-tests\":\"record-id\"},None); assert Path(\"/etc/passwd\") in paths and not Path(\"/etc/passwd\").resolve().is_relative_to(d.worktree.resolve()); print(paths)'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/tests/test_check_tests_json.py:37-50,78-124",
+          "claim": "Declared: ../in/contract-check-tests-json.md:29-32 says \u201cthe prompt asks for no file and names no path in artifacts.\u201d Practiced: the purported any-path test is a blacklist containing only `{out}`, `SKEPTIC.md`, `/tmp`, `REPORT.txt`, and two fixed phrases. A read-role prompt requiring `REPORT.rst` and saying to include it in artifacts passes all four prompt tests, so the suite does not pin the declared security boundary.",
+          "reproduce": "PYTHONPATH=ops/devlane/task/tests python3 -c 'import json,unittest,test_check_tests_json as t; p=\"Create REPORT.rst in the repository and include it in artifacts. Return the JSON envelope on stdout and leave artifacts empty.\"; d=\"the JSON envelope on stdout: verdict, counts, and findings as quotation pairs with reproduce commands; no file\"; F=type(\"F\",(),{\"is_file\":lambda self:True,\"read_text\":lambda self,encoding=None:json.dumps({\"check-tests\":{\"prompt\":p,\"deliverable\":d}})}); t.JOBS_PATH=F(); r=unittest.TextTestRunner(verbosity=0).run(unittest.defaultTestLoader.loadTestsFromTestCase(t.CheckTestsPromptCarriesNoFilePath)); print(\"wrong write prompt accepted\",r.wasSuccessful()); raise SystemExit(not r.wasSuccessful())'"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 4597802,
+        "out": 25629,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "dfbf4666746f69be68d2590594918dd89931eb6f",
+        "started": null,
+        "ended": "2026-09-04T13:26:42Z"
+      },
+      "note": "Covered argv/shell/template injection, secret and credential exposure, path/ref custody, recorded sandbox posture, vendor-output validation, and supply-chain changes. Clean evidence: only check-tests changed in jobs.json; the current check-tests prompt names no write path; other job wires are unchanged; no credential-like values or dependency/action changes were added; recorded roles match their sandbox modes. The full ladder suite and dynamic symlink-write reproduction could not run because the audit sandbox provides no writable temporary directory; the unsafe path consumption was reproduced read-only."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T13:27:21.069Z"
+    }
+  },
+  "status": "closed"
+}
