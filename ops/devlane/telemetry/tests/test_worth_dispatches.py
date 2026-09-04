@@ -31,6 +31,7 @@ BEFORE_ID = "20260821T100000Z-plan-claude-ee0005"
 UNRESOLVED_ID = "20260822T100400Z-plan-codex-ff0006"
 MALFORMED_ID = "20260822T100500Z-plan-claude-aa0007"
 TRACKED_ID = "20260822T100600Z-plan-grok-aa0008"
+FOREIGN_ID = "20260822T100700Z-plan-claude-aa0009"
 
 CLAUDE_SPEND = {
     "input": 100,
@@ -56,6 +57,15 @@ GROK_SPEND = {
     "total": 100,
     "source": "stream",
     "cost_usd_ticks": 9,
+}
+FOREIGN_SPEND = {
+    "input": 700,
+    "cached": 700,
+    "output": 700,
+    "total": 777001,
+    "source": "stream",
+    "messages": 2,
+    "cost_usd": 88.88,
 }
 
 
@@ -178,6 +188,8 @@ class DispatchMeterTests(unittest.TestCase):
         model_ran="stream-ran-model",
         unit="work",
         branch="work",
+        snapshot_root=None,
+        ref_sha=None,
     ):
         closed = "2026-08-22T10:20:00Z" if status == "closed" else None
         harness_block = harness if isinstance(harness, dict) else {
@@ -202,9 +214,11 @@ class DispatchMeterTests(unittest.TestCase):
             "snapshot": {
                 "mode": "whole",
                 "ref_name": "HEAD",
-                "ref_sha": "b" * 40,
+                "ref_sha": ref_sha or "b" * 40,
                 "behind_tip": 0,
-                "root": str(self.dispatch / job_id / "snapshot"),
+                "root": snapshot_root or str(
+                    self.dispatch / job_id / "snapshot"
+                ),
             },
             "harness": harness_block,
             "model": {
@@ -305,6 +319,48 @@ class DispatchMeterTests(unittest.TestCase):
                 job_id,
             )
         return job_dir, record
+
+    def _init_other_repo(self, path, subject="foreign repository fixture"):
+        path.mkdir(parents=True)
+        env = self.w._git_env("2026-08-20T11:00:00.000Z")
+        for args in (
+            ("git", "init", "-q", "-b", "dev"),
+            ("git", "config", "user.name", "Foreign Owner"),
+            ("git", "config", "user.email", "foreign@example.invalid"),
+        ):
+            proc = subprocess.run(
+                args, cwd=path, env=env, capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+        readme = path / "README.md"
+        readme.write_text("foreign repository fixture\n", encoding="utf-8")
+        self.assertEqual(
+            readme.read_text(encoding="utf-8"),
+            "foreign repository fixture\n",
+        )
+        for args in (
+            ("git", "add", "-A"),
+            ("git", "commit", "-q", "-m", subject),
+        ):
+            proc = subprocess.run(
+                args, cwd=path, env=env, capture_output=True, text=True,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+        sha = subprocess.run(
+            ("git", "rev-parse", "HEAD"),
+            cwd=path,
+            env=env,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        home_sha = self.w._git("rev-parse", "HEAD").stdout.strip()
+        self.assertTrue(sha)
+        self.assertNotEqual(
+            sha,
+            home_sha,
+            "the foreign repository must not share this report's HEAD",
+        )
+        return sha
 
     def _report(self, **kwargs):
         kwargs.setdefault("now", WINDOW_NOW)
@@ -510,6 +566,74 @@ class DispatchMeterTests(unittest.TestCase):
         self.assertNotIn("888888", plain)
         self.assertNotIn("888888", json.dumps(data))
         self.assertNotIn("99.99", plain)
+
+    def test_a_dispatch_for_another_repository_is_not_charged(self):
+        home_sha = self.w._git("rev-parse", "HEAD").stdout.strip()
+        foreign = self.root / "foreign-repo"
+        foreign_sha = self._init_other_repo(foreign)
+        self._plant_dispatch(
+            CLAUDE_ID,
+            job="plan",
+            harness="claude",
+            stage="plan",
+            launched="2026-08-22T10:00:00Z",
+            spend=CLAUDE_SPEND,
+            snapshot_root=str(self.repo),
+            ref_sha=home_sha,
+        )
+        self._plant_dispatch(
+            FOREIGN_ID,
+            job="plan",
+            harness="claude",
+            stage="plan",
+            launched="2026-08-22T10:07:00Z",
+            spend=FOREIGN_SPEND,
+            snapshot_root=str(foreign),
+            ref_sha=foreign_sha,
+        )
+        home_record = json.loads(
+            (self.dispatch / CLAUDE_ID / "record.json").read_text(
+                encoding="utf-8",
+            )
+        )
+        foreign_record = json.loads(
+            (self.dispatch / FOREIGN_ID / "record.json").read_text(
+                encoding="utf-8",
+            )
+        )
+        self.assertEqual(home_record["snapshot"]["root"], str(self.repo))
+        self.assertEqual(home_record["snapshot"]["ref_sha"], home_sha)
+        self.assertEqual(foreign_record["snapshot"]["root"], str(foreign))
+        self.assertEqual(foreign_record["snapshot"]["ref_sha"], foreign_sha)
+        self.assertEqual(
+            (self.dispatch / CLAUDE_ID).parent,
+            (self.dispatch / FOREIGN_ID).parent,
+            "the foreign dispatch must sit in the same jobs root",
+        )
+
+        plain = self._plain("report")
+        data = self._report()
+        ids = [row.get("id") for row in self._dispatch_block(data)["rows"]]
+        self.assertIn(CLAUDE_ID, ids)
+        self.assertNotIn(
+            FOREIGN_ID,
+            ids,
+            "a dispatch for another repository was charged to this repo",
+        )
+        combined = plain + json.dumps(data)
+        self.assertNotIn(FOREIGN_ID, combined)
+        self.assertNotIn("777001", combined)
+        self.assertNotIn("88.88", combined)
+
+        foreign_plain = self._plain("report", repo=foreign)
+        foreign_data = self._report(repo=foreign)
+        foreign_ids = [
+            row.get("id")
+            for row in self._dispatch_block(foreign_data)["rows"]
+        ]
+        self.assertIn(FOREIGN_ID, foreign_ids)
+        self.assertNotIn(CLAUDE_ID, foreign_ids)
+        self.assertIn("777001", foreign_plain + json.dumps(foreign_data))
 
     def test_a_dispatched_stream_is_not_also_counted_as_a_session(self):
         """Scenario: a dispatched stream is not also counted as a session"""
