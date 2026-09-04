@@ -79,16 +79,54 @@ def read_jsonl(path):
     return rows
 
 
-def claude_sessions(root, repo, window):
-    """Per-message accounting, last write per message id wins (the
-    measured re-emission double-count), cwd-filtered to the repo."""
+def _tool_result_denied(message):
+    content = message.get("content") or []
+    if not isinstance(content, list):
+        return False
+    return any(
+        isinstance(item, dict)
+        and item.get("type") == "tool_result"
+        and item.get("is_error") is True
+        and "hook returned a deny decision" in str(item.get("content", ""))
+        for item in content
+    )
+
+
+def _claude_gap(kind, repo="unrecorded", window="unrecorded"):
+    return {
+        "kind": "gap",
+        "gap_kind": kind,
+        "repo": repo,
+        "window": window,
+        "turns": "unrecorded",
+        "avg_context": "unrecorded",
+        "refusals": "unrecorded",
+    }
+
+
+def _validated_claude_usage(usage):
+    values = {key: usage.get(key, 0) for key in _CLAUDE_CURRENCIES}
+    if any(isinstance(value, bool)
+           or not isinstance(value, (int, float))
+           for value in values.values()):
+        raise ValueError("Claude usage currencies must be numeric")
+    return values
+
+
+def claude_sessions(root, repo, window, include_unreadable=False):
+    """Per-message accounting, last write per message id wins,
+    cwd-filtered to the repo."""
     since, until = window
     sessions = {}
     for path in sorted(Path(root).glob("*/*.jsonl")):
         rows = read_jsonl(path)
         if rows is None:
+            slug = repo.replace("/", "-").replace(".", "-")
+            if include_unreadable and path.parent.name == slug:
+                sessions[path.stem] = _claude_gap("unreadable-transcript")
             continue
         in_window = {}
+        refusals = 0
         try:
             for row in rows:
                 if row.get("cwd") != repo:
@@ -97,22 +135,45 @@ def claude_sessions(root, repo, window):
                 usage = message.get("usage")
                 mid = message.get("id")
                 stamp = row.get("timestamp")
-                if not (isinstance(usage, dict) and mid and stamp):
-                    continue
-                if not set(usage) & _CLAUDE_CURRENCIES:
-                    # an empty usage dict is unknown spend, and an
-                    # unknown rendered as 0 is a false measurement
+                if not stamp:
                     continue
                 at = parse_stamp(stamp)
-                # last-wins among IN-WINDOW emissions: a re-emission
-                # after the window must not erase history from it
-                if since <= at < until:
+                if not since <= at < until:
+                    continue
+                if _tool_result_denied(message):
+                    refusals += 1
+                if (row.get("type") == "assistant"
+                        and isinstance(usage, dict)
+                        and set(usage) & _CLAUDE_CURRENCIES
+                        and mid):
+                    # last-wins among IN-WINDOW emissions: a re-emission
+                    # after the window must not erase history from it
                     in_window[mid] = (at, stamp, usage)
         except ValueError:
+            if include_unreadable:
+                sessions[path.stem] = _claude_gap(
+                    "malformed-timestamp", repo=repo)
             continue
         if not in_window:
             continue
         sid = path.stem
+        try:
+            in_window = {
+                mid: (at, raw, _validated_claude_usage(usage))
+                for mid, (at, raw, usage) in in_window.items()
+            }
+        except ValueError:
+            if include_unreadable:
+                window_name = f"[{since.isoformat()},{until.isoformat()})"
+                sessions[sid] = _claude_gap(
+                    "malformed-usage", repo=repo, window=window_name)
+            continue
+        contexts = [
+            usage["input_tokens"]
+            + usage["cache_creation_input_tokens"]
+            + usage["cache_read_input_tokens"]
+            for _, _, usage in in_window.values()
+        ]
         totals = {"in": 0, "cached": 0, "out": 0}
         heavy = None
         for mid, (_at, _raw, usage) in sorted(in_window.items()):
@@ -129,6 +190,9 @@ def claude_sessions(root, repo, window):
         )
         sessions[sid] = {
             "messages": len(in_window),
+            "turns": len(contexts),
+            "avg_context": sum(contexts) / len(contexts),
+            "refusals": refusals,
             "in": totals["in"],
             "cached": totals["cached"],
             "out": totals["out"],
@@ -453,10 +517,11 @@ def plain_stamp(stamp):
     return line
 
 
-def gather(args, window):
+def gather(args, window, include_unreadable=False):
     repo = str(args.repo)
     return {
-        "claude": claude_sessions(args.claude_dir, repo, window),
+        "claude": claude_sessions(
+            args.claude_dir, repo, window, include_unreadable),
         "codex": codex_sessions(args.codex_dir, repo, window),
         "grok": grok_sessions(args.grok_dir, repo, window),
     }
@@ -499,6 +564,14 @@ def dispatch_rows(root, repo, window):
         try:
             rec = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
+            try:
+                launched = datetime.strptime(
+                    job_dir.name[:16], "%Y%m%dT%H%M%SZ"
+                ).replace(tzinfo=timezone.utc)
+            except ValueError:
+                launched = None
+            if launched is not None and not since <= launched < until:
+                continue
             rows.append({"id": job_dir.name, "harness": "grok",
                          "tokens": "unrecorded",
                          "reason": "record unavailable"})
@@ -611,10 +684,16 @@ def cmd_report(args, window, window_iso):
 
 
 def cmd_waste(args, window, window_iso):
-    per_harness = gather(args, window)
+    per_harness = gather(args, window, include_unreadable=True)
     ranked = []
+    gaps = []
     for harness, sessions in per_harness.items():
         for sid, s in sessions.items():
+            if s.get("kind") == "gap":
+                gaps.append((s, {
+                    "id": sid, "harness": harness, "session": sid, **s,
+                }))
+                continue
             if "total" not in s:
                 continue
             entry = {"kind": "session", "id": sid,
@@ -625,6 +704,9 @@ def cmd_waste(args, window, window_iso):
                 entry["runs"] = s["runs"]
             else:
                 entry["messages"] = s["messages"]
+                if harness == "claude":
+                    for key in ("turns", "avg_context", "refusals"):
+                        entry[key] = s[key]
             ranked.append((s, entry))
     dispatches = dispatch_rows(args.dispatch_dir, str(args.repo), window)
     for row in dispatches:
@@ -635,13 +717,20 @@ def cmd_waste(args, window, window_iso):
             "declared_absent": "record carries no per-turn usage"})
         ranked.append(({"out": row.get("output", 0),
                         "cached_read": row.get("cached", 0)}, entry))
-    ranked.sort(key=lambda item: (-item[1]["total"],
-                                  item[1].get("session", item[1].get("id"))))
+    ranked.sort(key=lambda item: (
+        "total" not in item[1],
+        -item[1].get("total", 0),
+        item[1].get("session", item[1].get("id")),
+    ))
     ranked = ranked[:args.top]
+    gaps.sort(key=lambda item: (
+        item[1]["harness"], item[1]["session"], item[1]["gap_kind"]))
+    listed = ranked + gaps
 
     signals = []
     for s, entry in ranked:
-        if s["out"] > 0 and s["cached_read"] > CHURN_FACTOR * s["out"]:
+        if (s.get("out", 0) > 0
+                and s.get("cached_read", 0) > CHURN_FACTOR * s["out"]):
             signal = {"kind": "cache-churn",
                             "harness": entry["harness"],
                             "cached": s["cached_read"],
@@ -659,11 +748,12 @@ def cmd_waste(args, window, window_iso):
             signal.update(heavy)
             signals.append(signal)
 
-    counts = {harness: len(sessions)
+    counts = {harness: sum(s.get("kind") != "gap"
+                           for s in sessions.values())
               for harness, sessions in per_harness.items()}
     stamp = stamp_block(str(args.repo), window_iso, args.now,
                         harness_sessions=counts)
-    data = {"stamp": stamp, "sessions": [entry for _, entry in ranked],
+    data = {"stamp": stamp, "sessions": [entry for _, entry in listed],
             "signals": signals}
     if dispatches:
         data["dispatches"] = {
@@ -680,14 +770,21 @@ def cmd_waste(args, window, window_iso):
         suffix = f" dispatches={n_dispatches}" if n_dispatches else ""
         lines.append(f"{harness:7s} sessions={counts[harness]}{suffix}")
     lines.append("")
-    for _, entry in ranked:
+    for _, entry in listed:
         if entry.get("kind") == "dispatch":
             parts = [f"{entry['harness']:7s} record={entry['id']}",
                      f"job={entry.get('job', 'unrecorded')}"]
+        elif entry.get("kind") == "gap":
+            parts = [f"{entry['harness']:7s} kind=gap",
+                     f"session={entry['session']}",
+                     f"gap_kind={entry['gap_kind']}",
+                     f"repo={entry['repo']}",
+                     f"window={entry['window']}"]
         else:
             parts = [f"{entry['harness']:7s} session={entry['session']}"]
         for key in ("stage", "unit", "status", "input", "total", "out", "output",
-                    "cached", "messages", "runs", "cost_usd",
+                    "cached", "messages", "runs", "turns", "avg_context",
+                    "refusals", "cost_usd",
                     "cost_usd_ticks", "cost", "tokens"):
             if key in entry:
                 parts.append(f"{key}={entry[key]}")
@@ -718,8 +815,7 @@ def main(argv=None):
     parser.add_argument("--top", type=int, default=5)
     parser.add_argument("--format", choices=("plain", "json"),
                         default="plain")
-    parser.add_argument("--claude-dir",
-                        default=str(Path.home() / ".claude" / "projects"))
+    parser.add_argument("--claude-dir")
     parser.add_argument("--codex-dir", default=str(Path.home() / ".codex"))
     parser.add_argument("--grok-dir", default=str(Path.home() / ".grok"))
     default_state = Path(os.environ.get(
@@ -731,6 +827,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     try:
+        if args.claude_dir is None:
+            try:
+                configured = Path(laneconf.get("CLAUDE_DIR"))
+            except laneconf.ConfigError as exc:
+                kind = "conf-key" if exc.kind == "key" else exc.kind
+                raise SystemExit2(exc.line(kind)) from None
+            if not configured.is_absolute():
+                configured = Path.home() / configured
+            args.claude_dir = str(configured)
         if args.now is None:
             now = datetime.now(timezone.utc)
             args.now = now.isoformat(timespec="milliseconds").replace(
