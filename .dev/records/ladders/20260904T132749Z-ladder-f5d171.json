@@ -10,12 +10,12 @@
   "implementation_markers": [],
   "lane": "agentscient",
   "plan": {
-    "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/PLAN-fixture-fix2-dispatch-job-scratch.md",
+    "path": "/home/scientdb/projects/uscient/wt/ag-dispatch-job-scratch/.dev/ladder-inputs/PLAN-fixture-fix2-dispatch-job-scratch.md",
     "sha256": "949edbb04a0b8192eff9cf8f057f32d9f10b78711440350ff1125bf47e244d10"
   },
   "pr": null,
   "scope": {
-    "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/scope-fixture-fix2.md",
+    "path": "/home/scientdb/projects/uscient/wt/ag-dispatch-job-scratch/.dev/ladder-inputs/scope-fixture-fix2.md",
     "sha256": "28b9ee8141b677f0b7682f6fd55a1836e2f112768abb22b405d65abc84ab6d45"
   },
   "stages": [
@@ -29,7 +29,7 @@
       },
       "harness": "grok",
       "input": {
-        "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/PLAN-fixture-fix2-dispatch-job-scratch.md",
+        "path": "/home/scientdb/projects/uscient/wt/ag-dispatch-job-scratch/.dev/ladder-inputs/PLAN-fixture-fix2-dispatch-job-scratch.md",
         "proof": {
           "given": [
             "The fixture batch (four fixture apps, `ops/bin/fixture.sh`, the findings lever) had its one fix round (two implement runs) and its security re-audit returned changes again. By D-LADDER-1 the batch gets no second fix round; the unresolved findings are this slice's scope and it runs the whole ladder: tests (Grok) \u2192 skeptic \u2192 implement (Codex) per S bucket \u2192 audits once \u2192 one fix round \u2192 security re-audit \u2192 draft PR."
