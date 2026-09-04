@@ -29,6 +29,9 @@ extend-exclude = [
     # `ruff check ..` is the dispatch gate. The sibling `home/` is launcher
     # runtime custody (harness installs and caches), not this repository.
     "../home",
+    # Fixture apps are linted through their own prove/check commands. Root
+    # ruff must leave their planted K1/K4 faults intact for calibration.
+    "ops/devlane/fixtures/apps",
 ]
 
 [lint]
