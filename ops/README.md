@@ -79,9 +79,10 @@ Arming either is a reviewable change to `.claude/settings.json`.
 
 Named so nobody infers them from silence:
 
-- `ops/devlane/workflow/wf.py` — the workflow engine the House lane
-  drives gates with; `apply-push.sh`'s default gate runner names it and
-  refuses on absence. Its runtime stays on `lane/workflow` (PR #10,
+- The state-machine runtime behind `ops/devlane/workflow/wf.py` — the
+  narrow `--json status --checks` read projection is present for CI check
+  discovery, but every writing verb remains absent. The House runtime
+  stays on `lane/workflow` (PR #10,
   closed unmerged at the owner's word, 2026-09-03; I-008, D-PORT-2
   proposed). What crossed is its specification: `PLAN.md`, the twelve
   CUE contracts and their notes under `contracts/`. The runtime arrives
