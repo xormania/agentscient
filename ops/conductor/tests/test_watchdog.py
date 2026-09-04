@@ -83,6 +83,77 @@ CHECK_LINT = "watchdog-lint-aa31"
 CHECK_TYPE = "watchdog-type-aa31"
 CHECK_CANCEL = "watchdog-cancel-aa31"
 
+# Deviation plants (aa32): distinctive so a stray live job cannot satisfy.
+ASSUME_ID = "20260904T102000Z-code-grok-aa3201"
+BUCKET_PATH_ID = "20260904T102200Z-code-grok-aa3203"
+BUCKET_COUNT_ID = "20260904T102300Z-code-grok-aa3204"
+SIZE_ID = "20260904T102400Z-code-grok-aa3205"
+ERRORS_ID = "20260904T102500Z-code-grok-aa3206"
+ENV_TRIP_ID = "20260904T102600Z-code-grok-aa3207"
+ENV_INV_ID = "20260904T102700Z-code-grok-aa3208"
+REFUSED_ID = "20260904T102800Z-code-grok-aa3209"
+RETRY_LADDER_ID = "20260904T102900Z-ladder-aa3210"
+STOP_LADDER_ID = "20260904T103000Z-ladder-aa3211"
+MINUTES_ID = "20260904T103100Z-code-grok-aa3212"
+CLEAN_ID = "20260904T103200Z-code-grok-aa3213"
+ASSUME_WORD_IDS = (
+    "20260904T102000Z-code-grok-aa3221",
+    "20260904T102000Z-code-grok-aa3222",
+    "20260904T102000Z-code-grok-aa3223",
+    "20260904T102000Z-code-grok-aa3224",
+    "20260904T102000Z-code-grok-aa3225",
+)
+LOCK_IDS = (
+    "20260904T102100Z-code-grok-aa3230",
+    "20260904T102100Z-code-grok-aa3231",
+    "20260904T102100Z-code-grok-aa3232",
+    "20260904T102100Z-code-grok-aa3233",
+)
+
+JOB_IMPLEMENT = "implement"
+JOB_TESTS = "author-tests"
+JOB_CHECK = "check-tests"
+BUCKET_S = "aa32-s"
+KEEP_A = "ops/aa32/keep.py"
+KEEP_B = "ops/aa32/keep.md"
+KEEP_C = "ops/aa32/keep_c.py"
+KEEP_D = "ops/aa32/keep_d.py"
+OUT_A = "packages/aa32/extra.py"
+OUT_B = "packages/aa32/extra.md"
+LOCK_FILES = (
+    "composer.lock",
+    "Cargo.lock",
+    "requirements.lock",
+    "symfony.lock",
+)
+ASSUMPTION_WORDS = (
+    "assumption",
+    "assume",
+    "substitute",
+    "stub",
+    "hermetic substitute",
+)
+ASSUMPTION_NOTE = (
+    "Assumption: the contract-shaped local Composer packages "
+    "are the intended hermetic substitute"
+)
+ERRORS_NOTE = (
+    "the tests errored in their own setup; "
+    "Ran 4 tests in 0.010s FAILED (errors=2)"
+)
+FINDING_LOST = {
+    "severity": "p2",
+    "where": KEEP_A,
+    "claim": "the envelope carries a finding the lane will lose",
+    "reproduce": "python3 -m unittest ops.conductor.tests.test_watchdog",
+}
+COUNT_FILES = tuple(f"ops/aa32/f{i:02d}.py" for i in range(42))
+SIZE_FILES = (KEEP_A, KEEP_B, KEEP_C, KEEP_D)
+# S class is 1 to 3 files; 120 min is beyond the measured tests-round
+# band (8 to 21 min) by more than 4x, so either stated factor still
+# names this row.
+MINUTES_OVERRUN = 120
+
 OMIT = object()
 
 # PIN_ARMED: first stdout line is always
@@ -124,6 +195,24 @@ OMIT = object()
 # integer — two ticks must fit in one second.
 # PIN_REFUSAL: classes store, tick, arguments; one stderr line, exit 2,
 # empty stdout, expected / found / needed in that order.
+# PIN_DEVIATION: one `deviation <kind> <id>` line per record from the
+# records, the ladder records, and the plan lines. Kinds: assumption
+# (note or finding containing assumption/assume/substitute/stub/
+# "hermetic substitute"), lock (changed path in the lock-file list
+# when no bucket line names it), bucket (paths outside the files a
+# bucket line names, or a changed count above the class by more than
+# a stated factor; S is 3 files), size (a tests or implement round
+# whose changed count or landed lines exceed the class; S is 1 to 3
+# files, M 4 to 8), envelope (tripped or invalid carrying findings or
+# changed paths), errors (a tests round whose note reports errors
+# rather than failures, or a suite line with errors= above zero),
+# refused (empty-comparison/scope-cap/conf-key/toolchain from the
+# record directory's log lines or the launcher's stderr), retry (a
+# ladder stage retried, or a ladder stopped), minutes (a stage beyond
+# the calibration row by a stated factor). Already-closed records
+# still print deviations on the first pass. A clean store prints none.
+# PIN_HEARTBEAT_DEVIATIONS: the heartbeat carries deviations=<n> since
+# start.
 
 _JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
 
@@ -790,6 +879,169 @@ class _WatchdogFixture(unittest.TestCase):
                 rows.append(json.loads(line))
         return rows
 
+    def deviation_lines(self, proc, rec_id: str | None = None) -> list[str]:
+        lines = [
+            ln for ln in self.stdout_lines(proc)
+            if ln.startswith("deviation ")
+        ]
+        if rec_id is not None:
+            lines = [ln for ln in lines if rec_id in ln]
+        return lines
+
+    def assert_deviation_once(self, proc, kind: str, rec_id: str) -> str:
+        prefix = f"deviation {kind} {rec_id}"
+        lines = [
+            ln for ln in self.stdout_lines(proc)
+            if ln == prefix
+            or ln.startswith(prefix + " ")
+            or ln.startswith(prefix + ":")
+        ]
+        self.assertEqual(
+            len(lines),
+            1,
+            f"expected one {prefix!r} line, got {lines!r} in {proc.stdout!r}",
+        )
+        return lines[0]
+
+    def assert_only_deviation(self, proc, kind: str, rec_id: str) -> str:
+        line = self.assert_deviation_once(proc, kind, rec_id)
+        prefix = f"deviation {kind} {rec_id}"
+        others = [
+            ln for ln in self.deviation_lines(proc, rec_id)
+            if not (
+                ln == prefix
+                or ln.startswith(prefix + " ")
+                or ln.startswith(prefix + ":")
+            )
+        ]
+        self.assertEqual(
+            others,
+            [],
+            f"record {rec_id} printed extra deviations: {others!r}",
+        )
+        return line
+
+    def heartbeat_deviation_count(self, proc) -> int:
+        beats = self.heartbeat_lines(proc)
+        self.assertEqual(len(beats), 1, proc.stdout)
+        match = re.search(r"\bdeviations=(\d+)\b", beats[0])
+        self.assertIsNotNone(
+            match,
+            f"heartbeat has no deviations count: {beats[0]!r}",
+        )
+        return int(match.group(1))
+
+    def plant_dev_job(
+        self,
+        rec_id: str,
+        *,
+        job: str,
+        files: list[str] | tuple[str, ...],
+        bucket_files: list[str] | tuple[str, ...] | None = None,
+        bucket_class: str = "S",
+        bucket_name: str = BUCKET_S,
+        note: str | None = None,
+        findings: list | None = None,
+        env_status: str = "ok",
+        minutes: int = 5,
+        extra_result: dict | None = None,
+        stderr_text: str | None = None,
+    ) -> Path:
+        findings = list(findings or [])
+        files = list(files)
+        launched = "2026-09-04T10:00:00Z"
+        closed = utc_at(launched, minutes=minutes)
+        named = list(
+            bucket_files if bucket_files is not None else files
+        )
+        plan = (
+            "# plan\n"
+            f"bucket\t{bucket_name}\t{bucket_class}\t{' '.join(named)}\n"
+        )
+        rec = self.record_dict(
+            rec_id,
+            status="closed",
+            job=job,
+            launched=launched,
+            closed=closed,
+            env_status=env_status,
+            changed_paths=files,
+        )
+        rec["brief"] = {"scope": plan, "inputs": []}
+        env = rec["result"]["envelope"]
+        env["job"] = job
+        env["note"] = note
+        env["findings"] = findings
+        env["verdict"] = (
+            "changes" if findings or env_status != "ok" else "approve"
+        )
+        env["counts"] = {
+            "p1": sum(1 for f in findings if f["severity"] == "p1"),
+            "p2": sum(1 for f in findings if f["severity"] == "p2"),
+            "p3": sum(1 for f in findings if f["severity"] == "p3"),
+            "opinions": sum(
+                1 for f in findings if f.get("reproduce") is None
+            ),
+        }
+        env["artifacts"] = {}
+        env["spend"] = {
+            "harness": "grok",
+            "total": 0,
+            "out": 0,
+            "runs": 0,
+        }
+        env["stamp"] = {
+            "ref": "planted",
+            "started": launched,
+            "ended": closed,
+        }
+        if extra_result:
+            rec["result"].update(extra_result)
+        job_dir = self.plant_job(rec_id, record=rec)
+        plan_path = job_dir / "in" / "plan.md"
+        self._plant_bytes(plan_path, plan.encode("utf-8"))
+        landed_plan = plan_path.read_text(encoding="utf-8")
+        self.assertIn(
+            f"bucket\t{bucket_name}\t{bucket_class}\t", landed_plan
+        )
+        for path in named:
+            self.assertIn(path, landed_plan)
+        rec_landed = json.loads(
+            (job_dir / "record.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(rec_landed["status"], "closed")
+        self.assertEqual(rec_landed["job"], job)
+        self.assertEqual(rec_landed["result"]["changed_paths"], files)
+        self.assertEqual(
+            rec_landed["result"]["envelope"]["status"], env_status
+        )
+        self.assertEqual(rec_landed["result"]["envelope"]["note"], note)
+        self.assertEqual(rec_landed["brief"]["scope"], plan)
+        if findings:
+            self.assertEqual(
+                rec_landed["result"]["envelope"]["findings"], findings
+            )
+        if stderr_text is not None:
+            raw = stderr_text.encode("utf-8")
+            self._plant_bytes(job_dir / "stderr", raw)
+            self._plant_bytes(job_dir / "launcher.log", raw)
+            self.assertEqual((job_dir / "stderr").read_bytes(), raw)
+            self.assertEqual(
+                (job_dir / "launcher.log").read_bytes(), raw
+            )
+        return job_dir
+
+    def plant_ladder(self, ladder_id: str, payload: dict) -> Path:
+        dest = self.xdg / "agentscient" / "ladders"
+        dest.mkdir(parents=True, exist_ok=True)
+        path = dest / f"{ladder_id}.json"
+        raw = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
+        self._plant_bytes(path, raw)
+        landed = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(landed["id"], ladder_id)
+        self.assertEqual(landed["status"], payload["status"])
+        return path
+
 
 class ToolPresence(_WatchdogFixture):
     """Missing tool file counts once."""
@@ -1425,6 +1677,426 @@ class ReadOnly(_WatchdogFixture):
                 f"watchdog mutated {rel}",
             )
         self.assertFalse(self.home_store.exists(), "tool created a HOME store")
+
+
+class Deviations(_WatchdogFixture):
+    """One deviation line per planted case; a clean store prints none.
+
+    Pins are from the deviations contract (input), not from the tool.
+    Closed records still report deviations without --report-existing.
+    Invocations are --once --no-forge on a temporary XDG_STATE_HOME.
+    """
+
+    def test_clean_store_prints_no_deviation_lines_and_heartbeat_count_zero(
+        self,
+    ):
+        self.ensure_store()
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        self.assert_armed(proc, store=self.store, ignored=0)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(self.heartbeat_deviation_count(proc), 0)
+        self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
+
+    def test_clean_in_bucket_record_prints_no_deviation_lines(self):
+        self.plant_dev_job(
+            CLEAN_ID,
+            job=JOB_IMPLEMENT,
+            files=(KEEP_A, KEEP_B),
+            note="landed the two named files",
+        )
+        rec = json.loads(
+            (self.store / CLEAN_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(rec["result"]["changed_paths"], [KEEP_A, KEEP_B])
+        self.assertIn(KEEP_A, rec["brief"]["scope"])
+        self.assertIn(KEEP_B, rec["brief"]["scope"])
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(self.heartbeat_deviation_count(proc), 0)
+        self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
+        self.assertFalse(
+            self.named_lines(proc, f"closed {CLEAN_ID}"),
+            proc.stdout,
+        )
+
+    def test_assumption_words_in_envelope_note_print_deviation_assumption_once(
+        self,
+    ):
+        self.plant_dev_job(
+            ASSUME_ID,
+            job=JOB_IMPLEMENT,
+            files=(KEEP_A, KEEP_B),
+            note=ASSUMPTION_NOTE,
+        )
+        rec = json.loads(
+            (self.store / ASSUME_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        note = rec["result"]["envelope"]["note"]
+        self.assertIn("Assumption", note)
+        self.assertIn("hermetic substitute", note)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "assumption", ASSUME_ID)
+
+    def test_each_listed_assumption_token_in_a_note_prints_once(self):
+        self.assertEqual(len(ASSUMPTION_WORDS), len(ASSUME_WORD_IDS))
+        for rec_id, word in zip(ASSUME_WORD_IDS, ASSUMPTION_WORDS, strict=True):
+            self.plant_dev_job(
+                rec_id,
+                job=JOB_IMPLEMENT,
+                files=(KEEP_A, KEEP_B),
+                note=f"note carries the token {word} and nothing else",
+            )
+            planted = json.loads(
+                (self.store / rec_id / "record.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertIn(word, planted["result"]["envelope"]["note"])
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        for rec_id, word in zip(ASSUME_WORD_IDS, ASSUMPTION_WORDS, strict=True):
+            with self.subTest(word=word):
+                self.assert_only_deviation(proc, "assumption", rec_id)
+
+    def test_assumption_token_in_a_finding_prints_deviation_assumption_once(
+        self,
+    ):
+        finding = {
+            "severity": "p3",
+            "where": KEEP_A,
+            "claim": "the run used a stub in place of the named package",
+            "reproduce": "python3 -m unittest",
+        }
+        rec_id = "20260904T102000Z-code-grok-aa3226"
+        self.plant_dev_job(
+            rec_id,
+            job=JOB_IMPLEMENT,
+            files=(KEEP_A, KEEP_B),
+            findings=[finding],
+        )
+        planted = json.loads(
+            (self.store / rec_id / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        claim = planted["result"]["envelope"]["findings"][0]["claim"]
+        self.assertIn("stub", claim)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "assumption", rec_id)
+
+    def test_lock_file_outside_bucket_prints_deviation_lock_once(self):
+        self.assertEqual(len(LOCK_FILES), len(LOCK_IDS))
+        for rec_id, lock in zip(LOCK_IDS, LOCK_FILES, strict=True):
+            self.plant_dev_job(
+                rec_id,
+                job=JOB_IMPLEMENT,
+                files=(KEEP_A, lock),
+                bucket_files=(KEEP_A,),
+            )
+            planted = json.loads(
+                (self.store / rec_id / "record.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            paths = planted["result"]["changed_paths"]
+            self.assertIn(lock, paths)
+            self.assertNotIn(lock, planted["brief"]["scope"])
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        for rec_id, lock in zip(LOCK_IDS, LOCK_FILES, strict=True):
+            with self.subTest(lock=lock):
+                self.assert_deviation_once(proc, "lock", rec_id)
+
+    def test_changed_paths_outside_bucket_print_deviation_bucket_once(self):
+        self.plant_dev_job(
+            BUCKET_PATH_ID,
+            job=JOB_IMPLEMENT,
+            files=(OUT_A, OUT_B),
+            bucket_files=(KEEP_A, KEEP_B),
+        )
+        planted = json.loads(
+            (self.store / BUCKET_PATH_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        paths = planted["result"]["changed_paths"]
+        self.assertEqual(paths, [OUT_A, OUT_B])
+        self.assertNotIn(OUT_A, planted["brief"]["scope"])
+        self.assertNotIn(OUT_B, planted["brief"]["scope"])
+        self.assertEqual(len(paths), 2)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "bucket", BUCKET_PATH_ID)
+
+    def test_changed_count_above_size_class_prints_deviation_bucket_once(self):
+        self.assertEqual(len(COUNT_FILES), 42)
+        self.plant_dev_job(
+            BUCKET_COUNT_ID,
+            job=JOB_IMPLEMENT,
+            files=COUNT_FILES,
+            bucket_files=COUNT_FILES,
+        )
+        planted = json.loads(
+            (self.store / BUCKET_COUNT_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        paths = planted["result"]["changed_paths"]
+        self.assertEqual(len(paths), 42)
+        for path in paths:
+            self.assertIn(path, planted["brief"]["scope"])
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_deviation_once(proc, "bucket", BUCKET_COUNT_ID)
+
+    def test_tests_round_above_size_class_prints_deviation_size_once(self):
+        self.assertEqual(len(SIZE_FILES), 4)
+        self.plant_dev_job(
+            SIZE_ID,
+            job=JOB_TESTS,
+            files=SIZE_FILES,
+            extra_result={"landed_lines": 2246},
+        )
+        planted = json.loads(
+            (self.store / SIZE_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        paths = planted["result"]["changed_paths"]
+        self.assertEqual(len(paths), 4)
+        self.assertEqual(planted["job"], JOB_TESTS)
+        self.assertEqual(planted["result"]["landed_lines"], 2246)
+        for path in paths:
+            self.assertIn(path, planted["brief"]["scope"])
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_deviation_once(proc, "size", SIZE_ID)
+
+    def test_tests_round_with_errors_prints_deviation_errors_once(self):
+        self.plant_dev_job(
+            ERRORS_ID,
+            job=JOB_TESTS,
+            files=(KEEP_A, KEEP_B),
+            note=ERRORS_NOTE,
+        )
+        planted = json.loads(
+            (self.store / ERRORS_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        note = planted["result"]["envelope"]["note"]
+        self.assertIn("errored", note)
+        self.assertIn("errors=2", note)
+        self.assertEqual(planted["job"], JOB_TESTS)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "errors", ERRORS_ID)
+
+    def test_tripped_envelope_carrying_findings_prints_deviation_envelope_once(
+        self,
+    ):
+        self.plant_dev_job(
+            ENV_TRIP_ID,
+            job=JOB_CHECK,
+            files=(KEEP_A, KEEP_B),
+            env_status="tripped",
+            findings=[FINDING_LOST],
+        )
+        planted = json.loads(
+            (self.store / ENV_TRIP_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        env = planted["result"]["envelope"]
+        self.assertEqual(env["status"], "tripped")
+        self.assertGreaterEqual(len(env["findings"]), 1)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "envelope", ENV_TRIP_ID)
+
+    def test_invalid_envelope_carrying_changed_paths_prints_deviation_envelope_once(
+        self,
+    ):
+        self.plant_dev_job(
+            ENV_INV_ID,
+            job=JOB_CHECK,
+            files=(KEEP_A, KEEP_B),
+            env_status="invalid",
+        )
+        planted = json.loads(
+            (self.store / ENV_INV_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        env = planted["result"]["envelope"]
+        self.assertEqual(env["status"], "invalid")
+        self.assertEqual(env["findings"], [])
+        self.assertEqual(
+            planted["result"]["changed_paths"], [KEEP_A, KEEP_B]
+        )
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "envelope", ENV_INV_ID)
+
+    def test_refused_dispatch_prints_deviation_refused_once(self):
+        line = (
+            "empty-comparison: expected the work to differ from ref "
+            "aa32; found an empty comparison; needed a real diff\n"
+        )
+        self.plant_dev_job(
+            REFUSED_ID,
+            job=JOB_CHECK,
+            files=(),
+            env_status="invalid",
+            stderr_text=line,
+        )
+        stderr = (
+            self.store / REFUSED_ID / "stderr"
+        ).read_text(encoding="utf-8")
+        self.assertIn("empty-comparison", stderr)
+        self.assertIn("expected", stderr)
+        self.assertIn("found", stderr)
+        self.assertIn("needed", stderr)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "refused", REFUSED_ID)
+
+    def test_retried_ladder_stage_prints_deviation_retry_once(self):
+        self.ensure_store()
+        path = self.plant_ladder(
+            RETRY_LADDER_ID,
+            {
+                "id": RETRY_LADDER_ID,
+                "status": "running",
+                "stopped": None,
+                "plan": (
+                    f"bucket\t{BUCKET_S}\tS\t{KEEP_A} {KEEP_B}\n"
+                ),
+                "stages": [
+                    {
+                        "name": "tests",
+                        "job": JOB_TESTS,
+                        "attempt": 1,
+                        "outcome": "ok",
+                    },
+                    {
+                        "name": "check-tests",
+                        "job": JOB_CHECK,
+                        "attempt": 1,
+                        "outcome": "invalid",
+                    },
+                    {
+                        "name": "check-tests",
+                        "job": JOB_CHECK,
+                        "attempt": 2,
+                        "outcome": "ok",
+                    },
+                ],
+            },
+        )
+        landed = json.loads(path.read_text(encoding="utf-8"))
+        attempts = [row["attempt"] for row in landed["stages"]]
+        self.assertIn(2, attempts)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "retry", RETRY_LADDER_ID)
+
+    def test_stopped_ladder_prints_deviation_retry_once(self):
+        self.ensure_store()
+        path = self.plant_ladder(
+            STOP_LADDER_ID,
+            {
+                "id": STOP_LADDER_ID,
+                "status": "stopped",
+                "stopped": {
+                    "stage": "check-tests",
+                    "record": "none",
+                    "reason": "job",
+                },
+                "plan": f"bucket\t{BUCKET_S}\tS\t{KEEP_A}\n",
+                "stages": [
+                    {
+                        "name": "tests",
+                        "job": JOB_TESTS,
+                        "attempt": 1,
+                        "outcome": "ok",
+                    },
+                    {
+                        "name": "check-tests",
+                        "job": JOB_CHECK,
+                        "attempt": 1,
+                        "outcome": "refused",
+                    },
+                ],
+            },
+        )
+        landed = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(landed["status"], "stopped")
+        self.assertEqual(landed["stopped"]["reason"], "job")
+        self.assertTrue(
+            all(row["attempt"] == 1 for row in landed["stages"]),
+            landed["stages"],
+        )
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "retry", STOP_LADDER_ID)
+
+    def test_minutes_beyond_calibration_print_deviation_minutes_once(self):
+        self.plant_dev_job(
+            MINUTES_ID,
+            job=JOB_TESTS,
+            files=(KEEP_A, KEEP_B),
+            minutes=MINUTES_OVERRUN,
+        )
+        planted = json.loads(
+            (self.store / MINUTES_ID / "record.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        launched = planted["at"]["launched"]
+        closed = planted["at"]["closed"]
+        self.assertEqual(launched, "2026-09-04T10:00:00Z")
+        self.assertEqual(
+            closed, utc_at(launched, minutes=MINUTES_OVERRUN)
+        )
+        self.assertEqual(planted["job"], JOB_TESTS)
+        proc = self.once()
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "minutes", MINUTES_ID)
+
+    def test_heartbeat_carries_the_deviation_count(self):
+        self.plant_dev_job(
+            ASSUME_ID,
+            job=JOB_IMPLEMENT,
+            files=(KEEP_A, KEEP_B),
+            note=ASSUMPTION_NOTE,
+        )
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        self.assert_armed(proc, store=self.store)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assert_only_deviation(proc, "assumption", ASSUME_ID)
+        self.assertEqual(self.heartbeat_deviation_count(proc), 1)
 
 
 if __name__ == "__main__":
