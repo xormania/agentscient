@@ -1,0 +1,238 @@
+{
+  "id": "20260904T103338Z-review-grok-4f123e",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/ladder-audit",
+  "lineage": {
+    "branch": "lane/ladder-audit",
+    "base_sha": "b5293a9393442dffbb1d2bac4bb93013c30c806e"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T10:33:39Z",
+    "closed": "2026-09-04T10:47:51Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+    "ref_sha": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "a6cfbe80-f234-42b8-9d3e-eb0e46b12e88",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/home/grok-stream/sessions/<snapshot-encoded>/a6cfbe80-f234-42b8-9d3e-eb0e46b12e88/summary.json"
+  },
+  "session": {
+    "id": "a6cfbe80-f234-42b8-9d3e-eb0e46b12e88",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/home/grok-stream/sessions/<snapshot-encoded>/a6cfbe80-f234-42b8-9d3e-eb0e46b12e88/summary.json",
+    "stream_sha256_at_close": "cd63c7b1719a887a7407344e0c2a9a47bc1ba39b31741bea417d1269865b4f05",
+    "spend": {
+      "input": 3175587,
+      "cached": 2701440,
+      "output": 44841,
+      "total": 3220428,
+      "cost_usd_ticks": 4365702000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/home/grok-stream/sessions/<snapshot-encoded>/a6cfbe80-f234-42b8-9d3e-eb0e46b12e88/summary.json",
+      "messages": 352
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-ladder-audit/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "Adversarial review of the ladder batch (the lane conf and the ladder driver), merged on dev at 4ddb91f; the change under review is the diff from 9af6680 restricted to the batch's files named in the input file, with the contracts and the session's review notes. Judge the implementation against both contracts' acceptance lists: what is claimed green but not proven, what the tests let through (the driver is proved only against stub levers and a stub gh; no real run has happened), what the conf's closure and literals checks miss, what a resumed or tripped ladder would do on this tree, what the re-authoring lever does to a commit it should not touch, and what the first real run will hit. Findings as quotation pairs with file and line, priority P1 to P3; opinions marked as such.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/in/contract-ladder-batch-audit.md",
+        "sha256": "57c828fdc12c48dfad451178954c085d736f48b3d7b4b85c0e2588f9db3a73d6"
+      }
+    ],
+    "sha256": "000fdb0b42aa76841b50634e4c82807b2b83427c2a82ccb22586f22f33fa4f5f",
+    "bytes": 3091
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T10:33:39Z",
+      "ended": "2026-09-04T10:47:51Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 6,
+        "p3": 2,
+        "opinions": 2
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/ladder.py:45",
+          "claim": "The driver cannot start on the tracked conf. `CONF_KEYS` includes `CHECK_NAME` (`ops/conductor/tools/ladder.py:45`) and `load_conf` does `values = {key: conf_value(key) for key in CONF_KEYS}` (`ladder.py:1242`). `ops/lane.conf:10` declares `CHECK_NAMES='lane app'` and no `CHECK_NAME`. `dispatch.sh:29-30` refuses any conf that still has `CHECK_NAME=`. The ladder tests plant the retired key (`test_ladder_lever.py:867` `\"CHECK_NAME\": CHECK_NAME`) so the suite never sees the real file. Closure does not see the read: `_reads` only matches `get(\"KEY\")` / `os.environ` / `${KEY}` (`laneconf.py:240-251`), and a scan of `ladder.py` finds ADDRESS_*, LANE_CONF, WF_AGENT, WORKTREE_ROOT \u2014 not CHECK_NAME \u2014 while `laneconf.py closure` still exits 0. Adding `CHECK_NAME` to make the driver start would then be refused by the wrapper.",
+          "reproduce": "python3 -c \"import sys; from pathlib import Path; sys.path.insert(0,'ops/conductor/tools'); import ladder;\ntry:\n    ladder.load_conf(Path('.').resolve())\nexcept ladder.Refused as e:\n    print(e.line())\"; python3 ops/conductor/tools/laneconf.py get CHECK_NAME; python3 ops/conductor/tools/laneconf.py get CHECK_NAMES; python3 ops/conductor/tools/laneconf.py closure; echo closure:$?"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/ladder.py:969",
+          "claim": "`has_leak` treats any non-empty envelope `note` as a withheld leak (`ladder.py:969-972`: `if isinstance(note, str) and note: return True`) and is called on every skeptic or audit `changes` path (`ladder.py:1186-1187`, `1207-1208`). The stub plants `note = None` except when it copies `IMPLEMENT_ENVELOPE_LINE_aa32` into the note (`test_ladder_lever.py:385-392`), so `changes` with a real summary never runs. `jobs.json` requires `note` on every envelope (null allowed, string typical). The first real skeptic or audit that says `changes` and writes a note stops as `reason=withheld` and never runs tests-fix / fix-tests.",
+          "reproduce": "python3 -c \"from pathlib import Path\nfor p,a,b in [('ops/conductor/tools/ladder.py',969,974),('ops/conductor/tests/test_ladder_lever.py',385,392),('ops/conductor/tools/ladder.py',1185,1188),('ops/conductor/tools/ladder.py',1206,1209)]:\n    lines=Path(p).read_text().splitlines();\n    print('==',p); [print(f'{i}:{lines[i-1]}') for i in range(a,b+1)]\""
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/ladder.py:529",
+          "claim": "The implement stage does not put the derived test command in `{scope}`. `dispatch_args` always passes `--scope-file` as the original scope (`ladder.py:529-530`) and only appends the derived command as `--input` (`inputs_for` `ladder.py:862-864`; `derive_command` writes `test-command` at `ladder.py:967`). `dispatch.sh:224` copies that scope-file into `argv+=(--scope \"$scope\")`. The implement prompt is `implement whatever makes this command exit 0: {scope}` (`ops/devlane/task/jobs.json` implement.prompt). The contract and plan say the scope sentence is the joined `unittest discover` command. Tests only assert the command appears somewhere in `inputs_text` (`test_ladder_lever.py:1265-1273`, `1784-1798`), which concatenates `--input` and `--scope-file`. The first real `code` stage tells Codex to make the work-order paragraph exit 0.",
+          "reproduce": "python3 -c \"from pathlib import Path\nfor p,n in [('ops/conductor/tools/ladder.py',529),('ops/conductor/tools/ladder.py',862),('ops/conductor/tools/dispatch.sh',224)]:\n    print(f'{p}:{n}: {Path(p).read_text().splitlines()[n-1]}')\"; python3 -c \"import json; from pathlib import Path; t=json.loads(Path('ops/devlane/task/jobs.json').read_text())['implement']['prompt']; print(t.split('exit 0:')[1][:40])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/laneconf.py:91",
+          "claim": "`literals` and `closure` are claimed green and are green (`test_literals_exits_0_on_the_tree`, `test_closure_exits_0_on_the_tree`, both exit 0 on this tree) while the unit 1 acceptance is not met. `DEFERRED_LITERAL_PATHS` (`laneconf.py:91-110`) silently skips 19 readers; only `skipped: ops/devlane/infra` is printed (`laneconf.py:373`). Those skipped files still carry the lane name and trunk: `ci.py:52` `base / \"agentscient\" / \"ci.db\"`, `skills.py:32` `~/.local/state/agentscient/skills.db`, `findings.py:82` / `hand.py:64` / `onboard.py:57` `return \"agentscient\"`, `board.sh:12` `REPOS=(agentscient ...)`, `commit_trailers.py:356` `origin/dev`, `grok-dispatch.sh:186` and `codex-dispatch.sh:256` `/home/work/`. Closure also counts every `REQUIRED_KEYS` member as read by `laneconf.py` itself (`laneconf.py:291-295`) and does not add `TRUNK_BRANCH='dev'` as a token because `len(value) >= 4` (`laneconf.py:356-359`). `launch.py:842` still has the leftover `\"main\"` in the protected-branch set, which is not in the token list.",
+          "reproduce": "python3 ops/conductor/tools/laneconf.py literals; echo literals:$?; python3 ops/conductor/tools/laneconf.py closure; echo closure:$?; python3 -m unittest ops.conductor.tests.test_laneconf.LiteralsVerb.test_literals_exits_0_on_the_tree ops.conductor.tests.test_laneconf.ClosureVerb.test_closure_exits_0_on_the_tree -v; python3 -c \"from pathlib import Path\nfor p,n in [('ops/conductor/tools/ci.py',52),('ops/conductor/tools/skills.py',32),('ops/conductor/tools/findings.py',82),('ops/bin/board.sh',12),('ops/devlane/workflow/checks/commit_trailers.py',356),('ops/devlane/dispatch/levers/grok-dispatch.sh',186),('ops/devlane/dispatch/launch.py',842)]:\n    print(f'{p}:{n}: {Path(p).read_text().splitlines()[n-1]}')\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/land.py:358",
+          "claim": "The re-authoring lever rewrites a commit unit 1 says must be left unchanged. Unit 1: a commit whose author already equals `LANE_AUTHOR` is landed unchanged; after `land.py` every landed author is `LANE_AUTHOR`. `land.py:183` reads `LANE_AUTHOR`, then `land.py:358-359` replaces that author whenever `--author` is passed, and `land.py:386-397` amends if the author differs or if `--co-author` is not already an exact trailer line. The driver always passes both flags from the worktree identity and `model.ran` (`ladder.py:768-781`), never `LANE_AUTHOR`. The driver suite encodes the bypass: `test_land_is_called_after_write_stages_with_author_and_co_author` asserts `self.assertNotIn(LANE_AUTHOR, authors)` (`test_ladder_lever.py:1998`). A worker commit already authored as `xormania <127287135+xormania@users.noreply.github.com>` (`ops/lane.conf:12`) is rewritten to the worktree `user.name` / `user.email`, and a matching author still gets `git commit --amend --trailer` when `model.ran` plus `ADDRESS_*` is not byte-for-byte the worker's `Co-Authored-By:` line.",
+          "reproduce": "python3 -c \"from pathlib import Path\nfor p,a,b in [('ops/conductor/tools/land.py',183,191),('ops/conductor/tools/land.py',358,397),('ops/conductor/tools/ladder.py',768,781),('ops/conductor/tests/test_ladder_lever.py',1992,1999),('ops/lane.conf',12,12)]:\n    lines=Path(p).read_text().splitlines();\n    print('==',p); [print(f'{i}:{lines[i-1]}') for i in range(a,min(b,len(lines))+1)]\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:702",
+          "claim": "The driver's wait does not pass the contracted wall. The plan's wait wall is `caps.timeout` plus `LADDER_WAIT_GRACE` (default 300). `await_result` uses `timeout=wall + grace` only as the Python `subprocess.run` killer (`ladder.py:702-708`) and invokes `launch.py wait ID` with no `--timeout`. `launch.py:1704` defaults wait to 3600 seconds. `jobs.json` implement `caps.timeout` is 3600. A first real implement that runs to its job wall is reported `wait` exit 2 (`running` / wall) at 3600s, before the 300s grace, and the driver stops the ladder. Stubs return immediately, so the suite never sees it.",
+          "reproduce": "python3 -c \"from pathlib import Path; import json\nprint(Path('ops/conductor/tools/ladder.py').read_text().splitlines()[702]); print(Path('ops/devlane/dispatch/launch.py').read_text().splitlines()[1703]); print('implement', json.loads(Path('ops/devlane/task/jobs.json').read_text())['implement']['caps'])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:1014",
+          "claim": "A tripped ladder at `security` leaves a live sibling dispatch, and resume launches another. `audit_pair` mints `security` then `adversarial` before waiting either (`ladder.py:1014-1028`). If `finish(security)` stops as tripped/died, `adversarial` is already detached. Resume with `resume=True` then `execute`s the two stages sequentially (`ladder.py:1006-1012`) and will mint a second adversarial. The trip/resume tests only plant `trip_stages=[\"tests\"]` (`test_ladder_lever.py:2281-2314`), never a trip after the concurrent mint. On this tree there is no `.dev/records/ladders/` directory, so `resume` of a named id refuses `record` before any of that runs.",
+          "reproduce": "python3 -c \"from pathlib import Path\nlines=Path('ops/conductor/tools/ladder.py').read_text().splitlines();\n[print(f'{i}:{lines[i-1]}') for i in range(1014,1029)]; print('ladders', list(Path('.dev/records/ladders').glob('*')) if Path('.dev/records/ladders').exists() else 'ABSENT')\"; python3 -c \"import sys; from pathlib import Path; sys.path.insert(0,'ops/conductor/tools'); import ladder;\ntry:\n    ladder.record_worktree(Path('.').resolve(), 'no-such')\nexcept ladder.Refused as e:\n    print(e.line())\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:860",
+          "claim": "`tests-fix` is not given `SKEPTIC.md`. The contract/plan input for that stage is `scope, plan, stage 2 envelope and its SKEPTIC.md`. `inputs_for` for `tests-fix` appends only the check-tests JSON (`ladder.py:860-861`). The skeptic's `SKEPTIC.md` lives in the previous job `out/` and is not copied as `--input`. The first real tests-fix snapshot is `whole` (declared residue) but still does not receive that file as a stage input. Stubs never create `SKEPTIC.md`, so the suite cannot fail this.",
+          "reproduce": "python3 -c \"from pathlib import Path; lines=Path('ops/conductor/tools/ladder.py').read_text().splitlines(); [print(f'{i}:{lines[i-1]}') for i in range(850,878)]\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/ladder.py:952",
+          "claim": "The derived command is not the contract's `tests/` rule, and the tests lock in the miss. Contract/`ladder-lever.md`: each artifact path under a `tests/` directory becomes one `unittest discover`. Implementation keeps any `*.py` whose filename starts with `test` (`ladder.py:952-957`), including `packages/relay/spec/test_relay.py`, and drops a non-`test*.py` under `tests/` (`test_a_package_layout_test_file_is_kept_as_the_derived_command`, `test_a_non_test_file_under_tests_is_not_a_discover_target`). A first lane run whose author-tests artifacts are only under `tests/` will happen to work; a `conftest.py` / helper under `tests/` is omitted and a `test_*.py` outside `tests/` is included.",
+          "reproduce": "python3 -c \"from pathlib import Path; lines=Path('ops/conductor/tools/ladder.py').read_text().splitlines(); [print(f'{i}:{lines[i-1]}') for i in range(944,963)]; t=Path('ops/conductor/tests/test_ladder_lever.py').read_text(); print('TEST_RELAY', 'packages/relay/spec/test_relay.py' in t)\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_laneconf.py:909",
+          "claim": "Unit 1 claimed `git mv` of `dispatch.conf` onto `ops/lane.conf`. On this tree both files are tracked, and `test_lane_conf_is_tracked_and_dispatch_conf_is_not` is red (`AssertionError: 'ops/conductor/tools/dispatch.conf' != ''`). `gate.sh:13-18` still sources `$tool_dir/dispatch.conf`. I could not measure live `4ddb91f`; this overlay snapshot still carries the pre-batch file.",
+          "reproduce": "git ls-files -- ops/lane.conf ops/conductor/tools/dispatch.conf; python3 -m unittest ops.conductor.tests.test_laneconf.TrackedConfMove.test_lane_conf_is_tracked_and_dispatch_conf_is_not -v; python3 -c \"from pathlib import Path; lines=Path('ops/conductor/tools/gate.sh').read_text().splitlines(); [print(f'{i}:{lines[i-1]}') for i in range(13,19)]\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py:35",
+          "claim": "Launcher record commits still hardcode the owner instead of `LANE_AUTHOR`. `launch.py:35-36` `OWNER_NAME = \"xormania\"` / `OWNER_EMAIL = \"127287135+xormania@users.noreply.github.com\"` are used in `_commit_record` (`launch.py:711-712`). The values currently match `ops/lane.conf:12`, so today's tree is coincident, not coupled. Copying the lane and editing one conf file does not move these commits.",
+          "reproduce": "python3 -c \"from pathlib import Path\nfor p,n in [('ops/devlane/dispatch/launch.py',35),('ops/devlane/dispatch/launch.py',36),('ops/devlane/dispatch/launch.py',711),('ops/lane.conf',12)]:\n    print(f'{p}:{n}: {Path(p).read_text().splitlines()[n-1]}')\""
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py:7",
+          "claim": "Opinion: every driver acceptance row is a stub `dispatch.sh` / `launch.py wait` / `land.py` / `findings.py` / `gh` (`test_ladder_lever.py:7-10`). No row exercises `jobs.json` prompt rendering, `launch.py wait --timeout`, real `land.py` cherry-pick, or `gh pr create`. The P1/P2 items above are what that gap lets through; they are not additional untested guesses.",
+          "reproduce": null
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/ladder.py:1373",
+          "claim": "Opinion: a resume or trip on this tree never reaches the stage machine. There is no `.dev/records/ladders/` directory; `record_worktree` refuses `record` for a missing id. A fresh `SCOPE BRANCH` run dies in `load_conf` on `CHECK_NAME` after the worktree lookup (`ladder.py:1406` then `1242`). The dual-mint and wait-grace defects are what a patched conf would hit on the first real trip or long implement, not what `ladder.sh resume` does against this snapshot today.",
+          "reproduce": "ls .dev/records/ladders 2>/dev/null || echo NO_LADDERS; python3 -c \"import sys; from pathlib import Path; sys.path.insert(0,'ops/conductor/tools'); import ladder;\ntry:\n    ladder.record_worktree(Path('.').resolve(), 'no-such')\nexcept ladder.Refused as e:\n    print(e.line())\""
+        }
+      ],
+      "artifacts": {
+        "check-name-get": "key: expected CHECK_NAME declared in the lane conf; found no CHECK_NAME in /home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/snapshot/ops/lane.conf; needed define CHECK_NAME in /home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/snapshot/ops/lane.conf",
+        "load-conf": "REFUSED conf-key: expected CHECK_NAME declared in the lane conf; found no CHECK_NAME in /home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/snapshot/ops/lane.conf; needed define CHECK_NAME in /home/scientdb/.local/state/agentscient/dispatch/20260904T103338Z-review-grok-4f123e/snapshot/ops/lane.conf",
+        "closure": "exit 0",
+        "literals": "skipped: ops/devlane/infra\nexit 0",
+        "dispatch-conf-test": "FAIL test_lane_conf_is_tracked_and_dispatch_conf_is_not: AssertionError: 'ops/conductor/tools/dispatch.conf' != ''",
+        "resume-missing": "record: expected ladder record no-such in a repository worktree; found absent; needed choose or repair the record"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3220428,
+        "out": 44841,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b5293a9393442dffbb1d2bac4bb93013c30c806e",
+        "started": "2026-09-04T10:33:39Z",
+        "ended": "2026-09-04T10:50:00Z"
+      },
+      "note": "Reviewed snapshot b5293a9 (batch files overlaid on 9af6680), contracts in in/contract-ladder-batch-audit.md, and session notes in that file. Could not look at live 4ddb91f. First real run on this tree dies in load_conf on CHECK_NAME; the other P1/P2 items are what a conf patched to start would hit. counts.p3 is defect P3 only; the two Opinion: findings are counted under opinions."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T10:47:50.996Z"
+    }
+  },
+  "status": "closed"
+}
