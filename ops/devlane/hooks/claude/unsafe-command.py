@@ -124,7 +124,7 @@ RUNNER = re.compile(r"\b(playwright test|pytest|poe\s+(?!lint|format|fmt|type)[a
                     r"mutation-check\.sh|mutation-live\.sh|npm (?:test|run test)|cargo test|"
                     r"go test|jest|vitest|tox|make\s+(?:test|check|lint)|rspec|phpunit)\b")
 CLIPPED = re.compile(r"\|\s*(?:tail|head)\s+-(\d+)\b")
-SWEEP_CLIPPED = re.compile(r"\|\s*head\s+(?:-\d+|-n\s+\d+)\b")
+SWEEP_CLIPPED = re.compile(r"\|\s*head\s+(?:-\d+|-n(?:\s+)?\d+|--lines(?:=|\s+)\d+)\b")
 # `[^|]*` here was a bug: `grep -iE "warning|error"` contains a pipe INSIDE the quoted
 # pattern, so the class stopped before reaching the word that made it safe. Look for a
 # grep and a failure word anywhere in the command instead.
