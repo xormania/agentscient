@@ -5,13 +5,13 @@ from __future__ import annotations
 import re
 
 _WRITE_PATH = re.compile(
-    r"(?is)\b(?:create|persist|save|store|write)\b"
+    r"(?is)\b(?:create|dump|generate|persist|save|store|write)\b"
     r".{0,120}?"
     r"(?:"
     r"\{out\}(?:/[\w.{}-]+)*"
     r"|(?:[\w.{}-]+/)+[\w.{}-]+"
     r"|[\w{}-]+\.[\w.-]+"
-    r"|[\w.-]+(?=\s+in\s+(?:the\s+)?repository\b)"
+    r"|[\w.-]+(?=\s+(?:in\s+(?:the\s+)?repository|on\s+disk)\b)"
     r")"
 )
 _NEGATION = re.compile(r"(?i)\b(?:do\s+not|don't|never|without)\s+$")
