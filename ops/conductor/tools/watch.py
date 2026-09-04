@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -118,6 +119,7 @@ def watch(args: argparse.Namespace) -> int:
     expected = tuple(
         name.strip() for name in (args.expect_names or "").split(",") if name.strip()
     )
+    scale = _tick_scale()
     started = time.monotonic()
     # Registration is not atomic: a settled-looking table is a candidate,
     # settled only when the next poll reports the identical table.
@@ -134,7 +136,7 @@ def watch(args: argparse.Namespace) -> int:
         table = tuple(sorted(checks))
         confirmed = settled_shape and candidate == table
         candidate = table if settled_shape else None
-        elapsed = int(time.monotonic() - started)
+        elapsed = int((time.monotonic() - started) / scale)
         line = (
             f"poll rows={observed['rows']} pass={observed['pass']} "
             f"fail={observed['fail']} pending={observed['pending']} "
@@ -153,7 +155,7 @@ def watch(args: argparse.Namespace) -> int:
                 f"fail={observed['fail']} skip={observed['skip']}"
             )
             return 1 if observed["fail"] else 0
-        if time.monotonic() - started >= args.timeout:
+        if (time.monotonic() - started) / scale >= args.timeout:
             print(
                 f"abort rows={observed['rows']} pass={observed['pass']} "
                 f"fail={observed['fail']} pending={observed['pending']} "
@@ -161,7 +163,25 @@ def watch(args: argparse.Namespace) -> int:
                 file=sys.stderr,
             )
             return 3
-        time.sleep(args.interval)
+        time.sleep(args.interval * scale)
+
+
+def _tick_scale() -> float:
+    """Test apparatus. WATCH_TICK_SCALE scales the poll sleep and the
+    elapsed reading together, so the 5-second floor stays on the wire
+    while a suite does not wait through real polls. Unset means real
+    time; a value that is not a positive number is refused."""
+    raw = os.environ.get("WATCH_TICK_SCALE")
+    if raw is None:
+        return 1.0
+    try:
+        scale = float(raw)
+    except ValueError:
+        scale = 0.0
+    if not scale > 0:
+        refuse("tick-scale", "a positive number in WATCH_TICK_SCALE", repr(raw),
+               "unset it, or set a positive number; it is test apparatus")
+    return scale
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
