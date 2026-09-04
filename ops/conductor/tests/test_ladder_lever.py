@@ -71,6 +71,8 @@ SCOPE_FIRST = "SCOPE_FIRST_LINE_aa32 the slice pointer"
 IMPLEMENT_LINE = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
 TEST_ALPHA = "ops/conductor/tests/test_alpha.py"
 TEST_BETA = "ops/conductor/tests/test_beta.py"
+TEST_RELAY = "packages/relay/spec/test_relay.py"
+SKEPTIC_MD = "ops/conductor/tests/SKEPTIC.md"
 PR_URL = "https://example.invalid/org/projx/pull/7"
 RUN_CAP = 60
 SLICE_M = "ladder-driver-slice"
@@ -324,13 +326,19 @@ def logical_name():
         if "fix-tests" in seen or "fix-code" in seen:
             return "fix-code"
         code_n = sum(
-            1 for n in seen if n == "code" or str(n).startswith("code-")
+            1 for info in (plant.get("records") or {}).values()
+            if (info or {}).get("name") == "code"
+            or str((info or {}).get("name") or "").startswith("code-")
         )
         if code_n == 0:
             return "code"
         return "code-" + str(code_n + 1)
     if job == "security-audit" and stage == "review":
-        if "fix-code" in seen or "fix-tests" in seen or "security" in seen:
+        minted = [
+            (info or {}).get("name")
+            for info in (plant.get("records") or {}).values()
+        ]
+        if "fix-code" in seen or "fix-tests" in seen or "security" in minted:
             return "security-re"
         return "security"
     if job == "check-tests":
@@ -1104,6 +1112,28 @@ class _LadderFixture(unittest.TestCase):
             "gh stub plant did not land intact",
         )
 
+    def plant_silent_gh(self) -> None:
+        body = (
+            "#!/usr/bin/env python3\n"
+            "from __future__ import annotations\n"
+            "import json\n"
+            "import sys\n"
+            "from pathlib import Path\n"
+            f"STUB = Path({str(self.stub_dir)!r})\n"
+            "argv = sys.argv[1:]\n"
+            "log = STUB / 'gh-argv.jsonl'\n"
+            "with log.open('a', encoding='utf-8') as fh:\n"
+            "    fh.write(json.dumps(argv) + '\\n')\n"
+            "raise SystemExit(0)\n"
+        )
+        before = self.gh.read_bytes()
+        self._plant_bytes(self.gh, body.encode("utf-8"))
+        self._make_executable(self.gh)
+        landed = self.gh.read_bytes()
+        self.assertNotEqual(landed, before, "silent gh plant did not replace stub")
+        self.assertNotIn(PR_URL.encode("utf-8"), landed)
+        self.assertIn(b"raise SystemExit(0)", landed)
+
     def env(
         self,
         *,
@@ -1182,6 +1212,12 @@ class _LadderFixture(unittest.TestCase):
 
     def dispatch_names(self) -> list[str]:
         return [row["name"] for row in self.dispatch_calls()]
+
+    def dispatch_count(self, *, job: str, stage: str) -> int:
+        return sum(
+            1 for row in self.dispatch_calls()
+            if row.get("job") == job and row.get("stage") == stage
+        )
 
     def dispatch_argv_for(self, name: str) -> list[str]:
         for row in self.dispatch_calls():
@@ -1487,6 +1523,10 @@ class _LadderFixture(unittest.TestCase):
         payload = json.loads(path.read_text(encoding="utf-8"))
         payload["status"] = "closed"
         payload["at"]["closed"] = "2026-09-04T12:01:00Z"
+        if plant.get("empty_artifacts"):
+            artifacts = {}
+        else:
+            artifacts = dict(plant.get("artifacts") or {})
         payload["result"] = {
             "envelope": {
                 "job": payload["job"],
@@ -1494,7 +1534,7 @@ class _LadderFixture(unittest.TestCase):
                 "verdict": "approve",
                 "counts": {"p1": 0, "p2": 0, "p3": 0, "opinions": 0},
                 "findings": [],
-                "artifacts": {},
+                "artifacts": artifacts,
                 "spend": {"harness": "grok", "total": 0, "out": 0, "runs": 0},
                 "stamp": {"ref": "planted", "started": None, "ended": None},
                 "note": None,
@@ -1505,6 +1545,10 @@ class _LadderFixture(unittest.TestCase):
         landed = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(landed["status"], "closed")
         self.assertEqual(landed["result"]["envelope"]["status"], "ok")
+        self.assertEqual(
+            landed["result"]["envelope"]["artifacts"],
+            artifacts,
+        )
         return rec_id
 
 
@@ -1752,6 +1796,38 @@ class DerivedCommand(_LadderFixture):
         )
         self.assertIn(" && ", scope)
         self.assertEqual(len(scope.split(" && ")), 2, scope)
+
+    def test_a_package_layout_test_file_is_kept_as_the_derived_command(self):
+        planted = {"relay": TEST_RELAY}
+        self.patch_plant(artifacts=planted)
+        self.assertEqual(self.load_plant()["artifacts"], planted)
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertNotIn("reason=artifacts", self.combined(proc))
+        scope = self.inputs_text(self.dispatch_argv_for("code"))
+        self.assertIn(
+            "python3 -m unittest discover -s packages/relay/spec "
+            "-p test_relay.py",
+            scope,
+        )
+
+    def test_a_non_test_file_under_tests_is_not_a_discover_target(self):
+        planted = {
+            "test_alpha": TEST_ALPHA,
+            "skeptic": SKEPTIC_MD,
+        }
+        self.patch_plant(artifacts=planted)
+        self.assertEqual(self.load_plant()["artifacts"], planted)
+        proc = self.run_ladder()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        scope = self.inputs_text(self.dispatch_argv_for("code"))
+        self.assertIn(
+            "python3 -m unittest discover -s ops/conductor/tests "
+            "-p test_alpha.py",
+            scope,
+        )
+        self.assertNotIn("SKEPTIC.md", scope)
+        self.assertNotIn(" && ", scope)
 
     def test_no_test_artifact_stops_with_class_artifacts(self):
         self.patch_plant(empty_artifacts=True, artifacts={})
@@ -2095,6 +2171,71 @@ class RefusalAndResume(_LadderFixture):
             reason="retry-cap",
         )
         self.assertEqual(self.dispatch_names().count("security"), 2)
+        self.assertEqual(
+            self.dispatch_count(job="security-audit", stage="review"),
+            2,
+        )
+
+    def test_a_third_resume_after_retry_cap_does_not_launch_again(self):
+        self.patch_plant(refuse_stages=["security"])
+        first = self.run_ladder()
+        self.assertEqual(first.returncode, 3, self.combined(first))
+        ladder_id = self.ladder_record().get("id")
+        self.assertTrue(ladder_id)
+        second = self.invoke(["resume", ladder_id])
+        self.assert_stopped(
+            second, stage="security",
+            record="none",
+            reason="retry-cap",
+        )
+        self.assertEqual(self.dispatch_names().count("security"), 2)
+        self.assertEqual(
+            self.dispatch_count(job="security-audit", stage="review"),
+            2,
+        )
+        self.patch_plant(refuse_stages=[])
+        third = self.invoke(["resume", ladder_id])
+        self.assert_stopped(
+            third, stage="security",
+            record="none",
+            reason="retry-cap",
+        )
+        self.assertEqual(self.dispatch_names().count("security"), 2)
+        self.assertEqual(
+            self.dispatch_count(job="security-audit", stage="review"),
+            2,
+        )
+        self.assertEqual(self.gh_argvs(), [])
+
+    def test_resume_of_refused_code_relaunches_code_not_a_second_bucket(self):
+        self.patch_plant(refuse_stages=["code"])
+        first = self.run_ladder()
+        self.assertEqual(first.returncode, 3, self.combined(first))
+        self.assertEqual(
+            self.dispatch_names(),
+            ["tests", "check-tests", "code"],
+        )
+        ladder_id = self.ladder_record().get("id")
+        self.assertTrue(ladder_id)
+        second = self.invoke(["resume", ladder_id])
+        self.assert_stopped(
+            second, stage="code",
+            record="none",
+            reason="retry-cap",
+        )
+        names = self.dispatch_names()
+        self.assertEqual(
+            names,
+            ["tests", "check-tests", "code", "code"],
+            names,
+        )
+        self.assertNotIn("code-2", names)
+        self.assertEqual(
+            self.dispatch_count(job="implement", stage="code"),
+            2,
+            names,
+        )
+        self.assertNotIn("security", names)
 
     def test_resume_uses_the_named_record_not_the_newest(self):
         self.patch_plant(refuse_stages=["security"])
@@ -2153,7 +2294,15 @@ class TripAndResume(_LadderFixture):
         self.assertEqual(first.returncode, 3, self.combined(first))
         before = self.dispatch_names().count("tests")
         self.assertEqual(before, 1)
-        self.close_tripped_record()
+        rec_id = self.close_tripped_record()
+        closed = json.loads(
+            Path(self.load_plant()["records"][rec_id]["path"])
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            closed["result"]["envelope"]["artifacts"],
+            {"test_alpha": TEST_ALPHA, "test_beta": TEST_BETA},
+        )
         self.patch_plant(trip_stages=[])
         ladder_id = self.ladder_record().get("id")
         second = self.invoke(["resume", ladder_id])
@@ -2161,6 +2310,28 @@ class TripAndResume(_LadderFixture):
         self.assertEqual(self.dispatch_names().count("tests"), 1)
         self.assertGreaterEqual(len(self.land_argvs()), 1)
         self.assertGreaterEqual(len(self.gh_argvs()), 1)
+
+    def test_a_second_trip_on_resume_stops_as_retry_cap(self):
+        self.patch_plant(trip_stages=["tests"])
+        first = self.run_ladder()
+        rec_id = self.load_plant().get("last_id") or "none"
+        self.assert_stopped(
+            first, stage="tests", record=rec_id, reason="tripped",
+        )
+        self.assertEqual(self.dispatch_names().count("tests"), 1)
+        ladder_id = self.ladder_record().get("id")
+        self.assertTrue(ladder_id)
+        second = self.invoke(["resume", ladder_id])
+        text = self.combined(second)
+        self.assertEqual(second.returncode, 3, text)
+        last = [ln for ln in text.splitlines() if ln.strip()][-1]
+        self.assertIn("stage=tests", last)
+        self.assertIn("reason=retry-cap", last)
+        self.assertEqual(self.dispatch_names().count("tests"), 2)
+        self.assertEqual(
+            self.dispatch_count(job="author-tests", stage="tests"),
+            2,
+        )
 
 
 class ExitClasses(_LadderFixture):
@@ -2223,6 +2394,19 @@ class ExitClasses(_LadderFixture):
         self.assertIn(proc.returncode, {0, 1, 2, 3}, self.combined(proc))
         self.assert_stopped(proc, stage="tests", record=rec_id)
         self.assertIn("launch.py collect", self.combined(proc))
+
+    def test_a_silent_gh_pr_create_stops_exit_3_without_a_traceback(self):
+        self.plant_silent_gh()
+        proc = self.run_ladder()
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        self.assertIn(proc.returncode, {0, 1, 2, 3}, proc.returncode)
+        self.assertNotIn("Traceback", text)
+        self.assertNotIn("IndexError", text)
+        self.assertEqual(len(self.gh_argvs()), 1, self.gh_argvs())
+        last = [ln for ln in text.splitlines() if ln.strip()][-1]
+        self.assertIn("stage=pr", last)
+        self.assertIn("stopped", last)
 
 
 class Literals(_LadderFixture):
