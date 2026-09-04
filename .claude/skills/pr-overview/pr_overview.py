@@ -170,8 +170,11 @@ def buckets(number, repo):
         # No checks configured is a real answer; an unreadable one is
         # not, and the two must not print the same.
         if proc.returncode != 0:
+            detail = (proc.stderr or "").strip()
+            if "no checks reported" in detail.lower():
+                return {}
             raise Unavailable(f"gh pr checks {number}: "
-                              f"{(proc.stderr or '').strip()[:200]}")
+                              f"{detail[:200]}")
         return {}
     try:
         rows = json.loads(proc.stdout)
@@ -375,6 +378,8 @@ def blocking(pr, expected=None, root=ROOT, unreadable=None):
         return f"CI red — {checks['fail']} failing"
     if pr["unresolved"]:
         return f"answer {pr['unresolved']} unresolved thread(s)"
+    if pr.get("checks_unreadable"):
+        return f"cannot tell — checks could not be read: {pr['checks_unreadable']}"
     if checks.get("pending"):
         return f"waiting on CI — {checks['pending']} pending"
     # A cancelled attempt with no successor is not a pass; without this
@@ -485,17 +490,23 @@ def collect(repo):
             f"{LIST_LIMIT}; the listing may be incomplete and an incomplete "
             f"overview must not read like a complete one")
     out = []
+    unreadable_checks = []
     for pr in listing:
         head = pr["headRefOid"]
         threads, reviews = review_pages(repo, pr["number"])
         who, age = review_state(reviews, head)
+        try:
+            checks, checks_unreadable = buckets(pr["number"], repo), None
+        except Unavailable as exc:
+            checks, checks_unreadable = {}, str(exc)
+            unreadable_checks.append(checks_unreadable)
         row = {
             "number": pr["number"], "title": pr["title"],
             "head_branch": pr["headRefName"], "base": pr["baseRefName"],
             "head": head[:7], "draft": pr["isDraft"],
             "merge_state": pr["mergeStateStatus"],
             "mergeable": pr["mergeable"], "updated": pr["updatedAt"][:16],
-            "checks": buckets(pr["number"], repo),
+            "checks": checks, "checks_unreadable": checks_unreadable,
             "threads": len(threads),
             "unresolved": sum(1 for t in threads if not t["isResolved"]),
             "open_paths": sorted({t["path"] for t in threads
@@ -510,6 +521,11 @@ def collect(repo):
             expected, unreadable = None, exc
         row["blocking"] = blocking(row, expected, unreadable=unreadable)
         out.append(row)
+    if listing and len(unreadable_checks) == len(listing):
+        raise Unavailable(
+            f"checks readable for none of {len(listing)} open pull request(s); "
+            f"first: {unreadable_checks[0]}"
+        )
     return sorted(out, key=lambda r: r["number"])
 
 
@@ -523,8 +539,11 @@ def render(rows, repo):
     for r in rows:
         # Buckets only. `names` and `runs` are what `blocking`
         # compared; printing either turns a summary into a dump.
-        checks = " ".join(f"{k}={v}" for k, v in sorted(r["checks"].items())
-                          if k not in ("names", "runs")) or "no checks"
+        checks = (
+            "unreadable" if r.get("checks_unreadable") else
+            " ".join(f"{k}={v}" for k, v in sorted(r["checks"].items())
+                     if k not in ("names", "runs")) or "no checks"
+        )
         draft = " [draft]" if r["draft"] else ""
         by = f" ({r['reviewer']})" if r["reviewer"] else ""
         where = f"{r['head_branch']} -> {r['base']}  @{r['head']}"

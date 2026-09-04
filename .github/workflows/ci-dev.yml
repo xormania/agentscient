@@ -1,0 +1,40 @@
+name: ci-dev
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [dev]
+  push:
+    branches: [dev]
+permissions:
+  contents: read
+jobs:
+  verify:
+    name: "dev: verify"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: bash ops/bin/suites.sh
+      - run: ruff check .
+  discover:
+    name: "dev: contracts"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    outputs:
+      matrix: ${{ steps.registry.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: registry
+        run: |
+          matrix=$(python3 ops/devlane/workflow/wf.py --json status --checks \
+            | python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["ci_matrix"]))')
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+  gates:
+    name: "dev: gates"
+    needs: discover
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: bash ops/bin/suites.sh

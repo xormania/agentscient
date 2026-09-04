@@ -1,0 +1,33 @@
+name: ci-dev-apps
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [dev]
+  push:
+    branches: [dev]
+permissions:
+  contents: read
+jobs:
+  workflow:
+    name: "dev: workflow"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: bash ops/bin/suites.sh
+  app:
+    name: "dev: ${{ matrix.app }}"
+    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: symfony
+            cmd: vendor/bin/phpunit
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: composer install --prefer-dist --no-progress --no-interaction
+      - run: ${{ matrix.cmd }}

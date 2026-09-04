@@ -41,10 +41,10 @@ invocation fails fast at `record`:
 |---|---|
 | identity | `WF_AGENT` unset or malformed (inherited, checked first) |
 | record | no record directory named RECORD_ID in the dispatch store |
-| exit-status | the record's `exit` file is missing or nonzero — a failed dispatch is adjudicated by a person, never landed |
+| exit-status | the record's `exit` file is missing or nonzero and the envelope has no verified collection — run `launch.py collect RECORD_ID --verify COMMAND`; a present collection also refuses here when its `verify.exit` is not 0 |
 | ref | `refs/dispatch/RECORD_ID` does not resolve here |
 | envelope | `.dev/records/dispatches/RECORD_ID.json` is absent from the working tree |
-| envelope-status | the envelope's `result.envelope.status` is not `ok` — an attempt can exit 0 while the dispatch system rejects the answer (schema-invalid); the lever lands only accepted work, and a person adjudicates the rest |
+| envelope-status | the envelope's `result.envelope.status` is not `ok` and the result was not collected and verified — an attempt can exit 0 while the dispatch system rejects the answer (schema-invalid); the lever lands only accepted or recovered work, and a person adjudicates the rest |
 | lineage | the current branch is not the envelope's `lineage.branch` |
 | dirty | the working tree has staged or unstaged changes |
 | stale | the branch is behind `origin/<branch>` — a three-way ruling. With a remote and the fetch allowed: the upstream branch is probed first (`ls-remote --exit-code`); an upstream that lacks the branch is fresh evidence (a first landing on an unpushed branch is the normal case), a probe or fetch failure refuses — an unperformed freshness check is not freshness. With `--no-fetch`: the last-known `origin/<branch>` ref is the comparison, and its absence refuses — skipping the fetch presumes prior evidence. With no origin remote: a planted origin ref compares, otherwise there is nothing to be behind |
@@ -53,6 +53,12 @@ invocation fails fast at `record`:
 Refusal text is one line by the inherited wire even when git's
 diagnostics are not: embedded newlines are normalized before the
 refusal is emitted.
+
+A failed dispatch is recoverable through the launcher's `collect` verb.
+Landing accepts its `result.collected` evidence only when `verify.exit` is
+0 and `collected.head` is exactly the resolved dispatch ref; a different
+head refuses as `ref`. That verified collection satisfies both the
+`exit-status` and `envelope-status` preconditions.
 
 ## The act and its exits
 
