@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import mmap
 import os
 import re
 import shutil
@@ -33,7 +34,10 @@ JOBS_JSON_CANDIDATES = (
 TERMINAL = {"closed", "died"}
 DEFAULT_TICK = 300.0
 DEFAULT_HEARTBEAT = 6
+DEFAULT_FORGE_EVERY = 1
 DEFAULT_WARN_FRACTION = 2 / 3
+FORGE_LIMIT = 200
+FORGE_TIMEOUT = 10
 FALLBACK_WARN_MIN = 40
 SETTLING_TICKS = 2
 ASSUMPTION_WORDS = (
@@ -45,6 +49,16 @@ ASSUMPTION_WORDS = (
 )
 LOCK_FILES = ("composer.lock", "Cargo.lock", "requirements.lock", "symfony.lock")
 REFUSAL_CLASSES = ("empty-comparison", "scope-cap", "conf-key", "toolchain")
+ERROR_TEXT_RE = re.compile(
+    r"\berrored\b|\berrors\s*=\s*[1-9]\d*\b",
+    re.IGNORECASE,
+)
+ERROR_BYTES_RE = re.compile(ERROR_TEXT_RE.pattern.encode(), re.IGNORECASE)
+REFUSAL_BYTES_RE = re.compile(
+    rb"(?m)^\s*(?:" + b"|".join(
+        re.escape(item).encode() for item in REFUSAL_CLASSES
+    ) + rb"):"
+)
 BUCKET_LIMITS = {
     "S": {"files": 3, "lines": 2_000},
 }
@@ -180,14 +194,20 @@ def process_alive(pid, expect_word):
     return True
 
 
-def run(argv):
+def run(argv, timeout=90):
     """Stdout of a subprocess, or None when it could not be run or
     exited non-zero. Executables are resolved to full paths first."""
     exe = shutil.which(argv[0])
     if exe is None:
         return None
     try:
-        result = subprocess.run([exe, *argv[1:]], capture_output=True, text=True, timeout=90, check=False)
+        result = subprocess.run(
+            [exe, *argv[1:]],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
     except (OSError, subprocess.SubprocessError):
         return None
     return result.stdout if result.returncode == 0 else None
@@ -237,19 +257,59 @@ class Entry:
         return process_alive(pid, self.harness)
 
 
-def entries(store, caps):
+WATCHED_INPUTS = (
+    "record.json",
+    "state.json",
+    "exit",
+    "in/plan.md",
+    "raw.out",
+    "stdout",
+    "stderr",
+    "launcher.log",
+)
+
+
+def input_fingerprint(path):
+    """Mutation-sensitive metadata for every input used by a closed scan."""
+    fingerprint = []
+    for name in WATCHED_INPUTS:
+        try:
+            stat = (path / name).stat()
+        except FileNotFoundError:
+            fingerprint.append((name, None))
+            continue
+        fingerprint.append((
+            name,
+            stat.st_dev,
+            stat.st_ino,
+            stat.st_mode,
+            stat.st_size,
+            stat.st_mtime_ns,
+            stat.st_ctime_ns,
+        ))
+    return tuple(fingerprint)
+
+
+def entries(store, caps, closed_cache=None):
     out = []
-    try:
-        dirs = sorted(p for p in store.iterdir() if p.is_dir())
-    except OSError:
-        return out
+    dirs = sorted(p for p in store.iterdir() if p.is_dir())
+    present = {path.name for path in dirs}
+    if closed_cache is not None:
+        for name in set(closed_cache) - present:
+            del closed_cache[name]
     for d in dirs:
+        fingerprint = input_fingerprint(d)
+        cached = closed_cache.get(d.name) if closed_cache is not None else None
+        if cached is not None and cached[0] == fingerprint:
+            out.append(cached[1])
+            continue
         try:
             rec = read_json(d / "record.json")
             state = read_json(d / "state.json") or {}
         except OSError as exc:
             entry = Entry(d, "error", {}, {}, False, caps)
             entry.error = exc
+            entry.fingerprint = fingerprint
             out.append(entry)
             continue
         has_exit = (d / "exit").is_file()
@@ -261,7 +321,14 @@ def entries(store, caps):
             kind = "settling"
         else:
             kind = "running"
-        out.append(Entry(d, kind, rec or {}, state, has_exit, caps))
+        entry = Entry(d, kind, rec or {}, state, has_exit, caps)
+        entry.fingerprint = fingerprint
+        out.append(entry)
+        if closed_cache is not None:
+            if kind == "closed":
+                closed_cache[d.name] = (fingerprint, entry)
+            else:
+                closed_cache.pop(d.name, None)
     return out
 
 
@@ -306,6 +373,21 @@ def held_text(entry, names):
     return "\n".join(chunks)
 
 
+def held_matches(entry, names, pattern):
+    """Search held files without copying growing transcripts into memory."""
+    for name in names:
+        try:
+            with (entry.path / name).open("rb") as stream:
+                if os.fstat(stream.fileno()).st_size == 0:
+                    continue
+                with mmap.mmap(stream.fileno(), 0, access=mmap.ACCESS_READ) as data:
+                    if pattern.search(data):
+                        return True
+        except FileNotFoundError:
+            continue
+    return False
+
+
 class Watch:
     def __init__(self, args):
         self.args = args
@@ -317,9 +399,21 @@ class Watch:
         self.launcher_pairs = set()
         self.ci_seen = set()
         self.startup_closed = set()
+        self.closed_cache = {}
+        self.closed_scanned = {}
+        self.forge_reading = None
+        self.forge_tick = None
+        self.startup_error = None
         self.deviations = 0
-        if not args.report_existing:
-            self.startup_closed = {e.name for e in entries(args.store, self.caps) if e.kind == "closed"}
+        try:
+            initial = entries(args.store, self.caps, self.closed_cache)
+        except OSError as exc:
+            self.startup_error = exc
+        else:
+            if not args.report_existing:
+                self.startup_closed = {
+                    entry.name for entry in initial if entry.kind == "closed"
+                }
 
     def once(self, key, line):
         if key not in self.reported:
@@ -385,18 +479,20 @@ class Watch:
             self.deviation("envelope", entry.name)
 
         if entry.job == "author-tests":
-            suite_text = "\n".join(
-                filter(None, (
-                    envelope.get("note") if isinstance(envelope.get("note"), str) else "",
-                    held_text(entry, ("stdout", "stderr", "launcher.log")),
-                ))
-            )
-            if re.search(r"\berrored\b|\berrors\s*=\s*[1-9]\d*\b", suite_text, re.IGNORECASE):
+            note = envelope.get("note")
+            note_has_errors = isinstance(note, str) and ERROR_TEXT_RE.search(note)
+            if note_has_errors or held_matches(
+                entry,
+                ("raw.out", "stdout", "stderr", "launcher.log"),
+                ERROR_BYTES_RE,
+            ):
                 self.deviation("errors", entry.name)
 
-        refused_text = held_text(entry, ("launcher.log", "stderr"))
-        refusal = "|".join(re.escape(item) for item in REFUSAL_CLASSES)
-        if re.search(rf"(?m)^\s*(?:{refusal}):", refused_text):
+        if held_matches(
+            entry,
+            ("raw.out", "stdout", "stderr", "launcher.log"),
+            REFUSAL_BYTES_RE,
+        ):
             self.deviation("refused", entry.name)
 
         minutes = entry.minutes(entry.closed_at)
@@ -434,16 +530,23 @@ class Watch:
 
     def run_tick(self):
         self.tick += 1
+        if self.startup_error is not None:
+            error = self.startup_error
+            self.startup_error = None
+            raise error
         running = []
         settling = 0
-        for e in entries(self.args.store, self.caps):
+        for e in entries(self.args.store, self.caps, self.closed_cache):
             if e.kind == "error":
                 self.once(("error", e.name, type(e.error).__name__), f"watchdog error: {type(e.error).__name__}: {e.error} (tick {self.tick}; the loop continues)")
                 continue
             if e.kind == "no-copy":
                 self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
                 continue
-            self.scan_deviations(e)
+            if e.kind != "closed" or self.closed_scanned.get(e.name) != e.fingerprint:
+                self.scan_deviations(e)
+                if e.kind == "closed":
+                    self.closed_scanned[e.name] = e.fingerprint
             if e.kind == "closed":
                 if e.name not in self.startup_closed:
                     self.once(("closed", e.name), f"closed {e.name} {e.summary()} after {e.minutes(e.closed_at)} min")
@@ -477,17 +580,32 @@ class Watch:
             if pair not in self.launcher_pairs:
                 self.launcher_pairs.add(pair)
                 say(f"launchers fewer than running records: {launchers} launch.py processes, {len(running)} running (heuristic: the record does not name its launcher)")
-        forge = None if self.args.no_forge else self.forge()
+        forge_fresh = False
+        if not self.args.no_forge and (self.tick - 1) % self.args.forge_every == 0:
+            self.forge_reading = self.forge()
+            self.forge_tick = self.tick
+            forge_fresh = True
         if self.tick % self.args.heartbeat_every == 0:
             live = ", ".join(f"{e.name} {e.minutes()}m/{int(e.wall_min) if e.wall_min else '?'}" for e in running) or "none"
             launchers_txt = "unreachable" if launchers is None else launchers
             if self.args.no_forge:
                 prs = "not watched"
-            elif forge is None:
+            elif self.forge_reading is None:
                 prs = "unreachable"
             else:
-                n, unreachable = forge
-                prs = str(n) + (f" (checks unreachable for {', '.join('#' + str(p) for p in unreachable)})" if unreachable else "")
+                n, unreachable = self.forge_reading
+                notes = []
+                if n == FORGE_LIMIT:
+                    count = f"{FORGE_LIMIT}+"
+                    notes.append("page full, total unmeasured")
+                else:
+                    count = str(n)
+                if not forge_fresh:
+                    notes.append(f"cached from tick {self.forge_tick}")
+                if unreachable:
+                    numbers = ", ".join(f"#{number}" for number in unreachable)
+                    notes.append(f"checks unreachable for {numbers}")
+                prs = count + (f" ({'; '.join(notes)})" if notes else "")
             say(f"heartbeat: running={live}; settling={settling}; launchers={launchers_txt}; open PRs into {self.trunk}={prs}; deviations={self.deviations}")
 
     def launcher_count(self):
@@ -502,23 +620,47 @@ class Watch:
             return None
 
     def forge(self):
-        raw = run(["gh", "pr", "list", "--base", self.trunk, "--state", "open", "--json", "number,headRefOid"])
+        raw = run([
+            "gh", "pr", "list", "--base", self.trunk, "--state", "open",
+            "--limit", str(FORGE_LIMIT), "--json", "number,headRefOid",
+        ], timeout=FORGE_TIMEOUT)
         if raw is None:
             return None
         try:
             prs = json.loads(raw)
         except ValueError:
             return None
+        if (
+            not isinstance(prs, list)
+            or len(prs) > FORGE_LIMIT
+            or any(
+                not isinstance(pr, dict)
+                or not isinstance(pr.get("number"), int)
+                or isinstance(pr.get("number"), bool)
+                or not isinstance(pr.get("headRefOid"), str)
+                or not pr["headRefOid"]
+                for pr in prs
+            )
+        ):
+            return None
         unreachable = []
         for pr in prs:
             number = pr.get("number")
             sha = pr.get("headRefOid") or "unknown"
-            checks = run(["gh", "pr", "checks", str(number), "--json", "name,bucket"])
+            checks = run(
+                ["gh", "pr", "checks", str(number), "--json", "name,bucket"],
+                timeout=FORGE_TIMEOUT,
+            )
             try:
                 rows = json.loads(checks) if checks is not None else None
             except ValueError:
                 rows = None
-            if rows is None:
+            if not isinstance(rows, list) or any(
+                not isinstance(row, dict)
+                or not isinstance(row.get("name"), str)
+                or not isinstance(row.get("bucket"), str)
+                for row in rows
+            ):
                 unreachable.append(number)
                 continue
             for c in rows:
@@ -531,7 +673,12 @@ class Watch:
         return len(prs), unreachable
 
     def loop(self):
-        say(f"watchdog armed: store {self.args.store}, {len(self.startup_closed)} closed records ignored, tick {self.args.tick:g}s")
+        ignored = (
+            "unreachable"
+            if self.startup_error is not None
+            else str(len(self.startup_closed))
+        )
+        say(f"watchdog armed: store {self.args.store}, {ignored} closed records ignored, tick {self.args.tick:g}s")
         while True:
             try:
                 self.run_tick()
@@ -548,6 +695,7 @@ def parse_args(argv):
     parser.add_argument("--store", help="the dispatch store (default: DISPATCH_JOBS, then XDG_STATE_HOME, then HOME)")
     parser.add_argument("--tick", help="seconds between ticks (default: WATCHDOG_TICK or 300)")
     parser.add_argument("--heartbeat-every", type=int, default=DEFAULT_HEARTBEAT, help="ticks between heartbeats")
+    parser.add_argument("--forge-every", default=str(DEFAULT_FORGE_EVERY), help="ticks between forge readings")
     parser.add_argument("--warn-fraction", type=float, default=DEFAULT_WARN_FRACTION, help="fraction of the wall at which a run is long")
     parser.add_argument("--once", action="store_true", help="one tick, then exit 0")
     parser.add_argument("--report-existing", action="store_true", help="report records already closed at start")
@@ -569,6 +717,13 @@ def main(argv=None):
         refuse("tick", "a positive number of seconds", repr(raw_tick), "set --tick or WATCHDOG_TICK to a positive number")
     if args.heartbeat_every <= 0 or not 0 < args.warn_fraction <= 1:
         refuse("arguments", "heartbeat-every above zero and warn-fraction in (0, 1]", f"{args.heartbeat_every}, {args.warn_fraction}", "fix the values")
+    raw_forge_every = args.forge_every
+    try:
+        args.forge_every = int(raw_forge_every)
+    except ValueError:
+        args.forge_every = 0
+    if args.forge_every <= 0:
+        refuse("arguments", "forge-every as a positive integer", repr(raw_forge_every), "set --forge-every to a positive integer")
     return Watch(args).loop()
 
 
