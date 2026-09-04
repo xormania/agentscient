@@ -23,15 +23,25 @@ validate_conf() {
     done < "$file"
 }
 
+reject_legacy_check_name() {
+    local file=$1 line
+    while IFS= read -r line || [[ -n $line ]]; do
+        [[ $line =~ ^CHECK_NAME= ]] || continue
+        refuse "conf-key: expected CHECK_NAME absent from $file; found CHECK_NAME in $file; needed remove CHECK_NAME from $file"
+    done < "$file"
+}
+
 validate_conf "$conf_path"
+reject_legacy_check_name "$conf_path"
 conf_dir=$(CDPATH='' cd -- "$(dirname -- "$conf_path")" && pwd)
 local_path=$conf_dir/lane.local.conf
 if [[ -f $local_path ]]; then
     validate_conf "$local_path"
+    reject_legacy_check_name "$local_path"
     while IFS= read -r line || [[ -n $line ]]; do
         [[ $line =~ ^([A-Z][A-Z0-9_]*)= ]] || continue
         case ${BASH_REMATCH[1]} in
-            LANE_NAME|TRUNK_BRANCH|RELEASE_BRANCH|REPO_SLUG|CHECK_NAME)
+            LANE_NAME|TRUNK_BRANCH|RELEASE_BRANCH|REPO_SLUG|CHECK_NAMES)
                 refuse "local-key: expected lane identity keys only in the tracked conf; found ${BASH_REMATCH[1]} in $local_path; needed remove ${BASH_REMATCH[1]} from $local_path"
                 ;;
         esac
@@ -42,7 +52,7 @@ fi
 # launcher is found relative to this script (portable across worktrees and
 # machines, and no home path leaks into a public conf). An operator who wants
 # the hard supply-chain lock may still set an absolute LAUNCHER_PIN in the conf.
-keys=(LANE_NAME TRUNK_BRANCH RELEASE_BRANCH REPO_SLUG CHECK_NAME WF_AGENT_DEFAULT LANE_AUTHOR MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE SCOPE_CAP)
+keys=(LANE_NAME TRUNK_BRANCH RELEASE_BRANCH REPO_SLUG CHECK_NAMES WF_AGENT_DEFAULT LANE_AUTHOR MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE SCOPE_CAP)
 env_keys=("${!MODEL_@}" "${!EFFORT_@}")
 saved_keys=("${keys[@]}" "${env_keys[@]}")
 for key in "${saved_keys[@]}"; do
@@ -83,6 +93,7 @@ for key in "${keys[@]}"; do
     [[ -v $key ]] \
         || refuse "conf-key: expected conf key $key; found it unset in $conf_path; needed define $key in $conf_path"
 done
+export CHECK_NAMES
 
 if ((had_pin)); then
     LAUNCHER_PIN=$env_pin
@@ -218,7 +229,8 @@ done
 
 print_launch() {
     WF_AGENT=$agent python3 -c 'import json, os, sys
-env = {"WF_AGENT": os.environ["WF_AGENT"]}
+env = {"WF_AGENT": os.environ["WF_AGENT"],
+       "CHECK_NAMES": os.environ["CHECK_NAMES"]}
 if "DISPATCH_TIMEOUT" in os.environ:
     env["DISPATCH_TIMEOUT"] = os.environ["DISPATCH_TIMEOUT"]
 print(json.dumps({"argv": sys.argv[4:], "env": env, "exec": True,
