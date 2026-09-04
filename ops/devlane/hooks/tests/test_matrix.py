@@ -162,6 +162,39 @@ WRITE_TOOLS = (
 
 MALFORMED_STDIN = ("", "not json", "{", "[1,2]", "null", '"Bash"')
 
+DRIVER_JOBS = (
+    "author-tests",
+    "check-tests",
+    "implement",
+    "security-audit",
+    "adversarial-review",
+)
+
+ALLOWED_BY_HAND_JOBS = ("plan", "adjudicate", "sweep", "verify")
+
+FIX_JOBS = ("implement-fix", "tests-fix", "any-fix")
+
+PATH_FORM_UNITTEST_ARGS = (
+    "ops/devlane/task/tests/test_check_tests_json.py",
+    "ops/devlane/hooks/tests/test_matrix.py",
+    "ops/devlane/hooks/tests/test_matrix",
+    "tests/test_app.py",
+    "test_matrix.py",
+    "./tests/test_app.py",
+    "ops.devlane.hooks.tests.test_matrix.py",
+)
+
+DOTTED_UNITTEST_NAMES = (
+    "ops.devlane.hooks.tests.test_matrix",
+    "tests.test_app",
+    "test_matrix",
+)
+
+ALLOWED_BY_HAND_LINE = re.compile(
+    r"^[ \t]*['\"]?(?P<name>plan|adjudicate|sweep|verify)['\"]?"
+    r"[ \t]*[,:]?[ \t]*(?P<reason>#.+|.+)$"
+)
+
 
 class MatrixHookTests(unittest.TestCase):
     """One subprocess invocation of matrix.py per assertion."""
@@ -467,6 +500,26 @@ class MatrixHookTests(unittest.TestCase):
         if extra:
             parts.append(extra)
         return " ".join(str(p) for p in parts)
+
+    def allowed_by_hand_from_module(self) -> dict:
+        self.assertTrue(
+            HOOK.is_file(),
+            "expected the allowed jobs as data at the top of the module; "
+            f"found {HOOK} absent",
+        )
+        text = HOOK.read_text(encoding="utf-8")
+        header = re.split(
+            r"^(?:def |class )", text, maxsplit=1, flags=re.MULTILINE
+        )[0]
+        found = {}
+        for raw in header.splitlines():
+            match = ALLOWED_BY_HAND_LINE.match(raw)
+            if match is None:
+                continue
+            name = match.group("name")
+            reason = match.group("reason").lstrip("#").strip()
+            found[name] = reason
+        return found
 
     def env_without_cue(self):
         parts = []
@@ -914,6 +967,200 @@ class MatrixHookTests(unittest.TestCase):
         self.assertIn("expected ", reason)
         self.assertIn("; found ", reason)
         self.assertIn("; needed ", reason)
+
+    # --- dispatch-by-hand ---
+
+    def test_dispatch_by_hand_refuses_driver_jobs_from_the_session(self):
+        self.assertGreater(len(DRIVER_JOBS), 0)
+        wrappers = ("ops/bin/dispatch.sh", "ops/bin/go.sh")
+        for wrapper in wrappers:
+            for job in DRIVER_JOBS:
+                with self.subTest(wrapper=wrapper, job=job):
+                    self.assert_denied(
+                        self.run_bash(self.dispatch(job=job, wrapper=wrapper)),
+                        "dispatch-by-hand",
+                    )
+
+    def test_dispatch_by_hand_refuses_jobs_whose_name_ends_in_fix(self):
+        self.assertGreater(len(FIX_JOBS), 0)
+        for job in FIX_JOBS:
+            with self.subTest(job=job):
+                self.assertTrue(job.endswith("-fix"), job)
+                self.assert_denied(
+                    self.run_bash(self.dispatch(job=job)),
+                    "dispatch-by-hand",
+                )
+
+    def test_dispatch_by_hand_allows_jobs_named_as_data_at_the_top_of_the_module(
+        self,
+    ):
+        self.assertGreater(len(ALLOWED_BY_HAND_JOBS), 0)
+        for job in ALLOWED_BY_HAND_JOBS:
+            with self.subTest(job=job, phase="dispatch"):
+                self.assert_allowed(self.run_bash(self.dispatch(job=job)))
+        found = self.allowed_by_hand_from_module()
+        for name in ALLOWED_BY_HAND_JOBS:
+            with self.subTest(job=name, phase="data"):
+                self.assertIn(
+                    name,
+                    found,
+                    "expected the allowed jobs as data at the top of the "
+                    f"module, one name per line, with the reason; found "
+                    f"{found!r}",
+                )
+                self.assertRegex(
+                    found[name],
+                    r"[A-Za-z]",
+                    f"expected a reason on the data line for {name}; "
+                    f"found {found[name]!r}",
+                )
+
+    def test_dispatch_by_hand_grant_escape_allows_a_driver_job(self):
+        cmd = self.dispatch(job="implement")
+        self.assert_allowed(
+            self.run_bash(f"HAND_GRANT={GRANT_OPEN} {cmd}")
+        )
+
+    def test_dispatch_by_hand_grant_escape_ignores_scoped_settled_and_missing_grants(
+        self,
+    ):
+        cmd = self.dispatch(job="implement")
+        rows = (
+            f"HAND_GRANT={GRANT_SCOPED} {cmd}",
+            f"HAND_GRANT={GRANT_SETTLED} {cmd}",
+            f"HAND_GRANT=999 {cmd}",
+            "HAND_GRANT= " + cmd,
+            f"HAND_GRANT=not-an-id {cmd}",
+        )
+        self.assertGreater(len(rows), 0)
+        for granted in rows:
+            with self.subTest(cmd=granted):
+                self.assert_denied(
+                    self.run_bash(granted), "dispatch-by-hand"
+                )
+
+    def test_dispatch_by_hand_does_not_refuse_ladder_sh(self):
+        rows = (
+            "ops/bin/ladder.sh some-scope some-branch",
+            "ops/bin/ladder.sh some-scope some-branch some-plan",
+            "ops/bin/ladder.sh resume 42",
+            self.dispatch(wrapper="ops/bin/ladder.sh", job="author-tests"),
+            self.dispatch(wrapper="ops/bin/ladder.sh", job="implement"),
+            self.dispatch(wrapper="ops/bin/ladder.sh", job="implement-fix"),
+        )
+        self.assertGreater(len(rows), 0)
+        for cmd in rows:
+            with self.subTest(cmd=cmd):
+                self.assert_allowed(self.run_bash(cmd))
+
+    def test_dispatch_by_hand_reason_names_the_job_and_the_driver(self):
+        job = "author-tests"
+        proc = self.run_bash(self.dispatch(job=job))
+        self.assert_denied(proc, "dispatch-by-hand")
+        _decision, reason = support.permission_decision(proc.stdout)
+        expected = (
+            "[matrix:dispatch-by-hand] dispatch-by-hand: expected the "
+            f"ladder driver to run {job} (ops/bin/ladder.sh); found "
+            f"dispatch.sh --job {job} from the session; needed start or "
+            "resume a ladder for the lane"
+        )
+        self.assertEqual(reason.strip(), expected)
+
+    def test_dispatch_by_hand_fires_before_sibling_dispatch_rows(self):
+        rows = (
+            self.dispatch(job="implement", extra="--model grok-4.6"),
+            self.dispatch(job="implement", scope_file=self.scope_suites),
+            self.dispatch(
+                job="author-tests", input_file=self.input_no_heading
+            ),
+        )
+        self.assertGreater(len(rows), 0)
+        for cmd in rows:
+            with self.subTest(cmd=cmd):
+                self.assert_denied(
+                    self.run_bash(cmd), "dispatch-by-hand"
+                )
+
+    # --- test-form ---
+
+    def test_test_form_refuses_a_path_form_unittest_argument(self):
+        self.assertGreater(len(PATH_FORM_UNITTEST_ARGS), 0)
+        commands = [
+            f"python3 -m unittest {arg}" for arg in PATH_FORM_UNITTEST_ARGS
+        ]
+        commands.append("python3 -m unittest -q tests/test_app.py")
+        for cmd in commands:
+            with self.subTest(cmd=cmd):
+                self.assert_denied(self.run_bash(cmd), "test-form")
+
+    def test_test_form_allows_discover_form_and_suites_sh(self):
+        rows = (
+            "python3 -m unittest discover",
+            "python3 -m unittest discover -s tests -p test_*.py",
+            (
+                "python3 -m unittest discover -s ops/devlane/hooks/tests "
+                "-p test_matrix.py"
+            ),
+            "bash ops/bin/suites.sh",
+            "ops/bin/suites.sh",
+        )
+        self.assertGreater(len(rows), 0)
+        for cmd in rows:
+            with self.subTest(cmd=cmd):
+                self.assert_allowed(self.run_bash(cmd))
+
+    def test_test_form_allows_a_dotted_module_name(self):
+        self.assertGreater(len(DOTTED_UNITTEST_NAMES), 0)
+        for name in DOTTED_UNITTEST_NAMES:
+            with self.subTest(name=name):
+                self.assert_allowed(
+                    self.run_bash(f"python3 -m unittest {name}")
+                )
+
+    def test_test_form_path_in_implement_scope_is_bucket_command(self):
+        fragment = "tests/test_app.py"
+        scope = self.repo / ".dev" / "scope-path-form.txt"
+        body = f"python3 -m unittest {fragment}\n"
+        support.plant_text(scope, body, recognisable=fragment)
+        self.assertLessEqual(
+            scope.stat().st_size,
+            SCOPE_CAP,
+            "INVALID: path-form scope exceeded SCOPE_CAP",
+        )
+        cmd = self.dispatch(job="implement", scope_file=scope)
+        proc = self.run_bash(f"HAND_GRANT={GRANT_OPEN} {cmd}")
+        self.assert_denied(proc, "bucket-command")
+        _decision, reason = support.permission_decision(proc.stdout)
+        self.assertIn("; found ", reason)
+        found_clause = reason.split("; found ", 1)[1].split("; needed ", 1)[0]
+        self.assertIn(
+            fragment,
+            found_clause,
+            f"expected the found clause to name {fragment!r}; "
+            f"found {reason!r}",
+        )
+
+    def test_test_form_reason_names_the_path_form_argument(self):
+        arg = "ops/devlane/task/tests/test_check_tests_json.py"
+        proc = self.run_bash(f"python3 -m unittest {arg}")
+        self.assert_denied(proc, "test-form")
+        _decision, reason = support.permission_decision(proc.stdout)
+        expected = (
+            "[matrix:test-form] test-form: expected the discover form "
+            "(python3 -m unittest discover -s <tests dir> -p <file>) "
+            f"or ops/bin/suites.sh; found a path-form unittest argument "
+            f"{arg}; needed the discover form"
+        )
+        self.assertEqual(reason.strip(), expected)
+
+    def test_test_form_has_no_grant_escape(self):
+        self.assert_denied(
+            self.run_bash(
+                f"HAND_GRANT={GRANT_OPEN} "
+                "python3 -m unittest tests/test_app.py"
+            ),
+            "test-form",
+        )
 
 
 if __name__ == "__main__":
