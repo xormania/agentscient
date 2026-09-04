@@ -36,7 +36,7 @@ dispatcher from the lane configuration, never carried in this table.
 |---|---|---|---|---|---|
 | `tests` | `author-tests` | grok | `tests` | scope, plan | always |
 | `check-tests` | `check-tests` | codex | `check-tests` | scope, plan, tests envelope | always |
-| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, skeptic envelope and `SKEPTIC.md` | skeptic says `changes` |
+| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, skeptic envelope and driver-written findings file | skeptic says `changes` |
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
@@ -52,7 +52,7 @@ under a `tests/` directory becomes a `python3 -m unittest discover`
 invocation, joined in order with `&&`. No such artifact is an
 `artifacts` stop, never an invented command.
 
-Write stages (`tests`, `tests-fix`, each `code`, `fix-tests`, and
+Write stages (`tests`, `tests-fix` after its findings handoff, each `code`, `fix-tests`, and
 `fix-code`) land through `land.py` with `--author` from the worktree's
 git identity and `--co-author` from `model.ran` plus the configured
 harness address. Review stages import their envelope through
