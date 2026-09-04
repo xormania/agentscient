@@ -124,6 +124,7 @@ ignore = [
 "ops/conductor/tools/watchdog.py" = ["S603", "BLE001"]  # gh and pgrep with code-built argv; the tick guard catches everything by design
 "ops/conductor/tools/ci.py" = ["S603"]
 "ops/conductor/tools/land.py" = ["S603"]
+"ops/conductor/tools/ladder.py" = ["S603"]
 "ops/conductor/tools/branches.py" = ["S603"]
 "ops/conductor/tools/co_doc.py" = ["S603", "S608"]
 # The repo-scoped skills are scripts that ASK other tools: shelling out is

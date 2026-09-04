@@ -946,5 +946,50 @@ class TrackedConfMove(_LaneconfFixture):
         self.assertIn("lane.local.conf", proc.stdout)
 
 
+class Unit2DriverKeys(_LaneconfFixture):
+    """Unit 2 required keys: the tracked conf declares them and closure
+    finds the ladder driver as their reader.
+    """
+
+    DRIVER_KEYS = (
+        "WORKTREE_ROOT",
+        "ADDRESS_GROK",
+        "ADDRESS_CODEX",
+        "ADDRESS_CLAUDE",
+    )
+    DRIVER = REPO / "ops" / "conductor" / "tools" / "ladder.py"
+
+    def test_tracked_conf_declares_the_driver_keys(self):
+        self.assertTrue(
+            TRACKED_CONF.is_file(),
+            f"RED: tracked conf is absent: {TRACKED_CONF}",
+        )
+        keys = declared_keys(TRACKED_CONF.read_text(encoding="utf-8"))
+        self.assertGreater(len(keys), 0, "tracked conf declares no keys")
+        for name in self.DRIVER_KEYS:
+            with self.subTest(key=name):
+                self.assertIn(name, keys)
+
+    def test_closure_finds_the_driver_as_their_reader(self):
+        self.assertTrue(
+            TRACKED_CONF.is_file(),
+            f"RED: tracked conf is absent: {TRACKED_CONF}",
+        )
+        keys = declared_keys(TRACKED_CONF.read_text(encoding="utf-8"))
+        for name in self.DRIVER_KEYS:
+            self.assertIn(name, keys)
+        self.assertTrue(
+            self.DRIVER.is_file(),
+            f"RED: driver is absent: {self.DRIVER}",
+        )
+        src = self.DRIVER.read_text(encoding="utf-8")
+        for name in self.DRIVER_KEYS:
+            with self.subTest(key=name):
+                self.assertIn(name, src)
+        proc = self.invoke(["closure"], lane_conf=None, cwd=REPO)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+
 if __name__ == "__main__":
     unittest.main()
+
