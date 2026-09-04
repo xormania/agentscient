@@ -67,9 +67,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/records/dispatches/20260904T143022Z-tests-grok-ebbae8.json",
+        "proof": {
+          "given": [
+            "One slice, size **S**, one named S bucket, three files, one implement run.",
+            "20260904T143022Z-tests-grok-ebbae8"
+          ],
+          "withheld": []
+        },
+        "sha256": "da6ec42c61982680171fc0eb660fa8fb6e701b0fb5cfaf6bb5a3da441056c92a"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
