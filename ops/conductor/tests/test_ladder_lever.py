@@ -3431,8 +3431,18 @@ class CheckTestsEnvelopeValidatedBeforeFindingsFile(_LadderFixture):
             stage_findings={"check-tests": planted},
             envelope_patches={"check-tests": {"findings": None}},
         )
+        landed = self.load_plant()
+        self.assertIsNone(
+            landed["envelope_patches"]["check-tests"]["findings"],
+        )
         before = self.files_before_run()
         proc = self.run_ladder()
+        rec_id = self.record_id_for("check-tests")
+        self.assert_stopped(
+            proc, stage="check-tests", record=rec_id, reason="envelope",
+        )
+        env = self.check_tests_envelope()
+        self.assertIsNone(env.get("findings"), env)
         names = self.dispatch_names()
         self.assertNotIn(
             "tests-fix",
