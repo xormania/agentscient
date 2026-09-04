@@ -57,7 +57,7 @@
       "stage": "tests"
     },
     {
-      "attempt": 1,
+      "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
       "dispatch_record": "20260904T180108Z-check-tests-codex-bb30da",
       "dispatched": {
