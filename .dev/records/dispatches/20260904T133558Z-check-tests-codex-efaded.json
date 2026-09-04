@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T13:35:59Z",
-    "closed": null
+    "closed": "2026-09-04T13:41:58Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-35-59-01a06ca2-219d-7243-ae1d-c86c70ed8e6f.jsonl"
   },
   "session": {
-    "id": "b145a635-85df-4f25-9b62-2f06bb74a1cb",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a06ca2-219d-7243-ae1d-c86c70ed8e6f",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-35-59-01a06ca2-219d-7243-ae1d-c86c70ed8e6f.jsonl",
+    "stream_sha256_at_close": "43ceed4533aafd4037dc6da6ee838243bdbd66bd7a733414f7905e09d8723a19",
+    "spend": {
+      "input": 1498601,
+      "cached": 1404928,
+      "output": 15017,
+      "total": 1513618,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T09-35-59-01a06ca2-219d-7243-ae1d-c86c70ed8e6f.jsonl",
+      "messages": 202
+    }
   },
   "brief": {
     "template": {
@@ -95,10 +102,69 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:35:59Z",
+      "ended": "2026-09-04T13:41:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ccc81880e565132375bf0ad9fee579225e264278",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "invalid",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_isolation.py:673",
+          "claim": "All four tests exercise only an implement/Codex/write launch. An implementation that scopes the temporary environment and directories to Codex write jobs would pass while Grok and other harness children still use host temporary paths, violating the every-harness-child contract and leaving the original residue escape unguarded.",
+          "reproduce": "python3 -c 'from pathlib import Path; p=Path(\"ops/devlane/dispatch/tests/test_launch_isolation.py\"); s=p.read_text(); b=s[s.index(\"class CodexWriteJobStaysInsideTheJobDirectory\"):]; assert b.count(\"self._launch_codex_write()\") == 4; assert \"job=\\\"implement\\\", harness=\\\"codex\\\", stage=\\\"code\\\"\" in b; assert \"harness=\\\"grok\\\"\" not in b and \"harness=\\\"claude\\\"\" not in b and \"job=\\\"plan\\\"\" not in b'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/launch_support.py:212 \u2194 ops/devlane/dispatch/tests/test_launch_isolation.py:717",
+          "claim": "The pre-spawn witness and assertions cover scratch/ but never the required <job>/scratch/git/ parent. An implementation omitting scratch/git/ passes all four tests although the contracted index and object destinations are not prepared before spawn.",
+          "reproduce": "python3 -c 'from pathlib import Path; p=Path(\"/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/in/PLAN-fixture-fix2-dispatch-job-scratch.md\").read_text(); h=Path(\"ops/devlane/dispatch/tests/launch_support.py\").read_text(); t=Path(\"ops/devlane/dispatch/tests/test_launch_isolation.py\").read_text(); b=t[t.index(\"class CodexWriteJobStaysInsideTheJobDirectory\"):]; assert \"<job>/scratch/git/\" in p; assert \"job_scratch_is_dir\" in h and \"job_scratch_git_is_dir\" not in h; assert \"scratch/git\" not in b and \"job_dir / \\\"scratch\\\" / \\\"git\\\"\" not in b'"
+        }
+      ],
+      "artifacts": {
+        "requested_report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T133558Z-check-tests-codex-efaded/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1513618,
+        "out": 15017,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ccc81880e565132375bf0ad9fee579225e264278",
+        "started": null,
+        "ended": "2026-09-04T13:41:31Z"
+      },
+      "note": "Review completed, but SKEPTIC.md could not be created because the filesystem sandbox rejected writes under its read-only policy. The prescribed test command was also UNREACHABLE because no writable temporary directory was available."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T13:41:57.723Z"
+    }
+  },
+  "status": "closed"
 }
