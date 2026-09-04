@@ -179,6 +179,8 @@ class _WatchFixture(unittest.TestCase):
             "LC_ALL": "C",
             "LANG": "C",
             "PYTHONDONTWRITEBYTECODE": "1",
+            # Test apparatus: one virtual second of the 5s grid is 20ms real.
+            "WATCH_TICK_SCALE": "0.02",
         }
         if agent is not None:
             env["WF_AGENT"] = agent
