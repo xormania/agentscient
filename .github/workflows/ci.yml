@@ -1,17 +1,15 @@
-name: ci
-# The gate every PR into dev must pass whole: the wall over the tree,
-# lint under the pinned contract, every lane suite (stdlib only, no
-# cached oracle), then the Symfony project: manifest and lock agree,
-# install from the lock, the kernel boots, every PHPUnit suite. Runs on
-# this repository's own self-hosted runners (the House's pattern; the
-# toolchain lives on the host), with CI_RUNNER as the override. The
+# The two gates every PR into dev must pass whole: lane checks the wall,
+# pinned lint contract, suites, and shared configuration; app checks the
+# Symfony project from its manifest through the compiled container. Both
+# run on this repository's own self-hosted runners. The
 # pull_request trigger is limited to PRs into dev: the release PR from
 # dev into master is covered by the push run on dev, which stamps the
 # same commit, and nothing here reads a title or body, so `edited` is
 # not a trigger.
-# The merge_group trigger runs the same job on the tree the merge queue
-# builds (dev plus the queued PRs), so a queued PR is checked on exactly
-# what would land; without it a queue waits forever for this check.
+# The merge_group trigger runs both jobs on the tree the merge queue builds
+# (dev plus the queued PRs), so a queued PR is checked on exactly what would
+# land; without it a queue waits forever for these checks.
+name: ci
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -23,13 +21,10 @@ on:
 permissions:
   contents: read
 jobs:
-  ci:
-    runs-on: ${{ vars.CI_RUNNER || 'self-hosted' }}
+  lane:
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - name: the host's user toolchain on PATH (ruff, composer, cue live in ~/.local/bin)
+      - name: the host's user toolchain on PATH (~/.local/bin)
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: term wall — tree content and paths
         env:
@@ -41,8 +36,13 @@ jobs:
           ruff check .
       - name: lane suites
         run: bash ops/bin/suites.sh
-      - name: lane conf — every key read is declared and no lane literal is outside the conf
-        run: python3 ops/conductor/tools/laneconf.py closure && python3 ops/conductor/tools/laneconf.py literals
+      - name: lane conf closure — every key read is declared
+        run: python3 ops/conductor/tools/laneconf.py closure
+      - name: lane conf literals — no lane literal is outside the conf
+        run: python3 ops/conductor/tools/laneconf.py literals
+  app:
+    runs-on: self-hosted
+    steps:
       - name: the host toolchain the self-hosted runner relies on
         run: php --version | head -1 && composer --version && python3 --version && cue version | head -1 && jq --version && ruff --version
       - name: composer validate — the manifest and the lock agree

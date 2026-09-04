@@ -16,14 +16,14 @@ NAME_KEYS = {
     "TRUNK_BRANCH",
     "RELEASE_BRANCH",
     "REPO_SLUG",
-    "CHECK_NAME",
+    "CHECK_NAMES",
 }
 REQUIRED_KEYS = {
     "LANE_NAME",
     "TRUNK_BRANCH",
     "RELEASE_BRANCH",
     "REPO_SLUG",
-    "CHECK_NAME",
+    "CHECK_NAMES",
     "WF_AGENT_DEFAULT",
     "LANE_AUTHOR",
     "MODEL_GROK",
@@ -251,8 +251,38 @@ def _reads(text: str) -> set[str]:
     }
 
 
+def _workflow_jobs(text: str) -> set[str]:
+    """Read the direct keys of a workflow's top-level jobs mapping."""
+    lines = iter(text.splitlines())
+    for line in lines:
+        if re.fullmatch(r"(['\"]?)jobs\1:\s*(?:#.*)?", line):
+            break
+    else:
+        return set()
+
+    indent: int | None = None
+    jobs: set[str] = set()
+    for line in lines:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        leading = len(line) - len(line.lstrip())
+        if leading == 0:
+            break
+        if indent is None:
+            indent = leading
+        if leading != indent:
+            continue
+        match = re.fullmatch(
+            r"\s*(['\"]?)([A-Za-z0-9_.-]+)\1:(?:\s.*)?",
+            line,
+        )
+        if match:
+            jobs.add(match.group(2))
+    return jobs
+
+
 def closure() -> int:
-    """Check declarations, readers, and the required workflow name."""
+    """Check declarations, readers, and workflow-job closure."""
     path = conf_path()
     declared = parse_file(path)
     root = _repo_root(path)
@@ -283,16 +313,20 @@ def closure() -> int:
         findings.append(f"undeclared read: {key} in {locations}")
 
     workflow = root / ".github/workflows/ci.yml"
-    if workflow.is_file() and "CHECK_NAME" in declared:
-        match = re.search(
-            r"(?m)^name:\s*['\"]?([^'\"\n]+?)['\"]?\s*$",
-            workflow.read_text(encoding="utf-8", errors="replace"),
+    if workflow.is_file() and "CHECK_NAMES" in declared:
+        jobs = _workflow_jobs(
+            workflow.read_text(encoding="utf-8", errors="replace")
         )
-        if match and match.group(1) != declared["CHECK_NAME"]:
+        names = set(declared["CHECK_NAMES"].split())
+        for job in sorted(jobs.difference(names)):
             findings.append(
-                "workflow name mismatch: "
-                f"CHECK_NAME={declared['CHECK_NAME']} but "
-                f"{workflow.relative_to(root)} names {match.group(1)}"
+                f"workflow job missing from CHECK_NAMES: {job} in "
+                f"{workflow.relative_to(root)}"
+            )
+        for name in sorted(names.difference(jobs)):
+            findings.append(
+                f"CHECK_NAMES entry missing from workflow jobs: {name} in "
+                f"{workflow.relative_to(root)}"
             )
     if findings:
         print("\n".join(findings))
