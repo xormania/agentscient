@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T15:43:53Z",
-    "closed": null
+    "closed": "2026-09-04T15:59:30Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/home/grok-stream/sessions/<snapshot-encoded>/2475df20-ee01-40b8-9b34-70ed7ebdee95/summary.json"
   },
   "session": {
     "id": "2475df20-ee01-40b8-9b34-70ed7ebdee95",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/home/grok-stream/sessions/<snapshot-encoded>/2475df20-ee01-40b8-9b34-70ed7ebdee95/summary.json",
+    "stream_sha256_at_close": "633d337bd61204a9ce5dd7a87ca280cc175076e546dbe68c7339e03f9f381ba8",
+    "spend": {
+      "input": 1880187,
+      "cached": 1732096,
+      "output": 53196,
+      "total": 1933383,
+      "cost_usd_ticks": 2518390200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T154353Z-tests-grok-ea5f39/home/grok-stream/sessions/<snapshot-encoded>/2475df20-ee01-40b8-9b34-70ed7ebdee95/summary.json",
+      "messages": 227
+    }
   },
   "brief": {
     "template": {
@@ -91,10 +99,58 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T15:43:53Z",
+      "ended": "2026-09-04T15:59:30Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7d2cb67921e1f04e84d5f683d3b1bc14035e6c22",
+    "changed_paths": [
+      "ops/devlane/harness/tests/test_closure_gate.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_closure_gate": "ops/devlane/harness/tests/test_closure_gate.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1933383,
+        "out": 53196,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d0565423a22bdc7007e874377a9833706543f2d1",
+        "started": "2026-09-04T15:43:53Z",
+        "ended": "2026-09-04T15:58:56Z"
+      },
+      "note": "14 tests in ops/devlane/harness/tests/test_closure_gate.py; named command `python3 -m unittest discover -s ops/devlane/harness/tests -p test_closure_gate.py` at d0565423: 14 failures, 0 errors, each method FAIL on its contracted assertion (not collection). Committed 7d2cb67921e1f04e84d5f683d3b1bc14035e6c22. Plan \u00a73.2 test_manifest_law.py is slice context-manifests, not this bucket."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T15:59:29.715Z"
+    }
+  },
+  "status": "closed"
 }
