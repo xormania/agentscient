@@ -8,6 +8,15 @@ neighbours, probes, fixes, toolchain, manifest keys, the merged lever
 read here beyond the paths the contract names. Slice 5 assigns no lever
 change; `probe_timeout` and the preflight ignore list are slice 4's.
 
+Fix round: Codex skeptic (record 20260904T094353Z-review-codex-e6b38f)
+found 1 P1 and 4 P2. This file addresses all five. Each fault is pinned
+to its shell gate, Cargo test target and behavioural probe, not to a
+manifest-supplied command; the bin's read/write verbs and the identity
+rule are exercised; FAULTS.json locations are pinned by function, line
+span and exact quotations; RC-07's fix must be an exact = lock pin so a
+compatible range does not pass; toolchain.install, toolchain.ready and
+check are the contracted commands and are executed from the manifest.
+
 Red at this ref because that directory is absent: the existence test
 fails on `FAULTS.json`. The K3-row assertion fails on FAULT-KINDS.md as
 it stands (Python, PHP). Make/prove/grade cases invoke the merged lever
@@ -102,6 +111,118 @@ EXPECTED_DECLARATIONS = {
     ),
     "RC-07": "Dependencies are pinned to one version and locked.",
 }
+# Functions that enclose the planted span. RC-07 is a Cargo.toml key.
+EXPECTED_LOCATION_FUNCTIONS = {
+    "RC-01": "run_helper",
+    "RC-02": "record_path",
+    "RC-03": "render_count",
+    "RC-04": "write_failure_log",
+    "RC-05": "read_records",
+    "RC-06": "contains",
+    "RC-07": None,
+}
+# Exact practiced quotations from the slice-5 fault table.
+EXPECTED_PRACTICED = {
+    "RC-01": (
+        'Command::new("sh").arg("-c").arg(format!("printf \'%s\\\\n\' '
+        '{name} >/dev/null")).status()'
+    ),
+    "RC-02": "root.join(name)",
+    "RC-03": (
+        'let n = count.unwrap_or(0); if n == 0 { "no record".into() } '
+        'else { format!("count={n}") }'
+    ),
+    "RC-04": (
+        'format!("write failed: environment={:?}\\n", '
+        "std::env::vars().collect::<Vec<_>>())"
+    ),
+    "RC-05": "Err(_) => Ok(Vec::new())",
+    "RC-06": "self.start <= v && v <= self.end",
+    "RC-07": 'anyhow = "*"',
+}
+EXPECTED_FINDINGS = {
+    "RC-01": (
+        "User-supplied names are interpolated into sh -c despite the "
+        "argv declaration."
+    ),
+    "RC-02": (
+        "record_path joins an untrusted name without checking "
+        "containment under the root."
+    ),
+    "RC-03": (
+        "render_count treats Some(0) as absent via unwrap_or(0) and "
+        "n == 0."
+    ),
+    "RC-04": (
+        "write_failure_log dumps the process environment, including "
+        "credentials."
+    ),
+    "RC-05": (
+        "read_records swallows the read error and returns an empty Ok "
+        "vector."
+    ),
+    "RC-06": "Interval::contains treats the end as inclusive.",
+    "RC-07": (
+        'anyhow is a wildcard "*" in Cargo.toml while the lock names '
+        "one version."
+    ),
+}
+EXPECTED_NEIGHBOUR_PATHS = {
+    "RC-01": "src/shell.rs",
+    "RC-02": "src/store.rs",
+    "RC-03": "src/render.rs",
+    "RC-04": "src/audit.rs",
+    "RC-05": "src/store.rs",
+    "RC-06": "src/interval.rs",
+    "RC-07": "Cargo.toml",
+}
+EXPECTED_NEIGHBOUR_FUNCTIONS = {
+    "RC-01": "run_helper_safely",
+    "RC-02": "checked_record_path",
+    "RC-03": "render_label",
+    "RC-04": "write_safe_log",
+    "RC-05": "write_records",
+    "RC-06": "values",
+    "RC-07": None,
+}
+EXPECTED_NEIGHBOUR_QUOTES = {
+    "RC-01": 'Command::new("printf").arg("%s\\n").arg(name)',
+    "RC-02": "starts_with(base)",
+    "RC-03": "match label",
+    "RC-04": '"write failed: token=[REDACTED]\\n"',
+    "RC-05": "fs::write(path, body)?",
+    "RC-06": "self.start..self.end",
+    "RC-07": 'hex = "=0.4.3"',
+}
+EXPECTED_PROBES = {
+    fault_id: f"sh probes/rc{index:02d}.sh"
+    for index, fault_id in enumerate(EXPECTED_IDS, start=1)
+}
+EXPECTED_FIXES = {
+    fault_id: f"fixes/rc{index:02d}.patch"
+    for index, fault_id in enumerate(EXPECTED_IDS, start=1)
+}
+EXPECTED_NEEDS = ["command -v cargo"]
+SHELL_GATE = "command -v cargo >/dev/null || exit 127"
+RC07_GREP = r"""grep -Eq '^anyhow *= *"\*"' Cargo.toml"""
+EXPECTED_INSTALL = "cargo fetch"
+EXPECTED_READY = (
+    "command -v cargo >/dev/null && cargo metadata --offline "
+    "--format-version 1 >/dev/null"
+)
+EXPECTED_CHECK = (
+    "cargo fmt --check && cargo clippy --offline --all-targets -- "
+    "-D warnings && cargo test --offline --locked"
+)
+# Behavioural needles in probes/rcNN.rs (active Rust, not comments).
+EXPECTED_PROBE_RS = {
+    "RC-01": ("run_helper", "; touch", "exists"),
+    "RC-02": ("record_path", "../outside", "is_ok"),
+    "RC-03": ("render_count", "Some(0)", "count=0"),
+    "RC-04": ("write_failure_log", "FIXTURE_TOKEN", "set_var"),
+    "RC-05": ("read_records", "is_ok"),
+    "RC-06": ("contains(3)", "Interval::new(1, 3)"),
+}
 SRC_MODULES = ("store", "interval", "shell", "audit", "render")
 SRC_FILES = (
     "src/lib.rs",
@@ -178,6 +299,11 @@ CARGO_TEST_RAN_RE = re.compile(
 CONF_ASSIGN_RE = re.compile(
     r"^(?P<key>[A-Z][A-Z0-9_]*)='(?P<value>[^']*)'\s*$", re.MULTILINE
 )
+FN_RE = re.compile(r"\bfn\s+([A-Za-z_][A-Za-z0-9_]*)")
+COMPATIBLE_RANGE_RE = re.compile(r"[\*^~]|>=|<=|>|<")
+REFUSAL_RE = re.compile(
+    r"^(?P<class>[a-z][a-z0-9_-]*): expected .+; found .+; needed .+$"
+)
 
 # Contract-derived dirty shapes at the practiced span (slice-5 Rust idiom).
 KIND_DIRTY = {
@@ -187,7 +313,7 @@ KIND_DIRTY = {
     "K4": re.compile(r"env::vars|environment="),
     "K5": re.compile(r"Ok\(Vec::new\(\)\)|\.ok\(\)|let _ ="),
     "K6": re.compile(r"<= self\.end"),
-    "K9": re.compile(r'= "\*"|\^|>='),
+    "K9": re.compile(r'anyhow\s*=\s*"\*"'),
 }
 
 # Contract-derived clean neighbour shapes, discovered without FAULTS.json.
@@ -366,10 +492,64 @@ def _spans_overlap(path_a, lines_a, path_b, lines_b) -> bool:
     return span_a[0] <= span_b[1] and span_b[0] <= span_a[1]
 
 
-def _strip_shell_comments(command: str) -> str:
-    return "\n".join(
-        line.split("#", 1)[0] for line in command.splitlines()
-    )
+def _active_shell_lines(command: str) -> list[str]:
+    lines: list[str] = []
+    for raw in command.splitlines():
+        stripped = raw.split("#", 1)[0].strip()
+        if stripped:
+            lines.append(stripped)
+    return lines
+
+
+def _strip_rust_comments(text: str) -> str:
+    no_block = re.sub(r"/\*.*?\*/", " ", text, flags=re.DOTALL)
+    lines: list[str] = []
+    for line in no_block.splitlines():
+        if "//" in line:
+            line = line[: line.index("//")]
+        lines.append(line)
+    return "\n".join(lines)
+
+
+def _enclosing_fn(text: str, line_no: int) -> str | None:
+    body = text.splitlines()
+    if line_no < 1 or line_no > len(body):
+        return None
+    for index in range(line_no - 1, -1, -1):
+        match = FN_RE.search(body[index])
+        if match:
+            return match.group(1)
+    return None
+
+
+def _dep_spec(deps: dict, name: str) -> str:
+    value = deps.get(name)
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict) and isinstance(value.get("version"), str):
+        return value["version"]
+    return ""
+
+
+def _lock_package_version(data: dict, name: str) -> str | None:
+    packages = data.get("package")
+    if not isinstance(packages, list):
+        return None
+    versions = [
+        row.get("version")
+        for row in packages
+        if isinstance(row, dict)
+        and row.get("name") == name
+        and isinstance(row.get("version"), str)
+        and row.get("version")
+    ]
+    if not versions:
+        return None
+    return versions[0]
+
+
+def _cargo_test_line(name: str) -> str:
+    return f"cargo test --offline --locked --quiet --test {name}"
 
 
 def _conf_value(text: str, key: str) -> str | None:
@@ -545,6 +725,95 @@ class RustCrateLayout(unittest.TestCase):
                     "cargo test targets",
                 )
 
+    def test_probe_shell_scripts_are_the_contracted_gates(self):
+        for index in range(1, 7):
+            rel = f"probes/rc{index:02d}.sh"
+            name = f"rc{index:02d}"
+            path = APP / rel
+            text = path.read_text(encoding="utf-8") if path.is_file() else ""
+            lines = _active_shell_lines(text)
+            with self.subTest(path=rel, stage="gate"):
+                self.assertIn(
+                    SHELL_GATE,
+                    lines,
+                    f"{rel} must gate with {SHELL_GATE!r}, not a comment",
+                )
+            with self.subTest(path=rel, stage="cargo-target"):
+                self.assertTrue(
+                    _cargo_test_line(name) in lines
+                    or f"exec {_cargo_test_line(name)}" in lines,
+                    f"{rel} must run {_cargo_test_line(name)!r}",
+                )
+            with self.subTest(path=rel, stage="not-a-grep"):
+                self.assertFalse(
+                    any("grep" in line for line in lines),
+                    f"{rel} is a cargo test target, not a static grep",
+                )
+        rc07 = APP / "probes/rc07.sh"
+        text = rc07.read_text(encoding="utf-8") if rc07.is_file() else ""
+        lines = _active_shell_lines(text)
+        self.assertIn(
+            RC07_GREP,
+            lines,
+            "probes/rc07.sh must grep the planted anyhow wildcard",
+        )
+        self.assertFalse(
+            any("cargo" in line for line in lines),
+            "RC-07 probe needs no cargo",
+        )
+
+    def test_probe_rs_files_exercise_the_contracted_behaviour(self):
+        for fault_id, needles in EXPECTED_PROBE_RS.items():
+            index = fault_id.split("-", 1)[1]
+            rel = f"probes/rc{index}.rs"
+            path = APP / rel
+            raw = path.read_text(encoding="utf-8") if path.is_file() else ""
+            text = _strip_rust_comments(raw)
+            with self.subTest(path=rel, stage="is-a-test"):
+                self.assertRegex(
+                    text,
+                    r"\bfn\s+main\b|#\[test\]",
+                    f"{rel} must be a cargo test body, not an empty file",
+                )
+            for needle in needles:
+                with self.subTest(path=rel, needle=needle):
+                    self.assertIn(
+                        needle,
+                        text,
+                        f"{rel} must exercise {needle!r} in active code, "
+                        "not a comment or a grep over a planted marker",
+                    )
+
+    def test_main_rs_names_the_read_write_wire(self):
+        path = APP / "src/main.rs"
+        raw = path.read_text(encoding="utf-8") if path.is_file() else ""
+        text = _strip_rust_comments(raw)
+        self.assertRegex(
+            text,
+            r'"read"',
+            'src/main.rs must name the read verb as "read"',
+        )
+        self.assertRegex(
+            text,
+            r'"write"',
+            'src/main.rs must name the write verb as "write"',
+        )
+        self.assertIn(
+            "WF_AGENT",
+            text,
+            "src/main.rs must read WF_AGENT for the write verb",
+        )
+        self.assertIn(
+            "anyhow::Result",
+            text,
+            "src/main.rs uses anyhow::Result",
+        )
+        self.assertIn(
+            "hex::encode",
+            text,
+            "src/main.rs uses hex::encode",
+        )
+
     def test_cargo_toml_parses_as_the_contracted_crate(self):
         data = load_toml_object(APP / "Cargo.toml")
         package = data.get("package") if isinstance(data.get("package"), dict) else {}
@@ -578,7 +847,11 @@ class RustCrateLayout(unittest.TestCase):
             HEX_PIN,
             f'hex must be pinned exactly as "{HEX_PIN}"',
         )
-        self.assertIn("anyhow", deps, "anyhow is present (the K9 wildcard)")
+        self.assertEqual(
+            deps.get("anyhow"),
+            "*",
+            'anyhow is planted as "*" (the K9 wildcard, not a range)',
+        )
         lints = data.get("lints") if isinstance(data.get("lints"), dict) else {}
         clippy = lints.get("clippy") if isinstance(lints.get("clippy"), dict) else {}
         self.assertTrue(clippy, "[lints.clippy] must be present")
@@ -612,9 +885,10 @@ class RustCrateLayout(unittest.TestCase):
                     f"{name} must set test = false (outside default discovery)",
                 )
                 path = row.get("path") if isinstance(row.get("path"), str) else ""
-                self.assertTrue(
-                    path.startswith("probes/") and path.endswith(".rs"),
-                    f"{name} path must be under probes/: {path!r}",
+                self.assertEqual(
+                    path,
+                    f"probes/{name}.rs",
+                    f"{name} path must be probes/{name}.rs, not a stand-in",
                 )
 
     def test_cargo_lock_names_anyhow_and_hex(self):
@@ -813,21 +1087,144 @@ class RustCrateManifest(unittest.TestCase):
             "severity must match the slice-5 fault table",
         )
 
-    def test_manifest_location_paths_match_the_contract(self):
+    def test_manifest_locations_are_pinned_by_function_lines_and_quotes(self):
         faults = fault_rows(load_json_object(MANIFEST))
         self.assertEqual(
             tuple(row.get("id") for row in faults),
             EXPECTED_IDS,
-            "location paths are pinned per id, not by fixture luck",
+            "locations are pinned per id, not by fixture luck",
         )
         for row in faults:
             fault_id = row.get("id")
             loc = row.get("location") if isinstance(row.get("location"), dict) else {}
-            with self.subTest(fault=fault_id):
+            declared = (
+                row.get("declared") if isinstance(row.get("declared"), dict) else {}
+            )
+            practiced = (
+                row.get("practiced") if isinstance(row.get("practiced"), dict) else {}
+            )
+            neighbour = (
+                row.get("neighbour") if isinstance(row.get("neighbour"), dict) else {}
+            )
+            loc_path = loc.get("path") if isinstance(loc.get("path"), str) else ""
+            loc_lines = _as_lines(loc.get("lines"))
+            with self.subTest(fault=fault_id, stage="location"):
                 self.assertEqual(
-                    loc.get("path"),
+                    loc_path,
                     EXPECTED_LOCATION_PATHS[fault_id],
                     f"{fault_id} location.path must be the contracted file",
+                )
+                self.assertIsNotNone(
+                    loc_lines,
+                    f"{fault_id} location.lines must be a [start, end] span",
+                )
+                loc_file = APP / loc_path
+                body = (
+                    loc_file.read_text(encoding="utf-8") if loc_file.is_file() else ""
+                )
+                span = (
+                    _span_text(loc_file, loc_lines)
+                    if loc_file.is_file() and loc_lines
+                    else ""
+                )
+                wanted = EXPECTED_PRACTICED[fault_id]
+                self.assertIn(
+                    wanted,
+                    span,
+                    f"{fault_id} location span must carry the practiced "
+                    f"quotation {wanted!r}; found {span!r}",
+                )
+                fn_wanted = EXPECTED_LOCATION_FUNCTIONS[fault_id]
+                if fn_wanted is None:
+                    self.assertEqual(loc_path, "Cargo.toml")
+                else:
+                    found_fn = (
+                        _enclosing_fn(body, loc_lines[0]) if loc_lines else None
+                    )
+                    self.assertEqual(
+                        found_fn,
+                        fn_wanted,
+                        f"{fault_id} planted span must sit in fn {fn_wanted}",
+                    )
+            with self.subTest(fault=fault_id, stage="quotes"):
+                self.assertEqual(
+                    declared.get("text"),
+                    EXPECTED_DECLARATIONS[fault_id],
+                    f"{fault_id} declared.text is the contract sentence",
+                )
+                self.assertEqual(
+                    declared.get("path"),
+                    "README.md",
+                    f"{fault_id} declared.path is README.md",
+                )
+                self.assertEqual(
+                    practiced.get("text"),
+                    EXPECTED_PRACTICED[fault_id],
+                    f"{fault_id} practiced.text is the exact planted line",
+                )
+                self.assertEqual(
+                    practiced.get("path"),
+                    EXPECTED_LOCATION_PATHS[fault_id],
+                    f"{fault_id} practiced.path matches the location file",
+                )
+                self.assertEqual(
+                    row.get("finding"),
+                    EXPECTED_FINDINGS[fault_id],
+                    f"{fault_id} finding is the contract contrast, not "
+                    "an implementer-chosen oracle",
+                )
+            with self.subTest(fault=fault_id, stage="neighbour"):
+                self.assertEqual(
+                    neighbour.get("path"),
+                    EXPECTED_NEIGHBOUR_PATHS[fault_id],
+                    f"{fault_id} neighbour.path is the contracted file",
+                )
+                neigh_lines = _as_lines(neighbour.get("lines"))
+                self.assertIsNotNone(
+                    neigh_lines,
+                    f"{fault_id} neighbour.lines must be a [start, end] span",
+                )
+                neigh_file = APP / EXPECTED_NEIGHBOUR_PATHS[fault_id]
+                neigh_body = (
+                    neigh_file.read_text(encoding="utf-8")
+                    if neigh_file.is_file()
+                    else ""
+                )
+                neigh_span = (
+                    _span_text(neigh_file, neigh_lines)
+                    if neigh_file.is_file() and neigh_lines
+                    else ""
+                )
+                self.assertIn(
+                    EXPECTED_NEIGHBOUR_QUOTES[fault_id],
+                    neigh_span,
+                    f"{fault_id} neighbour span must carry "
+                    f"{EXPECTED_NEIGHBOUR_QUOTES[fault_id]!r}",
+                )
+                neigh_fn = EXPECTED_NEIGHBOUR_FUNCTIONS[fault_id]
+                if neigh_fn is None:
+                    self.assertEqual(neighbour.get("path"), "Cargo.toml")
+                else:
+                    found_nfn = (
+                        _enclosing_fn(neigh_body, neigh_lines[0])
+                        if neigh_lines
+                        else None
+                    )
+                    self.assertEqual(
+                        found_nfn,
+                        neigh_fn,
+                        f"{fault_id} neighbour span must sit in fn {neigh_fn}",
+                    )
+            with self.subTest(fault=fault_id, stage="probe-and-fix"):
+                self.assertEqual(
+                    row.get("probe"),
+                    EXPECTED_PROBES[fault_id],
+                    f"{fault_id} probe command is {EXPECTED_PROBES[fault_id]!r}",
+                )
+                self.assertEqual(
+                    row.get("fix"),
+                    EXPECTED_FIXES[fault_id],
+                    f"{fault_id} fix is {EXPECTED_FIXES[fault_id]!r}",
                 )
 
     def test_probe_timeout_is_120(self):
@@ -856,98 +1253,62 @@ class RustCrateManifest(unittest.TestCase):
             tuple(row.get("id") for row in faults),
             EXPECTED_IDS,
         )
-        needs_ids = []
-        for row in faults:
-            needs = row.get("needs")
-            if isinstance(needs, list) and needs:
-                needs_ids.append(row.get("id"))
-                joined = " ".join(str(item) for item in needs)
-                self.assertIn(
-                    "command -v cargo",
-                    joined,
-                    f"{row.get('id')} needs must gate on cargo",
+        for row in faults[:6]:
+            with self.subTest(fault=row.get("id")):
+                self.assertEqual(
+                    row.get("needs"),
+                    EXPECTED_NEEDS,
+                    f"{row.get('id')} needs is {EXPECTED_NEEDS!r}",
                 )
-        self.assertEqual(
-            needs_ids,
-            list(EXPECTED_IDS[:6]),
-            "needs on RC-01 to RC-06 only; RC-07 is grep and needs none",
-        )
-        rc07 = faults[6]
+        rc07 = faults[6] if len(faults) > 6 else {}
         rc07_needs = rc07.get("needs")
         self.assertTrue(
             rc07_needs in (None, [], ())
             or (isinstance(rc07_needs, list) and not rc07_needs),
             "RC-07 must not carry needs; grep is RED with no toolchain",
         )
-        rc07_probe = rc07.get("probe") if isinstance(rc07.get("probe"), str) else ""
-        self.assertRegex(
-            rc07_probe,
-            r"\bgrep\b",
-            "RC-07 probe is grep of Cargo.toml",
-        )
-        self.assertNotRegex(
-            rc07_probe,
-            r"\bcargo\b",
-            "RC-07 probe needs no cargo",
+        self.assertEqual(
+            rc07.get("probe"),
+            EXPECTED_PROBES["RC-07"],
+            "RC-07 probe is the grep shell script, not a cargo test",
         )
 
-    def test_toolchain_install_and_ready_present(self):
+    def test_toolchain_install_and_ready_are_the_contracted_commands(self):
         data = load_json_object(MANIFEST)
         toolchain = (
             data.get("toolchain")
             if isinstance(data.get("toolchain"), dict)
             else {}
         )
-        install = toolchain.get("install") if isinstance(toolchain.get("install"), str) else ""
-        ready = toolchain.get("ready") if isinstance(toolchain.get("ready"), str) else ""
-        self.assertRegex(
-            _strip_shell_comments(install),
-            r"\bcargo fetch\b",
-            "toolchain.install is cargo fetch",
+        install = (
+            toolchain.get("install")
+            if isinstance(toolchain.get("install"), str)
+            else ""
         )
-        ready_text = _strip_shell_comments(ready)
-        self.assertRegex(
-            ready_text,
-            r"command -v cargo",
-            "toolchain.ready checks cargo is on PATH",
+        ready = (
+            toolchain.get("ready") if isinstance(toolchain.get("ready"), str) else ""
         )
-        self.assertRegex(
-            ready_text,
-            r"\bcargo metadata\b",
-            "toolchain.ready runs cargo metadata",
+        self.assertEqual(
+            install,
+            EXPECTED_INSTALL,
+            "toolchain.install is exactly cargo fetch, not a quoted no-op",
         )
-        self.assertRegex(
-            ready_text,
-            r"\b--offline\b",
-            "toolchain.ready is offline",
-        )
-        self.assertRegex(
-            ready_text,
-            r"--format-version",
-            "toolchain.ready asks cargo metadata for format-version 1",
+        self.assertEqual(
+            ready,
+            EXPECTED_READY,
+            "toolchain.ready is the contracted cargo-metadata command, "
+            "not a quoted no-op",
         )
 
-    def test_check_command_names_fmt_clippy_and_test(self):
+    def test_check_command_is_the_contracted_pipeline(self):
         check = load_json_object(MANIFEST).get("check")
         text = check if isinstance(check, str) else ""
-        stripped = _strip_shell_comments(text)
-        self.assertRegex(
-            stripped,
-            r"\bcargo fmt\b",
-            "check includes cargo fmt --check (comments do not count)",
+        self.assertEqual(
+            text,
+            EXPECTED_CHECK,
+            "check is the contracted fmt && clippy && test pipeline, "
+            "not a quoted no-op that happens to mention those words",
         )
-        self.assertRegex(
-            stripped,
-            r"\bclippy\b",
-            "check includes cargo clippy --offline --all-targets",
-        )
-        self.assertRegex(
-            stripped,
-            r"\bcargo test\b",
-            "check includes cargo test --offline --locked",
-        )
-        self.assertRegex(stripped, r"\b--offline\b")
-        self.assertRegex(stripped, r"\b--locked\b")
 
     def test_not_planted_names_k7_and_k8(self):
         data = load_json_object(MANIFEST)
@@ -1294,30 +1655,68 @@ class RustCrateMakeProve(_RepoFreeze):
         )
         return faults
 
-    def cargo_ready_skip(self, directory: Path) -> str | None:
-        if shutil.which("cargo") is None:
-            return "UNREACHABLE: no cargo on PATH"
+    def manifest_toolchain(self, directory: Path) -> tuple[str, str]:
+        data = load_json_object(directory / "FAULTS.json")
+        toolchain = (
+            data.get("toolchain") if isinstance(data.get("toolchain"), dict) else {}
+        )
+        install = (
+            toolchain.get("install")
+            if isinstance(toolchain.get("install"), str)
+            else ""
+        )
+        ready = (
+            toolchain.get("ready") if isinstance(toolchain.get("ready"), str) else ""
+        )
+        self.assertEqual(
+            install,
+            EXPECTED_INSTALL,
+            "scratch toolchain.install must be the contracted cargo fetch",
+        )
+        self.assertEqual(
+            ready,
+            EXPECTED_READY,
+            "scratch toolchain.ready must be the contracted metadata command",
+        )
+        return install, ready
+
+    def run_manifest_command(
+        self, directory: Path, command: str, *, timeout: int
+    ):
+        self.assertTrue(command.strip(), "manifest command is empty")
         env = self.scratch_env()
         try:
-            proc = subprocess.run(
-                [
-                    "cargo",
-                    "metadata",
-                    "--offline",
-                    "--format-version",
-                    "1",
-                ],
+            return subprocess.run(
+                ["/bin/sh", "-c", command],
                 cwd=str(directory),
                 env=env,
                 capture_output=True,
                 text=True,
                 check=False,
-                timeout=METADATA_CAP,
+                timeout=timeout,
             )
-        except subprocess.TimeoutExpired:
-            return "UNREACHABLE: cargo metadata --offline failed in the scratch"
+        except subprocess.TimeoutExpired as exc:
+            self.fail(f"manifest command {command!r} exceeded {timeout}s: {exc}")
+
+    def cargo_ready_skip(self, directory: Path) -> str | None:
+        if shutil.which("cargo") is None:
+            return "UNREACHABLE: no cargo on PATH"
+        _install, ready = self.manifest_toolchain(directory)
+        proc = self.run_manifest_command(
+            directory, ready, timeout=METADATA_CAP
+        )
         if proc.returncode != 0:
-            return "UNREACHABLE: cargo metadata --offline failed in the scratch"
+            return "UNREACHABLE: no cargo on PATH"
+        return None
+
+    def install_from_manifest(self, directory: Path) -> str | None:
+        install, _ready = self.manifest_toolchain(directory)
+        proc = self.run_manifest_command(directory, install, timeout=WARM_CAP)
+        if proc.returncode != 0:
+            return (
+                f"UNREACHABLE: toolchain.install {install!r} failed: "
+                f"{proc.stderr or proc.stdout}"
+            )
         return None
 
     def warm_crate(self, directory: Path) -> None:
@@ -1339,6 +1738,120 @@ class RustCrateMakeProve(_RepoFreeze):
             0,
             "cargo build --offline --all-targets must warm the crate: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+
+    def crate_bin(self, directory: Path) -> Path:
+        target_dir = os.environ.get("CARGO_TARGET_DIR")
+        if target_dir:
+            candidate = Path(target_dir) / "debug" / "fixture-rust-crate"
+        else:
+            candidate = directory / "target" / "debug" / "fixture-rust-crate"
+        if not candidate.is_file():
+            env = self.scratch_env()
+            try:
+                proc = subprocess.run(
+                    [
+                        "cargo",
+                        "build",
+                        "--offline",
+                        "--bin",
+                        "fixture-rust-crate",
+                    ],
+                    cwd=str(directory),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=WARM_CAP,
+                )
+            except subprocess.TimeoutExpired as exc:
+                self.fail(f"cargo build --bin exceeded {WARM_CAP}s: {exc}")
+            self.assertEqual(
+                proc.returncode,
+                0,
+                "cargo build --offline --bin fixture-rust-crate must produce "
+                f"the binary: stdout={proc.stdout!r} stderr={proc.stderr!r}",
+            )
+        self.assertTrue(
+            candidate.is_file(),
+            f"the crate bin must exist at {candidate}",
+        )
+        return candidate
+
+    def run_crate_bin(
+        self,
+        directory: Path,
+        args: list[str],
+        *,
+        agent: str | None = None,
+    ):
+        binary = self.crate_bin(directory)
+        env = self.scratch_env()
+        if agent is not None:
+            env["WF_AGENT"] = agent
+        try:
+            return subprocess.run(
+                [str(binary), *args],
+                cwd=str(directory),
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=CHECK_CAP,
+            )
+        except subprocess.TimeoutExpired as exc:
+            self.fail(f"fixture-rust-crate {args} exceeded {CHECK_CAP}s: {exc}")
+
+    def assert_identity_refusal(self, proc, *, label: str) -> None:
+        self.assertEqual(
+            proc.returncode,
+            2,
+            f"{label} must refuse on the wire: stdout={proc.stdout!r} "
+            f"stderr={proc.stderr!r}",
+        )
+        self.assertEqual(
+            (proc.stdout or "").strip(),
+            "",
+            f"{label} refusal has empty stdout",
+        )
+        err_lines = [ln for ln in (proc.stderr or "").splitlines() if ln.strip()]
+        self.assertEqual(
+            len(err_lines),
+            1,
+            f"{label} refusal is one stderr line: {proc.stderr!r}",
+        )
+        match = REFUSAL_RE.match(err_lines[0])
+        self.assertIsNotNone(
+            match,
+            f"{label} must speak expected-found-needed: {err_lines[0]!r}",
+        )
+        class_token = match.group("class") if match else ""
+        self.assertEqual(
+            class_token,
+            "identity",
+            f"{label} refusal class is identity: {err_lines[0]!r}",
+        )
+
+    def assert_anyhow_exact_pin(self, directory: Path, *, label: str) -> None:
+        cargo = load_toml_object(directory / "Cargo.toml")
+        deps = (
+            cargo.get("dependencies")
+            if isinstance(cargo.get("dependencies"), dict)
+            else {}
+        )
+        spec = _dep_spec(deps, "anyhow")
+        lock = load_toml_object(directory / "Cargo.lock")
+        locked = _lock_package_version(lock, "anyhow")
+        self.assertTrue(locked, f"{label}: Cargo.lock must name anyhow")
+        self.assertEqual(
+            spec,
+            f"={locked}",
+            f"{label}: anyhow must be pinned to ={locked}, not a compatible "
+            f"range; found {spec!r}",
+        )
+        self.assertIsNone(
+            COMPATIBLE_RANGE_RE.search(spec),
+            f"{label}: {spec!r} is a compatible range, not an exact pin",
         )
 
     def test_make_rust_crate_into_a_temp_directory_succeeds(self):
@@ -1518,6 +2031,9 @@ class RustCrateMakeProve(_RepoFreeze):
         reason = self.cargo_ready_skip(made)
         if reason:
             self.skipTest(reason)
+        install_reason = self.install_from_manifest(made)
+        if install_reason:
+            self.skipTest(install_reason)
         self.warm_crate(made)
         proc = self.invoke(
             ["prove", str(made)],
@@ -1552,6 +2068,9 @@ class RustCrateMakeProve(_RepoFreeze):
         reason = self.cargo_ready_skip(made)
         if reason:
             self.skipTest(reason)
+        install_reason = self.install_from_manifest(made)
+        if install_reason:
+            self.skipTest(install_reason)
         self.warm_crate(made)
         proc = self.invoke(
             ["prove", "--fixed", str(made)],
@@ -1578,11 +2097,76 @@ class RustCrateMakeProve(_RepoFreeze):
         self.assertEqual(counts["green"], len(EXPECTED_IDS), proc.stdout)
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
 
+    def test_each_fault_is_pinned_to_gate_target_quotes_and_rc07(self):
+        made = self.made_app("oracle-probes")
+        faults = self.load_faults(made)
+        for row in faults:
+            fault_id = row.get("id")
+            loc = row.get("location") if isinstance(row.get("location"), dict) else {}
+            loc_path = loc.get("path") if isinstance(loc.get("path"), str) else ""
+            loc_lines = _as_lines(loc.get("lines"))
+            with self.subTest(fault=fault_id, stage="oracle"):
+                self.assertEqual(row.get("probe"), EXPECTED_PROBES[fault_id])
+                self.assertEqual(row.get("fix"), EXPECTED_FIXES[fault_id])
+                self.assertEqual(
+                    loc_path, EXPECTED_LOCATION_PATHS[fault_id]
+                )
+                self.assertIsNotNone(loc_lines)
+                span = _span_text(made / loc_path, loc_lines)
+                self.assertIn(EXPECTED_PRACTICED[fault_id], span)
+                practiced = (
+                    row.get("practiced")
+                    if isinstance(row.get("practiced"), dict)
+                    else {}
+                )
+                self.assertEqual(
+                    practiced.get("text"), EXPECTED_PRACTICED[fault_id]
+                )
+                self.assertEqual(
+                    row.get("finding"), EXPECTED_FINDINGS[fault_id]
+                )
+            sh_rel = f"probes/rc{fault_id.split('-', 1)[1]}.sh"
+            sh_text = (made / sh_rel).read_text(encoding="utf-8")
+            lines = _active_shell_lines(sh_text)
+            if fault_id == "RC-07":
+                with self.subTest(fault=fault_id, stage="grep-gate"):
+                    self.assertIn(RC07_GREP, lines)
+            else:
+                name = f"rc{fault_id.split('-', 1)[1]}"
+                with self.subTest(fault=fault_id, stage="shell-gate"):
+                    self.assertIn(SHELL_GATE, lines)
+                    self.assertTrue(
+                        _cargo_test_line(name) in lines
+                        or f"exec {_cargo_test_line(name)}" in lines
+                    )
+                    rs_rel = f"probes/{name}.rs"
+                    rs_text = _strip_rust_comments(
+                        (made / rs_rel).read_text(encoding="utf-8")
+                    )
+                    for needle in EXPECTED_PROBE_RS[fault_id]:
+                        self.assertIn(needle, rs_text)
+        rc07_cmd = EXPECTED_PROBES["RC-07"]
+        colour = self.run_probe(made, rc07_cmd)
+        self.assertEqual(colour, "RED", "RC-07 grep is RED on the planted *")
+        self.apply_fix(made, EXPECTED_FIXES["RC-07"])
+        self.assert_anyhow_exact_pin(
+            made, label="RC-07 after its own fix"
+        )
+        colour = self.run_probe(made, rc07_cmd)
+        self.assertEqual(
+            colour,
+            "GREEN",
+            "RC-07 grep is GREEN only after the exact = pin",
+        )
+
     def test_each_planted_fault_is_proved_by_its_own_probe(self):
         made = self.made_app("independent-probes")
         reason = self.cargo_ready_skip(made)
         if reason:
             self.skipTest(reason)
+        install_reason = self.install_from_manifest(made)
+        if install_reason:
+            self.skipTest(install_reason)
         self.warm_crate(made)
         faults = self.load_faults(made)
         snapshots = []
@@ -1606,8 +2190,23 @@ class RustCrateMakeProve(_RepoFreeze):
         for row, loc_path, loc_lines, span, loc_before in snapshots:
             fault_id = row.get("id")
             kind = row.get("kind")
-            probe_cmd = row.get("probe") if isinstance(row.get("probe"), str) else ""
-            fix_rel = row.get("fix") if isinstance(row.get("fix"), str) else ""
+            probe_cmd = EXPECTED_PROBES[fault_id]
+            fix_rel = EXPECTED_FIXES[fault_id]
+            self.assertEqual(
+                row.get("probe"),
+                probe_cmd,
+                f"{fault_id} manifest probe must be the contracted command",
+            )
+            self.assertEqual(
+                row.get("fix"),
+                fix_rel,
+                f"{fault_id} manifest fix must be the contracted patch",
+            )
+            self.assertIn(
+                EXPECTED_PRACTICED[fault_id],
+                span,
+                f"{fault_id} practiced quotation must sit in the location span",
+            )
             with self.subTest(fault=fault_id, stage="kind-and-red"):
                 dirty = KIND_DIRTY.get(kind)
                 self.assertIsNotNone(dirty, f"no dirty shape for {kind}")
@@ -1722,17 +2321,17 @@ class RustCrateMakeProve(_RepoFreeze):
                     "GREEN",
                     f"{fault_id} probe must be GREEN after its own fix",
                 )
+                if fault_id == "RC-07":
+                    self.assert_anyhow_exact_pin(
+                        made, label="RC-07 GREEN is not a compatible range"
+                    )
 
             with self.subTest(fault=fault_id, stage="others-stay-red"):
                 for other in faults:
                     other_id = other.get("id")
                     if other_id == fault_id:
                         continue
-                    other_probe = (
-                        other.get("probe")
-                        if isinstance(other.get("probe"), str)
-                        else ""
-                    )
+                    other_probe = EXPECTED_PROBES[other_id]
                     colour = self.run_probe(made, other_probe)
                     self.assertEqual(
                         colour,
@@ -1807,105 +2406,118 @@ class RustCrateMakeProve(_RepoFreeze):
         reason = self.cargo_ready_skip(made)
         if reason:
             self.skipTest(reason)
+        install_reason = self.install_from_manifest(made)
+        if install_reason:
+            self.skipTest(install_reason)
         self.warm_crate(made)
-        env = self.scratch_env()
         for rel in INTEGRATION_TESTS:
             self.assertTrue(
                 (made / rel).is_file(),
                 f"fresh make must carry {rel}",
             )
-        try:
-            fmt = subprocess.run(
-                ["cargo", "fmt", "--check"],
-                cwd=str(made),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=CHECK_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"cargo fmt --check exceeded {CHECK_CAP}s: {exc}")
-        self.assertEqual(
-            fmt.returncode,
-            0,
-            f"cargo fmt --check must be green: stdout={fmt.stdout!r} "
-            f"stderr={fmt.stderr!r}",
-        )
-        try:
-            clippy = subprocess.run(
-                [
-                    "cargo",
-                    "clippy",
-                    "--offline",
-                    "--all-targets",
-                    "--",
-                    "-D",
-                    "warnings",
-                ],
-                cwd=str(made),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=CHECK_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"cargo clippy exceeded {CHECK_CAP}s: {exc}")
-        self.assertEqual(
-            clippy.returncode,
-            0,
-            f"cargo clippy --offline --all-targets -D warnings must be green: "
-            f"stdout={clippy.stdout!r} stderr={clippy.stderr!r}",
-        )
-        try:
-            unit = subprocess.run(
-                ["cargo", "test", "--offline", "--locked"],
-                cwd=str(made),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=CHECK_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"cargo test exceeded {CHECK_CAP}s: {exc}")
-        unit_out = (unit.stdout or "") + (unit.stderr or "")
-        self.assertEqual(
-            unit.returncode,
-            0,
-            f"cargo test --offline --locked must be green: {unit_out!r}",
-        )
-        ran = CARGO_TEST_RAN_RE.search(unit_out)
-        self.assertIsNotNone(
-            ran,
-            f"cargo test must collect tests, not 0 passed: {unit_out!r}",
-        )
-        self.assertGreaterEqual(int(ran.group(1)), 1, unit_out)
         manifest = load_json_object(made / "FAULTS.json")
-        check = manifest.get("check") if isinstance(manifest.get("check"), str) else ""
-        self.assertTrue(check.strip(), "fresh make must carry a check command")
-        stripped = _strip_shell_comments(check)
-        self.assertRegex(stripped, r"\bcargo fmt\b")
-        self.assertRegex(stripped, r"\bclippy\b")
-        self.assertRegex(stripped, r"\bcargo test\b")
-        try:
-            proc = subprocess.run(
-                ["bash", "-c", check],
-                cwd=str(made),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=CHECK_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"app check exceeded {CHECK_CAP}s: {exc}")
+        check = (
+            manifest.get("check") if isinstance(manifest.get("check"), str) else ""
+        )
+        self.assertEqual(
+            check,
+            EXPECTED_CHECK,
+            "scratch check must be the contracted pipeline, not a no-op",
+        )
+        proc = self.run_manifest_command(made, check, timeout=CHECK_CAP)
+        combined = (proc.stdout or "") + (proc.stderr or "")
         self.assertEqual(
             proc.returncode,
             0,
             f"app check must be green on a fresh make: stdout={proc.stdout!r} "
             f"stderr={proc.stderr!r}",
+        )
+        ran = CARGO_TEST_RAN_RE.search(combined)
+        self.assertIsNotNone(
+            ran,
+            f"the manifest check must actually run cargo test: {combined!r}",
+        )
+        self.assertGreaterEqual(int(ran.group(1)), 1, combined)
+
+    def test_toolchain_install_and_ready_are_executed(self):
+        made = self.made_app("toolchain-exec")
+        if shutil.which("cargo") is None:
+            self.skipTest("UNREACHABLE: no cargo on PATH")
+        install, ready = self.manifest_toolchain(made)
+        ready_proc = self.run_manifest_command(
+            made, ready, timeout=METADATA_CAP
+        )
+        if ready_proc.returncode != 0:
+            self.skipTest("UNREACHABLE: no cargo on PATH")
+        install_proc = self.run_manifest_command(
+            made, install, timeout=WARM_CAP
+        )
+        self.assertEqual(
+            install_proc.returncode,
+            0,
+            f"toolchain.install must run from the manifest and exit 0: "
+            f"cmd={install!r} stdout={install_proc.stdout!r} "
+            f"stderr={install_proc.stderr!r}",
+        )
+        self.assertEqual(
+            ready_proc.returncode,
+            0,
+            f"toolchain.ready must run from the manifest and exit 0: "
+            f"cmd={ready!r} stdout={ready_proc.stdout!r} "
+            f"stderr={ready_proc.stderr!r}",
+        )
+
+    def test_bin_read_and_write_verbs_and_identity_rule(self):
+        made = self.made_app("bin-wire")
+        reason = self.cargo_ready_skip(made)
+        if reason:
+            self.skipTest(reason)
+        install_reason = self.install_from_manifest(made)
+        if install_reason:
+            self.skipTest(install_reason)
+        self.warm_crate(made)
+        store = made / "wire-store"
+        store.mkdir()
+        name = "rec1"
+        write_no_id = self.run_crate_bin(
+            made, ["write", str(store), name, "1"]
+        )
+        self.assert_identity_refusal(
+            write_no_id, label="write without WF_AGENT"
+        )
+        write_ok = self.run_crate_bin(
+            made, ["write", str(store), name, "1"], agent=AGENT
+        )
+        self.assertNotEqual(
+            write_ok.returncode,
+            2,
+            "write with identity must not refuse: "
+            f"stdout={write_ok.stdout!r} stderr={write_ok.stderr!r}",
+        )
+        self.assertEqual(
+            write_ok.returncode,
+            0,
+            "write ROOT NAME COUNT with WF_AGENT exits 0: "
+            f"stdout={write_ok.stdout!r} stderr={write_ok.stderr!r}",
+        )
+        read_no_id = self.run_crate_bin(
+            made, ["read", str(store), name]
+        )
+        err_lines = [
+            ln for ln in (read_no_id.stderr or "").splitlines() if ln.strip()
+        ]
+        if read_no_id.returncode == 2 and err_lines:
+            match = REFUSAL_RE.match(err_lines[0])
+            self.assertFalse(
+                match is not None and match.group("class") == "identity",
+                "read never requires identity: "
+                f"stdout={read_no_id.stdout!r} stderr={read_no_id.stderr!r}",
+            )
+        self.assertEqual(
+            read_no_id.returncode,
+            0,
+            "read ROOT NAME without WF_AGENT exits 0 after a write: "
+            f"stdout={read_no_id.stdout!r} stderr={read_no_id.stderr!r}",
         )
 
 
