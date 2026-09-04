@@ -38,6 +38,7 @@ REGISTRY = (
     ("findings.py", ["disposition", "NOSUCH#1", "fixed", "why"], "key", True),
     ("laneconf.py", ["get", "NO_SUCH_KEY"], "key", False),
     ("findings.py", ["calibrate"], "calibration", True),
+    ("watchdog.py", ["--store", "/dev/null"], "store", False),
 )
 
 
