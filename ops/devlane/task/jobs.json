@@ -20,6 +20,15 @@
    "do not edit the snapshot"
   ]
  },
+ "security-audit": {
+  "adapter": "harness",
+  "deliverable": "security findings against the change, each with a reproduction, that survived the auditor's own attempt to refute them",
+  "role": "read",
+  "snapshot": "whole",
+  "caps": {"timeout": 1200},
+  "prompt": "Audit the change at {ref} against {base} for security defects. The diff is {diff}; the whole tree is present for context. Audit only — do not edit.\nHunt: injection through any argv, shell, SQL or template seam; secrets or credentials entering the tree, a record, or a log; paths and refs that escape a snapshot, a worktree, or a job directory; permission and sandbox flags weaker than the record claims; trust placed in vendor output without a check; supply-chain surfaces (pins, lockfiles, fetched actions) loosened.\nAim at: {scope}\nEvery finding carries a reproduce command against the tree; a finding without one is an opinion and does not belong in the list. A category you looked at and found clean is a category with zero findings, which is not the same as one you did not look at — say in note what you could not cover.\nInputs named by the brief are files under in/, a sibling of out/; read them whole before working.\nAnswer with a single JSON object and nothing else, carrying exactly these keys: job, status, verdict, counts, findings, artifacts, spend, stamp, note.",
+  "constraints": ["read only", "do not edit the snapshot"]
+ },
  "author-tests": {
   "adapter": "harness",
   "deliverable": "a test file that has been run and is red for the stated reason",

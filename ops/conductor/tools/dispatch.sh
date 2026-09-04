@@ -14,8 +14,10 @@ conf_path=${DISPATCH_CONF:-"$script_dir/dispatch.conf"}
 # launcher is found relative to this script (portable across worktrees and
 # machines, and no home path leaks into a public conf). An operator who wants
 # the hard supply-chain lock may still set an absolute LAUNCHER_PIN in the conf.
-keys=(DEFAULT_TIMEOUT WF_AGENT_DEFAULT MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN)
-for key in "${keys[@]}"; do
+keys=(DEFAULT_TIMEOUT WF_AGENT_DEFAULT MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE)
+env_keys=("${!MODEL_@}" "${!EFFORT_@}")
+saved_keys=("${keys[@]}" "${env_keys[@]}")
+for key in "${saved_keys[@]}"; do
     if [[ -v $key ]]; then
         printf -v "saved_$key" '%s' "${!key}"
         printf -v "had_$key" '%s' 1
@@ -27,12 +29,14 @@ done
 had_pin=0; [[ -v LAUNCHER_PIN ]] && { had_pin=1; env_pin=$LAUNCHER_PIN; }
 # shellcheck source=/dev/null
 source "$conf_path" || refuse "expected a sourceable conf; found an error in $conf_path; fix its shell assignments"
-for key in "${keys[@]}"; do
+for key in "${saved_keys[@]}"; do
     had="had_$key"
     saved="saved_$key"
     if [[ ${!had} == 1 ]]; then
         printf -v "$key" '%s' "${!saved}"
     fi
+done
+for key in "${keys[@]}"; do
     [[ -v $key ]] || refuse "expected conf key $key; found it unset; define $key in $conf_path"
 done
 
@@ -51,6 +55,7 @@ worktree=''
 job=''
 harness=''
 model=''
+effort=''
 unit=''
 stage=''
 scope_file=''
@@ -72,6 +77,7 @@ while (($#)); do
         --job) need_value "$@"; job=$2; shift 2 ;;
         --harness) need_value "$@"; harness=$2; shift 2 ;;
         --model) need_value "$@"; model=$2; shift 2 ;;
+        --effort) need_value "$@"; effort=$2; shift 2 ;;
         --unit) need_value "$@"; unit=$2; shift 2 ;;
         --stage) need_value "$@"; stage=$2; shift 2 ;;
         --scope-file) need_value "$@"; scope_file=$2; shift 2 ;;
@@ -89,6 +95,7 @@ done
 [[ -n $scope_file ]] || refuse "expected required --scope-file; found it missing; pass --scope-file FILE"
 [[ -n $branch || -n $worktree ]] || refuse "expected one of --branch or --worktree; found neither; select a lineage worktree"
 [[ -z $branch || -z $worktree ]] || refuse "expected one of --branch or --worktree; found both; pass exactly one"
+[[ $job =~ ^[a-z][a-z0-9-]*$ ]] || refuse "expected --job matching ^[a-z][a-z0-9-]*$; found $job; needed a catalogue-shaped job name"
 case $harness in grok|codex|claude) ;; *) refuse "expected --harness grok, codex, or claude; found $harness; choose a supported harness" ;; esac
 [[ -f $scope_file ]] || refuse "expected --scope-file to name a file; found $scope_file; create the file or correct the path"
 
@@ -115,6 +122,13 @@ fi
 ref=$(git -C "$worktree" rev-parse HEAD 2>/dev/null) || refuse "expected a git worktree; found $worktree without HEAD; correct the target"
 lineage=$(git -C "$worktree" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
 
+job_key=${job^^}
+job_key=${job_key//-/_}
+model_job="MODEL_${harness^^}_${job_key}"
+effort_job="EFFORT_${harness^^}_${job_key}"
+if [[ -z $model && -n ${!model_job:-} ]]; then
+    model=${!model_job}
+fi
 if [[ -z $model ]]; then
     case $harness in
         grok) model=$MODEL_GROK ;;
@@ -122,8 +136,17 @@ if [[ -z $model ]]; then
         claude) if [[ $stage == plan ]]; then model=$MODEL_CLAUDE_PLAN; else model=$MODEL_CLAUDE_READ; fi ;;
     esac
 fi
+if [[ -z $effort ]]; then
+    if [[ -n ${!effort_job:-} ]]; then
+        effort=${!effort_job}
+    else
+        effort_harness="EFFORT_${harness^^}"
+        effort=${!effort_harness}
+    fi
+fi
 
 argv=("$LAUNCHER_PIN" "$job" --harness "$harness" --model "$model" --ref "$ref")
+[[ -z $effort ]] || argv=("${argv[@]:0:6}" --effort "$effort" "${argv[@]:6}")
 [[ -z $lineage ]] || argv+=(--lineage "$lineage")
 [[ -z $unit ]] || argv+=(--unit "$unit")
 [[ -z $stage ]] || argv+=(--stage "$stage")

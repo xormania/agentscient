@@ -9,7 +9,7 @@ overridable one.
   D3  ref
   D4  record-target (detached, dev, main, other branch, close-time)
   D5  stale-base + neighbours + the single override
-  D6  model (missing; effort on codex)
+  D6  model (missing; effort reaches every CLI)
   D7  write-role-unadmitted
   D8  scope-cap (1025 / 1024 / adjudicate)
   D9  history-vs-withheld, mode-unavailable
@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import unittest
 
 import launch_support as ls
 
@@ -311,8 +312,28 @@ class StaleBaseIsTheOneOverridableRefusal(ls._TempLaunch):
         self.assert_not_started()
 
 
-class ModelIsRequiredAndCodexEffortIsRefused(ls._TempLaunch):
+class ModelIsRequiredAndEffortReachesEveryCli(ls._TempLaunch):
     """D6 / contract model / plan (l)."""
+
+    def _argv_list(self, witness):
+        argv = [str(p) for p in witness["argv"]]
+        self.assertTrue(argv, "witness argv is empty")
+        return argv
+
+    def _assert_adjacent_tokens(self, argv, tokens):
+        self.assertEqual(len(tokens), 2, "effort dial is two adjacent tokens")
+        self.assertTrue(
+            any(argv[i:i + 2] == tokens for i in range(len(argv) - 1)),
+            f"argv must carry adjacent {tokens}: {argv!r}",
+        )
+
+    def _assert_no_effort_token(self, argv):
+        self.assertNotIn("--effort", argv)
+        self.assertNotIn("--reasoning-effort", argv)
+        self.assertFalse(
+            any("model_reasoning_effort=" in tok for tok in argv),
+            f"argv carried an effort token: {argv!r}",
+        )
 
     def test_no_model_is_refused_and_nothing_launches(self):
         argv = self.argv_for(stage="plan", model=None)
@@ -325,24 +346,164 @@ class ModelIsRequiredAndCodexEffortIsRefused(ls._TempLaunch):
         self.assert_not_started()
         self.assertEqual(self.job_dirs(), [])
 
-    def test_effort_on_codex_is_refused(self):
-        code, out, err = self.dispatch(self.argv_for(
+    def test_effort_on_codex_reaches_the_command_line(self):
+        rec, witness, *_ = self.launch_ok(self.argv_for(
             job="plan", harness="codex", stage="plan", extra=["--effort", "high"],
         ))
-        self.assert_refusal(
-            code, out, err, ident="model",
-            phrases=["effort", "codex"],
-        )
-        self.assert_not_started()
+        tokens = ["-c", 'model_reasoning_effort="high"']
+        argv = self._argv_list(witness)
+        self._assert_adjacent_tokens(argv, tokens)
+        self.assertIn("effort_argv", rec["model"])
+        self.assertEqual(rec["model"]["effort_argv"], tokens)
+
+    def test_effort_on_claude_reaches_the_command_line(self):
+        rec, witness, *_ = self.launch_ok(self.argv_for(
+            job="plan", harness="claude", stage="plan", extra=["--effort", "high"],
+        ))
+        tokens = ["--effort", "high"]
+        argv = self._argv_list(witness)
+        self._assert_adjacent_tokens(argv, tokens)
+        self.assertIn("effort_argv", rec["model"])
+        self.assertEqual(rec["model"]["effort_argv"], tokens)
 
     def test_effort_on_grok_is_the_silent_neighbour(self):
         rec, witness, *_ = self.launch_ok(self.argv_for(
             job="plan", harness="grok", stage="plan", extra=["--effort", "high"],
         ))
-        argv = [str(p) for p in witness["argv"]]
-        self.assertIn("--reasoning-effort", argv)
+        tokens = ["--reasoning-effort", "high"]
+        argv = self._argv_list(witness)
+        self._assert_adjacent_tokens(argv, tokens)
         self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "high")
         self.assertEqual(rec["model"]["effort_requested"], "high")
+        self.assertIn("effort_argv", rec["model"])
+        self.assertEqual(rec["model"]["effort_argv"], tokens)
+
+    def test_no_effort_on_grok_sends_an_empty_dial(self):
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="grok", stage="plan",
+        )
+        argv = self._argv_list(witness)
+        self._assert_no_effort_token(argv)
+        self.assertIn("effort_argv", rec["model"])
+        self.assertEqual(rec["model"]["effort_argv"], [])
+
+    def test_no_effort_on_claude_sends_an_empty_dial(self):
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="claude", stage="plan",
+        )
+        argv = self._argv_list(witness)
+        self._assert_no_effort_token(argv)
+        self.assertIn("effort_argv", rec["model"])
+        self.assertEqual(rec["model"]["effort_argv"], [])
+
+    def test_no_effort_on_codex_sends_an_empty_dial(self):
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="codex", stage="plan",
+        )
+        argv = self._argv_list(witness)
+        self._assert_no_effort_token(argv)
+        self.assertIn("effort_argv", rec["model"])
+        self.assertEqual(rec["model"]["effort_argv"], [])
+
+    def test_resumed_codex_carries_the_dial_again(self):
+        rec, *_ = self.launch_ok(self.argv_for(
+            job="plan", harness="codex", stage="plan", extra=["--effort", "high"],
+        ))
+        tokens = ["-c", 'model_reasoning_effort="high"']
+        self.witness.unlink()
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        argv = self._argv_list(self.read_witness())
+        self._assert_adjacent_tokens(argv, tokens)
+        rec2 = self.read_record()
+        self.assertIn("effort_argv", rec2["model"])
+        self.assertEqual(rec2["model"]["effort_argv"], tokens)
+
+    def test_resumed_claude_carries_the_dial_again(self):
+        rec, *_ = self.launch_ok(self.argv_for(
+            job="plan", harness="claude", stage="plan", extra=["--effort", "high"],
+        ))
+        tokens = ["--effort", "high"]
+        self.witness.unlink()
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        argv = self._argv_list(self.read_witness())
+        self._assert_adjacent_tokens(argv, tokens)
+        rec2 = self.read_record()
+        self.assertIn("effort_argv", rec2["model"])
+        self.assertEqual(rec2["model"]["effort_argv"], tokens)
+
+    def test_close_reconstructs_effort_argv_from_the_requested_value(self):
+        rec, *_ = self.launch_ok(self.argv_for(
+            job="plan", harness="grok", stage="plan", extra=["--effort", "high"],
+        ))
+        tokens = ["--reasoning-effort", "high"]
+        self.assertEqual(rec["model"]["effort_requested"], "high")
+        self.assertEqual(rec["model"]["effort_argv"], tokens)
+        path = self.the_record_path()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["status"] = "launched"
+        data["result"] = None
+        data["at"]["closed"] = None
+        data["model"].pop("effort_argv", None)
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        planted = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["status"], "launched")
+        self.assertNotIn("effort_argv", planted["model"])
+        self.assertEqual(planted["model"]["effort_requested"], "high")
+        code, out, err = self.run_main(["close", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        rec2 = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(rec2["status"], "closed")
+        self.assertEqual(rec2["model"]["effort_argv"], tokens)
+
+
+class EffortContractDocumentsMatchTheWire(unittest.TestCase):
+    """G1 — CONTRACT.md §Refusals model and §The record model fields,
+    and ops/conductor/pipelines.md, say effort is forwarded to all
+    three harnesses and the model block includes effort_argv."""
+
+    def test_refusals_model_does_not_refuse_codex_effort_for_a_missing_flag(self):
+        path = ls.REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"missing {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "CONTRACT.md is empty")
+        stale = (
+            "the CLI has no effort flag, so the dial is refused rather than dropped"
+        )
+        self.assertFalse(
+            stale in text,
+            "CONTRACT.md §Refusals model still refuses Codex effort "
+            "because the CLI has no effort flag",
+        )
+
+    def test_the_record_model_fields_include_effort_argv(self):
+        path = ls.REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
+        self.assertTrue(path.is_file(), f"missing {path}")
+        text = path.read_text(encoding="utf-8")
+        listed = (
+            "model {requested, effort_requested, effort_argv, ran, read_from}"
+        )
+        stale = "model {requested, effort_requested, ran, read_from}"
+        self.assertTrue(
+            listed in text,
+            "CONTRACT.md §The record model fields must list effort_argv",
+        )
+        self.assertFalse(
+            stale in text,
+            "CONTRACT.md §The record still lists the model block without effort_argv",
+        )
+
+    def test_pipelines_does_not_say_the_launcher_refuses_codex_effort(self):
+        path = ls.REPO / "ops" / "conductor" / "pipelines.md"
+        self.assertTrue(path.is_file(), f"missing {path}")
+        text = path.read_text(encoding="utf-8")
+        self.assertTrue(text.strip(), "pipelines.md is empty")
+        stale = "the launcher refuses `--effort` on codex until"
+        self.assertFalse(
+            stale in text,
+            "pipelines.md still says the launcher refuses --effort on Codex",
+        )
 
 
 class ClaudeWriteIsUnadmitted(ls._TempLaunch):

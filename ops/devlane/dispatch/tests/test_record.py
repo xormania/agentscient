@@ -75,6 +75,7 @@ class _RecordCase(unittest.TestCase):
             "model": {
                 "requested": "alias-requested",
                 "effort_requested": None,
+                "effort_argv": [],
                 "ran": None,
                 "read_from": None,
             },
@@ -304,3 +305,94 @@ class SchemaIsComplete(_RecordCase):
         rec = self.built()
         rec["follows"] = "20260826T000000Z-plan-grok-000001"
         self._raises_naming(rec, "follows")
+
+
+class EffortArgvCarriesTheDial(_RecordCase):
+    """model.effort_argv is the exact tokens that reached the command
+    line: a list; when effort_requested is set, non-empty and one token
+    equals the requested value; every token appears, in order, in
+    harness.argv; when unset, []. Missing is a refusal, not silence.
+    Findings D3 and G4: a substring check accepted high inside xhigh
+    and never compared effort_argv with harness.argv."""
+
+    def test_effort_requested_carried_in_effort_argv_validates(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = ["--reasoning-effort", "high"]
+        rec["harness"]["argv"] = [
+            "grok", "-s", "uuid", "--reasoning-effort", "high",
+        ]
+        rec = self.recmod().validate(rec)
+        self.assertEqual(rec["model"]["effort_requested"], "high")
+        self.assertEqual(
+            rec["model"]["effort_argv"], ["--reasoning-effort", "high"],
+        )
+        argv = rec["harness"]["argv"]
+        self.assertTrue(
+            any(argv[i:i + 2] == ["--reasoning-effort", "high"]
+                for i in range(len(argv) - 1)),
+            argv,
+        )
+
+    def test_effort_requested_not_carried_refuses_naming_effort_argv(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = []
+        self._raises_naming(rec, "model.effort_argv")
+
+    def test_effort_argv_without_effort_requested_is_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = None
+        rec["model"]["effort_argv"] = ["--reasoning-effort", "high"]
+        self._raises_naming(rec, "model.effort_argv")
+
+    def test_effort_argv_that_is_not_a_list_is_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = "--reasoning-effort high"
+        self.assertIsInstance(rec["model"]["effort_argv"], str)
+        self.assertNotIsInstance(rec["model"]["effort_argv"], list)
+        self.assertIn("high", rec["model"]["effort_argv"])
+        self._raises_naming(rec, "model.effort_argv")
+
+    def test_high_inside_xhigh_is_not_an_exact_token_and_is_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = ["--reasoning-effort", "xhigh"]
+        rec["harness"]["argv"] = [
+            "grok", "--reasoning-effort", "xhigh",
+        ]
+        self.assertIn("high", "xhigh")
+        self.assertNotIn("high", rec["model"]["effort_argv"])
+        self._raises_naming(rec, "model.effort_argv")
+
+    def test_a_token_that_merely_contains_xhigh_is_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "xhigh"
+        rec["model"]["effort_argv"] = ["not-xhigh"]
+        rec["harness"]["argv"] = ["codex", "exec", "--model", "M"]
+        self.assertIn("xhigh", "not-xhigh")
+        self.assertNotIn("xhigh", rec["model"]["effort_argv"])
+        self._raises_naming(rec, "model.effort_argv")
+
+    def test_effort_argv_tokens_missing_from_harness_argv_are_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "xhigh"
+        rec["model"]["effort_argv"] = ["--reasoning-effort", "xhigh"]
+        rec["harness"]["argv"] = ["codex", "exec", "--model", "M"]
+        self.assertNotIn("--reasoning-effort", rec["harness"]["argv"])
+        self.assertNotIn("xhigh", rec["harness"]["argv"])
+        self._raises_naming(rec, "argv")
+
+    def test_effort_argv_tokens_out_of_order_in_harness_argv_are_refused(self):
+        rec = self.built()
+        rec["model"]["effort_requested"] = "high"
+        rec["model"]["effort_argv"] = ["--reasoning-effort", "high"]
+        rec["harness"]["argv"] = ["grok", "high", "--reasoning-effort"]
+        self.assertIn("--reasoning-effort", rec["harness"]["argv"])
+        self.assertIn("high", rec["harness"]["argv"])
+        self.assertLess(
+            rec["harness"]["argv"].index("high"),
+            rec["harness"]["argv"].index("--reasoning-effort"),
+        )
+        self._raises_naming(rec, "argv")
