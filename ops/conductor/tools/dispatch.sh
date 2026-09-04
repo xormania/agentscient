@@ -7,14 +7,42 @@ refuse() {
 }
 
 script_dir=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-conf_path=${DISPATCH_CONF:-"$script_dir/dispatch.conf"}
-[[ -f $conf_path ]] || refuse "expected a sourced conf; found no file at $conf_path; set DISPATCH_CONF to dispatch.conf"
+conf_path=${LANE_CONF:-"$script_dir/../../lane.conf"}
+[[ -f $conf_path ]] \
+    || refuse "conf-file: expected a sourced lane conf; found no file at $conf_path; needed set LANE_CONF to a readable file"
+
+validate_conf() {
+    local file=$1 line number=0
+    [[ -r $file ]] \
+        || refuse "conf-file: expected a readable lane conf; found unreadable $file; needed correct its permissions"
+    while IFS= read -r line || [[ -n $line ]]; do
+        ((number += 1))
+        [[ -z ${line//[[:space:]]/} || $line =~ ^[[:space:]]*# ]] && continue
+        [[ $line =~ ^[A-Z][A-Z0-9_]*=\'[^\']*\'[[:space:]]*$ ]] \
+            || refuse "syntax: expected a KEY='literal' assignment or comment; found line $number in $file; needed replace it with a literal single-quoted assignment"
+    done < "$file"
+}
+
+validate_conf "$conf_path"
+conf_dir=$(CDPATH='' cd -- "$(dirname -- "$conf_path")" && pwd)
+local_path=$conf_dir/lane.local.conf
+if [[ -f $local_path ]]; then
+    validate_conf "$local_path"
+    while IFS= read -r line || [[ -n $line ]]; do
+        [[ $line =~ ^([A-Z][A-Z0-9_]*)= ]] || continue
+        case ${BASH_REMATCH[1]} in
+            LANE_NAME|TRUNK_BRANCH|RELEASE_BRANCH|REPO_SLUG|CHECK_NAME)
+                refuse "local-key: expected lane identity keys only in the tracked conf; found ${BASH_REMATCH[1]} in $local_path; needed remove ${BASH_REMATCH[1]} from $local_path"
+                ;;
+        esac
+    done < "$local_path"
+fi
 
 # LAUNCHER_PIN is resolved after sourcing, not required here: by default the
 # launcher is found relative to this script (portable across worktrees and
 # machines, and no home path leaks into a public conf). An operator who wants
 # the hard supply-chain lock may still set an absolute LAUNCHER_PIN in the conf.
-keys=(WF_AGENT_DEFAULT MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE)
+keys=(LANE_NAME TRUNK_BRANCH RELEASE_BRANCH REPO_SLUG CHECK_NAME WF_AGENT_DEFAULT LANE_AUTHOR MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE SCOPE_CAP)
 env_keys=("${!MODEL_@}" "${!EFFORT_@}")
 saved_keys=("${keys[@]}" "${env_keys[@]}")
 for key in "${saved_keys[@]}"; do
@@ -36,6 +64,9 @@ if [[ -v DEFAULT_TIMEOUT ]]; then
     unset DEFAULT_TIMEOUT
     refuse "expected DEFAULT_TIMEOUT absent from $conf_path; found DEFAULT_TIMEOUT=$legacy_timeout; needed remove the retired conf key"
 fi
+# shellcheck source=/dev/null
+[[ ! -f $local_path ]] || source "$local_path" \
+    || refuse "syntax: expected a sourceable local conf; found an error in $local_path; needed fix its literal assignments"
 for key in "${saved_keys[@]}"; do
     had="had_$key"
     saved="saved_$key"
@@ -49,7 +80,8 @@ else
     unset DISPATCH_TIMEOUT
 fi
 for key in "${keys[@]}"; do
-    [[ -v $key ]] || refuse "expected conf key $key; found it unset; define $key in $conf_path"
+    [[ -v $key ]] \
+        || refuse "conf-key: expected conf key $key; found it unset in $conf_path; needed define $key in $conf_path"
 done
 
 if ((had_pin)); then
@@ -122,7 +154,10 @@ case $harness in grok|codex|claude) ;; *) refuse "expected --harness grok, codex
 
 scope_bytes=$(wc -c < "$scope_file") || refuse "expected a readable --scope-file; found unreadable $scope_file; correct its permissions"
 scope_bytes=${scope_bytes//[[:space:]]/}
-((scope_bytes <= 1024)) || refuse "expected --scope-file at most 1024 bytes; found $scope_bytes bytes; shorten it"
+[[ $SCOPE_CAP =~ ^[1-9][0-9]*$ ]] \
+    || refuse "scope-cap: expected SCOPE_CAP as a positive whole number; found $SCOPE_CAP in $conf_path; needed correct SCOPE_CAP"
+((scope_bytes <= SCOPE_CAP)) \
+    || refuse "scope-cap: expected --scope-file at most $SCOPE_CAP bytes; found $scope_bytes bytes; needed shorten it"
 scope=$(cat -- "$scope_file"; printf x) || refuse "expected a readable --scope-file; found unreadable $scope_file; correct its permissions"
 scope=${scope%x}
 for input in "${inputs[@]}"; do
@@ -207,9 +242,10 @@ if ((!detach)); then
     exit $?
 fi
 
-jobs_root=${DISPATCH_JOBS:-"${XDG_STATE_HOME:-$HOME/.local/state}/agentscient/dispatch"}
+jobs_root=${DISPATCH_JOBS:-"${XDG_STATE_HOME:-$HOME/.local/state}/$LANE_NAME/dispatch"}
 mkdir -p -- "$jobs_root" \
     || refuse "expected a writable jobs root; found mkdir failed at $jobs_root; needed set DISPATCH_JOBS to a writable directory"
+export DISPATCH_JOBS=$jobs_root
 launch_log=$(mktemp -p "$jobs_root" .launcher.XXXXXX) \
     || refuse "expected a temporary launcher log in $jobs_root; found mktemp failed; needed make the jobs root writable"
 detach_wait=${DETACH_WAIT:-60}
