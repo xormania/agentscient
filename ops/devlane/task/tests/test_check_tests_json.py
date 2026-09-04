@@ -41,18 +41,9 @@ STDOUT_EMPTY_ARTIFACTS = (
     "Return the JSON envelope on stdout and leave artifacts empty."
 )
 
-# A write-path ask is a write/create/persist/save/store/emit verb
-# together with a path-shaped token, or an artifacts-output
-# instruction. Names are not listed: REPORT.rst and
-# reports/findings.json are caught by shape, not by being on a list.
-# SKEPTIC.md is still named below as the role-card cousin that must
-# not be confused with test-skeptic.md.
-WRITE_PATH_ASK = re.compile(
-    r"(?is)"
-    r"\b(?:write|create|persist|save|store|emit|dump)\b"
-    r".{0,200}?"
-    r"(?:\{out\}|(?<![A-Za-z])out/|/\S+|\b[\w.-]+\.\w{1,8}\b)"
-)
+# Artifacts-output instruction, kept here only for the deliverable
+# prompt pin. write_path_ask itself comes from write_path.py — no
+# in-file write-path regex and no fallback that restores one.
 ARTIFACTS_OUTPUT_ASK = re.compile(
     r"(?i)\b(?:write|name|include|put|place)\b.{0,80}\bartifacts\b"
 )
@@ -60,12 +51,8 @@ ARTIFACTS_OUTPUT_ASK = re.compile(
 
 def write_path_ask(text: str):
     """Return the first write-path instruction in text, or None."""
-    if not isinstance(text, str) or not text.strip():
-        return None
-    match = WRITE_PATH_ASK.search(text)
-    if match:
-        return match
-    return ARTIFACTS_OUTPUT_ASK.search(text)
+    module = support.load("write_path")
+    return module.write_path_ask(text)
 
 # A path of any form in the deliverable: slash, {out}, or a filename.
 DELIVERABLE_PATH = re.compile(
@@ -165,6 +152,16 @@ class ReadRolePromptRejectsAnyWritePath(_CheckTestsJob):
     reports/findings.json. Shape, not names, is the pin.
     """
 
+    def test_write_path_ask_comes_from_write_path_py(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        module = support.load("write_path")
+        fn = getattr(module, "write_path_ask", None)
+        self.assertTrue(
+            callable(fn),
+            "write_path.py must export write_path_ask",
+        )
+
     def test_creating_report_rst_is_a_write_path(self):
         prompt = (
             "Create REPORT.rst in the repository and include it in "
@@ -208,6 +205,18 @@ class ReadRolePromptRejectsAnyWritePath(_CheckTestsJob):
                 f"write-path detection must catch {name!r} by shape, "
                 "not by listing filenames",
             )
+
+    def test_create_review_in_the_repository_is_a_write_path(self):
+        path = support.APP / "write_path.py"
+        self.assertTrue(path.is_file(), f"write_path.py is absent: {path}")
+        prompt = "Create REVIEW in the repository"
+        match = write_path_ask(prompt)
+        self.assertIsNotNone(
+            match,
+            "a write verb plus an extensionless relative name is a "
+            "write path; requiring a slash, an extension, or {out} "
+            "misses Create REVIEW in the repository",
+        )
 
     def test_the_live_read_role_prompt_is_not_a_write_path(self):
         spec = self.check_tests()
