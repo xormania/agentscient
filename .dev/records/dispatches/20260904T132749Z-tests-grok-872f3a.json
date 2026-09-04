@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T13:27:50Z",
-    "closed": null
+    "closed": "2026-09-04T13:35:57Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/home/grok-stream/sessions/<snapshot-encoded>/f04f7a40-fc59-42e2-bca1-bc11f1e49b44/summary.json"
   },
   "session": {
     "id": "f04f7a40-fc59-42e2-bca1-bc11f1e49b44",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/home/grok-stream/sessions/<snapshot-encoded>/f04f7a40-fc59-42e2-bca1-bc11f1e49b44/summary.json",
+    "stream_sha256_at_close": "14ad5a4edf80412182b129c88a3209ce118611ce4c90fe4cab67897dc2143b38",
+    "spend": {
+      "input": 1912428,
+      "cached": 1788160,
+      "output": 27300,
+      "total": 1939728,
+      "cost_usd_ticks": 2220907200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T132749Z-tests-grok-872f3a/home/grok-stream/sessions/<snapshot-encoded>/f04f7a40-fc59-42e2-bca1-bc11f1e49b44/summary.json",
+      "messages": 209
+    }
   },
   "brief": {
     "template": {
@@ -91,10 +99,60 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T13:27:50Z",
+      "ended": "2026-09-04T13:35:57Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e18eba37db01ea63664b737d281430df61c670d5",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/launch_support.py",
+      "ops/devlane/dispatch/tests/test_launch_isolation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_launch_isolation": "ops/devlane/dispatch/tests/test_launch_isolation.py",
+        "launch_support": "ops/devlane/dispatch/tests/launch_support.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1939728,
+        "out": 27300,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f6e052c908585d7679f23b97c9e2222850410261",
+        "started": "2026-09-04T13:29:01Z",
+        "ended": "2026-09-04T13:35:42Z"
+      },
+      "note": "dispatch-job-scratch tests only (finding 4). Four new tests in CodexWriteJobStaysInsideTheJobDirectory, with TMPDIR/TMP/TEMP and pre-spawn tmp/scratch capture added to the fake child in launch_support.py so the assertions can go green. Each test was run alone at f6e052c908585d7679f23b97c9e2222850410261 and failed on its contracted assertion (TMPDIR absent from the child env; tmp/ missing before spawn; writable_roots is out/ only; tempfile landed under host /tmp). Committed e18eba37db01ea63664b737d281430df61c670d5 on lane/dispatch-job-scratch. The other four fixture buckets are a separate PR and were not authored here."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T13:35:57.306Z"
+    }
+  },
+  "status": "closed"
 }
