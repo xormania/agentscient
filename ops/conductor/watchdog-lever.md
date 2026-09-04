@@ -133,3 +133,44 @@ recurring failure class, and "closed ok but landed nothing" remain work
 for the reporting model of idea I-017. The watchdog names only the
 mechanical deviations and their record ids; the conductor decides what
 to do about them.
+
+## Proposed efficiency update — dev-lane first
+
+Owner request, 2026-09-04: optimize watchdog and minimize conductor
+context/GitHub usage; dev-lane machinery comes before framework work.
+This is a declared draft coupling for the current instrument, not owner
+ratification and not a new conductor or automatic-remediation service.
+
+- Add `--forge-every N` (default 1), a positive integer, refused as
+  `arguments` otherwise. The forge is read on tick 1 and every N ticks
+  thereafter; local worker classification still runs each tick. Between
+  forge readings the heartbeat explicitly labels the retained count as
+  cached, with the tick it was measured on; cached/unreachable/not-watched
+  are distinct. No model call is involved.
+- Bound each forge command to 10 seconds. List with an explicit limit
+  of 200; exactly 200 rows means `200+ (page full, total unmeasured)`,
+  not an exact total. Unavailable or malformed forge output stays
+  unavailable, never an empty successful listing. Existing CI notification
+  identity and once-per-head/check behavior remain unchanged.
+- Avoid repeated closed-record JSON/log/deviation reads when their
+  inputs have not changed. Invalidate on replacement, size/mtime change,
+  deletion, late output, resume or collection. A closed record is not
+  immutable. Read errors must be retried, never cached as success. The
+  watched inputs include record, state, exit, copied plan and held logs.
+  Startup must not parse every record twice just to make the first tick.
+- Treat `raw.out` as the launcher's actual held stdout, alongside a
+  legacy `stdout` file. Search held output without loading whole growing
+  transcripts into memory or printing them; no silent truncation. Preserve
+  the existing lexical deviation definitions, not inferred model intent.
+- A store-directory enumeration failure reaches the existing watchdog
+  error line and tick guard; it is not a successful zero-job reading.
+
+Unchanged: historical deviations are still reported, the current period
+is work plus sleep, missing PID is not declared dead, launcher counting
+remains a labeled heuristic, and this instrument writes no state. Those
+separate semantic changes are not smuggled into an efficiency fix.
+
+Verification boundary: existing `test_watchdog.py` behavior stays covered;
+focused additional probes must distinguish unchanged versus amended
+closed records, unreadable store versus empty store, cached versus fresh
+forge readings, a full page, and errors spanning an output-read boundary.
