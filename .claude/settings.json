@@ -53,6 +53,15 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit|mcp__serena__(replace|insert|rename|safe_delete).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/matrix.py"
+          }
+        ]
+      },
+      {
         "matcher": "Agent|Workflow|Task",
         "hooks": [
           {
