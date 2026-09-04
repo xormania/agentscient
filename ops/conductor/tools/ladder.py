@@ -721,6 +721,8 @@ class Driver:
                 "envelope",
                 detail="dispatch or envelope was not accepted",
             )
+        if pending.name == "check-tests":
+            self.validate_check_tests(pending, envelope)
         job, harness, stage = stage_spec(pending.name)
         lineage = dispatch_record.get("lineage") or {}
         binding = {
@@ -763,6 +765,50 @@ class Driver:
             "model_ran": (dispatch_record.get("model") or {}).get("ran"),
         }
         return dispatch_record, envelope
+
+    @staticmethod
+    def validate_check_tests(pending: Pending, envelope: dict) -> None:
+        findings = envelope.get("findings")
+        counts = envelope.get("counts")
+        fields = {"severity", "where", "claim", "reproduce"}
+        count_keys = ("p1", "p2", "p3", "opinions")
+        valid = isinstance(findings, list) and isinstance(counts, dict)
+        valid = valid and set(counts) == set(count_keys) and all(
+            isinstance(counts[key], int)
+            and not isinstance(counts[key], bool)
+            and counts[key] >= 0
+            for key in count_keys
+        )
+        tally = dict.fromkeys(count_keys, 0)
+        if valid:
+            for finding in findings:
+                if (
+                    not isinstance(finding, dict)
+                    or set(finding) != fields
+                    or finding.get("severity") not in count_keys[:3]
+                    or not isinstance(finding.get("where"), str)
+                    or not finding["where"].strip()
+                    or not isinstance(finding.get("claim"), str)
+                    or not finding["claim"].strip()
+                    or not isinstance(finding.get("reproduce"), str)
+                    or not finding["reproduce"].strip()
+                ):
+                    valid = False
+                    break
+                tally[finding["severity"]] += 1
+        verdict = envelope.get("verdict")
+        if (
+            not valid
+            or counts != tally
+            or verdict not in {"approve", "changes"}
+            or (verdict == "approve" and bool(findings))
+        ):
+            raise Stopped(
+                pending.name,
+                pending.record_id,
+                "envelope",
+                detail="check-tests verdict, counts, or findings are invalid",
+            )
 
     def await_result(self, pending: Pending) -> tuple[dict, dict]:
         try:
@@ -951,12 +997,14 @@ class Driver:
         if pending.name == "check-tests":
             findings_file = self.inputs_dir / "check-tests-findings.json"
             findings_file.parent.mkdir(parents=True, exist_ok=True)
-            findings_file.write_text(
+            findings_payload = self.inputs_dir / "check-tests-findings.payload.json"
+            findings_payload.write_text(
                 json.dumps(envelope.get("findings"), indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
+            findings_file.symlink_to(findings_payload.name)
             row["findings_file"] = str(findings_file)
-            extra.append(findings_file)
+            extra.extend((findings_file, findings_payload))
         row["outcome"] = "ok"
         self.commit(*extra)
 
@@ -990,9 +1038,24 @@ class Driver:
         elif name == "tests-fix" and "check-tests" in records:
             record_path = dispatch_dir / f"{records['check-tests']}.json"
             inputs.append(record_path)
-            findings_file = self.row("check-tests").get("findings_file")
-            if isinstance(findings_file, str):
-                inputs.append(Path(findings_file))
+            check_row = self.row("check-tests")
+            findings_file = check_row.get("findings_file")
+            if not isinstance(findings_file, str) or not findings_file:
+                raise Stopped(name, reason="findings-file", detail="path absent")
+            candidate = Path(findings_file)
+            if not candidate.is_absolute():
+                candidate = self.worktree / candidate
+            candidate = candidate.resolve()
+            if (
+                not candidate.is_relative_to(self.inputs_dir.resolve())
+                or not candidate.is_file()
+            ):
+                raise Stopped(
+                    name,
+                    reason="findings-file",
+                    detail="recorded path is not a file inside ladder inputs",
+                )
+            inputs.append(candidate)
         elif name == "code" or name.startswith("code-"):
             inputs.append(self.scope)
             if command_file is not None:
