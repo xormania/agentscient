@@ -1,0 +1,1 @@
+Amend planted session-budget ceilings in test_matrix.py. 100/200000/10 would refuse this repo on turn 1 (avg context) and Fable's 25 clipped-sweep false positives (refusals). Plant 500/400000/25 from transcript c1b9ce7c (1377 turns, 448k avg, ~70 refusals). Frozen: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py
