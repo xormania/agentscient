@@ -472,3 +472,15 @@ class CollectedResultRequiresAGreenVerify(_RecordCase):
         rec = self._closed_with_collected(self._green_collected(head=0))
         self.assertEqual(rec["result"]["collected"]["head"], 0)
         self._raises_naming(rec, "result.collected")
+
+    def test_a_collected_result_with_json_false_verify_exit_is_refused(self):
+        """Security finding 5: JSON false equals 0 in Python; a forged
+        verify.exit must still be refused."""
+        rec = self._closed_with_collected(self._green_collected(
+            verify={"command": "true", "exit": False},
+        ))
+        exit_value = rec["result"]["collected"]["verify"]["exit"]
+        self.assertIs(exit_value, False)
+        self.assertEqual(exit_value, 0)
+        self.assertIs(type(exit_value), bool)
+        self._raises_naming(rec, "result.collected")
