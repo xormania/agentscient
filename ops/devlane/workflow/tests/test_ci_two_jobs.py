@@ -26,6 +26,7 @@ SELF_HOSTED = ["self-hosted"]
 # Matching is positional and unique: a concatenated decoy name is not
 # six steps, and equal indexes are not order.
 LANE_STEP_NEEDLES = (
+    ("actions/checkout",),
     ("GITHUB_PATH", ".local/bin", "user toolchain"),
     ("term_wall", "term wall"),
     ("ruff",),
@@ -34,6 +35,7 @@ LANE_STEP_NEEDLES = (
     ("literals",),
 )
 APP_STEP_NEEDLES = (
+    ("actions/checkout",),
     ("GITHUB_PATH", ".local/bin", "user toolchain"),
     ("host toolchain", "php -v", "composer --version"),
     ("composer validate",),
@@ -325,7 +327,7 @@ class CiTwoJobs(unittest.TestCase):
         )
 
     def test_a_concatenated_decoy_name_is_not_the_lane_step_order(self):
-        decoy = "GITHUB_PATH term_wall ruff suites.sh closure literals"
+        decoy = "actions/checkout GITHUB_PATH term_wall ruff suites.sh closure literals"
         job = {
             "steps": [{"name": decoy, "run": "true"}]
             + [{"run": "true"}] * (len(LANE_STEP_NEEDLES) - 1),
@@ -338,7 +340,7 @@ class CiTwoJobs(unittest.TestCase):
 
     def test_a_concatenated_decoy_name_is_not_the_app_step_order(self):
         decoy = (
-            "GITHUB_PATH host toolchain composer validate composer install "
+            "actions/checkout GITHUB_PATH host toolchain composer validate composer install "
             "php -l kernel phpunit mate"
         )
         job = {

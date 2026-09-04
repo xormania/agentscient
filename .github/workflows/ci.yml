@@ -24,6 +24,9 @@ jobs:
   lane:
     runs-on: self-hosted
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: the host's user toolchain on PATH (~/.local/bin)
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: term wall — tree content and paths
@@ -43,6 +46,9 @@ jobs:
   app:
     runs-on: self-hosted
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: the host's user toolchain on PATH (~/.local/bin)
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: the host toolchain the self-hosted runner relies on
