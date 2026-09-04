@@ -1,0 +1,161 @@
+{
+  "id": "20260904T162253Z-code-grok-444415",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/check-tests-json",
+  "lineage": {
+    "branch": "lane/check-tests-json",
+    "base_sha": "88039e676d2f09380fef04f3ecdc4c77ff42abac"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:22:54Z",
+    "closed": "2026-09-04T16:32:44Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "88039e676d2f09380fef04f3ecdc4c77ff42abac",
+    "ref_sha": "88039e676d2f09380fef04f3ecdc4c77ff42abac",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "9fdf8b14-2eb1-48c5-941a-265a4067d9f4",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/home/grok-stream/sessions/<snapshot-encoded>/9fdf8b14-2eb1-48c5-941a-265a4067d9f4/summary.json"
+  },
+  "session": {
+    "id": "9fdf8b14-2eb1-48c5-941a-265a4067d9f4",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/home/grok-stream/sessions/<snapshot-encoded>/9fdf8b14-2eb1-48c5-941a-265a4067d9f4/summary.json",
+    "stream_sha256_at_close": "06caabb3fab6b95feb671245f297255b308ecba2f8fe9638227c5c74515ffadb",
+    "spend": {
+      "input": 1970108,
+      "cached": 1513984,
+      "output": 29935,
+      "total": 2000043,
+      "cost_usd_ticks": 3143045000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/home/grok-stream/sessions/<snapshot-encoded>/9fdf8b14-2eb1-48c5-941a-265a4067d9f4/summary.json",
+      "messages": 272
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "sha256": "39b25f2dee8786bec13132454679620f900370693b40e6287c364235f65780d5"
+    },
+    "scope": "Tests-fix on lane/check-tests-json: the second frozen-digest copy in ops/devlane/task/tests/test_check_tests_json.py becomes the merge-base comparison already used in test_jobs.py, and every other fixed digest of a job wire under ops/devlane/task/tests and ops/conductor/tests is swept the same way; name every amended method and confirm no frozen pin remains; prove red then green; commit. Tests only; no implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162253Z-code-grok-444415/in/input-check-tests-json-4-testsfix.md",
+        "sha256": "51baab31d833b0eaa1418b3b9c3637af97111e93a3e224c8632581427fe3e1aa"
+      }
+    ],
+    "sha256": "6295616175d126ac4b88f4e783b896edce6824e15fdd4978308afa51a384814c",
+    "bytes": 2765
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T16:22:54Z",
+      "ended": "2026-09-04T16:32:44Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a7ee30ba62fb249b7422152dbe09b9eb844c8ff4",
+    "changed_paths": [
+      "ops/devlane/task/tests/test_check_tests_json.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_file": "ops/devlane/task/tests/test_check_tests_json.py",
+        "commit": "a7ee30ba62fb249b7422152dbe09b9eb844c8ff4",
+        "red_other_jobs": "planted verify.deliverable drift failed test_check_tests_json.OtherJobWiresAreUnchanged.test_every_other_job_wire_is_unchanged with AssertionError: verify.deliverable changed relative to merge-base 340badebd2deb9a5209689f414c5fdf70e60cc2c; plant not committed",
+        "red_sweep": "test_check_tests_json.NoFrozenJobWireDigestRemains.test_no_frozen_digest_literal_pins_a_job_wire failed on ops/devlane/task/tests/test_check_tests_json.py:\"fdab3e7b2d9b6673f9fd5567b557b56b54ecab0394b3e310ab692e2183219c9c\" before that pin was removed",
+        "green": "cd ops/devlane/task/tests && python3 -m unittest test_check_tests_json.OtherJobWiresAreUnchanged.test_every_other_job_wire_is_unchanged test_check_tests_json.NoFrozenJobWireDigestRemains.test_no_frozen_digest_literal_pins_a_job_wire -> Ran 2 tests in 0.006s OK at a7ee30ba62fb249b7422152dbe09b9eb844c8ff4",
+        "sweep": "ops/devlane/task/tests 15 test_*.py, ops/conductor/tests 18 test_*.py, 64-hex literals remaining: none"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2000043,
+        "out": 29935,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "88039e676d2f09380fef04f3ecdc4c77ff42abac",
+        "started": "2026-09-04T16:28:17Z",
+        "ended": "2026-09-04T16:32:05Z"
+      },
+      "note": "Amended OtherJobWiresAreUnchanged.test_every_other_job_wire_is_unchanged (now delegates to test_jobs.OtherJobWiresAreUnchanged merge-base comparison). Added NoFrozenJobWireDigestRemains.test_no_frozen_digest_literal_pins_a_job_wire. Remaining frozen pins: none."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T16:32:44.158Z"
+    }
+  },
+  "status": "closed"
+}
