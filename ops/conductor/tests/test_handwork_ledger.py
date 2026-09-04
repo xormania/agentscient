@@ -928,5 +928,46 @@ class SchemaAdoption(_LedgerFixture):
         self.assertEqual(row["session"], "historical-session")
 
 
+class LaneNameSelectsStore(_LedgerFixture):
+    """LANE_NAME from the conf selects the store under HOME."""
+
+    def test_lane_name_from_conf_selects_the_store(self):
+        conf = self.scratch / "lane.conf"
+        text = (
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='trunkx'\n"
+            "RELEASE_BRANCH='relx'\n"
+            "REPO_SLUG='org/projx'\n"
+            "CHECK_NAMES='checkx'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        conf.write_text(text, encoding="utf-8")
+        self.assertEqual(conf.read_text(encoding="utf-8"), text)
+        lanex = self.home / ".local" / "state" / "lanex" / "handwork.db"
+        self.assertFalse(lanex.exists(), "plant: lanex store must start absent")
+        self.assertFalse(self.store.exists(), "plant: default store absent")
+        proc = self.invoke(
+            ["declare", ACTION, WHY, "pr-open"],
+            agent=AGENT,
+            extra_env={"LANE_CONF": str(conf)},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertTrue(lanex.is_file(), f"store missing under lanex: {lanex}")
+        self.assertFalse(
+            self.store.exists(),
+            f"store used the literal lane name: {self.store}",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

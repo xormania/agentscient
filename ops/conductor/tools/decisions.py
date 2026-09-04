@@ -12,7 +12,11 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-DB_PATH = Path.home() / ".local" / "state" / "agentscient" / "decisions.db"
+try:
+    import laneconf
+except ModuleNotFoundError:
+    laneconf = None
+
 ID_RE = re.compile(r"^D-[A-Z0-9]+-[0-9]+$")
 IDENTITY_RE = re.compile(r"^.+ <[^<>]+>$")
 HARNESS_ADDRESSES = (
@@ -60,6 +64,30 @@ def refuse(kind: str, expected: str, found: str, needed: str) -> None:
     )
 
 
+def lane_name() -> str:
+    if laneconf is not None:
+        try:
+            return laneconf.get("LANE_NAME")
+        except laneconf.ConfigError as error:
+            kind = "conf-key" if error.kind == "key" else error.kind
+            refuse(kind, error.expected, error.found, error.needed)
+    path = Path(
+        os.environ.get(
+            "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"
+        )
+    )
+    if "LANE_CONF" not in os.environ and not path.is_file():
+        return "agentscient"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as error:
+        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
+    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
+    if match is None:
+        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
+    return match.group(1)
+
+
 def stamp() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
@@ -87,12 +115,15 @@ def validate_id(value: str) -> None:
 
 
 def connect(*, write: bool, absent_ok: bool = False) -> sqlite3.Connection:
+    db_path = (
+        Path.home() / ".local" / "state" / lane_name() / "decisions.db"
+    )
     if write:
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(DB_PATH)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(db_path)
         connection.executescript(SCHEMA)
-    elif DB_PATH.exists():
-        connection = sqlite3.connect(DB_PATH)
+    elif db_path.exists():
+        connection = sqlite3.connect(db_path)
     elif absent_ok:
         # show only: an unknown-id refusal is honest with or without a
         # store — no id can be found in a store that is not there.
@@ -101,7 +132,7 @@ def connect(*, write: bool, absent_ok: bool = False) -> sqlite3.Connection:
     else:
         refuse(
             "store",
-            f"the decision store at {DB_PATH}",
+            f"the decision store at {db_path}",
             "ABSENT",
             "an unperformed read is not an empty register; restore or "
             "seed the store (the tracked seed export names its birth rows)",

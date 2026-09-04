@@ -10,7 +10,7 @@ crossed, the House's records did not.
 
 | path | holds |
 |---|---|
-| `tools/` | the instruments: `onboard` (the brief), `decisions` (the register), `hand` (the handwork ledger), `watch` (PR checks), `land` (the landing lever), `ci` (the CI store), `branches` (the census), `skills` (the skills registry), `co_doc` (the doctor), `dispatch.sh` with its tracked `dispatch.conf` (the wrapper; `ops/bin/dispatch.sh` is its shim), `gate.sh` (the gate runner) |
+| `tools/` | the instruments: `onboard` (the brief), `decisions` (the register), `hand` (the handwork ledger), `watch` (PR checks), `land` (the landing lever), `ladder` (the audit-ladder driver), `ci` (the CI store), `branches` (the census), `skills` (the skills registry), `co_doc` (the doctor), `dispatch.sh` (the wrapper; `ops/bin/dispatch.sh` is its shim), `gate.sh` (the gate runner) |
 | `tests/` | thirteen suites, the conformance gate among them; `ops/bin/suites.sh` runs them |
 | `contracts/` | the board contract estate: `board.cue`, its example, its fault corpus |
 | `*.md` | the instrument contracts and the lane's doctrine — `instrument-conventions.md` first, every instrument inherits it |

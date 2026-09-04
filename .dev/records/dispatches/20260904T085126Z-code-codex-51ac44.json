@@ -1,0 +1,362 @@
+{
+  "id": "20260904T085126Z-code-codex-51ac44",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/fixture-apps-2",
+  "lineage": {
+    "branch": "lane/fixture-apps-2",
+    "base_sha": "2381e056a03d29eec4b00adbab36e0e669db0e08"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T08:51:26Z",
+    "closed": "2026-09-04T09:06:09Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2381e056a03d29eec4b00adbab36e0e669db0e08",
+    "ref_sha": "2381e056a03d29eec4b00adbab36e0e669db0e08",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-51-27-01a06b9d-9ed2-7b30-bc77-3002bc70e5ea.jsonl"
+  },
+  "session": {
+    "id": "01a06b9d-9ed2-7b30-bc77-3002bc70e5ea",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-51-27-01a06b9d-9ed2-7b30-bc77-3002bc70e5ea.jsonl",
+    "stream_sha256_at_close": "c0f2e26985192c835f699eea22444b8fe7adacd432988a7e88e477c291c517e7",
+    "spend": {
+      "input": 3034241,
+      "cached": 2914688,
+      "output": 36066,
+      "total": 3070307,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T04-51-27-01a06b9d-9ed2-7b30-bc77-3002bc70e5ea.jsonl",
+      "messages": 325
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-fixtures-2/ops/devlane/task/jobs.json",
+      "sha256": "06f4629d4479e399e574e5d5d7e13add0113e0296ed506a44697d57c6f25e385"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/fixtures/tests && bash ops/bin/suites.sh && ruff check .\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T085126Z-code-codex-51ac44/in/contract-fixtures-2-impl.md",
+        "sha256": "10148cb8fa563a4e2ca59efb576d98580aa10be83be72a4c813f0d2df9f8c42b"
+      }
+    ],
+    "sha256": "944772684d14893ab35997915bec40fdde176fd13b93c90467b30742ee56dab8",
+    "bytes": 3947
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T08:51:26Z",
+      "ended": "2026-09-04T09:06:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d82cac5023f3ccebbd67fad11751fe36f60d4fcc",
+    "changed_paths": [
+      "ops/devlane/fixtures/apps/python-tooling/FAULTS.json",
+      "ops/devlane/fixtures/apps/python-tooling/README.md",
+      "ops/devlane/fixtures/apps/python-tooling/fixes/pt01.patch",
+      "ops/devlane/fixtures/apps/python-tooling/fixes/pt02.patch",
+      "ops/devlane/fixtures/apps/python-tooling/fixes/pt03.patch",
+      "ops/devlane/fixtures/apps/python-tooling/fixes/pt04.patch",
+      "ops/devlane/fixtures/apps/python-tooling/fixes/pt05.patch",
+      "ops/devlane/fixtures/apps/python-tooling/fixes/pt06.patch",
+      "ops/devlane/fixtures/apps/python-tooling/fixes/pt07.patch",
+      "ops/devlane/fixtures/apps/python-tooling/probes/pt01.py",
+      "ops/devlane/fixtures/apps/python-tooling/probes/pt02.py",
+      "ops/devlane/fixtures/apps/python-tooling/probes/pt03.py",
+      "ops/devlane/fixtures/apps/python-tooling/probes/pt04.py",
+      "ops/devlane/fixtures/apps/python-tooling/probes/pt05.py",
+      "ops/devlane/fixtures/apps/python-tooling/probes/pt06.py",
+      "ops/devlane/fixtures/apps/python-tooling/probes/pt07.py",
+      "ops/devlane/fixtures/apps/python-tooling/ruff.toml",
+      "ops/devlane/fixtures/apps/python-tooling/tests/test_tooling.py",
+      "ops/devlane/fixtures/apps/python-tooling/tool/__init__.py",
+      "ops/devlane/fixtures/apps/python-tooling/tool/checksum.py",
+      "ops/devlane/fixtures/apps/python-tooling/tool/cli.py",
+      "ops/devlane/fixtures/apps/python-tooling/tool/model.py",
+      "ops/devlane/fixtures/apps/python-tooling/tool/service.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 30,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed the requested detached HEAD and initially clean checkout; enumerated the governing docs and input.",
+          "reproduce": "git rev-parse HEAD\ngit status --short --branch\nrg --files docs ops/README.md ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "docs, ops/README.md, ../in/contract-fixtures-2-impl.md",
+          "claim": "The initial combined document read exceeded the output limit and was followed by bounded reads.",
+          "reproduce": "awk 'FNR == 1 { print \"FILE \" FILENAME } { print }' ../in/contract-fixtures-2-impl.md docs/wire.md docs/probes.md docs/verified-couplings.md docs/concerns.md docs/workflow.md docs/mapping.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "governing documents",
+          "claim": "Measured 1,310 lines requiring complete review.",
+          "reproduce": "wc -l ../in/contract-fixtures-2-impl.md docs/wire.md docs/probes.md docs/verified-couplings.md docs/concerns.md docs/workflow.md docs/mapping.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-2-impl.md:1",
+          "claim": "Read input lines 1\u2013240.",
+          "reproduce": "sed -n '1,240p' ../in/contract-fixtures-2-impl.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-2-impl.md:241",
+          "claim": "Read input lines 241\u2013480.",
+          "reproduce": "sed -n '241,480p' ../in/contract-fixtures-2-impl.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/contract-fixtures-2-impl.md:481",
+          "claim": "Read input lines 481\u2013703.",
+          "reproduce": "sed -n '481,703p' ../in/contract-fixtures-2-impl.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read the wire, probes, verified-couplings, concerns, and workflow contracts completely.",
+          "reproduce": "awk 'FNR == 1 { print \"FILE \" FILENAME } { print }' docs/wire.md docs/probes.md docs/verified-couplings.md docs/concerns.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read the mapping completely.",
+          "reproduce": "sed -n '1,130p' docs/mapping.md\nsed -n '131,255p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "requested gate at 2381e056a03d29eec4b00adbab36e0e669db0e08",
+          "claim": "The initial gate exited 1 with 31 failures rooted in the absent python-tooling fixture.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "fixture apparatus",
+          "claim": "Inventoried the existing tests, fixture lever, fault taxonomy, and root lint configuration.",
+          "reproduce": "rg --files ops/devlane/fixtures/tests ops/devlane/fixtures/apps ops/bin/fixture.sh ruff.toml\nwc -l ops/devlane/fixtures/tests/test_python_tooling_app.py ops/devlane/fixtures/tests/test_fixture_manifests.py ops/bin/fixture.sh ruff.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:1",
+          "claim": "Read acceptance-test lines 1\u2013400.",
+          "reproduce": "sed -n '1,400p' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:401",
+          "claim": "Read acceptance-test lines 401\u2013800.",
+          "reproduce": "sed -n '401,800p' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:801",
+          "claim": "Read acceptance-test lines 801\u20131200.",
+          "reproduce": "sed -n '801,1200p' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py:1201",
+          "claim": "Read acceptance-test lines 1201\u20131601.",
+          "reproduce": "sed -n '1201,1601p' ops/devlane/fixtures/tests/test_python_tooling_app.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_fixture_manifests.py",
+          "claim": "Read the manifest validator and its complete test corpus.",
+          "reproduce": "sed -n '1,400p' ops/devlane/fixtures/tests/test_fixture_manifests.py\nsed -n '401,683p' ops/devlane/fixtures/tests/test_fixture_manifests.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/fixture.sh, ruff.toml",
+          "claim": "Read the complete fixture lever and root lint policy.",
+          "reproduce": "sed -n '1,280p' ops/bin/fixture.sh\nsed -n '281,521p' ops/bin/fixture.sh\nsed -n '1,150p' ruff.toml"
+        },
+        {
+          "severity": "p3",
+          "where": "recent Git history",
+          "claim": "Measured the repository's trailer spelling and vendor noreply convention.",
+          "reproduce": "git log -5 --format='%H%n%B%n'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/apps/python-tooling",
+          "claim": "The shipped fixture's own seven tests and local ruff check exited 0.",
+          "reproduce": "python3 -m unittest discover -s tests -p 'test_*.py' && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The requested per-file commit attempt was refused because snapshot Git metadata is read-only.",
+          "reproduce": "set -e\nfor path in ops/devlane/fixtures/apps/python-tooling/README.md ops/devlane/fixtures/apps/python-tooling/ruff.toml ops/devlane/fixtures/apps/python-tooling/tool/__init__.py ops/devlane/fixtures/apps/python-tooling/tool/checksum.py ops/devlane/fixtures/apps/python-tooling/tool/model.py ops/devlane/fixtures/apps/python-tooling/tool/service.py ops/devlane/fixtures/apps/python-tooling/tool/cli.py ops/devlane/fixtures/apps/python-tooling/tests/test_tooling.py ops/devlane/fixtures/apps/python-tooling/probes/pt01.py ops/devlane/fixtures/apps/python-tooling/probes/pt02.py ops/devlane/fixtures/apps/python-tooling/probes/pt03.py ops/devlane/fixtures/apps/python-tooling/probes/pt04.py ops/devlane/fixtures/apps/python-tooling/probes/pt05.py ops/devlane/fixtures/apps/python-tooling/probes/pt06.py ops/devlane/fixtures/apps/python-tooling/probes/pt07.py; do git add \"$path\"; git -c commit.gpgsign=false commit -m \"fixtures: add python-tooling ${path##*/}\" -m $'Source: original\\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>'; done"
+        },
+        {
+          "severity": "p3",
+          "where": "python-tooling source spans",
+          "claim": "Measured declaration, practiced-fault, and clean-neighbour line numbers before creating the manifest.",
+          "reproduce": "nl -ba ops/devlane/fixtures/apps/python-tooling/README.md\nnl -ba ops/devlane/fixtures/apps/python-tooling/tool/cli.py\nnl -ba ops/devlane/fixtures/apps/python-tooling/tool/service.py\nnl -ba ops/devlane/fixtures/apps/python-tooling/tool/model.py\nnl -ba ops/devlane/fixtures/apps/python-tooling/tests/test_tooling.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/fixtures/tests/test_python_tooling_app.py",
+          "claim": "After initial implementation, 15 of 23 targeted tests passed; remaining failures exposed one neighbour mismatch and the expected untracked-tree refusal.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests -p 'test_python_tooling_app.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "python-tooling clean neighbours",
+          "claim": "Measured the independently discovered clean-neighbour ordering used by grading.",
+          "reproduce": "PYTHONPATH=ops/devlane/fixtures/tests python3 -c 'import test_python_tooling_app as t; from pprint import pprint; pprint(t.discover_clean_neighbours(t.APP))'"
+        },
+        {
+          "severity": "p3",
+          "where": "tool/cli.py and tests/test_tooling.py",
+          "claim": "Re-measured changed line spans and clean-neighbour ordering after refinement.",
+          "reproduce": "nl -ba ops/devlane/fixtures/apps/python-tooling/tool/cli.py\nnl -ba ops/devlane/fixtures/apps/python-tooling/tests/test_tooling.py\nPYTHONPATH=ops/devlane/fixtures/tests python3 -c 'import test_python_tooling_app as t; from pprint import pprint; pprint(t.discover_clean_neighbours(t.APP))'"
+        },
+        {
+          "severity": "p3",
+          "where": "python-tooling structural contract",
+          "claim": "All 16 existence, layout, manifest, and grade tests exited 0.",
+          "reproduce": "PYTHONPATH=ops/devlane/fixtures/tests python3 -m unittest test_python_tooling_app.PythonToolingExists test_python_tooling_app.PythonToolingLayout test_python_tooling_app.PythonToolingManifest test_python_tooling_app.PythonToolingGrade"
+        },
+        {
+          "severity": "p3",
+          "where": "/tmp/agentscient-python-tooling-verify-xn01ed",
+          "claim": "Created a disposable committed mirror to exercise the tracked-tree guard after the real index refused writes.",
+          "reproduce": "verify_root=$(mktemp -d /tmp/agentscient-python-tooling-verify-XXXXXX)\ntar --exclude=.git --exclude=__pycache__ -cf - . | tar -xf - -C \"$verify_root\"\ngit -C \"$verify_root\" init -q -b verify\ngit -C \"$verify_root\" config user.name 'GPT-5 Codex'\ngit -C \"$verify_root\" config user.email noreply@openai.com\ngit -C \"$verify_root\" add -A\ngit -C \"$verify_root\" -c commit.gpgsign=false commit -q -m 'verify current tree'\nprintf '%s\\n' \"$verify_root\""
+        },
+        {
+          "severity": "p3",
+          "where": "/tmp/agentscient-python-tooling-verify-xn01ed",
+          "claim": "The first committed-mirror gate found nine implementation issues: local E501 policy reached copied lane files and zero-context patches were rejected.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "/tmp/agentscient-python-tooling-verify-AwWehE",
+          "claim": "Created a fresh committed mirror after correcting lint selection and patch context.",
+          "reproduce": "verify_root=$(mktemp -d /tmp/agentscient-python-tooling-verify-XXXXXX)\ntar --exclude=.git --exclude=__pycache__ -cf - . | tar -xf - -C \"$verify_root\"\ngit -C \"$verify_root\" init -q -b verify\ngit -C \"$verify_root\" config user.name 'GPT-5 Codex'\ngit -C \"$verify_root\" config user.email noreply@openai.com\ngit -C \"$verify_root\" add -A\ngit -C \"$verify_root\" -c commit.gpgsign=false commit -q -m 'verify current tree'\nprintf '%s\\n' \"$verify_root\""
+        },
+        {
+          "severity": "p3",
+          "where": "/tmp/agentscient-python-tooling-verify-AwWehE",
+          "claim": "The exact named command exited 0 against the committed final content: 112 fixture tests, every lane suite, and root ruff passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests && bash ops/bin/suites.sh && ruff check ."
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot and committed verification mirror",
+          "claim": "Final custody check found exactly 23 new python-tooling files, no modifications under the existing fixture acceptance tests, and a clean verification mirror.",
+          "reproduce": "git status --short --untracked-files=all\ngit diff --name-only -- ops/devlane/fixtures/tests\ngit -C /tmp/agentscient-python-tooling-verify-AwWehE status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests; ops/devlane/task/tests; ops/devlane/telemetry/tests",
+          "claim": "Follow-up: unchanged lane suites emit ResourceWarnings for two still-running subprocesses and one unclosed text stream, although the gate exits 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/fixtures/tests && bash ops/bin/suites.sh && ruff check ."
+        }
+      ],
+      "artifacts": {
+        "fixture": "ops/devlane/fixtures/apps/python-tooling/",
+        "manifest": "ops/devlane/fixtures/apps/python-tooling/FAULTS.json",
+        "verification": "/tmp/agentscient-python-tooling-verify-AwWehE \u2014 committed mirror where the exact named command exited 0"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3070307,
+        "out": 36066,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2381e056a03d29eec4b00adbab36e0e669db0e08"
+      },
+      "note": "Implemented the seven-fault stdlib fixture completely. Existing acceptance-test files were untouched; the brief explicitly assigns the fixture app's own tests to the implementer. The sandbox refused Git index writes, so the launcher must commit the tree using the supplied message. The exact gate passed in a disposable committed mirror of this final content.",
+      "commit": {
+        "subject": "fixtures: add python-tooling calibration app",
+        "body": "Add the stdlib-only Python tooling fixture with its CLI, JSON-lines service, interval model, shipped green tests, local ruff policy, and apparatus declaration.\n\nPlant seven independently provable faults across K1, K2, K3, K4, K5, K6, and K8. Declare every practiced span and clean neighbour in FAULTS.json, and provide one isolated probe and context-bearing fix per fault.\n\nVerified with:\npython3 -m unittest discover -s ops/devlane/fixtures/tests && bash ops/bin/suites.sh && ruff check .\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T09:06:08.267Z"
+    }
+  },
+  "status": "closed"
+}

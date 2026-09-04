@@ -1170,6 +1170,67 @@ class DispatchMeterTests(unittest.TestCase):
                 ]
                 self.assertEqual(ids, [job_id], f"{label} root was not read")
 
+    def test_lane_name_from_conf_selects_the_jobs_root(self):
+        conf = self.root / "lane.conf"
+        text = (
+            "LANE_NAME='lanex'\n"
+            "TRUNK_BRANCH='trunkx'\n"
+            "RELEASE_BRANCH='relx'\n"
+            "REPO_SLUG='org/projx'\n"
+            "CHECK_NAMES='checkx'\n"
+            "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
+            "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
+            "MODEL_GROK='model-grok'\n"
+            "MODEL_CODEX='model-codex'\n"
+            "MODEL_CLAUDE_READ='model-claude-read'\n"
+            "MODEL_CLAUDE_PLAN='model-claude-plan'\n"
+            "EFFORT_GROK='high'\n"
+            "EFFORT_CODEX='high'\n"
+            "EFFORT_CLAUDE='high'\n"
+            "WALL_DEFAULT='900'\n"
+            "SCOPE_CAP='1024'\n"
+        )
+        conf.write_text(text, encoding="utf-8")
+        self.assertEqual(conf.read_text(encoding="utf-8"), text)
+        lanex = self.home / ".local" / "state" / "lanex" / "dispatch"
+        decoy = self.home / ".local" / "state" / "agentscient" / "dispatch"
+        self._plant_dispatch(
+            CLAUDE_ID,
+            job="plan",
+            harness="claude",
+            stage="plan",
+            launched="2026-08-22T10:00:00Z",
+            spend=CLAUDE_SPEND,
+            root=lanex,
+        )
+        self._plant_dispatch(
+            GROK_ID,
+            job="plan",
+            harness="grok",
+            stage="plan",
+            launched="2026-08-22T10:02:00Z",
+            spend=GROK_SPEND,
+            root=decoy,
+        )
+        self.assertTrue((lanex / CLAUDE_ID).is_dir())
+        self.assertTrue((decoy / GROK_ID).is_dir())
+        proc = self._run_worth(
+            "report",
+            *window_args(),
+            "--format",
+            "json",
+            dispatch_dir=None,
+            extra_env={"LANE_CONF": str(conf)},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        data = json.loads(proc.stdout)
+        ids = [
+            row.get("id")
+            for row in self._dispatch_block(data)["rows"]
+        ]
+        self.assertIn(CLAUDE_ID, ids)
+        self.assertNotIn(GROK_ID, ids)
+
 
 if __name__ == "__main__":
     unittest.main()
