@@ -20,9 +20,23 @@
   },
   "stages": [
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
       "harness": "grok",
+      "input": {
+        "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/PLAN-fixture-fix2-dispatch-job-scratch.md",
+        "proof": {
+          "given": [
+            "The fixture batch (four fixture apps, `ops/bin/fixture.sh`, the findings lever) had its one fix round (two implement runs) and its security re-audit returned changes again. By D-LADDER-1 the batch gets no second fix round; the unresolved findings are this slice's scope and it runs the whole ladder: tests (Grok) \u2192 skeptic \u2192 implement (Codex) per S bucket \u2192 audits once \u2192 one fix round \u2192 security re-audit \u2192 draft PR."
+          ],
+          "withheld": []
+        },
+        "sha256": "949edbb04a0b8192eff9cf8f057f32d9f10b78711440350ff1125bf47e244d10"
+      },
       "job": "author-tests",
       "name": "tests",
       "outcome": "pending",
