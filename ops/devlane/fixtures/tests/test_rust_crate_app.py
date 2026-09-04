@@ -202,14 +202,13 @@ EXPECTED_FIXES = {
     fault_id: f"fixes/rc{index:02d}.patch"
     for index, fault_id in enumerate(EXPECTED_IDS, start=1)
 }
-EXPECTED_NEEDS = ["command -v cargo"]
-SHELL_GATE = "command -v cargo >/dev/null || exit 127"
+EXPECTED_NEEDS = ["cargo metadata --offline --format-version 1 >/dev/null"]
+SHELL_GATE = (
+    "cargo metadata --offline --format-version 1 >/dev/null || exit 127"
+)
 RC07_GREP = r"""grep -Eq '^anyhow *= *"\*"' Cargo.toml"""
 EXPECTED_INSTALL = "cargo fetch"
-EXPECTED_READY = (
-    "command -v cargo >/dev/null && cargo metadata --offline "
-    "--format-version 1 >/dev/null"
-)
+EXPECTED_READY = "cargo metadata --offline --format-version 1 >/dev/null"
 EXPECTED_CHECK = (
     "cargo fmt --check && cargo clippy --offline --all-targets -- "
     "-D warnings && cargo test --offline --locked"
@@ -738,6 +737,14 @@ class RustCrateLayout(unittest.TestCase):
                     lines,
                     f"{rel} must gate with {SHELL_GATE!r}, not a comment",
                 )
+            with self.subTest(path=rel, stage="set-e"):
+                self.assertTrue(
+                    any(
+                        line == "set -e" or line.startswith("set -e")
+                        for line in lines
+                    ),
+                    f"{rel} must set -e so the first failing command is the colour",
+                )
             with self.subTest(path=rel, stage="cargo-target"):
                 self.assertTrue(
                     _cargo_test_line(name) in lines
@@ -772,8 +779,13 @@ class RustCrateLayout(unittest.TestCase):
             with self.subTest(path=rel, stage="is-a-test"):
                 self.assertRegex(
                     text,
-                    r"\bfn\s+main\b|#\[test\]",
-                    f"{rel} must be a cargo test body, not an empty file",
+                    r"#\[test\]",
+                    f"{rel} must be a #[test] body under harness = true",
+                )
+                self.assertNotRegex(
+                    text,
+                    r"(?m)^\s*(?:pub\s+)?fn\s+main\s*\(",
+                    f"{rel} must not be fn main; cargo test looks for #[test]",
                 )
             for needle in needles:
                 with self.subTest(path=rel, needle=needle):
@@ -783,6 +795,51 @@ class RustCrateLayout(unittest.TestCase):
                         f"{rel} must exercise {needle!r} in active code, "
                         "not a comment or a grep over a planted marker",
                     )
+
+    def test_rc05_probe_proves_unreadable_and_corrupt_store_arms(self):
+        path = APP / "probes" / "rc05.rs"
+        raw = path.read_text(encoding="utf-8") if path.is_file() else ""
+        text = _strip_rust_comments(raw)
+        self.assertIn("read_records", text)
+        self.assertRegex(
+            text,
+            r"create_dir|create_dir_all|set_readonly|permissions\(|0o000",
+            f"{path.name} must prove the unreadable IO arm",
+        )
+        self.assertRegex(
+            text,
+            r"corrupt|invalid|not json|garbage|bad.line|not-a-record",
+            f"{path.name} must prove the corrupt-content arm",
+        )
+        self.assertGreaterEqual(
+            len(re.findall(r"read_records\s*\(", text)),
+            2,
+            "both arms are separate read_records calls, not one IO-only probe",
+        )
+
+    def test_rc02_neighbour_canonicalises_the_candidate(self):
+        path = APP / "src" / "store.rs"
+        raw = path.read_text(encoding="utf-8") if path.is_file() else ""
+        text = _strip_rust_comments(raw)
+        match = re.search(
+            r"fn\s+checked_record_path\b[\s\S]*?(?=\n(?:pub\s+)?fn\s+|\Z)",
+            text,
+        )
+        body = match.group(0) if match else ""
+        self.assertIn("checked_record_path", body)
+        calls = len(re.findall(r"\.canonicalize\s*\(", body))
+        candidate = bool(
+            re.search(r"candidate\s*\.\s*canonicalize", body)
+            or re.search(
+                r"canonicalize\s*\(\s*&?(?:candidate|joined|path)",
+                body,
+            )
+        )
+        self.assertTrue(
+            candidate or calls >= 2,
+            "checked_record_path must canonicalize the candidate too, "
+            f"not only the root: {body!r}",
+        )
 
     def test_main_rs_names_the_read_write_wire(self):
         path = APP / "src/main.rs"
