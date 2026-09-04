@@ -312,6 +312,26 @@ jobs:
       - run: echo app
 """
 
+RENAMED_JOB_WORKFLOW = """\
+name: ci
+"on":
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened]
+  merge_group:
+  push:
+    branches: [dev]
+jobs:
+  audit:
+    runs-on: self-hosted
+    steps:
+      - run: echo audit
+  lint:
+    runs-on: self-hosted
+    steps:
+      - run: echo lint
+"""
+
 
 class CollectRows(unittest.TestCase):
     @classmethod
@@ -566,6 +586,34 @@ class CollectRows(unittest.TestCase):
                     f"{exc}"
                 )
             self.assertEqual(names, frozenset({"lane", "app"}))
+            self.assertEqual(len(names), 2)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_derivation_yields_renamed_jobs_from_the_planted_workflow(self):
+        files = snapshot_live_derivation()
+        files[".github/workflows/ci.yml"] = RENAMED_JOB_WORKFLOW
+        self.assertEqual(files[".github/workflows/ci.yml"], RENAMED_JOB_WORKFLOW)
+        self.assertIn("\n  audit:\n", RENAMED_JOB_WORKFLOW)
+        self.assertIn("\n  lint:\n", RENAMED_JOB_WORKFLOW)
+        self.assertNotIn("\n  lane:\n", RENAMED_JOB_WORKFLOW)
+        self.assertNotIn("\n  app:\n", RENAMED_JOB_WORKFLOW)
+        tmp = Path(tempfile.mkdtemp(prefix="pr-overview-derive-renamed-"))
+        try:
+            for rel, text in files.items():
+                path = tmp / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding="utf-8")
+                self.assertEqual(path.read_text(encoding="utf-8"), text)
+            try:
+                names = frozenset(self.overview.expected_checks(tmp))
+            except self.overview.Unavailable as exc:
+                self.fail(
+                    "derivation refused planted audit/lint jobs: "
+                    f"{exc}"
+                )
+            self.assertEqual(names, frozenset({"audit", "lint"}))
+            self.assertNotEqual(names, frozenset({"lane", "app"}))
             self.assertEqual(len(names), 2)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
