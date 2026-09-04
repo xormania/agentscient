@@ -168,8 +168,20 @@ in `~/.codex/sessions` would report "no stream" and run unsupervised.
 | harness | isolation | read sandbox | write sandbox | containment | model that ran |
 |:--|:--|:--|:--|:--|:--|
 | claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `plan` | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
-| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only` | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
+| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only`; check-tests exception below | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
 | grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `plan` | `auto` | policy, until an owner-named `--sandbox` profile is added to the row | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; its `head_commit` is cross-checked against `snapshot.ref_sha` |
+
+**Proposed Codex check-tests alignment, for owner review — not an
+approved security guarantee.** The check-tests job remains role `read`,
+but its Codex process uses the `workspace-write` sandbox label so it can
+write its document and scratch files under the job `out/`, which is added
+as a writable root; `TMPDIR` is a real, non-symlinked `out/tmp`. Before the
+attempt the launcher strips Unix write bits from the snapshot as hardening,
+but mode bits alone are not a hostile-process security boundary. After the
+attempt, normal read-role settlement invalidates a changed HEAD or any
+residual snapshot path. Other Codex read jobs remain `read-only`; this
+exception does not provide generic file-output support to plan or
+adjudicate. Live vendor containment proof for this path has not run.
 
 For Claude, the snapshot's `.claude/settings.json`
 `permissions.allow` and `permissions.deny` strings are carried on argv
