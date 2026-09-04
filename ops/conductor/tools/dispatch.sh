@@ -186,7 +186,10 @@ print_launch() {
 env = {"WF_AGENT": os.environ["WF_AGENT"]}
 if "DISPATCH_TIMEOUT" in os.environ:
     env["DISPATCH_TIMEOUT"] = os.environ["DISPATCH_TIMEOUT"]
-print(json.dumps({"argv": sys.argv[3:], "env": env, "launcher": {"path": sys.argv[2], "source": sys.argv[1]}}, ensure_ascii=False))' "$launcher_source" "$LAUNCHER_PIN" "${argv[@]}"
+print(json.dumps({"argv": sys.argv[4:], "env": env, "exec": True,
+                  "detach": sys.argv[3] == "1",
+                  "launcher": {"path": sys.argv[2], "source": sys.argv[1]}},
+                 ensure_ascii=False))' "$launcher_source" "$LAUNCHER_PIN" "$detach" "${argv[@]}"
 }
 
 if ((timeout_set)); then

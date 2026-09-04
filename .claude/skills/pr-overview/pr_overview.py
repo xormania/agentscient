@@ -490,23 +490,26 @@ def collect(repo):
             f"{LIST_LIMIT}; the listing may be incomplete and an incomplete "
             f"overview must not read like a complete one")
     out = []
-    unreadable_checks = []
+    unreadable_rows = []
     for pr in listing:
         head = pr["headRefOid"]
-        threads, reviews = review_pages(repo, pr["number"])
-        who, age = review_state(reviews, head)
         try:
-            checks, checks_unreadable = buckets(pr["number"], repo), None
+            threads, reviews = review_pages(repo, pr["number"])
+            who, age = review_state(reviews, head)
+            checks = buckets(pr["number"], repo)
+            expected = expected_checks(head_root(repo, head))
+            unreadable = None
         except Unavailable as exc:
-            checks, checks_unreadable = {}, str(exc)
-            unreadable_checks.append(checks_unreadable)
+            threads, who, age, checks, expected = [], None, "unreadable", {}, None
+            unreadable = str(exc)
+            unreadable_rows.append(unreadable)
         row = {
             "number": pr["number"], "title": pr["title"],
             "head_branch": pr["headRefName"], "base": pr["baseRefName"],
             "head": head[:7], "draft": pr["isDraft"],
             "merge_state": pr["mergeStateStatus"],
             "mergeable": pr["mergeable"], "updated": pr["updatedAt"][:16],
-            "checks": checks, "checks_unreadable": checks_unreadable,
+            "checks": checks, "checks_unreadable": unreadable,
             "threads": len(threads),
             "unresolved": sum(1 for t in threads if not t["isResolved"]),
             "open_paths": sorted({t["path"] for t in threads
@@ -515,16 +518,12 @@ def collect(repo):
         }
         # Judged against ITS OWN head's set, fetched per head:
         # `blocking(row)` would read this checkout for every row.
-        try:
-            expected, unreadable = expected_checks(head_root(repo, head)), None
-        except Unavailable as exc:
-            expected, unreadable = None, exc
         row["blocking"] = blocking(row, expected, unreadable=unreadable)
         out.append(row)
-    if listing and len(unreadable_checks) == len(listing):
+    if listing and len(unreadable_rows) == len(listing):
         raise Unavailable(
-            f"checks readable for none of {len(listing)} open pull request(s); "
-            f"first: {unreadable_checks[0]}"
+            f"could read none of {len(listing)} open pull request(s); "
+            f"first: {unreadable_rows[0]}"
         )
     return sorted(out, key=lambda r: r["number"])
 

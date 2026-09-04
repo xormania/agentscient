@@ -39,8 +39,8 @@ merge".
 **No `gh`, an unreadable PR list, or every PR being unreadable exits
 non-zero.** It prints nothing rather than an overview it could not read,
 and "none open" is printed in words rather than left as silence. A checks
-error isolated to one PR is shown as that PR's `cannot tell` row; the other
-readable rows remain useful. The `gh pr checks` no-checks diagnostic is a
+checks or review API error isolated to one PR is shown as that PR's `cannot
+tell` row; the other readable rows remain useful. The `gh pr checks` no-checks diagnostic is a
 real empty result, not an API failure.
 
 **One passing check is not all of them.** `gh pr checks` lists what has

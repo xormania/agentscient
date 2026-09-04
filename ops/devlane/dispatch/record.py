@@ -103,7 +103,8 @@ def validate(rec):
                     and bool(collected[key].strip())
                     for key in ("at", "by", "head"))
             and isinstance(collected.get("verify"), dict)
-            and collected["verify"].get("exit") == 0
+            and type(collected["verify"].get("exit")) is int
+            and collected["verify"]["exit"] == 0
         )
         _need(valid, "result.collected",
               "must carry at, by, head, and verify.exit equal to 0")

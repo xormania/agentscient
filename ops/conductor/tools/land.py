@@ -116,7 +116,7 @@ def validated_collection(data: dict, ref_head: str) -> bool:
         return False
     verify = collected.get("verify") if isinstance(collected, dict) else None
     verify_exit = verify.get("exit") if isinstance(verify, dict) else None
-    if verify_exit != 0:
+    if type(verify_exit) is not int or verify_exit != 0:
         refuse_exit(
             f"result.collected.verify.exit {verify_exit!r}",
             "rerun launch.py collect with a verification that exits 0",
@@ -166,7 +166,7 @@ def preconditions(record_id: str, no_fetch: bool) -> tuple[list[str], str, str, 
             "envelope-status",
             "a dispatch envelope recorded ok",
             repr(env_status),
-            "adjudicate the rejected dispatch by hand; the lever lands only accepted work",
+            f"run launch.py collect {record_id} --verify COMMAND before landing it",
         )
     branch = git_value(
         "lineage",
