@@ -26,9 +26,20 @@ HOOK = support.CLAUDE_DIR / "matrix.py"
 
 LANE_NAME = "testlane"
 SCOPE_CAP = 64
+SESSION_TURNS_CEILING = 100
+SESSION_AVG_CONTEXT_CEILING = 200000
+SESSION_REFUSALS_CEILING = 10
 GRANT_SCOPED = 11
 GRANT_OPEN = 22
 GRANT_SETTLED = 33
+
+SESSION_BUDGET_REFUSAL_MARKERS = (
+    "[matrix:hand-write]",
+    "[clipped-sweep]",
+    "[clipped-runner]",
+    "[unguarded-replace]",
+    'permissionDecision": "deny"',
+)
 
 HANDWORK_DDL = """CREATE TABLE handwork(
     id INTEGER PRIMARY KEY, ts TEXT NOT NULL, session TEXT NOT NULL,
@@ -59,6 +70,9 @@ EFFORT_CODEX='xhigh'
 EFFORT_CLAUDE='high'
 WALL_DEFAULT='900'
 SCOPE_CAP='64'
+SESSION_TURNS_CEILING='100'
+SESSION_AVG_CONTEXT_CEILING='200000'
+SESSION_REFUSALS_CEILING='10'
 """
 
 CUE_OK = """\
@@ -244,6 +258,22 @@ class MatrixHookTests(unittest.TestCase):
             ancestor.returncode,
             0,
             "INVALID: origin/dev is not an ancestor of HEAD in the fixture",
+        )
+        self.assertIn(
+            f"SESSION_TURNS_CEILING='{SESSION_TURNS_CEILING}'",
+            LANE_CONF,
+        )
+        self.assertIn(
+            f"SESSION_AVG_CONTEXT_CEILING='{SESSION_AVG_CONTEXT_CEILING}'",
+            LANE_CONF,
+        )
+        self.assertIn(
+            f"SESSION_REFUSALS_CEILING='{SESSION_REFUSALS_CEILING}'",
+            LANE_CONF,
+        )
+        self.transcript_under = self.tmp / "session-under.jsonl"
+        self._plant_transcript(
+            self.transcript_under, [self._usage_turn(n=0)]
         )
 
     def _plant_handwork(self):
@@ -433,24 +463,82 @@ class MatrixHookTests(unittest.TestCase):
         ).stdout.strip()
         self.assertEqual(origin, sha, "INVALID: origin/dev was not planted")
 
-    def payload_bash(self, command: str, cwd=None) -> str:
+    def payload_bash(self, command: str, cwd=None, *, transcript_path=None) -> str:
         cwd = str(cwd or self.repo)
+        if transcript_path is None:
+            transcript_path = str(self.transcript_under)
         return json.dumps(
             {
                 "tool_name": "Bash",
                 "cwd": cwd,
                 "tool_input": {"command": command},
+                "transcript_path": transcript_path,
             }
         )
 
-    def payload_write(self, tool_name: str, **tool_input) -> str:
+    def payload_write(
+        self, tool_name: str, *, transcript_path=None, **tool_input
+    ) -> str:
+        if transcript_path is None:
+            transcript_path = str(self.transcript_under)
         return json.dumps(
             {
                 "tool_name": tool_name,
                 "cwd": str(self.repo),
                 "tool_input": tool_input,
+                "transcript_path": transcript_path,
             }
         )
+
+    def _usage_turn(
+        self,
+        *,
+        n=0,
+        input_tokens=10,
+        cache_creation=0,
+        cache_read=0,
+        output_tokens=1,
+    ):
+        return {
+            "type": "assistant",
+            "message": {
+                "id": f"msg-{n}",
+                "usage": {
+                    "input_tokens": input_tokens,
+                    "cache_creation_input_tokens": cache_creation,
+                    "cache_read_input_tokens": cache_read,
+                    "output_tokens": output_tokens,
+                },
+            },
+        }
+
+    def _tool_result(self, text: str):
+        return {
+            "type": "user",
+            "message": {
+                "content": [{"type": "tool_result", "content": text}],
+            },
+        }
+
+    def _plant_transcript(self, path: Path, entries: list) -> str:
+        self.assertGreater(len(entries), 0, "INVALID: empty transcript plant")
+        body = "".join(json.dumps(entry) + "\n" for entry in entries)
+        support.plant_text(path, body, recognisable='"type":')
+        landed = path.read_text(encoding="utf-8")
+        self.assertEqual(
+            landed.count("\n"),
+            len(entries),
+            "INVALID: planted transcript line count drifted",
+        )
+        return landed
+
+    def _plant_over_turns(self, name: str):
+        n = SESSION_TURNS_CEILING + 1
+        self.assertGreater(n, SESSION_TURNS_CEILING)
+        path = self.tmp / name
+        entries = [self._usage_turn(n=i) for i in range(n)]
+        self._plant_transcript(path, entries)
+        return path, n
 
     def run_hook(self, payload: str, *, env=None, cwd=None):
         return subprocess.run(
@@ -1220,6 +1308,242 @@ class MatrixHookTests(unittest.TestCase):
             ),
             "test-form",
         )
+
+    # --- session-budget ---
+
+    def test_session_budget_refuses_when_transcript_path_is_missing(self):
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "cwd": str(self.repo),
+                "tool_input": {"command": "echo hello"},
+            }
+        )
+        self.assertNotIn("transcript_path", json.loads(payload))
+        proc = self.run_hook(payload)
+        self.assert_denied(proc, "session-budget")
+        _decision, reason = support.permission_decision(proc.stdout)
+        self.assertIn("could not look", reason)
+        self.assertIn("missing transcript_path", reason)
+
+    def test_session_budget_refuses_when_transcript_path_is_unreadable(self):
+        path = self.tmp / "no-such-session.jsonl"
+        self.assertFalse(path.exists(), "INVALID: unreadable plant exists")
+        proc = self.run_hook(
+            self.payload_bash("echo hello", transcript_path=str(path))
+        )
+        self.assert_denied(proc, "session-budget")
+        _decision, reason = support.permission_decision(proc.stdout)
+        self.assertIn("could not look", reason)
+        self.assertIn(str(path), reason)
+
+    def test_session_budget_refuses_when_a_ceiling_key_is_missing(self):
+        keys = (
+            "SESSION_TURNS_CEILING",
+            "SESSION_AVG_CONTEXT_CEILING",
+            "SESSION_REFUSALS_CEILING",
+        )
+        self.assertEqual(len(keys), 3)
+        conf_path = self.repo / "ops" / "lane.conf"
+        for key in keys:
+            with self.subTest(key=key):
+                self.assertIn(f"{key}=", LANE_CONF)
+                body = "".join(
+                    line + "\n"
+                    for line in LANE_CONF.splitlines()
+                    if not line.startswith(f"{key}=")
+                )
+                self.assertNotIn(f"{key}=", body)
+                for other in keys:
+                    if other != key:
+                        self.assertIn(f"{other}=", body)
+                support.plant_text(
+                    conf_path, body, recognisable="LANE_NAME"
+                )
+                planted = conf_path.read_text(encoding="utf-8")
+                self.assertNotIn(f"{key}=", planted)
+                self.assertIn("LANE_NAME", planted)
+                proc = self.run_bash("echo hello")
+                self.assert_denied(proc, "conf-key")
+                _decision, reason = support.permission_decision(proc.stdout)
+                self.assertIn(key, reason)
+                needed = reason.split("; needed ", 1)
+                self.assertEqual(
+                    len(needed),
+                    2,
+                    f"expected a needed clause; found {reason!r}",
+                )
+                self.assertIn("ops/lane.conf", needed[1])
+
+    def test_session_budget_refuses_when_turns_pass_the_conf_ceiling(self):
+        path, n = self._plant_over_turns("session-over-turns.jsonl")
+        self.assertEqual(n, SESSION_TURNS_CEILING + 1)
+        proc = self.run_hook(
+            self.payload_bash("echo hello", transcript_path=str(path))
+        )
+        self.assert_denied(proc, "session-budget")
+        _decision, reason = support.permission_decision(proc.stdout)
+        found = reason.split("; found ", 1)
+        self.assertEqual(
+            len(found), 2, f"expected a found clause; found {reason!r}"
+        )
+        found_clause = found[1].split("; needed ", 1)[0]
+        self.assertIn(str(n), found_clause)
+
+    def test_session_budget_refuses_when_average_context_passes_the_conf_ceiling(
+        self,
+    ):
+        usage = self._usage_turn(
+            n=0,
+            input_tokens=100000,
+            cache_creation=50000,
+            cache_read=50001,
+        )
+        mean = (
+            usage["message"]["usage"]["input_tokens"]
+            + usage["message"]["usage"]["cache_creation_input_tokens"]
+            + usage["message"]["usage"]["cache_read_input_tokens"]
+        )
+        self.assertGreater(mean, SESSION_AVG_CONTEXT_CEILING)
+        self.assertLess(
+            usage["message"]["usage"]["input_tokens"],
+            SESSION_AVG_CONTEXT_CEILING,
+        )
+        self.assertLess(
+            usage["message"]["usage"]["cache_creation_input_tokens"],
+            SESSION_AVG_CONTEXT_CEILING,
+        )
+        self.assertLess(
+            usage["message"]["usage"]["cache_read_input_tokens"],
+            SESSION_AVG_CONTEXT_CEILING,
+        )
+        path = self.tmp / "session-over-avg.jsonl"
+        self._plant_transcript(path, [usage])
+        proc = self.run_hook(
+            self.payload_bash("echo hello", transcript_path=str(path))
+        )
+        self.assert_denied(proc, "session-budget")
+        _decision, reason = support.permission_decision(proc.stdout)
+        found = reason.split("; found ", 1)
+        self.assertEqual(
+            len(found), 2, f"expected a found clause; found {reason!r}"
+        )
+        found_clause = found[1].split("; needed ", 1)[0]
+        self.assertIn(str(mean), found_clause)
+
+    def test_session_budget_refuses_when_refusals_pass_the_conf_ceiling(self):
+        markers = SESSION_BUDGET_REFUSAL_MARKERS
+        self.assertGreater(len(markers), 0)
+        n = SESSION_REFUSALS_CEILING + 1
+        self.assertGreater(n, SESSION_REFUSALS_CEILING)
+        entries = [self._usage_turn(n=0)]
+        for i in range(n):
+            entries.append(self._tool_result(markers[i % len(markers)]))
+        path = self.tmp / "session-over-refusals.jsonl"
+        body = self._plant_transcript(path, entries)
+        contents = []
+        for line in body.splitlines():
+            row = json.loads(line)
+            blocks = (row.get("message") or {}).get("content") or []
+            if not isinstance(blocks, list):
+                continue
+            for block in blocks:
+                if (
+                    isinstance(block, dict)
+                    and block.get("type") == "tool_result"
+                ):
+                    contents.append(block.get("content") or "")
+        self.assertEqual(len(contents), n)
+        for marker in markers:
+            self.assertTrue(
+                any(marker in text for text in contents),
+                f"INVALID: marker {marker!r} missing from planted results",
+            )
+        proc = self.run_hook(
+            self.payload_bash("echo hello", transcript_path=str(path))
+        )
+        self.assert_denied(proc, "session-budget")
+        _decision, reason = support.permission_decision(proc.stdout)
+        found = reason.split("; found ", 1)
+        self.assertEqual(
+            len(found), 2, f"expected a found clause; found {reason!r}"
+        )
+        found_clause = found[1].split("; needed ", 1)[0]
+        self.assertIn(str(n), found_clause)
+
+    def test_session_budget_reason_names_the_hand_off(self):
+        path, n = self._plant_over_turns("session-reason.jsonl")
+        proc = self.run_hook(
+            self.payload_bash("echo hello", transcript_path=str(path))
+        )
+        self.assert_denied(proc, "session-budget")
+        _decision, reason = support.permission_decision(proc.stdout)
+        match = REASON_SHAPE.match(reason.strip())
+        self.assertIsNotNone(
+            match, f"reason {reason!r} does not match {REASON_SHAPE.pattern}"
+        )
+        self.assertEqual(match.group("cls"), "session-budget")
+        self.assertIn("expected ", reason)
+        self.assertIn("; found ", reason)
+        self.assertIn("; needed ", reason)
+        needed = reason.split("; needed ", 1)[1].strip()
+        self.assertEqual(needed, "close the session with the hand-off")
+        found_clause = reason.split("; found ", 1)[1].split("; needed ", 1)[0]
+        self.assertIn(str(n), found_clause)
+
+    def test_session_budget_refuses_a_write_tool_past_a_ceiling(self):
+        path, _n = self._plant_over_turns("session-write.jsonl")
+        target = self.repo / ".dev" / "out.txt"
+        self.assertTrue(target.is_file(), "INVALID: .dev write target missing")
+        proc = self.run_hook(
+            self.payload_write(
+                "Write",
+                file_path=str(target),
+                transcript_path=str(path),
+            )
+        )
+        self.assert_denied(proc, "session-budget")
+        self.assertNotIn("[matrix:hand-write]", proc.stdout)
+
+    def test_session_budget_allows_under_all_three_ceilings(self):
+        raw = self.payload_bash("echo hello")
+        data = json.loads(raw)
+        self.assertEqual(
+            data.get("transcript_path"), str(self.transcript_under)
+        )
+        body = self.transcript_under.read_text(encoding="utf-8")
+        self.assertTrue(body.strip(), "INVALID: under-ceiling transcript empty")
+        rows = [json.loads(line) for line in body.splitlines() if line]
+        usage_rows = [
+            row
+            for row in rows
+            if row.get("type") == "assistant"
+            and isinstance((row.get("message") or {}).get("usage"), dict)
+        ]
+        self.assertGreater(len(usage_rows), 0)
+        self.assertLessEqual(len(usage_rows), SESSION_TURNS_CEILING)
+        totals = []
+        for row in usage_rows:
+            usage = row["message"]["usage"]
+            totals.append(
+                int(usage.get("input_tokens") or 0)
+                + int(usage.get("cache_creation_input_tokens") or 0)
+                + int(usage.get("cache_read_input_tokens") or 0)
+            )
+        mean = sum(totals) / len(totals)
+        self.assertLessEqual(mean, SESSION_AVG_CONTEXT_CEILING)
+        self.assert_allowed(self.run_bash("echo hello"))
+
+    def test_session_budget_has_no_grant_escape(self):
+        path, _n = self._plant_over_turns("session-grant.jsonl")
+        proc = self.run_hook(
+            self.payload_bash(
+                f"HAND_GRANT={GRANT_OPEN} echo x > AGENTS.md",
+                transcript_path=str(path),
+            )
+        )
+        self.assert_denied(proc, "session-budget")
+        self.assertNotIn("[matrix:hand-write]", proc.stdout)
 
 
 if __name__ == "__main__":
