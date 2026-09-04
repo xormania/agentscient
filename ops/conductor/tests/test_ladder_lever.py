@@ -1036,7 +1036,8 @@ class _LadderFixture(unittest.TestCase):
         common = self.git(
             "rev-parse", "--git-common-dir", cwd=dest,
         ).stdout.strip()
-        hook = Path(common) / "hooks" / "pre-push"
+        common_dir = Path(common) if Path(common).is_absolute() else dest / common
+        hook = common_dir / "hooks" / "pre-push"
         hook_body = (
             "#!/bin/sh\n"
             f"printf '%s\\n' \"$*\" >> "
