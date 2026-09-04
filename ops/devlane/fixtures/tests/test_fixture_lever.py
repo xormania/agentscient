@@ -14,6 +14,7 @@ stages a copy-tool-bytes stand-in so a missing file is not every test's
 failure: when the lever exists its bytes are copied and run; when it
 does not, a no-op stub (exit 0, no output) is planted so each assertion
 goes red on the contract promise rather than a missing-file spawn.
+Prove cases plant their own DIR and never wait on `make`.
 """
 
 from __future__ import annotations
@@ -43,11 +44,14 @@ RUN_CAP = 30
 PROBE_WALL = 20
 COPY_PAYLOAD = "COPY_LIST_PAYLOAD_SYNTH\n"
 IGNORED_PAYLOAD = "IGNORED_MUST_NOT_RIDE\n"
+UNTRACKED_PAYLOAD = "UNTRACKED_MUST_NOT_RIDE\n"
 EXTRA_PAYLOAD = "MUST_NOT_APPEAR_IN_DIR\n"
 DECLARED_01 = "Input is passed as arguments."
 DECLARED_02 = "Failures are reported."
 MARKER_01 = "PLANTED_FAULT_SYN_01"
 MARKER_02 = "PLANTED_FAULT_SYN_02"
+FIXED_01 = "FIXED_SYN_01"
+FIXED_02 = "FIXED_SYN_02"
 
 ABSENT_STUB = b"#!/usr/bin/env bash\nexit 0\n"
 
@@ -82,12 +86,12 @@ def load_rows_strict(path: str) -> list:
 
 CLI_GREET_FIXED = CLI_PLANTED.replace(
     '    os.system("echo " + name)  # PLANTED_FAULT_SYN_01\n',
-    '    subprocess.run(["echo", name], check=False)\n',
+    '    subprocess.run(["echo", name], check=False)  # FIXED_SYN_01\n',
 )
 
 CLI_LOAD_FIXED = CLI_PLANTED.replace(
     "        return []  # PLANTED_FAULT_SYN_02\n",
-    "        raise\n",
+    "        raise  # FIXED_SYN_02\n",
 )
 
 README_TEXT = f"""# synth
@@ -101,6 +105,7 @@ This tree is apparatus of the lane, never product code.
 
 PROBE_01 = f"""#!/bin/sh
 printenv > probes/env-dump.txt
+date +%z > probes/tz-offset.txt
 if grep -q '{MARKER_01}' src/cli.py; then
   exit 1
 fi
@@ -181,6 +186,33 @@ def _unified_patch(relpath: str, before: str, after: str) -> str:
     return f"diff --git a/{relpath} b/{relpath}\n{body}"
 
 
+def assert_refusal_wire(testcase: unittest.TestCase, proc, class_name: str) -> None:
+    """Pin `class: expected …; found …; needed …` as a leading token."""
+    err = proc.stderr or ""
+    testcase.assertEqual(proc.returncode, 2, err)
+    testcase.assertTrue(err.strip(), "refusal was silent")
+    lines = [ln for ln in err.splitlines() if ln.strip()]
+    testcase.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
+    line = lines[0]
+    token = class_name.lower().replace("_", "-")
+    head = line.split(":", 1)[0].strip().lower().replace("_", "-")
+    testcase.assertEqual(
+        head,
+        token,
+        f"refusal class must be the leading token {token!r}: {line!r}",
+    )
+    lower = line.lower()
+    for word in ("expected", "found", "needed"):
+        testcase.assertIn(word, lower, err)
+    testcase.assertLess(lower.index("expected"), lower.index("found"), err)
+    testcase.assertLess(lower.index("found"), lower.index("needed"), err)
+    testcase.assertEqual(
+        (proc.stdout or "").strip(),
+        "",
+        "refusal text belongs on stderr, not stdout",
+    )
+
+
 class _LeverFixture(unittest.TestCase):
     """Scratch HOME + git repo, staged lever copy, live fixture roots frozen."""
 
@@ -218,9 +250,18 @@ class _LeverFixture(unittest.TestCase):
         self.copy_rel = "ops/bin/copied.txt"
         self.conf_path = self.root / "lane.conf"
         self.seeded = False
+        self._linked = None
 
     def tearDown(self):
         try:
+            if self._linked is not None:
+                self.git(
+                    "worktree",
+                    "remove",
+                    "--force",
+                    str(self._linked),
+                    check=False,
+                )
             self.assertEqual(
                 {str(path): _store_snap(path) for path in _live_fixture_roots()},
                 self._live_before,
@@ -374,28 +415,7 @@ class _LeverFixture(unittest.TestCase):
             self.fail(f"fixture.sh {argv} exceeded {timeout}s: {exc}")
 
     def assert_refusal(self, proc, class_name: str) -> None:
-        err = proc.stderr or ""
-        compact = err.lower().replace("_", "-")
-        token = class_name.lower().replace("_", "-")
-        spaced = token.replace("-", " ")
-        self.assertTrue(
-            token in compact or spaced in err.lower(),
-            f"refusal class {class_name!r} not named in stderr: {err!r}",
-        )
-        self.assertEqual(proc.returncode, 2, err)
-        self.assertTrue(err.strip(), "refusal was silent")
-        lines = [ln for ln in err.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
-        lower = err.lower()
-        for word in ("expected", "found", "needed"):
-            self.assertIn(word, lower, err)
-        self.assertLess(lower.index("expected"), lower.index("found"), err)
-        self.assertLess(lower.index("found"), lower.index("needed"), err)
-        self.assertEqual(
-            (proc.stdout or "").strip(),
-            "",
-            "refusal text belongs on stderr, not stdout",
-        )
+        assert_refusal_wire(self, proc, class_name)
 
     def write_conf(self, paths: list[str]) -> Path:
         text = "".join(f"{path}\n" for path in paths)
@@ -430,6 +450,39 @@ class _LeverFixture(unittest.TestCase):
         self.assertEqual(self.git("status", "--porcelain").stdout, "")
         self.seeded = True
 
+    def add_linked_worktree(self) -> Path:
+        self.seed_repo()
+        linked = self.root / "linked-wt"
+        added = self.git(
+            "worktree", "add", "--detach", str(linked), check=False
+        )
+        self.assertEqual(
+            added.returncode,
+            0,
+            f"INVALID: git worktree add failed: {added.stderr}",
+        )
+        common = self.git(
+            "rev-parse", "--git-common-dir", cwd=linked
+        ).stdout.strip()
+        main_common = self.git("rev-parse", "--git-common-dir").stdout.strip()
+        common_path = Path(common)
+        if not common_path.is_absolute():
+            common_path = (linked / common_path).resolve()
+        else:
+            common_path = common_path.resolve()
+        main_path = Path(main_common)
+        if not main_path.is_absolute():
+            main_path = (self.repo / main_path).resolve()
+        else:
+            main_path = main_path.resolve()
+        self.assertEqual(
+            common_path,
+            main_path,
+            "linked worktree must share the invoking repository common-dir",
+        )
+        self._linked = linked
+        return linked
+
     def _plant_synth_app(self) -> None:
         app = self.app_root
         cli_path = app / "src" / "cli.py"
@@ -446,10 +499,16 @@ class _LeverFixture(unittest.TestCase):
         patch_02 = _unified_patch("src/cli.py", CLI_PLANTED, CLI_LOAD_FIXED)
         self.assertIn(MARKER_01, CLI_PLANTED)
         self.assertNotIn(MARKER_01, CLI_GREET_FIXED)
+        self.assertIn(FIXED_01, CLI_GREET_FIXED)
+        self.assertNotIn(FIXED_01, CLI_PLANTED)
         self.assertIn(MARKER_02, CLI_PLANTED)
         self.assertNotIn(MARKER_02, CLI_LOAD_FIXED)
+        self.assertIn(FIXED_02, CLI_LOAD_FIXED)
+        self.assertNotIn(FIXED_02, CLI_PLANTED)
         self.assertIn(MARKER_01, patch_01)
+        self.assertIn(FIXED_01, patch_01)
         self.assertIn(MARKER_02, patch_02)
+        self.assertIn(FIXED_02, patch_02)
         self._plant_bytes(
             app / "fixes" / "syn-01.patch", patch_01.encode("utf-8")
         )
@@ -546,6 +605,28 @@ class _LeverFixture(unittest.TestCase):
         self.assertEqual(len(loaded["faults"]), 2)
         self.assertEqual(loaded["faults"][0]["id"], "SYN-01")
 
+    def plant_made_dir(self, name: str = "made-scratch") -> Path:
+        self._plant_synth_app()
+        made = self.root / name
+        if made.exists():
+            shutil.rmtree(made)
+        shutil.copytree(self.app_root, made)
+        self.assertTrue((made / "FAULTS.json").is_file())
+        self.assertTrue((made / "src" / "cli.py").is_file())
+        self.assertTrue((made / "probes" / "syn-01.sh").is_file())
+        self.assertTrue((made / "fixes" / "syn-01.patch").is_file())
+        return made
+
+    def plant_made_repo(self, name: str = "made-repo") -> Path:
+        made = self.plant_made_dir(name)
+        init = self.git("init", "-b", BRANCH, cwd=made, check=False)
+        self.assertEqual(init.returncode, 0, init.stderr)
+        self.git("config", "user.name", REPO_USER, cwd=made)
+        self.git("config", "user.email", REPO_EMAIL, cwd=made)
+        self.git("add", "-A", cwd=made)
+        self.git("commit", "-m", f"planted made repo\n\n{TRAILER}", cwd=made)
+        return made
+
     def make(self, app: str = APP, target: Path | None = None, **kwargs):
         argv = ["make", app]
         if target is not None:
@@ -605,6 +686,31 @@ class TheLeverFile(unittest.TestCase):
         )
 
 
+class RefusalShape(_LeverFixture):
+    def test_embedded_class_token_is_not_a_refusal(self):
+        proc = subprocess.CompletedProcess(
+            args=["fixture.sh"],
+            returncode=2,
+            stdout="",
+            stderr="not-identity garbage expected x; found y; needed z\n",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_refusal(proc, "identity")
+
+    def test_abort_exit_is_not_a_refusal(self):
+        proc = subprocess.CompletedProcess(
+            args=["fixture.sh"],
+            returncode=3,
+            stdout="",
+            stderr=(
+                "identity: expected Name <address>; found unset; "
+                "needed export WF_AGENT\n"
+            ),
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_refusal(proc, "identity")
+
+
 class MakeRefuses(_LeverFixture):
     def test_make_refuses_identity_without_wf_agent(self):
         self.seed_repo()
@@ -652,6 +758,21 @@ class MakeRefuses(_LeverFixture):
             "a refused make leaves no directory behind",
         )
 
+    def test_make_refuses_target_inside_a_linked_worktree(self):
+        linked = self.add_linked_worktree()
+        inside = linked / "nested-target"
+        proc = self.make(target=inside)
+        self.assert_refusal(proc, "target")
+        self.assertFalse(
+            inside.exists(),
+            "a refused make leaves no directory behind",
+        )
+
+    def test_make_refuses_target_when_dir_is_the_linked_worktree_root(self):
+        linked = self.add_linked_worktree()
+        proc = self.make(target=linked)
+        self.assert_refusal(proc, "target")
+
     def test_make_refuses_conf_when_a_listed_path_is_missing_and_leaves_no_dir(
         self,
     ):
@@ -664,6 +785,36 @@ class MakeRefuses(_LeverFixture):
         self.assertFalse(
             target.exists(),
             "a make that cannot prove its copy leaves no directory behind",
+        )
+
+    def test_make_refuses_when_an_ignored_path_is_on_the_copy_list(self):
+        self.seed_repo()
+        self.write_conf([self.copy_rel, "secret.env"])
+        target = self.root / "ignored-on-list"
+        self.assertTrue((self.repo / "secret.env").is_file())
+        tracked = self.git("ls-files").stdout.splitlines()
+        self.assertNotIn("secret.env", tracked)
+        proc = self.make(target=target)
+        self.assert_refusal(proc, "conf")
+        self.assertFalse(
+            target.exists(),
+            "an ignored listed path must not be copied; make leaves no dir",
+        )
+
+    def test_make_refuses_when_an_untracked_path_is_on_the_copy_list(self):
+        self.seed_repo()
+        untracked_rel = "ops/bin/untracked-copy.txt"
+        untracked = self.repo / untracked_rel
+        self._plant_bytes(untracked, UNTRACKED_PAYLOAD.encode("utf-8"))
+        tracked = self.git("ls-files").stdout.splitlines()
+        self.assertNotIn(untracked_rel, tracked)
+        self.write_conf([self.copy_rel, untracked_rel])
+        target = self.root / "untracked-on-list"
+        proc = self.make(target=target)
+        self.assert_refusal(proc, "conf")
+        self.assertFalse(
+            target.exists(),
+            "an untracked listed path must not ride; make leaves no dir",
         )
 
 
@@ -704,38 +855,57 @@ class MakeCopies(_LeverFixture):
         proc = self.make(target=target)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         made = self.parse_dir(proc)
-        log = subprocess.run(
-            [
-                "git",
-                "-c",
-                "log.showSignature=false",
-                "log",
-                "--format=%H%n%an <%ae>%n%cn <%ce>%n%B",
-            ],
+        author = subprocess.run(
+            ["git", "log", "-1", "--format=%an <%ae>"],
             cwd=str(made),
             env=self.git_env(),
             capture_output=True,
             text=True,
             check=False,
         )
-        self.assertEqual(log.returncode, 0, log.stderr)
-        body = log.stdout
+        committer = subprocess.run(
+            ["git", "log", "-1", "--format=%cn <%ce>"],
+            cwd=str(made),
+            env=self.git_env(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(author.returncode, 0, author.stderr)
+        self.assertEqual(committer.returncode, 0, committer.stderr)
+        self.assertEqual(author.stdout.strip(), AGENT)
+        self.assertEqual(committer.stdout.strip(), AGENT)
         shas = self.git("rev-list", "--count", "HEAD", cwd=made).stdout.strip()
         self.assertEqual(shas, "1", "make commits once")
-        self.assertIn("Source:", body)
-        self.assertIn("Co-Authored-By:", body)
-        self.assertIn("Fixture Lever Tester", body)
+        body = subprocess.run(
+            ["git", "log", "-1", "--format=%B"],
+            cwd=str(made),
+            env=self.git_env(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(body.returncode, 0, body.stderr)
         parsed = subprocess.run(
             ["git", "interpret-trailers", "--parse"],
-            input=body,
+            input=body.stdout,
             capture_output=True,
             text=True,
             check=False,
             env=self.git_env(),
         )
         self.assertEqual(parsed.returncode, 0, parsed.stderr)
-        self.assertIn("Source:", parsed.stdout)
-        self.assertIn("Co-Authored-By:", parsed.stdout)
+        trailers = parsed.stdout
+        self.assertRegex(
+            trailers,
+            r"(?m)^Source: \S",
+            f"Source trailer missing: {trailers!r}",
+        )
+        self.assertRegex(
+            trailers,
+            rf"(?m)^Co-Authored-By: {re.escape(AGENT)}$",
+            f"Co-Authored-By must be the WF_AGENT identity: {trailers!r}",
+        )
 
     def test_make_without_dir_uses_state_home_and_prints_it(self):
         self.seed_repo()
@@ -749,6 +919,24 @@ class MakeCopies(_LeverFixture):
         )
         self.assertTrue(made.is_dir())
 
+    def test_make_without_dir_uses_xdg_state_home_when_set(self):
+        self.seed_repo()
+        xdg = self.root / "xdg-state"
+        xdg.mkdir()
+        proc = self.make(extra={"XDG_STATE_HOME": str(xdg)})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        made = self.parse_dir(proc)
+        parent = xdg / "agentscient" / "fixtures"
+        self.assertTrue(
+            str(made.resolve()).startswith(str(parent.resolve())),
+            f"default DIR {made} is under XDG_STATE_HOME {parent}",
+        )
+        home_default = self.home / ".local" / "state" / "agentscient" / "fixtures"
+        self.assertFalse(
+            str(made.resolve()).startswith(str(home_default.resolve())),
+            "XDG_STATE_HOME must win over HOME for the default DIR",
+        )
+
     def test_two_makes_without_dir_get_distinct_directories(self):
         self.seed_repo()
         first = self.parse_dir(self.make())
@@ -760,15 +948,13 @@ class MakeCopies(_LeverFixture):
 
 class ProveColours(_LeverFixture):
     def test_prove_refuses_manifest_when_faults_json_is_absent(self):
-        self.seed_repo()
         empty = self.root / "no-manifest"
         empty.mkdir()
         proc = self.invoke(["prove", str(empty)], agent=None)
         self.assert_refusal(proc, "manifest")
 
     def test_prove_reports_every_probe_red_on_a_fresh_make(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
+        made = self.plant_made_dir()
         proc = self.invoke(["prove", str(made)], agent=None)
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
         rows = self.parse_prove(proc.stdout)
@@ -779,8 +965,7 @@ class ProveColours(_LeverFixture):
         self.assertEqual(counts, {"red": 2, "green": 0, "unreachable": 0})
 
     def test_prove_exits_1_when_any_fresh_probe_is_the_wrong_colour(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
+        made = self.plant_made_dir()
         probe = made / "probes" / "syn-01.sh"
         always_green = b"#!/bin/sh\nexit 0\n"
         self._plant_bytes(probe, always_green)
@@ -795,11 +980,12 @@ class ProveColours(_LeverFixture):
         self.assertEqual(counts["red"], 1)
         self.assertEqual(counts["unreachable"], 0)
 
-    def test_prove_fixed_reports_every_probe_green(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
-        proc = self.invoke(["prove", "--fixed", str(made)])
+    def test_prove_fixed_reports_every_probe_green_without_identity(self):
+        made = self.plant_made_repo()
+        proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        err = (proc.stderr or "").lower()
+        self.assertNotIn("identity", err)
         rows = self.parse_prove(proc.stdout)
         self.assertEqual(set(rows), {"SYN-01", "SYN-02"})
         self.assertEqual(rows["SYN-01"], "GREEN")
@@ -809,10 +995,27 @@ class ProveColours(_LeverFixture):
         cli = (made / "src" / "cli.py").read_text(encoding="utf-8")
         self.assertNotIn(MARKER_01, cli)
         self.assertNotIn(MARKER_02, cli)
+        self.assertIn(FIXED_01, cli)
+        self.assertIn(FIXED_02, cli)
+
+    def test_prove_fixed_exits_1_when_a_probe_stays_red(self):
+        made = self.plant_made_repo()
+        always_red = b"#!/bin/sh\nexit 1\n"
+        probe = made / "probes" / "syn-01.sh"
+        self._plant_bytes(probe, always_red)
+        self.assertEqual(probe.read_bytes(), always_red)
+        proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
+        self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        rows = self.parse_prove(proc.stdout)
+        self.assertEqual(rows["SYN-01"], "RED")
+        self.assertEqual(rows["SYN-02"], "GREEN")
+        counts = self.parse_counts(proc.stdout)
+        self.assertEqual(counts["red"], 1)
+        self.assertEqual(counts["green"], 1)
+        self.assertEqual(counts["unreachable"], 0)
 
     def test_prove_fixed_refuses_fix_when_a_patch_does_not_apply(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
+        made = self.plant_made_repo()
         bad = (
             b"diff --git a/no-such-synth.py b/no-such-synth.py\n"
             b"--- a/no-such-synth.py\n"
@@ -824,12 +1027,11 @@ class ProveColours(_LeverFixture):
         patch = made / "fixes" / "syn-01.patch"
         self._plant_bytes(patch, bad)
         self.assertEqual(patch.read_bytes(), bad)
-        proc = self.invoke(["prove", "--fixed", str(made)])
+        proc = self.invoke(["prove", "--fixed", str(made)], agent=None)
         self.assert_refusal(proc, "fix")
 
     def test_prove_spawn_failure_is_unreachable_never_a_colour(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
+        made = self.plant_made_dir()
         manifest_path = made / "FAULTS.json"
         before = manifest_path.read_bytes()
         manifest = json.loads(before.decode("utf-8"))
@@ -851,8 +1053,7 @@ class ProveColours(_LeverFixture):
         self.assertEqual(counts["green"], 0)
 
     def test_prove_timeout_is_unreachable_never_a_colour(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
+        made = self.plant_made_dir()
         sleeper = b"#!/bin/sh\nexec sleep 3600\n"
         probe = made / "probes" / "syn-01.sh"
         self._plant_bytes(probe, sleeper)
@@ -863,6 +1064,7 @@ class ProveColours(_LeverFixture):
             timeout=PROBE_WALL,
         )
         self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        self.assertNotEqual(proc.returncode, 3, "timeout is UNREACHABLE, not abort")
         rows = self.parse_prove(proc.stdout)
         self.assertEqual(rows["SYN-01"], "UNREACHABLE")
         self.assertNotEqual(rows["SYN-01"], "RED")
@@ -870,10 +1072,18 @@ class ProveColours(_LeverFixture):
         counts = self.parse_counts(proc.stdout)
         self.assertGreaterEqual(counts["unreachable"], 1)
 
-    def test_prove_strips_identity_and_pins_locale(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
-        proc = self.invoke(["prove", str(made)], agent=AGENT)
+    def test_prove_strips_identity_and_pins_locale_and_time(self):
+        made = self.plant_made_dir()
+        proc = self.invoke(
+            ["prove", str(made)],
+            agent=AGENT,
+            extra={
+                "LC_ALL": "fr_FR.UTF-8",
+                "LANG": "fr_FR.UTF-8",
+                "LANGUAGE": "fr_FR",
+                "TZ": "Europe/Paris",
+            },
+        )
         self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
         dump_path = made / "probes" / "env-dump.txt"
         self.assertTrue(
@@ -884,34 +1094,37 @@ class ProveColours(_LeverFixture):
         self.assertNotIn("WF_AGENT", dump)
         self.assertIn("LC_ALL=C", dump)
         self.assertIn("LANG=C", dump)
+        self.assertNotIn("fr_FR", dump)
+        self.assertIn("TZ=UTC", dump)
+        self.assertNotIn("Europe/Paris", dump)
+        offset_path = made / "probes" / "tz-offset.txt"
+        self.assertTrue(offset_path.is_file(), "the SYN-01 probe dumps date +%z")
+        self.assertEqual(offset_path.read_text(encoding="utf-8").strip(), "+0000")
 
     def test_prove_does_not_require_identity(self):
-        self.seed_repo()
-        made = self.parse_dir(self.make())
+        made = self.plant_made_dir()
         proc = self.invoke(["prove", str(made)], agent=None)
         err = (proc.stderr or "").lower()
         self.assertNotIn("identity", err)
         rows = self.parse_prove(proc.stdout)
+        self.assertEqual(set(rows), {"SYN-01", "SYN-02"})
         self.assertEqual(rows["SYN-01"], "RED")
         self.assertEqual(rows["SYN-02"], "RED")
 
 
 class GradeRefusesOnTheLever(_LeverFixture):
     def test_grade_refuses_identity_without_wf_agent(self):
-        self.seed_repo()
         rec = self.root / "missing-record.json"
         proc = self.invoke(["grade", str(rec), APP], agent=None)
         self.assert_refusal(proc, "identity")
 
     def test_grade_refuses_record_when_the_file_is_absent(self):
-        self.seed_repo()
         rec = self.root / "missing-record.json"
         self.assertFalse(rec.exists())
         proc = self.invoke(["grade", str(rec), APP])
         self.assert_refusal(proc, "record")
 
     def test_grade_refuses_app_when_the_manifest_is_absent(self):
-        self.seed_repo()
         rec = self.root / "review.json"
         payload = json.dumps(
             {
