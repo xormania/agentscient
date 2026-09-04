@@ -59,7 +59,7 @@
     {
       "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
-      "dispatch_record": "20260904T180108Z-check-tests-codex-bb30da",
+      "dispatch_record": "20260904T180930Z-check-tests-codex-bb8ddb",
       "dispatched": {
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
@@ -78,9 +78,9 @@
       },
       "job": "check-tests",
       "name": "check-tests",
-      "outcome": "stopped",
+      "outcome": "launched",
       "reason": "wall",
-      "record": "20260904T180108Z-check-tests-codex-bb30da",
+      "record": "20260904T180930Z-check-tests-codex-bb8ddb",
       "stage": "check-tests"
     },
     {

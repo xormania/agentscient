@@ -1,0 +1,104 @@
+{
+  "id": "20260904T180930Z-check-tests-codex-bb8ddb",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/session-budget",
+  "lineage": {
+    "branch": "lane/session-budget",
+    "base_sha": "022ca5d33812853205386d44b751d4f8f527e4be"
+  },
+  "follows": [
+    "20260904T175121Z-tests-grok-a0a65d"
+  ],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T18:09:30Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "022ca5d33812853205386d44b751d4f8f527e4be",
+    "ref_sha": "022ca5d33812853205386d44b751d4f8f527e4be",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "528e374b-e8fd-425e-9df6-43f3eaf38192",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-budget/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Item 49 slice session-budget (S), plan 20260904T172250Z-plan-grok-2c8a8f. Owner 2026-09-04: watchdog should have stopped you. A matrix row on every tool call; no grant escape. Ceilings SESSION_TURNS_CEILING=100 SESSION_AVG_CONTEXT_CEILING=200000 SESSION_REFUSALS_CEILING=10 from the churn analysis (finding 1: merge is the ruling). Frozen command: python3 -m unittest discover -s ops/devlane/hooks/tests -p test_matrix.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/in/slice-session-budget.md",
+        "sha256": "497a1aceb47cf49f53b096cccb596a7d465bdf1c033c38073e2182dc01f77415"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/in/20260904T175121Z-tests-grok-a0a65d.json",
+        "sha256": "8013405c13879516fe901aceb901a67775644ad25908aac23a09e4f4551ec2f2"
+      }
+    ],
+    "sha256": "76842d6ba9ceeb6ae6c7b10acdf8612fb197820d59950020dfecf9106c1e555e",
+    "bytes": 3225
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
