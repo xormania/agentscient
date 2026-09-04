@@ -2,7 +2,8 @@ use std::fs;
 
 use fixture_rust_crate::shell::run_helper;
 
-fn main() {
+#[test]
+fn probe() {
     let marker = std::env::temp_dir().join(format!("rc01-{}", std::process::id()));
     drop(fs::remove_file(&marker));
     run_helper(&format!("literal; touch {}", marker.display())).expect("run helper");

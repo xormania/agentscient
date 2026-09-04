@@ -8,7 +8,7 @@
   },
   "not_planted": {
     "K7": "K7 belongs to the service-boundary fixture.",
-    "K9": "K9 is absent because the Symfony dependencies are pinned and locked."
+    "K9": "K9 is not duplicated here: the compatible Flex and PHPUnit ranges are resolved by composer.lock."
   },
   "faults": [
     {

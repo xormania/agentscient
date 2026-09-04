@@ -49,7 +49,7 @@ pub fn record_path(root: &Path, name: &str) -> Result<PathBuf, StoreError> {
 
 pub fn checked_record_path(root: &Path, name: &str) -> Result<PathBuf, StoreError> {
     let base = root.canonicalize()?;
-    let candidate = normalize(&base.join(name));
+    let candidate = normalize(&base.join(name)).canonicalize()?;
     if candidate.starts_with(base) {
         Ok(candidate)
     } else {

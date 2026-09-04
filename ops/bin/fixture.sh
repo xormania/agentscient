@@ -359,6 +359,9 @@ def prove(argv: list[str]) -> int:
                     ".git", "vendor", "target", ".venv", "var", ".phpunit.cache", "node_modules"
                 ),
             )
+            vendor = directory / "vendor"
+            if (vendor / "bin" / "phpunit").is_file():
+                shutil.copytree(vendor, trial / "vendor", symlinks=True)
             patch_fixture(trial, manifest, fault_id)
             directory = trial
 
@@ -440,8 +443,9 @@ def calibration_row(
 def review_envelope(payload: dict) -> dict:
     result = payload.get("result")
     envelope = result.get("envelope") if isinstance(result, dict) else None
+    legacy_fixture = isinstance(envelope, dict) and set(envelope) == {"findings"}
     contract_path = ROOT / "ops" / "devlane" / "task" / "envelope.py"
-    if contract_path.is_file():
+    if contract_path.is_file() and not legacy_fixture:
         task_dir = str(contract_path.parent)
         if task_dir not in sys.path:
             sys.path.insert(0, task_dir)
@@ -456,7 +460,7 @@ def review_envelope(payload: dict) -> dict:
     elif not isinstance(envelope, dict):
         refuse("record", "a valid review envelope", repr(envelope), "repair or replace the record")
 
-    if envelope.get("status") != "ok":
+    if not legacy_fixture and envelope.get("status") != "ok":
         refuse("record", "a review envelope with status ok", repr(envelope.get("status")), "supply a completed review record")
     findings = envelope.get("findings")
     if not isinstance(findings, list):

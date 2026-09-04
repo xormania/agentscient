@@ -4,7 +4,7 @@
   "probe_timeout": 120,
   "toolchain": {
     "install": "cargo fetch",
-    "ready": "command -v cargo >/dev/null && cargo metadata --offline --format-version 1 >/dev/null"
+    "ready": "cargo metadata --offline --format-version 1 >/dev/null"
   },
   "not_planted": {
     "K7": "K7 is exercised by python-service.",
@@ -38,7 +38,7 @@
       "probe": "sh probes/rc01.sh",
       "fix": "fixes/rc01.patch",
       "visible_to": "audit",
-      "needs": ["command -v cargo"]
+      "needs": ["cargo metadata --offline --format-version 1 >/dev/null"]
     },
     {
       "id": "RC-02",
@@ -67,7 +67,7 @@
       "probe": "sh probes/rc02.sh",
       "fix": "fixes/rc02.patch",
       "visible_to": "both",
-      "needs": ["command -v cargo"]
+      "needs": ["cargo metadata --offline --format-version 1 >/dev/null"]
     },
     {
       "id": "RC-03",
@@ -96,7 +96,7 @@
       "probe": "sh probes/rc03.sh",
       "fix": "fixes/rc03.patch",
       "visible_to": "test",
-      "needs": ["command -v cargo"]
+      "needs": ["cargo metadata --offline --format-version 1 >/dev/null"]
     },
     {
       "id": "RC-04",
@@ -125,7 +125,7 @@
       "probe": "sh probes/rc04.sh",
       "fix": "fixes/rc04.patch",
       "visible_to": "audit",
-      "needs": ["command -v cargo"]
+      "needs": ["cargo metadata --offline --format-version 1 >/dev/null"]
     },
     {
       "id": "RC-05",
@@ -154,7 +154,7 @@
       "probe": "sh probes/rc05.sh",
       "fix": "fixes/rc05.patch",
       "visible_to": "test",
-      "needs": ["command -v cargo"]
+      "needs": ["cargo metadata --offline --format-version 1 >/dev/null"]
     },
     {
       "id": "RC-06",
@@ -183,7 +183,7 @@
       "probe": "sh probes/rc06.sh",
       "fix": "fixes/rc06.patch",
       "visible_to": "test",
-      "needs": ["command -v cargo"]
+      "needs": ["cargo metadata --offline --format-version 1 >/dev/null"]
     },
     {
       "id": "RC-07",
