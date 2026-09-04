@@ -178,8 +178,8 @@ class _CalibrateFixture(unittest.TestCase):
     def export_findings(self):
         return self.invoke(["export"], agent=None)
 
-    def export_calibration(self):
-        return self.invoke(["export", "--calibration"], agent=None)
+    def export_calibration(self, *, agent: str | None = AGENT):
+        return self.invoke(["export", "--calibration"], agent=agent)
 
     def exported_rows(self) -> list[dict]:
         exported = self.export_calibration()
@@ -372,6 +372,24 @@ class ExportStaysPut(_CalibrateFixture):
         self.assertEqual(after.returncode, 0, after.stderr)
         self.assertEqual(after.stdout, before.stdout)
         self.assertEqual(after.stdout, "")
+
+    def test_export_calibration_refuses_identity_without_wf_agent(self):
+        proc = self.calibrate([ROW])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        if self.calibration_jsonl.exists():
+            self.calibration_jsonl.unlink()
+        exported = self.export_calibration(agent=None)
+        self.assert_refusal(exported, "identity")
+        self.assertFalse(
+            self.calibration_jsonl.exists(),
+            "export --calibration must not write the tracked jsonl without identity",
+        )
+
+    def test_export_calibration_refuses_identity_on_a_malformed_agent(self):
+        proc = self.calibrate([ROW])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        exported = self.export_calibration(agent=MALFORMED_AGENT)
+        self.assert_refusal(exported, "identity")
 
     def test_export_calibration_writes_tracked_jsonl_deterministically(self):
         other = dict(ROW)
