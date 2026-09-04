@@ -29,6 +29,11 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+try:
+    import laneconf
+except ModuleNotFoundError:
+    laneconf = None
+
 ROOT = Path(__file__).resolve().parents[3]
 RECORDS = ROOT / ".dev/records/dispatches"
 REVIEW_JOBS = ("check-tests", "security-audit", "adversarial-review")
@@ -53,6 +58,27 @@ def refuse(kind, expected, found, needed):
     raise Refused(f"{kind}: expected {expected}; found {found}; needed {needed}")
 
 
+def lane_name():
+    if laneconf is not None:
+        try:
+            return laneconf.get("LANE_NAME")
+        except laneconf.ConfigError as error:
+            kind = "conf-key" if error.kind == "key" else error.kind
+            refuse(kind, error.expected, error.found, error.needed)
+    path = Path(os.environ.get(
+        "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"))
+    if "LANE_CONF" not in os.environ and not path.is_file():
+        return "agentscient"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as error:
+        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
+    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
+    if match is None:
+        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
+    return match.group(1)
+
+
 def identity():
     value = os.environ.get("WF_AGENT", "")
     if not IDENTITY.fullmatch(value):
@@ -62,7 +88,12 @@ def identity():
 
 
 def database_path():
-    return Path.home() / ".local/state/agentscient/findings.db"
+    return (
+        Path.home()
+        / ".local/state"
+        / lane_name()
+        / "findings.db"
+    )
 
 
 def connect():

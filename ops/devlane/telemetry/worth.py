@@ -19,6 +19,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[2] / "conductor" / "tools")
+)
+import laneconf
+
 CHURN_FACTOR = 20
 MERGE_PR = re.compile(r"^Merge pull request #(\d+)\b")
 _CLAUDE_CURRENCIES = frozenset((
@@ -720,7 +725,9 @@ def main(argv=None):
     default_state = Path(os.environ.get(
         "XDG_STATE_HOME", str(Path.home() / ".local" / "state")))
     parser.add_argument("--dispatch-dir", default=os.environ.get(
-        "DISPATCH_JOBS", str(default_state / "agentscient" / "dispatch")))
+        "DISPATCH_JOBS",
+        str(default_state / laneconf.get("LANE_NAME") / "dispatch"),
+    ))
     args = parser.parse_args(argv)
 
     try:
