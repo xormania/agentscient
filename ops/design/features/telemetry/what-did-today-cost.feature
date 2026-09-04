@@ -33,3 +33,36 @@ Feature: "what did today cost" is answered by commands over the stores, never by
     Given a codex session straddling the window start
     When worth report runs for the window
     Then only the spend after the last pre-window counter is charged
+
+  Scenario: a dispatched Claude run's USD appears in the report
+    Given a dispatch record for a Claude run whose session.spend carries cost_usd
+    When worth report runs over the dispatch store
+    Then the dispatches block names that record id and job
+    And the Claude dispatch line carries its tokens and cost_usd
+
+  Scenario: a Codex dispatch prints tokens and cost=unrecorded
+    Given a dispatch record for a Codex run with tokens and no dollar wire
+    When worth report runs over the dispatch store
+    Then the Codex dispatch line carries its tokens and cost=unrecorded
+    And it does not print cost 0
+
+  Scenario: a Grok dispatch prints tokens and ticks
+    Given a dispatch record for a Grok run whose session.spend carries cost_usd_ticks
+    When worth report runs over the dispatch store
+    Then the Grok dispatch line carries its tokens and cost_usd_ticks
+
+  Scenario: a job directory without a record is counted and unrecorded
+    Given a job directory in the dispatch store with no record.json
+    When worth report runs over the dispatch store
+    Then that id holds a place in counted=N/M
+    And its spend prints unrecorded, never 0
+
+  Scenario: a dispatch launched before the window is not charged to it
+    Given one dispatch launched inside the window and one launched before it
+    When worth report runs for the window
+    Then only the in-window dispatch is charged
+
+  Scenario: a dispatched stream is not also counted as a session
+    Given a Claude stream whose cwd is the dispatch snapshot and a dispatch record for that run
+    When worth report and waste run
+    Then the spend is counted once, as a dispatch row, not as a session

@@ -28,3 +28,33 @@ explicitly requests minimal formatting, always format your responses
 without bullet points, headers, lists, or bold emphasis, as requested.
 In conversational, personal, or emotional exchanges, keep to plain
 prose.
+
+## Compact instructions
+
+When compacting, preserve exactly: difficulties met and how they were
+resolved; options raised, tried, or set aside, and why; anything asked,
+decided, ruled out, or set as a preference, constraint, or boundary, in
+the owner's own words; where things stand and what is settled; what is
+still open, promised, or expected next; and details that are hard to
+reconstruct: names, numbers, dates, exact wording, links, commit shas,
+PR numbers, dispatch record ids, file paths. Be complete on these even
+at the cost of length; keep everything else concise. Condense the
+assistant's explanations to what was concluded or produced. For this
+lane also keep: every open PR with number, branch, head sha and what it
+waits on; every running dispatch with record id and pid file; every
+worktree the session created; every open ledger grant; the lane defect
+list and which are fixed; the owner's standing instructions from the
+session.
+
+## The law, imported
+
+The founding law rides in every request as part of the cached prefix,
+so it survives compaction and is never re-read into the conversation.
+The lane's contracts under `ops/` are read when a task touches them.
+
+@AGENTS.md
+@docs/wire.md
+@docs/workflow.md
+@docs/probes.md
+@docs/concerns.md
+@docs/verified-couplings.md

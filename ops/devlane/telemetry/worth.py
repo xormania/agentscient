@@ -11,6 +11,7 @@ raw ticks: the scale is unverified, so no figure here is ever USD.
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -456,17 +457,140 @@ def gather(args, window):
     }
 
 
+def _same_repo(record, repo):
+    """A dispatch is another repository's only when both signs say so.
+
+    A snapshot rooted in this checkout is this repository's, and a root
+    that cannot be looked at is counted, not dropped. A launcher snapshot
+    is a bare fetch of one commit with no remote, so its top level is
+    never this checkout; the repository identity it carries is
+    ``snapshot.ref_sha``. A snapshot elsewhere whose base commit this
+    checkout does not hold was dispatched for another repository.
+    """
+    snapshot = record.get("snapshot") or {}
+    root = snapshot.get("root")
+    found = run_git(root, "rev-parse", "--show-toplevel") if root else None
+    if found is None:
+        return True
+    if Path(found.strip()).resolve() == Path(repo).resolve():
+        return True
+    sha = snapshot.get("ref_sha")
+    if not sha:
+        return True
+    return run_git(repo, "cat-file", "-e", f"{sha}^{{commit}}") is not None
+
+
+def dispatch_rows(root, repo, window):
+    """Read launcher records, preserving unreadable jobs as denominator gaps."""
+    since, until = window
+    tracked = Path(repo) / ".dev" / "records" / "dispatches"
+    rows = []
+    for job_dir in sorted(Path(root).iterdir()) if Path(root).is_dir() else []:
+        if not job_dir.is_dir():
+            continue
+        path = job_dir / "record.json"
+        if not path.is_file():
+            path = tracked / f"{job_dir.name}.json"
+        try:
+            rec = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            rows.append({"id": job_dir.name, "harness": "grok",
+                         "tokens": "unrecorded",
+                         "reason": "record unavailable"})
+            continue
+        if not _same_repo(rec, repo):
+            continue
+        base = {
+            "id": rec.get("id", job_dir.name), "job": rec.get("job"),
+            "stage": rec.get("stage"),
+            "harness": (rec.get("harness") or {}).get("name"),
+            "unit": rec.get("unit"), "status": rec.get("status"),
+            "lineage": {"branch": (rec.get("lineage") or {}).get("branch")},
+            "model": {"ran": (rec.get("model") or {}).get("ran")},
+        }
+        try:
+            launched = parse_stamp((rec.get("at") or {}).get("launched"))
+        except ValueError:
+            base.update(tokens="unrecorded", reason="launched is not ISO 8601")
+            rows.append(base)
+            continue
+        if not since <= launched < until:
+            continue
+        spend = (rec.get("session") or {}).get("spend")
+        if not isinstance(spend, dict) or "total" not in spend:
+            reason = (spend or {}).get("unresolved", "spend unavailable") \
+                if isinstance(spend, dict) else "spend unavailable"
+            base.update(tokens="unrecorded", reason=reason)
+        else:
+            for key in ("input", "cached", "output", "total",
+                        "cost_usd", "cost_usd_ticks", "messages"):
+                if key in spend:
+                    base[key] = spend[key]
+            if "cost_usd" not in spend and "cost_usd_ticks" not in spend:
+                base["cost"] = "unrecorded"
+        rows.append(base)
+    return rows
+
+
+def dispatch_block(rows):
+    block = {"rows": rows}
+    for harness in ("claude", "codex", "grok"):
+        own = [row for row in rows if row.get("harness") == harness]
+        counted = [row for row in own if "total" in row]
+        coverage = f"counted={len(counted)}/{len(own)}"
+        item = {"dispatches": len(own), "counted": f"{len(counted)}/{len(own)}",
+                "coverage": coverage}
+        if counted:
+            for key in ("input", "cached", "output", "total"):
+                item[key] = sum(row.get(key, 0) for row in counted)
+            cost_key = "cost_usd_ticks" if harness == "grok" else "cost_usd"
+            item[cost_key] = (sum(row[cost_key] for row in counted)
+                              if all(cost_key in row for row in counted)
+                              else "unrecorded")
+        else:
+            item["tokens"] = "unrecorded"
+        block[harness] = item
+    return block
+
+
+def plain_dispatch_line(harness, item):
+    parts = [harness, f"dispatches={item['dispatches']}", item["coverage"]]
+    for key in ("input", "cached", "output", "total", "cost_usd",
+                "cost_usd_ticks", "tokens"):
+        if key in item:
+            parts.append(f"{key}={item[key]}")
+    return " ".join(parts)
+
+
 def cmd_report(args, window, window_iso):
     per_harness = gather(args, window)
     cost = {harness: cost_record(harness, sessions)
             for harness, sessions in per_harness.items()}
     results = repo_results(str(args.repo), window)
     stamp = stamp_block(str(args.repo), window_iso, args.now)
+    dispatches = dispatch_block(dispatch_rows(args.dispatch_dir,
+                                               str(args.repo), window))
     data = {"stamp": stamp, "cost": cost, "results": results}
+    if dispatches["rows"]:
+        data["dispatches"] = dispatches
     if args.format == "json":
         print(json.dumps(data, sort_keys=True))
         return
     lines = [plain_stamp(stamp), ""]
+    if dispatches["rows"]:
+        for harness in ("claude", "codex", "grok"):
+            lines.append(plain_dispatch_line(harness, dispatches[harness]))
+        for row in dispatches["rows"]:
+            parts = [f"record={row['id']}", f"job={row.get('job', 'unrecorded')}"]
+            for key in ("harness", "stage", "unit", "status", "input", "cached", "output", "total",
+                        "cost_usd", "cost_usd_ticks", "cost", "tokens", "reason"):
+                if key in row:
+                    parts.append(f"{key}={row[key]}")
+            if "lineage" in row:
+                parts.extend((f"branch={row['lineage']['branch']}",
+                              f"ran={row['model']['ran']}"))
+            lines.append(" ".join(parts))
+        lines.append("")
     for harness in ("claude", "codex", "grok"):
         lines.append(plain_cost_line(harness, cost[harness]))
     lines.append("")
@@ -488,7 +612,8 @@ def cmd_waste(args, window, window_iso):
         for sid, s in sessions.items():
             if "total" not in s:
                 continue
-            entry = {"harness": harness, "session": sid,
+            entry = {"kind": "session", "id": sid,
+                     "harness": harness, "session": sid,
                      "total": s["total"], "out": s["out"],
                      "cached": s["cached"]}
             if harness == "grok":
@@ -496,18 +621,32 @@ def cmd_waste(args, window, window_iso):
             else:
                 entry["messages"] = s["messages"]
             ranked.append((s, entry))
-    ranked.sort(key=lambda item: (-item[1]["total"], item[1]["session"]))
+    dispatches = dispatch_rows(args.dispatch_dir, str(args.repo), window)
+    for row in dispatches:
+        if "total" not in row:
+            continue
+        entry = dict(row)
+        entry.update(kind="dispatch", heavy={
+            "declared_absent": "record carries no per-turn usage"})
+        ranked.append(({"out": row.get("output", 0),
+                        "cached_read": row.get("cached", 0)}, entry))
+    ranked.sort(key=lambda item: (-item[1]["total"],
+                                  item[1].get("session", item[1].get("id"))))
     ranked = ranked[:args.top]
 
     signals = []
     for s, entry in ranked:
         if s["out"] > 0 and s["cached_read"] > CHURN_FACTOR * s["out"]:
-            signals.append({"kind": "cache-churn",
+            signal = {"kind": "cache-churn",
                             "harness": entry["harness"],
-                            "session": entry["session"],
-                            "cached_read": s["cached_read"],
-                            "out": s["out"]})
+                            "cached": s["cached_read"],
+                            "out": s["out"]}
+            signal["record" if entry.get("kind") == "dispatch" else "session"] = (
+                entry.get("id", entry.get("session")))
+            signals.append(signal)
     for s, entry in ranked:
+        if entry.get("kind") == "dispatch":
+            continue
         heavy = s.get("heavy")
         if heavy:
             signal = {"kind": "heavy-turn", "harness": entry["harness"],
@@ -521,24 +660,44 @@ def cmd_waste(args, window, window_iso):
                         harness_sessions=counts)
     data = {"stamp": stamp, "sessions": [entry for _, entry in ranked],
             "signals": signals}
+    if dispatches:
+        data["dispatches"] = {
+            harness: sum(row.get("harness") == harness for row in dispatches)
+            for harness in ("claude", "codex", "grok")
+        }
     if args.format == "json":
         print(json.dumps(data, sort_keys=True))
         return
     lines = [plain_stamp(stamp), ""]
     for harness in ("claude", "codex", "grok"):
-        lines.append(f"{harness:7s} sessions={counts[harness]}")
+        n_dispatches = sum(row.get("harness") == harness
+                           for row in dispatches)
+        suffix = f" dispatches={n_dispatches}" if n_dispatches else ""
+        lines.append(f"{harness:7s} sessions={counts[harness]}{suffix}")
     lines.append("")
     for _, entry in ranked:
-        parts = [f"{entry['harness']:7s} session={entry['session']}"]
-        for key in ("total", "out", "cached", "messages", "runs"):
+        if entry.get("kind") == "dispatch":
+            parts = [f"{entry['harness']:7s} record={entry['id']}",
+                     f"job={entry.get('job', 'unrecorded')}"]
+        else:
+            parts = [f"{entry['harness']:7s} session={entry['session']}"]
+        for key in ("stage", "unit", "status", "input", "total", "out", "output",
+                    "cached", "messages", "runs", "cost_usd",
+                    "cost_usd_ticks", "cost", "tokens"):
             if key in entry:
                 parts.append(f"{key}={entry[key]}")
+        if entry.get("kind") == "dispatch":
+            parts.extend((f"branch={entry['lineage']['branch']}",
+                          f"ran={entry['model']['ran']}",
+                          entry["heavy"]["declared_absent"]))
         lines.append(" ".join(parts))
     for signal in signals:
+        identity = (f"record={signal['record']}" if "record" in signal
+                    else f"session={signal['session']}")
         parts = [(f"signal {signal['kind']} harness={signal['harness']}"
-                  f" session={signal['session']}")]
+                  f" {identity}")]
         for key, value in signal.items():
-            if key not in ("kind", "harness", "session"):
+            if key not in ("kind", "harness", "session", "record"):
                 parts.append(f"{key}={value}")
         lines.append(" ".join(parts))
     print("\n".join(lines))
@@ -558,6 +717,10 @@ def main(argv=None):
                         default=str(Path.home() / ".claude" / "projects"))
     parser.add_argument("--codex-dir", default=str(Path.home() / ".codex"))
     parser.add_argument("--grok-dir", default=str(Path.home() / ".grok"))
+    default_state = Path(os.environ.get(
+        "XDG_STATE_HOME", str(Path.home() / ".local" / "state")))
+    parser.add_argument("--dispatch-dir", default=os.environ.get(
+        "DISPATCH_JOBS", str(default_state / "agentscient" / "dispatch")))
     args = parser.parse_args(argv)
 
     try:

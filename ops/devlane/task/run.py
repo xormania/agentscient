@@ -37,11 +37,10 @@ ADAPTERS = {
         "argv": ["codex", "exec", "--sandbox", "{sandbox}", "-"],
         "prompt": "stdin",
         "sandbox": {"read": "read-only", "write": "workspace-write"},
-                # `codex --help`: `-m, --model <MODEL>`. There is no effort flag;
-        # only a generic `-c key=value`, whose reasoning key I will not
-        # guess. A caller setting runtime.effort on codex is refused by
-        # name rather than having the dial silently dropped.
-        "dials": {"model": ["-m", "{model}"]},
+        # Codex carries effort through its generic `-c key=value`
+        # override because `exec` has no dedicated effort flag.
+        "dials": {"model": ["-m", "{model}"],
+                  "effort": ["-c", 'model_reasoning_effort="{effort}"']},
         "store": "~/.codex/sessions",
         "stream": "rollout-*.jsonl",
         "stream_names_cwd": True,
@@ -648,8 +647,8 @@ def _adapter_argv(adapter, *, sandbox, prompt, root, runtime):
     # job, and every launch was silently using harness defaults
     # instead (Codex + Grok, PR #49). Refusing is the honest floor.
     # Wiring the real flags is a per-harness choice -- grok takes
-    # `-m/--effort`, claude `--model`, codex `-m` with no settled effort
-    # flag -- so the templates carry the placeholders and the job
+    # `-m/--effort`, claude `--model`, codex `-m/-c` -- so the templates
+    # carry the placeholders and the job
     # author decides; until one does, a set-but-unused dial refuses.
     template = " ".join(raw)
     dials = adapter.get("dials") or {}

@@ -4,6 +4,7 @@ import json
 import unittest
 
 import test_worth as worth_contract
+import test_worth_dispatches as dispatch_meter
 
 
 class WorthScenarios(unittest.TestCase):
@@ -150,6 +151,41 @@ class WorthScenarios(unittest.TestCase):
         rendered = json.dumps(heavy[0], sort_keys=True)
         self.assertIn("leader-heavy", rendered)
         self.assertIn("300", rendered)
+
+
+class DispatchScenarios(unittest.TestCase):
+    """Unit A scenarios from what-did-today-cost.feature."""
+
+    def setUp(self):
+        self.fixture = dispatch_meter.DispatchMeterTests(
+            "test_report_counts_a_claude_dispatch_with_usd"
+        )
+        self.fixture.setUp()
+        self.addCleanup(self.fixture.doCleanups)
+
+    def test_dispatched_claude_usd_appears_in_the_report(self):
+        """Scenario: a dispatched Claude run's USD appears in the report"""
+        self.fixture.test_report_counts_a_claude_dispatch_with_usd()
+
+    def test_codex_dispatch_prints_tokens_and_unrecorded_cost(self):
+        """Scenario: a Codex dispatch prints tokens and cost=unrecorded"""
+        self.fixture.test_report_prints_codex_tokens_and_unrecorded_cost()
+
+    def test_grok_dispatch_prints_tokens_and_ticks(self):
+        """Scenario: a Grok dispatch prints tokens and ticks"""
+        self.fixture.test_report_prints_grok_tokens_and_ticks()
+
+    def test_job_directory_without_a_record_is_counted_unrecorded(self):
+        """Scenario: a job directory without a record is counted and unrecorded"""
+        self.fixture.test_a_job_directory_without_a_record_is_counted_unrecorded()
+
+    def test_dispatch_launched_before_the_window_is_not_charged(self):
+        """Scenario: a dispatch launched before the window is not charged to it"""
+        self.fixture.test_a_dispatch_launched_before_the_window_is_not_charged()
+
+    def test_dispatched_stream_is_not_also_counted_as_a_session(self):
+        """Scenario: a dispatched stream is not also counted as a session"""
+        self.fixture.test_a_dispatched_stream_is_not_also_counted_as_a_session()
 
 
 if __name__ == "__main__":
