@@ -1,0 +1,333 @@
+{
+  "id": "20260904T162637Z-review-grok-7a1084",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/context-contracts",
+  "lineage": {
+    "branch": "lane/context-contracts",
+    "base_sha": "90b8c2721a8f3da06fd98f334026c20aba640ede"
+  },
+  "follows": [],
+  "job": "sweep",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-04T16:26:38Z",
+    "closed": "2026-09-04T16:40:45Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+    "ref_sha": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "afeef9c4-a182-40f0-bbb9-6f1cfb250dee",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/home/grok-stream/sessions/<snapshot-encoded>/afeef9c4-a182-40f0-bbb9-6f1cfb250dee/summary.json"
+  },
+  "session": {
+    "id": "afeef9c4-a182-40f0-bbb9-6f1cfb250dee",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/home/grok-stream/sessions/<snapshot-encoded>/afeef9c4-a182-40f0-bbb9-6f1cfb250dee/summary.json",
+    "stream_sha256_at_close": "90b6ca744167493920d32f57b6bbd8296e69801c46c8ef793882d214bdf52b2e",
+    "spend": {
+      "input": 2107255,
+      "cached": 1698944,
+      "output": 46828,
+      "total": 2154083,
+      "cost_usd_ticks": 3310005400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/home/grok-stream/sessions/<snapshot-encoded>/afeef9c4-a182-40f0-bbb9-6f1cfb250dee/summary.json",
+      "messages": 352
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-context-contracts/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "(1) hardcoded-lane-value: any lane value under ops/ carried as a literal instead of read from ops/lane.conf (trunk, release branch, lane name, repo slug, worktree root, model ids, efforts, check names, security model, walls, scope cap, vendor addresses), file:line, and whether laneconf.py literals catches it; (2) defaulted-read: any conf or environment read under ops/ with a fallback value (conf.get(k, x), os.environ.get(k, x), getenv(k, x), `or DEFAULT` after such a read), file:line, key, fallback, and whether the fallback is a lane value wearing a default or a genuinely optional tuning; (3) unrouted-conf-read: any instrument or hook under ops/ that parses ops/lane.conf or reads a lane key without going through laneconf.py; (4) worker-assumption: today's `deviation assumption` records under .dev/records/dispatches, sampled as the input says, each classified as a missing input field or a judgment call.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T162637Z-review-grok-7a1084/in/input-noguess-sweep.md",
+        "sha256": "c70ad56e5dc0d763a82b7f90649ca473024641ac3fdb13f122334762a05335f8"
+      }
+    ],
+    "sha256": "e7c70e2d0a4f6e401d44ef4a420e441e533a25d0f19f9055595ce661f2909d76",
+    "bytes": 3512
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T16:26:38Z",
+      "ended": "2026-09-04T16:40:45Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "sweep",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 4,
+        "p2": 20,
+        "p3": 6,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/bin/board.sh:12; ops/bin/board.sh:24; ops/bin/link-ops.sh:10; ops/conductor/tools/branches.py:113; ops/conductor/tools/ci.py:52; ops/conductor/tools/co_doc.py:25; ops/conductor/tools/skills.py:32; ops/conductor/tools/hand.py:189; ops/conductor/tools/onboard.py:131",
+          "claim": "hardcoded-lane-value: LANE_NAME value agentscient is a path/repo literal instead of laneconf.get(\"LANE_NAME\"). Sites: board.sh:12 REPOS=(agentscient \u2026); board.sh:24 $ROOT/agentscient/ops/\u2026; link-ops.sh:10 $ROOT/agentscient/ops; branches.py:113 base/\"agentscient\"/dispatch; ci.py:52 base/\"agentscient\"/ci.db; co_doc.py:25 STATE/\"agentscient\"/{handwork,skills}.db; skills.py:32 ~/.local/state/agentscient/skills.db; hand.py:189 ~/.local/state/agentscient/dispatch (database_path() beside it does use lane_name()); onboard.py:131 ~/.local/state/agentscient/handwork.db. laneconf.py literals does not catch them: every path is in DEFERRED_LITERAL_PATHS, and python3 ops/conductor/tools/laneconf.py literals exits 0 at this ref.",
+          "reproduce": "rg -n \"agentscient\" ops/bin/board.sh ops/bin/link-ops.sh ops/conductor/tools/branches.py ops/conductor/tools/ci.py ops/conductor/tools/co_doc.py ops/conductor/tools/skills.py ops/conductor/tools/hand.py ops/conductor/tools/onboard.py; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/branches.py:217; ops/conductor/tools/branches.py:219; ops/conductor/tools/branches.py:228; ops/conductor/tools/branches.py:244; ops/conductor/tools/branches.py:245; ops/conductor/tools/branches.py:271; ops/conductor/tools/branches.py:276; ops/conductor/tools/branches.py:305",
+          "claim": "hardcoded-lane-value: trunk and release are literals, not TRUNK_BRANCH/RELEASE_BRANCH. role_for treats name==\"dev\" as trunk and name==\"main\" as release; trunk_sha() resolves origin/dev or heads/dev; stacked detection excludes bases {\"dev\",\"main\"}. lane.conf has TRUNK_BRANCH='dev' and RELEASE_BRANCH='master' \u2014 the census never reads master and hardcodes main. literals would match \"dev\" and origin/dev here but the file is in DEFERRED_LITERAL_PATHS so literals exits 0; it would not match main at all (not a NAME_KEYS token).",
+          "reproduce": "sed -n '217,219p;228,232p;244,245p;271p;276p;305p' ops/conductor/tools/branches.py; printf \"%s\\n\" \"---- conf ----\"; rg -n \"^(TRUNK_BRANCH|RELEASE_BRANCH)=\" ops/lane.conf; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/bin/go.sh:57",
+          "claim": "hardcoded-lane-value: SCOPE_CAP value 1024 is a literal cap (\"the cap is 1024\") instead of a read of SCOPE_CAP from ops/lane.conf. go.sh is not in DEFERRED_LITERAL_PATHS; literals still misses it because tokens are only NAME_KEYS values plus \"dev\"/origin/dev/'agentscient'/uscient/agentscient//home/work/ \u2014 1024 is not among them. python3 ops/conductor/tools/laneconf.py literals exits 0.",
+          "reproduce": "sed -n '56,57p' ops/bin/go.sh; rg -n \"^SCOPE_CAP=\" ops/lane.conf; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:1044; ops/conductor/tools/decisions.py:23; ops/devlane/dispatch/levers/claude/fable-dispatch.sh:55; ops/devlane/dispatch/levers/grok-dispatch.sh:79; ops/devlane/dispatch/levers/codex/codex-dispatch.sh:146",
+          "claim": "hardcoded-lane-value: vendor addresses are literals, not ADDRESS_GROK/ADDRESS_CODEX/ADDRESS_CLAUDE. launch.py:1044 VENDOR maps harnesses to noreply@openai.com / noreply@x.ai / noreply@anthropic.com; decisions.py:23-25 HARNESS_ADDRESSES is the same three; fable-dispatch.sh:55 AGENT_EMAIL=noreply@anthropic.com; grok-dispatch.sh:79 noreply@grok-lever; codex-dispatch.sh:146 noreply@codex-lever. literals does not scan ADDRESS_* values; launch.py and fable-dispatch.sh are not deferred and still exit 0; the other three files are deferred.",
+          "reproduce": "sed -n '1044p' ops/devlane/dispatch/launch.py; sed -n '23,25p' ops/conductor/tools/decisions.py; sed -n '55p' ops/devlane/dispatch/levers/claude/fable-dispatch.sh; sed -n '79p' ops/devlane/dispatch/levers/grok-dispatch.sh; sed -n '146p' ops/devlane/dispatch/levers/codex/codex-dispatch.sh; rg -n \"^ADDRESS_\" ops/lane.conf; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/launch.py:1047; ops/devlane/dispatch/levers/claude/fable-dispatch.sh:52",
+          "claim": "hardcoded-lane-value: model ids are literals, not MODEL_* keys. launch.py:1047-1048 MODEL_NAMES keys gpt-5.6-sol, grok-4.6, claude-opus-5 (and claude-fable-5, which is not MODEL_CLAUDE_PLAN's claude-fable-5-1); fable-dispatch.sh:52 model=\"claude-fable-5-1\". Neither file is deferred; literals still misses them because MODEL_* values are not in the token set. python3 ops/conductor/tools/laneconf.py literals exits 0.",
+          "reproduce": "sed -n '1047,1048p' ops/devlane/dispatch/launch.py; sed -n '52p' ops/devlane/dispatch/levers/claude/fable-dispatch.sh; rg -n \"^MODEL_\" ops/lane.conf; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/workflow/checks/commit_trailers.py:356",
+          "claim": "hardcoded-lane-value: trunk ref origin/dev is the implicit --since-base default (`args.base_ref or \"origin/dev\"`) instead of origin/$TRUNK_BRANCH. File is in DEFERRED_LITERAL_PATHS, so literals does not report the origin/dev token and exits 0.",
+          "reproduce": "sed -n '327,328p;356p' ops/devlane/workflow/checks/commit_trailers.py; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/claude/context-stream.sh:43; ops/devlane/hooks/claude/unsafe-command.py:51",
+          "claim": "hardcoded-lane-value: release-branch names main and master are candidate published refs instead of RELEASE_BRANCH from the conf. context-stream.sh:43 walks upstream/main, upstream/master, origin/main, origin/master, main, master; unsafe-command.py:51 PUBLISHED_REFS is the same four remotes. Both files are deferred; literals would match token master (RELEASE_BRANCH, len>=4) but skips the files and exits 0.",
+          "reproduce": "sed -n '43p' ops/devlane/hooks/claude/context-stream.sh; sed -n '51p' ops/devlane/hooks/claude/unsafe-command.py; rg -n \"^RELEASE_BRANCH=\" ops/lane.conf; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/run.py:885; ops/devlane/task/run.py:1318; ops/devlane/task/run.py:457; ops/devlane/telemetry/breaker.py:247; ops/devlane/harness/wires.py:94; ops/devlane/hooks/claude/pr-feedback.sh:40",
+          "claim": "hardcoded-lane-value: wall value 900 is a literal matching WALL_DEFAULT='900' rather than a conf read. run.py:885 runtime.get(\"timeout\", 900); run.py:1318 constructed runtime timeout 900; run.py:457 and breaker.py:247 stall default 900; wires.py:94 reviewer stall 900; pr-feedback.sh:40 TIMEOUT=900. None of these files is deferred; literals does not scan WALL_DEFAULT, so it exits 0.",
+          "reproduce": "sed -n '457p;885p;1318p' ops/devlane/task/run.py; sed -n '247p' ops/devlane/telemetry/breaker.py; sed -n '94p' ops/devlane/harness/wires.py; sed -n '40p' ops/devlane/hooks/claude/pr-feedback.sh; rg -n \"^WALL_DEFAULT=\" ops/lane.conf; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/findings.py:82; ops/conductor/tools/hand.py:64; ops/conductor/tools/onboard.py:57; ops/conductor/tools/decisions.py:80",
+          "claim": "defaulted-read: when laneconf is missing and LANE_CONF is unset and the tracked file is absent, lane_name() returns \"agentscient\" instead of refusing. key=LANE_NAME (via missing conf file); fallback=\"agentscient\"; this is a lane value wearing a default, not optional tuning. Same four files also regex-parse the conf when the file exists (reported under unrouted-conf-read, not here). literals would match token agentscient but all four paths are deferred, so literals exits 0.",
+          "reproduce": "rg -n 'return \"agentscient\"' ops/conductor/tools/findings.py ops/conductor/tools/hand.py ops/conductor/tools/onboard.py ops/conductor/tools/decisions.py; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/bin/board.sh:9; ops/bin/board.sh:10; ops/bin/link-ops.sh:9",
+          "claim": "defaulted-read: bash env reads with fallbacks that are lane identity, not optional empty siblings. board.sh:9 ROOT=\"${AGENTSCIENT_ROOT:-$HOME/projects/uscient}\" key=AGENTSCIENT_ROOT fallback=$HOME/projects/uscient; board.sh:10 ORG=\"${AGENTSCIENT_ORG:-uscient}\" key=AGENTSCIENT_ORG fallback=uscient (the org half of REPO_SLUG); link-ops.sh:9 same AGENTSCIENT_ROOT default. Classification: lane value wearing a default (org/repo location). AGENTSCIENT_SIBLINGS:- (empty) on the next line is optional and is not this finding.",
+          "reproduce": "sed -n '9,10p' ops/bin/board.sh; sed -n '9p' ops/bin/link-ops.sh; rg -n \"^REPO_SLUG=\" ops/lane.conf"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/gate.sh:27",
+          "claim": "defaulted-read: GATE_LOG_DIR=${GATE_LOG_DIR:-${TMPDIR:-/tmp}/agentscient-gates}. key=GATE_LOG_DIR (else TMPDIR); fallback=/tmp/agentscient-gates. Classification: lane value (LANE_NAME) wearing a default. File is deferred, so literals does not report agentscient here.",
+          "reproduce": "sed -n '27p' ops/conductor/tools/gate.sh; python3 ops/conductor/tools/laneconf.py literals; echo literals-exit:$?"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever.py:282",
+          "claim": "defaulted-read: resolve_model() does conf.get(\"MODEL_CODEX_SECURITY_AUDIT\") or conf.get(\"MODEL_CODEX\"). key=MODEL_CODEX_SECURITY_AUDIT; fallback=MODEL_CODEX. Classification: lane security-model value wearing a default. Production dispatch.sh:200-208 does the same job-key-then-harness fallback after sourcing the conf (`${!model_job:-}` then MODEL_CODEX).",
+          "reproduce": "sed -n '277,282p' ops/conductor/tests/test_ladder_lever.py; sed -n '198,208p' ops/conductor/tools/dispatch.sh; rg -n \"^MODEL_CODEX\" ops/lane.conf"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/laneconf.py:140; ops/devlane/dispatch/launch.py:46; ops/devlane/dispatch/launch.py:792; ops/conductor/tools/watchdog.py:563; ops/conductor/tools/co_doc.py:24; ops/conductor/tools/onboard.py:175; ops/devlane/telemetry/worth.py:725; ops/conductor/tools/hand.py:156; ops/conductor/tools/skills.py:227; ops/bin/go.sh:70; ops/conductor/tools/gate.sh:28; ops/conductor/tools/dispatch.sh:263; ops/bin/suites.sh:27; ops/bin/fixture.sh:38",
+          "claim": "defaulted-read: production conf/env reads with fallbacks that are genuinely optional tuning, not lane values: LANE_CONF\u2192tracked ops/lane.conf (laneconf.py:140, land.py:61, fixture.sh:38, dispatch.sh:10); DISPATCH_TICK\u21921 (launch.py:46); DISPATCH_STREAM_GRACE\u2192120 (launch.py:792); WATCHDOG_TICK\u2192300 (watchdog.py:563); XDG_STATE_HOME\u2192~/.local/state (co_doc.py:24, onboard.py:175, worth.py:725); CLAUDE_SESSION_ID\u2192unknown/unrecorded (hand.py:156, skills.py:227); DETACH\u21920 (go.sh:70); GATE_TAIL\u219215 (gate.sh:28); DETACH_WAIT\u219260 (dispatch.sh:263); SUITES_SERIAL\u21920 (suites.sh:27). WF_AGENT,\"\" and TERM_WALL,\"\" then refuse are sentinels, not defaults, and are not this finding.",
+          "reproduce": "rg -n \"os.environ.get\\(|os.getenv\\(|\\$\\{[A-Z][A-Z0-9_]*:-\" ops/conductor/tools/laneconf.py ops/devlane/dispatch/launch.py ops/conductor/tools/watchdog.py ops/conductor/tools/co_doc.py ops/conductor/tools/onboard.py ops/devlane/telemetry/worth.py ops/conductor/tools/hand.py ops/conductor/tools/skills.py ops/bin/go.sh ops/conductor/tools/gate.sh ops/conductor/tools/dispatch.sh ops/bin/suites.sh ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/findings.py:87; ops/conductor/tools/hand.py:69; ops/conductor/tools/onboard.py:62; ops/conductor/tools/decisions.py:85; ops/conductor/tools/land.py:69; ops/bin/fixture.sh:39",
+          "claim": "unrouted-conf-read: when import laneconf fails, these instruments parse ops/lane.conf with a local regex (`^LANE_NAME='\u2026'$` or land.py's `^{key}='\u2026'$`) instead of going through laneconf.py. land.py:69 and fixture.sh:39 refuse a missing key (no agentscient fallback; that fallback is the defaulted-read finding). This is a second grammar beside laneconf.parse_file.",
+          "reproduce": "rg -n \"re.search\\(.*LANE_NAME|re.search\\(rf\" ops/conductor/tools/findings.py ops/conductor/tools/hand.py ops/conductor/tools/onboard.py ops/conductor/tools/decisions.py ops/conductor/tools/land.py ops/bin/fixture.sh"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/dispatch.sh:10; ops/conductor/tools/dispatch.sh:71",
+          "claim": "unrouted-conf-read: dispatch.sh locates ops/lane.conf via LANE_CONF or $script_dir/../../lane.conf, validates the KEY='literal' grammar itself, then `source \"$conf_path\"` (and lane.local.conf) rather than calling python3 ops/conductor/tools/laneconf.py get KEY. Bash source is the file's documented shell dual, but it is still a parse of lane.conf that does not go through laneconf.py.",
+          "reproduce": "sed -n '10,12p;14,24p;71p' ops/conductor/tools/dispatch.sh"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T030849Z-code-codex-544f50.json",
+          "claim": "worker-assumption: record 20260904T030849Z-code-codex-544f50. Quoted: \"Assumption: the named slice-A tests and required gate put defect 8's wrapper half in scope despite the brief's lead sentence listing defects 1, 3, and 11.\" Classification: a field the input did not carry (scope: which defects).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T030849Z-code-codex-544f50.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260904T034741Z-code-codex-b37f6e.json",
+          "claim": "worker-assumption: record 20260904T034741Z-code-codex-b37f6e. Quoted: \"Assumption: wf.py restores only the read-only check-registry projection because the surrounding contract explicitly keeps the state-machine runtime absent.\" Classification: a judgment call the worker had to make anyway (how much of a declared absence to restore).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T034741Z-code-codex-b37f6e.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260904T045044Z-code-codex-445652.json",
+          "claim": "worker-assumption: record 20260904T045044Z-code-codex-445652. Quoted: \"Assumed collect --timeout is a floor-raising override, matching the audit wording and pinned test.\" Classification: a judgment call the worker had to make anyway (flag semantics).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T045044Z-code-codex-445652.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T071342Z-code-codex-539517.json",
+          "claim": "worker-assumption: record 20260904T071342Z-code-codex-539517. Quoted: \"Assumption: the existing pinned protection for branch main remains alongside configured trunk/release branches.\" Classification: a field the input did not carry (whether legacy main protection stays).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T071342Z-code-codex-539517.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T072236Z-code-codex-205d8a.json",
+          "claim": "worker-assumption: record 20260904T072236Z-code-codex-205d8a. Quoted: \"Assumption: run A requires the grade argument/refusal wire pinned by test_fixture_lever.py, while grading semantics and ledger calibration remain explicitly reserved for run B.\" Classification: a field the input did not carry (run-A versus run-B cut for grade).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T072236Z-code-codex-205d8a.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T073152Z-code-codex-1c3ea5.json",
+          "claim": "worker-assumption: record 20260904T073152Z-code-codex-1c3ea5. Quoted: \"Assumption: copied standalone CLI fixtures must honor explicit LANE_CONF without requiring adjacent laneconf.py, while real-tree execution uses the canonical shared reader.\" Classification: a field the input did not carry (whether fixtures may parse lane.conf unrouted).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T073152Z-code-codex-1c3ea5.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T090444Z-code-codex-40d335.json",
+          "claim": "worker-assumption: record 20260904T090444Z-code-codex-40d335. Quoted: \"Assumption: run A explicitly reserves the full ladder driver for run B, while the named lane-conf test requires ladder.py to exist and read the four new keys.\" Classification: a field the input did not carry (run-A versus run-B cut for the ladder).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T090444Z-code-codex-40d335.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260904T091011Z-code-codex-112951.json",
+          "claim": "worker-assumption: record 20260904T091011Z-code-codex-112951. Quoted: \"Assumption: the direct implementation was to materialize the exact file-backed seed defined by the existing tests and preceding inline registry, without changing tools or tests.\" Classification: a judgment call the worker had to make anyway (implement exactly the planted seed).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T091011Z-code-codex-112951.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T091650Z-code-codex-48196b.json",
+          "claim": "worker-assumption: record 20260904T091650Z-code-codex-48196b. Quoted: \"Assumption: \u201cjob name\u201d means the top-level workflow job ID, matching CHECK_NAMES and GitHub's default check name when no explicit job name is present.\" Classification: a field the input did not carry (what job name means).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T091650Z-code-codex-48196b.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T101028Z-code-codex-a55c11.json",
+          "claim": "worker-assumption: record 20260904T101028Z-code-codex-a55c11. Quoted: \"Assumption: a discoverable artifact is a .py file whose basename starts with test, independent of directory layout.\" Classification: a field the input did not carry (definition of discoverable artifact).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T101028Z-code-codex-a55c11.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T101042Z-code-codex-d8248e.json",
+          "claim": "worker-assumption: record 20260904T101042Z-code-codex-d8248e. Quoted: \"Assumption: the explicit exit-0 command overrode the input brief's run-A-only boundary, so the complete python-service fixture and calibration apparatus were implemented.\" Classification: a field the input did not carry (brief versus required command).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T101042Z-code-codex-d8248e.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260904T101518Z-code-codex-31ed0a.json",
+          "claim": "worker-assumption: record 20260904T101518Z-code-codex-31ed0a. Quoted: \"Assumption: the contract-shaped local Composer packages are the intended hermetic substitute for the unavailable external cache, consistent with the repository rule that vendors remain replaceable.\" Classification: a judgment call the worker had to make anyway (how to replace an unavailable vendor cache).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T101518Z-code-codex-31ed0a.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T105610Z-code-codex-107f6f.json",
+          "claim": "worker-assumption: record 20260904T105610Z-code-codex-107f6f. Quoted: \"Assumption: the explicit terminal condition requiring the full unchanged command to exit 0 controls over the input's run-A-only staging language, because suites.sh includes the complete Rust fixture contract.\" Classification: a field the input did not carry (brief versus required command).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T105610Z-code-codex-107f6f.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260904T152551Z-code-codex-0331e5.json",
+          "claim": "worker-assumption: record 20260904T152551Z-code-codex-0331e5. Quoted: \"Assumption: the one-bucket scope classifies only S; the previously unstated overrun factor is 4x, with S limits documented in the contract.\" Classification: a field the input did not carry (bucket class and overrun factor).",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; print(json.loads(Path('.dev/records/dispatches/20260904T152551Z-code-codex-0331e5.json').read_text())['result']['envelope']['note'])\""
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260904T062144Z-code-grok-5131af.json; .dev/records/dispatches/20260904T063409Z-review-codex-28e041.json; .dev/records/dispatches/20260904T083208Z-review-codex-ec0c14.json; .dev/records/dispatches/20260904T091308Z-code-codex-e89281.json; .dev/records/dispatches/20260904T094130Z-review-claude-063f3f.json; .dev/records/dispatches/20260904T152529Z-code-codex-bda881.json",
+          "claim": "worker-assumption: six more of today's 20 watchdog word-list hits in .dev/records/dispatches match stub or assumption only in findings or as a test-fixture word, not an Assumption: sentence in the note. 20260904T062144Z-code-grok-5131af note quotes \"no-op stub\"; 20260904T063409Z, 20260904T083208Z, 20260904T091308Z, 20260904T094130Z findings discuss test stubs; 20260904T152529Z finding says \"the assumption, bucket, calibration, and deliverable tests.\" Classification: not a missing input field and not a judgment the worker had to make \u2014 the detector matched ASSUMPTION_WORDS.",
+          "reproduce": "python3 -c \"import json; from pathlib import Path; W=('assumption','assume','substitute','stub','hermetic substitute');\n\ndef tv(o):\n    if isinstance(o,str): yield o\n    elif isinstance(o,dict):\n        for v in o.values(): yield from tv(v)\n    elif isinstance(o,list):\n        for v in o: yield from tv(v)\nroot=Path('.dev/records/dispatches')\nfor p in sorted(root.glob('20260904T*.json')):\n    d=json.loads(p.read_text()); r=d.get('result') or {}; e=r.get('envelope') or {}; t='\\\\n'.join(tv({'note':e.get('note'),'findings':e.get('findings')})).lower(); m=[w for w in W if w in t]\n    if m: print(p.stem, m)\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 2154083,
+        "out": 46828,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "90b8c2721a8f3da06fd98f334026c20aba640ede",
+        "started": "2026-09-04T16:26:56Z",
+        "ended": "2026-09-04T16:38:42Z"
+      },
+      "note": "All four categories were looked at at 90b8c2721a8f3da06fd98f334026c20aba640ede. python3 ops/conductor/tools/laneconf.py literals and closure both exit 0; literals tokens are NAME_KEYS values of length>=4 plus \"dev\", origin/dev, 'agentscient', uscient/agentscient, /home/work/, and DEFERRED_LITERAL_PATHS hides the remaining NAME_KEYS hits. Categories 1-3 swept production ops/ .py/.sh excluding tests/fixtures/archive/infra except test_ladder_lever.py:282, which encodes the security-model fallback; planted confs and PATH defaults in tests were inspected and not filed. sqlite_master in co_doc.py:288 is not RELEASE_BRANCH. record.py/launch.py lane=\"dev\" is the dispatch-lane kind literals already exempts and is not filed as trunk. Category 4 used the named tree copy .dev/records/dispatches (78 files dated 20260904, 20 watchdog word-list hits); 14 explicit Assumption/Assumed notes were classified plus the 6 word-list-only hits. The input's 65 at 16:1xZ is the live dispatch store, which this snapshot does not hold. Session store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-04T16:40:45.205Z"
+    }
+  },
+  "status": "closed"
+}
