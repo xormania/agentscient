@@ -66,3 +66,25 @@ Feature: "what did today cost" is answered by commands over the stores, never by
     Given a Claude stream whose cwd is the dispatch snapshot and a dispatch record for that run
     When worth report and waste run
     Then the spend is counted once, as a dispatch row, not as a session
+
+  Scenario: --claude-dir has no argparse default
+    Given a lane conf that does not declare CLAUDE_DIR
+    When worth waste runs without --claude-dir
+    Then the command exits 2 with class conf-key naming CLAUDE_DIR
+
+  Scenario: CLAUDE_DIR from lane conf is resolved relative to HOME
+    Given CLAUDE_DIR='from-conf' in the lane conf
+    And a Claude session planted under $HOME/from-conf
+    When worth waste runs without --claude-dir
+    Then that session is ranked
+
+  Scenario: a waste Claude session row carries turns, avg_context, and refusals
+    Given a Claude transcript with two assistant usage rows and one tool-result deny
+    When worth waste runs
+    Then the session row carries turns, avg_context, and refusals from those definitions
+    And JSON and plain carry the same figures
+
+  Scenario: an unreadable transcript prints unrecorded for turns, avg_context, and refusals
+    Given a Claude session file that cannot be parsed
+    When worth waste runs
+    Then those three fields print unrecorded and never 0
