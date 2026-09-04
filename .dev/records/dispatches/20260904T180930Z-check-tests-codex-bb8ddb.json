@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-04T18:09:30Z",
-    "closed": null
+    "closed": "2026-09-04T18:15:12Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-09-31-01a06d9c-8d28-76b0-94d0-a78475e9d591.jsonl"
   },
   "session": {
-    "id": "528e374b-e8fd-425e-9df6-43f3eaf38192",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a06d9c-8d28-76b0-94d0-a78475e9d591",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-09-31-01a06d9c-8d28-76b0-94d0-a78475e9d591.jsonl",
+    "stream_sha256_at_close": "59b9154c6c2bd1318bf81755fce7739b90a5c35dc47a60ae94405a93cbe44bdc",
+    "spend": {
+      "input": 894559,
+      "cached": 797952,
+      "output": 15754,
+      "total": 910313,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T14-09-31-01a06d9c-8d28-76b0-94d0-a78475e9d591.jsonl",
+      "messages": 153
+    }
   },
   "brief": {
     "template": {
@@ -95,10 +102,125 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-04T18:09:30Z",
+      "ended": "2026-09-04T18:15:12Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "022ca5d33812853205386d44b751d4f8f527e4be",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "invalid",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 9,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/hooks/tests/test_matrix.py \u00a7session-budget",
+          "claim": "Cases exercise only Bash and Write. An implementation that allows every other tool before checking the budget would pass, violating the every-tool-call contract.",
+          "reproduce": "python3 -c 'from pathlib import Path; import re; s=\"\\n\".join(Path(\"ops/devlane/hooks/tests/test_matrix.py\").read_text().splitlines()[1311:1547]); print(\"Read\" in s, sorted(set(re.findall(r\"payload_(bash|write)\", s))))'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py \u00a7session-budget ordering",
+          "claim": "No over-budget case triggers a dispatch row. An implementation evaluating session-budget after scope-cap, bucket-command, or dispatch-by-hand would pass while returning the wrong refusal class.",
+          "reproduce": "python3 -c 'from pathlib import Path; s=\"\\n\".join(Path(\"ops/devlane/hooks/tests/test_matrix.py\").read_text().splitlines()[1311:1547]); print(\"dispatch(\" in s)'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1340",
+          "claim": "Tests delete configuration keys but never vary a present ceiling. An implementation that validates key presence and hard-codes 100/200000/10 would pass without reading configured values.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '1340,1377p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:535",
+          "claim": "The over-turns transcript contains only assistant usage rows. An implementation counting every JSONL line as a turn would produce the same 101 and pass.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '535,541p;1378,1392p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1393",
+          "claim": "The average-context case contains one usage row. Implementations using the session sum or maximum instead of the arithmetic mean are indistinguishable.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '1393,1432p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1434",
+          "claim": "Every planted tool result contains a refusal marker. An implementation counting all tool-result blocks as refusals would return 11 and pass.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '1434,1472p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:36",
+          "claim": "The generic [matrix: marker is represented only by [matrix:hand-write]. An implementation hard-coded to that class would pass while missing other matrix refusals.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '34,44p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py \u00a7threshold cases",
+          "claim": "Deny plants are one over each ceiling and the allow plant is far below. An implementation using >= instead of > would pass while denying sessions exactly at a ceiling.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '1378,1472p;1508,1535p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py \u00a7session-budget",
+          "claim": "Each case invokes the hook once for its transcript. An implementation suppressing session-budget after its first denial would pass despite the requirement to deny every later tool.",
+          "reproduce": "python3 -c 'import ast; from pathlib import Path; t=ast.parse(Path(\"ops/devlane/hooks/tests/test_matrix.py\").read_text()); print([(n.name, sum(isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) and x.func.attr in {\"run_hook\", \"run_bash\"} for x in ast.walk(n))) for n in ast.walk(t) if isinstance(n, ast.FunctionDef) and n.name.startswith(\"test_session_budget_\")])'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1329",
+          "claim": "The test named unreadable plants only a nonexistent path. An implementation handling FileNotFoundError but failing on an existing directory, permission denial, or malformed JSONL would pass.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '1329,1338p'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/hooks/tests/test_matrix.py:1384",
+          "claim": "Budget reasons prove the measured number and hand-off remedy but do not require the expected clause to name the exceeded configured ceiling. A generic expected clause would pass.",
+          "reproduce": "nl -ba ops/devlane/hooks/tests/test_matrix.py | sed -n '1384,1392p;1425,1432p;1465,1492p'"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/out/SKEPTIC.md",
+        "tests": "ops/devlane/hooks/tests/test_matrix.py",
+        "contract": "/home/scientdb/.local/state/agentscient/dispatch/20260904T180930Z-check-tests-codex-bb8ddb/in/slice-session-budget.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 910313,
+        "out": 15754,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "022ca5d33812853205386d44b751d4f8f527e4be",
+        "started": "2026-09-04T18:10:20Z",
+        "ended": "2026-09-04T18:14:33Z"
+      },
+      "note": "The report could not be created because the sandbox rejected writes as read-only. The frozen command was attempted but was UNREACHABLE: all 63 cases errored during setUp because no writable temporary directory was available. test-guard reported every plant guarded. No implementation was read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-04T18:15:11.293Z"
+    }
+  },
+  "status": "closed"
 }
