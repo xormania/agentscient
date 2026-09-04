@@ -10,12 +10,12 @@
   "implementation_markers": [],
   "lane": "agentscient",
   "plan": {
-    "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/PLAN-check-tests-json-2.md",
+    "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/PLAN-check-tests-json-2.md",
     "sha256": "189c04eb924b213bbced4c5d4fbf9c60ce538bca559581d8c86a565d1801b94a"
   },
   "pr": null,
   "scope": {
-    "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/scope-check-tests-json-2.md",
+    "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/scope-check-tests-json-2.md",
     "sha256": "214b6f495e79557a7f5b0f1415b55bb71c4169b67380d7af2dfd369b743c7771"
   },
   "stages": [
@@ -29,7 +29,7 @@
       },
       "harness": "grok",
       "input": {
-        "path": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/c1b9ce7c-856f-4586-b441-b2f10e66d5d4/scratchpad/PLAN-check-tests-json-2.md",
+        "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/.dev/ladder-inputs/PLAN-check-tests-json-2.md",
         "proof": {
           "given": [
             "One slice, size **S**, one named S bucket, three files, one implement run."

@@ -1,0 +1,4 @@
+One slice, size **S**, one named S bucket, three files, one implement run.
+M was considered and rejected: at this ref the driver derives one test command from the first tests envelope (`ladder.py` `derive_command`, `stage_scope` passes `test-command.md` as `--scope-file` for every `code` / `code-N` stage). Two S buckets would therefore receive the same command. The first run could not go green without editing the second bucket's files, and the second run would have nothing left to do. That is not "each landed and green alone". L (two slices) is not required: three files is inside the S bound (1–3 files, under 10 minutes).
+This slice is the batch's second slice and deserves its own draft PR (the ladder `pr` stage). It does not share a PR with slice 1. There is no second slice in this plan.
+Value order inside the one implement run: finding 1, then finding 2, then finding 4's pin, then finding 3, then finding 5. p1 first.
