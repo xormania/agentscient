@@ -1,0 +1,102 @@
+== devlane/dispatch
+.........................................................................................................................................................................................................................................................................../usr/lib/python3.12/subprocess.py:1127: ResourceWarning: subprocess 3115880 is still running
+  _warn("subprocess %s is still running" % self.pid,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+..................................................
+----------------------------------------------------------------------
+Ran 317 tests in 44.426s
+
+OK
+== devlane/harness
+..................................
+----------------------------------------------------------------------
+Ran 34 tests in 0.175s
+
+OK
+== devlane/task
+.................................................................................................................................................................................../usr/lib/python3.12/unittest/case.py:589: ResourceWarning: unclosed file <_io.TextIOWrapper name=4 encoding='UTF-8'>
+  if method() is not None:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+....................................................................
+----------------------------------------------------------------------
+Ran 247 tests in 11.689s
+
+OK
+== devlane/telemetry
+............../usr/lib/python3.12/subprocess.py:1127: ResourceWarning: subprocess 3070883 is still running
+  _warn("subprocess %s is still running" % self.pid,
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+...................................................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 209 tests in 22.667s
+
+OK
+== devlane/hooks
+...............................................................................................................................................................
+----------------------------------------------------------------------
+Ran 159 tests in 44.795s
+
+OK
+== devlane/fixtures
+.....................................................................................................................................................ss..s.ss..s.............................................................
+----------------------------------------------------------------------
+Ran 221 tests in 34.091s
+
+OK (skipped=6)
+== devlane/workflow
+............................
+----------------------------------------------------------------------
+Ran 28 tests in 0.537s
+
+OK
+== conductor
+.................................................................................................................................................................................................................................................................................................................................................................FF...................................................................................................................................................
+======================================================================
+FAIL: test_bash_source_and_get_agree_for_every_declared_key (test_laneconf.BashPythonParity.test_bash_source_and_get_agree_for_every_declared_key) (key='MODEL_CLAUDE_READ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 539, in test_bash_source_and_get_agree_for_every_declared_key
+    self.assert_get(proc, value)
+  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 286, in assert_get
+    self.assertEqual((proc.stdout or "").splitlines(), [value])
+AssertionError: Lists differ: ['claude-opus-4-8'] != ['claude-opus-5']
+
+First differing element 0:
+'claude-opus-4-8'
+'claude-opus-5'
+
+- ['claude-opus-4-8']
+?               ^^^
+
++ ['claude-opus-5']
+?               ^
+
+
+======================================================================
+FAIL: test_bash_source_and_get_agree_for_every_declared_key (test_laneconf.BashPythonParity.test_bash_source_and_get_agree_for_every_declared_key) (key='MODEL_CLAUDE_PLAN')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 539, in test_bash_source_and_get_agree_for_every_declared_key
+    self.assert_get(proc, value)
+  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 286, in assert_get
+    self.assertEqual((proc.stdout or "").splitlines(), [value])
+AssertionError: Lists differ: ['claude-opus-4-8'] != ['claude-fable-5-1']
+
+First differing element 0:
+'claude-opus-4-8'
+'claude-fable-5-1'
+
+- ['claude-opus-4-8']
++ ['claude-fable-5-1']
+
+----------------------------------------------------------------------
+Ran 501 tests in 63.670s
+
+FAILED (failures=2)
+== pr-overview
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.817s
+
+OK
+[1;32mAll checks passed![0m
