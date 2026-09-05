@@ -34,7 +34,9 @@ current branch. With no re-authoring flags, messages remain verbatim
 (records land verbatim; no `-x` line), each author is `LANE_AUTHOR`,
 and the committer is `WF_AGENT`.
 
-`--author` replaces `LANE_AUTHOR` as the author of every landed commit.
+`--author` selects the replacement author only for commits whose author is
+neither `LANE_AUTHOR` nor the requested author. Commits already authored by
+either identity keep their author unchanged.
 `--co-author` adds a matching `Co-Authored-By:` trailer when absent from
 each landed message, leaving existing `Source:` and other attribution
 trailers intact. A matching trailer already present is not duplicated.
