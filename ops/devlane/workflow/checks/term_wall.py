@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""The term wall: names this organisation does not use, refused everywhere.
+"""The term wall: authored vocabulary is refused; captured data stays verbatim.
 
-Some names must not appear in this organisation's trees, commit
-messages, or pull-request text — not affirmed, not negated, not cited.
-This check is the wall. The pattern is configuration, never tree
-content: it is read from the environment variable `TERM_WALL`, falling
-back to the gitignored file `<root>/ops/bin/term-wall.conf` (one line:
-an extended, case-insensitive regular expression). No pattern is a
-refusal, never a vacuous pass. Every hit this check prints is masked,
-so its output does not carry what the tree may not.
+Some names must not appear in authored tree content or paths, nor in
+text passed through the optional message, range, and stdin modes. Tree
+content excludes `.dev/wip/` except its `README.md`, and direct JSON
+captures under `.dev/records/dispatches/`; tracked paths are always
+scanned. Captured bytes are never rewritten. The pattern is
+configuration, never tree content: it is read from `TERM_WALL`, falling
+back to the gitignored `<root>/ops/bin/term-wall.conf`. No pattern is a
+refusal, never a vacuous pass. Every printed hit is masked.
 
     term_wall.py [--root DIR] [PATH ...]     tracked files (default: all)
     term_wall.py --message-file FILE         one commit message
@@ -81,6 +81,13 @@ def tracked(wall: re.Pattern[str], root: Path, paths: list[str]) -> list[str]:
     return [p for p in out.decode("utf-8", "surrogateescape").split("\0") if p]
 
 
+def is_captured_content(rel: str) -> bool:
+    if rel.startswith(".dev/wip/"):
+        return rel != ".dev/wip/README.md"
+    path = Path(rel)
+    return path.parent == Path(".dev/records/dispatches") and path.suffix == ".json"
+
+
 def scan_tree(wall: re.Pattern[str], root: Path, paths: list[str]) -> tuple[list[str], int]:
     hits = []
     files = tracked(wall, root, paths)
@@ -89,7 +96,7 @@ def scan_tree(wall: re.Pattern[str], root: Path, paths: list[str]) -> tuple[list
         if wall.search(rel):
             hits.append(f"path: {masked_rel}: {masked_rel}")
         p = root / rel
-        if p.suffix.lower() in SKIP_SUFFIXES or not p.is_file():
+        if is_captured_content(rel) or p.suffix.lower() in SKIP_SUFFIXES or not p.is_file():
             continue
         data = p.read_bytes()
         if b"\0" in data[:8000]:

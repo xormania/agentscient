@@ -26,6 +26,18 @@ framework's files stay clean of it. The commit-msg hook therefore does
 not run the wall, and the message and range modes below remain
 available to a caller who wants them, never armed by default.
 
+### Captured data is not authored vocabulary
+
+Owner clarification, 2026-09-05: captured data must remain verbatim; authored
+code, documentation and paths must not introduce private account identifiers.
+Tree content scanning therefore excludes the archival namespace `.dev/wip/`
+except its authored `README.md`, and direct JSON capture files under
+`.dev/records/dispatches/`. These are evidence, not executable configuration or
+live instructions. No other directories or file extensions are exempted.
+Tracked paths are always checked, including these data files. Explicit path
+selection has the same policy; stdin, message and range modes are unchanged.
+The scanner only reads: it must never normalize or rewrite archived bytes.
+
 ## The pattern is configuration, never tree content
 
 - The pattern is an extended, case-insensitive regular expression read
