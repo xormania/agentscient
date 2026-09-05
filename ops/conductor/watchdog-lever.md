@@ -16,8 +16,11 @@ Grok's review of the first cut (record
   A store that is not a directory is refusal class `store`.
 - Per job directory: `record.json` (the record copy), `state.json`
   (the harness pid), the `exit` file and its mtime, the copied
-  `in/plan.md` (falling back to `brief.scope`), and held `stdout`,
-  `stderr`, and `launcher.log` text.
+  `in/plan.md` (falling back to `brief.scope`), and held `raw.out`,
+  `stdout`, `stderr`, and `launcher.log` text. Per-job targets are opened without
+  following the job directory, intermediate directories, or file symlinks;
+  each must be a regular file no larger than 64 MiB. A held file is scanned
+  only through the extent measured when it was opened.
 - Ladder records: JSON files in the state root's sibling `ladders/`
   directory.
 - The job caps: the record's `caps.timeout`, else the job's
@@ -33,7 +36,7 @@ Grok's review of the first cut (record
 | on disk | kind |
 |:--|:--|
 | no `record.json`, or one that is not a JSON object | no-copy: cannot judge; said once, never inferred |
-| a `record.json` or `state.json` that cannot be read (a directory in its place, a permission) | error: the watchdog error line, once per record and error type; the scan goes on |
+| a watched input that cannot be read safely (including a directory, device, symlink, permission failure, or oversized file) | error: `deviation unavailable` and a sanitized watchdog error line, once per record; the scan goes on |
 | `record.json` status `closed` or `died` | closed |
 | an `exit` file and a record not yet closed | settling: the harness exited, the launcher has not collected |
 | otherwise | running |
@@ -97,6 +100,10 @@ suppressed at startup. Each matching comparison prints once per record:
   output reports `errored` or an `errors=` count above zero.
 - `deviation refused <id>` — held launcher text starts a refusal line
   with `empty-comparison`, `scope-cap`, `conf-key`, or `toolchain`.
+- `deviation unavailable <id>` — a per-job input is unreadable, symlinked,
+  non-regular, over 64 MiB, or changes to such a target while being opened.
+  The file path, contents, and operating-system detail are not printed; later
+  records and the heartbeat are still read.
 - `deviation retry <id>` — a ladder is stopped or has a stage attempt
   above one.
 - `deviation minutes <id>` — elapsed minutes are more than four times
@@ -147,11 +154,18 @@ ratification and not a new conductor or automatic-remediation service.
   forge readings the heartbeat explicitly labels the retained count as
   cached, with the tick it was measured on; cached/unreachable/not-watched
   are distinct. No model call is involved.
-- Bound each forge command to 10 seconds. List with an explicit limit
+- Bound the entire forge reading, including the list and all per-PR checks,
+  to one 10-second monotonic deadline; each command receives only the time
+  remaining. Bound each subprocess's combined captured stdout and stderr to
+  1 MiB, and never forward either transcript. List with an explicit limit
   of 200; exactly 200 rows means `200+ (page full, total unmeasured)`,
   not an exact total. Unavailable or malformed forge output stays
-  unavailable, never an empty successful listing. Existing CI notification
-  identity and once-per-head/check behavior remain unchanged.
+  unavailable, never an empty successful listing. Once the deadline is
+  exhausted, every unvisited PR is explicitly checks-unreachable. Head ids
+  must be 40- or 64-digit hexadecimal SHAs; check buckets are the known
+  pass/fail/pending/skipping/cancel set; check names are limited to 512 UTF-8
+  bytes and control characters are escaped before printing. Existing CI
+  notification identity and once-per-head/check behavior remain unchanged.
 - Avoid repeated closed-record JSON/log/deviation reads when their
   inputs have not changed. Invalidate on replacement, size/mtime change,
   deletion, late output, resume or collection. A closed record is not
@@ -160,7 +174,9 @@ ratification and not a new conductor or automatic-remediation service.
   Startup must not parse every record twice just to make the first tick.
 - Treat `raw.out` as the launcher's actual held stdout, alongside a
   legacy `stdout` file. Search held output without loading whole growing
-  transcripts into memory or printing them; no silent truncation. Preserve
+  transcripts into memory or printing them; an append after open is deferred
+  to the next mutation-sensitive scan, while a file above the declared bound
+  is explicitly unavailable rather than silently truncated. Preserve
   the existing lexical deviation definitions, not inferred model intent.
 - A store-directory enumeration failure reaches the existing watchdog
   error line and tick guard; it is not a successful zero-job reading.
