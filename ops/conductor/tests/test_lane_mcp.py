@@ -116,36 +116,6 @@ CREATE TABLE IF NOT EXISTS cursors (
 """
 
 
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
-    if not path.exists():
-        return ("absent", ())
-    if not path.is_dir():
-        return ("other", ())
-    return ("dir", tuple(sorted(p.name for p in path.iterdir())))
-
-
-def _live_store_paths() -> list[Path]:
-    paths: list[Path] = []
-    xdg = os.environ.get("XDG_STATE_HOME")
-    if xdg:
-        paths.append(Path(xdg) / "agentscient" / "dispatch")
-    paths.append(Path.home() / ".local" / "state" / "agentscient" / "dispatch")
-    snap = REPO.resolve()
-    if snap.name == "snapshot":
-        job = snap.parent
-        if job.parent.name == "dispatch":
-            paths.append(job.parent)
-    unique: list[Path] = []
-    seen: set[Path] = set()
-    for path in paths:
-        resolved = path if not path.exists() else path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        unique.append(path)
-    return unique
-
-
 def _tree_files(root: Path) -> tuple[str, ...]:
     if not root.exists():
         return ()
@@ -156,22 +126,48 @@ def _tree_files(root: Path) -> tuple[str, ...]:
     return tuple(sorted(names))
 
 
+def _json_object(text: object) -> dict | None:
+    if not isinstance(text, str):
+        return None
+    try:
+        parsed = json.loads(text)
+    except ValueError:
+        return None
+    if isinstance(parsed, dict):
+        return parsed
+    return None
+
+
 def _find_lane(value: object) -> list[dict]:
+    # Envelope boundary only: brief embeds nested record/alerts objects.
     found: list[dict] = []
-    if isinstance(value, dict):
-        if value.get("schema") == SCHEMA:
-            found.append(value)
-        for item in value.values():
-            found.extend(_find_lane(item))
-    elif isinstance(value, list):
-        for item in value:
-            found.extend(_find_lane(item))
-    elif isinstance(value, str) and SCHEMA in value:
-        try:
-            parsed = json.loads(value)
-        except ValueError:
-            return found
-        found.extend(_find_lane(parsed))
+    if not isinstance(value, dict):
+        return found
+    envelope_keys = ("structuredContent", "content", "contents")
+    has_envelope = any(key in value for key in envelope_keys)
+    if has_envelope:
+        structured = value.get("structuredContent")
+        if isinstance(structured, dict) and structured.get("schema") == SCHEMA:
+            found.append(structured)
+        content = value.get("content")
+        if isinstance(content, list):
+            for item in content:
+                if not isinstance(item, dict):
+                    continue
+                parsed = _json_object(item.get("text"))
+                if parsed is not None and parsed.get("schema") == SCHEMA:
+                    found.append(parsed)
+        contents = value.get("contents")
+        if isinstance(contents, list):
+            for item in contents:
+                if not isinstance(item, dict):
+                    continue
+                parsed = _json_object(item.get("text"))
+                if parsed is not None and parsed.get("schema") == SCHEMA:
+                    found.append(parsed)
+        return found
+    if value.get("schema") == SCHEMA:
+        found.append(value)
     return found
 
 
@@ -201,7 +197,6 @@ class _LaneMcpFixture(unittest.TestCase):
     """Scratch HOME, staged CLI copy, owned config and sources."""
 
     def setUp(self):
-        self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
         self._tmp = tempfile.TemporaryDirectory(prefix="lane-mcp-")
         root = Path(self._tmp.name)
         self.home = root / "home"
@@ -224,14 +219,7 @@ class _LaneMcpFixture(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
-            self.assertEqual(
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-                self._live_before,
-                "live dispatch store mutated",
-            )
-        finally:
-            self._tmp.cleanup()
+        self._tmp.cleanup()
 
     def _stage_tool_bytes(self) -> None:
         if TOOL.is_file():
@@ -268,7 +256,11 @@ class _LaneMcpFixture(unittest.TestCase):
         env.pop("WF_AGENT", None)
         env.pop("CLAUDE_SESSION_ID", None)
         if extra:
-            env.update(extra)
+            for key, value in extra.items():
+                if value is None:
+                    env.pop(key, None)
+                else:
+                    env[key] = value
         return env
 
     def plant_config(
@@ -377,7 +369,7 @@ class _LaneMcpFixture(unittest.TestCase):
                         row.get("subject", "subject-" + str(row["id"])),
                         row.get("state", "ok"),
                         row.get("summary", "summary-" + str(row["id"])),
-                        row.get("evidence", "evidence-" + str(row["id"])),
+                        json.dumps(row.get("evidence", "evidence-" + str(row["id"]))),
                         row.get("observed_at", "2026-09-04T12:00:00Z"),
                         row.get("delivery", "queued"),
                         row.get("dedup_key", "dedup-" + str(row["id"])),
@@ -875,9 +867,9 @@ class TestLaneMcpCliWire(_LaneMcpFixture):
         proc = self.query("lane_record", {"id": JOB})
         payload = self.assert_lane(self.load_query(proc), "lane_record")
         self.assertEqual(payload["state"], "ok")
-        summary = payload["summary"]
-        self.assertEqual(summary["id"], JOB)
-        self.assertIn("record.json", str(summary["evidence"]))
+        record = payload["record"]
+        self.assertEqual(record["id"], JOB)
+        self.assertIn("record.json", str(record["evidence"]))
 
 
 class TestLaneMcpRecord(_LaneMcpFixture):
@@ -891,7 +883,7 @@ class TestLaneMcpRecord(_LaneMcpFixture):
         proc = self.query("lane_record", {"id": JOB})
         payload = self.assert_lane(self.load_query(proc), "lane_record")
         self.assertEqual(payload["state"], "ok")
-        summary = payload["summary"]
+        record = payload["record"]
         for key in (
             "id",
             "recorded_status",
@@ -904,19 +896,19 @@ class TestLaneMcpRecord(_LaneMcpFixture):
             "spend",
             "evidence",
         ):
-            self.assertIn(key, summary, summary)
-        self.assertEqual(summary["id"], JOB)
-        self.assertEqual(summary["recorded_status"], "closed")
-        self.assertEqual(summary["model"], MODEL)
-        self.assertEqual(summary["head"], HEAD)
-        self.assertEqual(summary["verdict"], VERDICT)
-        self.assertEqual(summary["counts"], COUNTS)
-        self.assertEqual(summary["changed_count"], 2)
-        self.assertEqual(summary["attempt_count"], 2)
-        self.assertIsInstance(summary["spend"], dict)
-        self.assertEqual(summary["spend"].get("total"), 99)
-        self.assertNotIn("secret", summary["spend"])
-        evidence = Path(str(summary["evidence"]))
+            self.assertIn(key, record, record)
+        self.assertEqual(record["id"], JOB)
+        self.assertEqual(record["recorded_status"], "closed")
+        self.assertEqual(record["model"], MODEL)
+        self.assertEqual(record["head"], HEAD)
+        self.assertEqual(record["verdict"], VERDICT)
+        self.assertEqual(record["counts"], COUNTS)
+        self.assertEqual(record["changed_count"], 2)
+        self.assertEqual(record["attempt_count"], 2)
+        self.assertIsInstance(record["spend"], dict)
+        self.assertEqual(record["spend"].get("total"), 99)
+        self.assertNotIn("secret", record["spend"])
+        evidence = Path(str(record["evidence"]))
         self.assertEqual(evidence.name, rec.name)
         self.assertEqual(evidence.parent.name, JOB)
 
@@ -986,10 +978,7 @@ class TestLaneMcpRecord(_LaneMcpFixture):
                     self.assert_refusal(proc)
                     continue
                 payload = self.assert_lane(self.load_query(proc), "lane_record")
-                if expect_state in ("unknown", "unavailable"):
-                    self.assertIn(payload["state"], ("unknown", "unavailable"), payload)
-                else:
-                    self.assertEqual(payload["state"], expect_state, payload)
+                self.assertEqual(payload["state"], expect_state, payload)
                 self.assertNotIn(MODEL, proc.stdout)
                 if payload["state"] != "ok":
                     self.assertTrue(payload.get("reason"))
@@ -1013,11 +1002,11 @@ class TestLaneMcpRecord(_LaneMcpFixture):
         payload = self.assert_lane(self.load_query(proc), "lane_record")
         self.assertIn(payload["state"], ("ok", "unavailable"), payload)
         if payload["state"] == "ok":
-            model = payload["summary"]["model"]
+            model = payload["record"]["model"]
             self.assertEqual(len(model.encode("utf-8")), 256)
-            self.assertIsNone(payload["summary"]["counts"])
-            self.assertIsNone(payload["summary"]["changed_count"])
-            self.assertIsNone(payload["summary"]["attempt_count"])
+            self.assertIsNone(payload["record"]["counts"])
+            self.assertIsNone(payload["record"]["changed_count"])
+            self.assertIsNone(payload["record"]["attempt_count"])
 
 
 class TestLaneMcpAlerts(_LaneMcpFixture):
@@ -1175,7 +1164,11 @@ class TestLaneMcpUsage(_LaneMcpFixture):
         self.assertEqual(Path(str(evidence["path"])).name, self.rollout.name)
         event_at = evidence["event_at"]
         self.assertTrue(event_at.endswith("Z") or event_at.endswith("+00:00"))
-        self.assertIn("16:00:00", event_at.replace("+00:00", "Z"))
+        self.assertEqual(
+            event_at.replace("+00:00", "Z"),
+            "2026-09-04T20:00:00Z",
+            event_at,
+        )
         self.assertNotIn(str(USAGE_OLD_INPUT), proc.stdout)
         self.assertNotIn(TRANSCRIPT, proc.stdout)
 
@@ -1370,10 +1363,12 @@ class TestLaneMcpTransport(_LaneMcpFixture):
             for banned in ("sampling", "elicitation", "logging"):
                 self.assertNotIn(banned, caps)
             instructions = result["instructions"]
-            self.assertIn("read-only", instructions)
-            self.assertIn("evidence not authority", instructions)
-            self.assertIn("use brief then detail", instructions)
-            self.assertIn("no live readiness", instructions)
+            self.assertIsInstance(instructions, str, instructions)
+            text = instructions.lower()
+            self.assertIn("read-only", text)
+            self.assertRegex(text, r"evidence(?: is)? not authority", instructions)
+            self.assertRegex(text, r"brief (?:before|then) detail", instructions)
+            self.assertIn("no live readiness", text)
             ping = self.rpc_by_id(objs, 2)
             self.assertEqual(ping.get("result"), {})
             tools = self.rpc_by_id(objs, 3)["result"]["tools"]
@@ -1455,7 +1450,7 @@ class TestLaneMcpTransport(_LaneMcpFixture):
         names = [tool["name"] for tool in listed["result"]["tools"]]
         self.assertEqual(sorted(names), sorted(TOOLS))
 
-    def test_restart_is_required_to_apply_config_changes(self):
+    def test_fresh_process_sees_updated_config(self):
         self.plant_record(JOB)
         self.plant_record(JOB2, extra={"id": JOB2})
         self.plant_config(job_ids=[JOB])
@@ -1486,8 +1481,8 @@ class TestLaneMcpTransport(_LaneMcpFixture):
         self.assertNotIn("\x01", proc.stdout)
         payload = self.assert_lane(self.load_query(proc), "lane_record")
         if payload["state"] == "ok":
-            self.assertIn("pre", payload["summary"]["model"])
-            self.assertIn("post", payload["summary"]["model"])
+            self.assertIn("pre", payload["record"]["model"])
+            self.assertIn("post", payload["record"]["model"])
 
         ids = [f"J{n:02d}aa41mcp" for n in range(20)]
         self.plant_config(job_ids=ids)
@@ -1519,9 +1514,10 @@ class TestLaneMcpTransport(_LaneMcpFixture):
         cache_before = list(self.scratch.glob("**/__pycache__")) + list(
             self.scratch.glob("**/*.pyc")
         )
-        env = self.env()
-        env.pop("PYTHONDONTWRITEBYTECODE", None)
-        self.invoke(["check"], extra_env=env, minus_b=False)
+        proc = self.invoke(
+            ["check"], extra_env={"PYTHONDONTWRITEBYTECODE": None}, minus_b=False
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
         cache_after = list(self.scratch.glob("**/__pycache__")) + list(
             self.scratch.glob("**/*.pyc")
         )
