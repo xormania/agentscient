@@ -597,8 +597,8 @@ def _stream(job_dir, harness, session, snapshot, ref_sha, role="read"):
             ran = data.get("current_model_id")
             stream_id = (data.get("info") or {}).get("id")
             reported_head = data.get("head_commit")
-            expected_head = ref_sha
-            if reported_head and role == "write":
+            expected_heads = [ref_sha]
+            if role == "write":
                 local_head = _git(
                     snapshot, "rev-parse", "--verify", "HEAD^{commit}",
                     check=False,
@@ -611,11 +611,11 @@ def _stream(job_dir, harness, session, snapshot, ref_sha, role="read"):
                         f"head_commit unverified against expected ref {ref_sha}"
                     )
                 else:
-                    expected_head = local_head.stdout.strip()
+                    expected_heads.append(local_head.stdout.strip())
             if (reported_head and mismatch is None
-                    and reported_head != expected_head):
+                    and reported_head not in expected_heads):
                 mismatch = (
-                    f"head_commit mismatch: expected {expected_head}, "
+                    f"head_commit mismatch: expected {' or '.join(expected_heads)}, "
                     f"found {reported_head}; dispatched ref {ref_sha}"
                 )
         else:

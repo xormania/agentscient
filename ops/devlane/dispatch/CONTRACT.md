@@ -172,7 +172,7 @@ in `~/.codex/sessions` would report "no stream" and run unsupervised.
 |:--|:--|:--|:--|:--|:--|
 | claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `plan` | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
 | codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only`; check-tests exception below | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
-| grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `plan` | `auto` | policy, until an owner-named `--sandbox` profile is added to the row | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; read-role `head_commit` equals `snapshot.ref_sha`, while write-role `head_commit` equals the locally verified descendant `HEAD` |
+| grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `plan` | `auto` | policy, until an owner-named `--sandbox` profile is added to the row | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; read-role `head_commit` equals `snapshot.ref_sha`; write-role `head_commit` equals either that immutable ref or the actual local `HEAD`, which is always verified as its descendant; every other hash is rejected |
 
 **Proposed Codex check-tests alignment, for owner review — not an
 approved security guarantee.** The check-tests job remains role `read`,
