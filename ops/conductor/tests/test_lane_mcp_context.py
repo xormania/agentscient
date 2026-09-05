@@ -64,6 +64,7 @@ JOB_NAME_GRAMMAR = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
 JOB3 = "jobAa41mcp3"
 FINDINGS_PAGE_CAP = 8192
 QUERY_CAP = 16384
+SOURCE_CAP = 1024 * 1024
 FIT_FIELDS = ("reproduce", "claim", "where")
 PLACEHOLDERS = ("ref", "base", "diff", "into", "out", "inputs", "scope")
 LEAKS = (PROMPT, TRANSCRIPT, "raw.out")
@@ -1009,6 +1010,105 @@ class TestLaneMcpContextJobs(_V2Fixture):
         long_path = "p" * 1025
         self.plant_v2_config(job_registry=long_path)
         self.assert_refusal(self.invoke(["check"]), "config")
+
+    def test_lane_jobs_named_card_at_sixty_five_entries(self):
+        filler = {
+            "adapter": "harness",
+            "role": "read",
+            "snapshot": "whole",
+            "prompt": "{scope}",
+        }
+        jobs = {"author-tests": dict(DISPATCHABLE)}
+        for n in range(64):
+            jobs[f"job-{n:02d}"] = dict(filler)
+        self.assertEqual(len(jobs), 65)
+        expected = (json.dumps(jobs, indent=2) + "\n").encode("utf-8")
+        self.assertLess(len(expected), SOURCE_CAP)
+        self.assertLess(len(expected), QUERY_CAP)
+        planted = self.plant_registry(jobs)
+        landed = planted.read_bytes()
+        self.assertEqual(landed, expected)
+        self.assertEqual(len(landed), len(expected))
+        self.assertIn(b'"author-tests"', landed)
+        self.assertEqual(len(json.loads(landed)), 65)
+        self.plant_v2_config()
+
+        card = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {"name": "author-tests"})),
+            "lane_jobs",
+        )
+        self.assertEqual(card["state"], "ok")
+        self.assertIsNone(card["reason"])
+        self.assertEqual(card["jobs"], [])
+        self.assertEqual(
+            card["job"],
+            {
+                "name": "author-tests",
+                "adapter": "harness",
+                "role": "write",
+                "snapshot": "whole",
+                "dispatchable": True,
+                "slots": ["out", "ref", "scope"],
+                "deliverable": "a red test file",
+                "constraints": [
+                    "do not edit the implementation",
+                    "no network",
+                ],
+                "timeout": 1800,
+                "prompt_bytes": len(DISPATCHABLE["prompt"].encode("utf-8")),
+            },
+        )
+        self.assertNotIn("prompt", card["job"])
+        self.assertNotIn(DISPATCHABLE["prompt"], json.dumps(card))
+        self.assertEqual(card["evidence"]["path"], str(self.work / "jobs.json"))
+        self.assertEqual(card["evidence"]["revision"], revision_of(planted))
+        self.assertLessEqual(len(canonical_bytes(card)), QUERY_CAP)
+
+        proc = self.serve(
+            self.handshake(
+                [
+                    rpc(
+                        "tools/call",
+                        2,
+                        {
+                            "name": "lane_jobs",
+                            "arguments": {"name": "author-tests"},
+                        },
+                    ),
+                    rpc(
+                        "resources/read",
+                        3,
+                        {"uri": "lane://jobs/author-tests"},
+                    ),
+                ]
+            )
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        objs = self.rpc_objects(proc)
+        tool_payload = self.lane_from_rpc(self.rpc_by_id(objs, 2))
+        resource_payload = self.lane_from_rpc(self.rpc_by_id(objs, 3))
+        self.assertEqual(tool_payload, card)
+        self.assertEqual(resource_payload, card)
+
+        listing = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {})),
+            "lane_jobs",
+        )
+        self.assertEqual(listing["state"], "unavailable")
+        self.assertEqual(listing["reason"], "registry lists more than 64 jobs")
+        self.assertEqual(listing["jobs"], [])
+        self.assertIsNone(listing["job"])
+        self.assertLessEqual(len(canonical_bytes(listing)), QUERY_CAP)
+
+        missing = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {"name": "no-such-job"})),
+            "lane_jobs",
+        )
+        self.assertEqual(missing["state"], "ok")
+        self.assertIsNone(missing["job"])
+        self.assertEqual(missing["jobs"], [])
+        self.assertEqual(missing["reason"], "job is not declared in the registry")
+        self.assertLessEqual(len(canonical_bytes(missing)), QUERY_CAP)
 
 
 class TestLaneMcpContextMeta(_V2Fixture):
