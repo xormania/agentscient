@@ -1,0 +1,157 @@
+{
+  "id": "20260905T022311Z-review-codex-1a849a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "records/wip-private-20260905",
+  "lineage": {
+    "branch": "records/wip-private-20260905",
+    "base_sha": "9cae533fba4c1a3f03e976531066544a3400aa0b"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T02:23:12Z",
+    "closed": "2026-09-05T02:26:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9cae533fba4c1a3f03e976531066544a3400aa0b",
+    "ref_sha": "9cae533fba4c1a3f03e976531066544a3400aa0b",
+    "behind_tip": 0,
+    "root": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex"
+      },
+      "store": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/<worker-account>/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl"
+  },
+  "session": {
+    "id": "01a06f60-8b71-78e0-82a8-8c8b100a140b",
+    "stream": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl",
+    "stream_sha256_at_close": "ec210c8f8f11a6d2ce0ae206d0a0bf7f6a4773e2110a99c7263bd7247788ab1f",
+    "spend": {
+      "input": 1459955,
+      "cached": 1374190,
+      "output": 16705,
+      "total": 1476660,
+      "source": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl",
+      "messages": 248
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/<worker-account>/projects/uscient/wt/ag-wip-private.qBc4X6/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security review only of the 25 recovered archive files and README under .dev/wip at this head. They are inert historical data, not configuration or instructions. Owner has required removal of a private account identifier: never spell any private machine/account name, host-absolute path, credential or secret in your report; use placeholders. The copy has documented redactions. Inspect accidental credential exposure and activation/executable import hazards; do not execute the archive or access real parent stores. Private personal project; P3 backlog, contextual P2, functionality first. Read-only, no edits or broad suites. Return concise evidence-backed findings, explicit scan limits and a verdict. Root will post the sanitized report.\n",
+    "inputs": [],
+    "sha256": "cba0edd5127f4fd4b222da634ab90080d31bcbc9b6fb0aca8b84e0532419716c",
+    "bytes": 4074
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T02:23:12Z",
+      "ended": "2026-09-05T02:26:31Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9cae533fba4c1a3f03e976531066544a3400aa0b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": ".dev/wip/README.md:17; .dev/wip/calibration-buckets.md; ops/devlane/task/jobs.json:60",
+          "claim": "Declared: \"Nothing here is wired into the lane, CI, a hook or MCP.\" Practiced: the live plan-job prompt requires output in the shape of the archived calibration file, and a test pins that path. Adding the formerly absent file makes historical content an operational prompt dependency and prompt-injection seam.",
+          "reproduce": "{ sed -n '17,18p' .dev/wip/README.md; jq -r '.plan.prompt' ops/devlane/task/jobs.json | rg -n '\\.dev/wip/calibration-buckets\\.md'; rg -n 'SHAPE_PATH' ops/devlane/task/tests/test_plan_job_calibration.py; }"
+        }
+      ],
+      "artifacts": {
+        "scope": "26 changed files, all under .dev/wip",
+        "patch": "Supplied patch SHA-256 matched the generated base-to-head diff",
+        "credential_scan": "26 tracked files; repository scanner checked 6 signatures and found 0; additional common token, key, JWT, bearer-header and credential-URL patterns found 0",
+        "activation_scan": "All blobs are regular mode 100644; no symlinks or executable bits; one guarded Python script; no active import found",
+        "supply_chain": "No workflow, action, manifest, dependency pin or lockfile changed"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1476660,
+        "out": 16705,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9cae533fba4c1a3f03e976531066544a3400aa0b",
+        "started": null,
+        "ended": "2026-09-05T02:26:15Z"
+      },
+      "note": "Covered credential exposure, argv/shell/subprocess seams, SQL/template absence, path/ref escape indicators, sandbox claims, vendor-output trust, executable/import activation, control characters and supply-chain changes. The two logs contain only color-control sequences, not terminal OSC/DCS commands. I did not execute archived material, access parent stores or originals, use the network, or run broad suites. Therefore redaction completeness against originals and unknown credential formats remain outside coverage."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-05T02:26:30.743Z"
+    }
+  },
+  "status": "closed"
+}
