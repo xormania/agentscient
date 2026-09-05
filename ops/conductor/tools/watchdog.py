@@ -365,6 +365,7 @@ class Entry:
         self.state = state
         self.has_exit = has_exit
         self.error = None
+        self.from_closed_cache = False
         result = rec.get("result") if isinstance(rec.get("result"), dict) else {}
         envelope = result.get("envelope") if isinstance(result.get("envelope"), dict) else {}
         changed = result.get("changed_paths")
@@ -405,6 +406,7 @@ class Entry:
         compact.rec = {"status": self.summary_status}
         compact.state = {}
         compact.has_exit = self.has_exit
+        compact.from_closed_cache = False
         return compact
 
     def harness_alive(self):
@@ -448,9 +450,9 @@ def input_fingerprint(path):
     return tuple(fingerprint)
 
 
-def retained_size(root):
+def retained_size(root, *, exclude=()):
     """Account for a retained Python object graph without recursive descent."""
-    seen = set()
+    seen = {id(value) for value in exclude}
     pending = [root]
     total = 0
     while pending:
@@ -481,38 +483,103 @@ def retained_size(root):
 
 
 class ClosedCache(dict):
-    """Insertion-ordered LRU whose complete retained graph has a byte ceiling."""
+    """LRU bounded by a conservative retained-object-graph upper bound."""
+
+    _MISSING = object()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self._entry_sizes = {}
+        self._entry_bytes = 0
+        self._size_value_bytes = 0
+        self.update(*args, **kwargs)
 
     @property
-    def retained_bytes(self):
-        return retained_size(self)
+    def retained_upper_bound(self):
+        attribute_keys = sum(sys.getsizeof(key) for key in vars(self))
+        return (
+            sys.getsizeof(self)
+            + self._entry_bytes
+            + sys.getsizeof(vars(self))
+            + attribute_keys
+            + sys.getsizeof(self._entry_sizes)
+            + self._size_value_bytes
+            + sys.getsizeof(self._entry_bytes)
+            + sys.getsizeof(self._size_value_bytes)
+        )
+
+    def _drop(self, key):
+        entry_size = self._entry_sizes.pop(key)
+        self._entry_bytes -= entry_size
+        self._size_value_bytes -= sys.getsizeof(entry_size)
+        super().__delitem__(key)
+
+    def _trim(self):
+        while self and self.retained_upper_bound > CLOSED_CACHE_LIMIT:
+            self._drop(next(iter(self)))
 
     def get(self, key, default=None):
         if key not in self:
             return default
         value = super().pop(key)
         super().__setitem__(key, value)
+        self._trim()
         return value
 
     def __setitem__(self, key, value):
         if key in self:
-            super().__delitem__(key)
+            self._drop(key)
+        entry_size = retained_size((key, value), exclude=(self,))
         super().__setitem__(key, value)
-        while self and self.retained_bytes > CLOSED_CACHE_LIMIT:
-            super().__delitem__(next(iter(self)))
-        if not self and self.retained_bytes > CLOSED_CACHE_LIMIT:
-            super().clear()
+        self._entry_sizes[key] = entry_size
+        self._entry_bytes += entry_size
+        self._size_value_bytes += sys.getsizeof(entry_size)
+        self._trim()
+
+    def __delitem__(self, key):
+        self._drop(key)
+
+    def clear(self):
+        super().clear()
+        self._entry_sizes.clear()
+        self._entry_bytes = 0
+        self._size_value_bytes = 0
+
+    def pop(self, key, default=_MISSING):
+        if key in self:
+            value = super().__getitem__(key)
+            self._drop(key)
+            return value
+        if default is self._MISSING:
+            raise KeyError(key)
+        return default
+
+    def popitem(self):
+        if not self:
+            raise KeyError("popitem(): dictionary is empty")
+        key = next(reversed(self))
+        value = super().__getitem__(key)
+        self._drop(key)
+        return key, value
+
+    def setdefault(self, key, default=None):
+        if key in self:
+            return self.get(key)
+        self[key] = default
+        return default
+
+    def update(self, *args, **kwargs):
+        for key, value in dict(*args, **kwargs).items():
+            self[key] = value
+
+    def __ior__(self, other):
+        self.update(other)
+        return self
 
 
 def cache_closed(cache, name, fingerprint, entry):
     """Retain a closed reading only while the aggregate graph fits the budget."""
     cache[name] = (fingerprint, entry)
-    if isinstance(cache, ClosedCache):
-        return
-    while cache and retained_size(cache) > CLOSED_CACHE_LIMIT:
-        del cache[next(iter(cache))]
-    if not cache and retained_size(cache) > CLOSED_CACHE_LIMIT:
-        cache.clear()
 
 
 def entries(store, caps, closed_cache=None):
@@ -543,6 +610,7 @@ def entries(store, caps, closed_cache=None):
             fingerprint = input_fingerprint(d)
             cached = closed_cache.get(d.name) if closed_cache is not None else None
             if cached is not None and cached[0] == fingerprint:
+                cached[1].from_closed_cache = True
                 yield cached[1]
                 continue
             rec = _read_job_json(d, "record.json")
@@ -952,7 +1020,11 @@ class Watch:
                 self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
                 continue
             scan_ok = True
-            if e.kind != "closed" or self.closed_scanned.get(e.name) != e.fingerprint:
+            needs_scan = (
+                e.kind != "closed"
+                or self.closed_scanned.get(e.name) != e.fingerprint
+            )
+            if needs_scan:
                 try:
                     self.scan_deviations(e)
                 except InputUnavailable:
@@ -965,7 +1037,7 @@ class Watch:
             if e.kind == "closed":
                 if e.name not in self.startup_closed:
                     self.once(("closed", e.name), f"closed {e.name} {e.summary()} after {e.minutes(e.closed_at)} min")
-                if scan_ok:
+                if scan_ok and (needs_scan or not e.from_closed_cache):
                     cache_closed(
                         self.closed_cache,
                         e.name,

@@ -173,13 +173,20 @@ ratification and not a new conductor or automatic-remediation service.
   watched inputs include record, state, exit, copied plan and held logs.
   Startup must not parse every record twice just to make the first tick.
   Parsed closed readings are retained in an insertion-ordered LRU capped at
-  16 MiB for the complete cache object graph, measured from Python object
-  sizes rather than source-file bytes. After deviation scanning, only the
+  16 MiB by a conservative upper bound on the complete cache object graph,
+  based on Python object sizes rather than source-file bytes. Each new or
+  replaced entry is walked individually; its size is added to a maintained
+  aggregate along with current container and accounting-metadata overhead.
+  Objects shared between entries may be counted more than once, so the bound
+  is never presented as an exact retained-size measurement. Unchanged hits
+  only refresh LRU order: they do not rebuild or re-account the projection.
+  After deviation scanning, only the
   compact fields needed for unchanged closed classification and its line are
   retained. An entry that cannot fit is left uncached and is re-read on the
   next tick; it is never classified unavailable for exceeding the cache
-  budget. Accounting walks object graphs iteratively, deduplicates shared or
-  cyclic references, and therefore does not recurse on deeply nested data.
+  budget. Per-entry accounting walks object graphs iteratively, deduplicates
+  shared or cyclic references within that entry, and therefore does not
+  recurse on deeply nested data or traverse the whole cache on update.
   Enumeration and parsing are per job rather than accumulated as one list.
   Eviction never clears notification keys or the last-scanned fingerprint:
   re-read preserves once-per-condition behavior, while an amended fingerprint
