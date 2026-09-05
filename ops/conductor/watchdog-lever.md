@@ -39,7 +39,8 @@ Grok's review of the first cut (record
 | a watched input that cannot be read safely (including a directory, device, symlink, permission failure, or oversized file) | error: `deviation unavailable` and a sanitized watchdog error line, once per record; the scan goes on |
 | `record.json` status `closed` or `died` | closed |
 | an `exit` file and a record not yet closed | settling: the harness exited, the launcher has not collected |
-| otherwise | running |
+| otherwise, with no usable worker PID | unobservable: cannot establish worker liveness |
+| otherwise | running candidate, subject to the live-worker check below |
 
 The `exit` file alone is never read as closed: the launcher writes it
 before it settles the record.
@@ -57,6 +58,10 @@ reported unless `--report-existing`.
   `state.json`'s pid is not a live process whose command line carries
   the harness name (a reused pid is not the worker; EPERM is alive).
   The record is then never counted as running.
+- An `unobservable <id>` line reports missing or unusable worker identity.
+  That job is excluded from running counts and long-running warnings. Later
+  ticks reread worker state and may establish a live worker; missing state is
+  not a permanently cached judgment.
 - `exit written, not collected <id>: <k> min since exit, record still <status>`
   — after the record has been settling for two ticks.
 - `long <id>: <m> min running, wall <w> min` — at the warn fraction of
@@ -66,6 +71,9 @@ reported unless `--report-existing`.
 - `launchers fewer than running records: <L> launch.py processes, <R> running (heuristic: ...)`
   — once per (L, R) pair; a heuristic, and named as one, because the
   record does not carry its launcher's pid (fix scope item 32).
+  The census accepts a Python 3 executable named directly or by an absolute
+  executable path, including versioned python3.N; its pgrep expression is
+  POSIX ERE, not Python-only regular-expression syntax.
 - `ci <fail|cancel> #<pr> at <sha>: <check>` — the head's full sha; once
   per pull request head and check name; every failing or cancelled
   check, not the first.
