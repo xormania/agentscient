@@ -55,10 +55,14 @@ a commit.
 ## The wall, here
 
 `ops/devlane/workflow/checks/term_wall.py` refuses names this
-repository does not carry in its **tree**: content and paths. The
-pattern is configuration, never tree content — the repository
-variable `TERM_WALL` in CI, the gitignored `ops/bin/term-wall.conf`
-locally — and an absent pattern is a refusal, never a pass.
+repository does not carry in its **authored tree**: content and every
+tracked path. Content scanning excludes captured data under `.dev/wip/`
+except its authored `README.md`, and direct JSON captures under
+`.dev/records/dispatches/`; the scanner only reads and never rewrites
+those captures. The pattern is configuration, never tree content — the
+repository variable `TERM_WALL` in CI, the gitignored
+`ops/bin/term-wall.conf` locally — and an absent pattern is a refusal,
+never a pass.
 
 Commit messages and pull-request text are **exempt** in this
 repository, unlike the organisation this check came from: `AGENTS.md`
