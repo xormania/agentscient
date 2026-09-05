@@ -16,8 +16,11 @@ Grok's review of the first cut (record
   A store that is not a directory is refusal class `store`.
 - Per job directory: `record.json` (the record copy), `state.json`
   (the harness pid), the `exit` file and its mtime, the copied
-  `in/plan.md` (falling back to `brief.scope`), and held `stdout`,
-  `stderr`, and `launcher.log` text.
+  `in/plan.md` (falling back to `brief.scope`), and held `raw.out`,
+  `stdout`, `stderr`, and `launcher.log` text. Per-job targets are opened without
+  following the job directory, intermediate directories, or file symlinks;
+  each must be a regular file no larger than 64 MiB. A held file is scanned
+  only through the extent measured when it was opened.
 - Ladder records: JSON files in the state root's sibling `ladders/`
   directory.
 - The job caps: the record's `caps.timeout`, else the job's
@@ -33,7 +36,7 @@ Grok's review of the first cut (record
 | on disk | kind |
 |:--|:--|
 | no `record.json`, or one that is not a JSON object | no-copy: cannot judge; said once, never inferred |
-| a `record.json` or `state.json` that cannot be read (a directory in its place, a permission) | error: the watchdog error line, once per record and error type; the scan goes on |
+| a watched input that cannot be read safely (including a directory, device, symlink, permission failure, or oversized file) | error: `deviation unavailable` and a sanitized watchdog error line, once per record; the scan goes on |
 | `record.json` status `closed` or `died` | closed |
 | an `exit` file and a record not yet closed | settling: the harness exited, the launcher has not collected |
 | otherwise | running |
@@ -97,6 +100,10 @@ suppressed at startup. Each matching comparison prints once per record:
   output reports `errored` or an `errors=` count above zero.
 - `deviation refused <id>` — held launcher text starts a refusal line
   with `empty-comparison`, `scope-cap`, `conf-key`, or `toolchain`.
+- `deviation unavailable <id>` — a per-job input is unreadable, symlinked,
+  non-regular, over 64 MiB, or changes to such a target while being opened.
+  The file path, contents, and operating-system detail are not printed; later
+  records and the heartbeat are still read.
 - `deviation retry <id>` — a ladder is stopped or has a stage attempt
   above one.
 - `deviation minutes <id>` — elapsed minutes are more than four times
@@ -133,3 +140,81 @@ recurring failure class, and "closed ok but landed nothing" remain work
 for the reporting model of idea I-017. The watchdog names only the
 mechanical deviations and their record ids; the conductor decides what
 to do about them.
+
+## Proposed efficiency update — dev-lane first
+
+Owner request, 2026-09-04: optimize watchdog and minimize conductor
+context/GitHub usage; dev-lane machinery comes before framework work.
+This is a declared draft coupling for the current instrument, not owner
+ratification and not a new conductor or automatic-remediation service.
+
+- Add `--forge-every N` (default 1), a positive integer, refused as
+  `arguments` otherwise. The forge is read on tick 1 and every N ticks
+  thereafter; local worker classification still runs each tick. Between
+  forge readings the heartbeat explicitly labels the retained count as
+  cached, with the tick it was measured on; cached/unreachable/not-watched
+  are distinct. No model call is involved.
+- Bound the entire forge reading, including the list and all per-PR checks,
+  to one 10-second monotonic deadline; each command receives only the time
+  remaining. Bound each subprocess's combined captured stdout and stderr to
+  1 MiB, and never forward either transcript. List with an explicit limit
+  of 200; exactly 200 rows means `200+ (page full, total unmeasured)`,
+  not an exact total. Unavailable or malformed forge output stays
+  unavailable, never an empty successful listing. Once the deadline is
+  exhausted, every unvisited PR is explicitly checks-unreachable. Head ids
+  must be 40- or 64-digit hexadecimal SHAs; check buckets are the known
+  pass/fail/pending/skipping/cancel set; check names are limited to 512 UTF-8
+  bytes and control characters are escaped before printing. Existing CI
+  notification identity and once-per-head/check behavior remain unchanged.
+- Avoid repeated closed-record JSON/log/deviation reads when their
+  inputs have not changed. Invalidate on replacement, size/mtime change,
+  deletion, late output, resume or collection. A closed record is not
+  immutable. Read errors must be retried, never cached as success. The
+  watched inputs include record, state, exit, copied plan and held logs.
+  Startup must not parse every record twice just to make the first tick.
+  Parsed closed readings are retained in an insertion-ordered LRU capped at
+  16 MiB by a conservative upper bound on the complete cache object graph,
+  based on Python object sizes rather than source-file bytes. Each new or
+  replaced entry is walked individually; its size is added to a maintained
+  aggregate along with current container and accounting-metadata overhead.
+  Objects shared between entries may be counted more than once, so the bound
+  is never presented as an exact retained-size measurement. Unchanged hits
+  only refresh LRU order: they do not rebuild or re-account the projection.
+  After deviation scanning, only the
+  compact fields needed for unchanged closed classification and its line are
+  retained. An entry that cannot fit is left uncached and is re-read on the
+  next tick; it is never classified unavailable for exceeding the cache
+  budget. Per-entry accounting walks object graphs iteratively, deduplicates
+  shared or cyclic references within that entry, and therefore does not
+  recurse on deeply nested data or traverse the whole cache on update.
+  Enumeration and parsing are per job rather than accumulated as one list.
+  Eviction never clears notification keys or the last-scanned fingerprint:
+  re-read preserves once-per-condition behavior, while an amended fingerprint
+  is scanned again and can report a newly introduced deviation.
+- Treat `raw.out` as the launcher's actual held stdout, alongside a
+  legacy `stdout` file. Search held output without loading whole growing
+  transcripts into memory or printing them; an append after open is deferred
+  to the next mutation-sensitive scan, while a file above the declared bound
+  is explicitly unavailable rather than silently truncated. Preserve
+  the existing lexical deviation definitions, not inferred model intent.
+- A store-directory enumeration failure reaches the existing watchdog
+  error line and tick guard; it is not a successful zero-job reading.
+
+Unchanged: historical deviations are still reported, the current period
+is work plus sleep, missing PID is not declared dead, launcher counting
+remains a labeled heuristic, and this instrument writes no state. Those
+separate semantic changes are not smuggled into an efficiency fix.
+
+The cache, notification-key set, and last-scanned fingerprints live only for
+the watchdog process. The 16 MiB ceiling covers the cache; notification and
+fingerprint metadata remain O(number of jobs and emitted conditions), because
+forgetting them would break once and mutation semantics. During a tick, the
+running-job list retains the parsed record and state for every active job until
+launcher and heartbeat reporting, so this transient payload is O(active jobs),
+with each source bounded at 64 MiB. Copied-plan parsing and accounting work are
+transient for one entry at a time. None is inside the retained-cache ceiling.
+
+Verification boundary: existing `test_watchdog.py` behavior stays covered;
+focused additional probes must distinguish unchanged versus amended
+closed records, unreadable store versus empty store, cached versus fresh
+forge readings, a full page, and errors spanning an output-read boundary.

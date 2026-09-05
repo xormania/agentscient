@@ -15,13 +15,18 @@ report of a crash.
 from __future__ import annotations
 
 import argparse
+import codecs
+import contextlib
 import json
 import os
 import re
+import selectors
 import shutil
+import stat as stat_mode
 import subprocess
 import sys
 import time
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -33,7 +38,14 @@ JOBS_JSON_CANDIDATES = (
 TERMINAL = {"closed", "died"}
 DEFAULT_TICK = 300.0
 DEFAULT_HEARTBEAT = 6
+DEFAULT_FORGE_EVERY = 1
 DEFAULT_WARN_FRACTION = 2 / 3
+FORGE_LIMIT = 200
+FORGE_TIMEOUT = 10
+JOB_INPUT_LIMIT = 64 * 1024 * 1024
+PROCESS_OUTPUT_LIMIT = 1024 * 1024
+CLOSED_CACHE_LIMIT = 16 * 1024 * 1024
+CHECK_NAME_LIMIT = 512
 FALLBACK_WARN_MIN = 40
 SETTLING_TICKS = 2
 ASSUMPTION_WORDS = (
@@ -45,6 +57,15 @@ ASSUMPTION_WORDS = (
 )
 LOCK_FILES = ("composer.lock", "Cargo.lock", "requirements.lock", "symfony.lock")
 REFUSAL_CLASSES = ("empty-comparison", "scope-cap", "conf-key", "toolchain")
+ERROR_TEXT_RE = re.compile(
+    r"\berrored\b|\berrors\s*=\s*[1-9]\d*\b",
+    re.IGNORECASE,
+)
+REFUSAL_BYTES_RE = re.compile(
+    rb"(?m)^\s*(?:" + b"|".join(
+        re.escape(item).encode() for item in REFUSAL_CLASSES
+    ) + rb"):"
+)
 BUCKET_LIMITS = {
     "S": {"files": 3, "lines": 2_000},
 }
@@ -54,6 +75,8 @@ CALIBRATION_MINUTES = {
     "S": {"implement": 4, "author-tests": 21, "check-tests": 10},
 }
 ROUND_JOBS = {"implement", "author-tests"}
+CHECK_BUCKETS = {"pass", "fail", "pending", "skipping", "cancel"}
+SHA_RE = re.compile(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})\Z")
 
 
 def _laneconf():
@@ -126,6 +149,100 @@ def stamp_of(name):
         return None
 
 
+class InputUnavailable(OSError):
+    """A per-job input exists but cannot produce a safe reading."""
+
+
+class InitialExtent:
+    """A binary stream capped at the regular file's size when opened."""
+
+    def __init__(self, stream, size):
+        self.stream = stream
+        self.remaining = size
+
+    def read(self, size=-1):
+        if self.remaining <= 0:
+            return b""
+        amount = self.remaining if size < 0 else min(size, self.remaining)
+        chunk = self.stream.read(amount)
+        self.remaining -= len(chunk)
+        return chunk
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback):
+        self.stream.close()
+
+
+def _open_directory(path, *, dir_fd=None):
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NONBLOCK
+    flags |= getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        return os.open(path, flags, dir_fd=dir_fd)
+    except FileNotFoundError:
+        raise
+    except OSError:
+        raise InputUnavailable("job input unavailable") from None
+
+
+def _open_job_file(job_path, relative):
+    """Open a bounded regular file beneath a no-follow job directory."""
+    parts = Path(relative).parts
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise InputUnavailable("job input unavailable")
+    directories = []
+    file_fd = None
+    try:
+        directories.append(_open_directory(job_path))
+        for part in parts[:-1]:
+            directories.append(_open_directory(part, dir_fd=directories[-1]))
+        flags = os.O_RDONLY | os.O_NONBLOCK
+        flags |= getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            file_fd = os.open(parts[-1], flags, dir_fd=directories[-1])
+        except FileNotFoundError:
+            raise
+        except OSError:
+            raise InputUnavailable("job input unavailable") from None
+        file_stat = os.fstat(file_fd)
+        if (
+            not stat_mode.S_ISREG(file_stat.st_mode)
+            or file_stat.st_size > JOB_INPUT_LIMIT
+        ):
+            raise InputUnavailable("job input unavailable")
+        stream = os.fdopen(file_fd, "rb")
+        file_fd = None
+        return InitialExtent(stream, file_stat.st_size), file_stat
+    except FileNotFoundError:
+        raise
+    except InputUnavailable:
+        raise
+    except OSError:
+        raise InputUnavailable("job input unavailable") from None
+    finally:
+        if file_fd is not None:
+            os.close(file_fd)
+        for directory in reversed(directories):
+            os.close(directory)
+
+
+def _read_job_text(job_path, relative):
+    stream, _ = _open_job_file(job_path, relative)
+    with stream:
+        return stream.read().decode("utf-8", "replace")
+
+
+def _read_job_json(job_path, relative):
+    try:
+        data = json.loads(_read_job_text(job_path, relative))
+    except FileNotFoundError:
+        return None
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def read_json(path):
     """A dict, or None when the file is absent or not a JSON object. Any
     other failure to read (a directory in its place, a permission) is
@@ -180,17 +297,61 @@ def process_alive(pid, expect_word):
     return True
 
 
-def run(argv):
+def run(argv, timeout=90):
     """Stdout of a subprocess, or None when it could not be run or
-    exited non-zero. Executables are resolved to full paths first."""
+    exited non-zero. Capture is bounded and never forwarded."""
     exe = shutil.which(argv[0])
     if exe is None:
         return None
+    process = None
+    selector = selectors.DefaultSelector()
+    stdout = []
+    captured = 0
+    deadline = time.monotonic() + max(0, timeout)
     try:
-        result = subprocess.run([exe, *argv[1:]], capture_output=True, text=True, timeout=90, check=False)
-    except (OSError, subprocess.SubprocessError):
+        process = subprocess.Popen(
+            [exe, *argv[1:]],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        for stream, name in ((process.stdout, "stdout"), (process.stderr, "stderr")):
+            selector.register(stream, selectors.EVENT_READ, name)
+        while selector.get_map():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None
+            events = selector.select(remaining)
+            if not events:
+                return None
+            for key, _ in events:
+                chunk = os.read(key.fd, 64 * 1024)
+                if not chunk:
+                    selector.unregister(key.fileobj)
+                    continue
+                captured += len(chunk)
+                if captured > PROCESS_OUTPUT_LIMIT:
+                    return None
+                if key.data == "stdout":
+                    stdout.append(chunk)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        returncode = process.wait(timeout=remaining)
+        if returncode != 0:
+            return None
+        return b"".join(stdout).decode("utf-8")
+    except (OSError, subprocess.SubprocessError, UnicodeError):
         return None
-    return result.stdout if result.returncode == 0 else None
+    finally:
+        selector.close()
+        if process is not None:
+            if process.poll() is None:
+                process.kill()
+            for stream in (process.stdout, process.stderr):
+                if stream is not None:
+                    stream.close()
+            with contextlib.suppress(subprocess.SubprocessError):
+                process.wait(timeout=max(0, deadline - time.monotonic()))
 
 
 class Entry:
@@ -204,6 +365,13 @@ class Entry:
         self.state = state
         self.has_exit = has_exit
         self.error = None
+        self.from_closed_cache = False
+        result = rec.get("result") if isinstance(rec.get("result"), dict) else {}
+        envelope = result.get("envelope") if isinstance(result.get("envelope"), dict) else {}
+        changed = result.get("changed_paths")
+        self.summary_status = rec.get("status")
+        self.summary_envelope = envelope.get("status")
+        self.summary_changed = len(changed) if isinstance(changed, list) else "unknown"
         at = rec.get("at") if isinstance(rec.get("at"), dict) else {}
         self.launched = parse_stamp(at.get("launched")) or stamp_of(self.name)
         self.closed_at = parse_stamp(at.get("closed"))
@@ -224,11 +392,22 @@ class Entry:
         return int((end - self.launched).total_seconds() // 60)
 
     def summary(self):
-        res = self.rec.get("result") if isinstance(self.rec.get("result"), dict) else {}
-        env = res.get("envelope") if isinstance(res.get("envelope"), dict) else {}
-        changed = res.get("changed_paths")
-        n = len(changed) if isinstance(changed, list) else "unknown"
-        return f"status={self.rec.get('status')} env={env.get('status')} changed={n}"
+        return f"status={self.summary_status} env={self.summary_envelope} changed={self.summary_changed}"
+
+    def closed_projection(self):
+        """The fields a previously scanned, unchanged closed job still needs."""
+        compact = object.__new__(Entry)
+        for name in (
+            "path", "name", "kind", "error", "launched", "closed_at", "job",
+            "harness", "wall_min", "fingerprint", "exit_mtime", "summary_status",
+            "summary_envelope", "summary_changed",
+        ):
+            setattr(compact, name, getattr(self, name))
+        compact.rec = {"status": self.summary_status}
+        compact.state = {}
+        compact.has_exit = self.has_exit
+        compact.from_closed_cache = False
+        return compact
 
     def harness_alive(self):
         pid = self.state.get("pid")
@@ -237,22 +416,215 @@ class Entry:
         return process_alive(pid, self.harness)
 
 
-def entries(store, caps):
-    out = []
-    try:
-        dirs = sorted(p for p in store.iterdir() if p.is_dir())
-    except OSError:
-        return out
+WATCHED_INPUTS = (
+    "record.json",
+    "state.json",
+    "exit",
+    "in/plan.md",
+    "raw.out",
+    "stdout",
+    "stderr",
+    "launcher.log",
+)
+
+
+def input_fingerprint(path):
+    """Mutation-sensitive metadata for every input used by a closed scan."""
+    fingerprint = []
+    for name in WATCHED_INPUTS:
+        try:
+            stream, file_stat = _open_job_file(path, name)
+        except FileNotFoundError:
+            fingerprint.append((name, None))
+            continue
+        stream.stream.close()
+        fingerprint.append((
+            name,
+            file_stat.st_dev,
+            file_stat.st_ino,
+            file_stat.st_mode,
+            file_stat.st_size,
+            file_stat.st_mtime_ns,
+            file_stat.st_ctime_ns,
+        ))
+    return tuple(fingerprint)
+
+
+def retained_size(root, *, exclude=()):
+    """Account for a retained Python object graph without recursive descent."""
+    seen = {id(value) for value in exclude}
+    pending = [root]
+    total = 0
+    while pending:
+        value = pending.pop()
+        identity = id(value)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        total += sys.getsizeof(value)
+        if isinstance(value, dict):
+            for key, item in value.items():
+                pending.append(key)
+                pending.append(item)
+        elif isinstance(value, (list, tuple, set, frozenset)):
+            pending.extend(value)
+        elif hasattr(value, "__dict__"):
+            pending.append(vars(value))
+        for cls in type(value).__mro__:
+            slots = getattr(cls, "__slots__", ())
+            if isinstance(slots, str):
+                slots = (slots,)
+            for slot in slots:
+                if slot in {"__dict__", "__weakref__"}:
+                    continue
+                with contextlib.suppress(AttributeError):
+                    pending.append(getattr(value, slot))
+    return total
+
+
+class ClosedCache(dict):
+    """LRU bounded by a conservative retained-object-graph upper bound."""
+
+    _MISSING = object()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self._entry_sizes = {}
+        self._entry_bytes = 0
+        self._size_value_bytes = 0
+        self.update(*args, **kwargs)
+
+    @property
+    def retained_upper_bound(self):
+        attribute_keys = sum(sys.getsizeof(key) for key in vars(self))
+        return (
+            sys.getsizeof(self)
+            + self._entry_bytes
+            + sys.getsizeof(vars(self))
+            + attribute_keys
+            + sys.getsizeof(self._entry_sizes)
+            + self._size_value_bytes
+            + sys.getsizeof(self._entry_bytes)
+            + sys.getsizeof(self._size_value_bytes)
+        )
+
+    def _drop(self, key):
+        entry_size = self._entry_sizes.pop(key)
+        self._entry_bytes -= entry_size
+        self._size_value_bytes -= sys.getsizeof(entry_size)
+        super().__delitem__(key)
+
+    def _trim(self):
+        while self and self.retained_upper_bound > CLOSED_CACHE_LIMIT:
+            self._drop(next(iter(self)))
+
+    def get(self, key, default=None):
+        if key not in self:
+            return default
+        value = super().pop(key)
+        super().__setitem__(key, value)
+        self._trim()
+        return value
+
+    def __setitem__(self, key, value):
+        if key in self:
+            self._drop(key)
+        entry_size = retained_size((key, value), exclude=(self,))
+        super().__setitem__(key, value)
+        self._entry_sizes[key] = entry_size
+        self._entry_bytes += entry_size
+        self._size_value_bytes += sys.getsizeof(entry_size)
+        self._trim()
+
+    def __delitem__(self, key):
+        self._drop(key)
+
+    def clear(self):
+        super().clear()
+        self._entry_sizes.clear()
+        self._entry_bytes = 0
+        self._size_value_bytes = 0
+
+    def pop(self, key, default=_MISSING):
+        if key in self:
+            value = super().__getitem__(key)
+            self._drop(key)
+            return value
+        if default is self._MISSING:
+            raise KeyError(key)
+        return default
+
+    def popitem(self):
+        if not self:
+            raise KeyError("popitem(): dictionary is empty")
+        key = next(reversed(self))
+        value = super().__getitem__(key)
+        self._drop(key)
+        return key, value
+
+    def setdefault(self, key, default=None):
+        if key in self:
+            return self.get(key)
+        self[key] = default
+        return default
+
+    def update(self, *args, **kwargs):
+        for key, value in dict(*args, **kwargs).items():
+            self[key] = value
+
+    def __ior__(self, other):
+        self.update(other)
+        return self
+
+
+def cache_closed(cache, name, fingerprint, entry):
+    """Retain a closed reading only while the aggregate graph fits the budget."""
+    cache[name] = (fingerprint, entry)
+
+
+def entries(store, caps, closed_cache=None):
+    errors = []
+    dirs = []
+    for path in store.iterdir():
+        try:
+            path_stat = path.stat(follow_symlinks=False)
+        except OSError as exc:
+            if closed_cache is not None:
+                closed_cache.pop(path.name, None)
+            entry = Entry(path, "error", {}, {}, False, caps)
+            entry.error = exc
+            entry.fingerprint = None
+            errors.append(entry)
+            continue
+        if stat_mode.S_ISDIR(path_stat.st_mode) or stat_mode.S_ISLNK(path_stat.st_mode):
+            dirs.append(path)
+    dirs.sort()
+    present = {path.name for path in dirs}
+    present.update(entry.name for entry in errors)
+    if closed_cache is not None:
+        for name in set(closed_cache) - present:
+            del closed_cache[name]
+    yield from errors
     for d in dirs:
         try:
-            rec = read_json(d / "record.json")
-            state = read_json(d / "state.json") or {}
+            fingerprint = input_fingerprint(d)
+            cached = closed_cache.get(d.name) if closed_cache is not None else None
+            if cached is not None and cached[0] == fingerprint:
+                cached[1].from_closed_cache = True
+                yield cached[1]
+                continue
+            rec = _read_job_json(d, "record.json")
+            state = _read_job_json(d, "state.json") or {}
         except OSError as exc:
+            if closed_cache is not None:
+                closed_cache.pop(d.name, None)
             entry = Entry(d, "error", {}, {}, False, caps)
             entry.error = exc
-            out.append(entry)
+            entry.fingerprint = None
+            yield entry
             continue
-        has_exit = (d / "exit").is_file()
+        exit_row = next(row for row in fingerprint if row[0] == "exit")
+        has_exit = exit_row[1] is not None
         if rec is None:
             kind = "no-copy"
         elif rec.get("status") in TERMINAL:
@@ -261,8 +633,15 @@ def entries(store, caps):
             kind = "settling"
         else:
             kind = "running"
-        out.append(Entry(d, kind, rec or {}, state, has_exit, caps))
-    return out
+        entry = Entry(d, kind, rec or {}, state, has_exit, caps)
+        entry.fingerprint = fingerprint
+        entry.exit_mtime = exit_row[5] / 1_000_000_000 if has_exit else None
+        if closed_cache is not None:
+            if kind == "closed":
+                cache_closed(closed_cache, d.name, fingerprint, entry)
+            else:
+                closed_cache.pop(d.name, None)
+        yield entry
 
 
 def text_values(value):
@@ -280,7 +659,7 @@ def text_values(value):
 def bucket_from(entry):
     """The first bucket line in the copied plan, or in the record scope."""
     try:
-        plan = (entry.path / "in" / "plan.md").read_text(encoding="utf-8")
+        plan = _read_job_text(entry.path, "in/plan.md")
     except FileNotFoundError:
         brief = entry.rec.get("brief")
         plan = brief.get("scope") if isinstance(brief, dict) else None
@@ -298,12 +677,185 @@ def held_text(entry, names):
     chunks = []
     for name in names:
         try:
-            chunks.append((entry.path / name).read_text(
-                encoding="utf-8", errors="replace"
-            ))
+            chunks.append(_read_job_text(entry.path, name))
         except FileNotFoundError:
             continue
     return "\n".join(chunks)
+
+
+def _is_word(char):
+    return char == "_" or char.isalnum()
+
+
+def _is_digit(char):
+    return char.isdecimal()
+
+
+def _error_stream_matches(stream):
+    """Match ERROR_TEXT_RE with bounded state over incrementally decoded text."""
+    decoder = codecs.getincrementaldecoder("utf-8")("replace")
+    stem = "error"
+    stem_at = 0
+    count_state = 0
+    errored_pending = False
+    previous = None
+
+    def consume(text):
+        nonlocal stem_at, count_state, errored_pending, previous
+        for char in text:
+            word = _is_word(char)
+            if errored_pending:
+                if not word:
+                    return True
+                errored_pending = False
+
+            if count_state == 1:
+                if char.isspace():
+                    pass
+                elif char == "=":
+                    count_state = 2
+                else:
+                    count_state = 0
+            elif count_state == 2:
+                if char.isspace():
+                    pass
+                elif char in "123456789":
+                    count_state = 3
+                else:
+                    count_state = 0
+            elif count_state == 3:
+                if _is_digit(char):
+                    pass
+                elif not word:
+                    return True
+                else:
+                    count_state = 0
+
+            folded = char.casefold()
+            if stem_at < len(stem):
+                if folded == stem[stem_at]:
+                    if stem_at or previous is None or not _is_word(previous):
+                        stem_at += 1
+                    else:
+                        stem_at = 0
+                else:
+                    stem_at = (
+                        1
+                        if folded == "e"
+                        and (previous is None or not _is_word(previous))
+                        else 0
+                    )
+            elif stem_at == len(stem):
+                if folded == "s":
+                    count_state = 1
+                    stem_at = 0
+                elif folded == "e":
+                    stem_at += 1
+                else:
+                    stem_at = 0
+            elif folded == "d":
+                errored_pending = True
+                stem_at = 0
+            else:
+                stem_at = (
+                    1
+                    if folded == "e"
+                    and (previous is None or not _is_word(previous))
+                    else 0
+                )
+            previous = char
+        return False
+
+    while chunk := stream.read(64 * 1024):
+        if consume(decoder.decode(chunk)):
+            return True
+    if consume(decoder.decode(b"", final=True)):
+        return True
+    return errored_pending or count_state == 3
+
+
+def _refusal_stream_matches(stream):
+    """Match REFUSAL_BYTES_RE with bounded state, including long whitespace."""
+    tokens = tuple(f"{item}:".encode() for item in REFUSAL_CLASSES)
+    prefix = bytearray()
+    at_line_start = True
+    whitespace = b" \t\n\r\v\f"
+    while chunk := stream.read(64 * 1024):
+        for byte in chunk:
+            if not at_line_start and not prefix:
+                if byte == ord("\n"):
+                    at_line_start = True
+                continue
+            if at_line_start and not prefix and byte in whitespace:
+                continue
+            prefix.append(byte)
+            candidates = [token for token in tokens if token.startswith(prefix)]
+            if any(len(prefix) == len(token) for token in candidates):
+                return True
+            if not candidates:
+                at_line_start = byte == ord("\n")
+                prefix.clear()
+            else:
+                at_line_start = False
+    return False
+
+
+def held_matches(entry, names, matcher):
+    """Search bounded initial extents of no-follow regular held files."""
+    for name in names:
+        try:
+            stream, _ = _open_job_file(entry.path, name)
+            with stream:
+                if matcher(stream):
+                    return True
+        except FileNotFoundError:
+            continue
+    return False
+
+
+def _event_name(value):
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        encoded = value.encode("utf-8")
+    except UnicodeError:
+        return None
+    if len(encoded) > CHECK_NAME_LIMIT:
+        return None
+    safe = []
+    for char in value:
+        code = ord(char)
+        if unicodedata.category(char).startswith("C") or char in {"\u2028", "\u2029"}:
+            if char == "\n":
+                safe.append(r"\n")
+            elif char == "\r":
+                safe.append(r"\r")
+            elif char == "\t":
+                safe.append(r"\t")
+            elif code <= 0xFFFF:
+                safe.append(f"\\u{code:04x}")
+            else:
+                safe.append(f"\\U{code:08x}")
+        else:
+            safe.append(char)
+    return "".join(safe)
+
+
+def _check_rows(rows):
+    if not isinstance(rows, list):
+        return None
+    normalized = []
+    for row in rows:
+        if not isinstance(row, dict):
+            return None
+        bucket = row.get("bucket")
+        if not isinstance(bucket, str) or bucket not in CHECK_BUCKETS:
+            return None
+        name = _event_name(row.get("name"))
+        if name is None:
+            return None
+        normalized.append((name, bucket))
+    return normalized
 
 
 class Watch:
@@ -317,9 +869,20 @@ class Watch:
         self.launcher_pairs = set()
         self.ci_seen = set()
         self.startup_closed = set()
+        self.closed_cache = ClosedCache()
+        self.closed_scanned = {}
+        self.forge_reading = None
+        self.forge_tick = None
+        self.startup_error = None
         self.deviations = 0
-        if not args.report_existing:
-            self.startup_closed = {e.name for e in entries(args.store, self.caps) if e.kind == "closed"}
+        try:
+            initial = entries(args.store, self.caps, self.closed_cache)
+            if not args.report_existing:
+                self.startup_closed = {
+                    entry.name for entry in initial if entry.kind == "closed"
+                }
+        except OSError as exc:
+            self.startup_error = exc
 
     def once(self, key, line):
         if key not in self.reported:
@@ -385,18 +948,25 @@ class Watch:
             self.deviation("envelope", entry.name)
 
         if entry.job == "author-tests":
-            suite_text = "\n".join(
-                filter(None, (
-                    envelope.get("note") if isinstance(envelope.get("note"), str) else "",
-                    held_text(entry, ("stdout", "stderr", "launcher.log")),
-                ))
-            )
-            if re.search(r"\berrored\b|\berrors\s*=\s*[1-9]\d*\b", suite_text, re.IGNORECASE):
+            note = envelope.get("note")
+            note_has_errors = isinstance(note, str) and ERROR_TEXT_RE.search(note)
+            errors_key = ("deviation", "errors", entry.name)
+            if errors_key not in self.reported and (
+                note_has_errors
+                or held_matches(
+                    entry,
+                    ("raw.out", "stdout", "stderr", "launcher.log"),
+                    _error_stream_matches,
+                )
+            ):
                 self.deviation("errors", entry.name)
 
-        refused_text = held_text(entry, ("launcher.log", "stderr"))
-        refusal = "|".join(re.escape(item) for item in REFUSAL_CLASSES)
-        if re.search(rf"(?m)^\s*(?:{refusal}):", refused_text):
+        refused_key = ("deviation", "refused", entry.name)
+        if refused_key not in self.reported and held_matches(
+            entry,
+            ("raw.out", "stdout", "stderr", "launcher.log"),
+            _refusal_stream_matches,
+        ):
             self.deviation("refused", entry.name)
 
         minutes = entry.minutes(entry.closed_at)
@@ -434,26 +1004,52 @@ class Watch:
 
     def run_tick(self):
         self.tick += 1
+        if self.startup_error is not None:
+            error = self.startup_error
+            self.startup_error = None
+            raise error
         running = []
         settling = 0
-        for e in entries(self.args.store, self.caps):
+        for e in entries(self.args.store, self.caps, self.closed_cache):
             if e.kind == "error":
-                self.once(("error", e.name, type(e.error).__name__), f"watchdog error: {type(e.error).__name__}: {e.error} (tick {self.tick}; the loop continues)")
+                self.deviation("unavailable", e.name)
+                self.once(("error", e.name), f"watchdog error: InputUnavailable: job inputs unavailable for {e.name} (tick {self.tick}; the loop continues)")
                 continue
             if e.kind == "no-copy":
                 self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
                 continue
-            self.scan_deviations(e)
+            scan_ok = True
+            needs_scan = (
+                e.kind != "closed"
+                or self.closed_scanned.get(e.name) != e.fingerprint
+            )
+            if needs_scan:
+                try:
+                    self.scan_deviations(e)
+                except InputUnavailable:
+                    scan_ok = False
+                    self.closed_cache.pop(e.name, None)
+                    self.deviation("unavailable", e.name)
+                else:
+                    if e.kind == "closed":
+                        self.closed_scanned[e.name] = e.fingerprint
             if e.kind == "closed":
                 if e.name not in self.startup_closed:
                     self.once(("closed", e.name), f"closed {e.name} {e.summary()} after {e.minutes(e.closed_at)} min")
+                if scan_ok and (needs_scan or not e.from_closed_cache):
+                    cache_closed(
+                        self.closed_cache,
+                        e.name,
+                        e.fingerprint,
+                        e.closed_projection(),
+                    )
                 continue
             if e.kind == "settling":
                 settling += 1
                 first = self.settling_since.setdefault(e.name, self.tick)
                 if self.tick - first + 1 >= SETTLING_TICKS:
                     try:
-                        since = int((time.time() - (e.path / "exit").stat().st_mtime) // 60)
+                        since = int((time.time() - e.exit_mtime) // 60)
                     except OSError:
                         since = "unknown"
                     self.once(("settling", e.name), f"exit written, not collected {e.name}: {since} min since exit, record still {e.rec.get('status')}")
@@ -477,17 +1073,32 @@ class Watch:
             if pair not in self.launcher_pairs:
                 self.launcher_pairs.add(pair)
                 say(f"launchers fewer than running records: {launchers} launch.py processes, {len(running)} running (heuristic: the record does not name its launcher)")
-        forge = None if self.args.no_forge else self.forge()
+        forge_fresh = False
+        if not self.args.no_forge and (self.tick - 1) % self.args.forge_every == 0:
+            self.forge_reading = self.forge()
+            self.forge_tick = self.tick
+            forge_fresh = True
         if self.tick % self.args.heartbeat_every == 0:
             live = ", ".join(f"{e.name} {e.minutes()}m/{int(e.wall_min) if e.wall_min else '?'}" for e in running) or "none"
             launchers_txt = "unreachable" if launchers is None else launchers
             if self.args.no_forge:
                 prs = "not watched"
-            elif forge is None:
+            elif self.forge_reading is None:
                 prs = "unreachable"
             else:
-                n, unreachable = forge
-                prs = str(n) + (f" (checks unreachable for {', '.join('#' + str(p) for p in unreachable)})" if unreachable else "")
+                n, unreachable = self.forge_reading
+                notes = []
+                if n == FORGE_LIMIT:
+                    count = f"{FORGE_LIMIT}+"
+                    notes.append("page full, total unmeasured")
+                else:
+                    count = str(n)
+                if not forge_fresh:
+                    notes.append(f"cached from tick {self.forge_tick}")
+                if unreachable:
+                    numbers = ", ".join(f"#{number}" for number in unreachable)
+                    notes.append(f"checks unreachable for {numbers}")
+                prs = count + (f" ({'; '.join(notes)})" if notes else "")
             say(f"heartbeat: running={live}; settling={settling}; launchers={launchers_txt}; open PRs into {self.trunk}={prs}; deviations={self.deviations}")
 
     def launcher_count(self):
@@ -502,36 +1113,66 @@ class Watch:
             return None
 
     def forge(self):
-        raw = run(["gh", "pr", "list", "--base", self.trunk, "--state", "open", "--json", "number,headRefOid"])
+        deadline = time.monotonic() + FORGE_TIMEOUT
+        raw = run([
+            "gh", "pr", "list", "--base", self.trunk, "--state", "open",
+            "--limit", str(FORGE_LIMIT), "--json", "number,headRefOid",
+        ], timeout=max(0, deadline - time.monotonic()))
         if raw is None:
             return None
         try:
             prs = json.loads(raw)
         except ValueError:
             return None
+        if (
+            not isinstance(prs, list)
+            or len(prs) > FORGE_LIMIT
+            or any(
+                not isinstance(pr, dict)
+                or not isinstance(pr.get("number"), int)
+                or isinstance(pr.get("number"), bool)
+                or pr["number"] <= 0
+                or not isinstance(pr.get("headRefOid"), str)
+                or SHA_RE.fullmatch(pr["headRefOid"]) is None
+                for pr in prs
+            )
+        ):
+            return None
         unreachable = []
-        for pr in prs:
+        for index, pr in enumerate(prs):
             number = pr.get("number")
-            sha = pr.get("headRefOid") or "unknown"
-            checks = run(["gh", "pr", "checks", str(number), "--json", "name,bucket"])
+            sha = pr.get("headRefOid")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                unreachable.extend(row["number"] for row in prs[index:])
+                break
+            checks = run(
+                ["gh", "pr", "checks", str(number), "--json", "name,bucket"],
+                timeout=remaining,
+            )
             try:
                 rows = json.loads(checks) if checks is not None else None
             except ValueError:
                 rows = None
-            if rows is None:
+            normalized = _check_rows(rows)
+            if normalized is None:
                 unreachable.append(number)
                 continue
-            for c in rows:
-                bucket = c.get("bucket")
+            for name, bucket in normalized:
                 if bucket in {"fail", "cancel"}:
-                    key = (number, sha, c.get("name"))
+                    key = (number, sha, name)
                     if key not in self.ci_seen:
                         self.ci_seen.add(key)
-                        say(f"ci {bucket} #{number} at {sha}: {c.get('name')}")
+                        say(f"ci {bucket} #{number} at {sha}: {name}")
         return len(prs), unreachable
 
     def loop(self):
-        say(f"watchdog armed: store {self.args.store}, {len(self.startup_closed)} closed records ignored, tick {self.args.tick:g}s")
+        ignored = (
+            "unreachable"
+            if self.startup_error is not None
+            else str(len(self.startup_closed))
+        )
+        say(f"watchdog armed: store {self.args.store}, {ignored} closed records ignored, tick {self.args.tick:g}s")
         while True:
             try:
                 self.run_tick()
@@ -548,6 +1189,7 @@ def parse_args(argv):
     parser.add_argument("--store", help="the dispatch store (default: DISPATCH_JOBS, then XDG_STATE_HOME, then HOME)")
     parser.add_argument("--tick", help="seconds between ticks (default: WATCHDOG_TICK or 300)")
     parser.add_argument("--heartbeat-every", type=int, default=DEFAULT_HEARTBEAT, help="ticks between heartbeats")
+    parser.add_argument("--forge-every", default=str(DEFAULT_FORGE_EVERY), help="ticks between forge readings")
     parser.add_argument("--warn-fraction", type=float, default=DEFAULT_WARN_FRACTION, help="fraction of the wall at which a run is long")
     parser.add_argument("--once", action="store_true", help="one tick, then exit 0")
     parser.add_argument("--report-existing", action="store_true", help="report records already closed at start")
@@ -569,6 +1211,13 @@ def main(argv=None):
         refuse("tick", "a positive number of seconds", repr(raw_tick), "set --tick or WATCHDOG_TICK to a positive number")
     if args.heartbeat_every <= 0 or not 0 < args.warn_fraction <= 1:
         refuse("arguments", "heartbeat-every above zero and warn-fraction in (0, 1]", f"{args.heartbeat_every}, {args.warn_fraction}", "fix the values")
+    raw_forge_every = args.forge_every
+    try:
+        args.forge_every = int(raw_forge_every)
+    except ValueError:
+        args.forge_every = 0
+    if args.forge_every <= 0:
+        refuse("arguments", "forge-every as a positive integer", repr(raw_forge_every), "set --forge-every to a positive integer")
     return Watch(args).loop()
 
 
