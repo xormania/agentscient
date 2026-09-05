@@ -208,10 +208,11 @@ separate semantic changes are not smuggled into an efficiency fix.
 The cache, notification-key set, and last-scanned fingerprints live only for
 the watchdog process. The 16 MiB ceiling covers the cache; notification and
 fingerprint metadata remain O(number of jobs and emitted conditions), because
-forgetting them would break once and mutation semantics. A single active parse
-may additionally occupy the parsed record and state plus copied-plan text for
-one job, each from a source bounded at 64 MiB; transient accounting work is
-outside the retained-cache ceiling.
+forgetting them would break once and mutation semantics. During a tick, the
+running-job list retains the parsed record and state for every active job until
+launcher and heartbeat reporting, so this transient payload is O(active jobs),
+with each source bounded at 64 MiB. Copied-plan parsing and accounting work are
+transient for one entry at a time. None is inside the retained-cache ceiling.
 
 Verification boundary: existing `test_watchdog.py` behavior stays covered;
 focused additional probes must distinguish unchanged versus amended
