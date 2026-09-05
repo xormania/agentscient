@@ -1131,7 +1131,7 @@ def _jobs(config: dict[str, object], name: str | None) -> dict[str, object]:
         result.update({"evidence": evidence, "jobs": [], "job": None})
         return result
     evidence["revision"] = _revision(raw)
-    if len(registry) > 64:
+    if name is None and len(registry) > 64:
         result = _base("lane_jobs", "unavailable", "registry lists more than 64 jobs")
         result.update({"evidence": evidence, "jobs": [], "job": None})
         return result
