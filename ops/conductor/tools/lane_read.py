@@ -340,7 +340,13 @@ def _record(config: dict[str, object], ident: str) -> dict[str, object]:
                 record = json.loads(raw)
                 if not isinstance(record, dict):
                     raise ValueError
-            except (json.JSONDecodeError, OSError, UnicodeError, ValueError):
+            except (
+                json.JSONDecodeError,
+                OSError,
+                RecursionError,
+                UnicodeError,
+                ValueError,
+            ):
                 result = _base(name, "unavailable", "record is unreadable or malformed")
                 result["record"] = None
                 return result
@@ -415,9 +421,14 @@ def _event(row: tuple[object, ...]) -> dict[str, object]:
     event = dict(zip(EVENT_COLUMNS, row, strict=True))
     if type(event["id"]) is not int or event["id"] <= 0:
         raise ValueError
-    for key in ("route", "consumer", "condition", "monitor", "subject", "state"):
+    for key in ("route", "consumer", "condition", "monitor", "state"):
         if not isinstance(event[key], str) or len(event[key].encode("utf-8")) > 256:
             raise ValueError
+    if (
+        not isinstance(event["subject"], str)
+        or len(event["subject"].encode("utf-8")) > 1_024
+    ):
+        raise ValueError
     if (
         not isinstance(event["summary"], str)
         or len(event["summary"].encode("utf-8")) > 240
@@ -457,19 +468,28 @@ def _alerts(config: dict[str, object], after: int, limit: int) -> dict[str, obje
             ).fetchall()
         finally:
             connection.close()
-        decoded = [_event(row) for row in rows]
-    except (json.JSONDecodeError, sqlite3.Error, TypeError, UnicodeError, ValueError):
+    except sqlite3.Error:
         result = _base(name, "unavailable", "monitor database is unreadable or corrupt")
         result.update({"events": [], "more": False, "next_after": after})
         return result
     events: list[dict[str, object]] = []
-    for event in decoded[:limit]:
+    for row in rows[:limit]:
+        try:
+            event = _event(row)
+        except (json.JSONDecodeError, RecursionError, TypeError, UnicodeError, ValueError):
+            if not events:
+                result = _base(
+                    name, "unavailable", "monitor database is unreadable or corrupt"
+                )
+                result.update({"events": [], "more": True, "next_after": after})
+                return result
+            break
         candidate = [*events, event]
         probe = _base(name, "ok")
         probe.update(
             {
                 "events": candidate,
-                "more": len(decoded) > len(candidate),
+                "more": len(rows) > len(candidate),
                 "next_after": candidate[-1]["id"],
             }
         )
@@ -484,7 +504,7 @@ def _alerts(config: dict[str, object], after: int, limit: int) -> dict[str, obje
     result.update(
         {
             "events": events,
-            "more": len(decoded) > len(events),
+            "more": len(rows) > len(events),
             "next_after": events[-1]["id"] if events else after,
         }
     )
@@ -564,7 +584,7 @@ def _usage(config: dict[str, object]) -> dict[str, object]:
     for line in raw.splitlines():
         try:
             entry = json.loads(line)
-        except (json.JSONDecodeError, UnicodeError):
+        except (json.JSONDecodeError, RecursionError, UnicodeError):
             continue
         if not isinstance(entry, dict) or entry.get("type") != "event_msg":
             continue
