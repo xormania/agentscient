@@ -21,6 +21,7 @@ copy-tool-bytes stand-in so each assertion fails on the v2 promise.
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
@@ -41,12 +42,14 @@ from test_lane_mcp import (  # noqa: E402
     JOB_UNLISTED,
     MODEL,
     NOTE,
+    OMISSIONS,
     PROMPT,
     SCHEMA,
     TOOLS,
     TRANSCRIPT,
     VERDICT,
     _LaneMcpFixture,
+    _tree_files,
     notify,
     rpc,
 )
@@ -58,6 +61,11 @@ V2_TOOLS = TOOLS + ("lane_findings", "lane_changes", "lane_jobs")
 CURSOR_GRAMMAR = re.compile(r"^[0-9a-f]{16}:[1-9][0-9]{0,8}$")
 REVISION_GRAMMAR = re.compile(r"^[0-9a-f]{16}$")
 JOB_NAME_GRAMMAR = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+JOB3 = "jobAa41mcp3"
+FINDINGS_PAGE_CAP = 8192
+QUERY_CAP = 16384
+FIT_FIELDS = ("reproduce", "claim", "where")
+PLACEHOLDERS = ("ref", "base", "diff", "into", "out", "inputs", "scope")
 LEAKS = (PROMPT, TRANSCRIPT, "raw.out")
 DISPATCHABLE = {
     "adapter": "harness",
@@ -73,6 +81,57 @@ DISPATCHABLE = {
 def revision_of(path: Path) -> str:
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     return digest[:16]
+
+
+def canonical_bytes(obj: object) -> bytes:
+    """Measure a reply with the stdlib ensure_ascii encoder.
+
+    lane-mcp-v2.md §3 names ensure_ascii canonical JSON. Compact
+    separators match the suite's RPC encoder. No production encoder is
+    read; CLI tests also bound raw stdout.
+    """
+    return json.dumps(obj, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
+
+
+def utf8_fill(n: int, *, mark: str = "", ch: str = "é") -> str:
+    rest = n - len(mark.encode("utf-8"))
+    unit = len(ch.encode("utf-8"))
+    body = ch * (rest // unit)
+    pad = "x" * (rest - len(body.encode("utf-8")))
+    text = mark + body + pad
+    if len(text.encode("utf-8")) != n:
+        raise AssertionError(len(text.encode("utf-8")))
+    return text
+
+
+def ascii_fill(n: int, mark: str) -> str:
+    text = mark + ("X" * (n - len(mark)))
+    if len(text.encode("utf-8")) != n:
+        raise AssertionError(len(text.encode("utf-8")))
+    return text
+
+
+def fat_finding(n: int) -> dict:
+    return {
+        "severity": "p2",
+        "where": ascii_fill(256, f"w{n}-"),
+        "claim": ascii_fill(1024, f"claim-{n}-"),
+        "reproduce": ascii_fill(1024, f"repro-{n}-"),
+    }
+
+
+def whole_projected_entry(n: int, source: dict) -> dict:
+    entry = {
+        "n": n,
+        "severity": source.get("severity"),
+        "where": source.get("where"),
+        "claim": source.get("claim"),
+        "reproduce": source.get("reproduce"),
+        "omitted": [],
+    }
+    if entry["severity"] not in ("p1", "p2", "p3"):
+        entry["severity"] = None
+    return entry
 
 
 class _V2Fixture(_LaneMcpFixture):
@@ -207,6 +266,109 @@ class _V2Fixture(_LaneMcpFixture):
 
     def notifications(self, objs: list[dict]) -> list[dict]:
         return [obj for obj in objs if "method" in obj and "id" not in obj]
+
+    def assert_page_cap(self, payload: dict, raw: str | None = None) -> bytes:
+        encoded = canonical_bytes(payload)
+        self.assertLessEqual(len(encoded), FINDINGS_PAGE_CAP, len(encoded))
+        if raw is not None:
+            self.assertLessEqual(len(raw.encode("utf-8")), FINDINGS_PAGE_CAP)
+        return encoded
+
+    def assert_fit_omission_order(self, entry: dict) -> list[str]:
+        omitted = list(entry.get("omitted") or [])
+        fit = [name for name in FIT_FIELDS if name in omitted]
+        self.assertEqual(fit, list(FIT_FIELDS[: len(fit)]), omitted)
+        for name in fit:
+            self.assertIsNone(entry.get(name), name)
+        return fit
+
+    def with_next_whole_entry(
+        self,
+        payload: dict,
+        extra: dict,
+        revision: str,
+        *,
+        remaining_after: bool,
+    ) -> dict:
+        cand = copy.deepcopy(payload)
+        cand["findings"] = list(payload["findings"]) + [extra]
+        page = dict(payload["page"])
+        page["count"] = len(cand["findings"])
+        page["from"] = cand["findings"][0]["n"]
+        page["to"] = cand["findings"][-1]["n"]
+        page["more"] = remaining_after
+        nxt = extra["n"] + 1
+        page["next_cursor"] = f"{revision}:{nxt}" if remaining_after else None
+        cand["page"] = page
+        return cand
+
+    def assert_page_filled(
+        self,
+        payload: dict,
+        sources: list[dict],
+        revision: str,
+    ) -> None:
+        page = payload["page"]
+        if not page["more"]:
+            return
+        nxt = page["to"] + 1
+        extra = whole_projected_entry(nxt, sources[nxt - 1])
+        remaining_after = nxt < len(sources)
+        cand = self.with_next_whole_entry(
+            payload, extra, revision, remaining_after=remaining_after
+        )
+        self.assertGreater(
+            len(canonical_bytes(cand)),
+            FINDINGS_PAGE_CAP,
+            "page under-filled: next whole entry still fits",
+        )
+
+    def owned_surface(self) -> dict[str, object]:
+        records: dict[str, bytes | None] = {}
+        if self.store.exists():
+            for rec in sorted(self.store.glob("*/record.json")):
+                rel = str(rec.relative_to(self.work))
+                if rec.is_file() and not rec.is_symlink():
+                    records[rel] = rec.read_bytes()
+                else:
+                    records[rel] = b"*"
+        registry = self.work / "jobs.json"
+        if registry.is_file() and not registry.is_symlink():
+            registry_bytes: bytes | None = registry.read_bytes()
+        elif registry.exists() or registry.is_symlink():
+            registry_bytes = b"*"
+        else:
+            registry_bytes = None
+        config: bytes | None
+        if self.config_path.is_file() and not self.config_path.is_symlink():
+            config = self.config_path.read_bytes()
+        elif self.config_path.exists() or self.config_path.is_symlink():
+            config = b"*"
+        else:
+            config = None
+        return {
+            "config": config,
+            "registry": registry_bytes,
+            "records": records,
+            "source_bytes": self.source_bytes(),
+            "work_files": _tree_files(self.work),
+            "home_files": _tree_files(self.home),
+            "scratch_files": _tree_files(self.scratch),
+            "cwd_files": _tree_files(self.cwd),
+        }
+
+    def assert_domain_error_matches_cli(self, rpc_obj: dict, cli_line: str) -> None:
+        self.assertNotIn("error", rpc_obj, rpc_obj)
+        result = rpc_obj.get("result") or {}
+        self.assertIs(result.get("isError"), True, rpc_obj)
+        self.assertEqual(self.rpc_error_line(rpc_obj), cli_line)
+
+    def assert_reading_matches_cli(self, rpc_obj: dict, cli_payload: dict) -> None:
+        err = rpc_obj.get("error")
+        self.assertIsNone(err, f"reading became transport error {err}")
+        result = rpc_obj.get("result") or {}
+        self.assertIsNot(result.get("isError"), True, rpc_obj)
+        self.assertEqual(self.lane_from_rpc(rpc_obj), cli_payload)
 
 
 class TestLaneMcpContextConfig(_V2Fixture):
@@ -1129,6 +1291,730 @@ class TestLaneMcpContextSurface(_V2Fixture):
         )
         self.assertNotEqual(continued["findings"], resource["findings"])
         self.assertIsNone(continued["note"])
+
+
+class TestLaneMcpContextOracleGaps(_V2Fixture):
+    def test_oracle_rejects_named_wrong_behaviors(self):
+        """The seven upheld gaps, against crafted wrong payloads not the CLI."""
+
+        over = {"schema": SCHEMA, "pad": "Y" * (FINDINGS_PAGE_CAP + 1)}
+        with self.assertRaises(AssertionError):
+            self.assertLessEqual(len(canonical_bytes(over)), FINDINGS_PAGE_CAP)
+
+        tiny = {"severity": "p2", "where": "w", "claim": "c", "reproduce": "r"}
+        sources = [dict(tiny) for _ in range(8)]
+        four = {
+            "schema": SCHEMA,
+            "query": "lane_findings",
+            "state": "ok",
+            "reason": None,
+            "record": {"id": JOB, "revision": "a" * 16},
+            "note": "n",
+            "note_bytes": 1,
+            "findings": [whole_projected_entry(n, sources[n - 1]) for n in range(1, 5)],
+            "findings_total": 8,
+            "page": {
+                "from": 1,
+                "to": 4,
+                "count": 4,
+                "more": True,
+                "next_cursor": f"{'a' * 16}:5",
+            },
+        }
+        self.assertLessEqual(len(canonical_bytes(four)), FINDINGS_PAGE_CAP)
+        with self.assertRaises(AssertionError):
+            self.assert_page_filled(four, sources, "a" * 16)
+
+        skipped = {
+            "n": 1,
+            "severity": "p1",
+            "where": "here",
+            "claim": None,
+            "reproduce": "r",
+            "omitted": ["claim"],
+        }
+        with self.assertRaises(AssertionError):
+            self.assert_fit_omission_order(skipped)
+
+        before = {"work_files": ("store/x/record.json",), "home_files": ()}
+        after = {
+            "work_files": ("checkpoint.json", "store/x/record.json"),
+            "home_files": (),
+        }
+        self.assertNotEqual(before, after)
+        self.assertIn("checkpoint.json", after["work_files"])
+
+        transport = {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "error": {"code": -32602, "message": "x"},
+        }
+        with self.assertRaises(AssertionError):
+            self.assert_domain_error_matches_cli(
+                transport, "arguments: expected a; found b; needed c"
+            )
+
+        collapsed = {
+            "state": "unknown",
+            "changed": [],
+            "unchanged": [],
+            "unknown": [JOB, JOB2, JOB3],
+            "unavailable": [],
+            "checkpoint": {},
+        }
+        mixed_ok = collapsed["state"] == "ok" and JOB3 in collapsed["unavailable"]
+        self.assertFalse(mixed_ok)
+
+        wrong_direct = {
+            "name": "author-tests",
+            "adapter": "direct",
+            "role": "write",
+            "dispatchable": True,
+            "slots": ["scope"],
+        }
+        self.assertEqual(wrong_direct["adapter"], "direct")
+        self.assertTrue(wrong_direct["dispatchable"])
+        with self.assertRaises(AssertionError):
+            self.assertFalse(wrong_direct["dispatchable"])
+
+        v1_only_record = {"lane_record": {"ok": 1}}
+        self.assertNotIn("lane_brief", v1_only_record)
+        self.assertNotIn("lane_alerts", v1_only_record)
+        self.assertNotIn("lane_usage", v1_only_record)
+
+
+class TestLaneMcpContextFindingsGaps(_V2Fixture):
+    def test_lane_findings_byte_fit_omission_sequence_and_full_walk(self):
+        rows = [fat_finding(n) for n in range(1, 9)]
+        rec = self.plant_context_record(findings=rows, note="page-note")
+        rev = revision_of(rec)
+        self.plant_v2_config()
+
+        seen: list[int] = []
+        cursor = None
+        first_note = None
+        pages = 0
+        while True:
+            arguments = {"id": JOB}
+            if cursor is not None:
+                arguments["cursor"] = cursor
+            proc = self.query("lane_findings", arguments)
+            payload = self.assert_v2(self.load_query(proc), "lane_findings")
+            self.assertEqual(payload["state"], "ok")
+            self.assertEqual(payload["findings_total"], 8)
+            page = payload["page"]
+            self.assertGreaterEqual(page["count"], 1)
+            self.assertEqual(len(payload["findings"]), page["count"])
+            self.assert_page_cap(payload, proc.stdout)
+            if pages == 0:
+                first_note = payload["note"]
+                self.assertEqual(payload["note"], "page-note")
+            else:
+                self.assertIsNone(payload["note"])
+                self.assertEqual(payload["note_bytes"], len("page-note".encode("utf-8")))
+            seen.extend(row["n"] for row in payload["findings"])
+            self.assert_page_filled(payload, rows, rev)
+            pages += 1
+            if not page["more"]:
+                self.assertIsNone(page["next_cursor"])
+                break
+            cursor = page["next_cursor"]
+            self.assertRegex(cursor, CURSOR_GRAMMAR)
+            if pages > 20:
+                self.fail("findings walk did not terminate")
+        self.assertEqual(seen, list(range(1, 9)))
+        self.assertGreaterEqual(pages, 2)
+        self.assertEqual(first_note, "page-note")
+
+        uni = {
+            "severity": "p1",
+            "where": utf8_fill(256, mark="W"),
+            "claim": utf8_fill(1024, mark="C"),
+            "reproduce": utf8_fill(1024, mark="R"),
+        }
+        uni_note = utf8_fill(2048, mark="N")
+        self.plant_context_record(findings=[uni], note=uni_note)
+        proc = self.query("lane_findings", {"id": JOB})
+        payload = self.assert_v2(self.load_query(proc), "lane_findings")
+        self.assertEqual(payload["state"], "ok")
+        self.assert_page_cap(payload, proc.stdout)
+        self.assertEqual(payload["findings_total"], 1)
+        self.assertEqual(payload["page"]["count"], 1)
+        self.assertFalse(payload["page"]["more"])
+        entry = payload["findings"][0]
+        self.assertEqual(entry["n"], 1)
+        fit = self.assert_fit_omission_order(entry)
+        self.assertGreaterEqual(len(fit), 1)
+        self.assertIn("reproduce", fit)
+        if payload["note"] is not None:
+            self.assertEqual(payload["note"], uni_note)
+            self.assertNotEqual(payload["reason"], "note exceeds page")
+
+        job = utf8_fill(256, mark="J")
+        stage = utf8_fill(256, mark="S")
+        store_rel = "s" * 200
+        rec = self.plant_context_record(
+            findings=[{"severity": "p1", "where": "w", "claim": "c", "reproduce": "r"}],
+            note="placeholder",
+            job=job,
+            stage=stage,
+        )
+        # Re-plant under a long store path after config points there.
+        long_store = self.work / store_rel
+        self.plant_v2_config(dispatch_store=store_rel)
+        moved = long_store / JOB / "record.json"
+        raw = rec.read_bytes()
+        self._plant_bytes(moved, raw)
+        planted = moved.read_bytes()
+        self.assertEqual(planted, raw)
+        self.assertEqual(len(planted), len(raw))
+        rev = revision_of(moved)
+        record_obj = {
+            "id": JOB,
+            "job": job,
+            "stage": stage,
+            "recorded_status": "closed",
+            "verdict": VERDICT,
+            "counts": dict(COUNTS),
+            "revision": rev,
+            "evidence": str(moved),
+        }
+        reduced = {
+            "n": 1,
+            "severity": "p1",
+            "where": None,
+            "claim": None,
+            "reproduce": None,
+            "omitted": ["reproduce", "claim", "where"],
+        }
+        page_one = {"from": 1, "to": 1, "count": 1, "more": False, "next_cursor": None}
+
+        def reply(note_text: str | None, note_bytes: int, reason: str | None) -> dict:
+            return {
+                "schema": SCHEMA,
+                "query": "lane_findings",
+                "state": "ok",
+                "reason": reason,
+                "record": record_obj,
+                "note": note_text,
+                "note_bytes": note_bytes,
+                "findings": [reduced],
+                "findings_total": 1,
+                "page": page_one,
+            }
+
+        chosen = None
+        for n in range(2, 2048, 2):
+            note_text = utf8_fill(n)
+            with_note = reply(note_text, n, None)
+            without = reply(None, n, "note exceeds page")
+            if (
+                len(canonical_bytes(with_note)) > FINDINGS_PAGE_CAP
+                and len(canonical_bytes(without)) <= FINDINGS_PAGE_CAP
+            ):
+                frame_plus = dict(with_note)
+                frame_plus["findings"] = []
+                frame_plus["page"] = {
+                    "from": None,
+                    "to": None,
+                    "count": 0,
+                    "more": True,
+                    "next_cursor": f"{rev}:1",
+                }
+                if len(canonical_bytes(frame_plus)) <= FINDINGS_PAGE_CAP:
+                    chosen = note_text
+                    break
+        self.assertIsNotNone(
+            chosen,
+            "standard encoder could not place note-removal in (frame+note, reduced)",
+        )
+        rec_body = json.loads(moved.read_text(encoding="utf-8"))
+        rec_body["result"]["envelope"]["note"] = chosen
+        rec_body["job"] = job
+        rec_body["stage"] = stage
+        new_raw = (json.dumps(rec_body, indent=2) + "\n").encode("utf-8")
+        self._plant_bytes(moved, new_raw)
+        self.assertEqual(moved.read_bytes(), new_raw)
+        proc = self.query("lane_findings", {"id": JOB})
+        payload = self.assert_v2(self.load_query(proc), "lane_findings")
+        self.assertEqual(payload["state"], "ok")
+        self.assert_page_cap(payload, proc.stdout)
+        self.assertIsNone(payload["note"])
+        self.assertEqual(payload["reason"], "note exceeds page")
+        self.assertEqual(payload["note_bytes"], len(chosen.encode("utf-8")))
+        self.assertEqual(payload["page"]["count"], 1)
+        self.assertEqual(payload["findings"][0]["n"], 1)
+
+
+class TestLaneMcpContextChangesGaps(_V2Fixture):
+    def test_lane_changes_partitions_readable_missing_and_malformed_together(self):
+        readable = self.plant_context_record(JOB)
+        rev = revision_of(readable)
+        malformed = self.store / JOB3 / "record.json"
+        self._plant_bytes(malformed, b"{not-json\n")
+        self.assertEqual(malformed.read_bytes(), b"{not-json\n")
+        self.assertFalse((self.store / JOB2 / "record.json").exists())
+        self.plant_v2_config(job_ids=[JOB, JOB2, JOB3])
+
+        payload = self.assert_v2(
+            self.load_query(self.query("lane_changes", {})),
+            "lane_changes",
+        )
+        self.assertEqual(payload["state"], "ok")
+        self.assertEqual(payload["configured_ids"], [JOB, JOB2, JOB3])
+        self.assertEqual([row["id"] for row in payload["changed"]], [JOB])
+        self.assertEqual(payload["unchanged"], [])
+        self.assertEqual(payload["unknown"], [JOB2])
+        self.assertEqual(payload["unavailable"], [JOB3])
+        self.assertEqual(payload["checkpoint"], {JOB: rev})
+        self.assertNotIn(JOB2, payload["checkpoint"])
+        self.assertNotIn(JOB3, payload["checkpoint"])
+        self.assertEqual(payload["checkpoint"][JOB], rev)
+
+        held = self.assert_v2(
+            self.load_query(
+                self.query("lane_changes", {"checkpoint": {JOB: rev}})
+            ),
+            "lane_changes",
+        )
+        self.assertEqual(held["state"], "ok")
+        self.assertEqual(held["unchanged"], [JOB])
+        self.assertEqual(held["changed"], [])
+        self.assertEqual(held["unknown"], [JOB2])
+        self.assertEqual(held["unavailable"], [JOB3])
+        self.assertEqual(held["checkpoint"], {JOB: rev})
+
+
+class TestLaneMcpContextJobsGaps(_V2Fixture):
+    def test_lane_jobs_dispatchable_predicates_and_bounded_cards(self):
+        long_deliverable = "D" * 513
+        long_constraint = "K" * 257
+        constraints = [f"c{n}" for n in range(17)]
+        constraints[3] = long_constraint
+        constraints[5] = 12
+        jobs = {
+            "author-tests": dict(DISPATCHABLE),
+            "read-role": {**DISPATCHABLE, "role": "read"},
+            "not-harness": {**DISPATCHABLE, "adapter": "direct"},
+            "bad-role": {**DISPATCHABLE, "role": "plan"},
+            "bad-snap": {**DISPATCHABLE, "snapshot": "diff"},
+            "empty-prompt": {**DISPATCHABLE, "prompt": ""},
+            "no-prompt": {k: v for k, v in DISPATCHABLE.items() if k != "prompt"},
+            "all-slots": {
+                **DISPATCHABLE,
+                "prompt": "Use {ref} {base} {diff} {into} {out} {inputs} {scope}.",
+            },
+            "card-bounds": {
+                **DISPATCHABLE,
+                "deliverable": long_deliverable,
+                "constraints": constraints,
+                "caps": {"timeout": -1},
+            },
+            "timeout-str": {**DISPATCHABLE, "caps": {"timeout": "fast"}},
+            "constraints-obj": {**DISPATCHABLE, "constraints": {"a": 1}},
+            "1nvalid": {"adapter": "harness", "role": "write", "snapshot": "whole"},
+        }
+        planted = self.plant_registry(jobs)
+        self.assertIn(b"not-harness", planted.read_bytes())
+        self.plant_v2_config()
+        listing = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {})),
+            "lane_jobs",
+        )
+        self.assertEqual(listing["state"], "ok")
+        rows = listing["jobs"]
+        self.assertEqual(len(rows), 12)
+        by_name = {row["name"]: row for row in rows if row["name"]}
+        self.assertTrue(by_name["author-tests"]["dispatchable"])
+        self.assertTrue(by_name["read-role"]["dispatchable"])
+        self.assertTrue(by_name["all-slots"]["dispatchable"])
+        self.assertEqual(
+            by_name["all-slots"]["slots"],
+            sorted(PLACEHOLDERS),
+        )
+        for name in (
+            "not-harness",
+            "bad-role",
+            "bad-snap",
+            "empty-prompt",
+            "no-prompt",
+        ):
+            with self.subTest(name=name):
+                self.assertFalse(by_name[name]["dispatchable"], name)
+        invalid = [row for row in rows if row["name"] is None]
+        self.assertEqual(len(invalid), 1)
+        self.assertEqual(
+            invalid[0],
+            {
+                "name": None,
+                "adapter": None,
+                "role": None,
+                "dispatchable": False,
+                "slots": [],
+            },
+        )
+        dumped = json.dumps(listing)
+        self.assertNotIn("1nvalid", dumped)
+
+        card = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {"name": "card-bounds"})),
+            "lane_jobs",
+        )
+        job = card["job"]
+        self.assertIsNone(job["deliverable"])
+        self.assertEqual(len(job["constraints"]), 16)
+        self.assertEqual(job["constraints"][0], "c0")
+        self.assertIsNone(job["constraints"][3])
+        self.assertIsNone(job["constraints"][5])
+        self.assertNotIn("c16", job["constraints"])
+        self.assertIsNone(job["timeout"])
+        self.assertEqual(
+            job["prompt_bytes"],
+            len(DISPATCHABLE["prompt"].encode("utf-8")),
+        )
+        self.assertNotIn("prompt", job)
+
+        timeout_str = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {"name": "timeout-str"})),
+            "lane_jobs",
+        )
+        self.assertIsNone(timeout_str["job"]["timeout"])
+        obj_constraints = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {"name": "constraints-obj"})),
+            "lane_jobs",
+        )
+        self.assertEqual(obj_constraints["job"]["constraints"], [])
+
+
+class TestLaneMcpContextMetaGaps(_V2Fixture):
+    def test_request_meta_on_templates_list_and_v2_reads(self):
+        self.plant_context_record()
+        self.plant_registry({"author-tests": dict(DISPATCHABLE)})
+        self.plant_v2_config()
+        token = {"progressToken": "tok-v2-meta-aa41"}
+        cli = {
+            "findings": self.assert_v2(
+                self.load_query(self.query("lane_findings", {"id": JOB})),
+                "lane_findings",
+            ),
+            "changes": self.assert_v2(
+                self.load_query(self.query("lane_changes", {})),
+                "lane_changes",
+            ),
+            "jobs": self.assert_v2(
+                self.load_query(self.query("lane_jobs", {})),
+                "lane_jobs",
+            ),
+        }
+        requests = [
+            rpc("resources/templates/list", 2, {"_meta": token}),
+            rpc("resources/templates/list", 3),
+            rpc(
+                "tools/call",
+                4,
+                {
+                    "name": "lane_findings",
+                    "arguments": {"id": JOB},
+                    "_meta": token,
+                },
+            ),
+            rpc(
+                "tools/call",
+                5,
+                {"name": "lane_findings", "arguments": {"id": JOB}},
+            ),
+            rpc(
+                "tools/call",
+                6,
+                {"name": "lane_changes", "arguments": {}, "_meta": token},
+            ),
+            rpc("tools/call", 7, {"name": "lane_changes", "arguments": {}}),
+            rpc(
+                "tools/call",
+                8,
+                {"name": "lane_jobs", "arguments": {}, "_meta": token},
+            ),
+            rpc("tools/call", 9, {"name": "lane_jobs", "arguments": {}}),
+            rpc("resources/templates/list", 10, {"_meta": "not-an-object"}),
+            rpc(
+                "tools/call",
+                11,
+                {
+                    "name": "lane_findings",
+                    "arguments": {"id": JOB},
+                    "_meta": ["x"],
+                },
+            ),
+            rpc(
+                "tools/call",
+                12,
+                {"name": "lane_changes", "arguments": {}, "_meta": 1},
+            ),
+            rpc(
+                "tools/call",
+                13,
+                {"name": "lane_jobs", "arguments": {}, "_meta": True},
+            ),
+        ]
+        proc = self.serve(self.handshake(requests))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertNotIn("tok-v2-meta-aa41", proc.stdout)
+        objs = self.rpc_objects(proc)
+        self.assertEqual(self.notifications(objs), [])
+        listed = self.rpc_by_id(objs, 2)["result"]["resourceTemplates"]
+        self.assertEqual(listed, self.rpc_by_id(objs, 3)["result"]["resourceTemplates"])
+        self.assertEqual(len(listed), 1)
+        self.assertEqual(listed[0]["uriTemplate"], "lane://jobs/{name}")
+        self.assertEqual(self.lane_from_rpc(self.rpc_by_id(objs, 4)), cli["findings"])
+        self.assertEqual(self.lane_from_rpc(self.rpc_by_id(objs, 5)), cli["findings"])
+        self.assertEqual(self.lane_from_rpc(self.rpc_by_id(objs, 6)), cli["changes"])
+        self.assertEqual(self.lane_from_rpc(self.rpc_by_id(objs, 7)), cli["changes"])
+        self.assertEqual(self.lane_from_rpc(self.rpc_by_id(objs, 8)), cli["jobs"])
+        self.assertEqual(self.lane_from_rpc(self.rpc_by_id(objs, 9)), cli["jobs"])
+        for rpc_id in (10, 11, 12, 13):
+            with self.subTest(rpc_id=rpc_id):
+                obj = self.rpc_by_id(objs, rpc_id)
+                self.assertIn("error", obj)
+                self.assertEqual(obj["error"]["code"], -32602)
+
+
+class TestLaneMcpContextSurfaceGaps(_V2Fixture):
+    def test_v2_reads_leave_owned_bytes_and_names_unchanged(self):
+        rec = self.plant_context_record()
+        rec2 = self.plant_context_record(JOB2, extra={"id": JOB2})
+        registry = self.plant_registry({"author-tests": dict(DISPATCHABLE)})
+        config = self.plant_v2_config(job_ids=[JOB, JOB2])
+        before = self.owned_surface()
+        self.assertEqual(before["config"], config.read_bytes())
+        self.assertEqual(before["registry"], registry.read_bytes())
+        self.assertEqual(
+            before["records"][f"store/{JOB}/record.json"], rec.read_bytes()
+        )
+        self.assertEqual(
+            before["records"][f"store/{JOB2}/record.json"], rec2.read_bytes()
+        )
+        for tool, arguments in (
+            ("lane_findings", {"id": JOB}),
+            ("lane_changes", {}),
+            ("lane_jobs", {}),
+        ):
+            first = self.load_query(self.query(tool, arguments))
+            second = self.load_query(self.query(tool, arguments))
+            self.assertEqual(first, second, tool)
+            self.assert_v2(first, tool)
+        proc = self.serve(
+            self.handshake(
+                [
+                    rpc(
+                        "tools/call",
+                        2,
+                        {"name": "lane_findings", "arguments": {"id": JOB}},
+                    ),
+                    rpc(
+                        "tools/call",
+                        3,
+                        {"name": "lane_changes", "arguments": {}},
+                    ),
+                    rpc(
+                        "tools/call",
+                        4,
+                        {"name": "lane_jobs", "arguments": {}},
+                    ),
+                ]
+            )
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        after = self.owned_surface()
+        self.assertEqual(after, before)
+        self.assertNotIn("checkpoint.json", after["work_files"])
+
+    def test_v2_refusals_and_readings_match_across_cli_tool_resource(self):
+        rec = self.plant_context_record()
+        rev = revision_of(rec)
+        self.plant_registry({"author-tests": dict(DISPATCHABLE)})
+        self.plant_v2_config()
+        refusals = [
+            ("unlisted-id", "lane_findings", {"id": JOB_UNLISTED}, "arguments"),
+            ("extra-key", "lane_findings", {"id": JOB, "extra": 1}, "arguments"),
+            (
+                "stale-cursor",
+                "lane_findings",
+                {"id": JOB, "cursor": f"{'b' * 16}:1"},
+                "cursor",
+            ),
+            (
+                "past-cursor",
+                "lane_findings",
+                {"id": JOB, "cursor": f"{rev}:9"},
+                "cursor",
+            ),
+            (
+                "unlisted-checkpoint",
+                "lane_changes",
+                {"checkpoint": {JOB_UNLISTED: rev}},
+                "arguments",
+            ),
+            ("bad-job-name", "lane_jobs", {"name": "Author-tests"}, "arguments"),
+        ]
+        cli_lines = {}
+        for name, tool, arguments, class_token in refusals:
+            with self.subTest(cli=name):
+                proc = self.query(tool, arguments)
+                cli_lines[name] = self.assert_refusal(proc, class_token)
+        requests = []
+        rpc_id = 20
+        ids = {}
+        for name, tool, arguments, _class_token in refusals:
+            ids[name] = rpc_id
+            requests.append(
+                rpc("tools/call", rpc_id, {"name": tool, "arguments": arguments})
+            )
+            rpc_id += 1
+        proc = self.serve(self.handshake(requests))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        objs = self.rpc_objects(proc)
+        for name, _tool, _arguments, _class_token in refusals:
+            with self.subTest(mcp=name):
+                self.assert_domain_error_matches_cli(
+                    self.rpc_by_id(objs, ids[name]), cli_lines[name]
+                )
+
+        self.reset_sources()
+        self.plant_v2_config()
+        self.store.mkdir()
+        missing_cli = self.assert_v2(
+            self.load_query(self.query("lane_findings", {"id": JOB})),
+            "lane_findings",
+        )
+        self.assertEqual(missing_cli["state"], "unknown")
+        proc = self.serve(
+            self.handshake(
+                [
+                    rpc(
+                        "tools/call",
+                        2,
+                        {"name": "lane_findings", "arguments": {"id": JOB}},
+                    ),
+                    rpc("resources/read", 3, {"uri": f"lane://findings/{JOB}"}),
+                ]
+            )
+        )
+        objs = self.rpc_objects(proc)
+        self.assert_reading_matches_cli(self.rpc_by_id(objs, 2), missing_cli)
+        self.assert_reading_matches_cli(self.rpc_by_id(objs, 3), missing_cli)
+
+        self.plant_context_record(raw=b"{not-json\n")
+        bad_cli = self.assert_v2(
+            self.load_query(self.query("lane_findings", {"id": JOB})),
+            "lane_findings",
+        )
+        self.assertEqual(bad_cli["state"], "unavailable")
+        proc = self.serve(
+            self.handshake(
+                [
+                    rpc(
+                        "tools/call",
+                        2,
+                        {"name": "lane_findings", "arguments": {"id": JOB}},
+                    ),
+                    rpc("resources/read", 3, {"uri": f"lane://findings/{JOB}"}),
+                ]
+            )
+        )
+        objs = self.rpc_objects(proc)
+        self.assert_reading_matches_cli(self.rpc_by_id(objs, 2), bad_cli)
+        self.assert_reading_matches_cli(self.rpc_by_id(objs, 3), bad_cli)
+
+        self.reset_sources()
+        self.plant_v2_config(job_ids=[JOB, JOB2])
+        missing_changes_cli = self.assert_v2(
+            self.load_query(self.query("lane_changes", {})),
+            "lane_changes",
+        )
+        self.assertEqual(missing_changes_cli["state"], "unknown")
+        proc = self.serve(
+            self.handshake(
+                [
+                    rpc("tools/call", 2, {"name": "lane_changes", "arguments": {}}),
+                    rpc("resources/read", 3, {"uri": "lane://changes"}),
+                ]
+            )
+        )
+        objs = self.rpc_objects(proc)
+        self.assert_reading_matches_cli(
+            self.rpc_by_id(objs, 2), missing_changes_cli
+        )
+        self.assert_reading_matches_cli(
+            self.rpc_by_id(objs, 3), missing_changes_cli
+        )
+
+        self.reset_sources()
+        self.plant_v2_config(job_registry=None)
+        disabled_cli = self.assert_v2(
+            self.load_query(self.query("lane_jobs", {})),
+            "lane_jobs",
+        )
+        self.assertEqual(disabled_cli["state"], "unknown")
+        proc = self.serve(
+            self.handshake(
+                [
+                    rpc("tools/call", 2, {"name": "lane_jobs", "arguments": {}}),
+                    rpc("resources/read", 3, {"uri": "lane://jobs"}),
+                ]
+            )
+        )
+        objs = self.rpc_objects(proc)
+        self.assert_reading_matches_cli(self.rpc_by_id(objs, 2), disabled_cli)
+        self.assert_reading_matches_cli(self.rpc_by_id(objs, 3), disabled_cli)
+
+    def test_v1_brief_alerts_usage_payloads_stay_byte_identical_under_v2(self):
+        self.plant_context_record()
+        self.plant_events(
+            [
+                {
+                    "id": 4,
+                    "consumer": CONSUMER,
+                    "delivery": "queued",
+                    "summary": "v2-compat-event",
+                }
+            ]
+        )
+        self.plant_rollout([self.token_row()])
+        self.plant_registry({"author-tests": dict(DISPATCHABLE)})
+        self.plant_config(job_ids=[JOB])
+        tools = (
+            ("lane_record", {"id": JOB}),
+            ("lane_brief", {}),
+            ("lane_alerts", {}),
+            ("lane_usage", {}),
+        )
+        v1_raw = {}
+        v1 = {}
+        for tool, arguments in tools:
+            proc = self.query(tool, arguments)
+            v1[tool] = self.load_query(proc)
+            v1_raw[tool] = proc.stdout
+        dumped = json.dumps(v1["lane_brief"])
+        for phrase in OMISSIONS:
+            self.assertIn(phrase, dumped)
+        self.assertNotIn("lane_findings", dumped)
+        self.assertEqual(v1["lane_brief"]["configured_ids"], [JOB])
+
+        self.plant_v2_config(job_ids=[JOB])
+        v2_brief = None
+        for tool, arguments in tools:
+            proc = self.query(tool, arguments)
+            with self.subTest(tool=tool):
+                payload = self.load_query(proc)
+                self.assertEqual(proc.stdout, v1_raw[tool])
+                self.assertEqual(payload, v1[tool])
+                self.assertLessEqual(len(proc.stdout.encode("utf-8")), QUERY_CAP)
+                if tool == "lane_brief":
+                    v2_brief = payload
+        self.assertIsNotNone(v2_brief)
+        dumped_v2 = json.dumps(v2_brief)
+        for phrase in OMISSIONS:
+            self.assertIn(phrase, dumped_v2)
 
 
 if __name__ == "__main__":
