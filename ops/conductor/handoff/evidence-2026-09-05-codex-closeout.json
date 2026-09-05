@@ -1,0 +1,263 @@
+{
+  "measured_at": "2026-09-05T04:31:25Z",
+  "dev": "fbdbacfe0ed956fc7f8e65b222d0a7df41886f8f",
+  "master": "5a202ddf02707d741893e172685b3c748a9fdf4c",
+  "main": "c715b24aaea4bf040b2bf63021b59125474e1485",
+  "prs": {
+    "67": {
+      "candidate": "d2e168077a18f2596263de3116ec25a64547307b",
+      "merge": "fc959ca2ef3be204853cf3c93488d2d8f4e50ecb",
+      "ci": [
+        33944057883,
+        33944056469
+      ]
+    },
+    "68": {
+      "candidate": "eb4eb53def151d419a0b37b35fcf629204d90f91",
+      "merge": "fbdbacfe0ed956fc7f8e65b222d0a7df41886f8f",
+      "ci": [
+        33944540910,
+        33944539368
+      ]
+    }
+  },
+  "post_merge_dev_ci": {
+    "id": 33944639089,
+    "conclusion": "success"
+  },
+  "open_prs": [],
+  "archive": {
+    "matched": 25,
+    "mismatches": [],
+    "original": "138e00917780987780b20d7ef57d64a149dfe2e6",
+    "candidate": "98b75aa090440cf082f3216e794d616aa6c9d4cc"
+  },
+  "focused_tests": {
+    "term_wall_existing": 15,
+    "term_wall_archives": 13,
+    "mcp_existing": 21,
+    "mcp_review": 3,
+    "laneconf_existing": 38,
+    "identity_nearmiss_controls": 10
+  },
+  "workers": [
+    {
+      "id": "20260905T040741Z-code-codex-175243",
+      "status": "closed",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "at": {
+        "launched": "2026-09-05T04:07:42Z",
+        "closed": "2026-09-05T04:11:18Z"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 463712,
+        "out": 8238,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260905T040741Z-code-codex-2a1aed",
+      "status": "closed",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "at": {
+        "launched": "2026-09-05T04:07:42Z",
+        "closed": "2026-09-05T04:10:22Z"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 600748,
+        "out": 6933,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260905T040741Z-code-grok-f1fe2a",
+      "status": "closed",
+      "model": "grok-4.6",
+      "effort": "high",
+      "at": {
+        "launched": "2026-09-05T04:07:42Z",
+        "closed": "2026-09-05T04:17:38Z"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2303667,
+        "out": 33383,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260905T040741Z-code-grok-357119",
+      "status": "closed",
+      "model": "grok-4.6",
+      "effort": "high",
+      "at": {
+        "launched": "2026-09-05T04:07:42Z",
+        "closed": "2026-09-05T04:14:41Z"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1031970,
+        "out": 24868,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260905T041230Z-review-grok-49a1f8",
+      "status": "closed",
+      "model": "grok-4.6",
+      "effort": "high",
+      "at": {
+        "launched": "2026-09-05T04:12:31Z",
+        "closed": "2026-09-05T04:21:59Z"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1768836,
+        "out": 32265,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260905T041230Z-review-codex-594ac9",
+      "status": "closed",
+      "model": "gpt-daybreak-blue-latest",
+      "effort": "high",
+      "at": {
+        "launched": "2026-09-05T04:12:31Z",
+        "closed": "2026-09-05T04:16:28Z"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1702559,
+        "out": 19520,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260905T042251Z-code-codex-9bc34b",
+      "status": "closed",
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "at": {
+        "launched": "2026-09-05T04:22:51Z",
+        "closed": "2026-09-05T04:25:27Z"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 579540,
+        "out": 6875,
+        "runs": 1
+      }
+    }
+  ],
+  "final_worker_totals": {
+    "total": 8451032,
+    "out": 132082
+  },
+  "root_usage": {
+    "query": "lane_usage",
+    "state": "ok",
+    "metrics": {
+      "cache_fraction": 0.9656029159887863,
+      "cached": 71872128,
+      "context_fraction": 0.6395510835913313,
+      "context_window": 258400,
+      "input": 74432385,
+      "last_cached": 163968,
+      "last_input": 165260,
+      "output": 470124,
+      "total": 74902509
+    },
+    "event_at": "2026-09-05T04:29:37.529000Z"
+  },
+  "runtime": {
+    "watchdog": {
+      "pid": 4079824,
+      "code": "925d88bce37743bc82131b37c0d820bf38dc1612",
+      "tick": 30,
+      "forge_every": 10,
+      "heartbeat_every": 2
+    },
+    "monitor": {
+      "pid": 3262024,
+      "code": "1f7039652f4fc23fae2036b9054bce67d54e5be2",
+      "monitors": 3,
+      "schedules": 2,
+      "conditions": 7,
+      "routes": 7,
+      "selected_ids": [
+        "20260905T040741Z-code-codex-175243",
+        "20260905T040741Z-code-codex-2a1aed",
+        "20260905T040741Z-code-grok-f1fe2a",
+        "20260905T040741Z-code-grok-357119",
+        "20260905T041230Z-review-grok-49a1f8",
+        "20260905T041230Z-review-codex-594ac9",
+        "20260905T042251Z-code-codex-9bc34b"
+      ]
+    },
+    "mcp": {
+      "client_entry": "agentscient_lane",
+      "unrelated_settings_preserved": true,
+      "discovery": {
+        "client": "codex app-server",
+        "model_turns": 0,
+        "server": "agentscient_lane",
+        "tools": [
+          "lane_alerts",
+          "lane_brief",
+          "lane_record",
+          "lane_usage"
+        ],
+        "resources": [
+          "lane://brief",
+          "lane://alerts",
+          "lane://usage",
+          "lane://record/20260905T040741Z-code-codex-175243",
+          "lane://record/20260905T040741Z-code-codex-2a1aed",
+          "lane://record/20260905T040741Z-code-grok-f1fe2a",
+          "lane://record/20260905T040741Z-code-grok-357119",
+          "lane://record/20260905T041230Z-review-grok-49a1f8",
+          "lane://record/20260905T041230Z-review-codex-594ac9",
+          "lane://record/20260905T042251Z-code-codex-9bc34b"
+        ],
+        "runtime_status": null,
+        "auth_status": "unsupported"
+      },
+      "real_stdio_brief": "ok",
+      "following_ping": "ok"
+    }
+  },
+  "github": {
+    "rulesets": "all three disabled by owner",
+    "codeql_languages": [
+      "actions"
+    ],
+    "rust": "available, disabled by owner request",
+    "codeql_updated_at": "2026-09-05T04:24:02Z",
+    "quota_snapshot": {
+      "core": {
+        "remaining": 5000,
+        "limit": 5000
+      },
+      "graphql": {
+        "remaining": 5000,
+        "limit": 5000
+      }
+    }
+  },
+  "deferred": [
+    "MCP oversized numeric values and non-finite manually planted evidence",
+    "MCP SQLite cursor overflow",
+    "MCP tools/call _meta",
+    "MCP maximum-size brief overflow",
+    "MCP registry/docstring convention",
+    "live resumed-Codex containment proof",
+    "targeted branch salvage",
+    "idle-agent wakeup",
+    "boot-managed services"
+  ]
+}
