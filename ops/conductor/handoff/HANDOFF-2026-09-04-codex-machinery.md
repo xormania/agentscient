@@ -1,5 +1,67 @@
 # Working handoff — Codex dev-lane machinery, 2026-09-04
 
+## Superseding checkpoint, 2026-09-05 01:06 UTC
+
+Re-measured forge, dispatch records, branches and focused probes at writing.
+All older checkpoints below are historical where they differ.
+Main checkout c715b24 and owner .dev/wip/ remain untouched. No release action.
+
+- #62 MERGED into dev at00:35:25Z, merge b8a1e77b912d699523a823d88ae1e74b8c49a228,
+  reviewed head e1e422a; CI33933300306 green, merge commit, branch retained.
+  Two model review rounds complete; root verified final combined correction
+  with215hooks tests and36Python/8head/8allow probes. Comment5548099708.
+- #63 remote77702aa, current CI allgreen (33934164546 +CodeQL).
+  Sol fixes landed28c6f75,a075806,52a724a,bc5c097; root fixture-only dca94a5.
+ 323dispatch tests45.657s pass. Binary Git status/literal-pathspec roundtrip
+  preserved12selected endpoints, staged logical contents, no collateral.
+  Final Grok20260905T010147Z-review-grok-861a7c running.
+  Final Daybreak20260905T010148Z-review-codex-9bf156 approved0; ownedfilesystem
+  probe inaccessible to that reviewer, pureprobespassed. Rootproof separate.
+  Fresh real Codex output/TMPDIR/ordinaryreadonly proof stands; live resume
+  NOT measured, no authorizedfrontdoor resume. No strongsameUIDsandbox claim.
+- #64 remote7597a22; localdf466979 includes devmerge and974bb3 cachefix.
+  Final Grok20260905T002249Z-review-grok-3377a3 approved0.
+  Final Daybreak20260905T002249Z-review-codex-924983 oneP2 aggregatecachememory.
+  Root64tests pass4.457s at974bb3 but measured quadraticwarmaccounting:
+  100entries .205s,300 1.864s,600 7.999s,1000 21.495s (2.29MiB).
+  Sol completion20260905T010336Z-code-codex-a7013c running. No thirdsecurityround;
+  independentlyverify memory/eviction/once/mutation/warmcost, CI thenadjudicate.
+  RemoteCI33932740073 failed twice on pre-existing ambient .launcher teardown
+  race. No thirdrerun; no assertionweakened. Newheadmustgreen beforemerge.
+  Root owns watchdog tests, cannotimplement watchdog orapproveown tests.
+  OriginalwatchdogPID421713 stillactive tick30 heartbeat2; not replaced.
+- #65 remoteca6a869; local1e8c38 includes534109c securityfix +devmerge6273b968
+  +repositorydiscoveryfix. Current root15critical probespass. Initial dual
+  reportsandcorrectionsinPRcomments. Finalreviewjobs running:
+  Grok20260905T010613Z-review-grok-e65555,
+  Daybreak20260905T010613Z-review-codex-d885ac.
+  No monitorlooparmed; queue/digest only, no idleCodexwakeup.
+- Valid independentoracle854d72d landedce3810b in contract-onlytestlineage.
+  Old8945b85/d2336a0 invalidrecords stayinvalid; nocherrypickbypass.
+  Currentproduction diagnostic41pass1fixturefault(newidentitylinkageneeded).
+  Daybreakskeptic20260905T002434Z-check-tests-codex-52fa6e gave3P1+11P2
+  source-reading coverageclaims, NOT14provenproductionbugs, nomutantsrun.
+  Rootadjudicatedconcretefalse-passdiscriminators; noforcingparallelobservers
+  orliteralUTF8whencontractallowsserializedreads/ASCIIescapedJSON.
+  Boundedteststrengthening20260905T010425Z-tests-grok-88cbd4 runningwith
+  implementationwithheld/currentcontractsupplied. Testlineage384c716.
+  HistoricalwrapperignoredWF_AGENT env and incorrectlyrecordeddispatcher
+  ClaudeFable5.1; actualinvoker rootGPT6Astra, requestedproducerGrok4.6.
+  DoNOTrewritehistory; useexplicit --agent onoldwrapper goingforward.
+  Producerattributionandartifactmuststillbeverifiedfromclosedrecord.
+
+User's “keep1,2max” is unanswered async clarification: atmosttwoopendrafts
+or tworeviewrounds. Currentlythreeopen drafts63–65; noextrasopened.
+Rootannounced finalcorrectionsverifieddirectly, no thirdsecurityreview.
+Onlyready/mergeafterupheldfindingsresolved, greenCI, stationary/conflict-free
+head. Mergeintodev only, no squash/deletebranches.
+
+Measured design followups, not implemented: no-model safe reassessment for
+validcommitted artifact withbadmetadata; missingfrontdoor resume; implement
+jobtemplate requirescommanddiary findings, bloatingconductorcontext; ambient
+livestore testwitnesses confoundparallelactivity. Do notmisstate asfixed.
+Allbriefs/fullreports in /tmp/agentscient-pr-reviews.I8svLf.
+
 ## Superseding checkpoint, 2026-09-05 00:09:33 UTC
 
 Everything below this checkpoint is historical unless repeated here.
