@@ -76,7 +76,7 @@ def _lane_values(*names):
     return resolved
 
 
-def _git(repo, *args, check=True, env=None, input=None):
+def _git(repo, *args, check=True, env=None, input=None, text=True):
     e = dict(os.environ if env is None else env)
     e.update({"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
               "GIT_CONFIG_NOSYSTEM": "1", "GIT_TERMINAL_PROMPT": "0"})
@@ -86,11 +86,14 @@ def _git(repo, *args, check=True, env=None, input=None):
         input=input,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        text=text,
         check=False,
     )
     if check and p.returncode:
-        raise RuntimeError(p.stderr.strip() or f"git exited {p.returncode}")
+        error = p.stderr.strip()
+        if isinstance(error, bytes):
+            error = error.decode(errors="replace")
+        raise RuntimeError(error or f"git exited {p.returncode}")
     return p
 
 
@@ -169,6 +172,123 @@ def _jobs_root():
     state = os.environ.get("XDG_STATE_HOME")
     base = Path(state) if state else Path(os.environ.get("HOME", "")) / ".local/state"
     return base / _lane_values("LANE_NAME")["LANE_NAME"] / "dispatch"
+
+
+def _job_paths(job_id):
+    """Return the only job directory and snapshot a selected id may name."""
+    if (not isinstance(job_id, str) or not job_id or job_id in {".", ".."}
+            or "/" in job_id or "\\" in job_id or "\0" in job_id):
+        _refuse("record-target", "one dispatch id path component", repr(job_id),
+                "name the exact dispatch id")
+    root = _jobs_root().resolve(strict=False)
+    job_dir = root / job_id
+    resolved_job = job_dir.resolve(strict=False)
+    if resolved_job != job_dir:
+        _refuse("record-target", f"the canonical job directory {job_dir}",
+                str(resolved_job), "restore the job below the current dispatch store")
+    snapshot = job_dir / "snapshot"
+    resolved_snapshot = snapshot.resolve(strict=False)
+    if resolved_snapshot != snapshot:
+        _refuse("record-target", f"the exact snapshot {snapshot}",
+                str(resolved_snapshot), "replace the escaped snapshot with the job snapshot")
+    return job_dir, snapshot
+
+
+def _bind_record(rec, selected_id):
+    """Validate record identity, then rebase a portable record to this store."""
+    job_dir, snapshot = _job_paths(selected_id)
+    record.validate_context(rec, expected_id=selected_id)
+    stored = Path(rec["snapshot"]["root"])
+    if (".." in stored.parts or stored.name != "snapshot"
+            or stored.parent.name != selected_id):
+        _refuse("record-target", f"a snapshot ending in {selected_id}/snapshot",
+                str(stored), "restore the dispatch record's snapshot path")
+    if (stored.exists() or stored.is_symlink()) and stored.resolve(strict=False) != snapshot:
+        _refuse("record-target", f"the current dispatch snapshot {snapshot}",
+                str(stored.resolve(strict=False)),
+                "move the job into the current dispatch store without an escaped symlink")
+    stored_job = stored.parent
+    isolation_data = (rec.get("harness") or {}).get("isolation") or {}
+    harness = (rec.get("harness") or {}).get("name")
+    isolation = _module("isolation_rebind", HARNESS_APP / "isolation.py")
+    spec = isolation.HARNESSES.get(harness)
+    if spec is None:
+        _refuse("isolation", "a harness isolation entry", str(harness),
+                "restore the recorded harness name")
+    if spec["mechanism"] == "home":
+        home = job_dir / "home" / harness
+        store = home / spec["sessions"]["path"]
+        for label, value, expected in (
+                ("home", isolation_data.get("home"), home),
+                ("store", isolation_data.get("store"), store),
+                *((f"env.{key}", value, home)
+                  for key, value in (isolation_data.get("env") or {}).items()
+                  if key in {spec.get("home_env"), *spec.get("also_env", ())}),
+        ):
+            if not isinstance(value, str):
+                continue
+            found = Path(value)
+            if ((found.exists() or found.is_symlink())
+                    and found.resolve(strict=False) != expected):
+                _refuse("record-target", f"{label} at {expected}",
+                        str(found.resolve(strict=False)),
+                        "move the complete job without retaining a live foreign home")
+        for label, expected in (("home", home), ("store", store)):
+            if expected.resolve(strict=False) != expected:
+                _refuse("record-target", f"the canonical isolation {label} {expected}",
+                        str(expected.resolve(strict=False)),
+                        "replace the escaped isolation path inside the current job")
+
+    def rebase(value):
+        if isinstance(value, str) and Path(value).is_absolute():
+            try:
+                return str(job_dir / Path(value).relative_to(stored_job))
+            except ValueError:
+                return value
+        if isinstance(value, list):
+            return [rebase(item) for item in value]
+        if isinstance(value, dict):
+            return {key: rebase(item) for key, item in value.items()}
+        return value
+
+    rec = rebase(rec)
+    rec["snapshot"]["root"] = str(snapshot)
+    rec = _absolute_paths(rec)
+    isolation_data = rec["harness"]["isolation"]
+    if spec["mechanism"] == "home":
+        home = job_dir / "home" / harness
+        isolation_data["env"] = isolation.dispatch_env(harness, home, {})
+        isolation_data["home"] = str(home)
+        isolation_data["store"] = str(home / spec["sessions"]["path"])
+        isolation_data.pop("flags", None)
+    else:
+        isolation_data["flags"] = isolation.dispatch_flags(harness)
+        isolation_data.pop("env", None)
+    record.validate_context(
+        rec, expected_id=selected_id, expected_snapshot=snapshot,
+    )
+    if stored_job != job_dir:
+        rec["_relocated_from"] = str(stored_job)
+    return job_dir, snapshot, rec
+
+
+def _bound_snapshot(rec):
+    job_dir, snapshot = _job_paths(rec.get("id"))
+    record.validate_context(
+        rec, expected_id=rec["id"], expected_snapshot=snapshot,
+    )
+    return job_dir, snapshot
+
+
+def _verify_record_ref(snapshot, ref_sha):
+    verified = _git(
+        snapshot, "rev-parse", "--verify", "--end-of-options",
+        f"{ref_sha}^{{commit}}", check=False,
+    )
+    if verified.returncode or verified.stdout.strip() != ref_sha:
+        _refuse("record-ref", "snapshot.ref_sha to name its exact commit",
+                ref_sha,
+                "restore the immutable dispatched commit in the bound snapshot")
 
 
 def _repo():
@@ -460,7 +580,7 @@ def _child_env(base, additions, job_id):
     return env
 
 
-def _stream(job_dir, harness, session, snapshot, ref_sha):
+def _stream(job_dir, harness, session, snapshot, ref_sha, role="read"):
     if harness == "codex":
         paths = list((job_dir / "home/codex/sessions").rglob("rollout-*.jsonl"))
     elif harness == "grok":
@@ -479,8 +599,28 @@ def _stream(job_dir, harness, session, snapshot, ref_sha):
             data = json.loads(path.read_text())
             ran = data.get("current_model_id")
             stream_id = (data.get("info") or {}).get("id")
-            if data.get("head_commit") and data["head_commit"] != ref_sha:
-                mismatch = "head_commit mismatch"
+            reported_head = data.get("head_commit")
+            expected_heads = [ref_sha]
+            if role == "write":
+                local_head = _git(
+                    snapshot, "rev-parse", "--verify", "HEAD^{commit}",
+                    check=False,
+                )
+                if (local_head.returncode
+                        or _git(snapshot, "merge-base", "--is-ancestor",
+                                ref_sha, local_head.stdout.strip(),
+                                check=False).returncode):
+                    mismatch = (
+                        f"head_commit unverified against expected ref {ref_sha}"
+                    )
+                else:
+                    expected_heads.append(local_head.stdout.strip())
+            if (reported_head and mismatch is None
+                    and reported_head not in expected_heads):
+                mismatch = (
+                    f"head_commit mismatch: expected {' or '.join(expected_heads)}, "
+                    f"found {reported_head}; dispatched ref {ref_sha}"
+                )
         else:
             for line in path.read_text().splitlines():
                 row = json.loads(line)
@@ -514,6 +654,41 @@ def _invalidate_envelope(data, note):
     data["verdict"] = None
     prior = data.get("note")
     data["note"] = f"{prior}; {note}" if prior else note
+    return data
+
+
+def _retain_findings(data, prior):
+    """A resumed result may add evidence, but cannot erase earlier findings."""
+    prior_findings = prior.get("findings")
+    prior_findings = prior_findings if isinstance(prior_findings, list) else []
+    resumed = data.get("findings")
+    resumed = resumed if isinstance(resumed, list) else []
+    data["findings"] = prior_findings + [
+        item for item in resumed if item not in prior_findings
+    ]
+    counts = data.get("counts")
+    counts = counts if isinstance(counts, dict) else {}
+    prior_counts = prior.get("counts")
+    prior_counts = prior_counts if isinstance(prior_counts, dict) else {}
+
+    def count(value):
+        return value if type(value) is int and value >= 0 else 0
+
+    for severity in ("p1", "p2", "p3"):
+        found = sum(
+            item.get("severity") == severity
+            for item in data["findings"] if isinstance(item, dict)
+        )
+        counts[severity] = max(
+            count(counts.get(severity)), count(prior_counts.get(severity)), found,
+        )
+    counts["opinions"] = max(
+        count(counts.get("opinions")), count(prior_counts.get("opinions")),
+    )
+    data["counts"] = counts
+    if (data.get("status") == "ok" and data.get("verdict") == "approve"
+            and any(counts[severity] for severity in ("p1", "p2", "p3"))):
+        data["verdict"] = "changes"
     return data
 
 
@@ -705,12 +880,17 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
 
 def _write_record(repo, rec):
     rec.pop("_envelope_cause", None)
+    rec.pop("_relocated_from", None)
+    job_dir, _snapshot_path = _bound_snapshot(rec)
     path = repo / ".dev/records/dispatches" / f"{rec['id']}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     record.validate(rec)
+    record.validate_context(
+        rec, expected_id=rec["id"], expected_snapshot=_snapshot_path,
+    )
     body = json.dumps(_portable_paths(rec), indent=2) + "\n"
     path.write_text(body, encoding="utf-8")
-    job_path = Path(rec["snapshot"]["root"]).parent / "record.json"
+    job_path = job_dir / "record.json"
     if job_path.parent.is_dir():
         job_path.write_text(body, encoding="utf-8")
     return path
@@ -733,8 +913,19 @@ def _commit_record(repo, path, rec, subject=None):
 
 def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     harness = rec["harness"]["name"]
-    snapshot = Path(rec["snapshot"]["root"])
+    bound_job_dir, snapshot = _bound_snapshot(rec)
+    if Path(job_dir).resolve(strict=False) != bound_job_dir:
+        _refuse("record-target", f"the canonical job directory {bound_job_dir}",
+                str(Path(job_dir).resolve(strict=False)), "use the record's dispatch id")
+    job_dir = bound_job_dir
+    _verify_record_ref(snapshot, rec["snapshot"]["ref_sha"])
     prompt = job_dir / "prompt.txt"
+    relocated_from = rec.pop("_relocated_from", None)
+    if relocated_from:
+        prompt_text = prompt.read_text(encoding="utf-8").replace(
+            relocated_from, str(job_dir))
+        prompt.write_text(prompt_text, encoding="utf-8")
+        rec["brief"].update(sha256=_sha(prompt), bytes=prompt.stat().st_size)
     iso_env = rec["harness"]["isolation"].get("env", {})
     flags = rec["harness"]["isolation"].get("flags", [])
     project_allow = project_deny = ()
@@ -824,7 +1015,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                 last_read = elapsed
                 stream, _ran, _sid, _mis = _stream(
                     job_dir, harness, rec["session"]["id"], snapshot,
-                    rec["snapshot"]["ref_sha"],
+                    rec["snapshot"]["ref_sha"], rec["role"],
                 )
                 over = False
                 if stream and rec["caps"].get("cap-out") is not None:
@@ -956,7 +1147,7 @@ def _launch(args):
                 f"an empty comparison at {ref_sha}",
                 f"name a ref on {lineage} with changes to review")
     job_id = mint_id(stage, args.harness)
-    job_dir = root / job_id
+    job_dir, snapshot = _job_paths(job_id)
     record_path = repo / ".dev/records/dispatches" / f"{job_id}.json"
     _preflight_isolation(args.harness, job_dir / "home" / args.harness, os.environ)
     if job_dir.exists() or record_path.exists():
@@ -964,7 +1155,6 @@ def _launch(args):
     job_dir.mkdir(parents=True)
     for name in ("in", "out"):
         (job_dir / name).mkdir()
-    snapshot = job_dir / "snapshot"
     _snapshot(repo, lineage, ref_sha, snapshot)
     copied = []
     for source in args.input:
@@ -1033,7 +1223,7 @@ def _launch(args):
     print(f"record: {job_id}", flush=True)
     _run_attempt(rec, job_dir, job_caps=job.get("caps"))
     path, ran, found_id, mismatch = _stream(
-        job_dir, args.harness, session, snapshot, ref_sha,
+        job_dir, args.harness, session, snapshot, ref_sha, role,
     )
     if path:
         if args.harness in {"codex", "grok"}:
@@ -1299,53 +1489,193 @@ def _fill_envelope_spend(rec, env):
         }
 
 
-def _write_residual_patch(snapshot, job_dir):
+def _write_residual_patch(snapshot, job_dir, residual=None):
     """Preserve what a harness left uncommitted — staged, unstaged and
     untracked alike — as one patch `git apply` accepts, so a retry can take
     it as an input instead of the conductor diffing the snapshot by hand.
     A temporary index keeps the snapshot's own index untouched."""
     import tempfile
-    untracked = _git(snapshot, "ls-files", "--others", "--exclude-standard", check=False).stdout.splitlines()
+    residual = (_residual_entries(snapshot) if residual is None
+                else tuple(residual))
+    paths = list(dict.fromkeys(
+        path for entry in residual for path in entry.paths
+    ))
+    untracked = [
+        _path_argument(path)
+        for entry in residual if entry.code in {"??", "!!"}
+        for path in entry.paths
+    ]
     with tempfile.NamedTemporaryFile(prefix="residual-index-", delete=False) as tmp:
         index = tmp.name
     env = dict(os.environ, GIT_INDEX_FILE=index)
     try:
         _git(snapshot, "read-tree", "HEAD", env=env)
-        excludes = [f":(exclude,glob)**/{seg.rstrip('/')}/**" for seg in CACHE_RESIDUAL]
-        _git(snapshot, "add", "-A", "--", ".", *excludes, env=env)
-        patch = _git(snapshot, "diff", "--cached", "--binary", "HEAD", env=env, check=False).stdout
+        _git(snapshot, "--literal-pathspecs", "add", "-A", "-f", "--",
+             *paths, env=env)
+        patch = _git(snapshot, "diff", "--cached", "--binary", "HEAD",
+                     env=env, check=False, text=False).stdout
     finally:
         Path(index).unlink(missing_ok=True)
     out = job_dir / "residual.patch"
-    out.write_text(patch)
+    out.write_bytes(patch)
     return {"path": str(out), "sha256": _sha(out), "untracked": untracked}
 
 
-# Tool caches a read role leaves behind by running the suite or ruff are
-# not writes into the tree; everything else is.
-CACHE_RESIDUAL = ("__pycache__/", ".ruff_cache/", ".pytest_cache/", ".mypy_cache/")
+# Tool caches a read role leaves behind by running the suite or ruff are not
+# residual writes. These are measured, bounded layouts: unknown names remain
+# evidence even below a cache-named root.
+CACHE_MARKERS = {".gitignore", "CACHEDIR.TAG"}
+PYTEST_CACHE_VALUES = {"lastfailed", "nodeids", "stepwise"}
+VERSION_DIR = re.compile(r"[0-9]+\.[0-9]+(?:\.[0-9]+)?")
+MYPY_CACHE_FILE = re.compile(
+    r"(?:.+\.(?:data|meta|meta_ex|deps|refs)\.(?:json|ff)(?:\.[0-9a-f]+)?"
+    r"|cache(?:\.[0-9]+)?\.db(?:-(?:shm|wal))?)"
+)
+MYPY_GLOBAL_FILES = {
+    "@deps.meta.json", "@plugins_snapshot.json", "@root.deps.json",
+}
+
+
+class _ResidualEntry:
+    __slots__ = ("code", "paths")
+
+    def __init__(self, code, paths):
+        self.code = code
+        self.paths = paths
+
+
+_C_ESCAPES = {
+    7: "a", 8: "b", 9: "t", 10: "n", 11: "v", 12: "f", 13: "r",
+    34: '"', 92: "\\",
+}
+
+
+def _path_argument(raw):
+    try:
+        path = os.fsdecode(raw)
+        round_trip = os.fsencode(path)
+    except UnicodeError:
+        path = None
+        round_trip = None
+    if round_trip != raw:
+        _refuse("residual-path", "a lossless filesystem path byte sequence",
+                repr(raw), "use a filesystem encoding that preserves the path")
+    return path
+
+
+def _display_path(raw):
+    if all(33 <= byte < 127 and byte not in {34, 92} for byte in raw):
+        return raw.decode("ascii")
+    rendered = []
+    for byte in raw:
+        if byte in _C_ESCAPES:
+            rendered.append("\\" + _C_ESCAPES[byte])
+        elif 32 <= byte < 127:
+            rendered.append(chr(byte))
+        else:
+            rendered.append(f"\\{byte:03o}")
+    return '"' + "".join(rendered) + '"'
+
+
+def _display_residual(entry):
+    names = " -> ".join(_display_path(path) for path in entry.paths)
+    return f"{entry.code} {names}"
+
+
+def _is_cache_residual(entry):
+    for raw in entry.paths:
+        path = Path(_path_argument(raw))
+        parts = path.parts
+        if "__pycache__" in parts[:-1] and path.suffix == ".pyc":
+            continue
+        if parts and parts[0] == ".ruff_cache":
+            if len(parts) == 2 and (parts[1] in CACHE_MARKERS or not path.suffix):
+                continue
+            if (len(parts) == 3 and VERSION_DIR.fullmatch(parts[1])
+                    and not path.suffix):
+                continue
+        if parts and parts[0] == ".pytest_cache":
+            if len(parts) == 2 and parts[1] in CACHE_MARKERS | {"README.md"}:
+                continue
+            if (len(parts) == 4 and parts[1:3] == ("v", "cache")
+                    and parts[3] in PYTEST_CACHE_VALUES):
+                continue
+        if parts and parts[0] == ".mypy_cache":
+            if len(parts) == 2 and parts[1] in CACHE_MARKERS | {"missing_stubs"}:
+                continue
+            if (len(parts) >= 3 and VERSION_DIR.fullmatch(parts[1])
+                    and (path.name in MYPY_GLOBAL_FILES
+                         or MYPY_CACHE_FILE.fullmatch(path.name))):
+                continue
+        return False
+    return True
+
+
+def _residual_entries(snapshot):
+    raw = _git(
+        snapshot, "status", "--porcelain=v1", "-z", "-uall", text=False,
+    ).stdout
+    records = raw.split(b"\0")
+    if records.pop() != b"":
+        raise RuntimeError("git status -z did not end with NUL")
+    entries = []
+    offset = 0
+    while offset < len(records):
+        record = records[offset]
+        offset += 1
+        if len(record) < 4 or record[2:3] != b" ":
+            raise RuntimeError(f"malformed git status -z record: {record!r}")
+        try:
+            code = record[:2].decode("ascii")
+        except UnicodeDecodeError as exc:
+            raise RuntimeError(
+                f"non-ASCII git status code: {record[:2]!r}"
+            ) from exc
+        paths = (record[3:],)
+        if "R" in code or "C" in code:
+            if offset == len(records):
+                raise RuntimeError("rename status omitted its source path")
+            # In -z mode Git emits destination first, then source. Keep the
+            # public display's source -> destination order.
+            paths = (records[offset], record[3:])
+            offset += 1
+        for path in paths:
+            _path_argument(path)
+        entries.append(_ResidualEntry(code, paths))
+
+    ignored = _git(
+        snapshot, "ls-files", "--others", "--ignored", "--exclude-standard",
+        "-z", text=False,
+    ).stdout.split(b"\0")
+    entries.extend(_ResidualEntry("!!", (path,)) for path in ignored if path)
+    return tuple(entry for entry in entries if not _is_cache_residual(entry))
 
 
 def _residual(snapshot):
-    lines = _git(snapshot, "status", "--porcelain=v1", "-uall").stdout.splitlines()
-    return [line for line in lines
-            if not any(seg in line[3:] for seg in CACHE_RESIDUAL)]
+    return [_display_residual(entry) for entry in _residual_entries(snapshot)]
 
 
-def _settle(repo, record_path, rec, env):
+def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
     """Collect the snapshot's state, finalize the record, commit it."""
-    snapshot = Path(rec["snapshot"]["root"])
+    job_dir, snapshot = _bound_snapshot(rec)
     ref_sha = rec["snapshot"]["ref_sha"]
+    _verify_record_ref(snapshot, ref_sha)
     role, job_id = rec["role"], rec["id"]
+    prior_cause = (rec.get("result") or {}).get("cause")
     _fill_envelope_spend(rec, env)
-    residual = _residual(snapshot)
+    residual_entries = _residual_entries(snapshot)
     tripped = bool(rec.get("attempts") and rec["attempts"][-1].get("tripped"))
-    if role == "write" and rec["harness"]["name"] == "codex" and residual and not tripped:
+    if (role == "write" and rec["harness"]["name"] == "codex"
+            and residual_entries and not tripped):
         _commit_for_harness(snapshot, rec, env)
-        residual = _residual(snapshot)
-    residual_patch = _write_residual_patch(snapshot, Path(rec["snapshot"]["root"]).parent) if residual else None
+        residual_entries = _residual_entries(snapshot)
+    residual = [_display_residual(entry) for entry in residual_entries]
+    residual_patch = (_write_residual_patch(snapshot, job_dir, residual_entries)
+                      if residual_entries else None)
     head = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
-    changed = _git(snapshot, "diff", "--name-only", f"{ref_sha}..{head}").stdout.splitlines()
+    changed = _git(
+        snapshot, "diff", "--name-only", ref_sha, head, "--",
+    ).stdout.splitlines()
     if role == "read" and head != ref_sha:
         _invalidate_envelope(env, "read-role-head: HEAD must equal ref_sha")
     elif role == "read" and residual:
@@ -1359,7 +1689,7 @@ def _settle(repo, record_path, rec, env):
                      "residual_paths": residual, "envelope": env}
     if residual_patch:
         rec["result"]["residual_patch"] = residual_patch
-    cause = _cause(rec, Path(rec["snapshot"]["root"]).parent, env)
+    cause = prior_cause if preserve_cause else _cause(rec, job_dir, env)
     rec.pop("_envelope_cause", None)
     rec["result"]["cause"] = cause
     if env.get("status") == "invalid" and str(env.get("note", "")).startswith("envelope-parse"):
@@ -1367,7 +1697,7 @@ def _settle(repo, record_path, rec, env):
     rec["at"]["closed"] = _now()
     rec["status"] = "closed"
     _write_record(repo, rec)
-    _commit_record(repo, record_path, rec)
+    _commit_record(repo, record_path, rec, subject=subject)
 
 
 def _job_state(d):
@@ -1387,7 +1717,7 @@ def _job_state(d):
 
 def _status(args):
     root = _jobs_root()
-    dirs = [root / args.id] if args.id else sorted(
+    dirs = [_job_paths(args.id)[0]] if args.id else sorted(
         path for path in root.glob("*") if path.is_dir())
     rows = []
     for d in dirs:
@@ -1399,20 +1729,25 @@ def _status(args):
 
 
 def _find_record(repo, job_id):
+    _job_paths(job_id)
     path = repo / ".dev/records/dispatches" / f"{job_id}.json"
     if not path.is_file():
         raise RuntimeError(f"record not found: {job_id}")
-    return path, _absolute_paths(json.loads(path.read_text()))
+    _job_dir, _snapshot_path, rec = _bind_record(
+        json.loads(path.read_text()), job_id,
+    )
+    return path, rec
 
 
 def _resume(args):
     repo = _repo()
     path, rec = _find_record(repo, args.id)
-    job_dir = _jobs_root() / args.id
+    job_dir, _snapshot_path = _bound_snapshot(rec)
     prior_session = copy.deepcopy(rec.get("session") or {})
     prior_model = copy.deepcopy(rec.get("model") or {})
     prior_result = copy.deepcopy(rec.get("result") or {})
     prior_envelope = (rec.get("result") or {}).get("envelope") or {}
+    preserve_cause = False
     settled_refusal = None
     if rec.get("status") == "closed" and prior_envelope.get("status") == "invalid":
         settled_refusal = {
@@ -1431,7 +1766,7 @@ def _resume(args):
     runtime_note = rec.pop("_runtime_note", None)
     stream, ran, found_id, mismatch = _stream(
         job_dir, rec["harness"]["name"], rec["session"]["id"],
-        Path(rec["snapshot"]["root"]), rec["snapshot"]["ref_sha"],
+        Path(rec["snapshot"]["root"]), rec["snapshot"]["ref_sha"], rec["role"],
     )
     if rec["harness"]["name"] in {"codex", "grok"}:
         harness = rec["harness"]["name"]
@@ -1493,17 +1828,37 @@ def _resume(args):
                             rec=rec)
             if settled_refusal is not None:
                 env.update(settled_refusal)
+            _retain_findings(env, prior_envelope)
             _fill_envelope_spend(rec, env)
             rec.setdefault("result", {})["envelope"] = env
             rec["result"]["cause"] = _cause(rec, job_dir, env)
         else:
             rec["result"] = prior_result
-    _write_record(repo, rec)
+            preserve_cause = True
+            if rec["role"] == "read" and note:
+                env = copy.deepcopy(prior_envelope) or _invalid(
+                    rec["job"], rec["snapshot"]["ref_sha"], note,
+                )
+                if env.get("note") != note:
+                    _invalidate_envelope(env, note)
+                rec.setdefault("result", {})["envelope"] = env
     attempt = rec["attempts"][-1]["n"]
-    _commit_record(
-        repo, path, rec,
-        subject=f"dispatch: record {rec['id']} after attempt {attempt}",
-    )
+    if rec["role"] == "read":
+        envelope = (rec.get("result") or {}).get("envelope") or _invalid(
+            rec["job"], rec["snapshot"]["ref_sha"],
+            "resume-envelope: no prior or resumed envelope",
+        )
+        _settle(
+            repo, path, rec, envelope,
+            subject=f"dispatch: record {rec['id']} after attempt {attempt}",
+            preserve_cause=preserve_cause,
+        )
+    else:
+        _write_record(repo, rec)
+        _commit_record(
+            repo, path, rec,
+            subject=f"dispatch: record {rec['id']} after attempt {attempt}",
+        )
     return 0
 
 
@@ -1542,6 +1897,7 @@ def _collect(args):
         )
     snapshot = Path(rec["snapshot"]["root"])
     job_dir = snapshot.parent
+    _verify_record_ref(snapshot, rec["snapshot"]["ref_sha"])
     before = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
     ref_sha = rec["snapshot"]["ref_sha"]
     if _git(snapshot, "merge-base", "--is-ancestor", ref_sha, before,
@@ -1587,8 +1943,7 @@ def _collect(args):
          f"{head}:refs/dispatch/{rec['id']}")
     result["head"] = head
     result["changed_paths"] = _git(
-        snapshot, "diff", "--name-only",
-        f"{rec['snapshot']['ref_sha']}..{head}",
+        snapshot, "diff", "--name-only", rec["snapshot"]["ref_sha"], head, "--",
     ).stdout.splitlines()
     result["residual_paths"] = _residual(snapshot)
     result["collected"] = {
@@ -1609,8 +1964,8 @@ def _collect(args):
 def _wait(args):
     stdout, stderr = sys.stdout, sys.stderr
     repo = _repo()
+    job_dir, _snapshot_path = _job_paths(args.id)
     record_path = repo / ".dev/records/dispatches" / f"{args.id}.json"
-    job_dir = _jobs_root() / args.id
     if not record_path.is_file():
         _refuse("wait-target", f"a record for {args.id}", "none",
                 "name a launched dispatch")
@@ -1644,17 +1999,23 @@ def _wait(args):
 
 def _close(args):
     repo = _repo()
+    _job_paths(args.id)
+    preflight_path = repo / ".dev/records/dispatches" / f"{args.id}.json"
+    if not preflight_path.is_file():
+        raise RuntimeError(f"record not found: {args.id}")
+    preflight = json.loads(preflight_path.read_text())
+    branch = _branch(repo)
+    lineage = (preflight.get("lineage") or {}).get("branch")
+    if branch != lineage:
+        _refuse("record-target", f"the checkout on {lineage}", branch,
+                f"run from a worktree of {lineage}")
     path, rec = _find_record(repo, args.id)
     # Records launched before effort_argv joined the wire remain closable.
     rec["model"].setdefault(
         "effort_argv",
         _effort_argv(rec["harness"]["name"], rec["model"].get("effort_requested")),
     )
-    branch = _branch(repo)
-    lineage = rec["lineage"]["branch"]
-    if branch != lineage:
-        _refuse("record-target", f"the checkout on {lineage}", branch, f"run from a worktree of {lineage}")
-    job_dir = _jobs_root() / args.id
+    job_dir, _snapshot_path = _bound_snapshot(rec)
     state = json.loads((job_dir / "state.json").read_text())
     try:
         os.kill(int(state["pid"]), 0)
@@ -1686,7 +2047,7 @@ def _close(args):
             note = "trip: battery tripped"
         stream, ran, found_id, mismatch = _stream(
             job_dir, rec["harness"]["name"], rec["session"]["id"],
-            Path(rec["snapshot"]["root"]), rec["snapshot"]["ref_sha"],
+            Path(rec["snapshot"]["root"]), rec["snapshot"]["ref_sha"], rec["role"],
         )
         if stream:
             rec["session"].update(
@@ -1712,7 +2073,8 @@ def _close(args):
 def _brief(args):
     repo = _repo()
     _path, rec = _find_record(repo, args.check)
-    prompt = _jobs_root() / args.check / "prompt.txt"
+    job_dir, _snapshot_path = _bound_snapshot(rec)
+    prompt = job_dir / "prompt.txt"
     ok = prompt.is_file() and _sha(prompt) == rec["brief"]["sha256"]
     print("brief matches" if ok else "brief digest mismatch")
     return 0 if ok else 1
