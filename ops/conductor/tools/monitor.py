@@ -691,6 +691,34 @@ def _paths_overlap(first: Path, second: Path) -> bool:
     return _inside(first, second) or _inside(second, first)
 
 
+def _repository() -> Path | None:
+    for parent in HERE.parents:
+        marker = parent / ".git"
+        try:
+            mode = marker.lstat().st_mode
+            if stat.S_ISDIR(mode):
+                git_dir = marker
+            elif stat.S_ISREG(mode):
+                with marker.open(encoding="utf-8") as handle:
+                    pointer = handle.read(4097)
+                line = pointer.rstrip("\r\n")
+                if len(pointer) > 4096 or "\n" in line or "\r" in line or not line.startswith("gitdir: "):
+                    continue
+                target = line.removeprefix("gitdir: ")
+                if not target:
+                    continue
+                git_dir = Path(target)
+                if not git_dir.is_absolute():
+                    git_dir = parent / git_dir
+            else:
+                continue
+        except (OSError, UnicodeError, ValueError):
+            continue
+        if (git_dir / "HEAD").is_file():
+            return parent
+    return None
+
+
 def _has_symlink_component(path: Path) -> bool:
     current = Path(path.anchor)
     for part in path.parts[1:]:
@@ -709,8 +737,8 @@ def _has_symlink_component(path: Path) -> bool:
 def _validate_state(state: Path, config_path: Path, config: dict[str, object]) -> Path:
     state = Path(os.path.abspath(state))
     resolved = state.resolve(strict=False)
-    repository = HERE.parents[3]
-    if _inside(resolved, repository):
+    repository = _repository()
+    if repository is not None and _inside(resolved, repository):
         refuse("state", "monitor state outside the source repository", str(resolved), "pass an isolated state directory")
     if _has_symlink_component(state):
         refuse("state", "a state path without symlinked components", str(state), "use the real isolated state directory")
