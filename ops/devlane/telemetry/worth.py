@@ -11,6 +11,7 @@ raw ticks: the scale is unverified, so no figure here is ever USD.
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -108,8 +109,12 @@ def _validated_claude_usage(usage):
     values = {key: usage.get(key, 0) for key in _CLAUDE_CURRENCIES}
     if any(isinstance(value, bool)
            or not isinstance(value, (int, float))
+           or value < 0
+           or (isinstance(value, float) and not math.isfinite(value))
            for value in values.values()):
-        raise ValueError("Claude usage currencies must be numeric")
+        raise ValueError(
+            "Claude usage currencies must be numeric, nonnegative, and finite"
+        )
     return values
 
 
