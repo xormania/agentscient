@@ -1,5 +1,70 @@
 # Working handoff — Codex dev-lane machinery, 2026-09-04
 
+## Superseding checkpoint, 2026-09-05 00:09:33 UTC
+
+Everything below this checkpoint is historical unless repeated here.
+Main worktree remains untouched; origin/dev still 9bf2724. Four open drafts:
+#62 remote0347aac; #63 remote0e40e2e, local dca94a5; #64 remote5ae3f158,
+local e52ce52; #65 remote/local ca6a869. No readiness/merge performed yet.
+
+#62 initial dual review upheld Python/env/import and GNU head families.
+Sol fix c7e7f84 landed0347aac. Root61 existing tests,105 Python combinations,
+7 head families,5 intended allows pass. Final dual focused verification:
+20260905T000515Z-review-grok-3d01f0 and
+20260905T000516Z-review-codex-a08c13, running.
+CI33931763105 attempt1 failed four unchanged ladder ambient-store teardown
+assertions on transient .launcher directories from parallel work; one rerun
+attempt2 completed success, same head. This exposes a pre-existing
+non-hermetic oracle, not a hook regression; no assertion was weakened.
+Full reports and correction status are PR comments, latest5547913128.
+
+#63 combined security fix 7826572 landed28c6f75. Strict ref IDs, relocated
+isolation homes/stores/env, malformed retained counts, dirty resume settlement,
+failed-attempt provenance and ignored source residue were corrected.
+Full323 dispatch suite revealed3 remaining failures: historical Grok write
+metadata may legitimately retain starting ref instead of resultHEAD; two
+synthetic record fixtures violate stricter context. Root repaired ONLY those
+fixtures at dca94a5 (8 tests pass); Sol compatibility completion running
+20260905T000547Z-code-codex-be4df5. Admit only starting ref or locally
+verified descendantHEAD, never arbitrary vendor hashes. No final review yet.
+Fresh real Codex check-tests job20260904T233212Z-check-tests-codex-9725b7
+closed ok, output/TMPDIR written, ordinary snapshot/input writes denied.
+Resume coupling remains unmeasured: front-door wrapper has no resume verb.
+chmod bypass remains a declared limit; no stronger containment claim.
+
+#64 initial Grok and Daybreak reports are in PR comments. Upheld bad held
+file/FIFO/symlink isolation, total forge deadline, unknown buckets, unsafe
+provider text. One combined Sol correction running
+20260905T000320Z-code-codex-c385b9; tests withheld from implementer.
+Root added independent hostile-file oracle e52ce52: four tests red at
+5ae3f158 (two assertion failures, two bounded FIFO timeouts). Root owns
+these and the earlier scanner equivalence oracle; must not implement code
+or approve its own tests. Before new security batch,60 tests and CI green.
+Original watchdog PID421713 still active tick30/heartbeat2; not replaced.
+
+#65 Daybreak4P2+2P3 report comment5547862996. Root reproduced arbitrary
+timestamp evidence, basename-only PID false-running, state namespace escape
+and boundary-year clock overflow. Other findings: unbounded gh capture,
+mid-loop state refusal wrong exit class. Preserve legitimate explicit custom
+state directories, prohibit repository writes and namespace escapes.
+Grok initial review20260904T235048Z-review-grok-1818eb still running.
+Wait for it, then one combined correction. No monitor loop armed.
+
+Second independent monitor oracle8945b85 (job232537-tests-grok-f24a8f)
+also INVALID because launcher head metadata check rejected its genuine
+commit. Diagnostic against ca6a869:42 methods,41 pass,1 fixture failure:
+second gh sequence in cooldown test reuses an existing counter but helper
+asserts absent. Original invalid records must remain invalid. Sol inspected
+lifecycle: no safe no-model reassessment lever exists. Need a valid new
+bounded artifact dispatch with provenance once metadata fix is available,
+not direct cherry-pick or edited status. Do not rewrite the whole oracle.
+
+All briefs/reports remain in /tmp/agentscient-pr-reviews.I8svLf.
+Record.json and PR comments outrank this checkpoint. Keep reviews to the
+acknowledged initial+focused-final cap; unresolved P1/P2 means park/block,
+not another endless review loop. Merge only into dev after both reviews,
+green CI and stationary conflict-free lineage; never squash/delete branch.
+
 Measured 23:30 UTC by GPT-6 Astra. This is a checkpoint, not completion.
 The earlier driver handoff is historical; it is not current PR state.
 Re-measure records and GitHub before acting. Main checkout was left unchanged
@@ -163,4 +228,3 @@ new security comments; original five Grok reports/responses were verified.
 
 Source: original
 Co-Authored-By: GPT-6 Astra <noreply@openai.com>
-
