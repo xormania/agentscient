@@ -27,9 +27,9 @@ INSTRUCTIONS = (
 )
 
 
-def _schemas() -> list[dict[str, object]]:
+def _schemas(config: dict[str, object]) -> list[dict[str, object]]:
     annotations = {"readOnlyHint": True, "destructiveHint": False}
-    return [
+    tools = [
         {
             "name": "lane_brief",
             "description": "Read the bounded lane brief before requesting detail.",
@@ -67,6 +67,51 @@ def _schemas() -> list[dict[str, object]]:
             "annotations": annotations,
         },
     ]
+    if config["version"] == 2:
+        tools.extend(
+            [
+                {
+                    "name": "lane_findings",
+                    "description": "Read a bounded page of recorded findings.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "cursor": {"type": "string"},
+                        },
+                        "required": ["id"],
+                        "additionalProperties": False,
+                    },
+                    "annotations": annotations,
+                },
+                {
+                    "name": "lane_changes",
+                    "description": "Compare record bytes with a revision checkpoint.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "checkpoint": {
+                                "type": "object",
+                                "additionalProperties": {"type": "string"},
+                            }
+                        },
+                        "additionalProperties": False,
+                    },
+                    "annotations": annotations,
+                },
+                {
+                    "name": "lane_jobs",
+                    "description": "Read bounded structural cards from the job registry.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {"name": {"type": "string"}},
+                        "additionalProperties": False,
+                    },
+                    "annotations": annotations,
+                },
+            ]
+        )
+    return tools
 
 
 def _resources(config: dict[str, object]) -> list[dict[str, str]]:
@@ -79,6 +124,17 @@ def _resources(config: dict[str, object]) -> list[dict[str, str]]:
         (f"lane://record/{ident}", f"Lane record {ident}", "Configured dispatch record summary")
         for ident in config["job_ids"]
     )
+    if config["version"] == 2:
+        rows.extend(
+            (f"lane://findings/{ident}", f"Lane findings {ident}", "First recorded findings page")
+            for ident in config["job_ids"]
+        )
+        rows.extend(
+            [
+                ("lane://changes", "Lane changes", "Stateless record revision comparison"),
+                ("lane://jobs", "Lane jobs", "Bounded job registry cards"),
+            ]
+        )
     return [
         {"uri": uri, "name": name, "description": description, "mimeType": "application/json"}
         for uri, name, description in rows
@@ -94,6 +150,19 @@ def _resource_query(config: dict[str, object], uri: object) -> dict[str, object]
         return query(config, "lane_usage", {})
     if isinstance(uri, str) and uri.startswith("lane://record/"):
         return query(config, "lane_record", {"id": uri.removeprefix("lane://record/")})
+    if config["version"] == 2:
+        if isinstance(uri, str) and uri.startswith("lane://findings/"):
+            return query(
+                config,
+                "lane_findings",
+                {"id": uri.removeprefix("lane://findings/")},
+            )
+        if uri == "lane://changes":
+            return query(config, "lane_changes", {})
+        if uri == "lane://jobs":
+            return query(config, "lane_jobs", {})
+        if isinstance(uri, str) and uri.startswith("lane://jobs/"):
+            return query(config, "lane_jobs", {"name": uri.removeprefix("lane://jobs/")})
     refuse("arguments", "a listed lane resource URI", repr(uri), "select a listed resource")
 
 
@@ -109,7 +178,11 @@ def _params(request: dict[str, object]) -> dict[str, object]:
     params = request.get("params", {})
     if not isinstance(params, dict):
         raise TypeError
-    return params
+    if "_meta" in params and not isinstance(params["_meta"], dict):
+        raise TypeError
+    result = dict(params)
+    result.pop("_meta", None)
+    return result
 
 
 def _dispatch(config: dict[str, object], request: object) -> dict[str, object] | None:
@@ -123,7 +196,7 @@ def _dispatch(config: dict[str, object], request: object) -> dict[str, object] |
     try:
         params = _params(request)
     except TypeError:
-        return _error(identifier, -32602, "Invalid params")
+        return None if notification else _error(identifier, -32602, "Invalid params")
     if notification:
         return None
     if method == "initialize":
@@ -144,9 +217,22 @@ def _dispatch(config: dict[str, object], request: object) -> dict[str, object] |
     if method == "ping":
         return _result(identifier, {})
     if method == "tools/list":
-        return _result(identifier, {"tools": _schemas()})
+        return _result(identifier, {"tools": _schemas(config)})
     if method == "resources/list":
         return _result(identifier, {"resources": _resources(config)})
+    if method == "resources/templates/list" and config["version"] == 2:
+        return _result(
+            identifier,
+            {
+                "resourceTemplates": [
+                    {
+                        "uriTemplate": "lane://jobs/{name}",
+                        "name": "Lane job card",
+                        "mimeType": "application/json",
+                    }
+                ]
+            },
+        )
     if method == "tools/call":
         if set(params) not in ({"name"}, {"name", "arguments"}) or not isinstance(
             params.get("name"), str
@@ -233,7 +319,7 @@ def main() -> int:
         config_path, verb, rest = _cli(sys.argv[1:])
         config = load_config(config_path)
         if verb == "check" and rest in ([], ["."]):
-            print(canonical(check_result()))
+            print(canonical(check_result(config)))
             return 0
         if verb == "serve" and not rest:
             return serve(config)
