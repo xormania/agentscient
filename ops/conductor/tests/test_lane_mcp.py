@@ -1003,8 +1003,11 @@ class TestLaneMcpRecord(_LaneMcpFixture):
         self.assertIn(payload["state"], ("ok", "unavailable"), payload)
         if payload["state"] == "ok":
             model = payload["record"]["model"]
-            self.assertEqual(len(model.encode("utf-8")), 256)
-            self.assertIsNone(payload["record"]["counts"])
+            self.assertIsNone(model)
+            counts = payload["record"]["counts"]
+            self.assertEqual(counts, {})
+            spend = payload["record"]["spend"]
+            self.assertEqual(spend, {})
             self.assertIsNone(payload["record"]["changed_count"])
             self.assertIsNone(payload["record"]["attempt_count"])
 
