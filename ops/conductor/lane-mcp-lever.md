@@ -10,7 +10,7 @@ Measured at dev c0ce300 on 2026-09-05: the tracked MCP files are .mcp.json
 (Serena), the historical tool wishlist, and the workflow MCP CUE contract.
 composer.lock includes ai-mate, not mcp/sdk or mcp-bundle. docs/mapping.md
 names the later Symfony MCP projection; no PHP dependency is changed here.
-The sibling workflow server at uscient/scientdb@99334f71ae9af9fa324a1a27241e60af62f8f340
+The precursor workflow server at commit 99334f71ae9af9fa324a1a27241e60af62f8f340
 demonstrates one query layer behind tools/resources/CLI. Reuse that pattern,
 not its retired engine or cache-rebuilding launcher. No vendor is required.
 
