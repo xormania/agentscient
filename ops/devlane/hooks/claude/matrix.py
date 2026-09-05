@@ -78,7 +78,17 @@ WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | 
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
 ASSIGN = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(\S+)", re.MULTILINE)
 ENV_ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-HEREDOC_OPEN = re.compile(r"<<-?[ \t]*(['\"]?)([A-Za-z_]\w*)\1")
+ENV_LONG_OPTIONS = {
+    "ignore-environment": "none", "null": "none", "debug": "none",
+    "unset": "required", "chdir": "required", "split-string": "required",
+    "block-signal": "optional", "default-signal": "optional",
+    "ignore-signal": "optional", "list-signal-handling": "none",
+    "help": "terminal", "version": "terminal",
+}
+HEREDOC_OPEN = re.compile(
+    r"(?:(?<![\w])(\d+))?(<<-?)[ \t]*(['\"]?)([A-Za-z_]\w*)\3"
+)
+HEREDOC_TOKEN = re.compile(r"^(?:(\d+))?<<-?(.*)$")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
 
@@ -197,6 +207,15 @@ def is_python(word):
     return bool(re.fullmatch(r"python(?:\d+(?:\.\d+)*)?", base(word)))
 
 
+def unique_long_option(argument, vocabulary):
+    """A GNU long option's unique full name and whether it carries ``=VALUE``."""
+    name, equals, _value = argument[2:].partition("=")
+    matches = [option for option in vocabulary if option.startswith(name)]
+    if len(matches) != 1:
+        return None
+    return matches[0], bool(equals)
+
+
 def env_operand(tokens, program):
     """The command operand after bounded GNU env options, or None."""
     if program >= len(tokens) or base(tokens[program]) != "env":
@@ -209,21 +228,22 @@ def env_operand(tokens, program):
         if argument == "-" or ENV_ASSIGN.match(argument):
             program += 1
             continue
-        if argument in ("--help", "--version"):
-            return None
-        if argument in (
-                "--ignore-environment", "--null", "--debug",
-                "--block-signal", "--default-signal", "--ignore-signal",
-                "--list-signal-handling"):
-            program += 1
-            continue
-        if argument in ("--unset", "--chdir", "--split-string"):
-            program += 2
-            continue
-        if argument.startswith((
-                "--unset=", "--chdir=", "--split-string=",
-                "--block-signal=", "--default-signal=", "--ignore-signal=")):
-            program += 1
+        if argument.startswith("--"):
+            resolved = unique_long_option(argument, ENV_LONG_OPTIONS)
+            if resolved is None:
+                return None
+            option, attached = resolved
+            semantics = ENV_LONG_OPTIONS[option]
+            if attached and semantics not in ("required", "optional"):
+                return None
+            if semantics == "terminal":
+                return None
+            if semantics == "required" and not attached:
+                if program + 1 >= len(tokens):
+                    return None
+                program += 2
+            else:
+                program += 1
             continue
         if argument.startswith("-"):
             options = argument[1:]
@@ -315,21 +335,26 @@ def python_sources(text):
         if not match:
             index += 1
             continue
-        delimiter = match.group(2)
+        fd = match.group(1)
+        delimiter = match.group(4)
         end = index + 1
         while end < len(lines) and lines[end].strip() != delimiter:
             end += 1
         executes_python = False
         for command in commands(lines[index]):
-            tokens = []
-            skip_delimiter = False
-            for token in tokens_of(command):
-                if skip_delimiter:
-                    skip_delimiter = False
-                elif token in ("<<", "<<-"):
-                    skip_delimiter = True
-                elif not token.startswith(("<<", "<<-")):
-                    tokens.append(token)
+            tokens = tokens_of(command)
+            for offset, token in enumerate(tokens):
+                redirect = HEREDOC_TOKEN.fullmatch(token)
+                if redirect is None or redirect.group(1) != fd:
+                    continue
+                operand = redirect.group(2)
+                if operand == delimiter:
+                    del tokens[offset]
+                elif not operand and offset + 1 < len(tokens) and tokens[offset + 1] == delimiter:
+                    del tokens[offset:offset + 2]
+                break
+            if fd is not None and int(fd) != 0:
+                continue
             program = env_operand(tokens, 0)
             if program is not None and program < len(tokens) and is_python(tokens[program]):
                 operand, source = python_operand(tokens, program)

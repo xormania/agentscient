@@ -85,7 +85,8 @@ _DURATION = re.compile(r"^\d+(?:\.\d+)?[smhdSMHD]?$")     # `timeout 60`, `timeo
 # delimiter. `[^\n]*` after it is what makes `cat <<'EOF' | python3` a matchable head — the
 # pipe that decides whether the body executes lives AFTER the delimiter.
 HEREDOC = re.compile(
-    r"<<-?[ \t]*(['\"]?)([A-Za-z_]\w*)\1[^\n]*\n(?:.*?\n)??[ \t]*\2[ \t]*$",
+    r"(?:(?<![\w])(\d+))?(<<-?)[ \t]*(['\"]?)([A-Za-z_]\w*)\3[^\n]*\n"
+    r"(?:.*?\n)??[ \t]*\4[ \t]*$",
     re.DOTALL | re.MULTILINE,
 )
 
@@ -260,7 +261,8 @@ def strip_data_heredocs(text: str) -> str:
         return text
 
     def repl(m):
-        if _head_executes(_head_line(text, m.start())):
+        fd = m.group(1)
+        if (fd is None or int(fd) == 0) and _head_executes(_head_line(text, m.start())):
             return m.group(0)
         whole = m.group(0)
         cut = whole.find("\n")
@@ -406,11 +408,12 @@ def _variants(seg: str, depth: int = 0):
 
         toks = _tokens(s)
         w = toks[0]
+        bare = w.rsplit("/", 1)[-1]
 
-        if w in RUNNERS:
+        if bare in RUNNERS:
             work.extend(_option_region(toks[1:], ""))
             continue                        # a wrapper is never the command
-        if w in RUN_LAUNCHERS and len(toks) > 1 and toks[1] == "run":
+        if bare in RUN_LAUNCHERS and len(toks) > 1 and toks[1] == "run":
             work.append(" ".join(toks[2:]))
             continue
 
@@ -418,7 +421,7 @@ def _variants(seg: str, depth: int = 0):
 
         if w in ("git", "gh") and len(toks) > 1 and toks[1].startswith("-"):
             work.extend(_option_region(toks[1:], w))
-        if depth < 2 and w in SHELLS and "-c" in toks[1:3]:
+        if depth < 2 and bare in SHELLS and "-c" in toks[1:3]:
             inner = _quoted_arg_after(s, "-c")
             if inner:
                 for sub in _split(_prepare(inner), split_pipes=True):

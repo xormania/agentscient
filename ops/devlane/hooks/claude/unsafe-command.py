@@ -128,6 +128,11 @@ CLIPPED = re.compile(r"\|\s*(?:tail|head)\s+-(\d+)\b")
 HEAD_COUNT = re.compile(
     r"^[+-]?\d+(?:b|kB|K|KiB|[MGTPEZYRQ](?:i?B)?)?$",
 )
+HEAD_LONG_OPTIONS = {
+    "bytes": "bytes", "lines": "lines", "quiet": "flag", "silent": "flag",
+    "verbose": "flag", "zero-terminated": "zero", "help": "terminal",
+    "version": "terminal",
+}
 # `[^|]*` here was a bug: `grep -iE "warning|error"` contains a pipe INSIDE the quoted
 # pattern, so the class stopped before reaching the word that made it safe. Look for a
 # grep and a failure word anywhere in the command instead.
@@ -169,6 +174,7 @@ def head_clips_lines(command: str) -> bool:
     if not tokens or tokens[0].rsplit("/", 1)[-1] != "head":
         return False
     category = "lines"
+    zero_terminated = False
     index = 1
     while index < len(tokens):
         argument = tokens[index]
@@ -177,22 +183,26 @@ def head_clips_lines(command: str) -> bool:
         if argument == "-":
             index += 1
             continue
-        if argument in ("--help", "--version"):
-            return False
-        if argument in ("-q", "--quiet", "--silent", "-v", "--verbose", "-z", "--zero-terminated"):
-            index += 1
-            continue
-        if argument in ("-n", "--lines", "-c", "--bytes"):
-            if index + 1 >= len(tokens) or not HEAD_COUNT.fullmatch(tokens[index + 1]):
+        if argument.startswith("--"):
+            name, equals, value = argument[2:].partition("=")
+            matches = [option for option in HEAD_LONG_OPTIONS if option.startswith(name)]
+            if len(matches) != 1:
                 return False
-            category = "bytes" if argument in ("-c", "--bytes") else "lines"
-            index += 2
-            continue
-        option = re.fullmatch(r"(-[nc]|--(?:lines|bytes)=)(.+)", argument)
-        if option:
-            if not HEAD_COUNT.fullmatch(option.group(2)):
+            semantics = HEAD_LONG_OPTIONS[matches[0]]
+            if semantics in ("flag", "zero", "terminal"):
+                if equals or semantics == "terminal":
+                    return False
+                zero_terminated |= semantics == "zero"
+                index += 1
+                continue
+            if not equals:
+                index += 1
+                if index >= len(tokens):
+                    return False
+                value = tokens[index]
+            if not HEAD_COUNT.fullmatch(value):
                 return False
-            category = "bytes" if option.group(1) in ("-c", "--bytes=") else "lines"
+            category = semantics
             index += 1
             continue
         if argument.startswith("-") and HEAD_COUNT.fullmatch(argument[1:]):
@@ -200,9 +210,29 @@ def head_clips_lines(command: str) -> bool:
             index += 1
             continue
         if argument.startswith("-"):
-            return False
+            cluster = argument[1:]
+            offset = 0
+            while offset < len(cluster) and cluster[offset] in "qvz":
+                zero_terminated |= cluster[offset] == "z"
+                offset += 1
+            if offset == len(cluster):
+                index += 1
+                continue
+            if cluster[offset] not in "nc":
+                return False
+            category = "bytes" if cluster[offset] == "c" else "lines"
+            count = cluster[offset + 1:]
+            if not count:
+                index += 1
+                if index >= len(tokens):
+                    return False
+                count = tokens[index]
+            if not HEAD_COUNT.fullmatch(count):
+                return False
+            index += 1
+            continue
         index += 1
-    return category == "lines"
+    return category == "lines" and not zero_terminated
 
 
 WRITES = re.compile(r"write_text\(|open\([^)]*['\"][wa]['\"]|\.writelines\(|>\s*\$?\w*\.py\b")
