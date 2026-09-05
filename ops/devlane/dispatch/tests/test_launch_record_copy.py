@@ -158,6 +158,14 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
         seed["result"] = None
         seed["at"]["closed"] = None
         seed["snapshot"]["root"] = str(snap)
+        # This is a new synthetic job, not a job entitled to retain the
+        # original live job's isolated home. Bind every home carrier.
+        home = str(job_dir / "home" / "grok")
+        seed["harness"]["isolation"]["home"] = home
+        seed["harness"]["isolation"]["store"] = str(Path(home) / "sessions")
+        seed["harness"]["isolation"]["env"] = {
+            "HOME": home, "GROK_HOME": home,
+        }
         tracked = (
             self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
         )
