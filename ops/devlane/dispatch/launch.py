@@ -1492,17 +1492,20 @@ def _write_residual_patch(snapshot, job_dir):
     it as an input instead of the conductor diffing the snapshot by hand.
     A temporary index keeps the snapshot's own index untouched."""
     import tempfile
-    untracked = _git(snapshot, "ls-files", "--others", "--exclude-standard", check=False).stdout.splitlines()
+    residual = _residual(snapshot)
+    paths = list(dict.fromkeys(
+        path for line in residual for path in _status_paths(line)
+    ))
+    untracked = [
+        path for line in residual if line[:2] in {"??", "!!"}
+        for path in _status_paths(line)
+    ]
     with tempfile.NamedTemporaryFile(prefix="residual-index-", delete=False) as tmp:
         index = tmp.name
     env = dict(os.environ, GIT_INDEX_FILE=index)
     try:
         _git(snapshot, "read-tree", "HEAD", env=env)
-        excludes = [
-            *[f":(exclude,top,glob){root}/**" for root in TOOL_CACHE_ROOTS],
-            ":(exclude,glob)**/__pycache__/*.pyc",
-        ]
-        _git(snapshot, "add", "-A", "-f", "--", ".", *excludes, env=env)
+        _git(snapshot, "add", "-A", "-f", "--", *paths, env=env)
         patch = _git(snapshot, "diff", "--cached", "--binary", "HEAD", env=env, check=False).stdout
     finally:
         Path(index).unlink(missing_ok=True)
@@ -1511,18 +1514,57 @@ def _write_residual_patch(snapshot, job_dir):
     return {"path": str(out), "sha256": _sha(out), "untracked": untracked}
 
 
-# Tool caches a read role leaves behind by running the suite or ruff are
-# not writes into the tree; everything else is. Python source remains a
-# write even when hidden below a directory named ``__pycache__``.
-TOOL_CACHE_ROOTS = (".ruff_cache", ".pytest_cache", ".mypy_cache")
+# Tool caches a read role leaves behind by running the suite or ruff are not
+# residual writes. These are measured, bounded layouts: unknown names remain
+# evidence even below a cache-named root.
+CACHE_MARKERS = {".gitignore", "CACHEDIR.TAG"}
+PYTEST_CACHE_VALUES = {"lastfailed", "nodeids", "stepwise"}
+VERSION_DIR = re.compile(r"[0-9]+\.[0-9]+(?:\.[0-9]+)?")
+MYPY_CACHE_FILE = re.compile(
+    r"(?:.+\.(?:data|meta|meta_ex|deps|refs)\.(?:json|ff)(?:\.[0-9a-f]+)?"
+    r"|cache(?:\.[0-9]+)?\.db(?:-(?:shm|wal))?)"
+)
+MYPY_GLOBAL_FILES = {
+    "@deps.meta.json", "@plugins_snapshot.json", "@root.deps.json",
+}
+
+
+def _status_paths(line):
+    value = line[3:]
+    values = value.split(" -> ", 1) if "R" in line[:2] or "C" in line[:2] else [value]
+    return tuple(
+        json.loads(path) if path.startswith('"') and path.endswith('"') else path
+        for path in values
+    )
 
 
 def _is_cache_residual(line):
-    path = Path(line[3:])
-    parts = path.parts
-    if parts and parts[0] in TOOL_CACHE_ROOTS:
-        return True
-    return "__pycache__" in parts[:-1] and path.suffix == ".pyc"
+    for name in _status_paths(line):
+        path = Path(name)
+        parts = path.parts
+        if "__pycache__" in parts[:-1] and path.suffix == ".pyc":
+            continue
+        if parts and parts[0] == ".ruff_cache":
+            if len(parts) == 2 and (parts[1] in CACHE_MARKERS or not path.suffix):
+                continue
+            if (len(parts) == 3 and VERSION_DIR.fullmatch(parts[1])
+                    and not path.suffix):
+                continue
+        if parts and parts[0] == ".pytest_cache":
+            if len(parts) == 2 and parts[1] in CACHE_MARKERS | {"README.md"}:
+                continue
+            if (len(parts) == 4 and parts[1:3] == ("v", "cache")
+                    and parts[3] in PYTEST_CACHE_VALUES):
+                continue
+        if parts and parts[0] == ".mypy_cache":
+            if len(parts) == 2 and parts[1] in CACHE_MARKERS | {"missing_stubs"}:
+                continue
+            if (len(parts) >= 3 and VERSION_DIR.fullmatch(parts[1])
+                    and (path.name in MYPY_GLOBAL_FILES
+                         or MYPY_CACHE_FILE.fullmatch(path.name))):
+                continue
+        return False
+    return True
 
 
 def _residual(snapshot):
