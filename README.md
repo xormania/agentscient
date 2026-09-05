@@ -217,9 +217,10 @@ the accepted keys and validation.
 
 Delegation goes through `ops/bin/dispatch.sh` or its short front end,
 `ops/bin/go.sh`. The [job registry](ops/devlane/task/jobs.json) defines jobs
-such as plan, author-tests, check-tests, implement, and review. Models and effort
-are resolved at dispatch from explicit flags or lane configuration; the job
-registry does not choose a model.
+such as `plan`, `author-tests`, `check-tests`, `implement`, `adversarial-review`,
+and `security-audit`. The `go.sh review` intent launches the two review jobs.
+Models and effort are resolved at dispatch from explicit flags or lane
+configuration; the job registry does not choose a model.
 
 For a preview, set `WF_AGENT` to the actual producer's full `Name <address>`
 identity, and set `MODEL` to the intended model identifier. Write the task to
