@@ -55,9 +55,9 @@ OK
 FAIL: test_bash_source_and_get_agree_for_every_declared_key (test_laneconf.BashPythonParity.test_bash_source_and_get_agree_for_every_declared_key) (key='MODEL_CLAUDE_READ')
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 539, in test_bash_source_and_get_agree_for_every_declared_key
+  File "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 539, in test_bash_source_and_get_agree_for_every_declared_key
     self.assert_get(proc, value)
-  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 286, in assert_get
+  File "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 286, in assert_get
     self.assertEqual((proc.stdout or "").splitlines(), [value])
 AssertionError: Lists differ: ['claude-opus-4-8'] != ['claude-opus-5']
 
@@ -76,9 +76,9 @@ First differing element 0:
 FAIL: test_bash_source_and_get_agree_for_every_declared_key (test_laneconf.BashPythonParity.test_bash_source_and_get_agree_for_every_declared_key) (key='MODEL_CLAUDE_PLAN')
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 539, in test_bash_source_and_get_agree_for_every_declared_key
+  File "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 539, in test_bash_source_and_get_agree_for_every_declared_key
     self.assert_get(proc, value)
-  File "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 286, in assert_get
+  File "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/conductor/tests/test_laneconf.py", line 286, in assert_get
     self.assertEqual((proc.stdout or "").splitlines(), [value])
 AssertionError: Lists differ: ['claude-opus-4-8'] != ['claude-fable-5-1']
 

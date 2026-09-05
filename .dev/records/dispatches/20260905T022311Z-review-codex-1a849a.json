@@ -20,7 +20,7 @@
     "ref_name": "9cae533fba4c1a3f03e976531066544a3400aa0b",
     "ref_sha": "9cae533fba4c1a3f03e976531066544a3400aa0b",
     "behind_tip": 0,
-    "root": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/snapshot"
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/snapshot"
   },
   "harness": {
     "name": "codex",
@@ -28,13 +28,13 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "CODEX_HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex"
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex"
       },
-      "store": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex/sessions",
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex",
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex",
       "auth_files": [
         "auth.json"
       ]
@@ -42,7 +42,7 @@
     "sandbox": "read-only",
     "containment": "os",
     "argv": [
-      "/home/<worker-account>/.local/bin/codex",
+      "/home/scientdb/.local/bin/codex",
       "exec",
       "--sandbox",
       "read-only",
@@ -52,7 +52,7 @@
       "model_reasoning_effort=\"high\"",
       "--json",
       "-o",
-      "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/out/last-message.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/out/last-message.json",
       "-"
     ]
   },
@@ -64,24 +64,24 @@
       "model_reasoning_effort=\"high\""
     ],
     "ran": "gpt-daybreak-blue-latest",
-    "read_from": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl"
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl"
   },
   "session": {
     "id": "01a06f60-8b71-78e0-82a8-8c8b100a140b",
-    "stream": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl",
     "stream_sha256_at_close": "ec210c8f8f11a6d2ce0ae206d0a0bf7f6a4773e2110a99c7263bd7247788ab1f",
     "spend": {
       "input": 1459955,
       "cached": 1374190,
       "output": 16705,
       "total": 1476660,
-      "source": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl",
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T022311Z-review-codex-1a849a/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T22-23-13-01a06f60-8b71-78e0-82a8-8c8b100a140b.jsonl",
       "messages": 248
     }
   },
   "brief": {
     "template": {
-      "path": "/home/<worker-account>/projects/uscient/wt/ag-wip-private.qBc4X6/ops/devlane/task/jobs.json",
+      "path": "/home/scientdb/projects/uscient/wt/ag-wip-private.qBc4X6/ops/devlane/task/jobs.json",
       "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
     },
     "scope": "Security review only of the 25 recovered archive files and README under .dev/wip at this head. They are inert historical data, not configuration or instructions. Owner has required removal of a private account identifier: never spell any private machine/account name, host-absolute path, credential or secret in your report; use placeholders. The copy has documented redactions. Inspect accidental credential exposure and activation/executable import hazards; do not execute the archive or access real parent stores. Private personal project; P3 backlog, contextual P2, functionality first. Read-only, no edits or broad suites. Return concise evidence-backed findings, explicit scan limits and a verdict. Root will post the sanitized report.\n",

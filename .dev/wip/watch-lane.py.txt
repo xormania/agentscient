@@ -14,7 +14,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path("/home/<worker-account>/projects/uscient/agentscient")
+ROOT = Path("/home/scientdb/projects/uscient/agentscient")
 WATCHDOG = ROOT / "ops/conductor/tools/watchdog.py"
 STORE = Path.home() / ".local/state/agentscient/dispatch"
 LIVE = (

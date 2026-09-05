@@ -20,7 +20,7 @@
     "ref_name": "31fdf478f9ba7806cb36e144ec0f15aa60502aac",
     "ref_sha": "31fdf478f9ba7806cb36e144ec0f15aa60502aac",
     "behind_tip": 0,
-    "root": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/snapshot"
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/snapshot"
   },
   "harness": {
     "name": "codex",
@@ -28,13 +28,13 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "CODEX_HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex"
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex"
       },
-      "store": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex/sessions",
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex",
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex",
       "auth_files": [
         "auth.json"
       ]
@@ -42,19 +42,19 @@
     "sandbox": "workspace-write",
     "containment": "os",
     "argv": [
-      "/home/<worker-account>/.local/bin/codex",
+      "/home/scientdb/.local/bin/codex",
       "exec",
       "--sandbox",
       "workspace-write",
       "-c",
-      "sandbox_workspace_write.writable_roots=[\"/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/out\"]",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/out\"]",
       "--model",
       "gpt-5.6-sol",
       "-c",
       "model_reasoning_effort=\"xhigh\"",
       "--json",
       "-o",
-      "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/out/last-message.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/out/last-message.json",
       "-"
     ]
   },
@@ -66,30 +66,30 @@
       "model_reasoning_effort=\"xhigh\""
     ],
     "ran": "gpt-5.6-sol",
-    "read_from": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T13-48-16-01a06d89-19c7-7523-8671-af2ace3248ba.jsonl"
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T13-48-16-01a06d89-19c7-7523-8671-af2ace3248ba.jsonl"
   },
   "session": {
     "id": "01a06d89-19c7-7523-8671-af2ace3248ba",
-    "stream": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T13-48-16-01a06d89-19c7-7523-8671-af2ace3248ba.jsonl",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T13-48-16-01a06d89-19c7-7523-8671-af2ace3248ba.jsonl",
     "stream_sha256_at_close": "a82ffb3d3610918aa685f584d6ac032de56fa62590814daef0104e19b01bbab9",
     "spend": {
       "input": 1433472,
       "cached": 1367296,
       "output": 15283,
       "total": 1448755,
-      "source": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T13-48-16-01a06d89-19c7-7523-8671-af2ace3248ba.jsonl",
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T13-48-16-01a06d89-19c7-7523-8671-af2ace3248ba.jsonl",
       "messages": 235
     }
   },
   "brief": {
     "template": {
-      "path": "/home/<worker-account>/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
+      "path": "/home/scientdb/projects/uscient/wt/ag-check-tests-json/ops/devlane/task/jobs.json",
       "sha256": "39b25f2dee8786bec13132454679620f900370693b40e6287c364235f65780d5"
     },
     "scope": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_check_tests_json.py' && python3 -m unittest discover -s ops/devlane/task/tests -p 'test_jobs.py' && python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder_lever.py'\n",
     "inputs": [
       {
-        "path": "/home/<worker-account>/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/in/input-check-tests-json-2-impl.md",
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260904T174815Z-code-codex-1d3d7e/in/input-check-tests-json-2-impl.md",
         "sha256": "0de3401aa5a35e62fe8bfabe7e75e4181a57905b9f7a38eb7bb9c92b3b01692b"
       }
     ],

@@ -2,7 +2,7 @@
 
 The owner requested this previously untracked directory be preserved in a
 draft PR on 2026-09-04. The 25 regular files were copied from the owner's
-main checkout on 2026-09-05, with the privacy redactions described below. Empty scratch
+main checkout on 2026-09-05, without changing their contents. Empty scratch
 directories are not representable in Git and are not included. Originals
 remain untouched in the main checkout.
 
@@ -32,10 +32,10 @@ Grok's quality/recovery report and Daybreak's security report belong in the
 draft PR comments. Lost-branch candidates are observations, not instructions
 to merge, delete branches, or revive deliberately parked work.
 
-## Privacy redactions
+## Captured data stays verbatim
 
-The owner directed that a private machine/account identifier not be published.
-It is replaced by `<worker-account>` throughout this archived copy, including
-paths, captured identities and logs. Those placeholders are not runnable paths.
-The local originals remain untouched. This import records historical evidence,
-not byte-for-byte preservation or a claim that the importing agent wrote it.
+The owner clarified that the naming restriction applies to authored code and
+PR prose, not captured data. Earlier substitutions in paths, identities and
+logs were an importing-agent error and are reverted. The 25 captured files
+retain their original contents; the two archival filename changes described
+above do not change their bytes. Original local files remain untouched.
