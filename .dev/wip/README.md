@@ -14,8 +14,12 @@ govern. A proposal is not ratified by being imported here. In particular,
 the overview contains proposed architectural departures; this archive does
 not resolve those against the tracked rulings.
 
-Nothing here is wired into the lane, CI, a hook or MCP. Do not run the
-archived watch-lane.py or log commands as part of onboarding. Preserve source
+The old calibration file is stored as calibration-buckets.md.txt so the live
+planner's existing reference to calibration-buckets.md remains unresolved;
+restoring the archive must not silently make it a prompt dependency. The
+historical Python script is stored as watch-lane.py.txt, not active source.
+Neither renamed file is wired into the lane, CI, a hook or MCP. Do not run
+the archived script or log commands as part of onboarding. Preserve source
 attribution within the files; the importing session did not author the
 original notes, scripts or captured work. Root's commit credit is for the
 preservation operation and this README only.
