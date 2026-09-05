@@ -319,9 +319,9 @@ notification: the server emits no notifications at all, as today.
 - The literal guard exemptions stay exactly the two existing lines
   (`ops/conductor/tools/laneconf.py:366–375`); the new code introduces
   no new lane literal.
-- The deferred malformed-input limits in the lever (huge integers,
-  out-of-range cursors, non-finite evidence) remain deferred and are not
-  widened or narrowed by this contract.
+- This extension adds no numeric-hardening policy. It retains the current
+  dev JSON parsing guards and the surviving limits documented in the lever
+  (usage-reader huge integers, out-of-range alert cursors, non-finite evidence).
 
 ## 9. Coupling proof
 

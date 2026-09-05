@@ -171,3 +171,12 @@ adapters emit evidence as paths/strings or a path/timestamp object rather than
 arbitrary numeric objects. Reassess before exposing untrusted sources or a
 remote transport. Do not weaken these facts into a blanket malformed-input
 survival claim.
+
+
+Integration measurement, 2026-09-05 at
+`572a901a503e71ea3b255a8292e30515d5096529`: inherited dev commit `56b26b5`
+now rejects a 5000-digit request integer and `NaN` with `-32700`; a following
+ping succeeds in the same stdio process. It also checks record nesting before
+JSON decoding. This supersedes the earlier transport-integer limitation only.
+The usage-reader integer, SQLite cursor and non-finite alert-evidence limits
+above remain outside this extension's fixes.

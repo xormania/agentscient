@@ -104,3 +104,27 @@ first test snapshot.
 Final evidence will include suites and CI, independent review records,
 fixed-task answer checks and serialized response bytes. Bytes are not billed
 tokens; tool-schema overhead is reported separately.
+
+## Landed implementation and integration
+
+`20260905T072301Z-code-codex-6a6ca4` ran `gpt-5.6-sol` and returned an
+accepted implementation envelope. Only the two existing production modules
+and the v2 example changed; the launcher committed its preserved COMMIT_MSG
+because the worker could not write the snapshot's git metadata. The change
+landed at `92be7d1`. The independent test file's SHA-256 remained exactly the
+admitted value above.
+
+While this branch was active, `dev` advanced to `56b26b5` with JSON parsing
+guards. Merge `572a901` retains those guards. The sole conflict was resolved
+by preserving both the upstream depth check and the feature's exact-byte
+capture, before decoding in the shared record reader. This integration adds
+no new parsing policy. It is included in final independent code review.
+
+At `572a901a503e71ea3b255a8292e30515d5096529`, root ran the MCP discovery
+command: all 49 tests passed. `ruff check .`, `laneconf.py closure`,
+`laneconf.py literals` and the term wall passed; closure explicitly skips
+`ops/devlane/infra`. The [fixed-task evaluation](mcp-context-evaluation-2026-09-05.md)
+matched the selected source answers through CLI, tools and resources and
+measured full MCP response overhead. The exact executable command and source
+hashes are retained there. Final suite and review results are recorded on the
+PR at its stationary head, so their records do not move the reviewed tree.
