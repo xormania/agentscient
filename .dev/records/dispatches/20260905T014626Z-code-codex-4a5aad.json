@@ -20,7 +20,7 @@
     "ref_name": "cb04f80840addb3e273dcd3f79ba6da29442ae84",
     "ref_sha": "cb04f80840addb3e273dcd3f79ba6da29442ae84",
     "behind_tip": 0,
-    "root": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/snapshot"
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/snapshot"
   },
   "harness": {
     "name": "codex",
@@ -28,13 +28,13 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "CODEX_HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex"
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex"
       },
-      "store": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex/sessions",
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex",
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex",
       "auth_files": [
         "auth.json"
       ]
@@ -42,19 +42,19 @@
     "sandbox": "workspace-write",
     "containment": "os",
     "argv": [
-      "/home/<worker-account>/.local/bin/codex",
+      "/home/scientdb/.local/bin/codex",
       "exec",
       "--sandbox",
       "workspace-write",
       "-c",
-      "sandbox_workspace_write.writable_roots=[\"/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/out\"]",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/out\"]",
       "--model",
       "gpt-5.6-sol",
       "-c",
       "model_reasoning_effort=\"high\"",
       "--json",
       "-o",
-      "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/out/last-message.json",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/out/last-message.json",
       "-"
     ]
   },
@@ -66,30 +66,30 @@
       "model_reasoning_effort=\"high\""
     ],
     "ran": "gpt-5.6-sol",
-    "read_from": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl"
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl"
   },
   "session": {
     "id": "01a06f3e-e29b-7580-9600-eaa8e48f7211",
-    "stream": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl",
     "stream_sha256_at_close": "af34ab11076423ef812fe4cc178b5808bc2accc5a70018f3920ab2084b9d91f0",
     "spend": {
       "input": 1630994,
       "cached": 1468416,
       "output": 31615,
       "total": 1662609,
-      "source": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl",
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/home/codex-stream/sessions/2026/09/04/rollout-2026-09-04T21-46-27-01a06f3e-e29b-7580-9600-eaa8e48f7211.jsonl",
       "messages": 211
     }
   },
   "brief": {
     "template": {
-      "path": "/home/<worker-account>/projects/uscient/wt/ag-lane-mcp.TH2iy7/ops/devlane/task/jobs.json",
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-mcp.TH2iy7/ops/devlane/task/jobs.json",
       "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
     },
     "scope": "Implement ops/conductor/lane-mcp-lever.md exactly, production only. Read in/mcp-implementation-brief.md whole. Named command: python3 -B ops/conductor/tools/lane_mcp.py --config ops/conductor/lane-mcp.example.json check . Do not author/read tests. Commit production, example config and registry only; no broad suites or speculative extras.\n",
     "inputs": [
       {
-        "path": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/in/mcp-implementation-brief.md",
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014626Z-code-codex-4a5aad/in/mcp-implementation-brief.md",
         "sha256": "5e78c4fc2e0504dbd3e8f1c2b930f9694afba3c591cde052a8ddd70cf64c4b48"
       }
     ],

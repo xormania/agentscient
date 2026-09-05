@@ -20,7 +20,7 @@
     "ref_name": "8a0687326e81a3740d1d327b9b41acdfec5460b1",
     "ref_sha": "8a0687326e81a3740d1d327b9b41acdfec5460b1",
     "behind_tip": 0,
-    "root": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/snapshot"
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/snapshot"
   },
   "harness": {
     "name": "grok",
@@ -28,14 +28,14 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "GROK_HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok",
-        "HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok"
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok"
       },
-      "store": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok/sessions",
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok",
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok",
       "auth_files": [
         "auth.json"
       ]
@@ -43,7 +43,7 @@
     "sandbox": "always-approve",
     "containment": "policy",
     "argv": [
-      "/home/<worker-account>/.local/bin/grok",
+      "/home/scientdb/.local/bin/grok",
       "-s",
       "27a3a0e4-b85d-41d9-a3e6-868bf241beb3",
       "--model",
@@ -55,7 +55,7 @@
       "--reasoning-effort",
       "medium",
       "--prompt-file",
-      "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/prompt.txt"
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/prompt.txt"
     ]
   },
   "model": {
@@ -66,11 +66,11 @@
       "medium"
     ],
     "ran": "grok-4.6",
-    "read_from": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok-stream/sessions/<snapshot-encoded>/27a3a0e4-b85d-41d9-a3e6-868bf241beb3/summary.json"
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok-stream/sessions/<snapshot-encoded>/27a3a0e4-b85d-41d9-a3e6-868bf241beb3/summary.json"
   },
   "session": {
     "id": "27a3a0e4-b85d-41d9-a3e6-868bf241beb3",
-    "stream": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok-stream/sessions/<snapshot-encoded>/27a3a0e4-b85d-41d9-a3e6-868bf241beb3/summary.json",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok-stream/sessions/<snapshot-encoded>/27a3a0e4-b85d-41d9-a3e6-868bf241beb3/summary.json",
     "stream_sha256_at_close": "462ea63d888d059191b00ea0ae3f53fb6212a3fe78f517c76e3a729b869bfc20",
     "spend": {
       "input": 1393461,
@@ -78,19 +78,19 @@
       "output": 19675,
       "total": 1413136,
       "cost_usd_ticks": 1617006000,
-      "source": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok-stream/sessions/<snapshot-encoded>/27a3a0e4-b85d-41d9-a3e6-868bf241beb3/summary.json",
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/home/grok-stream/sessions/<snapshot-encoded>/27a3a0e4-b85d-41d9-a3e6-868bf241beb3/summary.json",
       "messages": 198
     }
   },
   "brief": {
     "template": {
-      "path": "/home/<worker-account>/projects/uscient/wt/ag-mcp-oracle.L7Q1Q7/ops/devlane/task/jobs.json",
+      "path": "/home/scientdb/projects/uscient/wt/ag-mcp-oracle.L7Q1Q7/ops/devlane/task/jobs.json",
       "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
     },
     "scope": "Correct ONLY the named fixture/protocol-assumption faults in your independent ops/conductor/tests/test_lane_mcp.py. Read in/mcp-oracle-correction-brief.md whole and the contract, not implementation. Keep every substantive behavior assertion; no broad rewrite or extra coverage sweep. Production is withheld in this lineage. Commit targeted corrections with actual Grok credit.\n",
     "inputs": [
       {
-        "path": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/in/mcp-oracle-correction-brief.md",
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T020705Z-tests-grok-f4fba9/in/mcp-oracle-correction-brief.md",
         "sha256": "9dcbc5af68ecce72293d1f0b8bed345f5a57dfe5937cce419ab991b5eedd75fa"
       }
     ],
