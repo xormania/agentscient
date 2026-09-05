@@ -20,7 +20,7 @@
     "ref_name": "cb04f80840addb3e273dcd3f79ba6da29442ae84",
     "ref_sha": "cb04f80840addb3e273dcd3f79ba6da29442ae84",
     "behind_tip": 0,
-    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/snapshot"
+    "root": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/snapshot"
   },
   "harness": {
     "name": "grok",
@@ -28,14 +28,14 @@
     "isolation": {
       "mechanism": "home",
       "env": {
-        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok",
-        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok"
+        "GROK_HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok",
+        "HOME": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok"
       },
-      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok/sessions",
+      "store": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok/sessions",
       "observed": {
         "unresolved": "behavioural probe has not run"
       },
-      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok",
+      "home": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok",
       "auth_files": [
         "auth.json"
       ]
@@ -43,7 +43,7 @@
     "sandbox": "always-approve",
     "containment": "policy",
     "argv": [
-      "/home/scientdb/.local/bin/grok",
+      "/home/<worker-account>/.local/bin/grok",
       "-s",
       "d5a088a4-c2ea-4c7c-897e-222043446af4",
       "--model",
@@ -55,7 +55,7 @@
       "--reasoning-effort",
       "high",
       "--prompt-file",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/prompt.txt"
+      "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/prompt.txt"
     ]
   },
   "model": {
@@ -66,11 +66,11 @@
       "high"
     ],
     "ran": "grok-4.6",
-    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok-stream/sessions/<snapshot-encoded>/d5a088a4-c2ea-4c7c-897e-222043446af4/summary.json"
+    "read_from": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok-stream/sessions/<snapshot-encoded>/d5a088a4-c2ea-4c7c-897e-222043446af4/summary.json"
   },
   "session": {
     "id": "d5a088a4-c2ea-4c7c-897e-222043446af4",
-    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok-stream/sessions/<snapshot-encoded>/d5a088a4-c2ea-4c7c-897e-222043446af4/summary.json",
+    "stream": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok-stream/sessions/<snapshot-encoded>/d5a088a4-c2ea-4c7c-897e-222043446af4/summary.json",
     "stream_sha256_at_close": "745705adf0c1acec475c9ff78f20f69257b975a2df102c02e0bfe34b8fe85f69",
     "spend": {
       "input": 2044097,
@@ -78,19 +78,19 @@
       "output": 59651,
       "total": 2103748,
       "cost_usd_ticks": 2660085200,
-      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok-stream/sessions/<snapshot-encoded>/d5a088a4-c2ea-4c7c-897e-222043446af4/summary.json",
+      "source": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/home/grok-stream/sessions/<snapshot-encoded>/d5a088a4-c2ea-4c7c-897e-222043446af4/summary.json",
       "messages": 264
     }
   },
   "brief": {
     "template": {
-      "path": "/home/scientdb/projects/uscient/wt/ag-mcp-oracle.L7Q1Q7/ops/devlane/task/jobs.json",
+      "path": "/home/<worker-account>/projects/uscient/wt/ag-mcp-oracle.L7Q1Q7/ops/devlane/task/jobs.json",
       "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
     },
     "scope": "Author independent tests for ops/conductor/lane-mcp-lever.md ONLY at ops/conductor/tests/test_lane_mcp.py. Implementation is absent; do not read it or other producers' code. Read in/mcp-tests-brief.md whole. Prove red on absent CLI, commit bounded public-boundary tests. No fixture-specific internal API assumptions.\n",
     "inputs": [
       {
-        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/in/mcp-tests-brief.md",
+        "path": "/home/<worker-account>/.local/state/agentscient/dispatch/20260905T014648Z-tests-grok-8dd81f/in/mcp-tests-brief.md",
         "sha256": "1233f6ad5c7db7801b8b25ca63d82f70a034c76aa13c97a1b99282f0956e07f9"
       }
     ],

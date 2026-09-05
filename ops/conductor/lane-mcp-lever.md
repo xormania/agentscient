@@ -60,7 +60,10 @@ the tool. Tool arguments are closed objects. Unknown fields/types refuse.
   Missing scalars are null. Counts/spend are allowlisted numeric aggregates
   only, never findings, command logs, note, prompt, raw.out or transcript text.
   Counts are recorded labels, not actionable defect counts. Text fields have
-  a 256 UTF-8 byte cap; malformed nested fields must not crash the query.
+  a 256 UTF-8 byte cap; oversized or malformed text becomes null, not a
+  fabricated truncated value. Invalid aggregate containers become empty
+  objects; invalid numeric members are omitted. Malformed nested fields
+  must not crash the query.
 - lane_alerts({after?,limit?}): after integer>=0 default0, limit1..10 default5,
   bool is not integer. Read existing monitor events for configured consumer,
   delivery queued/unsupported, id greater than after, ascending. Return
