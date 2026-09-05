@@ -362,6 +362,17 @@ def closure() -> int:
 
 def _literal_exempt(rel: str, line: str, needle: str) -> bool:
     stripped = line.strip()
+    if needle == "agentscient":
+        return (rel, stripped) in {
+            (
+                "ops/conductor/tools/lane_read.py",
+                'SCHEMA = "agentscient.lane/v1"',
+            ),
+            (
+                "ops/conductor/tools/lane_mcp.py",
+                '"serverInfo": {"name": "agentscient-lane", "version": "1"},',
+            ),
+        }
     if rel == "ops/devlane/dispatch/record.py" and needle == '"dev"':
         return stripped in {
             'lane = "dev"',
