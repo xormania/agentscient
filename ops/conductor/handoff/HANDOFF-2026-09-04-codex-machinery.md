@@ -2,73 +2,84 @@
 
 ## Owner clarification — reviewer roles
 
+Owner further clarified: personal project, functionality first. P3s are
+backlog, not merge gates. Adjudicate P2s by actual functional/data-loss or
+credible security impact; evidence-only or total-hardening gaps do not
+automatically block. Live-resume proof is documented follow-up, not a gate
+for the already reviewed PR63 fixes. Optional front-door work is not in its
+reviewed remote head and must not be silently included in that merge.
+
 Grok audits quality: correctness, design, maintainability, and test quality.
 Daybreak audits security (gpt-daybreak-blue-latest, high).
 The owner accepts past reviews as scoped; do not redo them. Use this split
 for new review dispatches. This supersedes references below to dual security
 review, not the requirement to adjudicate findings, verify CI and merge to dev.
 
-## Superseding checkpoint, 2026-09-05 01:06 UTC
+## Superseding checkpoint, 2026-09-05 01:35 UTC
 
-Re-measured forge, dispatch records, branches and focused probes at writing.
-All older checkpoints below are historical where they differ.
-Main checkout c715b24 and owner .dev/wip/ remain untouched. No release action.
+Main checkout c715b24 and owner's .dev/wip/ remain untouched. No release action.
+Re-measure GitHub before acting. Older checkpoints below are historical.
 
-- #62 MERGED into dev at00:35:25Z, merge b8a1e77b912d699523a823d88ae1e74b8c49a228,
-  reviewed head e1e422a; CI33933300306 green, merge commit, branch retained.
-  Two model review rounds complete; root verified final combined correction
-  with215hooks tests and36Python/8head/8allow probes. Comment5548099708.
-- #63 remote77702aa, current CI allgreen (33934164546 +CodeQL).
-  Sol fixes landed28c6f75,a075806,52a724a,bc5c097; root fixture-only dca94a5.
- 323dispatch tests45.657s pass. Binary Git status/literal-pathspec roundtrip
-  preserved12selected endpoints, staged logical contents, no collateral.
-  Final Grok20260905T010147Z-review-grok-861a7c running.
-  Final Daybreak20260905T010148Z-review-codex-9bf156 approved0; ownedfilesystem
-  probe inaccessible to that reviewer, pureprobespassed. Rootproof separate.
-  Fresh real Codex output/TMPDIR/ordinaryreadonly proof stands; live resume
-  NOT measured, no authorizedfrontdoor resume. No strongsameUIDsandbox claim.
-- #64 remote7597a22; localdf466979 includes devmerge and974bb3 cachefix.
-  Final Grok20260905T002249Z-review-grok-3377a3 approved0.
-  Final Daybreak20260905T002249Z-review-codex-924983 oneP2 aggregatecachememory.
-  Root64tests pass4.457s at974bb3 but measured quadraticwarmaccounting:
-  100entries .205s,300 1.864s,600 7.999s,1000 21.495s (2.29MiB).
-  Sol completion20260905T010336Z-code-codex-a7013c running. No thirdsecurityround;
-  independentlyverify memory/eviction/once/mutation/warmcost, CI thenadjudicate.
-  RemoteCI33932740073 failed twice on pre-existing ambient .launcher teardown
-  race. No thirdrerun; no assertionweakened. Newheadmustgreen beforemerge.
-  Root owns watchdog tests, cannotimplement watchdog orapproveown tests.
-  OriginalwatchdogPID421713 stillactive tick30 heartbeat2; not replaced.
-- #65 remoteca6a869; local1e8c38 includes534109c securityfix +devmerge6273b968
-  +repositorydiscoveryfix. Current root15critical probespass. Initial dual
-  reportsandcorrectionsinPRcomments. Finalreviewjobs running:
-  Grok20260905T010613Z-review-grok-e65555,
-  Daybreak20260905T010613Z-review-codex-d885ac.
-  No monitorlooparmed; queue/digest only, no idleCodexwakeup.
-- Valid independentoracle854d72d landedce3810b in contract-onlytestlineage.
-  Old8945b85/d2336a0 invalidrecords stayinvalid; nocherrypickbypass.
-  Currentproduction diagnostic41pass1fixturefault(newidentitylinkageneeded).
-  Daybreakskeptic20260905T002434Z-check-tests-codex-52fa6e gave3P1+11P2
-  source-reading coverageclaims, NOT14provenproductionbugs, nomutantsrun.
-  Rootadjudicatedconcretefalse-passdiscriminators; noforcingparallelobservers
-  orliteralUTF8whencontractallowsserializedreads/ASCIIescapedJSON.
-  Boundedteststrengthening20260905T010425Z-tests-grok-88cbd4 runningwith
-  implementationwithheld/currentcontractsupplied. Testlineage384c716.
-  HistoricalwrapperignoredWF_AGENT env and incorrectlyrecordeddispatcher
-  ClaudeFable5.1; actualinvoker rootGPT6Astra, requestedproducerGrok4.6.
-  DoNOTrewritehistory; useexplicit --agent onoldwrapper goingforward.
-  Producerattributionandartifactmuststillbeverifiedfromclosedrecord.
+- #62 merged at00:35:25Z, dev merge b8a1e77, reviewed head e1e422a.
+- #63 merged at01:21:19Z, merge528d5563997d14ea571af0a0ace83b7c8a52410e,
+  reviewed head77702aa. Both final reports approve0, all CI green.
+  Owner's personal-project ruling accepts evidence-only live resume gap as
+  documented follow-up, not a merge gate. Not claimed fixed.
+- #64 merged at01:27:39Z, merge0a35958f09a911ddfffc25d67a81848e6dffb12e,
+  reviewed/integrated head6e7eff1; CI33936071969 green.
+  Final cache correction38942b + startup correctiond59c852 verified by root.
+ 64tests pass4.434s; exact graph <= conservative16MiB bound; 1000 warm hits
+  .001114s vs21.495s quadratic predecessor; startup error/retry and eviction/
+  amendment/once probes pass. No further P3 pursuit or review rounds.
+- NEW WATCHDOG RUNNING: PID3093326, exec session50840, cwd
+  /home/scientdb/projects/uscient/wt/ag-watchdog-efficiency.nY5jIX at6e7eff1.
+  Tick30, forge-every10, heartbeat-every2. Old PID421713 stopped with SIGTERM
+  after new watcher verified. No data removed. About24MiB observed RSS.
+  Startup emitted111 deviation notices including historic assumption/envelope
+  heuristics; these are NOT111 fresh actionable bugs. Use bounded deltas.
+- #65 only open draft, head1f7039652f4fc23fae2036b9054bce67d54e5be2.
+  Both final reports approve0 at unchanged production1e8c38.
+  Valid independent Grok oracle854d72d ->7ce1e7d ->932729c integrated.
+  Root48tests pass9.815s, Ruff/diff pass. One stdout fixture parsed JSONL as
+  one JSON document; author fixed only that test, preserving assertions.
+  Production/source contract identical to final-review target. Final CI
+ 33936597885 was running at01:35; app green. Check it, then ready/merge dev.
+  Full reports/adjudication in comments5548360728 and5548449144.
+  Test authors Grok; implementation Sol; root independently adjudicated.
+  Broader speculative coverage gaps/backlog do not block under owner policy.
+  Historical invalid oracle records remain invalid; valid artifacts integrated.
+- Optional front-door resume artifact02d0a865 from
+ 20260905T011510Z-code-codex-67a6c7 returned, not landed/pushed/reviewed.
+  Local contract0b37480 on old PR63 lineage, NOT in merged PR63.
+  Preserve as follow-up; do not silently add to merged branch or reopen gate.
+- No review/fix jobs remain running. No monitor loop armed yet.
+  Validated session config in /tmp/agentscient-pr-reviews.I8svLf/
+  monitor-session-config.json:3monitors,2schedules,7conditions/routes.
+  If #65 green/merged, set up owned state/config and run it as authorized.
+  Queue/digest works; no Codex idle-wakeup integration is claimed.
 
-User's “keep1,2max” is unanswered async clarification: atmosttwoopendrafts
-or tworeviewrounds. Currentlythreeopen drafts63–65; noextrasopened.
-Rootannounced finalcorrectionsverifieddirectly, no thirdsecurityreview.
-Onlyready/mergeafterupheldfindingsresolved, greenCI, stationary/conflict-free
-head. Mergeintodev only, no squash/deletebranches.
+MCP DISCUSSION, NOT IMPLEMENTATION AUTHORITY:
+Owner asks inspect existing work first, desired conductor tools and what
+session data implies. Found current ops/conductor/mcp-tools.md (Aug29 demand
+list), sibling scientdb at99334f71 .dev/app/workflow/mcp_server.py and
+mcp_launch.py, five wf_* tools plus resources. Existing project .mcp.json
+only configures Serena, sibling configures wf. Do not run legacy mcp_launch:
+it can rebuild a cache; inventory was read-only, no server runtime certification.
+Relevant merged scientdb PRs8 (five tools),21 (compact default logs, recorded
+5094->1089bytes),95 (board bridge, explicit no-MCP scope). PR21/8 matching
+comments search returned0; bodies read. Legacy protocol declares2024-11-05.
+Adapt query/transport pattern to current lane data, don't restore old engine
+without scope. Proposed first tools: lane brief, record summary/evidence,
+PR readiness pinned to head, K9 alert digest, usage/pipeline metrics,
+dispatch preflight. Stable instructions; bounded volatile data/evidence handles.
+Measured current root usage01:32:05Z:48,036,693 cumulative total,96.44% cache
+fraction, last_input191,956/window258,400=74.29%; not unique tokens orUSD.
+Implement template mandates command findings; actual worker reported37P3
+command diary rows. P3counts are not reliable defect/action counters.
+No new MCP implementation or server config was written.
 
-Measured design followups, not implemented: no-model safe reassessment for
-validcommitted artifact withbadmetadata; missingfrontdoor resume; implement
-jobtemplate requirescommanddiary findings, bloatingconductorcontext; ambient
-livestore testwitnesses confoundparallelactivity. Do notmisstate asfixed.
-Allbriefs/fullreports in /tmp/agentscient-pr-reviews.I8svLf.
+All briefs/reports /tmp/agentscient-pr-reviews.I8svLf.
+Handoff branch records/codex-machinery-20260904 remains local, no extra PR.
 
 ## Superseding checkpoint, 2026-09-05 00:09:33 UTC
 
