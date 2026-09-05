@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import os
+import re
 from pathlib import Path
 
 FIELDS = (
@@ -55,6 +56,10 @@ def validate_context(rec, *, expected_id=None, expected_snapshot=None):
         _need(ident == expected_id, "id", f"must equal {expected_id}")
     snapshot = rec.get("snapshot")
     _need(isinstance(snapshot, dict), "snapshot")
+    ref_sha = snapshot.get("ref_sha")
+    _need(isinstance(ref_sha, str) and re.fullmatch(
+        r"(?:[0-9a-f]{40}|[0-9a-f]{64})", ref_sha) is not None,
+        "snapshot.ref_sha", "must be a full immutable Git object id")
     snapshot_root = snapshot.get("root")
     _need(isinstance(snapshot_root, str) and Path(snapshot_root).is_absolute(),
           "snapshot.root", "must be an absolute path")
