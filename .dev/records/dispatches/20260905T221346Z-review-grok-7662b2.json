@@ -1,0 +1,156 @@
+{
+  "id": "20260905T221346Z-review-grok-7662b2",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "named-card-cap",
+  "lineage": {
+    "branch": "review/mcp-cap-quality-20260905",
+    "base_sha": "ac29ca8f79beb0b285884d7bf7f6635f34275c67"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-05T22:13:47Z",
+    "closed": "2026-09-05T22:20:18Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ac29ca8f79beb0b285884d7bf7f6635f34275c67",
+    "ref_sha": "ac29ca8f79beb0b285884d7bf7f6635f34275c67",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "ce9398f3-e2d6-4744-a489-e855cc8eb9e5",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/home/grok-stream/sessions/<snapshot-encoded>/ce9398f3-e2d6-4744-a489-e855cc8eb9e5/summary.json"
+  },
+  "session": {
+    "id": "ce9398f3-e2d6-4744-a489-e855cc8eb9e5",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/home/grok-stream/sessions/<snapshot-encoded>/ce9398f3-e2d6-4744-a489-e855cc8eb9e5/summary.json",
+    "stream_sha256_at_close": "83204dca76b4eee08e99fa12fc5ebd4a16a7bd9b65d4e003707419bc1ccab83a",
+    "spend": {
+      "input": 2143923,
+      "cached": 2015360,
+      "output": 23176,
+      "total": 2167099,
+      "cost_usd_ticks": 2386565400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/home/grok-stream/sessions/<snapshot-encoded>/ce9398f3-e2d6-4744-a489-e855cc8eb9e5/summary.json",
+      "messages": 225
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-mcp-cap-quality-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "PR72 named-card cap correction since e7558dea9e10835f3fcfaeebb703199119833b38. Read the supplied current PR body first. Inspect the correction, new regression and lineage integration at this candidate. Prior review dispositions are historical evidence in the supplied input; check whether the correction invalidates them, without restarting unrelated hardening. Section 5 limits unnamed listings to 64; named cards and missing-name results must work beyond 64 while source and response bounds remain. Review correctness, compatibility and whether the new test catches the reported regression across CLI/tool/resource. Ground findings in reproductions; attempt to refute each. Return the prescribed review envelope. No separate report file is required; read-only role.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/in/ag-cap-pr-review-body.md",
+        "sha256": "8844b437ede81c2acec966090f9525559534085c5c0f4b8e4a69acfb7ad195c5"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260905T221346Z-review-grok-7662b2/in/ag-cap-correction.diff",
+        "sha256": "2b7d2a9a626a1901d69b51bdd3473034b7ed2685ddc63def00fb1f0fc22673e4"
+      }
+    ],
+    "sha256": "c5fbf1266d7ac01c95969cff8ea5726035af85585616b16a8fd4155725f4e5dc",
+    "bytes": 3075
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-05T22:13:47Z",
+      "ended": "2026-09-05T22:20:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ac29ca8f79beb0b285884d7bf7f6635f34275c67",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 2167099,
+        "out": 23176,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ac29ca8f79beb0b285884d7bf7f6635f34275c67",
+        "started": "2026-09-05T22:15:44Z",
+        "ended": "2026-09-05T22:19:58Z"
+      },
+      "note": "Correction 67e0bc0 is the one production change: `if name is None and len(registry) > 64` in `_jobs`. At ac29ca8, a 64-entry registry lists 64; a 65-entry unnamed list is unavailable with reason `registry lists more than 64 jobs`; named `author-tests` and missing-name stay ok on CLI, tools/call and resources/read (also a filler named card and a 200-entry registry); a 1200039-byte registry stays unavailable for named lookup; v1 check remains `{valid:true,tools:4}`. Copying lane_read.py and restoring `if len(registry) > 64` makes named and missing-name unavailable with that listing reason, matching e7558de. `test_lane_jobs_named_card_at_sixty_five_entries` is green here and is the assertion that fails under that revert; it covers CLI/tool/resource for the known card plus CLI list refusal and missing-name. Test-file SHA-256 is `116143b39212518d82ff412b31f9bc862be2f26b82fb83062a2eba5e65336e16` at 868a420, 67e0bc0 and HEAD. `git merge-tree --write-tree 7a6a1a7 HEAD` equals tree `76080efaa63118f17ffa004c1a52dc85f45c6166` (HEAD); 228d3e8 tree equals its first parent. `python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp*.py'` ran 50 tests, OK. Prior P3 gaps named in the supplied PR body (findings UTF-16/32, registry depth precheck, test-header wording, BOM, 16KiB catalogue overflow) remain after json.loads or on other readers; this condition does not invalidate them."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-05T22:20:17.800Z"
+    }
+  },
+  "status": "closed"
+}
