@@ -1,5 +1,13 @@
 # Working handoff — Codex dev-lane machinery, 2026-09-04
 
+## Owner clarification — reviewer roles
+
+Grok audits quality: correctness, design, maintainability, and test quality.
+Daybreak audits security (gpt-daybreak-blue-latest, high).
+The owner accepts past reviews as scoped; do not redo them. Use this split
+for new review dispatches. This supersedes references below to dual security
+review, not the requirement to adjudicate findings, verify CI and merge to dev.
+
 ## Superseding checkpoint, 2026-09-05 01:06 UTC
 
 Re-measured forge, dispatch records, branches and focused probes at writing.
