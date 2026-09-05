@@ -146,3 +146,19 @@ owner's main tree and no global permission relaxation. Client restarts may
 be needed; registry visibility alone is not a successful protocol probe.
 Do not silently claim existing sessions gained tools. Runtime install and
 removal commands belong in the handoff, alongside an actual stdio probe.
+
+## Explicitly deferred malformed-input limits
+
+Root reproduced at 2d4cc781a36726bc608efa995fce2d9ed55beae9, 2026-09-05:
+5000-digit JSON integers can terminate the transport or usage reader; an
+alert cursor above SQLite's signed-integer range raises OverflowError; manually
+planted non-finite alert evidence can serialize as non-standard JSON. These
+are known gaps against the desired refusal behavior above, not fixed or
+certified safe. The cursor case was already deferred in the initial audit.
+Under the owner's personal-project/P3 policy, root classifies these as
+non-blocking hardening: the local operator chooses the sources, the server has
+no network listener, real cursors come from SQLite, and current monitor
+adapters emit evidence as paths/strings or a path/timestamp object rather than
+arbitrary numeric objects. Reassess before exposing untrusted sources or a
+remote transport. Do not weaken these facts into a blanket malformed-input
+survival claim.
