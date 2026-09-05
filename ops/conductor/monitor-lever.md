@@ -19,7 +19,9 @@ transcript forwarding, dynamic imports or expressions from configuration.
   Emit JSON `{"valid":true,"monitors":N,"schedules":N,"conditions":N,"routes":N}`.
 - `run --once|--loop [--now ISO]`: identity required; observe due monitors,
   enqueue events, persist dedup/schedule/cooldown state. `--now` is an
-  injected UTC clock for once only; no live clock assumptions in tests.
+  injected timezone-aware ISO clock of at most 128 printable ASCII bytes for
+  once only; it must normalize within the supported UTC range. No live clock
+  assumptions in tests.
   Once emits JSON counts `observations,events,unavailable`; loop is silent
   between events/errors. There is no LLM per tick.
 - `digest --consumer ID [--limit N] [--max-bytes N] [--ack]`: JSON, events
@@ -33,12 +35,21 @@ transcript forwarding, dynamic imports or expressions from configuration.
 
 Configuration defaults to `ops/conductor/monitor.example.json` relative to
 this instrument's checkout; `--config` overrides it. Paths in parameters
-resolve relative to the configuration file, not the caller's cwd.
+resolve relative to the configuration file, not the caller's cwd, and each
+fits in 1024 bytes in its JSON-escaped representation.
 State is explicit `--state`, else `XDG_STATE_HOME/<LANE_NAME>/monitor`,
 else the user's `.local/state/<LANE_NAME>/monitor`, through laneconf.
 Use SQLite stdlib transactions and parameterized queries in this state
 directory; queued payloads, dedup and cursor state commit atomically.
-Do not write source stores, configuration, repository files or user config.
+`LANE_NAME` is a registry identifier, and the default destination remains
+below the resolved XDG state root. Explicit state may name any real isolated
+directory, including an owned fixture under `/tmp`; it is not confined to the
+default namespace. In either form, refuse source-repository destinations,
+symlinked state/database components, non-regular databases, and overlap with
+the configured registry, rollout, or dispatch stores before writing. Never
+silently relocate an existing database. `check` does not inspect or create
+state. Do not write source stores, configuration, repository files or user
+config.
 
 ## Registry schema, version 1
 
@@ -86,9 +97,14 @@ measurement. A reader bug must be named and contained, not silently ignored.
   env ok; `no-op` for that case with write role and changed_paths exactly [];
   `invalid` for invalid/tripped envelope; `death` for died record or a
   positively identified dead worker; `settling` for exit without closure;
-  `running` only with positive integer PID existence and matching harness
-  command evidence; otherwise `unknown`. Missing or unreadable records are
-  unknown/unavailable respectively. Never pass zero/negative/bool PID to kill.
+  `running` only with positive integer PID existence, an exact recorded
+  executable token in `/proc/<pid>/cmdline`, the recorded snapshot as process
+  cwd, and the same nonempty session id in record and launcher state;
+  otherwise `unknown`. This Linux `/proc` proof does not infer identity from
+  an executable basename match. A missing process is
+  `death` only when the static executable/snapshot/session linkage is complete.
+  Missing or unreadable records are unknown/unavailable respectively. Never
+  pass zero/negative/bool PID to kill.
   Generation includes attempt count and launched timestamp, so a resumed
   record may produce a new event even if it closes between observations.
   No-op is an observation, not proof that the producer failed.
@@ -101,22 +117,44 @@ measurement. A reader bug must be named and contained, not silently ignored.
   semantics: input,cached,output,total from info.total_token_usage; last_input
   and last_cached from info.last_token_usage; context_window from
   info.model_context_window. Numeric values must be finite, nonnegative,
-  integers (not bool). Cache is a subset of input: never add it to input.
+  signed-64-bit integers (not bool). Cache is a subset of input: never add it
+  to input.
   Derive cache_fraction=cached/input and context_fraction=last_input/window
   only with positive denominators and valid operands. Keep the event's
-  timestamp separately from poll time. Cumulative input is re-prefill traffic,
-  last_input/window is a last-request context indicator, neither is USD.
+  timestamp separately from poll time. Retain it only when its input is at
+  most 128 ASCII bytes and parses as timezone-aware ISO, then normalize it to
+  UTC. Otherwise `event_at` is null with a fixed bounded reason while
+  independently valid usage metrics remain available. No raw malformed value
+  enters generation, evidence, SQLite, or output. Cumulative input is
+  re-prefill traffic, last_input/window is a last-request context indicator,
+  neither is USD.
   The explicit source path is the subject; no scanning other sessions.
 - `github-rate`: params `{timeout_s}`, finite 0 < timeout <= 30.
   Run only the code-built argv `gh api rate_limit`, resolving gh through PATH.
   One call per due monitor, never per condition/route/PR. Each resources
   core/graphql/search bucket gives a reading with limit,remaining,reset and
-  remaining_fraction. Validate nonnegative integer values, positive limit,
-  remaining <= limit. Missing/malformed buckets are unknown; process, timeout,
+  remaining_fraction. Validate nonnegative signed-64-bit integer values,
+  positive limit, remaining <= limit. Missing/malformed buckets are unknown; process, timeout,
   decode and authentication failures are unavailable without forwarding raw
   stderr. Generation is the bucket reset epoch; a new quota window re-arms
   its condition and is not charged as usage in the previous window.
   No inferred dollar cost and no assumption that a full quota means no past use.
+
+Observation JSON files are opened nonblocking, verified as regular after
+open, and read once from that descriptor. Dispatch `record.json` and
+`state.json` have a 1048576-byte initial-extent bound; their job directory and
+selected files may not be symlinks. The exit marker is likewise verified as a
+regular file. A selected FIFO, device, escaping symlink, oversized file, or
+open/read race is unavailable and cannot stall later observations. The
+operator-selected Codex path may itself be a symlink, but its opened target
+must be regular; only its configured 1024..8388608-byte tail is read.
+
+The GitHub process has one 1048576-byte bound on stdout and another on stderr.
+Both pipes are drained concurrently and nonblocking under the same monotonic
+`timeout_s` deadline, including process completion and pipe EOF. Deadline or
+either overflow makes all three buckets unavailable; stderr is never emitted.
+Only the process created for that reading may be killed and it is always
+reaped.
 
 Independent due monitors may observe concurrently with bounded worker count
 and subprocess deadlines. Each is read once per schedule, shared by its
@@ -163,7 +201,9 @@ registry target), arguments (invalid verb/options/bounds/clock), identity
 (unreadable/corrupt existing state), conf-key (missing lane setting).
 Inherited wire: one stderr line, expected/found/needed, exit 2, empty stdout.
 A source unavailable during a valid run is data, not a config refusal.
-Interrupted loop or invalid mid-loop reload exits 3 with state preserved.
+Interrupted loop exits 3. After loop action begins, any config or state
+refusal exits 3 with durable state preserved; argument, identity, initial
+config and initial state validation remain pre-action exit 2 refusals.
 
 Independent tests must exercise malformed/disabled/removed configuration,
 controlled dispatch lifecycle/no-op/unknown PID, a bounded synthetic Codex
@@ -173,4 +213,3 @@ consumer/ack/output bounds. No credentials, real stores or vendor calls in
 tests. Real probes: one bounded quota read and one aggregate-only read of an
 explicit operator-selected rollout. External harness delivery stays unprobed
 until separately verified. Register the instrument's config refusal row.
-
