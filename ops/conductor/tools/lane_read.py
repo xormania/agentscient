@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -18,8 +19,14 @@ CONFIG_BYTES = 65_536
 SOURCE_BYTES = 1_048_576
 QUERY_BYTES = 16_384
 ALERT_BYTES = 4_096
+FINDINGS_BYTES = 8_192
 MAX_INTEGER = 9_223_372_036_854_775_807
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}")
+REVISION_RE = re.compile(r"[0-9a-f]{16}")
+CURSOR_RE = re.compile(r"([0-9a-f]{16}):([1-9][0-9]{0,8})")
+JOB_NAME_RE = re.compile(r"[a-z][a-z0-9-]{0,63}")
+SLOT_RE = re.compile(r"\{([A-Za-z_][A-Za-z0-9_]*)\}")
+ALLOWED_SLOTS = {"ref", "base", "diff", "into", "out", "inputs", "scope"}
 CONFIG_KEYS = {
     "version",
     "dispatch_store",
@@ -28,6 +35,7 @@ CONFIG_KEYS = {
     "consumer",
     "usage_rollout",
 }
+CONFIG_KEYS_V2 = CONFIG_KEYS | {"job_registry"}
 COUNT_KEYS = ("p1", "p2", "p3", "opinions")
 SPEND_KEYS = ("input", "cached", "output", "total", "out", "runs")
 EVENT_COLUMNS = (
@@ -208,16 +216,24 @@ def load_config(path: Path) -> dict[str, object]:
         raise
     except (json.JSONDecodeError, UnicodeError, RecursionError, ValueError) as exc:
         refuse("config", "valid UTF-8 JSON", type(exc).__name__, "repair the config")
-    if not isinstance(root, dict) or set(root) != CONFIG_KEYS:
-        found = sorted(root) if isinstance(root, dict) else type(root).__name__
+    if not isinstance(root, dict):
         refuse(
             "config",
             f"exact keys {sorted(CONFIG_KEYS)}",
-            found,
+            type(root).__name__,
             "add missing and remove unknown keys",
         )
-    if type(root["version"]) is not int or root["version"] != 1:
-        refuse("config", "version 1", repr(root["version"]), "set version to 1")
+    version = root.get("version")
+    if type(version) is not int or version not in {1, 2}:
+        refuse("config", "version 1 or 2", repr(version), "set a supported version")
+    expected_keys = CONFIG_KEYS if version == 1 else CONFIG_KEYS_V2
+    if set(root) != expected_keys:
+        refuse(
+            "config",
+            f"exact keys {sorted(expected_keys)}",
+            sorted(root),
+            "add missing and remove unknown keys",
+        )
     ids = root["job_ids"]
     if (
         not isinstance(ids, list)
@@ -233,18 +249,23 @@ def load_config(path: Path) -> dict[str, object]:
     if len(set(ids)) != len(ids):
         refuse("config", "unique job_ids", repr(ids), "remove duplicate ids")
     base = absolute.parent
-    return {
-        "version": 1,
+    config = {
+        "version": version,
         "dispatch_store": _source_path(root["dispatch_store"], "dispatch_store", base),
         "job_ids": list(ids),
         "monitor_state": _source_path(root["monitor_state"], "monitor_state", base),
         "consumer": _consumer(root["consumer"]),
         "usage_rollout": _source_path(root["usage_rollout"], "usage_rollout", base),
     }
+    if version == 2:
+        config["job_registry"] = _source_path(
+            root["job_registry"], "job_registry", base
+        )
+    return config
 
 
-def check_result() -> dict[str, object]:
-    return {"valid": True, "tools": 4}
+def check_result(config: dict[str, object]) -> dict[str, object]:
+    return {"valid": True, "tools": 7 if config["version"] == 2 else 4}
 
 
 def _base(name: str, state: str, reason: str | None = None) -> dict[str, object]:
@@ -275,54 +296,41 @@ def _aggregate(value: object, keys: tuple[str, ...]) -> dict[str, int | float]:
     return result
 
 
-def _record(config: dict[str, object], ident: str) -> dict[str, object]:
-    name = "lane_record"
+def _read_record(
+    config: dict[str, object], ident: str
+) -> tuple[str, str | None, str | None, bytes | None, dict[str, object] | None]:
     evidence = (
         str(Path(config["dispatch_store"]) / ident / "record.json")
         if config["dispatch_store"] is not None
         else None
     )
     if config["dispatch_store"] is None:
-        result = _base(name, "unknown", "dispatch store is not configured")
-        result["record"] = None
-        return result
+        return "unknown", "dispatch store is not configured", evidence, None, None
     store = Path(config["dispatch_store"])
     flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
     flags |= getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         store_fd = os.open(store, flags)
     except FileNotFoundError:
-        result = _base(name, "unknown", "dispatch store is missing")
-        result["record"] = None
-        return result
+        return "unknown", "dispatch store is missing", evidence, None, None
     except OSError:
-        result = _base(name, "unavailable", "dispatch store is unavailable")
-        result["record"] = None
-        return result
+        return "unavailable", "dispatch store is unavailable", evidence, None, None
     try:
         try:
             job_fd = os.open(ident, flags, dir_fd=store_fd)
         except FileNotFoundError:
-            result = _base(name, "unknown", "record is missing")
-            result["record"] = None
-            return result
+            return "unknown", "record is missing", evidence, None, None
         except OSError:
-            result = _base(name, "unavailable", "job directory is unavailable")
-            result["record"] = None
-            return result
+            return "unavailable", "job directory is unavailable", evidence, None, None
         try:
             file_flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
             file_flags |= getattr(os, "O_NOFOLLOW", 0)
             try:
                 descriptor = os.open("record.json", file_flags, dir_fd=job_fd)
             except FileNotFoundError:
-                result = _base(name, "unknown", "record is missing")
-                result["record"] = None
-                return result
+                return "unknown", "record is missing", evidence, None, None
             except OSError:
-                result = _base(name, "unavailable", "record is unavailable")
-                result["record"] = None
-                return result
+                return "unavailable", "record is unavailable", evidence, None, None
             try:
                 details = os.fstat(descriptor)
                 if not stat.S_ISREG(details.st_mode) or details.st_size > SOURCE_BYTES:
@@ -337,7 +345,8 @@ def _record(config: dict[str, object], ident: str) -> dict[str, object]:
                     raw.extend(chunk)
                 if len(raw) > SOURCE_BYTES:
                     raise ValueError
-                record = json.loads(raw)
+                source = bytes(raw)
+                record = json.loads(source)
                 if not isinstance(record, dict):
                     raise ValueError
             except (
@@ -347,15 +356,25 @@ def _record(config: dict[str, object], ident: str) -> dict[str, object]:
                 UnicodeError,
                 ValueError,
             ):
-                result = _base(name, "unavailable", "record is unreadable or malformed")
-                result["record"] = None
-                return result
+                return (
+                    "unavailable",
+                    "record is unreadable or malformed",
+                    evidence,
+                    None,
+                    None,
+                )
             finally:
                 os.close(descriptor)
         finally:
             os.close(job_fd)
     finally:
         os.close(store_fd)
+    return "ok", None, evidence, source, record
+
+
+def _record_summary(
+    record: dict[str, object], ident: str, evidence: str | None
+) -> dict[str, object]:
     nested = record.get("result") if isinstance(record.get("result"), dict) else {}
     envelope = nested.get("envelope") if isinstance(nested.get("envelope"), dict) else {}
     session = record.get("session") if isinstance(record.get("session"), dict) else {}
@@ -366,7 +385,7 @@ def _record(config: dict[str, object], ident: str) -> dict[str, object]:
         model = _text(model.get("ran")) or _text(model.get("requested"))
     else:
         model = _text(model)
-    summary = {
+    return {
         "id": ident,
         "recorded_status": _text(record.get("status")),
         "model": model,
@@ -378,6 +397,16 @@ def _record(config: dict[str, object], ident: str) -> dict[str, object]:
         "spend": _aggregate(session.get("spend"), SPEND_KEYS),
         "evidence": evidence,
     }
+
+
+def _record(config: dict[str, object], ident: str) -> dict[str, object]:
+    name = "lane_record"
+    state, reason, evidence, _raw, record = _read_record(config, ident)
+    result = _base(name, state, reason)
+    if record is None:
+        result["record"] = None
+        return result
+    summary = _record_summary(record, ident, evidence)
     result = _base(name, "ok")
     result["record"] = summary
     return result
@@ -635,6 +664,472 @@ def _usage(config: dict[str, object]) -> dict[str, object]:
     return result
 
 
+def _revision(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()[:16]
+
+
+def _bounded_text(value: object, limit: int) -> str | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return value if len(value.encode("utf-8")) <= limit else None
+    except UnicodeError:
+        return None
+
+
+def _finding_entry(value: object, number: int) -> dict[str, object]:
+    if not isinstance(value, dict):
+        return {
+            "n": number,
+            "severity": None,
+            "where": None,
+            "claim": None,
+            "reproduce": None,
+            "omitted": ["entry"],
+        }
+    entry: dict[str, object] = {"n": number}
+    omitted: list[str] = []
+    severity = value.get("severity")
+    if isinstance(severity, str) and severity in ("p1", "p2", "p3"):
+        entry["severity"] = severity
+    else:
+        entry["severity"] = None
+        if severity is not None:
+            omitted.append("severity")
+    for field, limit in (("where", 256), ("claim", 1024), ("reproduce", 1024)):
+        source = value.get(field)
+        projected = _bounded_text(source, limit)
+        entry[field] = projected
+        if source is not None and projected is None:
+            omitted.append(field)
+    entry["omitted"] = omitted
+    return entry
+
+
+def _findings_empty(name: str, state: str, reason: str) -> dict[str, object]:
+    result = _base(name, state, reason)
+    result.update(
+        {
+            "record": None,
+            "note": None,
+            "note_bytes": None,
+            "findings": [],
+            "findings_total": None,
+            "page": None,
+        }
+    )
+    return result
+
+
+def _findings_note(envelope: dict[str, object]) -> tuple[str | None, int | None, str | None]:
+    if "note" not in envelope or envelope["note"] is None:
+        return None, None, None
+    note = envelope["note"]
+    if not isinstance(note, str):
+        return None, None, "note is not a string"
+    try:
+        length = len(note.encode("utf-8"))
+    except UnicodeError:
+        return None, None, "note is not valid Unicode"
+    return (note if length <= 2048 else None), length, None
+
+
+def _findings_page_payload(
+    record: dict[str, object],
+    note: str | None,
+    note_bytes: int | None,
+    findings: list[dict[str, object]],
+    total: int,
+    start: int,
+    revision: str,
+    reason: str | None,
+) -> dict[str, object]:
+    count = len(findings)
+    last = start + count - 1
+    more = last < total
+    result = _base("lane_findings", "ok", reason)
+    result.update(
+        {
+            "record": record,
+            "note": note,
+            "note_bytes": note_bytes,
+            "findings": findings,
+            "findings_total": total,
+            "page": {
+                "from": start if count else None,
+                "to": last if count else None,
+                "count": count,
+                "more": more,
+                "next_cursor": f"{revision}:{last + 1}" if more else None,
+            },
+        }
+    )
+    return result
+
+
+def _findings(config: dict[str, object], ident: str, cursor: str | None) -> dict[str, object]:
+    state, reason, evidence, raw, source = _read_record(config, ident)
+    if source is None or raw is None:
+        return _findings_empty("lane_findings", state, reason or "record is unavailable")
+    revision = _revision(raw)
+    nested = source.get("result") if isinstance(source.get("result"), dict) else {}
+    envelope = nested.get("envelope") if isinstance(nested.get("envelope"), dict) else {}
+    summary = _record_summary(source, ident, evidence)
+    record = {
+        "id": ident,
+        "job": _text(source.get("job")),
+        "stage": _text(source.get("stage")),
+        "recorded_status": summary["recorded_status"],
+        "verdict": summary["verdict"],
+        "counts": summary["counts"],
+        "revision": revision,
+        "evidence": evidence,
+    }
+    note, note_bytes, note_reason = _findings_note(envelope)
+    source_findings = envelope.get("findings")
+    if not isinstance(source_findings, list):
+        result = _base("lane_findings", "unavailable", "envelope findings is not a list")
+        result.update(
+            {
+                "record": record,
+                "note": note,
+                "note_bytes": note_bytes,
+                "findings": [],
+                "findings_total": None,
+                "page": None,
+            }
+        )
+        return result
+    total = len(source_findings)
+    start = 1
+    if cursor is not None:
+        match = CURSOR_RE.fullmatch(cursor)
+        if match is None:
+            raise AssertionError
+        held_revision, raw_start = match.groups()
+        if held_revision != revision:
+            refuse(
+                "cursor",
+                f"cursor for revision {revision}",
+                held_revision,
+                "restart from the first page",
+            )
+        start = int(raw_start)
+        if start > total:
+            refuse(
+                "cursor",
+                "an index within findings_total",
+                start,
+                "supply an index within findings_total",
+            )
+    page_note = note if cursor is None else None
+    page_reason = note_reason
+    frame = _findings_page_payload(
+        record, None, note_bytes, [], total, start, revision, page_reason
+    )
+    if len(canonical_bytes(frame)) > FINDINGS_BYTES:
+        frame.update(
+            {
+                "state": "unavailable",
+                "reason": "page frame exceeds 8192 bytes",
+                "page": None,
+            }
+        )
+        return frame
+    if page_note is not None:
+        with_note = _findings_page_payload(
+            record, page_note, note_bytes, [], total, start, revision, page_reason
+        )
+        if len(canonical_bytes(with_note)) > FINDINGS_BYTES:
+            page_note = None
+            page_reason = "note exceeds page"
+    findings: list[dict[str, object]] = []
+    for number in range(start, total + 1):
+        entry = _finding_entry(source_findings[number - 1], number)
+        candidate = _findings_page_payload(
+            record,
+            page_note,
+            note_bytes,
+            [*findings, entry],
+            total,
+            start,
+            revision,
+            page_reason,
+        )
+        if len(canonical_bytes(candidate)) <= FINDINGS_BYTES:
+            findings.append(entry)
+            continue
+        if findings:
+            break
+        for field in ("reproduce", "claim", "where"):
+            if entry[field] is not None:
+                entry[field] = None
+                if field not in entry["omitted"]:
+                    entry["omitted"].append(field)
+            candidate = _findings_page_payload(
+                record,
+                page_note,
+                note_bytes,
+                [entry],
+                total,
+                start,
+                revision,
+                page_reason,
+            )
+            if len(canonical_bytes(candidate)) <= FINDINGS_BYTES:
+                findings.append(entry)
+                break
+        if findings:
+            break
+        if page_note is not None:
+            page_note = None
+            page_reason = "note exceeds page"
+            candidate = _findings_page_payload(
+                record,
+                page_note,
+                note_bytes,
+                [entry],
+                total,
+                start,
+                revision,
+                page_reason,
+            )
+            if len(canonical_bytes(candidate)) <= FINDINGS_BYTES:
+                findings.append(entry)
+                break
+        failed = _findings_page_payload(
+            record, None, note_bytes, [], total, start, revision, None
+        )
+        failed.update(
+            {
+                "state": "unavailable",
+                "reason": "page frame exceeds 8192 bytes",
+                "page": None,
+            }
+        )
+        return failed
+    return _findings_page_payload(
+        record,
+        page_note,
+        note_bytes,
+        findings,
+        total,
+        start,
+        revision,
+        page_reason,
+    )
+
+
+def _dispatch_store_state(config: dict[str, object]) -> tuple[str, str | None]:
+    source = config["dispatch_store"]
+    if source is None:
+        return "unknown", "dispatch store is not configured"
+    flags = os.O_RDONLY | os.O_NONBLOCK | getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(Path(source), flags)
+    except FileNotFoundError:
+        return "unknown", "dispatch store is missing"
+    except OSError:
+        return "unavailable", "dispatch store is unavailable"
+    os.close(descriptor)
+    return "ok", None
+
+
+def _changes(
+    config: dict[str, object], checkpoint: dict[str, str]
+) -> dict[str, object]:
+    ids = config["job_ids"]
+    changed: list[dict[str, object]] = []
+    unchanged: list[str] = []
+    unknown: list[str] = []
+    unavailable: list[str] = []
+    current: dict[str, str] = {}
+    state, reason = _dispatch_store_state(config)
+    if state != "ok":
+        if state == "unknown":
+            unknown.extend(ids)
+        else:
+            unavailable.extend(ids)
+    else:
+        for ident in ids:
+            rec_state, _rec_reason, evidence, raw, source = _read_record(config, ident)
+            if rec_state == "unknown":
+                unknown.append(ident)
+                continue
+            if rec_state != "ok" or raw is None or source is None:
+                unavailable.append(ident)
+                continue
+            revision = _revision(raw)
+            current[ident] = revision
+            if checkpoint.get(ident) == revision:
+                unchanged.append(ident)
+                continue
+            summary = _record_summary(source, ident, evidence)
+            changed.append(
+                {
+                    "id": ident,
+                    "revision": revision,
+                    "recorded_status": summary["recorded_status"],
+                    "verdict": summary["verdict"],
+                    "evidence": evidence,
+                }
+            )
+    result = _base("lane_changes", state, reason)
+    result.update(
+        {
+            "configured_ids": ids,
+            "changed": changed,
+            "unchanged": unchanged,
+            "unknown": unknown,
+            "unavailable": unavailable,
+            "checkpoint": current,
+        }
+    )
+    return result
+
+
+def _job_parts(name: object, value: object) -> tuple[str | None, dict[str, object] | None, list[str], bool]:
+    try:
+        valid_name = isinstance(name, str) and JOB_NAME_RE.fullmatch(name) is not None
+        if valid_name:
+            name.encode("utf-8")
+    except UnicodeError:
+        valid_name = False
+    if not valid_name or not isinstance(value, dict):
+        return None, None, [], False
+    prompt = value.get("prompt")
+    if isinstance(prompt, str):
+        try:
+            prompt.encode("utf-8")
+            prompt_valid = bool(prompt)
+            slots = sorted(set(SLOT_RE.findall(prompt)))
+        except UnicodeError:
+            prompt_valid = False
+            slots = []
+    else:
+        prompt_valid = False
+        slots = []
+    dispatchable = (
+        value.get("adapter") == "harness"
+        and value.get("role") in ("read", "write")
+        and value.get("snapshot") == "whole"
+        and not value.get("withheld")
+        and prompt_valid
+        and set(slots).issubset(ALLOWED_SLOTS)
+    )
+    return name, value, slots, dispatchable
+
+
+def _job_row(name: object, value: object) -> dict[str, object]:
+    projected_name, source, slots, dispatchable = _job_parts(name, value)
+    if source is None:
+        return {
+            "name": None,
+            "adapter": None,
+            "role": None,
+            "dispatchable": False,
+            "slots": [],
+        }
+    return {
+        "name": projected_name,
+        "adapter": _text(source.get("adapter")),
+        "role": _text(source.get("role")),
+        "dispatchable": dispatchable,
+        "slots": slots,
+    }
+
+
+def _job_card(name: str, value: object) -> dict[str, object]:
+    projected_name, source, slots, dispatchable = _job_parts(name, value)
+    if source is None:
+        source = {}
+    prompt = source.get("prompt")
+    try:
+        prompt_bytes = len(prompt.encode("utf-8")) if isinstance(prompt, str) else None
+    except UnicodeError:
+        prompt_bytes = None
+    constraints = source.get("constraints")
+    if isinstance(constraints, list):
+        projected_constraints = [
+            _bounded_text(item, 256) for item in constraints[:16]
+        ]
+    else:
+        projected_constraints = []
+    caps = source.get("caps") if isinstance(source.get("caps"), dict) else {}
+    timeout = caps.get("timeout")
+    if type(timeout) is int:
+        valid_timeout = timeout >= 0
+    elif type(timeout) is float:
+        valid_timeout = math.isfinite(timeout) and timeout >= 0
+    else:
+        valid_timeout = False
+    return {
+        "name": projected_name,
+        "adapter": _text(source.get("adapter")),
+        "role": _text(source.get("role")),
+        "snapshot": _text(source.get("snapshot")),
+        "dispatchable": dispatchable,
+        "slots": slots,
+        "deliverable": _bounded_text(source.get("deliverable"), 512),
+        "constraints": projected_constraints,
+        "timeout": timeout if valid_timeout else None,
+        "prompt_bytes": prompt_bytes,
+    }
+
+
+def _jobs(config: dict[str, object], name: str | None) -> dict[str, object]:
+    source = config.get("job_registry")
+    path = Path(source) if source is not None else None
+    evidence = {"path": str(path) if path is not None else None, "revision": None}
+    if path is None:
+        result = _base("lane_jobs", "unknown", "job registry is not configured")
+        result.update({"evidence": evidence, "jobs": [], "job": None})
+        return result
+    status, raw = _bounded_regular(path, SOURCE_BYTES, follow=False)
+    if status == "missing":
+        result = _base("lane_jobs", "unknown", "job registry is missing")
+        result.update({"evidence": evidence, "jobs": [], "job": None})
+        return result
+    if status != "ok" or raw is None:
+        result = _base("lane_jobs", "unavailable", "job registry is unavailable")
+        result.update({"evidence": evidence, "jobs": [], "job": None})
+        return result
+    try:
+        registry = json.loads(raw.decode("utf-8"))
+        if not isinstance(registry, dict):
+            raise ValueError
+    except (json.JSONDecodeError, RecursionError, UnicodeError, ValueError):
+        result = _base("lane_jobs", "unavailable", "job registry is unreadable or malformed")
+        result.update({"evidence": evidence, "jobs": [], "job": None})
+        return result
+    evidence["revision"] = _revision(raw)
+    if len(registry) > 64:
+        result = _base("lane_jobs", "unavailable", "registry lists more than 64 jobs")
+        result.update({"evidence": evidence, "jobs": [], "job": None})
+        return result
+    result = _base("lane_jobs", "ok")
+    if name is None:
+        result.update(
+            {
+                "evidence": evidence,
+                "jobs": [_job_row(key, value) for key, value in registry.items()],
+                "job": None,
+            }
+        )
+    else:
+        result.update(
+            {
+                "evidence": evidence,
+                "jobs": [],
+                "job": _job_card(name, registry[name]) if name in registry else None,
+            }
+        )
+        if name not in registry:
+            result["reason"] = "job is not declared in the registry"
+    return result
+
+
 def _arguments(value: object, keys: set[str], name: str) -> dict[str, object]:
     if not isinstance(value, dict) or not set(value).issubset(keys):
         found = sorted(value) if isinstance(value, dict) else type(value).__name__
@@ -689,8 +1184,73 @@ def query(config: dict[str, object], name: str, arguments: object) -> dict[str, 
                 ],
             }
         )
+    elif name == "lane_findings" and config["version"] == 2:
+        args = _arguments(arguments, {"id", "cursor"}, name)
+        if set(args) not in ({"id"}, {"id", "cursor"}) or not isinstance(
+            args.get("id"), str
+        ):
+            refuse(
+                "arguments",
+                "lane_findings object with string id and optional cursor",
+                repr(args),
+                "supply a configured id and bounded cursor",
+            )
+        ident = args["id"]
+        if ID_RE.fullmatch(ident) is None or ident not in config["job_ids"]:
+            refuse(
+                "arguments",
+                "id in configured job_ids",
+                repr(ident),
+                "select a configured id",
+            )
+        cursor = args.get("cursor")
+        if "cursor" in args and (
+            not isinstance(cursor, str) or CURSOR_RE.fullmatch(cursor) is None
+        ):
+            refuse(
+                "arguments",
+                f"cursor matching {CURSOR_RE.pattern}",
+                repr(cursor),
+                "supply a bounded findings cursor",
+            )
+        result = _findings(config, ident, cursor)
+    elif name == "lane_changes" and config["version"] == 2:
+        args = _arguments(arguments, {"checkpoint"}, name)
+        checkpoint = args.get("checkpoint", {})
+        if not isinstance(checkpoint, dict) or any(
+            key not in config["job_ids"]
+            or not isinstance(value, str)
+            or REVISION_RE.fullmatch(value) is None
+            for key, value in checkpoint.items()
+        ):
+            refuse(
+                "arguments",
+                "checkpoint mapping configured ids to revisions",
+                repr(checkpoint),
+                "supply only configured ids and bounded revisions",
+            )
+        result = _changes(config, checkpoint)
+    elif name == "lane_jobs" and config["version"] == 2:
+        args = _arguments(arguments, {"name"}, name)
+        job_name = args.get("name")
+        if "name" in args and (
+            not isinstance(job_name, str) or JOB_NAME_RE.fullmatch(job_name) is None
+        ):
+            refuse(
+                "arguments",
+                f"name matching {JOB_NAME_RE.pattern}",
+                repr(job_name),
+                "supply a bounded declared job name",
+            )
+        result = _jobs(config, job_name)
     else:
-        refuse("arguments", "one of the four lane tools", repr(name), "select a listed tool")
+        count = "seven" if config["version"] == 2 else "four"
+        refuse(
+            "arguments",
+            f"one of the {count} lane tools",
+            repr(name),
+            "select a listed tool",
+        )
     if len(canonical_bytes(result)) > QUERY_BYTES:
         return _base(name, "unavailable", "complete query exceeds 16384 bytes")
     return result
