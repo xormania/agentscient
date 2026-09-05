@@ -44,6 +44,7 @@ FORGE_LIMIT = 200
 FORGE_TIMEOUT = 10
 JOB_INPUT_LIMIT = 64 * 1024 * 1024
 PROCESS_OUTPUT_LIMIT = 1024 * 1024
+CLOSED_CACHE_LIMIT = 16 * 1024 * 1024
 CHECK_NAME_LIMIT = 512
 FALLBACK_WARN_MIN = 40
 SETTLING_TICKS = 2
@@ -364,6 +365,12 @@ class Entry:
         self.state = state
         self.has_exit = has_exit
         self.error = None
+        result = rec.get("result") if isinstance(rec.get("result"), dict) else {}
+        envelope = result.get("envelope") if isinstance(result.get("envelope"), dict) else {}
+        changed = result.get("changed_paths")
+        self.summary_status = rec.get("status")
+        self.summary_envelope = envelope.get("status")
+        self.summary_changed = len(changed) if isinstance(changed, list) else "unknown"
         at = rec.get("at") if isinstance(rec.get("at"), dict) else {}
         self.launched = parse_stamp(at.get("launched")) or stamp_of(self.name)
         self.closed_at = parse_stamp(at.get("closed"))
@@ -384,11 +391,21 @@ class Entry:
         return int((end - self.launched).total_seconds() // 60)
 
     def summary(self):
-        res = self.rec.get("result") if isinstance(self.rec.get("result"), dict) else {}
-        env = res.get("envelope") if isinstance(res.get("envelope"), dict) else {}
-        changed = res.get("changed_paths")
-        n = len(changed) if isinstance(changed, list) else "unknown"
-        return f"status={self.rec.get('status')} env={env.get('status')} changed={n}"
+        return f"status={self.summary_status} env={self.summary_envelope} changed={self.summary_changed}"
+
+    def closed_projection(self):
+        """The fields a previously scanned, unchanged closed job still needs."""
+        compact = object.__new__(Entry)
+        for name in (
+            "path", "name", "kind", "error", "launched", "closed_at", "job",
+            "harness", "wall_min", "fingerprint", "exit_mtime", "summary_status",
+            "summary_envelope", "summary_changed",
+        ):
+            setattr(compact, name, getattr(self, name))
+        compact.rec = {"status": self.summary_status}
+        compact.state = {}
+        compact.has_exit = self.has_exit
+        return compact
 
     def harness_alive(self):
         pid = self.state.get("pid")
@@ -431,8 +448,75 @@ def input_fingerprint(path):
     return tuple(fingerprint)
 
 
+def retained_size(root):
+    """Account for a retained Python object graph without recursive descent."""
+    seen = set()
+    pending = [root]
+    total = 0
+    while pending:
+        value = pending.pop()
+        identity = id(value)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        total += sys.getsizeof(value)
+        if isinstance(value, dict):
+            for key, item in value.items():
+                pending.append(key)
+                pending.append(item)
+        elif isinstance(value, (list, tuple, set, frozenset)):
+            pending.extend(value)
+        elif hasattr(value, "__dict__"):
+            pending.append(vars(value))
+        for cls in type(value).__mro__:
+            slots = getattr(cls, "__slots__", ())
+            if isinstance(slots, str):
+                slots = (slots,)
+            for slot in slots:
+                if slot in {"__dict__", "__weakref__"}:
+                    continue
+                with contextlib.suppress(AttributeError):
+                    pending.append(getattr(value, slot))
+    return total
+
+
+class ClosedCache(dict):
+    """Insertion-ordered LRU whose complete retained graph has a byte ceiling."""
+
+    @property
+    def retained_bytes(self):
+        return retained_size(self)
+
+    def get(self, key, default=None):
+        if key not in self:
+            return default
+        value = super().pop(key)
+        super().__setitem__(key, value)
+        return value
+
+    def __setitem__(self, key, value):
+        if key in self:
+            super().__delitem__(key)
+        super().__setitem__(key, value)
+        while self and self.retained_bytes > CLOSED_CACHE_LIMIT:
+            super().__delitem__(next(iter(self)))
+        if not self and self.retained_bytes > CLOSED_CACHE_LIMIT:
+            super().clear()
+
+
+def cache_closed(cache, name, fingerprint, entry):
+    """Retain a closed reading only while the aggregate graph fits the budget."""
+    cache[name] = (fingerprint, entry)
+    if isinstance(cache, ClosedCache):
+        return
+    while cache and retained_size(cache) > CLOSED_CACHE_LIMIT:
+        del cache[next(iter(cache))]
+    if not cache and retained_size(cache) > CLOSED_CACHE_LIMIT:
+        cache.clear()
+
+
 def entries(store, caps, closed_cache=None):
-    out = []
+    errors = []
     dirs = []
     for path in store.iterdir():
         try:
@@ -443,22 +527,23 @@ def entries(store, caps, closed_cache=None):
             entry = Entry(path, "error", {}, {}, False, caps)
             entry.error = exc
             entry.fingerprint = None
-            out.append(entry)
+            errors.append(entry)
             continue
         if stat_mode.S_ISDIR(path_stat.st_mode) or stat_mode.S_ISLNK(path_stat.st_mode):
             dirs.append(path)
     dirs.sort()
     present = {path.name for path in dirs}
-    present.update(entry.name for entry in out)
+    present.update(entry.name for entry in errors)
     if closed_cache is not None:
         for name in set(closed_cache) - present:
             del closed_cache[name]
+    yield from errors
     for d in dirs:
         try:
             fingerprint = input_fingerprint(d)
             cached = closed_cache.get(d.name) if closed_cache is not None else None
             if cached is not None and cached[0] == fingerprint:
-                out.append(cached[1])
+                yield cached[1]
                 continue
             rec = _read_job_json(d, "record.json")
             state = _read_job_json(d, "state.json") or {}
@@ -468,7 +553,7 @@ def entries(store, caps, closed_cache=None):
             entry = Entry(d, "error", {}, {}, False, caps)
             entry.error = exc
             entry.fingerprint = None
-            out.append(entry)
+            yield entry
             continue
         exit_row = next(row for row in fingerprint if row[0] == "exit")
         has_exit = exit_row[1] is not None
@@ -483,13 +568,12 @@ def entries(store, caps, closed_cache=None):
         entry = Entry(d, kind, rec or {}, state, has_exit, caps)
         entry.fingerprint = fingerprint
         entry.exit_mtime = exit_row[5] / 1_000_000_000 if has_exit else None
-        out.append(entry)
         if closed_cache is not None:
             if kind == "closed":
-                closed_cache[d.name] = (fingerprint, entry)
+                cache_closed(closed_cache, d.name, fingerprint, entry)
             else:
                 closed_cache.pop(d.name, None)
-    return out
+        yield entry
 
 
 def text_values(value):
@@ -717,7 +801,7 @@ class Watch:
         self.launcher_pairs = set()
         self.ci_seen = set()
         self.startup_closed = set()
-        self.closed_cache = {}
+        self.closed_cache = ClosedCache()
         self.closed_scanned = {}
         self.forge_reading = None
         self.forge_tick = None
@@ -867,10 +951,13 @@ class Watch:
             if e.kind == "no-copy":
                 self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
                 continue
+            scan_ok = True
             if e.kind != "closed" or self.closed_scanned.get(e.name) != e.fingerprint:
                 try:
                     self.scan_deviations(e)
                 except InputUnavailable:
+                    scan_ok = False
+                    self.closed_cache.pop(e.name, None)
                     self.deviation("unavailable", e.name)
                 else:
                     if e.kind == "closed":
@@ -878,6 +965,13 @@ class Watch:
             if e.kind == "closed":
                 if e.name not in self.startup_closed:
                     self.once(("closed", e.name), f"closed {e.name} {e.summary()} after {e.minutes(e.closed_at)} min")
+                if scan_ok:
+                    cache_closed(
+                        self.closed_cache,
+                        e.name,
+                        e.fingerprint,
+                        e.closed_projection(),
+                    )
                 continue
             if e.kind == "settling":
                 settling += 1

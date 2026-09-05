@@ -172,6 +172,18 @@ ratification and not a new conductor or automatic-remediation service.
   immutable. Read errors must be retried, never cached as success. The
   watched inputs include record, state, exit, copied plan and held logs.
   Startup must not parse every record twice just to make the first tick.
+  Parsed closed readings are retained in an insertion-ordered LRU capped at
+  16 MiB for the complete cache object graph, measured from Python object
+  sizes rather than source-file bytes. After deviation scanning, only the
+  compact fields needed for unchanged closed classification and its line are
+  retained. An entry that cannot fit is left uncached and is re-read on the
+  next tick; it is never classified unavailable for exceeding the cache
+  budget. Accounting walks object graphs iteratively, deduplicates shared or
+  cyclic references, and therefore does not recurse on deeply nested data.
+  Enumeration and parsing are per job rather than accumulated as one list.
+  Eviction never clears notification keys or the last-scanned fingerprint:
+  re-read preserves once-per-condition behavior, while an amended fingerprint
+  is scanned again and can report a newly introduced deviation.
 - Treat `raw.out` as the launcher's actual held stdout, alongside a
   legacy `stdout` file. Search held output without loading whole growing
   transcripts into memory or printing them; an append after open is deferred
@@ -185,6 +197,14 @@ Unchanged: historical deviations are still reported, the current period
 is work plus sleep, missing PID is not declared dead, launcher counting
 remains a labeled heuristic, and this instrument writes no state. Those
 separate semantic changes are not smuggled into an efficiency fix.
+
+The cache, notification-key set, and last-scanned fingerprints live only for
+the watchdog process. The 16 MiB ceiling covers the cache; notification and
+fingerprint metadata remain O(number of jobs and emitted conditions), because
+forgetting them would break once and mutation semantics. A single active parse
+may additionally occupy the parsed record and state plus copied-plan text for
+one job, each from a source bounded at 64 MiB; transient accounting work is
+outside the retained-cache ceiling.
 
 Verification boundary: existing `test_watchdog.py` behavior stays covered;
 focused additional probes must distinguish unchanged versus amended
