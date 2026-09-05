@@ -39,6 +39,7 @@ fallback to other sessions, repositories or environment secrets.
 Example config has null sources, empty job_ids, consumer=conductor.
 
 check validates only and returns {valid:true,tools:4}; no sources are read.
+It also accepts an optional literal `.` (no path resolution or extra read).
 query invokes the same query function and canonical JSON encoder as MCP.
 CLI refusal: config/arguments, inherited wire, exit2, empty stdout. Successful
 queries exit0, including explicit unknown/unavailable readings. Reads need
@@ -50,7 +51,7 @@ All results are JSON objects with schema=agentscient.lane/v1 and query naming
 the tool. Tool arguments are closed objects. Unknown fields/types refuse.
 
 - lane_record({id}): id must be in configured job_ids. Return state and a
-  record summary or explicit reason. Summary fields: id, recorded_status,
+  summary under the `record` key, or explicit reason. Summary fields: id, recorded_status,
   model, head, verdict, counts, changed_count, attempt_count, spend, evidence.
   Read only store/id/record.json. Keep original recorded status; do NOT infer
   live process state or turn closed into success. Evidence is its path, not
