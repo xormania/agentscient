@@ -21,6 +21,7 @@ QUERY_BYTES = 16_384
 ALERT_BYTES = 4_096
 FINDINGS_BYTES = 8_192
 MAX_INTEGER = 9_223_372_036_854_775_807
+MAX_JSON_DEPTH = 1_024
 ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}")
 REVISION_RE = re.compile(r"[0-9a-f]{16}")
 CURSOR_RE = re.compile(r"([0-9a-f]{16}):([1-9][0-9]{0,8})")
@@ -93,6 +94,30 @@ def _pairs(kind: str):
         return result
 
     return collect
+
+
+def _json_depth_exceeds(raw: bytes, limit: int = MAX_JSON_DEPTH) -> bool:
+    depth = 0
+    quoted = False
+    escaped = False
+    for byte in raw:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif byte == 92:
+                escaped = True
+            elif byte == 34:
+                quoted = False
+            continue
+        if byte == 34:
+            quoted = True
+        elif byte in (91, 123):
+            depth += 1
+            if depth > limit:
+                return True
+        elif byte in (93, 125):
+            depth -= 1
+    return False
 
 
 def decode_object(raw: str, where: str = "arguments") -> dict[str, object]:
@@ -344,6 +369,8 @@ def _read_record(
                         break
                     raw.extend(chunk)
                 if len(raw) > SOURCE_BYTES:
+                    raise ValueError
+                if _json_depth_exceeds(raw):
                     raise ValueError
                 source = bytes(raw)
                 record = json.loads(source)

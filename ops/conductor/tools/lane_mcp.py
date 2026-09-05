@@ -282,6 +282,10 @@ def _send(message: dict[str, object]) -> None:
     sys.stdout.flush()
 
 
+def _reject_constant(value: str) -> None:
+    raise ValueError(value)
+
+
 def serve(config: dict[str, object]) -> int:
     source = sys.stdin.buffer
     while True:
@@ -294,8 +298,8 @@ def serve(config: dict[str, object]) -> int:
             _send(_error(None, -32700, "Parse error"))
             continue
         try:
-            request = json.loads(line)
-        except (json.JSONDecodeError, UnicodeError, RecursionError):
+            request = json.loads(line, parse_constant=_reject_constant)
+        except (json.JSONDecodeError, UnicodeError, RecursionError, ValueError):
             _send(_error(None, -32700, "Parse error"))
             continue
         response = _dispatch(config, request)
