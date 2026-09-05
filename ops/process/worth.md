@@ -36,7 +36,8 @@ session id, messages (or runs), out, and cached tokens. Claude rows also carry
 turns after last-write-per-message-id dedup, mean context tokens over that
 same retained population, and tool-result deny refusals (both `is_error=true`
 and the deny marker are required). A retained usage row with malformed token
-types is an explicit gap rather than a partial measurement. An unreadable
+types, negative values, or non-finite values is an explicit gap rather than
+a partial measurement. Boolean values are not token currencies. An unreadable
 candidate found under Claude's slash-and-dot encoded repository directory is
 appended outside the measured `--top` ranking as `kind=gap`: its session id
 stays discoverable, but its repo, window, turns, mean context, and refusals are
@@ -89,7 +90,9 @@ agent decides what to change; the tool only points.
    population after last-write-per-message-id dedup, mean `avg_context`
    (input plus both caches) over that population, and tool-result deny
    `refusals`. A refusal requires `is_error=true` as well as the deny marker.
-   Malformed retained usage values produce an explicit unrecorded gap. An
+   Malformed retained usage values, including negative and non-finite values,
+   produce an explicit unrecorded gap. Zero and valid nonnegative numeric
+   values retain their existing meaning. An
    unreadable Claude candidate is discovered using the store's encoding
    (every `/` and `.` in the repo path replaced by `-`) and appended after the
    `--top` measured sessions with `kind=gap`, its file-stem session id, and

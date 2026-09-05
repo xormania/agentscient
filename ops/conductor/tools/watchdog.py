@@ -411,7 +411,13 @@ class Entry:
 
     def harness_alive(self):
         pid = self.state.get("pid")
-        if pid is None:
+        if isinstance(pid, bool) or not isinstance(pid, (int, str)):
+            return None
+        try:
+            pid = int(pid)
+        except ValueError:
+            return None
+        if pid <= 0:
             return None
         return process_alive(pid, self.harness)
 
@@ -1055,7 +1061,14 @@ class Watch:
                     self.once(("settling", e.name), f"exit written, not collected {e.name}: {since} min since exit, record still {e.rec.get('status')}")
                 continue
             m = e.minutes()
-            if e.harness_alive() is False:
+            harness_alive = e.harness_alive()
+            if harness_alive is None:
+                self.once(
+                    ("unobservable", e.name),
+                    f"worker unobservable {e.name}: no usable worker PID, no exit written",
+                )
+                continue
+            if harness_alive is False:
                 self.once(("gone", e.name), f"harness gone {e.name} after {m} min: pid {e.state.get('pid')} dead, no exit written")
                 continue
             running.append(e)
@@ -1104,7 +1117,11 @@ class Watch:
     def launcher_count(self):
         if shutil.which("pgrep") is None:
             return None
-        out = run(["pgrep", "-fc", r"^python3 .*launch\.py "])
+        out = run([
+            "pgrep",
+            "-fc",
+            r"^(/([^[:space:]]*/)*)?python3(\.[0-9]+)?[[:space:]]+([^[:space:]]*/)?launch[.]py([[:space:]]|$)",
+        ])
         if out is None:
             return 0
         try:
