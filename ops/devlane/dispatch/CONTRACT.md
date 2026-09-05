@@ -264,8 +264,9 @@ Write roles: the snapshot's `HEAD` must descend from `ref_sha`; it is
 fetched into the invoking repository as `refs/dispatch/<id>` with
 `--no-write-fetch-head`; `changed_paths` is `git diff --name-only
 ref_sha head --` (the same endpoint semantics without an option-sensitive
-record-sourced range); `residual_paths` is `git status --porcelain` in the
-snapshot. Read roles: `head` must equal `ref_sha`; a non-empty
+record-sourced range); `residual_paths` is a human rendering derived from
+`git status --porcelain=v1 -z` records in the snapshot. Read roles: `head`
+must equal `ref_sha`; a non-empty
 `residual_paths` is recorded; a changed head or non-empty residual makes the
 envelope invalid.
 
@@ -282,6 +283,15 @@ there is no broader patch exclusion. These exemptions are a named residual
 policy, not evidence that bytecode, caches, or other data written by a
 same-UID worker are trustworthy, and not a strong filesystem-isolation
 guarantee.
+
+Git path authority remains NUL-delimited bytes through classification and
+patch selection; C-quoted display is output only and is never parsed back.
+Rename and copy records retain both source and destination. Before settlement
+mutates an index, every path must round-trip through the filesystem encoding.
+The temporary-index `git add` uses `--literal-pathspecs` plus `--`, so leading
+dashes, wildcard characters, and `:(...)` syntax are filename data and cannot
+select unchanged collateral paths. The invoking and snapshot indexes remain
+untouched.
 
 `collect ID --verify CMD [--timeout SECONDS]` is the recovery path for a
 write job with residual files and any tripped or non-zero attempt, including

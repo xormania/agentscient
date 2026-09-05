@@ -76,7 +76,7 @@ def _lane_values(*names):
     return resolved
 
 
-def _git(repo, *args, check=True, env=None, input=None):
+def _git(repo, *args, check=True, env=None, input=None, text=True):
     e = dict(os.environ if env is None else env)
     e.update({"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
               "GIT_CONFIG_NOSYSTEM": "1", "GIT_TERMINAL_PROMPT": "0"})
@@ -86,11 +86,14 @@ def _git(repo, *args, check=True, env=None, input=None):
         input=input,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        text=text,
         check=False,
     )
     if check and p.returncode:
-        raise RuntimeError(p.stderr.strip() or f"git exited {p.returncode}")
+        error = p.stderr.strip()
+        if isinstance(error, bytes):
+            error = error.decode(errors="replace")
+        raise RuntimeError(error or f"git exited {p.returncode}")
     return p
 
 
@@ -1486,31 +1489,35 @@ def _fill_envelope_spend(rec, env):
         }
 
 
-def _write_residual_patch(snapshot, job_dir):
+def _write_residual_patch(snapshot, job_dir, residual=None):
     """Preserve what a harness left uncommitted — staged, unstaged and
     untracked alike — as one patch `git apply` accepts, so a retry can take
     it as an input instead of the conductor diffing the snapshot by hand.
     A temporary index keeps the snapshot's own index untouched."""
     import tempfile
-    residual = _residual(snapshot)
+    residual = (_residual_entries(snapshot) if residual is None
+                else tuple(residual))
     paths = list(dict.fromkeys(
-        path for line in residual for path in _status_paths(line)
+        path for entry in residual for path in entry.paths
     ))
     untracked = [
-        path for line in residual if line[:2] in {"??", "!!"}
-        for path in _status_paths(line)
+        _path_argument(path)
+        for entry in residual if entry.code in {"??", "!!"}
+        for path in entry.paths
     ]
     with tempfile.NamedTemporaryFile(prefix="residual-index-", delete=False) as tmp:
         index = tmp.name
     env = dict(os.environ, GIT_INDEX_FILE=index)
     try:
         _git(snapshot, "read-tree", "HEAD", env=env)
-        _git(snapshot, "add", "-A", "-f", "--", *paths, env=env)
-        patch = _git(snapshot, "diff", "--cached", "--binary", "HEAD", env=env, check=False).stdout
+        _git(snapshot, "--literal-pathspecs", "add", "-A", "-f", "--",
+             *paths, env=env)
+        patch = _git(snapshot, "diff", "--cached", "--binary", "HEAD",
+                     env=env, check=False, text=False).stdout
     finally:
         Path(index).unlink(missing_ok=True)
     out = job_dir / "residual.patch"
-    out.write_text(patch)
+    out.write_bytes(patch)
     return {"path": str(out), "sha256": _sha(out), "untracked": untracked}
 
 
@@ -1529,18 +1536,55 @@ MYPY_GLOBAL_FILES = {
 }
 
 
-def _status_paths(line):
-    value = line[3:]
-    values = value.split(" -> ", 1) if "R" in line[:2] or "C" in line[:2] else [value]
-    return tuple(
-        json.loads(path) if path.startswith('"') and path.endswith('"') else path
-        for path in values
-    )
+class _ResidualEntry:
+    __slots__ = ("code", "paths")
+
+    def __init__(self, code, paths):
+        self.code = code
+        self.paths = paths
 
 
-def _is_cache_residual(line):
-    for name in _status_paths(line):
-        path = Path(name)
+_C_ESCAPES = {
+    7: "a", 8: "b", 9: "t", 10: "n", 11: "v", 12: "f", 13: "r",
+    34: '"', 92: "\\",
+}
+
+
+def _path_argument(raw):
+    try:
+        path = os.fsdecode(raw)
+        round_trip = os.fsencode(path)
+    except UnicodeError:
+        path = None
+        round_trip = None
+    if round_trip != raw:
+        _refuse("residual-path", "a lossless filesystem path byte sequence",
+                repr(raw), "use a filesystem encoding that preserves the path")
+    return path
+
+
+def _display_path(raw):
+    if all(33 <= byte < 127 and byte not in {34, 92} for byte in raw):
+        return raw.decode("ascii")
+    rendered = []
+    for byte in raw:
+        if byte in _C_ESCAPES:
+            rendered.append("\\" + _C_ESCAPES[byte])
+        elif 32 <= byte < 127:
+            rendered.append(chr(byte))
+        else:
+            rendered.append(f"\\{byte:03o}")
+    return '"' + "".join(rendered) + '"'
+
+
+def _display_residual(entry):
+    names = " -> ".join(_display_path(path) for path in entry.paths)
+    return f"{entry.code} {names}"
+
+
+def _is_cache_residual(entry):
+    for raw in entry.paths:
+        path = Path(_path_argument(raw))
         parts = path.parts
         if "__pycache__" in parts[:-1] and path.suffix == ".pyc":
             continue
@@ -1567,13 +1611,48 @@ def _is_cache_residual(line):
     return True
 
 
-def _residual(snapshot):
-    lines = _git(snapshot, "status", "--porcelain=v1", "-uall").stdout.splitlines()
+def _residual_entries(snapshot):
+    raw = _git(
+        snapshot, "status", "--porcelain=v1", "-z", "-uall", text=False,
+    ).stdout
+    records = raw.split(b"\0")
+    if records.pop() != b"":
+        raise RuntimeError("git status -z did not end with NUL")
+    entries = []
+    offset = 0
+    while offset < len(records):
+        record = records[offset]
+        offset += 1
+        if len(record) < 4 or record[2:3] != b" ":
+            raise RuntimeError(f"malformed git status -z record: {record!r}")
+        try:
+            code = record[:2].decode("ascii")
+        except UnicodeDecodeError as exc:
+            raise RuntimeError(
+                f"non-ASCII git status code: {record[:2]!r}"
+            ) from exc
+        paths = (record[3:],)
+        if "R" in code or "C" in code:
+            if offset == len(records):
+                raise RuntimeError("rename status omitted its source path")
+            # In -z mode Git emits destination first, then source. Keep the
+            # public display's source -> destination order.
+            paths = (records[offset], record[3:])
+            offset += 1
+        for path in paths:
+            _path_argument(path)
+        entries.append(_ResidualEntry(code, paths))
+
     ignored = _git(
-        snapshot, "ls-files", "--others", "--ignored", "--exclude-standard", "-z",
-    ).stdout.split("\0")
-    lines.extend(f"!! {path}" for path in ignored if path)
-    return [line for line in lines if not _is_cache_residual(line)]
+        snapshot, "ls-files", "--others", "--ignored", "--exclude-standard",
+        "-z", text=False,
+    ).stdout.split(b"\0")
+    entries.extend(_ResidualEntry("!!", (path,)) for path in ignored if path)
+    return tuple(entry for entry in entries if not _is_cache_residual(entry))
+
+
+def _residual(snapshot):
+    return [_display_residual(entry) for entry in _residual_entries(snapshot)]
 
 
 def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
@@ -1584,12 +1663,15 @@ def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
     role, job_id = rec["role"], rec["id"]
     prior_cause = (rec.get("result") or {}).get("cause")
     _fill_envelope_spend(rec, env)
-    residual = _residual(snapshot)
+    residual_entries = _residual_entries(snapshot)
     tripped = bool(rec.get("attempts") and rec["attempts"][-1].get("tripped"))
-    if role == "write" and rec["harness"]["name"] == "codex" and residual and not tripped:
+    if (role == "write" and rec["harness"]["name"] == "codex"
+            and residual_entries and not tripped):
         _commit_for_harness(snapshot, rec, env)
-        residual = _residual(snapshot)
-    residual_patch = _write_residual_patch(snapshot, job_dir) if residual else None
+        residual_entries = _residual_entries(snapshot)
+    residual = [_display_residual(entry) for entry in residual_entries]
+    residual_patch = (_write_residual_patch(snapshot, job_dir, residual_entries)
+                      if residual_entries else None)
     head = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
     changed = _git(
         snapshot, "diff", "--name-only", ref_sha, head, "--",
