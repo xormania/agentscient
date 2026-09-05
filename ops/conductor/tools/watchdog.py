@@ -877,13 +877,12 @@ class Watch:
         self.deviations = 0
         try:
             initial = entries(args.store, self.caps, self.closed_cache)
-        except OSError as exc:
-            self.startup_error = exc
-        else:
             if not args.report_existing:
                 self.startup_closed = {
                     entry.name for entry in initial if entry.kind == "closed"
                 }
+        except OSError as exc:
+            self.startup_error = exc
 
     def once(self, key, line):
         if key not in self.reported:
