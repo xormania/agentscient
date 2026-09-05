@@ -97,6 +97,8 @@ instead of exposing every internal function.
 | CI evidence packet | Compare recorded checks/reviews with the exact head and expose stale evidence | Next: a separate observer must acquire GitHub state; this server must stay network-free |
 | Dispatch precheck | Detect missing inputs, snapshot omissions and unusable job/scope combinations before paying for a run | Next: share the dispatcher's real validator through a declared read boundary |
 | Pipeline yield | Duration, invalid envelopes, retries and upheld findings by lineage/stage | Next: distinguish diaries, duplicated findings and vendor usage semantics first |
+| Attempt and artifact state | Separate process exit, envelope validity, verdict and report-write availability; locate a saved artifact even after an interrupted read job | Next: the pipeline observations below supply a direct example |
+| Selected artifact index | Names, byte sizes, hashes and bounded retrieval of explicitly allowed reports | Next: declare which artifact types may be read; never accept caller-supplied filesystem paths |
 | Failure neighbourhood | Retrieve a failure plus its nearest positive control and prior upheld ruling | Explore after precise record retrieval; evidence relationships need explicit indexes |
 | Native subscriptions | Tell a supporting client that a selected resource changed | Separate extension; requires a running observer and client support, and does not promise an idle model turn |
 | Resource argument completion | Suggest allowed dispatch IDs or job names while a person selects evidence | Optional client convenience; no global filesystem search |
@@ -160,3 +162,19 @@ stage, retaining records and pausing for rulings when needed. It does not
 change the ladder or bypass the role separation. Whole-tree launcher snapshots
 remain a declared custody limitation: prompts withhold implementation reads,
 but the existing implementation files are physically present.
+
+## Subsequent observations from this pipeline
+
+Measured 2026-09-05 after the baseline scan, from the canonical records named
+in the [pipeline report](reports/mcp-pipeline-2026-09-05.md): the two planning
+attempts left useful contract/plan files but no final envelope, and the
+Daybreak ruling completed with process exit 0 while reporting `status:
+tripped` because its sandbox denied a separate report-file write. Its
+supervisor recorded `tripped: false`. These are different facts, and a future
+attempt-state projection should preserve them separately.
+
+The current collector only accepts failed write jobs. A compact artifact
+index could make the saved read output visible without reconstructing paths
+or misreporting the overall run as accepted. The three reads in this slice
+do not constitute that index: findings come from the envelope, and their
+recorded top-level status is not an envelope-validity or readiness decision.
