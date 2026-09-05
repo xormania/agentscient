@@ -140,6 +140,12 @@ at c0ce300 and token-count shape in monitor-lever.md are the counterparties.
 Their changes re-demand these query fixture rows, not every unrelated suite.
 No claim of PHP/API/TUI parity; those projections remain deferred by owner.
 
+The schema `agentscient.lane/v1` and MCP server name `agentscient-lane` are
+fixed protocol identities, not operator lane paths or branch names. The lane
+literal guard permits only their exact declaration lines in these two modules;
+other project literals in the same files remain findings. No directory-level
+exemption or encoding of a name is permitted.
+
 After draft review and green CI, register Codex against an explicit retained
 worktree and owned config outside the repository. No checkout change in the
 owner's main tree and no global permission relaxation. Client restarts may
