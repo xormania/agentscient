@@ -74,6 +74,11 @@ the tool. Tool arguments are closed objects. Unknown fields/types refuse.
   event alone cannot fit, return unavailable with a bounded reason, not an
   unadvanceable successful empty page. Missing db is unknown (not armed),
   corrupt/unreadable db unavailable, a measured empty db is ok with events[].
+  Source-path subjects retain the monitor contract's 1024-byte allowance.
+  Decode only events being delivered, not the extra lookahead row. A later
+  invalid event must not hide a valid prefix: deliver that prefix with more
+  true and next_after at its last id; an invalid first event is unavailable
+  without advancing the cursor. Never silently skip corrupt evidence.
 - lane_usage({}): one configured rollout, last complete event_msg/token_count
   row in at most the last 1MiB. Discard cut leading/incomplete trailing JSONL
   rows. Return state, metrics, evidence {path,event_at}, reason. Follow
@@ -101,6 +106,9 @@ Open files nonblocking, check regular type, read at most 1MiB per record.
 The operator-selected rollout may follow a symlink to a regular target.
 Missing source -> unknown; unreadable, FIFO, device, oversized/malformed
 record -> unavailable. No recursive store/transcript enumeration.
+Excessively nested source JSON follows the same unavailable/invalid-row
+handling as malformed JSON; it must not terminate the stdio server or prevent
+a later ping. This covers records, usage rows and alert evidence.
 
 ## MCP transport
 
