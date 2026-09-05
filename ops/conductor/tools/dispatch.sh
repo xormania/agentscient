@@ -135,6 +135,11 @@ if [[ $invoking_agent =~ $identity_pattern ]]; then
 fi
 dry_run=0
 detach=0
+resume_id=''
+resume_set=0
+reason=''
+reason_set=0
+launch_options=()
 
 need_value() {
     (($# >= 2)) || refuse "expected a value after $1; found end of arguments; provide $1 VALUE"
@@ -143,21 +148,39 @@ need_value() {
 
 while (($#)); do
     case $1 in
-        --branch) need_value "$@"; branch=$2; shift 2 ;;
-        --worktree) need_value "$@"; worktree=$2; shift 2 ;;
-        --job) need_value "$@"; job=$2; shift 2 ;;
-        --harness) need_value "$@"; harness=$2; shift 2 ;;
-        --model) need_value "$@"; model=$2; shift 2 ;;
-        --effort) need_value "$@"; effort=$2; shift 2 ;;
-        --unit) need_value "$@"; unit=$2; shift 2 ;;
-        --stage) need_value "$@"; stage=$2; shift 2 ;;
-        --scope-file) need_value "$@"; scope_file=$2; shift 2 ;;
-        --input) need_value "$@"; inputs+=("$2"); shift 2 ;;
-        --follows) need_value "$@"; follows=$2; shift 2 ;;
-        --timeout) need_value "$@"; timeout=$2; timeout_set=1; shift 2 ;;
+        --branch) need_value "$@"; launch_options+=("$1"); branch=$2; shift 2 ;;
+        --worktree) need_value "$@"; launch_options+=("$1"); worktree=$2; shift 2 ;;
+        --job) need_value "$@"; launch_options+=("$1"); job=$2; shift 2 ;;
+        --harness) need_value "$@"; launch_options+=("$1"); harness=$2; shift 2 ;;
+        --model) need_value "$@"; launch_options+=("$1"); model=$2; shift 2 ;;
+        --effort) need_value "$@"; launch_options+=("$1"); effort=$2; shift 2 ;;
+        --unit) need_value "$@"; launch_options+=("$1"); unit=$2; shift 2 ;;
+        --stage) need_value "$@"; launch_options+=("$1"); stage=$2; shift 2 ;;
+        --scope-file) need_value "$@"; launch_options+=("$1"); scope_file=$2; shift 2 ;;
+        --input) need_value "$@"; launch_options+=("$1"); inputs+=("$2"); shift 2 ;;
+        --follows) need_value "$@"; launch_options+=("$1"); follows=$2; shift 2 ;;
+        --timeout) need_value "$@"; launch_options+=("$1"); timeout=$2; timeout_set=1; shift 2 ;;
         --agent) need_value "$@"; agent=$2; agent_set=1; shift 2 ;;
         --dry-run) dry_run=1; shift ;;
-        --detach) detach=1; shift ;;
+        --detach) launch_options+=("$1"); detach=1; shift ;;
+        --resume)
+            (($# >= 2)) \
+                || refuse "resume-id: expected an ID after --resume; found end of arguments; needed pass --resume ID"
+            [[ $2 != -* ]] \
+                || refuse "resume-id: expected an ID after --resume; found option-like $2; needed pass --resume ID"
+            ((!resume_set)) \
+                || refuse "resume-id: expected exactly one --resume ID; found a duplicate --resume; needed name one existing dispatch"
+            resume_id=$2
+            resume_set=1
+            shift 2
+            ;;
+        --reason)
+            (($# >= 2)) \
+                || refuse "resume-reason: expected text after --reason; found end of arguments; needed pass non-empty reason text"
+            [[ $2 != --* ]] \
+                || refuse "resume-reason: expected text after --reason; found option-like $2; needed pass non-empty reason text"
+            reason=$2; reason_set=1; shift 2
+            ;;
         *) refuse "expected a documented flag; found unknown flag $1; remove it" ;;
     esac
 done
@@ -167,6 +190,38 @@ if ((!agent_set)); then
         || refuse "conf-key: expected conf key WF_AGENT_DEFAULT; found it unset in $conf_path; needed define WF_AGENT_DEFAULT in $conf_path"
     agent=$WF_AGENT_DEFAULT
 fi
+
+print_launch() {
+    WF_AGENT=$agent python3 -c 'import json, os, sys
+env = {"WF_AGENT": os.environ["WF_AGENT"],
+       "CHECK_NAMES": os.environ["CHECK_NAMES"]}
+if "DISPATCH_TIMEOUT" in os.environ:
+    env["DISPATCH_TIMEOUT"] = os.environ["DISPATCH_TIMEOUT"]
+print(json.dumps({"argv": sys.argv[4:], "env": env, "exec": True,
+                  "detach": sys.argv[3] == "1",
+                  "launcher": {"path": sys.argv[2], "source": sys.argv[1]}},
+                 ensure_ascii=False))' "$launcher_source" "$LAUNCHER_PIN" "$detach" "${argv[@]}"
+}
+
+if ((resume_set)); then
+    ((${#launch_options[@]} == 0)) \
+        || refuse "resume-mode: expected only --resume, --reason, --agent, and --dry-run; found ${launch_options[*]}; needed remove launch-only options"
+    [[ $resume_id =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] \
+        || refuse "resume-id: expected one path-safe dispatch id; found $resume_id; needed name the exact existing dispatch"
+    ((!reason_set)) || [[ -n ${reason//[[:space:]]/} ]] \
+        || refuse "resume-reason: expected non-empty text after --reason; found an empty reason; needed state why the resume is authorized"
+    argv=("$LAUNCHER_PIN" resume "$resume_id")
+    ((!reason_set)) || argv+=(--reason "$reason")
+    unset DISPATCH_TIMEOUT
+    print_launch
+    ((dry_run)) && exit 0
+    printf 'launcher: %s (%s)\n' "$LAUNCHER_PIN" "$launcher_source"
+    WF_AGENT=$agent "${argv[@]}"
+    exit $?
+fi
+
+((!reason_set)) \
+    || refuse "resume-mode: expected --reason only with --resume ID; found --reason without --resume; needed add --resume ID or remove --reason"
 
 [[ -n $job ]] || refuse "expected required --job; found it missing; pass --job JOB"
 [[ -n $harness ]] || refuse "expected required --harness; found it missing; pass --harness grok, codex, or claude"
@@ -240,18 +295,6 @@ for input in "${inputs[@]}"; do
     argv+=(--input "$input")
 done
 [[ -z $follows ]] || argv+=(--follows "$follows")
-
-print_launch() {
-    WF_AGENT=$agent python3 -c 'import json, os, sys
-env = {"WF_AGENT": os.environ["WF_AGENT"],
-       "CHECK_NAMES": os.environ["CHECK_NAMES"]}
-if "DISPATCH_TIMEOUT" in os.environ:
-    env["DISPATCH_TIMEOUT"] = os.environ["DISPATCH_TIMEOUT"]
-print(json.dumps({"argv": sys.argv[4:], "env": env, "exec": True,
-                  "detach": sys.argv[3] == "1",
-                  "launcher": {"path": sys.argv[2], "source": sys.argv[1]}},
-                 ensure_ascii=False))' "$launcher_source" "$LAUNCHER_PIN" "$detach" "${argv[@]}"
-}
 
 if ((timeout_set)); then
     export DISPATCH_TIMEOUT=$timeout

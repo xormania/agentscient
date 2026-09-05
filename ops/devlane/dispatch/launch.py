@@ -174,12 +174,17 @@ def _jobs_root():
     return base / _lane_values("LANE_NAME")["LANE_NAME"] / "dispatch"
 
 
-def _job_paths(job_id):
-    """Return the only job directory and snapshot a selected id may name."""
+def _validate_job_id(job_id):
     if (not isinstance(job_id, str) or not job_id or job_id in {".", ".."}
             or "/" in job_id or "\\" in job_id or "\0" in job_id):
         _refuse("record-target", "one dispatch id path component", repr(job_id),
                 "name the exact dispatch id")
+    return job_id
+
+
+def _job_paths(job_id):
+    """Return the only job directory and snapshot a selected id may name."""
+    _validate_job_id(job_id)
     root = _jobs_root().resolve(strict=False)
     job_dir = root / job_id
     resolved_job = job_dir.resolve(strict=False)
@@ -1739,10 +1744,102 @@ def _find_record(repo, job_id):
     return path, rec
 
 
+def _authorize_resume(repo, job_id):
+    """Authorize from the tracked record before binding any runtime path."""
+    _validate_job_id(job_id)
+    path = repo / ".dev/records/dispatches" / f"{job_id}.json"
+    if not path.is_file():
+        raise RuntimeError(f"record not found: {job_id}")
+    rec = json.loads(path.read_text())
+    if not isinstance(rec, dict) or rec.get("id") != job_id:
+        _refuse("record-target", f"the tracked record for {job_id}",
+                repr(rec.get("id") if isinstance(rec, dict) else rec),
+                "restore the exact tracked dispatch record")
+    lineage = (rec.get("lineage") or {}).get("branch")
+    lane = _lane_values("TRUNK_BRANCH", "RELEASE_BRANCH")
+    protected = {"detached", "main", lane["TRUNK_BRANCH"], lane["RELEASE_BRANCH"]}
+    branch = _branch(repo)
+    if not isinstance(lineage, str) or not lineage or branch in protected \
+            or lineage in protected or branch != lineage:
+        _refuse("record-target", f"the checkout on non-protected {lineage}",
+                branch, f"run from a worktree of {lineage}")
+    return lineage
+
+
+def _guard_live_attempt(job_dir, rec):
+    """Refuse a running process or state whose liveness is ambiguous."""
+    state_path = job_dir / "state.json"
+    if not state_path.is_file():
+        _refuse("resume-live", "a settled prior attempt",
+                "no launcher state",
+                "settle the prior attempt before resuming")
+    try:
+        state = json.loads(state_path.read_text())
+        pid = int(state["pid"])
+        attempt = int(state["attempt"])
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        _refuse("resume-live", "a settled prior attempt",
+                "ambiguous launcher state",
+                "repair or settle the prior attempt before resuming")
+    settled = len(rec.get("attempts") or [])
+    if (job_dir / "exit").is_file():
+        if pid > 0 and attempt == settled:
+            return
+        _refuse("resume-live", "a settled prior attempt",
+                f"exit marker for unsettled attempt {attempt}",
+                "let the launcher finish settlement before resuming")
+    if pid < 1 or attempt != settled + 1:
+        _refuse("resume-live", "a settled prior attempt",
+                f"ambiguous attempt {attempt} pid {pid}",
+                "repair or settle the prior attempt before resuming")
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return
+    except (OSError, PermissionError):
+        _refuse("resume-live", "a settled prior attempt",
+                f"ambiguous process {pid}",
+                "wait for the prior attempt to settle before resuming")
+    _refuse("resume-live", "a settled prior attempt",
+            f"live or ambiguous process {pid} for attempt {attempt}",
+            "wait for the prior attempt to settle before resuming")
+
+
+@contextlib.contextmanager
+def _claim_resume(job_dir):
+    """Serialize foreground resumes; a leftover claim is ambiguous by design."""
+    path = job_dir / ".resume.lock"
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        _refuse("resume-live", "one foreground resume",
+                f"an existing resume claim at {path}",
+                "wait for or settle the claimed resume")
+    try:
+        os.write(fd, f"{os.getpid()}\n".encode())
+        yield
+    finally:
+        os.close(fd)
+        with contextlib.suppress(OSError):
+            path.unlink()
+
+
 def _resume(args):
+    _identity()
     repo = _repo()
+    lineage = _authorize_resume(repo, args.id)
     path, rec = _find_record(repo, args.id)
+    if rec["lineage"]["branch"] != lineage or _branch(repo) != lineage:
+        _refuse("record-target", f"the checkout on non-protected {lineage}",
+                _branch(repo), f"run from a worktree of {lineage}")
     job_dir, _snapshot_path = _bound_snapshot(rec)
+    _guard_live_attempt(job_dir, rec)
+    with _claim_resume(job_dir):
+        _guard_live_attempt(job_dir, rec)
+        return _resume_claimed(args, repo, path, rec, job_dir)
+
+
+def _resume_claimed(args, repo, path, rec, job_dir):
     prior_session = copy.deepcopy(rec.get("session") or {})
     prior_model = copy.deepcopy(rec.get("model") or {})
     prior_result = copy.deepcopy(rec.get("result") or {})
