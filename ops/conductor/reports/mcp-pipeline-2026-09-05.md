@@ -56,12 +56,44 @@ and bounded note, then 8297 after adding a reduced entry. `json.loads`
 accepts a surrogate key which fails UTF-8 encoding. C4's adjudicator produced
 neither the Fable artifact nor the Daybreak finding.
 
-## Remaining stages and custody
+## Independent tests and rulings
 
-Tests, a test skeptic, implementation, quality review and security review
-follow as separate stages. The implementation producer neither writes nor
-approves its tests. Final reviews run from separate worktrees at the candidate
-commit, so recording their results cannot move it.
+Measured from canonical records on 2026-09-05 at
+`5f599f8afaab50d0b86f49071a011c463a102460`:
+
+| Dispatch record | Producer | Result |
+| --- | --- | --- |
+| `20260905T062201Z-code-grok-ee8e0d` | Grok 4.6 | Accepted test-author envelope; 16 new test methods; landed at `a8a8529` |
+| `20260905T064157Z-review-codex-159ebd` | gpt-daybreak-blue-latest | Accepted skeptic CHANGES: three P1 and four P2 assertion gaps |
+| `20260905T064859Z-code-grok-81b772` | Grok 4.6 | Accepted correction envelope; landed at `c9bf44e` |
+| `20260905T071031Z-review-codex-fae2b5` | gpt-daybreak-blue-latest | Accepted independent ruling: UPHELD root's note-removal fixture finding |
+| `20260905T071425Z-code-grok-d8ea5f` | Grok 4.6 | Accepted narrow fixture correction; landed at `5f599f8` |
+
+The [skeptic report](mcp-test-skeptic-2026-09-05.md) is verbatim. Its printed
+model stamp is retained; the dispatch record identifies the actual model.
+GPT-6 produced neither the tests nor the skeptic findings and
+[upheld all seven](mcp-test-ruling-2026-09-05.md) before any correction.
+
+Root then found that the note-removal fixture's whole entry fit within
+8192 bytes while its reduced entry was larger: 8163 versus 8193 bytes.
+The [independent ruling](mcp-note-fixture-ruling-2026-09-05.json) upheld
+that error before Grok changed the fixture. The corrected fixture uses
+within-cap text and asserts that the whole entry and each reduction exceed
+the page bound, while the frame and the no-note fallback fit.
+
+At `5f599f8`, root ran
+`python3 -m unittest test_lane_mcp_context.TestLaneMcpContextFindingsGaps.test_lane_findings_note_removal_after_whole_and_intermediate_forms`
+from `ops/conductor/tests`. All fixture inequalities passed before the
+expected v1 configuration refusal: v2 was not implemented yet. The final
+independent test file has SHA-256
+`facd775d07bc6eeba6e12e19afd99026b3f80980442d534677f57ab0bc4e9e6e`.
+This verifies the targeted correction, not a second skeptic verdict.
+
+## Implementation and final review custody
+
+The implementation producer neither writes nor approves its tests. Final
+reviews run from separate worktrees at the candidate commit, so recording
+their results cannot move it.
 
 All delegation uses `ops/bin/dispatch.sh`; writes land through `land.py`.
 Whole-tree snapshots contain the existing implementation and historical
