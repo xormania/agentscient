@@ -269,6 +269,20 @@ snapshot. Read roles: `head` must equal `ref_sha`; a non-empty
 `residual_paths` is recorded; a changed head or non-empty residual makes the
 envelope invalid.
 
+Residual settlement exempts only declared cache artifacts: `.ruff_cache`
+markers and extensionless keys at its root or under one numeric version
+directory; pytest's three markers and its built-in `v/cache/{lastfailed,
+nodeids,stepwise}` values; mypy's two markers, `missing_stubs`, and its named
+JSON, fixed-format or SQLite artifacts under one numeric Python-version
+directory; and `.pyc` files below `__pycache__`. Unknown layouts and source
+files under any cache-named directory remain residual. The same classifier
+selects both `residual_paths` and every path preserved in `residual.patch`,
+including ignored files, binary files, deletions and both sides of renames;
+there is no broader patch exclusion. These exemptions are a named residual
+policy, not evidence that bytecode, caches, or other data written by a
+same-UID worker are trustworthy, and not a strong filesystem-isolation
+guarantee.
+
 `collect ID --verify CMD [--timeout SECONDS]` is the recovery path for a
 write job with residual files and any tripped or non-zero attempt, including
 one later resumed successfully. It runs the verification in the snapshot
