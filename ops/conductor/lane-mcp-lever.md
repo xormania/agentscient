@@ -1,5 +1,8 @@
 # Lane MCP — a bounded read plane
 
+The [version-2 extension](lane-mcp-v2.md) declares additional conductor reads
+and request metadata compatibility; this document remains the v1 baseline.
+
 Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
 and handoff. Dev-lane machinery only, not Symfony work. This thin incumbent
 projection inherits `instrument-conventions.md`; it adds no workflow engine.
