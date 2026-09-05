@@ -134,6 +134,20 @@ def whole_projected_entry(n: int, source: dict) -> dict:
     return entry
 
 
+def fit_omission_forms(n: int, source: dict) -> list[dict]:
+    """Whole entry, then each §3 drop: reproduce, claim, where."""
+    forms = [whole_projected_entry(n, source)]
+    omitted: list[str] = []
+    current = dict(forms[0])
+    for field in FIT_FIELDS:
+        omitted = [*omitted, field]
+        current = dict(current)
+        current[field] = None
+        current["omitted"] = list(omitted)
+        forms.append(current)
+    return forms
+
+
 class _V2Fixture(_LaneMcpFixture):
     """v1 fixture plus version-2 config, records and registries."""
 
@@ -1450,11 +1464,21 @@ class TestLaneMcpContextFindingsGaps(_V2Fixture):
             self.assertEqual(payload["note"], uni_note)
             self.assertNotEqual(payload["reason"], "note exceeds page")
 
+    def test_lane_findings_note_removal_after_whole_and_intermediate_forms(self):
         job = utf8_fill(256, mark="J")
         stage = utf8_fill(256, mark="S")
         store_rel = "s" * 200
+        source = {
+            "severity": "p1",
+            "where": ascii_fill(256, "w-"),
+            "claim": ascii_fill(1024, "c-"),
+            "reproduce": ascii_fill(1024, "r-"),
+        }
+        self.assertEqual(len(source["where"].encode("utf-8")), 256)
+        self.assertEqual(len(source["claim"].encode("utf-8")), 1024)
+        self.assertEqual(len(source["reproduce"].encode("utf-8")), 1024)
         rec = self.plant_context_record(
-            findings=[{"severity": "p1", "where": "w", "claim": "c", "reproduce": "r"}],
+            findings=[source],
             note="placeholder",
             job=job,
             stage=stage,
@@ -1479,17 +1503,17 @@ class TestLaneMcpContextFindingsGaps(_V2Fixture):
             "revision": rev,
             "evidence": str(moved),
         }
-        reduced = {
-            "n": 1,
-            "severity": "p1",
-            "where": None,
-            "claim": None,
-            "reproduce": None,
-            "omitted": ["reproduce", "claim", "where"],
-        }
+        forms = fit_omission_forms(1, source)
+        whole, reduced = forms[0], forms[-1]
+        self.assertEqual(reduced["omitted"], list(FIT_FIELDS))
         page_one = {"from": 1, "to": 1, "count": 1, "more": False, "next_cursor": None}
 
-        def reply(note_text: str | None, note_bytes: int, reason: str | None) -> dict:
+        def reply(
+            entry: dict,
+            note_text: str | None,
+            note_bytes: int,
+            reason: str | None,
+        ) -> dict:
             return {
                 "schema": SCHEMA,
                 "query": "lane_findings",
@@ -1498,21 +1522,25 @@ class TestLaneMcpContextFindingsGaps(_V2Fixture):
                 "record": record_obj,
                 "note": note_text,
                 "note_bytes": note_bytes,
-                "findings": [reduced],
+                "findings": [entry],
                 "findings_total": 1,
                 "page": page_one,
             }
 
         chosen = None
+        chosen_n = None
+        chosen_with_reduced = None
+        chosen_without = None
+        chosen_frame = None
         for n in range(2, 2048, 2):
             note_text = utf8_fill(n)
-            with_note = reply(note_text, n, None)
-            without = reply(None, n, "note exceeds page")
+            with_reduced = reply(reduced, note_text, n, None)
+            without = reply(reduced, None, n, "note exceeds page")
             if (
-                len(canonical_bytes(with_note)) > FINDINGS_PAGE_CAP
+                len(canonical_bytes(with_reduced)) > FINDINGS_PAGE_CAP
                 and len(canonical_bytes(without)) <= FINDINGS_PAGE_CAP
             ):
-                frame_plus = dict(with_note)
+                frame_plus = dict(with_reduced)
                 frame_plus["findings"] = []
                 frame_plus["page"] = {
                     "from": None,
@@ -1521,12 +1549,49 @@ class TestLaneMcpContextFindingsGaps(_V2Fixture):
                     "more": True,
                     "next_cursor": f"{rev}:1",
                 }
-                if len(canonical_bytes(frame_plus)) <= FINDINGS_PAGE_CAP:
+                if len(canonical_bytes(frame_plus)) > FINDINGS_PAGE_CAP:
+                    continue
+                form_sizes = [
+                    len(canonical_bytes(reply(entry, note_text, n, None)))
+                    for entry in forms
+                ]
+                if all(size > FINDINGS_PAGE_CAP for size in form_sizes):
                     chosen = note_text
+                    chosen_n = n
+                    chosen_with_reduced = with_reduced
+                    chosen_without = without
+                    chosen_frame = frame_plus
                     break
         self.assertIsNotNone(
             chosen,
-            "standard encoder could not place note-removal in (frame+note, reduced)",
+            "standard encoder could not place note-removal after whole and intermediates",
+        )
+        assert chosen is not None
+        assert chosen_n is not None
+        assert chosen_with_reduced is not None
+        assert chosen_without is not None
+        assert chosen_frame is not None
+        with_sizes = [
+            len(canonical_bytes(reply(entry, chosen, chosen_n, None)))
+            for entry in forms
+        ]
+        # Fixture inequalities: stdlib encoder only; do not need v2 present.
+        self.assertGreater(with_sizes[0], FINDINGS_PAGE_CAP, with_sizes)
+        for size, entry in zip(with_sizes, forms, strict=True):
+            self.assertGreater(size, FINDINGS_PAGE_CAP, entry["omitted"])
+        self.assertGreater(
+            with_sizes[0],
+            with_sizes[-1],
+            "whole entry must be larger than the reduced entry (needs reduction)",
+        )
+        for i in range(1, len(with_sizes)):
+            self.assertGreater(with_sizes[i - 1], with_sizes[i], i)
+        self.assertGreater(len(canonical_bytes(chosen_with_reduced)), FINDINGS_PAGE_CAP)
+        self.assertLessEqual(len(canonical_bytes(chosen_without)), FINDINGS_PAGE_CAP)
+        self.assertLessEqual(len(canonical_bytes(chosen_frame)), FINDINGS_PAGE_CAP)
+        self.assertGreater(
+            len(canonical_bytes(reply(whole, chosen, chosen_n, None))),
+            FINDINGS_PAGE_CAP,
         )
         rec_body = json.loads(moved.read_text(encoding="utf-8"))
         rec_body["result"]["envelope"]["note"] = chosen
@@ -1535,6 +1600,12 @@ class TestLaneMcpContextFindingsGaps(_V2Fixture):
         new_raw = (json.dumps(rec_body, indent=2) + "\n").encode("utf-8")
         self._plant_bytes(moved, new_raw)
         self.assertEqual(moved.read_bytes(), new_raw)
+        planted_env = json.loads(moved.read_text(encoding="utf-8"))["result"]["envelope"]
+        self.assertEqual(planted_env["findings"], [source])
+        self.assertEqual(planted_env["note"], chosen)
+        self.assertIn(source["where"].encode("utf-8"), new_raw)
+        self.assertIn(source["claim"].encode("utf-8"), new_raw)
+        self.assertIn(source["reproduce"].encode("utf-8"), new_raw)
         proc = self.query("lane_findings", {"id": JOB})
         payload = self.assert_v2(self.load_query(proc), "lane_findings")
         self.assertEqual(payload["state"], "ok")
