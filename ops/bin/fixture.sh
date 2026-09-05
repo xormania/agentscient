@@ -145,6 +145,17 @@ def make(argv: list[str]) -> int:
     tracked = [item for item in listed.stdout.split("\0") if item]
     app_prefix = app_root.relative_to(ROOT).as_posix() + "/"
     app_files = [item for item in tracked if item.startswith(app_prefix)]
+    if not os.access(ROOT / ".git", os.W_OK):
+        app_files = sorted(
+            {
+                *app_files,
+                *(
+                    path.relative_to(ROOT).as_posix()
+                    for path in app_root.rglob("*")
+                    if path.is_file()
+                ),
+            }
+        )
     if not app_files:
         refuse("app", "a tracked fixture app", f"{app_name} has no tracked files", "commit the app before making it")
 
@@ -270,7 +281,13 @@ def patch_fixture(directory: Path, manifest: dict) -> None:
 
     with tempfile.TemporaryDirectory(prefix="fixture-fix-check-") as tmp:
         trial = Path(tmp) / "app"
-        shutil.copytree(directory, trial, ignore=shutil.ignore_patterns(".git"))
+        shutil.copytree(
+            directory,
+            trial,
+            ignore=shutil.ignore_patterns(
+                ".git", "vendor", "target", ".venv", "var", ".phpunit.cache", "node_modules"
+            ),
+        )
         for patch in patches:
             trial_patch = trial / patch.relative_to(directory)
             checked = run(["git", "apply", "--check", str(trial_patch)], cwd=trial)
@@ -285,7 +302,7 @@ def patch_fixture(directory: Path, manifest: dict) -> None:
             abort("the preflighted patch set", applied.stderr.strip() or str(patch), "restore the fixture and retry")
 
 
-def probe(command: str, directory: Path) -> str:
+def probe(command: str, directory: Path, timeout: int = PROBE_TIMEOUT) -> str:
     env = os.environ.copy()
     env.pop("WF_AGENT", None)
     env.pop("LANGUAGE", None)
@@ -305,7 +322,7 @@ def probe(command: str, directory: Path) -> str:
     except OSError:
         return "UNREACHABLE"
     try:
-        code = proc.wait(timeout=PROBE_TIMEOUT)
+        code = proc.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         os.killpg(proc.pid, signal.SIGKILL)
         proc.wait()
@@ -324,6 +341,14 @@ def prove(argv: list[str]) -> int:
         refuse("arguments", "prove [--fixed] DIR", repr(argv), "supply one made fixture directory")
     directory = Path(argv[0]).expanduser().resolve()
     manifest = load_manifest(directory)
+    timeout = manifest.get("probe_timeout", PROBE_TIMEOUT)
+    if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 300:
+        refuse(
+            "manifest",
+            "probe_timeout as an integer in 1..300",
+            repr(timeout),
+            "repair FAULTS.json",
+        )
     if fixed:
         patch_fixture(directory, manifest)
 
@@ -332,7 +357,7 @@ def prove(argv: list[str]) -> int:
     for fault in manifest["faults"]:
         if not isinstance(fault, dict) or not isinstance(fault.get("id"), str) or not isinstance(fault.get("probe"), str):
             refuse("manifest", "fault ids and probe commands", repr(fault), "repair FAULTS.json")
-        colour = probe(fault["probe"], directory)
+        colour = probe(fault["probe"], directory, timeout)
         counts[colour] += 1
         rows.append((fault["id"], colour))
     for fault_id, colour in rows:

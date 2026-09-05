@@ -18,6 +18,7 @@ the contract promise rather than Python's missing-file exit 2.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -26,6 +27,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -74,6 +76,14 @@ RUNNING_ID = "20260901T120000Z-run-alpha"
 CLOSED_OLD = "20260901T100000Z-closed-old"
 CLOSED_NEW = "20260901T110000Z-closed-new"
 CLOSED_NEW_EXIT = "7"
+# Distinctive so a substring of another planted id cannot satisfy a pin.
+LIVE_RUN_ID = "20260904T181000Z-code-grok-aa41lv"
+DIED_INVALID_ID = "20260904T181100Z-code-grok-aa41dd"
+CLOSED_NOEXIT_ID = "20260904T181200Z-code-grok-aa41cl"
+UNRECORDED_ID = "20260904T181300Z-code-grok-aa41ur"
+UNRECORDED_LIVE_ID = "20260904T181400Z-code-grok-aa41ul"
+LAUNCH_NOPID_ID = "20260904T181500Z-code-grok-aa41np"
+LAUNCH_DEAD_ID = "20260904T181600Z-code-grok-aa41dp"
 AAR_OLD = "AAR-2026-08-01.md"
 AAR_NEW = "AAR-2026-09-02.md"
 AAR_BARE = "AAR-2026-09-01.md"
@@ -102,8 +112,14 @@ ABSENT_STUB = (
 # PIN_AAR_ORDER: newest AAR-*.md by filename, not mtime.
 # PIN_CALIBRATION_SECTION: text under a heading containing
 # `calibration`, not the following heading's body.
-# PIN_STORE: record dir named by id; running = no `exit` file; closed
-# `exit` file holds the code; newest closed by id filename order.
+# PIN_STORE: record dir named by id; closed `exit` file holds the
+# code; newest closed by id filename order.
+# PIN_RUNNING: `dispatches: running=` lists ids whose record status is
+# `launched` (or equivalent in-flight) and whose worker pid is alive.
+# A `died` or `closed` record is not running, even with no `exit` file
+# (looked-and-closed is closed). A job directory without `record.json`
+# is unrecorded, never in `running=`. Absence of a pid file plus
+# status launched is not inferred live.
 # PIN_ABSENT_STORE: naming the missing store is a measurement, not an
 # unmeasured source — exit 0 when law and the other sources are OK.
 # PIN_GH: `gh pr list --state open` (not `pr checks`); number and title
@@ -230,6 +246,7 @@ class _OnboardFixture(unittest.TestCase):
             self.store.exists(),
             "plant: isolated store must start absent",
         )
+        self._workers: list[subprocess.Popen] = []
         self.gh = self.bin / "gh"
         self.argv_log = self.scratch / "gh-argv.jsonl"
         self.staged = self.scratch / "onboard.py"
@@ -239,6 +256,11 @@ class _OnboardFixture(unittest.TestCase):
 
     def tearDown(self):
         try:
+            for proc in self._workers:
+                if proc.poll() is None:
+                    proc.kill()
+                    with contextlib.suppress(subprocess.TimeoutExpired):
+                        proc.wait(timeout=2)
             self.assertEqual(
                 _without_new_job_dirs(
                     self._live_before,
@@ -488,6 +510,7 @@ class _OnboardFixture(unittest.TestCase):
             rec.mkdir(parents=True)
             marker = rec / "launched"
             self._plant_bytes(marker, b"running\n")
+            self.plant_live_launched(rec_id, store=dest)
             self.assertFalse(
                 (rec / "exit").exists(),
                 f"INVALID: running record has an exit file: {rec_id}",
@@ -498,6 +521,169 @@ class _OnboardFixture(unittest.TestCase):
             self._plant_bytes(rec / "exit", f"{code}\n".encode("utf-8"))
             self.assertTrue((rec / "exit").is_file())
         return dest
+
+    def spawn_live(self) -> int:
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(120)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        self._workers.append(proc)
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            self.assertIsNone(proc.poll(), "INVALID: live worker exited")
+            try:
+                os.kill(proc.pid, 0)
+                return proc.pid
+            except ProcessLookupError:
+                time.sleep(0.02)
+        self.fail("INVALID: live worker pid never became killable")
+        raise AssertionError("unreachable")
+
+    def dead_pid(self) -> int:
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "pass"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        proc.wait(timeout=5)
+        self.assertIsNotNone(proc.poll(), "INVALID: dead pid still running")
+        with self.assertRaises(ProcessLookupError):
+            os.kill(proc.pid, 0)
+        return proc.pid
+
+    def plant_record_json(
+        self,
+        job_dir: Path,
+        rec_id: str,
+        *,
+        status: str,
+        extra: dict | None = None,
+    ) -> dict:
+        payload: dict = {"id": rec_id, "status": status}
+        if extra:
+            payload.update(extra)
+        raw = json.dumps(payload, indent=2) + "\n"
+        path = job_dir / "record.json"
+        self._plant_bytes(path, raw.encode("utf-8"))
+        landed = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(landed["id"], rec_id, "plant: record id")
+        self.assertEqual(landed["status"], status, "plant: record status")
+        return landed
+
+    def plant_state_pid(self, job_dir: Path, pid: int) -> None:
+        state = {"pid": pid, "pgid": pid}
+        raw = json.dumps(state) + "\n"
+        path = job_dir / "state.json"
+        self._plant_bytes(path, raw.encode("utf-8"))
+        landed = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(landed["pid"], pid, "plant: state.json pid")
+
+    def plant_live_launched(
+        self, rec_id: str, *, store: Path | None = None
+    ) -> Path:
+        dest = store if store is not None else self.store
+        dest.mkdir(parents=True, exist_ok=True)
+        job_dir = dest / rec_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+        self.plant_record_json(job_dir, rec_id, status="launched")
+        pid = self.spawn_live()
+        self.plant_state_pid(job_dir, pid)
+        self.assertFalse(
+            (job_dir / "exit").exists(),
+            f"INVALID: live launched has an exit file: {rec_id}",
+        )
+        os.kill(pid, 0)
+        return job_dir
+
+    def plant_job(
+        self,
+        rec_id: str,
+        *,
+        store: Path | None = None,
+        status: str | None = None,
+        extra: dict | None = None,
+        with_record: bool = True,
+        pid: int | None = None,
+    ) -> Path:
+        dest = store if store is not None else self.store
+        dest.mkdir(parents=True, exist_ok=True)
+        job_dir = dest / rec_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+        if with_record:
+            self.assertIsNotNone(status, "INVALID: record plant needs status")
+            self.plant_record_json(
+                job_dir, rec_id, status=str(status), extra=extra
+            )
+        else:
+            marker = job_dir / "note.txt"
+            self._plant_bytes(marker, b"no record copy\n")
+            self.assertFalse(
+                (job_dir / "record.json").exists(),
+                f"INVALID: unrecorded plant grew a record.json: {rec_id}",
+            )
+        if pid is not None:
+            self.plant_state_pid(job_dir, pid)
+        else:
+            self.assertFalse(
+                (job_dir / "state.json").exists(),
+                f"INVALID: pid-less plant has state.json: {rec_id}",
+            )
+            self.assertFalse(
+                (job_dir / "pid").exists(),
+                f"INVALID: pid-less plant has a pid file: {rec_id}",
+            )
+        self.assertFalse(
+            (job_dir / "exit").exists(),
+            f"INVALID: exit file present for {rec_id}",
+        )
+        return job_dir
+
+    def running_field(self, stdout: str) -> str:
+        line = self.labelled_line(stdout, "dispatches")
+        self.assertIn("running=", line, f"dispatches line has no running=: {line!r}")
+        after = line.split("running=", 1)[1]
+        for sep in (";", " newest-closed=", " unrecorded=", " closed="):
+            if sep in after:
+                after = after.split(sep, 1)[0]
+        nxt = re.search(r"\s+[a-z][a-z0-9-]*=", after)
+        if nxt:
+            after = after[: nxt.start()]
+        return after.strip()
+
+    def running_ids(self, stdout: str) -> list[str]:
+        field = self.running_field(stdout)
+        if not field:
+            return []
+        return [tok for tok in re.split(r"[,\s]+", field) if tok]
+
+    def assert_running_only(
+        self,
+        stdout: str,
+        *,
+        live: tuple[str, ...],
+        decoys: tuple[str, ...],
+    ) -> None:
+        found = self.running_ids(stdout)
+        field = self.running_field(stdout)
+        for rec_id in decoys:
+            self.assertNotIn(
+                rec_id,
+                found,
+                f"{rec_id} must not be in running={found!r} field={field!r}",
+            )
+            self.assertNotIn(
+                rec_id,
+                field,
+                f"{rec_id} must not appear in running= field {field!r}",
+            )
+        for rec_id in live:
+            self.assertIn(
+                rec_id,
+                found,
+                f"{rec_id} missing from running={found!r} field={field!r}",
+            )
 
     def plant_aars(self, files: dict[str, str], *, mtimes: dict[str, int] | None = None):
         folder = self.repo / "ops" / "conductor"
@@ -1045,7 +1231,7 @@ class LaneNameSelectsStore(_OnboardFixture):
             "TRUNK_BRANCH='trunkx'\n"
             "RELEASE_BRANCH='relx'\n"
             "REPO_SLUG='org/projx'\n"
-            "CHECK_NAME='checkx'\n"
+            "CHECK_NAMES='checkx'\n"
             "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
             "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
             "MODEL_GROK='model-grok'\n"
@@ -1074,6 +1260,143 @@ class LaneNameSelectsStore(_OnboardFixture):
             self.store.exists(),
             "tool created the literal agentscient store",
         )
+
+
+class RunningIsLiveLaunched(_OnboardFixture):
+    """running= is live launched jobs, not died, closed, or unrecorded.
+
+    Slice onboard-running: looked-and-closed is closed; a job directory
+    without record.json is unrecorded, never running. Each case plants a
+    live launched control so an empty running= field cannot satisfy the
+    negative pin.
+    """
+
+    def _ready_store(self) -> None:
+        self.ready(running=(), closed=())
+        self.assertTrue(self.store.is_dir(), "INVALID: store missing")
+
+    def test_died_invalid_record_is_not_listed_as_running(self):
+        self._ready_store()
+        self.plant_live_launched(LIVE_RUN_ID)
+        died = self.plant_job(
+            DIED_INVALID_ID,
+            status="died",
+            extra={"result": {"envelope": {"status": "invalid"}}},
+        )
+        rec = json.loads((died / "record.json").read_text(encoding="utf-8"))
+        self.assertEqual(rec["status"], "died")
+        self.assertEqual(rec["result"]["envelope"]["status"], "invalid")
+        self.assertFalse((died / "exit").exists(), "INVALID: died plant has exit")
+        proc = self.invoke()
+        self.assert_running_only(
+            proc.stdout or "",
+            live=(LIVE_RUN_ID,),
+            decoys=(DIED_INVALID_ID,),
+        )
+
+    def test_closed_record_without_exit_is_not_listed_as_running(self):
+        self._ready_store()
+        self.plant_live_launched(LIVE_RUN_ID)
+        closed = self.plant_job(CLOSED_NOEXIT_ID, status="closed")
+        rec = json.loads((closed / "record.json").read_text(encoding="utf-8"))
+        self.assertEqual(rec["status"], "closed")
+        self.assertFalse(
+            (closed / "exit").exists(),
+            "INVALID: looked-and-closed plant has an exit file",
+        )
+        proc = self.invoke()
+        self.assert_running_only(
+            proc.stdout or "",
+            live=(LIVE_RUN_ID,),
+            decoys=(CLOSED_NOEXIT_ID,),
+        )
+
+    def test_job_dir_without_record_json_is_not_listed_as_running(self):
+        self._ready_store()
+        self.plant_live_launched(LIVE_RUN_ID)
+        bare = self.plant_job(UNRECORDED_ID, with_record=False)
+        live_unrec = self.plant_job(
+            UNRECORDED_LIVE_ID,
+            with_record=False,
+            pid=self.spawn_live(),
+        )
+        self.assertFalse((bare / "record.json").exists())
+        self.assertFalse((live_unrec / "record.json").exists())
+        self.assertTrue((live_unrec / "state.json").is_file())
+        proc = self.invoke()
+        self.assert_running_only(
+            proc.stdout or "",
+            live=(LIVE_RUN_ID,),
+            decoys=(UNRECORDED_ID, UNRECORDED_LIVE_ID),
+        )
+
+    def test_launched_without_pid_file_is_not_inferred_live(self):
+        self._ready_store()
+        self.plant_live_launched(LIVE_RUN_ID)
+        nopid = self.plant_job(LAUNCH_NOPID_ID, status="launched")
+        rec = json.loads((nopid / "record.json").read_text(encoding="utf-8"))
+        self.assertEqual(rec["status"], "launched")
+        self.assertFalse((nopid / "state.json").exists())
+        self.assertFalse((nopid / "pid").exists())
+        self.assertFalse((nopid / "exit").exists())
+        proc = self.invoke()
+        self.assert_running_only(
+            proc.stdout or "",
+            live=(LIVE_RUN_ID,),
+            decoys=(LAUNCH_NOPID_ID,),
+        )
+
+    def test_launched_with_dead_pid_is_not_listed_as_running(self):
+        self._ready_store()
+        self.plant_live_launched(LIVE_RUN_ID)
+        dead = self.dead_pid()
+        job = self.plant_job(LAUNCH_DEAD_ID, status="launched", pid=dead)
+        rec = json.loads((job / "record.json").read_text(encoding="utf-8"))
+        self.assertEqual(rec["status"], "launched")
+        landed_pid = json.loads(
+            (job / "state.json").read_text(encoding="utf-8")
+        )["pid"]
+        self.assertEqual(landed_pid, dead)
+        with self.assertRaises(ProcessLookupError):
+            os.kill(dead, 0)
+        self.assertFalse((job / "exit").exists())
+        proc = self.invoke()
+        self.assert_running_only(
+            proc.stdout or "",
+            live=(LIVE_RUN_ID,),
+            decoys=(LAUNCH_DEAD_ID,),
+        )
+
+    def test_running_field_lists_only_the_live_launched_id(self):
+        self._ready_store()
+        self.plant_live_launched(LIVE_RUN_ID)
+        self.plant_job(
+            DIED_INVALID_ID,
+            status="died",
+            extra={"result": {"envelope": {"status": "invalid"}}},
+        )
+        self.plant_job(CLOSED_NOEXIT_ID, status="closed")
+        self.plant_job(UNRECORDED_ID, with_record=False)
+        self.plant_job(LAUNCH_NOPID_ID, status="launched")
+        self.plant_job(
+            LAUNCH_DEAD_ID, status="launched", pid=self.dead_pid()
+        )
+        proc = self.invoke()
+        decoys = (
+            DIED_INVALID_ID,
+            CLOSED_NOEXIT_ID,
+            UNRECORDED_ID,
+            LAUNCH_NOPID_ID,
+            LAUNCH_DEAD_ID,
+        )
+        self.assert_running_only(
+            proc.stdout or "",
+            live=(LIVE_RUN_ID,),
+            decoys=decoys,
+        )
+        planted = {LIVE_RUN_ID, *decoys}
+        listed = [i for i in self.running_ids(proc.stdout or "") if i in planted]
+        self.assertEqual(listed, [LIVE_RUN_ID])
 
 
 if __name__ == "__main__":

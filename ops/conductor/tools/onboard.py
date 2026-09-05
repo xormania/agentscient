@@ -171,6 +171,26 @@ def prs_line(root: Path) -> tuple[str, bool]:
     return f"prs: {len(entries)} open; {detail}", True
 
 
+def dispatch_is_running(path: Path) -> bool:
+    if (path / "exit").exists():
+        return False
+    try:
+        record = json.loads((path / "record.json").read_text(encoding="utf-8"))
+        state = json.loads((path / "state.json").read_text(encoding="utf-8"))
+        if not isinstance(record, dict) or record.get("status") != "launched":
+            return False
+        if not isinstance(state, dict):
+            return False
+        pid = state["pid"]
+        if not isinstance(pid, int) or isinstance(pid, bool) or pid <= 0:
+            return False
+        # Signal zero observes PID existence, not worker identity or progress.
+        os.kill(pid, 0)
+    except (json.JSONDecodeError, KeyError, OSError, TypeError, ValueError):
+        return False
+    return True
+
+
 def dispatches_line() -> tuple[str, bool]:
     state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
     store = state_home / lane_name() / "dispatch"
@@ -186,7 +206,7 @@ def dispatches_line() -> tuple[str, bool]:
         )
     except OSError as error:
         return f"dispatches: unavailable: {error}", False
-    running = [path.name for path in records if not (path / "exit").is_file()]
+    running = [path.name for path in records if dispatch_is_running(path)]
     closed = [path for path in records if (path / "exit").is_file()]
     newest = "none"
     if closed:

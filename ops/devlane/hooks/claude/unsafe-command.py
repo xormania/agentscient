@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import subprocess
 import sys
 
@@ -124,13 +125,21 @@ RUNNER = re.compile(r"\b(playwright test|pytest|poe\s+(?!lint|format|fmt|type)[a
                     r"mutation-check\.sh|mutation-live\.sh|npm (?:test|run test)|cargo test|"
                     r"go test|jest|vitest|tox|make\s+(?:test|check|lint)|rspec|phpunit)\b")
 CLIPPED = re.compile(r"\|\s*(?:tail|head)\s+-(\d+)\b")
+HEAD_COUNT = re.compile(
+    r"^[+-]?\d+(?:b|kB|K|KiB|[MGTPEZYRQ](?:i?B)?)?$",
+)
+HEAD_LONG_OPTIONS = {
+    "bytes": "bytes", "lines": "lines", "quiet": "flag", "silent": "flag",
+    "verbose": "flag", "zero-terminated": "zero", "help": "terminal",
+    "version": "terminal",
+}
 # `[^|]*` here was a bug: `grep -iE "warning|error"` contains a pipe INSIDE the quoted
 # pattern, so the class stopped before reaching the word that made it safe. Look for a
 # grep and a failure word anywhere in the command instead.
 FAIL_GREP = re.compile(r"grep(?s:.)*?(fail|passed|error|✘|✗)", re.IGNORECASE)
 
 # A multi-alternation grep at the head of a pipeline is a COMPLETENESS question — "does any
-# of these appear?" — and a head/tail on it silently truncates the answer. A head -8 on
+# of these appear?" — and a head on it silently truncates the answer. A head -8 on
 # exactly that shape ended before nixd_ls.py:114 (where which("nix") raises), and the
 # absence conclusion drawn from the first eight matches was wrong. Same class as the
 # 30-per-page GitHub listing read as a total. Scope, tuned on the session's real commands:
@@ -154,6 +163,76 @@ def quoted_pipe_count(stmt: str) -> int:
         elif ch in "'\"":
             quote = ch
     return count
+
+
+def head_clips_lines(command: str) -> bool:
+    """Whether an executing GNU head command selects a bounded line view."""
+    try:
+        tokens = shlex.split(command, posix=True)
+    except ValueError:
+        tokens = command.split()
+    if not tokens or tokens[0].rsplit("/", 1)[-1] != "head":
+        return False
+    category = "lines"
+    zero_terminated = False
+    index = 1
+    while index < len(tokens):
+        argument = tokens[index]
+        if argument == "--":
+            break
+        if argument == "-":
+            index += 1
+            continue
+        if argument.startswith("--"):
+            name, equals, value = argument[2:].partition("=")
+            matches = [option for option in HEAD_LONG_OPTIONS if option.startswith(name)]
+            if len(matches) != 1:
+                return False
+            semantics = HEAD_LONG_OPTIONS[matches[0]]
+            if semantics in ("flag", "zero", "terminal"):
+                if equals or semantics == "terminal":
+                    return False
+                zero_terminated |= semantics == "zero"
+                index += 1
+                continue
+            if not equals:
+                index += 1
+                if index >= len(tokens):
+                    return False
+                value = tokens[index]
+            if not HEAD_COUNT.fullmatch(value):
+                return False
+            category = semantics
+            index += 1
+            continue
+        if argument.startswith("-") and HEAD_COUNT.fullmatch(argument[1:]):
+            category = "lines"
+            index += 1
+            continue
+        if argument.startswith("-"):
+            cluster = argument[1:]
+            offset = 0
+            while offset < len(cluster) and cluster[offset] in "qvz":
+                zero_terminated |= cluster[offset] == "z"
+                offset += 1
+            if offset == len(cluster):
+                index += 1
+                continue
+            if cluster[offset] not in "nc":
+                return False
+            category = "bytes" if cluster[offset] == "c" else "lines"
+            count = cluster[offset + 1:]
+            if not count:
+                index += 1
+                if index >= len(tokens):
+                    return False
+                count = tokens[index]
+            if not HEAD_COUNT.fullmatch(count):
+                return False
+            index += 1
+            continue
+        index += 1
+    return category == "lines" and not zero_terminated
 
 
 WRITES = re.compile(r"write_text\(|open\([^)]*['\"][wa]['\"]|\.writelines\(|>\s*\$?\w*\.py\b")
@@ -258,11 +337,12 @@ def check(cmd: str):
     for stmt in statements(cmd):
         if not SWEEP_GREP.search(stmt):
             continue
-        clip = CLIPPED.search(stmt)
-        if clip and quoted_pipe_count(stmt[: clip.start()]) >= 2:
+        pipeline = commands(stmt)
+        clip = any(head_clips_lines(command) for command in pipeline[1:])
+        if clip and pipeline and quoted_pipe_count(pipeline[0]) >= 2:
             return ("clipped-sweep",
                     ("This clips a multi-alternation grep — a completeness question (\"does any of "
-                    "these appear?\") whose answer head/tail truncates SILENTLY. A head -8 on exactly "
+                    "these appear?\") whose answer head truncates SILENTLY. A head -8 on exactly "
                     "this shape ended before the line that mattered, and the absence conclusion drawn "
                     "from the first eight matches was wrong. Same class as a 30-per-page API listing "
                     "read as a total.\n\n"

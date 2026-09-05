@@ -292,6 +292,46 @@ def blocking_line_for(rendered: str, number: int) -> str:
 HEAD_SHA = "0123456789abcdef0123456789abcdef01234567"
 OK_CHECK = "ci"
 
+TWO_JOB_WORKFLOW = """\
+name: ci
+"on":
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened]
+  merge_group:
+  push:
+    branches: [dev]
+jobs:
+  lane:
+    runs-on: self-hosted
+    steps:
+      - run: echo lane
+  app:
+    runs-on: self-hosted
+    steps:
+      - run: echo app
+"""
+
+RENAMED_JOB_WORKFLOW = """\
+name: ci
+"on":
+  pull_request:
+    branches: [dev]
+    types: [opened, synchronize, reopened]
+  merge_group:
+  push:
+    branches: [dev]
+jobs:
+  audit:
+    runs-on: self-hosted
+    steps:
+      - run: echo audit
+  lint:
+    runs-on: self-hosted
+    steps:
+      - run: echo lint
+"""
+
 
 class CollectRows(unittest.TestCase):
     @classmethod
@@ -328,37 +368,56 @@ class CollectRows(unittest.TestCase):
             raise AssertionError("plant: PR 10 still has checks")
         return prs
 
-    def run_board(self, prs, check_errors, review_errors=None):
-        """Invoke main() against the PATH stub. expected_checks is pinned.
+    def run_board(
+        self,
+        prs,
+        check_errors,
+        review_errors=None,
+        *,
+        derive: bool = False,
+        trees: dict | None = None,
+    ):
+        """Invoke main() against the PATH stub. expected_checks is pinned
+        unless derive=True, which runs the real derivation on the planted
+        head tree.
 
-        This snapshot's workflows are ci.yml, not the ci-dev.yml pair
-        derivation requires, so the live expected_checks path cannot
-        succeed here. The defect under test is buckets/collect, not
-        derivation.
+        Existing rows tests pin expected_checks because they judge
+        buckets/collect, not derivation.
         """
         stdout = io.StringIO()
         stderr = io.StringIO()
         argv = ["pr_overview.py", "--repo", REPO]
         code = 0
+        used_trees = trees if trees is not None else self.trees
+        patches = [
+            mock.patch.object(sys, "argv", argv),
+            mock.patch.object(self.overview.sys, "argv", argv),
+        ]
+        if not derive:
+            patches.insert(
+                0,
+                mock.patch.object(
+                    self.overview,
+                    "expected_checks",
+                    return_value=frozenset({OK_CHECK}),
+                ),
+            )
         with gh_on_path(
-            prs, self.trees,
+            prs, used_trees,
             check_errors=check_errors,
             review_errors=review_errors,
         ), non_git_cwd():
-            with mock.patch.object(
-                self.overview,
-                "expected_checks",
-                return_value=frozenset({OK_CHECK}),
-            ), mock.patch.object(sys, "argv", argv), mock.patch.object(
-                self.overview.sys, "argv", argv
-            ), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(
-                stderr
-            ):
-                try:
-                    returned = self.overview.main()
-                    code = 0 if returned is None else int(returned)
-                except SystemExit as exc:
-                    code = 0 if exc.code is None else int(exc.code)
+            with contextlib.ExitStack() as stack:
+                for patch in patches:
+                    stack.enter_context(patch)
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(
+                    stderr
+                ):
+                    try:
+                        returned = self.overview.main()
+                        code = 0 if returned is None else int(returned)
+                    except SystemExit as exc:
+                        code = 0 if exc.code is None else int(exc.code)
         return code, stdout.getvalue(), stderr.getvalue()
 
     def test_a_pr_with_no_checks_reported_is_a_row_with_no_checks(self):
@@ -440,7 +499,7 @@ class CollectRows(unittest.TestCase):
             "TRUNK_BRANCH='trunkx'\n"
             "RELEASE_BRANCH='relx'\n"
             "REPO_SLUG='org/projx'\n"
-            "CHECK_NAME='checkx'\n"
+            "CHECK_NAMES='checkx'\n"
             "WF_AGENT_DEFAULT='Conf Agent <conf@example.invalid>'\n"
             "LANE_AUTHOR='Lane Owner <lane-owner@example.invalid>'\n"
             "MODEL_GROK='model-grok'\n"
@@ -505,6 +564,90 @@ class CollectRows(unittest.TestCase):
             )
         finally:
             shutil.rmtree(conf_dir, ignore_errors=True)
+
+    def test_derivation_yields_lane_and_app_from_the_planted_workflow(self):
+        files = snapshot_live_derivation()
+        files[".github/workflows/ci.yml"] = TWO_JOB_WORKFLOW
+        self.assertEqual(files[".github/workflows/ci.yml"], TWO_JOB_WORKFLOW)
+        self.assertIn("\n  lane:\n", TWO_JOB_WORKFLOW)
+        self.assertIn("\n  app:\n", TWO_JOB_WORKFLOW)
+        tmp = Path(tempfile.mkdtemp(prefix="pr-overview-derive-"))
+        try:
+            for rel, text in files.items():
+                path = tmp / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding="utf-8")
+                self.assertEqual(path.read_text(encoding="utf-8"), text)
+            try:
+                names = frozenset(self.overview.expected_checks(tmp))
+            except self.overview.Unavailable as exc:
+                self.fail(
+                    "derivation refused planted lane/app jobs: "
+                    f"{exc}"
+                )
+            self.assertEqual(names, frozenset({"lane", "app"}))
+            self.assertEqual(len(names), 2)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_derivation_yields_renamed_jobs_from_the_planted_workflow(self):
+        files = snapshot_live_derivation()
+        files[".github/workflows/ci.yml"] = RENAMED_JOB_WORKFLOW
+        self.assertEqual(files[".github/workflows/ci.yml"], RENAMED_JOB_WORKFLOW)
+        self.assertIn("\n  audit:\n", RENAMED_JOB_WORKFLOW)
+        self.assertIn("\n  lint:\n", RENAMED_JOB_WORKFLOW)
+        self.assertNotIn("\n  lane:\n", RENAMED_JOB_WORKFLOW)
+        self.assertNotIn("\n  app:\n", RENAMED_JOB_WORKFLOW)
+        tmp = Path(tempfile.mkdtemp(prefix="pr-overview-derive-renamed-"))
+        try:
+            for rel, text in files.items():
+                path = tmp / rel
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(text, encoding="utf-8")
+                self.assertEqual(path.read_text(encoding="utf-8"), text)
+            try:
+                names = frozenset(self.overview.expected_checks(tmp))
+            except self.overview.Unavailable as exc:
+                self.fail(
+                    "derivation refused planted audit/lint jobs: "
+                    f"{exc}"
+                )
+            self.assertEqual(names, frozenset({"audit", "lint"}))
+            self.assertNotEqual(names, frozenset({"lane", "app"}))
+            self.assertEqual(len(names), 2)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_ready_sentence_counts_both_lane_and_app(self):
+        files = snapshot_live_derivation()
+        files[".github/workflows/ci.yml"] = TWO_JOB_WORKFLOW
+        self.assertEqual(files[".github/workflows/ci.yml"], TWO_JOB_WORKFLOW)
+        trees = {HEAD_SHA: files}
+        self.assertIn(".github/workflows/ci.yml", trees[HEAD_SHA])
+        prs = [
+            ready_pr(
+                12,
+                "two always-on jobs",
+                "lane/ci-two-jobs",
+                HEAD_SHA,
+                ["lane", "app"],
+            ),
+        ]
+        self.assertEqual(
+            [c["name"] for c in prs[0]["checks"]],
+            ["lane", "app"],
+        )
+        code, stdout, stderr = self.run_board(
+            prs, check_errors=None, derive=True, trees=trees,
+        )
+        self.assertEqual(code, 0, stderr or stdout)
+        blocking = blocking_line_for(stdout, 12)
+        self.assertIn("ready to merge", blocking, stdout)
+        self.assertRegex(
+            blocking,
+            r"all 2 expected check",
+            blocking,
+        )
 
 
 if __name__ == "__main__":

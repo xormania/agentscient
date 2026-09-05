@@ -52,8 +52,15 @@ class RecordPathsArePortable(unittest.TestCase):
         self.encoded = urllib.parse.quote(self.snapshot, safe="")
         self.rec = {
             "id": self.job,
-            "snapshot": {"root": self.snapshot},
-            "harness": {"argv": ["claude", "--add-dir", str(self.store / self.job / "out")]},
+            "snapshot": {"root": self.snapshot, "ref_sha": "a" * 40},
+            "harness": {
+                "name": "claude",
+                "argv": ["claude", "--add-dir", str(self.store / self.job / "out")],
+                "isolation": {"flags": [
+                    "--setting-sources", "project,local",
+                    "--strict-mcp-config", "--disable-slash-commands",
+                ]},
+            },
             "model": {"read_from": str(self.home / ".claude/projects" / self.slug / "s.jsonl")},
             "session": {
                 "stream": str(self.store / self.job / "home/grok-stream/sessions" / self.encoded / "updates.jsonl"),

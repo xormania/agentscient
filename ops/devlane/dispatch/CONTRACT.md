@@ -159,8 +159,11 @@ PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8 LC_ALL=C.UTF-8`, plus
 
 ### Isolation, per harness
 
-`isolation.isolated()` runs on every launch; there is no argument that
-turns it off, and a harness with no entry is refused. The stream store
+`isolation.isolated()` runs on every new launch; there is no argument that
+turns it off, and a harness with no entry is refused. A relocated record
+re-derives its home environment, flags, and stream store from that same
+entry at the canonical current job path; a live recorded home or store at
+a foreign path is refused. The stream store
 is read from the same entry's `sessions` spec, because a relocated
 `CODEX_HOME` or `GROK_HOME` relocates the stream and a launcher looking
 in `~/.codex/sessions` would report "no stream" and run unsupervised.
@@ -168,8 +171,20 @@ in `~/.codex/sessions` would report "no stream" and run unsupervised.
 | harness | isolation | read sandbox | write sandbox | containment | model that ran |
 |:--|:--|:--|:--|:--|:--|
 | claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `plan` | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
-| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only` | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
-| grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `plan` | `auto` | policy, until an owner-named `--sandbox` profile is added to the row | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; its `head_commit` is cross-checked against `snapshot.ref_sha` |
+| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only`; check-tests exception below | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
+| grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `plan` | `auto` | policy, until an owner-named `--sandbox` profile is added to the row | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; read-role `head_commit` equals `snapshot.ref_sha`; write-role `head_commit` equals either that immutable ref or the actual local `HEAD`, which is always verified as its descendant; every other hash is rejected |
+
+**Proposed Codex check-tests alignment, for owner review — not an
+approved security guarantee.** The check-tests job remains role `read`,
+but its Codex process uses the `workspace-write` sandbox label so it can
+write its document and scratch files under the job `out/`, which is added
+as a writable root; `TMPDIR` is a real, non-symlinked `out/tmp`. Before the
+attempt the launcher strips Unix write bits from the snapshot as hardening,
+but mode bits alone are not a hostile-process security boundary. After the
+attempt, normal read-role settlement invalidates a changed HEAD or any
+residual snapshot path. Other Codex read jobs remain `read-only`; this
+exception does not provide generic file-output support to plan or
+adjudicate. Live vendor containment proof for this path has not run.
 
 For Claude, the snapshot's `.claude/settings.json`
 `permissions.allow` and `permissions.deny` strings are carried on argv
@@ -248,10 +263,35 @@ marked overridable, or with an empty reason, is itself refused.
 Write roles: the snapshot's `HEAD` must descend from `ref_sha`; it is
 fetched into the invoking repository as `refs/dispatch/<id>` with
 `--no-write-fetch-head`; `changed_paths` is `git diff --name-only
-ref_sha..head`; `residual_paths` is `git status --porcelain` in the
-snapshot. Read roles: `head` must equal `ref_sha`; a non-empty
+ref_sha head --` (the same endpoint semantics without an option-sensitive
+record-sourced range); `residual_paths` is a human rendering derived from
+`git status --porcelain=v1 -z` records in the snapshot. Read roles: `head`
+must equal `ref_sha`; a non-empty
 `residual_paths` is recorded; a changed head or non-empty residual makes the
 envelope invalid.
+
+Residual settlement exempts only declared cache artifacts: `.ruff_cache`
+markers and extensionless keys at its root or under one numeric version
+directory; pytest's three markers and its built-in `v/cache/{lastfailed,
+nodeids,stepwise}` values; mypy's two markers, `missing_stubs`, and its named
+JSON, fixed-format or SQLite artifacts under one numeric Python-version
+directory; and `.pyc` files below `__pycache__`. Unknown layouts and source
+files under any cache-named directory remain residual. The same classifier
+selects both `residual_paths` and every path preserved in `residual.patch`,
+including ignored files, binary files, deletions and both sides of renames;
+there is no broader patch exclusion. These exemptions are a named residual
+policy, not evidence that bytecode, caches, or other data written by a
+same-UID worker are trustworthy, and not a strong filesystem-isolation
+guarantee.
+
+Git path authority remains NUL-delimited bytes through classification and
+patch selection; C-quoted display is output only and is never parsed back.
+Rename and copy records retain both source and destination. Before settlement
+mutates an index, every path must round-trip through the filesystem encoding.
+The temporary-index `git add` uses `--literal-pathspecs` plus `--`, so leading
+dashes, wildcard characters, and `:(...)` syntax are filename data and cannot
+select unchanged collateral paths. The invoking and snapshot indexes remain
+untouched.
 
 `collect ID --verify CMD [--timeout SECONDS]` is the recovery path for a
 write job with residual files and any tripped or non-zero attempt, including
@@ -335,7 +375,8 @@ written, and every other ref is byte-identical before and after.
 
 What makes the record expensive to fake after the fact — not
 impossible, and the owner is the backstop: the brief digest re-derives;
-`ref_sha` must be reachable from the branch; `result.head` must descend
+`ref_sha` is a full object id that must resolve to its exact commit in the
+bound snapshot and must be reachable from the branch; `result.head` must descend
 from `ref_sha` and is a fetched commit with its own dates and trailers;
 spend and `model.ran` must agree with a stream in the harness's own
 store; and the record is a commit, so changing it is a diff.
