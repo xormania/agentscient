@@ -435,11 +435,21 @@ def entries(store, caps, closed_cache=None):
     out = []
     dirs = []
     for path in store.iterdir():
-        path_stat = path.stat(follow_symlinks=False)
+        try:
+            path_stat = path.stat(follow_symlinks=False)
+        except OSError as exc:
+            if closed_cache is not None:
+                closed_cache.pop(path.name, None)
+            entry = Entry(path, "error", {}, {}, False, caps)
+            entry.error = exc
+            entry.fingerprint = None
+            out.append(entry)
+            continue
         if stat_mode.S_ISDIR(path_stat.st_mode) or stat_mode.S_ISLNK(path_stat.st_mode):
             dirs.append(path)
     dirs.sort()
     present = {path.name for path in dirs}
+    present.update(entry.name for entry in out)
     if closed_cache is not None:
         for name in set(closed_cache) - present:
             del closed_cache[name]
@@ -684,12 +694,15 @@ def _check_rows(rows):
         return None
     normalized = []
     for row in rows:
-        if not isinstance(row, dict) or row.get("bucket") not in CHECK_BUCKETS:
+        if not isinstance(row, dict):
+            return None
+        bucket = row.get("bucket")
+        if not isinstance(bucket, str) or bucket not in CHECK_BUCKETS:
             return None
         name = _event_name(row.get("name"))
         if name is None:
             return None
-        normalized.append((name, row["bucket"]))
+        normalized.append((name, bucket))
     return normalized
 
 
