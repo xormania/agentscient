@@ -76,6 +76,10 @@ BOOL_ID = "20260904T121000Z-code-grok-aa4111"
 UNREAD_ID = "20260904T121100Z-code-grok-aa4112"
 SPEND_ID = "20260904T121200Z-code-grok-aa4113"
 GEN_ID = "20260904T121300Z-code-grok-aa4114"
+TOKEN_ID = "20260904T121400Z-code-grok-aa4115"
+CWD_ID = "20260904T121500Z-code-grok-aa4116"
+SESS_ID = "20260904T121600Z-code-grok-aa4117"
+OTHER_TOKEN = "monitor-other-bb42"
 
 RESET_1 = 1700000000
 RESET_2 = 1700003600
@@ -146,6 +150,9 @@ class _MonitorFixture(unittest.TestCase):
         self.gh = self.bin / "gh"
         self.argv_log = self.scratch / "gh-argv.jsonl"
         self.counter = self.scratch / "gh-calls"
+        self.sleep_marker = self.scratch / "gh-sleep-started"
+        self.worker_cwd = self.scratch / "worker-cwd"
+        self.worker_cwd.mkdir()
         self.staged = self.scratch / "monitor.py"
         self.config = self.conf_dir / "monitor.json"
         self._workers: list[subprocess.Popen] = []
@@ -443,6 +450,26 @@ class _MonitorFixture(unittest.TestCase):
 
         self.assertEqual(ids, sorted(ids, key=key), ids)
 
+    def events_for_subject(self, events: list, rec_id: str) -> list:
+        found = [event for event in events if rec_id in str(event.get("subject"))]
+        self.assertTrue(found, f"no event for {rec_id}: {events}")
+        return found
+
+    def assert_subject_mentions(self, events: list, rec_id: str, token: str) -> None:
+        blob = json.dumps(self.events_for_subject(events, rec_id))
+        self.assertIn(token, blob, f"{rec_id} missing {token}: {blob}")
+
+    def assert_subject_omits(self, events: list, rec_id: str, token: str) -> None:
+        blob = json.dumps(self.events_for_subject(events, rec_id))
+        self.assertNotIn(token, blob, f"{rec_id} unexpectedly has {token}: {blob}")
+
+    def gh_call_count(self) -> int:
+        if not self.counter.is_file():
+            return len(self.gh_argvs())
+        text = self.counter.read_text(encoding="utf-8").strip()
+        self.assertTrue(text.isdigit(), text)
+        return int(text)
+
     def assert_refusal(self, proc, class_name: str) -> None:
         err = proc.stderr or ""
         self.assertEqual(proc.returncode, 2, self.combined(proc))
@@ -650,12 +677,21 @@ class _MonitorFixture(unittest.TestCase):
         harness: str = HARNESS,
         record_as_dir: bool = False,
         state_payload=OMIT,
+        snapshot_root=OMIT,
+        session_id=OMIT,
+        state_session_id=OMIT,
     ) -> Path:
         dest = store if store is not None else self.store
         dest.mkdir(parents=True, exist_ok=True)
         job_dir = dest / rec_id
         job_dir.mkdir(parents=True, exist_ok=True)
         rec_path = job_dir / "record.json"
+        sess = "sess-" + rec_id[-6:] if session_id is OMIT else session_id
+        if snapshot_root is OMIT:
+            snap = self.scratch / "snap" / rec_id
+        else:
+            snap = Path(snapshot_root)
+        snap.mkdir(parents=True, exist_ok=True)
         if record_as_dir:
             rec_path.mkdir()
             self.assertTrue(rec_path.is_dir())
@@ -667,23 +703,19 @@ class _MonitorFixture(unittest.TestCase):
                 "role": role,
                 "job": "author-tests",
                 "harness": {"name": harness, "argv": [harness]},
+                "snapshot": {"mode": "whole", "root": str(snap)},
                 "at": {"launched": launched, "closed": closed},
                 "result": None,
+                "session": {"id": sess},
             }
             if attempts is OMIT:
                 rec["attempts"] = [{}]
             elif attempts is not None:
                 rec["attempts"] = attempts
             if spend is OMIT:
-                rec["session"] = {
-                    "id": "sess-" + rec_id[-6:],
-                    "spend": self.spend_dict(),
-                }
+                rec["session"]["spend"] = self.spend_dict()
             elif spend is not None:
-                rec["session"] = {
-                    "id": "sess-" + rec_id[-6:],
-                    "spend": spend,
-                }
+                rec["session"]["spend"] = spend
             if env_status is not None or changed_paths is not OMIT:
                 result: dict = {"envelope": {}}
                 if env_status is not None:
@@ -696,6 +728,9 @@ class _MonitorFixture(unittest.TestCase):
             landed = json.loads(rec_path.read_text(encoding="utf-8"))
             self.assertEqual(landed["id"], rec_id)
             self.assertEqual(landed["status"], status)
+            self.assertEqual(landed["session"]["id"], sess)
+            self.assertEqual(landed["snapshot"]["root"], str(snap))
+            self.assertEqual(landed["harness"]["argv"], [harness])
         if state_payload is not OMIT:
             if state_payload is not None:
                 raw_state = json.dumps(state_payload) + "\n"
@@ -703,12 +738,20 @@ class _MonitorFixture(unittest.TestCase):
                     job_dir / "state.json", raw_state.encode("utf-8")
                 )
         elif pid is not None:
-            raw_state = json.dumps({"pid": pid, "pgid": pid}) + "\n"
+            state_sess = sess if state_session_id is OMIT else state_session_id
+            raw_state = json.dumps(
+                {
+                    "pid": pid,
+                    "pgid": pid,
+                    "session": {"id": state_sess},
+                }
+            ) + "\n"
             self._plant_bytes(job_dir / "state.json", raw_state.encode("utf-8"))
             landed_state = json.loads(
                 (job_dir / "state.json").read_text(encoding="utf-8")
             )
             self.assertEqual(landed_state["pid"], pid)
+            self.assertEqual(landed_state["session"]["id"], state_sess)
         if exit_text is not None:
             self._plant_bytes(job_dir / "exit", exit_text.encode("utf-8"))
             self.assertTrue((job_dir / "exit").is_file())
@@ -834,14 +877,27 @@ class _MonitorFixture(unittest.TestCase):
         self.assertFalse(self.counter.exists(), "plant: counter still absent")
 
     def plant_gh_sleep(self, seconds: float, payload: dict) -> None:
+        marker = self.sleep_marker
         body = (
             self._gh_preamble()
             + "import time\n"
+            + f"counter = Path({str(self.counter)!r})\n"
+            + "n = int(counter.read_text(encoding='utf-8'))"
+            " if counter.is_file() else 0\n"
+            + "n += 1\n"
+            + "counter.write_text(str(n), encoding='utf-8')\n"
+            + f"Path({str(marker)!r}).write_text(str(n), encoding='utf-8')\n"
             + f"time.sleep({seconds!r})\n"
             + f"sys.stdout.write({json.dumps(payload)!r} + '\\n')\n"
             + "raise SystemExit(0)\n"
         )
+        if marker.exists():
+            marker.unlink()
+        if self.counter.exists():
+            self.counter.unlink()
         self._plant_gh(body)
+        self.assertFalse(marker.exists(), "plant: sleep marker still absent")
+        self.assertFalse(self.counter.exists(), "plant: counter still absent")
 
     def run_gh_mock(self, *argv: str, timeout: float = 5):
         env = {
@@ -878,9 +934,12 @@ class _MonitorFixture(unittest.TestCase):
                 rows.append(json.loads(line))
         return rows
 
-    def spawn_named(self, token: str) -> int:
+    def spawn_named(self, token: str, *, cwd: Path | None = None) -> int:
+        workdir = cwd if cwd is not None else self.worker_cwd
+        workdir.mkdir(parents=True, exist_ok=True)
         proc = subprocess.Popen(
             [sys.executable, "-c", "import time; time.sleep(120)", token],
+            cwd=str(workdir),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             start_new_session=True,
@@ -895,6 +954,12 @@ class _MonitorFixture(unittest.TestCase):
             if path.is_file():
                 cmdline = path.read_bytes()
                 if needle in cmdline:
+                    cwd_link = Path(f"/proc/{proc.pid}/cwd")
+                    self.assertEqual(
+                        cwd_link.resolve(),
+                        workdir.resolve(),
+                        "INVALID: worker cwd is not the owned snapshot",
+                    )
                     return proc.pid
             time.sleep(0.02)
         self.assertIn(needle, cmdline, "INVALID: worker cmdline missing token")
@@ -965,6 +1030,27 @@ class GhMockWitness(_MonitorFixture):
             [["api", "rate_limit"], ["api", "rate_limit"]],
         )
 
+    def test_sleep_mock_writes_marker_logs_argv_and_returns(self):
+        payload = {"ok": True, "missing": None}
+        self.plant_gh_sleep(0.05, payload)
+        shebang = self.gh.read_text(encoding="utf-8").splitlines()[0]
+        self.assertEqual(shebang, f"#!{sys.executable}")
+        t0 = time.monotonic()
+        proc = self.run_gh_mock("api", "rate_limit")
+        elapsed = time.monotonic() - t0
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        landed = json.loads(proc.stdout)
+        self.assertIs(landed["ok"], True, landed)
+        self.assertIsNone(landed["missing"], landed)
+        self.assertTrue(
+            self.sleep_marker.is_file(), "sleep mock did not write owned marker"
+        )
+        self.assertEqual(self.sleep_marker.read_text(encoding="utf-8").strip(), "1")
+        self.assertEqual(self.gh_call_count(), 1)
+        self.assertEqual(self.gh_argvs(), [["api", "rate_limit"]])
+        self.assertGreaterEqual(elapsed, 0.04)
+        self.assertLess(elapsed, 2.0)
+
 
 class CheckValid(_MonitorFixture):
     """check validates the registry and does not touch sources or state."""
@@ -1022,6 +1108,23 @@ class CheckValid(_MonitorFixture):
         self.assertEqual(data["monitors"], 3, data)
         self.assertEqual(data["conditions"], 3, data)
         self.assertEqual(data["routes"], 3, data)
+
+    def test_omitted_config_discovers_the_example_registry(self):
+        self.assertTrue(EXAMPLE.is_file(), f"INVALID: missing {EXAMPLE}")
+        payload = EXAMPLE.read_bytes()
+        self._plant_bytes(self.staged.parent / "monitor.example.json", payload)
+        self._plant_bytes(
+            self.staged.parent.parent / "monitor.example.json", payload
+        )
+        proc = self.invoke(["check"])
+        data = self.parse_json(proc, expect_exit=0)
+        self.assertIs(data.get("valid"), True, data)
+        self.assertEqual(data["schedules"], 2, data)
+        self.assertEqual(data["monitors"], 3, data)
+        self.assertEqual(data["conditions"], 3, data)
+        self.assertEqual(data["routes"], 3, data)
+        self.assertEqual(EXAMPLE.read_bytes(), self._example_before)
+        self.assert_state_empty()
 
     def test_check_does_not_require_identity_or_existing_sources(self):
         self.plant_config(self.dispatch_reg([NOOP_ID]))
@@ -1096,7 +1199,23 @@ class ConfigRefusalsBeforeSideEffects(_MonitorFixture):
                 '"monitors":{},"conditions":{},"routes":{}}\n'
             ),
         }
-        self.assertEqual(len(cases), 6)
+        nested_schedule = self.registry(
+            schedules={"fast": {"enabled": True, "every_s": 1, "nope": 1}}
+        )
+        nested_monitor = self.dispatch_reg([NOOP_ID])
+        nested_monitor["monitors"]["jobs"]["nope"] = True
+        nested_params = self.dispatch_reg([NOOP_ID])
+        nested_params["monitors"]["jobs"]["params"]["nope"] = "./x"
+        nested_condition = self.dispatch_reg([NOOP_ID])
+        nested_condition["conditions"]["job_change"]["nope"] = True
+        nested_route = self.dispatch_reg([NOOP_ID])
+        nested_route["routes"]["jobs"]["nope"] = True
+        cases["unknown-nested-schedule"] = nested_schedule
+        cases["unknown-nested-monitor"] = nested_monitor
+        cases["unknown-nested-params"] = nested_params
+        cases["unknown-nested-condition"] = nested_condition
+        cases["unknown-nested-route"] = nested_route
+        self.assertEqual(len(cases), 11)
         for name, payload in cases.items():
             with self.subTest(name):
                 self._refuse_config(payload)
@@ -1391,6 +1510,21 @@ class ArgumentIdentityConsumerState(_MonitorFixture):
             (self.store / NOOP_ID / "record.json").read_bytes(), rec
         )
         self.assert_owned_sources(sources)
+        self.assert_state_empty()
+
+        _, counts = self.run_counts()
+        self.assertGreaterEqual(counts["events"], 1, counts)
+        _, before = self.digest_data()
+        before_ids = [event["id"] for event in before["events"]]
+        self.assertTrue(before_ids, before)
+        proc = self.digest(ack=True, agent=None)
+        self.assert_refusal(proc, "identity")
+        self.assertEqual(
+            (self.store / NOOP_ID / "record.json").read_bytes(), rec
+        )
+        self.assert_owned_sources(sources)
+        _, after = self.digest_data()
+        self.assertEqual([event["id"] for event in after["events"]], before_ids)
 
     def test_digest_missing_or_invalid_consumer_refuses(self):
         self.plant_config(self.dispatch_reg([NOOP_ID]))
@@ -1469,6 +1603,12 @@ class DisabledRemoved(_MonitorFixture):
                 routes={},
             )
         )
+        self.plant_job(
+            NOOP_ID,
+            changed_paths=["ops/a.py"],
+            role="write",
+            env_status="ok",
+        )
         _, later = self.run_counts(now=NOW_30)
         self.assertEqual(later["events"], 0, later)
         _, second = self.digest_data()
@@ -1522,6 +1662,21 @@ class DisabledRemoved(_MonitorFixture):
         ids = [event["id"] for event in data["events"]]
         self.assertEqual(len(ids), len(set(map(str, ids))), ids)
 
+    def test_condition_definition_change_rearms(self):
+        body = self.dispatch_reg([NOOP_ID])
+        self.plant_config(body)
+        self.plant_job(NOOP_ID, changed_paths=[])
+        _, first = self.run_counts()
+        self.assertEqual(first["events"], 1, first)
+        body["conditions"]["job_change"]["field"] = "total"
+        self.plant_config(body)
+        landed = json.loads(self.config.read_text(encoding="utf-8"))
+        self.assertEqual(landed["conditions"]["job_change"]["field"], "total")
+        _, rearmed = self.run_counts(now=NOW_30)
+        self.assertEqual(rearmed["events"], 1, rearmed)
+        _, data = self.digest_data()
+        self.assertEqual(len(data["events"]), 2, data)
+
 
 class DispatchLifecycle(_MonitorFixture):
     """Dispatch readings: no-op, completion, death, settling, unknown."""
@@ -1563,10 +1718,11 @@ class DispatchLifecycle(_MonitorFixture):
         _, data = self.digest_data()
         self.assertEqual(len(data["events"]), 3, data)
         self.assert_events_ordered(data["events"])
-        blob = json.dumps(data)
-        self.assertIn("no-op", blob)
-        self.assertIn("completion", blob)
-        self.assertIn("invalid", blob)
+        self.assert_subject_mentions(data["events"], NOOP_ID, "no-op")
+        self.assert_subject_omits(data["events"], NOOP_ID, "completion")
+        self.assert_subject_mentions(data["events"], DONE_ID, "completion")
+        self.assert_subject_omits(data["events"], DONE_ID, "no-op")
+        self.assert_subject_mentions(data["events"], TRIP_ID, "invalid")
 
     def test_death_settling_unknown_pid_and_unreadable(self):
         dead = self.dead_pid()
@@ -1617,7 +1773,11 @@ class DispatchLifecycle(_MonitorFixture):
             ZERO_ID,
             status="launched",
             closed=None,
-            state_payload={"pid": 0},
+            session_id="sess-zero-aa4110",
+            state_payload={
+                "pid": 0,
+                "session": {"id": "sess-zero-aa4110"},
+            },
             changed_paths=OMIT,
             env_status=None,
         )
@@ -1625,11 +1785,25 @@ class DispatchLifecycle(_MonitorFixture):
             BOOL_ID,
             status="launched",
             closed=None,
-            state_payload={"pid": False},
+            session_id="sess-bool-aa4111",
+            state_payload={
+                "pid": False,
+                "session": {"id": "sess-bool-aa4111"},
+            },
             changed_paths=OMIT,
             env_status=None,
         )
         self.plant_job(UNREAD_ID, record_as_dir=True)
+        dead_rec = json.loads(
+            (self.store / DEAD_ID / "record.json").read_text(encoding="utf-8")
+        )
+        dead_state = json.loads(
+            (self.store / DEAD_ID / "state.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(dead_rec["harness"]["argv"], [HARNESS])
+        self.assertTrue(dead_rec["snapshot"]["root"])
+        self.assertEqual(dead_rec["session"]["id"], dead_state["session"]["id"])
+        self.assertTrue(dead_rec["session"]["id"])
         _, counts = self.run_counts(new_session=True)
         self.assertEqual(counts["observations"], 7, counts)
         self.assertGreaterEqual(counts["unavailable"], 1, counts)
@@ -1639,43 +1813,102 @@ class DispatchLifecycle(_MonitorFixture):
         self.assertIn("settling", blob)
         self.assertIn("unknown", blob)
         self.assertIn("unavailable", blob)
+        self.assert_subject_mentions(data["events"], DIED_ID, "death")
+        self.assert_subject_mentions(data["events"], DEAD_ID, "death")
+        self.assert_subject_omits(data["events"], DEAD_ID, "unknown")
+        self.assert_subject_mentions(data["events"], SETTLE_ID, "settling")
+        self.assert_subject_mentions(data["events"], ZERO_ID, "unknown")
+        self.assert_subject_omits(data["events"], ZERO_ID, "death")
+        self.assert_subject_mentions(data["events"], BOOL_ID, "unknown")
+        self.assert_subject_mentions(data["events"], UNREAD_ID, "unavailable")
 
     def test_running_requires_live_pid_and_harness_command(self):
-        pid = self.spawn_named(HARNESS)
-        self.plant_config(self.dispatch_reg([RUN_ID]))
+        snap = self.worker_cwd
+        pid = self.spawn_named(HARNESS, cwd=snap)
+        proc_cwd = Path(f"/proc/{pid}/cwd").resolve()
+        self.assertEqual(proc_cwd, snap.resolve())
+        cmdline = Path(f"/proc/{pid}/cmdline").read_bytes()
+        self.assertIn(HARNESS.encode("utf-8"), cmdline)
+        self.assertNotIn(OTHER_TOKEN.encode("utf-8"), cmdline)
+        sess = "sess-run-aa4116"
+        self.plant_config(self.dispatch_reg([RUN_ID, TOKEN_ID, CWD_ID, SESS_ID]))
         self.plant_job(
             RUN_ID,
             status="launched",
             closed=None,
             pid=pid,
             harness=HARNESS,
+            snapshot_root=snap,
+            session_id=sess,
             changed_paths=OMIT,
             env_status=None,
         )
-        _, counts = self.run_counts()
-        self.assertEqual(counts["observations"], 1, counts)
-        _, data = self.digest_data()
-        self.assertEqual(len(data["events"]), 1, data)
-        self.assertIn("running", json.dumps(data["events"][0]))
-
-        self.plant_config(self.dispatch_reg([SPEND_ID]))
-        other_state = self.scratch / "state-unknown"
-        other_state.mkdir()
-        self.state = other_state
         self.plant_job(
-            SPEND_ID,
+            TOKEN_ID,
             status="launched",
             closed=None,
-            pid=os.getpid(),
-            harness=HARNESS,
+            pid=pid,
+            harness=OTHER_TOKEN,
+            snapshot_root=snap,
+            session_id=sess,
             changed_paths=OMIT,
             env_status=None,
         )
+        other_snap = self.scratch / "other-snap"
+        other_snap.mkdir()
+        self.assertNotEqual(other_snap.resolve(), proc_cwd)
+        self.plant_job(
+            CWD_ID,
+            status="launched",
+            closed=None,
+            pid=pid,
+            harness=HARNESS,
+            snapshot_root=other_snap,
+            session_id=sess,
+            changed_paths=OMIT,
+            env_status=None,
+        )
+        self.plant_job(
+            SESS_ID,
+            status="launched",
+            closed=None,
+            pid=pid,
+            harness=HARNESS,
+            snapshot_root=snap,
+            session_id="sess-record-aa4117",
+            state_session_id="sess-state-aa4117",
+            changed_paths=OMIT,
+            env_status=None,
+        )
+        token_rec = json.loads(
+            (self.store / TOKEN_ID / "record.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(token_rec["harness"]["argv"], [OTHER_TOKEN])
+        cwd_rec = json.loads(
+            (self.store / CWD_ID / "record.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(Path(cwd_rec["snapshot"]["root"]).resolve(), other_snap.resolve())
+        sess_rec = json.loads(
+            (self.store / SESS_ID / "record.json").read_text(encoding="utf-8")
+        )
+        sess_state = json.loads(
+            (self.store / SESS_ID / "state.json").read_text(encoding="utf-8")
+        )
+        self.assertNotEqual(sess_rec["session"]["id"], sess_state["session"]["id"])
+        self.assertTrue(sess_rec["session"]["id"])
+        self.assertTrue(sess_state["session"]["id"])
         _, counts = self.run_counts()
+        self.assertEqual(counts["observations"], 4, counts)
         _, data = self.digest_data()
-        self.assertEqual(len(data["events"]), 1, data)
-        self.assertIn("unknown", json.dumps(data["events"][0]))
-        self.assertNotIn("running", json.dumps(data["events"][0]))
+        self.assertEqual(len(data["events"]), 4, data)
+        self.assert_subject_mentions(data["events"], RUN_ID, "running")
+        self.assert_subject_omits(data["events"], RUN_ID, "unknown")
+        self.assert_subject_mentions(data["events"], TOKEN_ID, "unknown")
+        self.assert_subject_omits(data["events"], TOKEN_ID, "running")
+        self.assert_subject_mentions(data["events"], CWD_ID, "unknown")
+        self.assert_subject_omits(data["events"], CWD_ID, "running")
+        self.assert_subject_mentions(data["events"], SESS_ID, "unknown")
+        self.assert_subject_omits(data["events"], SESS_ID, "running")
 
     def test_spend_comes_from_record_and_paths_are_config_relative(self):
         self.plant_job(
@@ -1690,11 +1923,13 @@ class DispatchLifecycle(_MonitorFixture):
             spend=self.spend_dict(total=999, input_n=999, cached=1, output=1),
         )
         self.plant_config(
-            self.dispatch_reg([SPEND_ID], field="total", op="gt", threshold=10)
+            self.dispatch_reg([SPEND_ID], field="total", op="gt", threshold=17)
         )
         before = (self.store / SPEND_ID / "record.json").read_bytes()
         decoy = (self.cwd_store / DECOY_ID / "record.json").read_bytes()
         sources = self.owned_source_bytes()
+        planted = json.loads(before.decode("utf-8"))
+        self.assertEqual(planted["session"]["spend"]["total"], 18)
         _, counts = self.run_counts()
         self.assertEqual(counts["observations"], 1, counts)
         self.assertEqual(counts["events"], 1, counts)
@@ -1710,6 +1945,18 @@ class DispatchLifecycle(_MonitorFixture):
             (self.cwd_store / DECOY_ID / "record.json").read_bytes(), decoy
         )
         self.assert_owned_sources(sources)
+
+        other = self.scratch / "state-spend-eq"
+        other.mkdir()
+        self.state = other
+        self.plant_config(
+            self.dispatch_reg([SPEND_ID], field="total", op="gt", threshold=18)
+        )
+        _, counts = self.run_counts()
+        self.assertEqual(counts["observations"], 1, counts)
+        self.assertEqual(counts["events"], 0, counts)
+        _, data = self.digest_data()
+        self.assertEqual(len(data["events"]), 0, data)
 
     def test_new_generation_rearms_changed_without_inheriting_cooldown(self):
         self.plant_config(
@@ -1733,6 +1980,39 @@ class DispatchLifecycle(_MonitorFixture):
         self.assertEqual(second["events"], 1, second)
         _, data = self.digest_data()
         self.assertEqual(len(data["events"]), 2, data)
+
+    def test_same_generation_changed_emits_on_field_transition(self):
+        self.plant_config(self.dispatch_reg([GEN_ID]))
+        self.plant_job(
+            GEN_ID,
+            changed_paths=[],
+            attempts=[{}],
+            launched=LAUNCHED,
+        )
+        _, first = self.run_counts()
+        self.assertEqual(first["events"], 1, first)
+        self.plant_job(
+            GEN_ID,
+            changed_paths=["ops/a.py"],
+            attempts=[{}],
+            launched=LAUNCHED,
+        )
+        landed = json.loads(
+            (self.store / GEN_ID / "record.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(landed["attempts"], [{}])
+        self.assertEqual(landed["at"]["launched"], LAUNCHED)
+        self.assertEqual(landed["result"]["changed_paths"], ["ops/a.py"])
+        _, second = self.run_counts(now=NOW_30)
+        self.assertEqual(second["events"], 1, second)
+        _, data = self.digest_data()
+        self.assertEqual(len(data["events"]), 2, data)
+        gen_events = self.events_for_subject(data["events"], GEN_ID)
+        self.assertEqual(len(gen_events), 2, gen_events)
+        self.assertIn("no-op", json.dumps(gen_events[0]))
+        self.assertNotIn("completion", json.dumps(gen_events[0]))
+        self.assertIn("completion", json.dumps(gen_events[1]))
+        self.assertNotIn("no-op", json.dumps(gen_events[1]))
 
 
 class CodexTailBounds(_MonitorFixture):
@@ -1910,15 +2190,18 @@ class GithubRateAndQuota(_MonitorFixture):
             search=self.bucket(30, 1, RESET_1),
         )
         self.plant_gh_rate(payload)
-        self.plant_config(self.github_reg())
+        # 99/10 = 9.9 would cross gt 1 if accepted; unknown must not.
+        self.plant_config(
+            self.github_reg(op="gt", field="remaining_fraction", threshold=1)
+        )
         _, counts = self.run_counts()
         self.assertEqual(counts["observations"], 3, counts)
         self.assertEqual(counts["unavailable"], 0, counts)
         _, data = self.digest_data()
-        self.assertEqual(len(data["events"]), 1, data)
+        self.assertEqual(len(data["events"]), 0, data)
         blob = json.dumps(data)
-        self.assertIn("search", blob)
         self.assertNotIn(str(99 / 10), blob)
+        self.assertNotIn("9.9", blob)
 
         other = self.scratch / "state-gh-fail"
         other.mkdir()
@@ -2016,10 +2299,19 @@ class GithubRateAndQuota(_MonitorFixture):
             },
         )
         self.plant_config(mixed)
+        t0 = time.monotonic()
         proc, counts = self.run_counts()
+        elapsed = time.monotonic() - t0
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertGreaterEqual(counts["events"], 1, counts)
         self.assertGreaterEqual(counts["unavailable"], 1, counts)
+        self.assertTrue(
+            self.sleep_marker.is_file(),
+            "gh sleep mock was not entered",
+        )
+        self.assertEqual(self.gh_call_count(), 1)
+        self.assertIn(["api", "rate_limit"], self.gh_argvs())
+        self.assertLess(elapsed, 4.0)
         _, data = self.digest_data()
         self.assertTrue(
             any(NOOP_ID in str(e.get("subject")) for e in data["events"]),
@@ -2079,12 +2371,42 @@ class ConditionsCooldown(_MonitorFixture):
         _, data = self.digest_data()
         self.assertEqual(len(data["events"]), 2, data)
 
+    def test_persistent_match_does_not_realert_when_cooldown_expires(self):
+        low = self.rate_payload(core=self.bucket(1000, 100, RESET_1))
+        self.plant_gh_sequence([low, low, low])
+        self.plant_config(self.github_reg(threshold=0.2, cooldown_s=300))
+        _, a = self.run_counts(now=NOW)
+        self.assertEqual(a["events"], 1, a)
+        _, b = self.run_counts(now=NOW_30)
+        self.assertEqual(b["events"], 0, b)
+        _, c = self.run_counts(now=NOW_400)
+        self.assertEqual(c["events"], 0, c)
+        _, data = self.digest_data()
+        self.assertEqual(len(data["events"]), 1, data)
+
     def test_unknown_never_crosses_and_unavailable_matches_only_that_state(self):
         self.plant_config(
-            self.dispatch_reg([MISS_ID], field="total", op="gt", threshold=0)
+            self.dispatch_reg([MISS_ID], field="total", op="gt", threshold=-1)
         )
         _, counts = self.run_counts()
         self.assertEqual(counts["events"], 0, counts)
+        other = self.scratch / "state-zero-total"
+        other.mkdir()
+        self.state = other
+        self.plant_job(
+            SPEND_ID,
+            changed_paths=["ops/a.py"],
+            spend=self.spend_dict(total=0, input_n=0, cached=0, output=0),
+        )
+        planted = json.loads(
+            (self.store / SPEND_ID / "record.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(planted["session"]["spend"]["total"], 0)
+        self.plant_config(
+            self.dispatch_reg([SPEND_ID], field="total", op="gt", threshold=-1)
+        )
+        _, counts = self.run_counts()
+        self.assertEqual(counts["events"], 1, counts)
         other = self.scratch / "state-unavail"
         other.mkdir()
         self.state = other
@@ -2166,12 +2488,38 @@ class DigestAckAndBounds(_MonitorFixture):
         self.plant_job(DONE_ID, changed_paths=["ops/a.py"])
         _, counts = self.run_counts()
         self.assertEqual(counts["events"], 4, counts)
+        _, before = self.digest_data(consumer=CONSUMER, limit=10)
+        self.assertEqual(len(before["events"]), 2, before)
+        self.assertTrue(
+            all(event["consumer"] == CONSUMER for event in before["events"]),
+            before,
+        )
+        deliveries = [event["delivery"] for event in before["events"]]
+        self.assertTrue(all(item is not None for item in deliveries), before)
+        _, again = self.digest_data(consumer=CONSUMER, limit=10)
+        self.assertEqual(
+            [event["id"] for event in again["events"]],
+            [event["id"] for event in before["events"]],
+        )
+        self.assertEqual(
+            [event["delivery"] for event in again["events"]], deliveries
+        )
         _, page = self.digest_data(consumer=CONSUMER, limit=1, ack=True)
         self.assertEqual(len(page["events"]), 1, page)
+        self.assertEqual(page["events"][0]["consumer"], CONSUMER)
+        self.assertEqual(page["events"][0]["delivery"], deliveries[0])
         ack_id = page["events"][0]["id"]
         _, next_page = self.digest_data(consumer=CONSUMER, limit=10)
         self.assertTrue(next_page["events"], next_page)
         self.assertNotEqual(next_page["events"][0]["id"], ack_id)
+        self.assertTrue(
+            all(event["consumer"] == CONSUMER for event in next_page["events"]),
+            next_page,
+        )
+        self.assertEqual(
+            [event["delivery"] for event in next_page["events"]],
+            deliveries[1:],
+        )
         _, other = self.digest_data(consumer=OTHER, limit=10)
         self.assertEqual(len(other["events"]), 2, other)
         self.assertTrue(
@@ -2218,29 +2566,90 @@ class DigestAckAndBounds(_MonitorFixture):
         _, data = self.digest_data()
         self.assertEqual(len(data["events"]), 1, data)
         self.assertEqual(data["events"][0]["delivery"], "unsupported")
+        _, acked = self.digest_data(ack=True)
+        self.assertEqual(acked["events"][0]["delivery"], "unsupported")
+        self.assertEqual(acked["events"][0]["id"], data["events"][0]["id"])
+
+    def test_stdout_route_is_valid_and_queue_delivery_persists(self):
+        extra = {
+            "announce": {
+                "enabled": True,
+                "condition": "job_change",
+                "adapter": "stdout",
+                "consumer": CONSUMER,
+            }
+        }
+        self.plant_config(self.dispatch_reg([NOOP_ID], extra_routes=extra))
+        data = self.check_ok()
+        self.assertEqual(data["routes"], 2, data)
+        self.plant_job(NOOP_ID, changed_paths=[])
+        _, counts = self.run_counts()
+        self.assertGreaterEqual(counts["events"], 1, counts)
+        _, page = self.digest_data()
+        queued = [event for event in page["events"] if event.get("route") == "jobs"]
+        self.assertTrue(queued, page)
+        self.assertTrue(
+            all(event["consumer"] == CONSUMER for event in queued), queued
+        )
+        deliveries = [event["delivery"] for event in queued]
+        _, again = self.digest_data()
+        again_queued = [
+            event for event in again["events"] if event.get("route") == "jobs"
+        ]
+        self.assertEqual(
+            [event["id"] for event in again_queued],
+            [event["id"] for event in queued],
+        )
+        self.assertEqual(
+            [event["delivery"] for event in again_queued], deliveries
+        )
+        _, acked = self.digest_data(ack=True)
+        acked_queued = [
+            event for event in acked["events"] if event.get("route") == "jobs"
+        ]
+        self.assertEqual(
+            [event["delivery"] for event in acked_queued], deliveries
+        )
 
 
 class RestartConcurrentAndLoop(_MonitorFixture):
     """Restart and concurrent runs share one queue; invalid reload aborts."""
 
     def test_restart_does_not_duplicate_and_skips_missed_intervals(self):
-        self.plant_config(self.dispatch_reg([NOOP_ID]))
+        self.plant_gh_rate(
+            self.rate_payload(core=self.bucket(5000, 5000, RESET_1))
+        )
+        body = self.dispatch_reg([NOOP_ID])
+        body["monitors"]["github"] = {
+            "enabled": True,
+            "adapter": "github-rate",
+            "schedule": "fast",
+            "params": {"timeout_s": 10},
+        }
+        self.plant_config(body)
         self.plant_job(NOOP_ID, changed_paths=[])
         _, first = self.run_counts(now=NOW)
         self.assertEqual(first["events"], 1, first)
+        self.assertEqual(self.gh_argvs(), [["api", "rate_limit"]])
         _, second = self.run_counts(now=NOW_400)
         self.assertEqual(second["events"], 0, second)
+        self.assertEqual(
+            self.gh_argvs(),
+            [["api", "rate_limit"], ["api", "rate_limit"]],
+        )
         _, data = self.digest_data()
         self.assertEqual(len(data["events"]), 1, data)
 
     def test_concurrent_once_cannot_double_enqueue_the_same_transition(self):
+        # External concurrent start only. A correct atomic due-claim may
+        # admit one observer; this does not force both into enqueue.
         self.plant_config(self.dispatch_reg([NOOP_ID]))
         self.plant_job(NOOP_ID, changed_paths=[])
         barrier = threading.Barrier(2)
 
         def once():
             barrier.wait(timeout=5)
-            return self.run_once()
+            return self.run_once(new_session=True)
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             fa = pool.submit(once)
@@ -2254,13 +2663,24 @@ class RestartConcurrentAndLoop(_MonitorFixture):
         self.assertEqual(len(data["events"]), 1, data)
 
     def test_invalid_reload_during_loop_exits_3_and_preserves_queue(self):
+        self.plant_gh_rate(
+            self.rate_payload(core=self.bucket(5000, 5000, RESET_1))
+        )
         valid = self.dispatch_reg([NOOP_ID])
+        valid["monitors"]["github"] = {
+            "enabled": True,
+            "adapter": "github-rate",
+            "schedule": "fast",
+            "params": {"timeout_s": 10},
+        }
         self.plant_config(valid)
         valid_bytes = self.config.read_bytes()
         self.plant_job(NOOP_ID, changed_paths=[])
         evidence = (self.store / NOOP_ID / "record.json").read_bytes()
         _, counts = self.run_counts()
         self.assertGreaterEqual(counts["events"], 1, counts)
+        calls_before = len(self.gh_argvs())
+        self.assertGreaterEqual(calls_before, 1)
         _, before = self.digest_data()
         n = len(before["events"])
         self.assertGreaterEqual(n, 1)
@@ -2276,7 +2696,18 @@ class RestartConcurrentAndLoop(_MonitorFixture):
             start_new_session=True,
         )
         self._workers.append(loop)
-        time.sleep(0.2)
+        deadline = time.monotonic() + max(LOOP_CAP - 2, 2)
+        while time.monotonic() < deadline:
+            if len(self.gh_argvs()) > calls_before:
+                break
+            if loop.poll() is not None:
+                break
+            time.sleep(0.05)
+        else:
+            loop.kill()
+            loop.communicate(timeout=2)
+            self.fail("loop did not start an observation before invalid reload")
+        self.assertIsNone(loop.poll(), "loop exited before invalid reload")
         self._plant_bytes(self.config, b"{")
         with self.assertRaises(json.JSONDecodeError):
             json.loads(self.config.read_text(encoding="utf-8"))
