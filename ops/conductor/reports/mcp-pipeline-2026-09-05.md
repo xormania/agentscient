@@ -128,3 +128,48 @@ matched the selected source answers through CLI, tools and resources and
 measured full MCP response overhead. The exact executable command and source
 hashes are retained there. Final suite and review results are recorded on the
 PR at its stationary head, so their records do not move the reviewed tree.
+
+
+## PR 72 named-card correction
+
+The owner requested correction of the GitHub review's named-card P2.
+GPT-6 [upheld the finding](mcp-named-card-cap-ruling-2026-09-05.md)
+before resuming this pipeline. The contract already separates named cards
+from unnamed listings; no new contract or feature scope was needed.
+
+Measured from the canonical dispatch records on 2026-09-05 at
+`67e0bc0219287dc98d7b1b67c3d7b15dbd07ecf5`:
+
+| Dispatch record | Actual producer | Result |
+| --- | --- | --- |
+| `20260905T215513Z-tests-grok-f2787b` | Grok 4.6 | Accepted; new 65-entry regression red; landed at `868a420` |
+| `20260905T220422Z-check-tests-codex-b852fb` | gpt-daybreak-blue-latest | Accepted APPROVE; no findings; reproduced the intended red and checked fixture guards |
+| `20260905T220642Z-code-codex-3fe449` | gpt-5.6-sol | Accepted; one production condition changed; all 50 MCP tests and targeted Ruff passed |
+
+The [skeptic report](mcp-named-card-cap-skeptic-2026-09-05.md) is preserved
+byte-for-byte (SHA-256 `f3d23cfaeaa1d41ecfe170ea129ee8c42368c1be5cbf85fd027a41a42b37e382`). Its self-printed generic model name
+is retained as captured; the actual model above comes from the dispatch
+record. The test and skeptic prompts prohibited implementation reads;
+whole-tree snapshots were not physically stripped of implementation.
+
+The implementation changed only the listing guard to
+`name is None and len(registry) > 64`. The new row covers a known card
+through CLI, MCP tool and resource, the unchanged list refusal, and an
+ordinary missing-name answer. Source and complete-query bounds remain.
+The independent test file's SHA-256 before and after implementation is
+`116143b39212518d82ff412b31f9bc862be2f26b82fb83062a2eba5e65336e16`.
+
+The worker's command
+`python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp*.py' && ruff check ops/conductor/tools/lane_read.py`
+passed all 50 tests at its resulting tree. The launcher committed the
+worker's patch because its sandbox denied git metadata writes. Root landed
+it through `land.py`, then amended only the unpublished commit message to
+retain honest finder/reviewer credit: GitHub does not disclose that bot's
+underlying model. The final fix commit is `67e0bc0219287dc98d7b1b67c3d7b15dbd07ecf5`.
+
+Merge `228d3e8` incorporates the owner's released dev history at `7a6a1a7`;
+that merge introduced no tree change. PR 71 has been merged by the owner.
+Fresh local suite, CI and correction-review evidence will be recorded on
+PR 72 at its stationary candidate, with review records on separate retained
+branches so their publication cannot move it. Earlier reviews remain
+historical evidence at their explicitly named heads.
