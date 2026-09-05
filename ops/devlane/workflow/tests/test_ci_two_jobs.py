@@ -1,8 +1,10 @@
 """CI as two always-on jobs, lane and app.
 
-Contract: fix scope item 34. The workflow `.github/workflows/ci.yml` is
-the subject. Tests load it as YAML and plant copies under a temporary
+Contract: fix scope item 34 and ops/conductor/pr66-fixes.md item 4.
+The workflow `.github/workflows/ci.yml` is the subject. Tests load it
+with a bounded stdlib YAML subset and plant copies under a temporary
 directory; they never write the live workflow or the conductor store.
+Unsupported YAML is refused rather than silently dropped.
 """
 
 from __future__ import annotations
@@ -11,10 +13,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import yaml
-
 REPO = Path(__file__).resolve().parents[4]
 WORKFLOW = REPO / ".github" / "workflows" / "ci.yml"
+
+
+class WorkflowYamlError(ValueError):
+    """YAML syntax outside the workflow surface the oracle is willing to load."""
 
 TRIGGERS = ("pull_request", "merge_group", "push")
 JOBS = ("lane", "app")
@@ -99,10 +103,453 @@ def _plant_bytes(path: Path, data: bytes) -> None:
 
 def load_workflow(path: Path) -> dict:
     text = path.read_text(encoding="utf-8")
-    doc = yaml.safe_load(text)
+    try:
+        doc = load_strict_workflow_yaml(text)
+    except WorkflowYamlError as exc:
+        raise ValueError(f"unsupported workflow YAML in {path}: {exc}") from exc
     if not isinstance(doc, dict):
         raise AssertionError(f"workflow is not a mapping: {path}")
     return doc
+
+
+def load_strict_workflow_yaml(text: str) -> object:
+    return _WorkflowYamlParser(text).parse_document()
+
+
+class _WorkflowYamlParser:
+    """Bounded loader for the GitHub workflow YAML this oracle actually uses.
+
+    Accepted: block mappings, block sequences, flow sequences of scalars,
+    plain/quoted scalars, literal `|` blocks, comments, and `true`/`false`/
+    `null` values. Keys stay strings (`on` is the key on, never boolean
+    True). Anything outside that surface is refused.
+    """
+
+    def __init__(self, text: str):
+        self.lines = text.splitlines()
+        self.i = 0
+        self.started = False
+
+    def parse_document(self) -> object:
+        self._skip_noise(allow_doc_start=True)
+        if self.i >= len(self.lines):
+            raise WorkflowYamlError("empty document")
+        indent, body = self._peek()
+        if body.startswith("- "):
+            value = self._parse_seq(indent - 1)
+        else:
+            value = self._parse_map(-1)
+        self._skip_noise(allow_doc_start=False)
+        if self.i < len(self.lines):
+            raise WorkflowYamlError(
+                f"unsupported trailing content at line {self.i + 1}"
+            )
+        return value
+
+    def _physical(self, idx: int) -> tuple[int, str]:
+        line = self.lines[idx]
+        stripped_left = line.lstrip(" ")
+        indent = len(line) - len(stripped_left)
+        if stripped_left.startswith("\t") or "\t" in line[:indent]:
+            raise WorkflowYamlError(
+                f"tab indentation is outside the used surface at line {idx + 1}"
+            )
+        return indent, stripped_left
+
+    def _peek(self) -> tuple[int, str]:
+        self._skip_noise(allow_doc_start=False)
+        if self.i >= len(self.lines):
+            raise WorkflowYamlError("unexpected end of document")
+        indent, body = self._physical(self.i)
+        return indent, _strip_inline_comment(body)
+
+    def _skip_noise(self, *, allow_doc_start: bool) -> None:
+        while self.i < len(self.lines):
+            _indent, body = self._physical(self.i)
+            content = _strip_inline_comment(body).strip()
+            if content == "":
+                self.i += 1
+                continue
+            if content.startswith("%"):
+                raise WorkflowYamlError(
+                    f"directives are outside the used surface at line {self.i + 1}"
+                )
+            if content == "...":
+                raise WorkflowYamlError(
+                    f"document end marker is outside the used surface at line {self.i + 1}"
+                )
+            if content == "---":
+                if self.started and not allow_doc_start:
+                    raise WorkflowYamlError(
+                        f"multiple documents are outside the used surface at line {self.i + 1}"
+                    )
+                if self.started:
+                    raise WorkflowYamlError(
+                        f"multiple documents are outside the used surface at line {self.i + 1}"
+                    )
+                self.i += 1
+                continue
+            return
+
+    def _parse_map(self, parent_indent: int) -> dict:
+        result: dict = {}
+        map_indent = None
+        while True:
+            if self.i >= len(self.lines):
+                break
+            self._skip_noise(allow_doc_start=False)
+            if self.i >= len(self.lines):
+                break
+            indent, body = self._physical(self.i)
+            content = _strip_inline_comment(body)
+            if content.strip() == "":
+                self.i += 1
+                continue
+            if indent <= parent_indent:
+                break
+            if content.startswith("- "):
+                raise WorkflowYamlError(
+                    f"sequence item where a mapping is required at line {self.i + 1}"
+                )
+            if map_indent is None:
+                map_indent = indent
+            if indent != map_indent:
+                if indent > map_indent:
+                    raise WorkflowYamlError(
+                        f"unexpected nested indent at line {self.i + 1}"
+                    )
+                break
+            self.i += 1
+            self.started = True
+            key, rest = _split_key(content, self.i)
+            if key == "<<":
+                raise WorkflowYamlError(
+                    f"merge keys are outside the used surface at line {self.i}"
+                )
+            if key in result:
+                raise WorkflowYamlError(f"duplicate key {key!r} at line {self.i}")
+            result[key] = self._parse_value(rest, key_indent=indent)
+        if map_indent is None:
+            raise WorkflowYamlError("expected a mapping")
+        return result
+
+    def _parse_seq(self, parent_indent: int) -> list:
+        items: list = []
+        dash_indent = None
+        while True:
+            if self.i >= len(self.lines):
+                break
+            self._skip_noise(allow_doc_start=False)
+            if self.i >= len(self.lines):
+                break
+            indent, body = self._physical(self.i)
+            content = _strip_inline_comment(body)
+            if content.strip() == "":
+                self.i += 1
+                continue
+            if indent <= parent_indent:
+                break
+            if not content.startswith("- ") and content != "-":
+                break
+            if dash_indent is None:
+                dash_indent = indent
+            if indent != dash_indent:
+                break
+            self.i += 1
+            self.started = True
+            rest = content[1:].strip()
+            item_indent = dash_indent + 2
+            if rest in ("", "-"):
+                nxt = self._lookahead()
+                if nxt is None or nxt[0] <= dash_indent:
+                    items.append(None)
+                elif nxt[1].startswith("- "):
+                    items.append(self._parse_seq(dash_indent))
+                else:
+                    items.append(self._parse_map(dash_indent))
+            elif _looks_like_key(rest):
+                key, valrest = _split_key(rest, self.i)
+                mapping = {key: self._parse_value(valrest, key_indent=item_indent)}
+                mapping.update(self._parse_map_continuation(item_indent))
+                items.append(mapping)
+            else:
+                items.append(_parse_scalar(rest, self.i))
+        return items
+
+    def _parse_map_continuation(self, map_indent: int) -> dict:
+        result: dict = {}
+        while True:
+            if self.i >= len(self.lines):
+                break
+            self._skip_noise(allow_doc_start=False)
+            if self.i >= len(self.lines):
+                break
+            indent, body = self._physical(self.i)
+            content = _strip_inline_comment(body)
+            if content.strip() == "":
+                self.i += 1
+                continue
+            if indent != map_indent:
+                break
+            if content.startswith("- "):
+                break
+            self.i += 1
+            key, rest = _split_key(content, self.i)
+            if key == "<<":
+                raise WorkflowYamlError(
+                    f"merge keys are outside the used surface at line {self.i}"
+                )
+            if key in result:
+                raise WorkflowYamlError(f"duplicate key {key!r} at line {self.i}")
+            result[key] = self._parse_value(rest, key_indent=map_indent)
+        return result
+
+    def _parse_value(self, rest: str, *, key_indent: int) -> object:
+        rest = rest.strip()
+        if rest in ("|", "|-", "|+"):
+            return self._parse_literal(key_indent)
+        if rest in (">", ">-", ">+"):
+            raise WorkflowYamlError(
+                f"folded scalars are outside the used surface at line {self.i}"
+            )
+        if rest == "":
+            nxt = self._lookahead()
+            if nxt is None or nxt[0] <= key_indent:
+                return None
+            if nxt[1].startswith("- "):
+                return self._parse_seq(key_indent)
+            return self._parse_map(key_indent)
+        return _parse_scalar(rest, self.i)
+
+    def _parse_literal(self, key_indent: int) -> str:
+        lines: list[str] = []
+        block_indent = None
+        while self.i < len(self.lines):
+            indent, body = self._physical(self.i)
+            if body.strip() == "":
+                if block_indent is None:
+                    self.i += 1
+                    lines.append("")
+                    continue
+                lines.append("")
+                self.i += 1
+                continue
+            if indent <= key_indent:
+                break
+            if block_indent is None:
+                block_indent = indent
+            if indent < block_indent:
+                break
+            lines.append(" " * (indent - block_indent) + body.rstrip("\n"))
+            self.i += 1
+        while lines and lines[-1] == "":
+            lines.pop()
+        return "\n".join(lines) + ("\n" if lines else "")
+
+    def _lookahead(self) -> tuple[int, str] | None:
+        j = self.i
+        while j < len(self.lines):
+            indent, body = self._physical(j)
+            content = _strip_inline_comment(body)
+            if content.strip() == "":
+                j += 1
+                continue
+            return indent, content
+        return None
+
+
+def _strip_inline_comment(body: str) -> str:
+    out: list[str] = []
+    dq = False
+    sq = False
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if dq:
+            out.append(ch)
+            if ch == "\\" and i + 1 < len(body):
+                out.append(body[i + 1])
+                i += 2
+                continue
+            if ch == '"':
+                dq = False
+            i += 1
+            continue
+        if sq:
+            out.append(ch)
+            if ch == "'" and i + 1 < len(body) and body[i + 1] == "'":
+                out.append("'")
+                i += 2
+                continue
+            if ch == "'":
+                sq = False
+            i += 1
+            continue
+        if ch == '"':
+            dq = True
+            out.append(ch)
+        elif ch == "'":
+            sq = True
+            out.append(ch)
+        elif ch == "#":
+            break
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out).rstrip()
+
+
+def _split_key(content: str, lineno: int) -> tuple[str, str]:
+    content = content.rstrip()
+    if content.startswith(("&", "*")):
+        raise WorkflowYamlError(
+            f"anchors and aliases are outside the used surface at line {lineno}"
+        )
+    if content.startswith("!!"):
+        raise WorkflowYamlError(
+            f"tags are outside the used surface at line {lineno}"
+        )
+    if content.startswith('"'):
+        end = 1
+        while end < len(content):
+            if content[end] == "\\" and end + 1 < len(content):
+                end += 2
+                continue
+            if content[end] == '"':
+                break
+            end += 1
+        if end >= len(content) or content[end] != '"':
+            raise WorkflowYamlError(f"unterminated quoted key at line {lineno}")
+        key = _unescape_double(content[1:end])
+        rest = content[end + 1 :].lstrip()
+        if not rest.startswith(":"):
+            raise WorkflowYamlError(f"quoted key without ':' at line {lineno}")
+        return key, rest[1:].lstrip()
+    if ":" not in content:
+        raise WorkflowYamlError(f"mapping entry missing ':' at line {lineno}")
+    key, rest = content.split(":", 1)
+    key = key.strip()
+    if not key:
+        raise WorkflowYamlError(f"empty key at line {lineno}")
+    if "&" in key or key.startswith("*"):
+        raise WorkflowYamlError(
+            f"anchors and aliases are outside the used surface at line {lineno}"
+        )
+    if key == "<<":
+        return key, rest.lstrip()
+    return key, rest.lstrip()
+
+
+def _looks_like_key(content: str) -> bool:
+    stripped = content.strip()
+    if stripped.startswith(('"', "'")):
+        return ":" in stripped
+    if stripped.startswith("- "):
+        return False
+    return ": " in stripped or stripped.endswith(":")
+
+
+def _unescape_double(value: str) -> str:
+    out: list[str] = []
+    i = 0
+    escapes = {"n": "\n", "t": "\t", '"': '"', "\\": "\\"}
+    while i < len(value):
+        ch = value[i]
+        if ch == "\\" and i + 1 < len(value):
+            nxt = value[i + 1]
+            out.append(escapes.get(nxt, nxt))
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def _parse_flow_seq(raw: str, lineno: int) -> list:
+    inner = raw[1:-1].strip()
+    if inner == "":
+        return []
+    if "{" in inner or "}" in inner:
+        raise WorkflowYamlError(
+            f"flow mappings are outside the used surface at line {lineno}"
+        )
+    if "[" in inner or "]" in inner:
+        raise WorkflowYamlError(
+            f"nested flow sequences are outside the used surface at line {lineno}"
+        )
+    if "&" in inner or "*" in inner or "!!" in inner:
+        raise WorkflowYamlError(
+            f"anchors, aliases, or tags are outside the used surface at line {lineno}"
+        )
+    items: list = []
+    buf: list[str] = []
+    dq = False
+    sq = False
+    for ch in inner:
+        if dq:
+            buf.append(ch)
+            if ch == '"':
+                dq = False
+            continue
+        if sq:
+            buf.append(ch)
+            if ch == "'":
+                sq = False
+            continue
+        if ch == '"':
+            dq = True
+            buf.append(ch)
+        elif ch == "'":
+            sq = True
+            buf.append(ch)
+        elif ch == ",":
+            token = "".join(buf).strip()
+            if token == "":
+                raise WorkflowYamlError(f"empty flow-sequence item at line {lineno}")
+            items.append(_parse_scalar(token, lineno))
+            buf = []
+        else:
+            buf.append(ch)
+    token = "".join(buf).strip()
+    if token == "":
+        raise WorkflowYamlError(f"trailing comma in flow sequence at line {lineno}")
+    items.append(_parse_scalar(token, lineno))
+    return items
+
+
+def _parse_scalar(raw: str, lineno: int) -> object:
+    value = raw.strip()
+    if value in ("", "~", "null", "Null", "NULL"):
+        return None
+    if value in ("true", "True"):
+        return True
+    if value in ("false", "False"):
+        return False
+    if value.startswith("!!"):
+        raise WorkflowYamlError(
+            f"tags are outside the used surface at line {lineno}: {value}"
+        )
+    if value.startswith("&") or value.startswith("*"):
+        raise WorkflowYamlError(
+            f"anchors and aliases are outside the used surface at line {lineno}: {value}"
+        )
+    if value.startswith("{"):
+        raise WorkflowYamlError(
+            f"flow mappings are outside the used surface at line {lineno}"
+        )
+    if value.startswith("[") and value.endswith("]"):
+        return _parse_flow_seq(value, lineno)
+    if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+        return _unescape_double(value[1:-1])
+    if len(value) >= 2 and value[0] == "'" and value[-1] == "'":
+        return value[1:-1].replace("''", "'")
+    if ":" in value and (
+        value.split(":", 1)[1][:1] in ("", " ") or value.endswith(":")
+    ):
+        raise WorkflowYamlError(
+            f"inline mappings are outside the used surface at line {lineno}: {value}"
+        )
+    return value
 
 
 def trigger_map(doc: dict) -> dict:
@@ -384,6 +831,108 @@ class CiTwoJobs(unittest.TestCase):
             self.assertEqual(job_ifs(jobs), ["lane"])
             self.assertNotIn("if", jobs["app"])
 
+    def test_anchor_syntax_is_refused(self):
+        text = TWO_JOB_WORKFLOW + "\nextra: &anchor {run: echo}\n"
+        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-anchor-") as raw:
+            path = Path(raw) / "ci.yml"
+            _plant_bytes(path, text.encode("utf-8"))
+            self.assertIn("&anchor", path.read_text(encoding="utf-8"))
+            with self.assertRaises((AssertionError, ValueError)):
+                load_workflow(path)
+
+    def test_alias_syntax_is_refused(self):
+        text = (
+            "name: ci\n"
+            "jobs:\n"
+            "  lane: &lane\n"
+            "    runs-on: self-hosted\n"
+            "  app: *lane\n"
+        )
+        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-alias-") as raw:
+            path = Path(raw) / "ci.yml"
+            _plant_bytes(path, text.encode("utf-8"))
+            landed = path.read_text(encoding="utf-8")
+            self.assertIn("&lane", landed)
+            self.assertIn("*lane", landed)
+            with self.assertRaises((AssertionError, ValueError)):
+                load_workflow(path)
+
+    def test_merge_key_is_refused(self):
+        text = (
+            "name: ci\n"
+            "base: &base\n"
+            "  runs-on: self-hosted\n"
+            "jobs:\n"
+            "  lane:\n"
+            "    <<: *base\n"
+            "    steps:\n"
+            "      - run: echo\n"
+        )
+        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-merge-") as raw:
+            path = Path(raw) / "ci.yml"
+            _plant_bytes(path, text.encode("utf-8"))
+            landed = path.read_text(encoding="utf-8")
+            self.assertIn("<<:", landed)
+            self.assertIn("*base", landed)
+            with self.assertRaises((AssertionError, ValueError)):
+                load_workflow(path)
+
+    def test_custom_tag_is_refused(self):
+        text = TWO_JOB_WORKFLOW.replace(
+            "echo lane",
+            "!!python/object/apply:os.system ['true']",
+        )
+        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-tag-") as raw:
+            path = Path(raw) / "ci.yml"
+            _plant_bytes(path, text.encode("utf-8"))
+            self.assertIn("!!python/object", path.read_text(encoding="utf-8"))
+            with self.assertRaises((AssertionError, ValueError)):
+                load_workflow(path)
+
+    def test_second_document_is_refused_not_silently_dropped(self):
+        text = TWO_JOB_WORKFLOW + "---\nname: dropped\njobs:\n  secret: {}\n"
+        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-docs-") as raw:
+            path = Path(raw) / "ci.yml"
+            _plant_bytes(path, text.encode("utf-8"))
+            landed = path.read_text(encoding="utf-8")
+            self.assertIn("---", landed)
+            self.assertIn("secret", landed)
+            with self.assertRaises((AssertionError, ValueError)):
+                load_workflow(path)
+
+    def test_flow_mapping_value_is_refused(self):
+        text = TWO_JOB_WORKFLOW.replace("echo app", "echo app") + (
+            "extra: {runs-on: self-hosted, steps: []}\n"
+        )
+        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-flow-") as raw:
+            path = Path(raw) / "ci.yml"
+            _plant_bytes(path, text.encode("utf-8"))
+            self.assertIn("{runs-on:", path.read_text(encoding="utf-8"))
+            with self.assertRaises((AssertionError, ValueError)):
+                load_workflow(path)
+
+    def test_unquoted_on_key_is_the_string_on_not_boolean_true(self):
+        text = (
+            "name: ci\n"
+            "on:\n"
+            "  push:\n"
+            "    branches: [dev]\n"
+            "jobs:\n"
+            "  lane:\n"
+            "    runs-on: self-hosted\n"
+            "    steps:\n"
+            "      - run: echo\n"
+        )
+        with tempfile.TemporaryDirectory(prefix="ci-two-jobs-on-") as raw:
+            path = Path(raw) / "ci.yml"
+            _plant_bytes(path, text.encode("utf-8"))
+            self.assertIn("\non:\n", "\n" + path.read_text(encoding="utf-8"))
+            doc = load_workflow(path)
+            self.assertIn("on", doc)
+            self.assertNotIn(True, doc)
+            self.assertIsInstance(doc["on"], dict)
+
 
 if __name__ == "__main__":
     unittest.main()
+
