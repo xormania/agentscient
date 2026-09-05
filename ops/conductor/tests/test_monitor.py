@@ -2583,8 +2583,36 @@ class DigestAckAndBounds(_MonitorFixture):
         data = self.check_ok()
         self.assertEqual(data["routes"], 2, data)
         self.plant_job(NOOP_ID, changed_paths=[])
-        _, counts = self.run_counts()
+        proc = self.run_once()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        lines = [
+            line for line in (proc.stdout or "").splitlines() if line.strip()
+        ]
+        self.assertTrue(lines, self.combined(proc))
+        parsed = []
+        for line in lines:
+            try:
+                parsed.append(json.loads(line))
+            except json.JSONDecodeError as exc:
+                self.fail(f"stdout line is not JSON: {line!r} ({exc})")
+        self.assertGreaterEqual(len(parsed), 2, parsed)
+        counts = parsed[-1]
+        self.assertIsInstance(counts, dict, counts)
+        for key in ("observations", "events", "unavailable"):
+            self.assertIn(key, counts, counts)
+            self.assert_int_count(counts[key], key)
         self.assertGreaterEqual(counts["events"], 1, counts)
+        stdout_events = parsed[:-1]
+        announce = [
+            event
+            for event in stdout_events
+            if isinstance(event, dict) and event.get("route") == "announce"
+        ]
+        self.assertTrue(announce, stdout_events)
+        for event in announce:
+            self.assertEqual(event.get("route"), "announce", event)
+            self.assertEqual(event.get("consumer"), CONSUMER, event)
+            self.assertEqual(event.get("delivery"), "stdout", event)
         _, page = self.digest_data()
         queued = [event for event in page["events"] if event.get("route") == "jobs"]
         self.assertTrue(queued, page)
