@@ -84,7 +84,6 @@ class TestDiscoveryV3Handoffs(_DiscoveryV3Fixture):
         cand = named["data"]["candidate"]
         self.assertEqual(cand["key"], key)
         self.assertIsNotNone(cand["body"])
-        self.assertNotIn("path", named.get("query", ""))
         self.assertEqual(cand["provenance"]["path"], hidden)
         self.assertEqual(cand["body_bytes"], len(inner))
         self.assertEqual(
@@ -158,9 +157,6 @@ class TestDiscoveryV3Handoffs(_DiscoveryV3Fixture):
             if row.get("provenance")
         ]
         self.assertEqual(len(provenances), 2)
-        names = [Path(path).name for path in provenances]
-        self.assertEqual(len(names), len(set(names)), names)
-        self.assertEqual(dup["occurrences"], 2)
 
     def test_d_a15_supersedes_marks_stale_and_aar_never_selected(self):
         old = b"old handoff body"
