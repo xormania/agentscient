@@ -14,7 +14,8 @@ review; runtime convergence and generic output grants have not landed.
 **Target:** `launch.py` is the sole worker execution service: admission,
 snapshot and input custody, invocation and resume, supervision, envelope
 acceptance, settlement and recovery. `record.py` owns dispatch record
-construction and validation. Frontends consume the same service:
+construction and validation. Dispatch/go/ladder consume that service;
+task run is the refusing vendor projection with local direct/stub behavior:
 
 | frontend | owns |
 |:--|:--|
@@ -23,8 +24,10 @@ construction and validation. Frontends consume the same service:
 | [ladder](../../conductor/tools/ladder.py) | stage order, custody between jobs, retries and ladder records; worker execution and session resume stay in launch |
 | [task run](../task/CONTRACT.md#c1-task-frontend-construction-decision) | explicit pre-effect vendor-mode refusal naming launch; direct verification and stub replay remain local |
 
-Frontends preserve the same effective selection, refusals and accepted
-result; they do not own alternate execution or envelope engines. Harness
+Consuming frontends preserve the same effective selection, refusals and
+accepted result without alternate worker execution or envelope engines.
+Task owns its vendor-mode invalid envelope and local direct/stub behavior;
+its vendor refusal returns no launch result. Harness
 (CLI mechanics), model (explicit identity and effort), role (source
 authority), and work profile (policy context) are independent configurable
 dimensions, subject to job constraints and capability admission. No fixed
@@ -37,8 +40,9 @@ capability declarations below; harness owns isolation/probes; task owns
 envelope semantics. **Lane policy is a later consume-only coupling** owned
 by the parallel `lane/lane-boundary-20260905` track. Its accepted interface
 will supply profile policy. This track defines no duplicate policy and
-does not make that owner depend on output grants. C1 has no lane-policy,
-discovery or fileset dependency. Workers receive job-authorized context,
+does not make that owner depend on output grants. C1 adds no lane-policy
+implementation, discovery or fileset dependency; its profile transport below
+consumes the policy owner's selection rule. Workers receive job-authorized context,
 not conductor-wide discovery; both MCP surfaces remain read-only.
 
 ### C1 frontend inputs and results
