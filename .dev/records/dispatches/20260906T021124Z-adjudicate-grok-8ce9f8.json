@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T02:11:25Z",
-    "closed": null
+    "closed": "2026-09-06T02:17:55Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/home/grok-stream/sessions/<snapshot-encoded>/dc37a685-5291-4a7f-ba0f-bc61bd67eb8f/summary.json"
   },
   "session": {
     "id": "dc37a685-5291-4a7f-ba0f-bc61bd67eb8f",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/home/grok-stream/sessions/<snapshot-encoded>/dc37a685-5291-4a7f-ba0f-bc61bd67eb8f/summary.json",
+    "stream_sha256_at_close": "5d019d52150accbdc104c056b6c2e40be2bd6e270f75e097957da22ecf0b0258",
+    "spend": {
+      "input": 936512,
+      "cached": 771328,
+      "output": 21794,
+      "total": 958306,
+      "cost_usd_ticks": 1439553200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/home/grok-stream/sessions/<snapshot-encoded>/dc37a685-5291-4a7f-ba0f-bc61bd67eb8f/summary.json",
+      "messages": 209
+    }
   },
   "brief": {
     "template": {
@@ -103,10 +111,99 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:11:25Z",
+      "ended": "2026-09-06T02:17:55Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "23c5324b40a84366cf5bb68a1132e262ca9b21cc",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "PLAN \u00a7One declarative owner (LANE_POLICY_PATH via laneconf.py); ops/conductor/tools/laneconf.py:16-21,138-140,170-197",
+          "claim": "UPHELD. Policy authority resolved through laneconf is silently relocatable: conf_path() takes LANE_CONF, values() overlays every declared key from the environment, and get() returns os.environ ahead of the file. NAME_KEYS blocks only lane.local.conf identity keys and does not stop that overlay, including for NAME_KEYS themselves. A new LANE_POLICY_PATH key is uncovered. Admit ops/lane-policy.json from the repository root and captured git ref/digest; do not resolve policy through laneconf.get. Profiles remain mapping keys in that document. record.lane and WF_LANE stay the infrastructure marker.",
+          "reproduce": "sed -n '16,21p;138,141p;170,197p' ops/conductor/tools/laneconf.py; git rev-parse HEAD"
+        },
+        {
+          "severity": "p2",
+          "where": "PLAN slice E5 / jobs.json ownership; ops/devlane/dispatch/launch.py:952,959,1189,1213; ops/devlane/task/jobs.json:55-64,90-96; b0e12f C1/C2",
+          "claim": "PARTIAL. E5 must not own declared job outputs or per-harness adapter grants; those belong to the launch/task contract, and lane policy consumes them as one intersection term so neither track is the other's prerequisite. The proposed fallback to profile roots when a declaration is absent is REJECTED: missing declarations must not widen grants. An absent launch-track declaration adds no write root. Read roles stay snapshot-immutable except a declared out/ the adapter can isolate.",
+          "reproduce": "sed -n '952,959p;1189,1213p' ops/devlane/dispatch/launch.py; sed -n '55,64p;90,96p' ops/devlane/task/jobs.json"
+        },
+        {
+          "severity": "p2",
+          "where": "PLAN buckets D1-D3; AGENTS.md:42-77; docs/mapping.md:235-247; ops/conductor/stack.md:3-8; commit 7e07a13",
+          "claim": "UPHELD. D1-D3 were measured at 83ee5c6. 7e07a13 already corrected those homes; at 23c5324 retirement/twin language there is superseded or negated. Re-dispatching that file list re-edits corrected authority. Remaining residue (MCP-RESEARCH-2026-09-05.md:130) is separately adjudicated. New coupling belongs in lane-policy.md plus D5/D6 seams, not those doctrine rewrites. ops/devlane/AGENTS.md already carries the boundary paragraph.",
+          "reproduce": "git show 7e07a13 --stat --format='%h %s'; sed -n '42,77p' AGENTS.md; sed -n '235,247p' docs/mapping.md; sed -n '3,8p' ops/conductor/stack.md"
+        },
+        {
+          "severity": "p2",
+          "where": "PLAN smallest green slices D1-E15 and Claude A1-A5 deferral of land/ladder; ops/conductor/tools/land.py:203-227; ops/conductor/land-lever.md:54,57,69-73; ops/conductor/tools/ladder.py:717-722; launch.py:1658-1690,1855-1861,1938-1943",
+          "claim": "PARTIAL. Twenty-one buckets with mandatory binding only at E15 is not the smallest protection of today's dispatcher. Deferring land/ladder without a rule is an acceptance bypass: land accepts envelope-not-ok when collection verifies, and ladder accepts closed+ok, so unbound or collected work can still land. First delivery must bind and check settle, write-resume and collect, and land/ladder must treat missing or mismatched policy evidence as non-acceptance. Instruction-digest pinning, hooks, doctor, MCP and jobs.json capability rows may wait. Worker verdict, CLI exit 0 and collect-verify cannot accept.",
+          "reproduce": "sed -n '203,227p' ops/conductor/tools/land.py; sed -n '717,722p' ops/conductor/tools/ladder.py; sed -n '1855,1861p;1938,1943p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "PLAN E1/E2 LANE_POLICY_PATH and profile-id consumers; ops/conductor/tools/laneconf.py:310-339,363-414; ops/conductor/tests/test_laneconf.py:576-577,766-767; ops/bin/suites.sh:18",
+          "claim": "UPHELD of the PLAN as written. closure() fails unread declarations and undeclared reads; literals() forbids the token \"dev\" in ops .py/.sh outside tests/fixtures/archive/infra except listed exemptions. Those gates are pinned exit 0 on the real tree and run by suites.sh. Dropping the lane.conf key (F1) removes the closure obligation. Profile ids stay configuration data; do not hard-code them in consumers. Extend the existing exemption table only if a literal is unavoidable.",
+          "reproduce": "sed -n '310,339p;363,414p' ops/conductor/tools/laneconf.py; sed -n '576,577p;766,767p' ops/conductor/tests/test_laneconf.py; sed -n '18p' ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "PLAN E1/E2/E4 registry rows; docs/wire.md \u00a7Conformance; ops/conductor/tests/test_instrument_conventions.py:1-19,118-128",
+          "claim": "UPHELD of the PLAN as written. A component joins the registry in the change that lands it. declaring_tools() keys on the module docstring naming instrument-conventions.md. lane_policy.py must omit that mark (stdlib library, no CLI) or land ops/conductor/registry/lane_policy.py.json in the same change. Do not change laneconf's refusal surface in one bucket and its registry row in another.",
+          "reproduce": "sed -n '43,49p' docs/wire.md; sed -n '1,19p;118,128p' ops/conductor/tests/test_instrument_conventions.py; ls ops/conductor/registry"
+        },
+        {
+          "severity": "p3",
+          "where": "PLAN Files paragraph; Claude F7; ops/devlane/dispatch/launch.py:1614-1651; ops/devlane/dispatch/CONTRACT.md:277-281",
+          "claim": "PARTIAL. Reuse _residual_entries rather than a parallel enumerator. Do not treat git status -uall as observing ignored files: -uall lists individual untracked files; ignored files require --ignored. launch.py already adds git ls-files --others --ignored --exclude-standard and classifies them as !!. Keep that second command or an equivalent --ignored measurement. Cache exemptions remain the enumerated shapes only.",
+          "reproduce": "sed -n '1614,1651p' ops/devlane/dispatch/launch.py; git help status | awk '/^       -u\\[/,/^       --ignore-submodules/; /^       --ignored/,/^       -z/'"
+        }
+      ],
+      "artifacts": {
+        "RULING": "RULING at 23c5324b40a84366cf5bb68a1132e262ca9b21cc against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Artifact: GPT-6 PLAN in in/20260906T013410Z-plan-codex-670fff.json. Reviews: Claude 9e9fa3 (seven findings) and consolidation review b0e12f. This adjudicator produced neither. Inputs sha256-equal to record.json brief.inputs. No source/tests/settings/host/DB/network edits; no vendor launch; suites not run.\n\nF1 P1 policy-via-laneconf \u2014 UPHELD. F2 P2 E5/jobs.json \u2014 PARTIAL (ownership UPHELD; profile-root fallback REJECTED). F3 P2 D1-D3 stale \u2014 UPHELD. F4 P2 21 buckets / A1-A5 \u2014 PARTIAL (size UPHELD; land/ladder deferral without refuse-if-unbound REJECTED). F5 P2 laneconf closure/literals \u2014 UPHELD of the PLAN as written. F6 P3 registry sequencing \u2014 UPHELD of the PLAN as written. F7 P3 -uall \u2014 PARTIAL (reuse _residual_entries UPHELD; -uall-sees-ignored REJECTED).\n\nAdmitted: no Symfony word-ban; no prompt/classifier as semantic enforcement; nested brief.policy beside infrastructure lane (record.py:25,79); refuse flag/spec conflict; write-resume and collect are extra acceptance holes; third profile by data only; permanent dev/prod independence; claude/grok containment is policy (launch.py:379-381; CLAUDE_DENIED_TOOLS has no Write/Edit).\n\nESSENTIAL CORRECTIONS. (1) Policy document at fixed tracked path ops/lane-policy.json; authority is admitted git ref plus digest, not LANE_CONF, LANE_POLICY_PATH, environment or lane.local.conf. NAME_KEYS cannot fix this because values()/get() overlay the environment anyway. (2) Launch/task owns output and adapter grants; lane policy intersects; absence does not widen. (3) Do not re-edit D1-D3 homes already corrected in 7e07a13. (4) Land/ladder refuse missing or mismatched policy evidence; no E15-only activation; no acceptance by worker verdict, exit 0 or collect-verify alone. (5) Honest containment: claude/grok detection at acceptance, not harness prevention. (6) Residual check consumes existing _residual_entries, including ls-files --ignored.\n\nFIRST CONTRACT (S; C owns; T then I later; no implementation here). Files: ops/conductor/lane-policy.md; ops/lane-policy.json; coupling paragraph in ops/devlane/dispatch/CONTRACT.md covering consume-if-present outputs, brief.policy binding, settle/write-resume/collect, and land/ladder refuse-if-unbound. No jobs.json schema ownership. No lane.conf key. Later evaluator: ops/conductor/tools/lane_policy.py, stdlib, repo-root path, no CLI, no instrument-conventions.md docstring, no profile-id literals.\n\nThe contract must state: profile ids as mapping keys and an explicit default only if configured; permitted write roots; forbidden dependency roots; protected authority paths; shared reads; refusal classes lane-profile, lane-policy, lane-write, lane-dependency, lane-artifact, lane-resume on the docs/wire.md line; candidate policy bytes cannot self-authorize; unknown, empty or conflicting selection refuses; environment, scope text and inputs cannot reclassify; third synthetic profile by configuration data only.\n\nAcceptance: P1 ops/ writes plus shared-doc/Symfony references pass on the dev profile. P2 the same writes on prod pass, including Composer; they refuse under dev. P3 a third profile by data only, consumers unchanged. N1 missing/unknown/conflict refuses before a child starts. N2 env, LANE_CONF and a resume prompt cannot move authority or profile. N3 product writes, vendor/autoload.php or bin/console under dev refuse. N4 ignored and untracked product writes are caught via existing residual entries. N5 status ok, verdict approve, exit 0 and collect-verify cannot override. N6 a missing output declaration grants no extra write. R1 a stationary binding revalidates. R2 changed policy, profile or template refuses before attempt markers move. R3 land/ladder treat missing policy evidence as non-acceptance."
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 958306,
+        "out": 21794,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "23c5324b40a84366cf5bb68a1132e262ca9b21cc",
+        "started": "2026-09-06T02:12:20Z",
+        "ended": "2026-09-06T02:18:30Z"
+      },
+      "note": "Adjudication of seven Claude findings on the GPT-6 lane-enforcement PLAN at 23c5324. Verdict is changes: F1 upheld as P1; F2/F4/F7 partial with rejected shortcuts; F3/F5/F6 upheld. First contract is lane-policy.md plus policy data and a dispatch-contract coupling paragraph. No implementation approved."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T02:17:54.214Z"
+    }
+  },
+  "status": "closed"
 }
