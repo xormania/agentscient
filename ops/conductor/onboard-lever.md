@@ -168,6 +168,12 @@ the five-row compact law projection specified by its accepted envelopes.
 
 The v3 runtime is projected by `tools/lane_mcp.py` through the shared
 `tools/lane_read.py` core and `tools/lane_refs.py` acquisition coordinator.
+The declared callable is `ops.conductor.tools.lane_refs.acquire(config, boot,
+*, checkpoint=None)`; that module also owns the fixed Git read operations.
+Both projections pass its immutable readings to lane_read. Independent race
+fixtures import this symbol under the
+[checkpoint contract](discovery-lever.md#deterministic-acquisition-checkpoints),
+including exact event multiplicity and per-source partial order.
 Trusted launch supplies a complete v3 descriptor; `check` validates it without
 acquiring sources. `lane_start` requires a configured profile, then targeted
 homes, handoffs and actions use the same source snapshot. Work continuations
@@ -180,7 +186,12 @@ readings. It neither invokes Git nor interprets local Git configuration.
 Definition bytes must arrive through the
 [trusted --discovery-boot-fd transport](discovery-lever.md#trusted-discovery-boot-transport),
 bound to the executed artifact rather than adjacent mutable paths. This is a
-contract obligation pending independent runtime/fixture verification.
+contract obligation pending independent runtime/fixture verification under
+the [D-A47 executed-byte gate](discovery-lever.md#executed-byte-binding-gate).
+The lane_mcp boot custodian checks all three modules' actual load evidence;
+the trusted launch owner supplies bound execution inputs. Independent mismatch
+and clean controls must verify both duties; digest equality alone does not
+establish execution identity or authenticate the launcher.
 Anchor identities are pinned at boot; each query reads
 its profile's complete bounded source closure and checks it for change.
 These interfaces enable later automatic onboarding; they do not start conduct,
