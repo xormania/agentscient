@@ -24,6 +24,7 @@ from discovery_v3_support import (  # noqa: E402
     WRITER_MODULES,
     _DiscoveryV3Fixture,
     canonical_bytes,
+    eligible_checkpoint_multiset,
     omitted_check_accepts,
     record_key,
     sha256_hex,
@@ -249,23 +250,30 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
 
         result = self.call_acquire(checkpoint=mutate_retained)
         self.assertTrue(events, "checkpoint was not reached")
-        pairs = [(e["phase"], e["source_id"]) for e in events]
-        self.assertEqual(len(pairs), len(set(pairs)), pairs)
-        self.assertIn(("before-final-revalidation", "retained"), pairs)
+        eligible = eligible_checkpoint_multiset(
+            ["repo", "retained", "dispatch/job01"],
+            retained_enabled=True,
+        )
+        self.assert_checkpoint_closure(events, eligible)
         self.assertIn("mutated:retained", order)
         self.assertLess(
             order.index("before-final-revalidation:retained"),
             order.index("mutated:retained"),
         )
         self.assert_changed_during_read(result)
+        self.assertTrue(omitted_check_accepts(events, result))
         self.assertTrue(omitted_check_accepts(events, {"state": "ok", "data": {}}))
+        self.assertFalse(omitted_check_accepts([], result))
+        self.assertFalse(omitted_check_accepts(events, None))
 
         self.git("update-ref", "refs/heads/records/keep", first)
         file_events: list[dict] = []
+        file_order: list[str] = []
 
         def mutate_dispatch(event):
             closed = self.assert_checkpoint_event(event)
             file_events.append(dict(closed))
+            file_order.append(f"{closed['phase']}:{closed['source_id']}")
             if (
                 closed["phase"] == "before-file-postcheck"
                 and closed["source_id"] == "dispatch/job01"
@@ -273,15 +281,14 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
                 self._plant_bytes(rec_path, mutated)
                 self.assertEqual(rec_path.read_bytes(), mutated)
                 self.assertNotEqual(mutated, original)
+                file_order.append("mutated:dispatch/job01")
 
         file_result = self.call_acquire(checkpoint=mutate_dispatch)
-        self.assertTrue(
-            any(
-                e["phase"] == "before-file-postcheck"
-                and e["source_id"] == "dispatch/job01"
-                for e in file_events
-            ),
-            file_events,
+        self.assert_checkpoint_closure(file_events, eligible)
+        self.assertIn("mutated:dispatch/job01", file_order)
+        self.assertLess(
+            file_order.index("before-file-postcheck:dispatch/job01"),
+            file_order.index("mutated:dispatch/job01"),
         )
         self.assert_changed_during_read(file_result)
 
@@ -293,11 +300,8 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             stationary_events.append(self.assert_checkpoint_event(event))
 
         neighbor = self.call_acquire(checkpoint=stationary)
-        self.assertTrue(stationary_events)
-        if isinstance(neighbor, dict) and neighbor.get("state") == "unavailable":
-            self.assertNotEqual(neighbor.get("reason"), "changed-during-read", neighbor)
-        else:
-            self.assertIsNotNone(neighbor)
+        self.assert_checkpoint_closure(stationary_events, eligible)
+        self.assert_not_changed_during_read(neighbor)
 
         disabled = self.plant_v3_config(
             job_ids=[],
@@ -311,16 +315,9 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             disabled_events.append(self.assert_checkpoint_event(event))
 
         self.call_acquire(checkpoint=capture_disabled)
-        self.assertFalse(
-            any(e["source_id"] == "retained" for e in disabled_events),
+        self.assert_checkpoint_closure(
             disabled_events,
-        )
-        self.assertTrue(
-            any(
-                e["phase"] == "before-final-revalidation" and e["source_id"] == "repo"
-                for e in disabled_events
-            ),
-            disabled_events,
+            eligible_checkpoint_multiset(["repo"], retained_enabled=False),
         )
 
         self.reset_repo()
@@ -334,12 +331,11 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             failed_events.append(self.assert_checkpoint_event(event))
 
         failed = self.call_acquire(checkpoint=capture_failed)
-        self.assertFalse(
-            any(
-                e["phase"] == "before-final-revalidation" and e["source_id"] == "repo"
-                for e in failed_events
-            ),
+        self.assert_checkpoint_closure(
             failed_events,
+            eligible_checkpoint_multiset(
+                ["repo"], retained_enabled=False, repo_reached=False
+            ),
         )
         self.assertIsNotNone(failed)
 
@@ -452,7 +448,7 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             {"profile": "dev", "path": "ops/"},
         ):
             with self.subTest(arguments=arguments):
+                before = self.owned_surface()
                 proc = self.query("lane_start", arguments, config=conductor)
                 self.assert_refusal(proc, "arguments")
-                before = self.owned_surface()
                 self.assertEqual(self.owned_surface(), before)
