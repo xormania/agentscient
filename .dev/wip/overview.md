@@ -1,5 +1,15 @@
 # Agentscient — working overview
 
+Supersession notice, owner 2026-09-05:
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
+governs current operation. This preserved 2026-09-03 body has no precedence
+over `AGENTS.md` or `docs/`; its claim to newer intent does not override them.
+Its dev-lane strangler, twin-replacement and verb-by-verb retirement proposal
+in §6.3 is withdrawn, including the restriction to blocked-session fixes.
+Dev tooling evolves independently of the prod application, without a Symfony
+application dependency or required retirement. Conflicting passages below
+retain historical provenance only, even when a handoff or AAR points here.
+
 Status: WIP hand-off document, written 2026-09-03 by the conductor
 session with the owner, for other AI reviewers. It records the
 current specification of the whole project as settled in conversation
