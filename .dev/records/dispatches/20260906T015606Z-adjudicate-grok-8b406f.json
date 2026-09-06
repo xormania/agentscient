@@ -1,0 +1,104 @@
+{
+  "id": "20260906T015606Z-adjudicate-grok-8b406f",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "80dd63cc96df22c625ef44f4bc5d5332993c8800"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:56:07Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "80dd63cc96df22c625ef44f4bc5d5332993c8800",
+    "ref_sha": "80dd63cc96df22c625ef44f4bc5d5332993c8800",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7c352062-0f8a-4547-9cbb-fac76c7b2ca8",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "7c352062-0f8a-4547-9cbb-fac76c7b2ca8",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Rule on the four Claude findings against GPT-6's lane-authority docs correction. You produced neither artifact nor review. Read owner brief and review input; reproduce each narrowly at the target tree. UPHELD/PARTIAL/REJECTED with evidence and smallest correction. Focus on active MCP research's replacement recommendation, overview's claimed precedence/retirement, onboarding reading-list wording, and historical citation closure. Preserve dated historical bodies; a clear supersession banner or pinned historical citation may be sufficient. Do not expand into runtime enforcement, unrelated defects, or a whole-lane audit. Return RULING as an envelope artifact string, with no file output; no snapshot edits, source/tests/settings/DB/host/network changes or vendor launches. This is bounded adjudication, not planning or implementation approval.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/in/lane-boundary-owner.md",
+        "sha256": "76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T015606Z-adjudicate-grok-8b406f/in/20260906T014711Z-review-claude-e5ec77.json",
+        "sha256": "ed0c4e2d5b7a3ac931c4b4631ef6c70879aa83e9421d10a8685799daa4e9602f"
+      }
+    ],
+    "sha256": "e0662931343c0006c6e8dd9f483c221ba82dd9e8563c67cb8036aa6b29872d01",
+    "bytes": 3159
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
