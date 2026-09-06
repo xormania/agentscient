@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T04:10:06Z",
-    "closed": null
+    "closed": "2026-09-06T04:19:41Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok-stream/sessions/<snapshot-encoded>/7a908c69-6a2d-4805-96b4-9a3b9d582d14/summary.json"
   },
   "session": {
     "id": "7a908c69-6a2d-4805-96b4-9a3b9d582d14",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok-stream/sessions/<snapshot-encoded>/7a908c69-6a2d-4805-96b4-9a3b9d582d14/summary.json",
+    "stream_sha256_at_close": "16fb38d8e306a1b06e99fb26738ad581c25f9bc321bc6c7ecf8ede0c881d4b52",
+    "spend": {
+      "input": 1621220,
+      "cached": 1411456,
+      "output": 33017,
+      "total": 1654237,
+      "cost_usd_ticks": 2249708600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T041006Z-tests-grok-fbaeb6/home/grok-stream/sessions/<snapshot-encoded>/7a908c69-6a2d-4805-96b4-9a3b9d582d14/summary.json",
+      "messages": 219
+    }
   },
   "brief": {
     "template": {
@@ -91,10 +99,59 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:10:06Z",
+      "ended": "2026-09-06T04:19:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "62dc570c9b0089c3fb9eeeea35d2a57d154543b1",
+    "changed_paths": [
+      "ops/conductor/tests/test_laneconf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_laneconf.py",
+        "commit": "62dc570c9b0089c3fb9eeeea35d2a57d154543b1"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1654237,
+        "out": 33017,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1b17f14d32ce3246001825e99abd4fab1059eaa7",
+        "started": "2026-09-06T04:12:12Z",
+        "ended": "2026-09-06T04:19:14Z"
+      },
+      "note": "Authored PolicyProtocolLiterals in ops/conductor/tests/test_laneconf.py (11 cases) from policy-literal-repair-ruling.md with the real literals CLI, existing scratch helpers, and LANE_NAME=agentscient. Isolated intended positive-case assertion reds, each 1 collected / 1 failed / 0 errors: test_exact_policy_schema_declaration_at_record_py_exits_0 and test_outer_whitespace_policy_schema_declaration_at_record_py_exits_0 fail AssertionError 1 != 0 because the planted exact/outer-whitespace line is still reported as ops/devlane/dispatch/record.py:1: forbidden literal agentscient. Full command python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py at 1b17f14d32ce3246001825e99abd4fab1059eaa7: 49 tests, 3 failed, 0 errors. The third failure is the separate known current-tree baseline test_literals_exits_0_on_the_tree (ops/devlane/dispatch/record.py:70 and :71 forbidden literal agentscient), not counted as a new test's red. Wrong-path, altered name/value, appended comment/statement, extra agentscient, extra origin/dev, token-specific lane-policy, and MCP allowance cases passed. python3 ops/devlane/hooks/claude/test-guard.py ops/conductor/tests/test_laneconf.py: every plant is guarded. Committed 62dc570c9b0089c3fb9eeeea35d2a57d154543b1 (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). Independent execution and Claude review follow before code."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T04:19:40.286Z"
+    }
+  },
+  "status": "closed"
 }
