@@ -9,10 +9,13 @@ import os
 import re
 import sqlite3
 import stat
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import NoReturn
 from urllib.parse import quote
+
+sys.dont_write_bytecode = True
 
 SCHEMA = "agentscient.lane/v1"
 CONFIG_BYTES = 65_536
@@ -219,8 +222,23 @@ def _consumer(value: object) -> str:
 
 
 def load_config(path: Path) -> dict[str, object]:
+    # Parse v3 under its lexical limits; preserve every legacy parser/refusal.
+    status, raw = _bounded_regular(Path(os.path.abspath(path)), CONFIG_BYTES, follow=True)
+    if status == "ok" and raw is not None:
+        v3 = re.search(rb'"version"\s*:\s*3\b|"profiles"\s*:|"discovery"\s*:', raw) is not None
+        try:
+            parsed = strict_json(raw)
+            v3 = v3 or (isinstance(parsed, dict) and parsed.get('version') == 3)
+            if v3:
+                return validate_discovery_config(parsed, Path(os.path.abspath(path)).parent)
+        except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
+            if v3:
+                discovery_config_refusal()
+    return _load_legacy_config(path, status, raw)
+
+
+def _load_legacy_config(path: Path, status: str, raw: bytes | None) -> dict[str, object]:
     absolute = Path(os.path.abspath(path))
-    status, raw = _bounded_regular(absolute, CONFIG_BYTES, follow=True)
     if status != "ok" or raw is None:
         refuse(
             "config",
@@ -290,7 +308,7 @@ def load_config(path: Path) -> dict[str, object]:
 
 
 def check_result(config: dict[str, object]) -> dict[str, object]:
-    return {"valid": True, "tools": 7 if config["version"] == 2 else 4}
+    return {"valid": True, "tools": {1: 4, 2: 7, 3: 11}[config["version"]]}
 
 
 def _base(name: str, state: str, reason: str | None = None) -> dict[str, object]:
@@ -1169,7 +1187,13 @@ def _arguments(value: object, keys: set[str], name: str) -> dict[str, object]:
     return value
 
 
-def query(config: dict[str, object], name: str, arguments: object) -> dict[str, object]:
+def query(config: dict[str, object], name: str, arguments: object,
+          reading: dict[str, object] | None = None) -> dict[str, object]:
+    if name in DISCOVERY_QUERIES and config["version"] == 3:
+        args = discovery_arguments(config, name, arguments)
+        return discovery_query(config, name, args, reading or {
+            "state": "unavailable", "reason": "unreadable", "sources": []
+        })
     if name == "lane_record":
         args = _arguments(arguments, {"id"}, name)
         if set(args) != {"id"} or not isinstance(args.get("id"), str):
@@ -1211,7 +1235,7 @@ def query(config: dict[str, object], name: str, arguments: object) -> dict[str, 
                 ],
             }
         )
-    elif name == "lane_findings" and config["version"] == 2:
+    elif name == "lane_findings" and config["version"] >= 2:
         args = _arguments(arguments, {"id", "cursor"}, name)
         if set(args) not in ({"id"}, {"id", "cursor"}) or not isinstance(
             args.get("id"), str
@@ -1241,7 +1265,7 @@ def query(config: dict[str, object], name: str, arguments: object) -> dict[str, 
                 "supply a bounded findings cursor",
             )
         result = _findings(config, ident, cursor)
-    elif name == "lane_changes" and config["version"] == 2:
+    elif name == "lane_changes" and config["version"] >= 2:
         args = _arguments(arguments, {"checkpoint"}, name)
         checkpoint = args.get("checkpoint", {})
         if not isinstance(checkpoint, dict) or any(
@@ -1257,7 +1281,7 @@ def query(config: dict[str, object], name: str, arguments: object) -> dict[str, 
                 "supply only configured ids and bounded revisions",
             )
         result = _changes(config, checkpoint)
-    elif name == "lane_jobs" and config["version"] == 2:
+    elif name == "lane_jobs" and config["version"] >= 2:
         args = _arguments(arguments, {"name"}, name)
         job_name = args.get("name")
         if "name" in args and (
@@ -1280,4 +1304,757 @@ def query(config: dict[str, object], name: str, arguments: object) -> dict[str, 
         )
     if len(canonical_bytes(result)) > QUERY_BYTES:
         return _base(name, "unavailable", "complete query exceeds 16384 bytes")
+    return result
+
+
+# Boot-owned routing definitions from discovery-lever.md; never parsed from records.
+CONCEPT_INDEX = [{'concept': 'wire',
+  'home': 'docs/wire.md',
+  'contract': 'docs/wire.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'unbuilt',
+  'intended': 'packages/wire'},
+ {'concept': 'workflow-genus',
+  'home': 'docs/workflow.md',
+  'contract': 'docs/workflow.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'none',
+  'intended': 'symfony/workflow'},
+ {'concept': 'wf-runtime',
+  'home': 'docs/workflow.md',
+  'contract': 'docs/workflow.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'unbuilt',
+  'intended': None},
+ {'concept': 'probes',
+  'home': 'docs/probes.md',
+  'contract': 'ops/conductor/probes-lever.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'unbuilt',
+  'intended': None},
+ {'concept': 'concerns',
+  'home': 'docs/concerns.md',
+  'contract': 'docs/concerns.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'none',
+  'intended': None},
+ {'concept': 'verified-couplings',
+  'home': 'docs/verified-couplings.md',
+  'contract': 'docs/verified-couplings.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'none',
+  'intended': None},
+ {'concept': 'mapping',
+  'home': 'docs/mapping.md',
+  'contract': 'docs/mapping.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'none',
+  'intended': 'four projections'},
+ {'concept': 'onboard',
+  'home': 'ops/conductor/onboard-lever.md',
+  'contract': 'ops/conductor/onboard-lever.md',
+  'entrypoint': 'ops/conductor/tools/onboard.py',
+  'registry': 'ops/conductor/registry/onboard.py.json',
+  'implementation': 'ops/conductor/tools/onboard.py',
+  'intended': None},
+ {'concept': 'lane-mcp',
+  'home': 'ops/conductor/lane-mcp-lever.md',
+  'contract': 'ops/conductor/lane-mcp-lever.md',
+  'entrypoint': 'ops/conductor/tools/lane_mcp.py',
+  'registry': 'ops/conductor/registry/lane_mcp.py.json',
+  'implementation': 'ops/conductor/tools/lane_mcp.py',
+  'intended': None},
+ {'concept': 'lane-read',
+  'home': 'ops/conductor/lane-mcp-lever.md',
+  'contract': 'ops/conductor/lane-mcp-lever.md',
+  'entrypoint': 'ops/conductor/tools/lane_read.py',
+  'registry': None,
+  'implementation': 'ops/conductor/tools/lane_read.py',
+  'intended': None},
+ {'concept': 'dispatch',
+  'home': 'ops/devlane/dispatch/CONTRACT.md',
+  'contract': 'ops/devlane/dispatch/CONTRACT.md',
+  'entrypoint': 'ops/devlane/dispatch/launch.py',
+  'registry': 'ops/devlane/task/jobs.json',
+  'implementation': 'ops/devlane/dispatch/launch.py',
+  'intended': None},
+ {'concept': 'harness',
+  'home': 'ops/devlane/harness/',
+  'contract': 'ops/devlane/harness/context.cue',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'none',
+  'intended': None},
+ {'concept': 'jobs',
+  'home': 'ops/devlane/task/jobs.json',
+  'contract': 'ops/devlane/task/CONTRACT.md',
+  'entrypoint': None,
+  'registry': 'ops/devlane/task/jobs.json',
+  'implementation': 'none',
+  'intended': None},
+ {'concept': 'handoff',
+  'home': 'ops/conductor/handoff/README.md',
+  'contract': 'ops/conductor/handoff/README.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'unbuilt',
+  'intended': None},
+ {'concept': 'aar',
+  'home': 'ops/conductor/handoff/README.md',
+  'contract': 'ops/conductor/handoff/README.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'unbuilt',
+  'intended': None},
+ {'concept': 'decisions',
+  'home': 'ops/conductor/decisions-register.md',
+  'contract': 'ops/conductor/decisions-register.md',
+  'entrypoint': 'ops/conductor/tools/decisions.py',
+  'registry': 'ops/conductor/registry/decisions.py.json',
+  'implementation': 'ops/conductor/tools/decisions.py',
+  'intended': None},
+ {'concept': 'ledger',
+  'home': 'ops/conductor/handwork-ledger.md',
+  'contract': 'ops/conductor/handwork-ledger.md',
+  'entrypoint': 'ops/conductor/tools/hand.py',
+  'registry': 'ops/conductor/registry/hand.py.json',
+  'implementation': 'ops/conductor/tools/hand.py',
+  'intended': None},
+ {'concept': 'watch',
+  'home': 'ops/conductor/watch-lever.md',
+  'contract': 'ops/conductor/watch-lever.md',
+  'entrypoint': 'ops/conductor/tools/watch.py',
+  'registry': 'ops/conductor/registry/watch.py.json',
+  'implementation': 'ops/conductor/tools/watch.py',
+  'intended': None},
+ {'concept': 'land',
+  'home': 'ops/conductor/land-lever.md',
+  'contract': 'ops/conductor/land-lever.md',
+  'entrypoint': 'ops/conductor/tools/land.py',
+  'registry': 'ops/conductor/registry/land.py.json',
+  'implementation': 'ops/conductor/tools/land.py',
+  'intended': None},
+ {'concept': 'ci-store',
+  'home': 'ops/conductor/ci-store.md',
+  'contract': 'ops/conductor/ci-store.md',
+  'entrypoint': 'ops/conductor/tools/ci.py',
+  'registry': 'ops/conductor/registry/ci.py.json',
+  'implementation': 'ops/conductor/tools/ci.py',
+  'intended': None},
+ {'concept': 'branches',
+  'home': 'ops/conductor/branch-census.md',
+  'contract': 'ops/conductor/branch-census.md',
+  'entrypoint': 'ops/conductor/tools/branches.py',
+  'registry': 'ops/conductor/registry/branches.py.json',
+  'implementation': 'ops/conductor/tools/branches.py',
+  'intended': None},
+ {'concept': 'skills',
+  'home': '.claude/skills/skills/SKILL.md',
+  'contract': '.claude/skills/skills/SKILL.md',
+  'entrypoint': 'ops/conductor/tools/skills.py',
+  'registry': None,
+  'implementation': 'ops/conductor/tools/skills.py',
+  'intended': None},
+ {'concept': 'permission',
+  'home': 'ops/conductor/permission-surface.md',
+  'contract': 'ops/conductor/permission-surface.md',
+  'entrypoint': 'ops/conductor/tools/co_doc.py',
+  'registry': None,
+  'implementation': 'ops/conductor/tools/co_doc.py',
+  'intended': None},
+ {'concept': 'monitor',
+  'home': 'ops/conductor/monitor-lever.md',
+  'contract': 'ops/conductor/monitor-lever.md',
+  'entrypoint': 'ops/conductor/tools/monitor.py',
+  'registry': 'ops/conductor/registry/monitor.py.json',
+  'implementation': 'ops/conductor/tools/monitor.py',
+  'intended': None},
+ {'concept': 'watchdog',
+  'home': 'ops/conductor/watchdog-lever.md',
+  'contract': 'ops/conductor/watchdog-lever.md',
+  'entrypoint': 'ops/conductor/tools/watchdog.py',
+  'registry': 'ops/conductor/registry/watchdog.py.json',
+  'implementation': 'ops/conductor/tools/watchdog.py',
+  'intended': None},
+ {'concept': 'ladder',
+  'home': 'ops/conductor/ladder-lever.md',
+  'contract': 'ops/conductor/ladder-lever.md',
+  'entrypoint': 'ops/conductor/tools/ladder.py',
+  'registry': 'ops/conductor/registry/ladder.py.json',
+  'implementation': 'ops/conductor/tools/ladder.py',
+  'intended': None},
+ {'concept': 'onboard-discovery',
+  'home': 'ops/conductor/discovery-lever.md',
+  'contract': 'ops/conductor/discovery-lever.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'unbuilt',
+  'intended': None},
+ {'concept': 'conduct',
+  'home': 'ops/conductor/conductor-start-plan.md',
+  'contract': 'ops/conductor/conductor-start-plan.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'unbuilt',
+  'intended': None},
+ {'concept': 'packages',
+  'home': 'packages/README.md',
+  'contract': 'packages/README.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'none',
+  'intended': 'bundle gestation'},
+ {'concept': 'projections',
+  'home': 'AGENTS.md',
+  'contract': 'AGENTS.md',
+  'entrypoint': None,
+  'registry': None,
+  'implementation': 'none',
+  'intended': 'CLI, TUI, MCP, API'}]
+
+DISCOVERY_QUERIES = ('lane_start', 'lane_homes', 'lane_handoffs', 'lane_actions')
+DISCOVERY_ID_RE = re.compile(r'[a-z][a-z0-9-]{0,31}')
+DIGEST_RE = re.compile(r'[0-9a-f]{64}')
+OID_RE = re.compile(r'[0-9a-f]{40}')
+REF_RE = re.compile(r'refs/heads/(?:[A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*')
+DISCOVERY_LAW = (
+    ('AGENTS.md', 'the operating contract'),
+    ('CONTRIB.md', 'naming, PR bodies, fix commits, the review wire'),
+    ('ops/conductor/instrument-conventions.md', "the lane's base contract: wire, identity, exits"),
+    ('ops/conductor/stack.md', 'the stack: layers, incumbents, open seats'),
+    ('ops/conductor/coverage-zones.md', 'what gates what'),
+)
+ACTION_INDEX = (
+    ('onboard', 'ops/conductor/onboard-lever.md', 'ops/conductor/tools/onboard.py'),
+    ('handoff', 'ops/conductor/handoff/README.md', None),
+    ('aar', 'ops/conductor/handoff/README.md', None),
+    ('closeout', 'docs/workflow.md', None),
+)
+START_OMISSIONS = [
+    'no host activation', 'no live readiness', 'no role enforcement',
+    'no lifecycle publication', 'no raw documentation dump',
+    'HEAD tree only; dirty and untracked files excluded',
+    'register ledger prs local readings unavailable',
+]
+
+
+def default_profiles() -> dict:
+    """Declarations, not defaults inserted into an incomplete config."""
+    concepts = [row['concept'] for row in CONCEPT_INDEX]
+    return {
+        'dev': dict(label='development machinery', work_roots=['ops/'],
+                    startup_homes=['lane-mcp', 'dispatch', 'onboard'],
+                    homes=[c for c in concepts if c not in {'mapping', 'packages', 'projections'}],
+                    source_ids=['repo'], lineage='dev'),
+        'prod': dict(label='Symfony application',
+                     work_roots=['src/', 'packages/', 'config/', 'public/'],
+                     startup_homes=['mapping', 'packages', 'projections'],
+                     homes=[c for c in concepts if c not in {'wf-runtime', 'dispatch', 'harness', 'jobs', 'ci-store', 'ladder'}],
+                     source_ids=['repo'], lineage='prod'),
+    }
+
+
+def matches(pattern: re.Pattern, value: object) -> bool:
+    return isinstance(value, str) and pattern.fullmatch(value) is not None
+
+
+def valid_ref(value: object) -> bool:
+    return (matches(REF_RE, value) and len(value) <= 256
+            and all('..' not in c and not c.endswith(('.', '.lock')) for c in value.split('/')))
+
+
+def valid_path(value: object, *, absolute: bool = False, root: bool = False) -> bool:
+    if (not isinstance(value, str) or not 1 <= len(value) <= 1024
+            or not value.isascii() or not value.isprintable()
+            or any(c in value for c in '\\~*?[]')
+            or value.startswith('/') != absolute or value.endswith('/') != root):
+        return False
+    parts = value[int(absolute):len(value) - int(root) if root else None].split('/')
+    return all(c not in ('', '.', '..') for c in parts)
+
+
+def strict_json(raw: bytes) -> object:
+    """V3 limits are checked lexically before constructing containers."""
+    if _json_depth_exceeds(raw, 32):
+        raise ValueError('depth')
+
+    def integer(value):
+        parsed = int(value)
+        if not -MAX_INTEGER - 1 <= parsed <= MAX_INTEGER:
+            raise ValueError('integer')
+        return parsed
+
+    def number(value):
+        parsed = float(value)
+        if not math.isfinite(parsed):
+            raise ValueError('number')
+        return parsed
+
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError('duplicate')
+            result[key] = value
+        return result
+
+    def constant(_value):
+        raise ValueError('constant')
+
+    return json.loads(raw.decode('utf-8'), parse_int=integer, parse_float=number,
+                      parse_constant=constant, object_pairs_hook=pairs)
+
+
+def discovery_config_refusal() -> NoReturn:
+    refuse('config', 'valid versioned configuration', 'invalid',
+           'supply the declared keys and bindings')
+
+
+def validate_discovery_config(root: object, base: Path) -> dict:
+    def require(condition):
+        if not condition:
+            raise ValueError('config')
+
+    def shape(value, keys):
+        require(isinstance(value, dict) and set(value) == set(keys.split()))
+
+    def unique(value, low, high, predicate):
+        require(isinstance(value, list) and low <= len(value) <= high)
+        require(all(predicate(item) for item in value))
+        require(len(set(value)) == len(value))
+
+    def ident(value):
+        return matches(DISCOVERY_ID_RE, value)
+
+    require(isinstance(root, dict) and set(root) == CONFIG_KEYS_V2 | {'profiles', 'discovery'})
+    require(type(root['version']) is int and root['version'] == 3)
+    unique(root['job_ids'], 0, 21, lambda v: matches(ID_RE, v))
+    result = dict(root)
+    for field in ('dispatch_store', 'monitor_state', 'usage_rollout', 'job_registry'):
+        result[field] = _source_path(root[field], field, base)
+    result['consumer'] = _consumer(root['consumer'])
+    discovery = root['discovery']
+    shape(discovery, 'audience anchors repository retained_refs dispatch record_bindings work_bindings')
+    require(discovery['audience'] == 'conductor')
+    anchors = discovery['anchors']
+    require(isinstance(anchors, dict) and 1 <= len(anchors) <= 8 and 'repo' in anchors)
+    require(all(ident(k) and valid_path(v, absolute=True) for k, v in anchors.items()))
+    repository = discovery['repository']
+    shape(repository, 'id root gitdir common_gitdir head ref')
+    require(ident(repository['id']) and repository['root'] == 'repo')
+    require(all(isinstance(repository[k], str) and repository[k] in anchors for k in ('gitdir', 'common_gitdir')))
+    require(matches(OID_RE, repository['head']))
+    require(repository['ref'] is None or valid_ref(repository['ref']))
+    require(discovery['retained_refs'] in (None, 'refs/heads/records/'))
+    dispatch = discovery['dispatch']
+    if dispatch is not None:
+        shape(dispatch, 'anchor path')
+        require(isinstance(dispatch['anchor'], str) and dispatch['anchor'] in anchors)
+        require(valid_path(dispatch['path']))
+        require(os.path.join(anchors[dispatch['anchor']], dispatch['path']) == result['dispatch_store'])
+    bindings = discovery['record_bindings']
+    require(isinstance(bindings, list) and len(bindings) <= 256)
+    revisions, metadata, pairs = {}, {}, set()
+    for binding in bindings:
+        shape(binding, 'record_id kind revision lineage work_paths supersedes')
+        require(ident(binding['record_id']) and ident(binding['lineage']))
+        require(binding['kind'] in ('handoff', 'aar') and matches(DIGEST_RE, binding['revision']))
+        unique(binding['work_paths'], 1, 64, valid_path)
+        unique(binding['supersedes'], 0, 16, ident)
+        pair = (binding['record_id'], binding['revision'])
+        require(pair not in pairs)
+        pairs.add(pair)
+        meta = {k: v for k, v in binding.items() if k != 'revision'}
+        require(binding['revision'] not in revisions or revisions[binding['revision']] == meta)
+        require(binding['record_id'] not in metadata or metadata[binding['record_id']] == meta)
+        revisions[binding['revision']] = meta
+        metadata[binding['record_id']] = meta
+    for binding in bindings:
+        for target in binding['supersedes']:
+            require(target in metadata and all(metadata[target][k] == binding[k] for k in ('kind', 'lineage')))
+    visited, active = set(), set()
+
+    def visit(ident):
+        require(ident not in active)
+        if ident in visited:
+            return
+        active.add(ident)
+        for target in metadata[ident]['supersedes']:
+            visit(target)
+        active.remove(ident)
+        visited.add(ident)
+
+    for ident_value in metadata:
+        visit(ident_value)
+    work = discovery['work_bindings']
+    require(isinstance(work, list) and len(work) <= 20)
+    seen = set()
+    for binding in work:
+        shape(binding, 'id lineage work_paths')
+        require(isinstance(binding['id'], str) and binding['id'] in root['job_ids'] and binding['id'] not in seen)
+        seen.add(binding['id'])
+        require(ident(binding['lineage']))
+        unique(binding['work_paths'], 1, 64, valid_path)
+    profiles = root['profiles']
+    require(isinstance(profiles, dict) and 2 <= len(profiles) <= 16 and {'dev', 'prod'} <= set(profiles))
+    concepts = {row['concept'] for row in CONCEPT_INDEX}
+    for name, profile in profiles.items():
+        require(ident(name))
+        shape(profile, 'label work_roots homes startup_homes source_ids lineage')
+        label = profile['label']
+        require(isinstance(label, str) and 1 <= len(label) <= 128 and label.isascii() and label.isprintable())
+        unique(profile['work_roots'], 1, 16, lambda p: valid_path(p, root=True))
+        unique(profile['homes'], 1, 64, lambda c: isinstance(c, str) and c in concepts)
+        unique(profile['startup_homes'], 1, 3, lambda c, profile=profile: isinstance(c, str) and c in profile['homes'])
+        allowed = {'repo'}
+        if discovery['retained_refs'] is not None:
+            allowed.add('retained')
+        if dispatch is not None:
+            allowed.update('dispatch/' + job for job in root['job_ids'])
+        unique(profile['source_ids'], 1, 22, lambda s, allowed=allowed: isinstance(s, str) and s in allowed)
+        require('repo' in profile['source_ids'] and ident(profile['lineage']))
+    return result
+
+
+def cursor_refusal() -> NoReturn:
+    refuse('cursor', 'current snapshot and valid page offset', 'invalid', 'restart from lane_start')
+
+
+def discovery_arguments(config: dict, name: str, value: object) -> dict:
+    extra = {'lane_start': {'cursor'}, 'lane_homes': {'concept', 'cursor'},
+             'lane_handoffs': {'key', 'cursor'}, 'lane_actions': {'name'}}[name]
+    if (not isinstance(value, dict) or not set(value) <= {'profile', 'snapshot'} | extra
+            or not matches(DISCOVERY_ID_RE, value.get('profile'))):
+        refuse('arguments', f'closed arguments for {name}', 'invalid', 'use the declared query schema')
+    for field, pattern in (('concept', JOB_NAME_RE), ('key', re.compile(r'record/[0-9a-f]{64}')), ('name', DISCOVERY_ID_RE)):
+        if field in value and (not matches(pattern, value[field]) or 'cursor' in value):
+            refuse('arguments', f'closed arguments for {name}', 'invalid', 'use the declared query schema')
+    if value['profile'] not in config['profiles']:
+        refuse('profile', 'configured profile', value['profile'], 'use a profile from configuration')
+    if 'snapshot' in value and not matches(DIGEST_RE, value['snapshot']):
+        cursor_refusal()
+    if 'cursor' in value:
+        cursor = value['cursor']
+        match = re.fullmatch(r'([0-9a-f]{64}):(0|[1-9][0-9]{0,2})', cursor) if isinstance(cursor, str) else None
+        if match is None or 'snapshot' not in value:
+            cursor_refusal()
+        low, high = (0, 20) if name == 'lane_start' else (1, 255)
+        if not low <= int(match[2]) <= high or match[1] != value['snapshot']:
+            cursor_refusal()
+    return dict(value)
+
+
+def digest(value: object) -> str:
+    return hashlib.sha256(canonical_bytes(value)).hexdigest()
+
+
+def source_reading(ident: str, binding: dict, observations: list) -> dict:
+    """The sole discovery source hash recipe; byte buffers normalize at the seam."""
+    normalized = {}
+    for observation in observations:
+        row = dict(observation)
+        if isinstance(row['data'], bytes):
+            row['data'] = {'revision': hashlib.sha256(row['data']).hexdigest(), 'bytes': len(row['data'])}
+        normalized[canonical_bytes(row)] = row
+    ordered = [normalized[key] for key in sorted(normalized)]
+    failures = sorted((o for o in ordered if o['state'] != 'ok'),
+                      key=lambda o: (o['operation'], canonical_bytes(o['input']), canonical_bytes(o)))
+    state = 'unavailable' if any(o['state'] == 'unavailable' and o['reason'] != 'missing' for o in failures) else 'unknown' if failures else 'ok'
+    reason = failures[0]['reason'] if failures else None
+    return dict(id=ident, state=state, reason=reason,
+                fingerprint=digest(dict(id=ident, binding=binding, state=state, reason=reason, observations=ordered)))
+
+
+def relevant(binding: dict, profile: dict) -> bool:
+    return (binding['lineage'] == profile['lineage']
+            and any(path.startswith(root) for path in binding['work_paths'] for root in profile['work_roots']))
+
+
+def _discovery_homes(config: dict, profile: dict, reading: dict) -> list:
+    files = reading.get('files', {})
+    lock = files.get('composer.lock', {})
+    locked = None
+    if lock.get('state') == 'ok':
+        try:
+            parsed = strict_json(lock['data'])
+            if not isinstance(parsed, dict) or any(k in parsed and not isinstance(parsed[k], list) for k in ('packages', 'packages-dev')):
+                raise ValueError('lock')
+            locked = any(isinstance(p, dict) and p.get('name') == 'symfony/workflow'
+                         for k in ('packages', 'packages-dev') for p in parsed.get(k, []))
+        except (ValueError, TypeError, UnicodeError, RecursionError):
+            locked = None
+    elif lock.get('reason') == 'missing':
+        locked = False
+
+    def presence(path):
+        if path is None:
+            return None
+        source = files.get(path, {})
+        if source.get('reason') == 'missing':
+            return False
+        if source.get('state') != 'ok':
+            return None
+        return bool(source.get('data'))
+
+    index = {row['concept']: row for row in CONCEPT_INDEX}
+    homes = []
+    for concept in profile['homes']:
+        row = index[concept]
+        present = presence(row['contract'])
+        implementation = row['implementation']
+        implementation_present = (None if implementation == 'none' else False if implementation == 'unbuilt'
+                                  else presence(implementation))
+        consulted = any(p in files for p in (row['contract'], implementation)) or (row['intended'] == 'symfony/workflow' and 'composer.lock' in files)
+        homes.append(dict(concept=concept, home=row['home'], contract=row['contract'],
+                          entrypoint=row['entrypoint'] if present else None, registry=row['registry'],
+                          ownership='declared' if present else 'unresolved', document_present=present,
+                          implementation_present=implementation_present,
+                          locked=locked if row['intended'] == 'symfony/workflow' else None,
+                          installed=None, activated=None, probed=None, intended=row['intended'],
+                          evidence=['contract', 'repo'] if consulted else ['contract']))
+    return homes
+
+
+def _discovery_candidates(config: dict, profile: dict, reading: dict) -> tuple[list, dict]:
+    bindings = {b['revision']: b for b in config['discovery']['record_bindings']}
+    grouped = {}
+    complete = reading.get('records_complete', False)
+    for occurrence in reading.get('records', []):
+        raw = occurrence.get('data')
+        if not isinstance(raw, bytes):
+            complete = False
+            continue
+        revision = hashlib.sha256(raw).hexdigest()
+        group = grouped.setdefault(revision, dict(raw=raw, occurrences=[], kinds=set(), conflict=False))
+        group['conflict'] |= group['raw'] != raw
+        group['occurrences'].append(occurrence['provenance'])
+        group['kinds'].add(occurrence['kind'])
+    # An incomplete scan cannot establish missing bytes; include missing bindings
+    # only after complete enumeration, including measured reads that failed.
+    if reading.get('records_complete', False):
+        for revision, binding in bindings.items():
+            if revision not in grouped and relevant(binding, profile):
+                grouped[revision] = dict(raw=None, occurrences=[], kinds={binding['kind']}, conflict=False)
+    candidates, readable, selected_bindings = [], set(), {}
+    for revision, group in sorted(grouped.items()):
+        binding = bindings.get(revision)
+        if binding is not None and not relevant(binding, profile):
+            continue
+        raw = group['raw']
+        kinds = group['kinds']
+        kind = binding['kind'] if binding else ('handoff' if 'handoff' in kinds else 'aar')
+        conflict = group['conflict'] or len(kinds) != 1 or (binding is not None and kind not in kinds)
+        reason = ('metadata-conflict' if conflict else 'metadata-missing' if binding is None
+                  else 'missing-bound-record' if raw is None else None)
+        is_readable = raw is not None
+        if raw is not None:
+            try:
+                raw.decode('utf-8')
+            except UnicodeError:
+                is_readable = False
+                if reason is None:
+                    reason = 'malformed'
+        occurrences = sorted(group['occurrences'], key=lambda o: (o['ref'] or '', o['commit'], o['path'], o['blob']))
+        known = binding is not None and not conflict
+        if kind == 'handoff' and (not known or not is_readable):
+            complete = False
+        card = dict(key='record/' + revision, record_id=binding['record_id'] if known else None,
+                    kind=kind, relevance='relevant' if known else 'unknown', freshness='unknown',
+                    trust='untrusted-record', revision=revision, occurrences=len(occurrences),
+                    provenance=occurrences[0] if known and occurrences else None,
+                    body=None, body_bytes=len(raw) if known and raw is not None else None, reason=reason)
+        candidates.append(card)
+        if known:
+            selected_bindings[card['key']] = binding
+            if is_readable:
+                readable.add(card['key'])
+    superseded = set()
+    by_id = {b['record_id']: b for b in bindings.values()}
+
+    def mark(ident):
+        if ident in superseded:
+            return
+        superseded.add(ident)
+        for target in by_id[ident]['supersedes']:
+            mark(target)
+
+    for key in readable:
+        for target in selected_bindings[key]['supersedes']:
+            mark(target)
+    if complete:
+        for card in candidates:
+            if card['key'] in readable:
+                card['freshness'] = 'stale' if card['record_id'] in superseded else 'current'
+    current = [c for c in candidates if c['kind'] == 'handoff' and c['freshness'] == 'current']
+    stale = [c for c in candidates if c['kind'] == 'handoff' and c['freshness'] == 'stale']
+    selection = dict(selection=('none' if not current else 'one' if len(current) == 1 else 'multiple') if complete else 'unknown',
+                     selected_key=current[0]['key'] if complete and len(current) == 1 else None,
+                     current=len(current) if complete else None, stale=len(stale) if complete else None,
+                     unknown=0 if complete else None, complete=complete)
+    return candidates, selection
+
+
+def _discovery_work(config: dict, profile: dict, reading: dict) -> tuple[list, dict]:
+    bindings = {b['id']: b for b in config['discovery']['work_bindings']}
+    sources = {s['id']: s for s in reading['sources']}
+    counts = dict(configured=0, readable=0, unknown=0, unavailable=0)
+    cards = []
+    for ident in config['job_ids']:
+        source_id = 'dispatch/' + ident
+        if source_id not in profile['source_ids']:
+            continue
+        source = sources[source_id]
+        counts['configured'] += 1
+        counts['readable' if source['state'] == 'ok' else source['state']] += 1
+        binding = bindings.get(ident)
+        if binding is not None and not relevant(binding, profile):
+            continue
+        record = reading.get('dispatches', {}).get(ident, {})
+        cards.append(dict(id=ident, lineage=binding['lineage'] if binding else None,
+                          relevance='relevant' if binding else 'unknown',
+                          recorded_status=record.get('recorded_status'), revision=record.get('revision'),
+                          reason=source['reason'] if source['state'] != 'ok' else None if binding else 'metadata-missing'))
+    return cards, counts
+
+
+def discovery_query(config: dict, name: str, args: dict, reading: dict) -> dict:
+    """Pure projection of one immutable acquisition; no source access here."""
+    profile_id = args['profile']
+    profile = config['profiles'][profile_id]
+    sources = sorted(reading['sources'], key=lambda s: s['id'])
+    snapshot = (digest(dict(protocol='discovery/3', audience='conductor', profile=profile_id, sources=sources))
+                if reading['state'] == 'ok' else None)
+    result = dict(schema=SCHEMA, query=name, state=reading['state'], reason=reading.get('reason'),
+                  profile=profile_id, snapshot=snapshot, sources=sources, data=None)
+    if reading['state'] != 'ok':
+        return result
+    if 'snapshot' in args and args['snapshot'] != snapshot:
+        refuse('cursor', 'snapshot ' + snapshot, args['snapshot'], 'restart from lane_start')
+    candidates, selection = _discovery_candidates(config, profile, reading)
+    if len(candidates) > 256:
+        return dict(result, state='unavailable', reason='record-overflow')
+    homes = _discovery_homes(config, profile, reading)
+    files = reading.get('files', {})
+    actions = []
+    for action_name, owner, entrypoint in ACTION_INDEX:
+        source = files.get(entrypoint, {})
+        present = (False if entrypoint is None or source.get('reason') == 'missing' else
+                   bool(source.get('data')) if source.get('state') == 'ok' else None)
+        actions.append(dict(name=action_name, owner=owner, entrypoint=entrypoint,
+                            implementation_present=present, available=present, installed=None,
+                            activated=None, probed=None,
+                            reason='disabled' if entrypoint is None else None if present else 'missing' if present is False else 'unreadable'))
+    offset = int(args['cursor'].split(':')[1]) if 'cursor' in args else 0
+    cap = 8192 if name == 'lane_start' else QUERY_BYTES
+
+    def failure(reason):
+        return dict(result, state='unavailable', reason=reason, sources=[], data=None)
+
+    def fits(data):
+        return len(canonical_bytes(dict(result, data=data))) <= cap
+
+    if name == 'lane_actions':
+        named = args.get('name')
+        action = next((a for a in actions if a['name'] == named), None)
+        result['data'] = dict(actions=actions if named is None else [], action=action)
+        if named is not None and action is None:
+            result['reason'] = 'unknown-action'
+    elif name == 'lane_start':
+        work, counts = _discovery_work(config, profile, reading)
+        if 'cursor' in args and offset >= len(work):
+            cursor_refusal()
+        law = [dict(path=p, status='present' if files.get(p, {}).get('state') == 'ok' and files[p].get('data') else
+                    'missing' if files.get(p, {}).get('reason') == 'missing' or files.get(p, {}).get('data') == b'' else 'unavailable',
+                    one_liner=label) for p, label in DISCOVERY_LAW]
+        state = [dict(name=n, status='unavailable', summary=None, reason='unsupported-local-reading', evidence=[])
+                 for n in ('register', 'ledger', 'prs')]
+        state.append(dict(name='dispatches', status='ok', summary=counts, reason=None,
+                          evidence=['dispatch/' + i for i in config['job_ids'] if 'dispatch/' + i in profile['source_ids']]))
+        head = reading.get('head', {})
+        state.append(dict(name='branch', status='ok' if head.get('state') == 'ok' else 'unavailable',
+                          summary=dict(ref=head['data']['ref'], commit=head['data']['head']) if head.get('state') == 'ok' else None,
+                          reason=head.get('reason'), evidence=['repo']))
+        by_concept = {h['concept']: h for h in homes}
+        summaries = [{k: by_concept[c][k] for k in ('concept', 'home', 'entrypoint', 'document_present', 'implementation_present')}
+                     for c in profile['startup_homes']]
+        omissions = list(START_OMISSIONS)
+        if 'retained' not in profile['source_ids']:
+            omissions.append('retained source not searched')
+
+        def frame(items):
+            omitted = len(work) - offset - len(items)
+            more = [f'work omitted: {omitted}', f'work next cursor: {snapshot}:{offset + len(items)}'] if omitted else []
+            return dict(law=law, state_sources=state, homes=summaries, work=items,
+                        handoffs=selection, actions=actions, omissions=omissions + more)
+
+        if not fits(frame([])):
+            return failure('page-frame-exceeds-cap')
+        items = work[:8] if 'cursor' not in args else []
+        if 'cursor' not in args:
+            if not fits(frame(items)):
+                items = []
+        else:
+            for card in work[offset:offset + 8]:
+                if not fits(frame(items + [card])):
+                    break
+                items.append(card)
+            if not items:
+                return failure('item-exceeds-cap')
+        result['data'] = frame(items)
+    else:
+        is_home = name == 'lane_homes'
+        values = homes if is_home else candidates
+        plural, singular, key, field = ('homes', 'home', 'concept', 'concept') if is_home else ('candidates', 'candidate', 'key', 'key')
+        data = {plural: [], singular: None, 'page': None}
+        if not is_home:
+            data['handoffs'] = selection
+        if field in args:
+            card = next((dict(c) for c in values if c[key] == args[field]), None)
+            if card is not None and not is_home and card['relevance'] == 'relevant' and card['occurrences']:
+                raw = next((r['data'] for r in reading.get('records', []) if isinstance(r.get('data'), bytes)
+                            and hashlib.sha256(r['data']).hexdigest() == card['revision']), None)
+                if raw is not None:
+                    if card['reason'] == 'malformed':
+                        card['body'] = None
+                    elif len(raw) > 2048:
+                        card['reason'] = 'body-exceeds-cap'
+                    else:
+                        try:
+                            body = raw.decode('utf-8')
+                            escaped = '\n'.join('>' + s if s == 'END UNTRUSTED RECORD' else s for s in body.split('\n'))
+                            card['body'] = f"BEGIN UNTRUSTED RECORD key={card['key']} revision={card['revision']}\n{escaped}\nEND UNTRUSTED RECORD\n"
+                        except UnicodeError:
+                            card['reason'] = 'malformed'
+            data[singular] = card
+            if card is None:
+                result['reason'] = 'unknown-concept' if is_home else 'unknown-key'
+        else:
+            if 'cursor' in args and offset >= len(values):
+                cursor_refusal()
+
+            def page(items):
+                more = offset + len(items) < len(values)
+                return dict(data, **{plural: items, 'page': dict(offset=offset, count=len(items), total=len(values),
+                            more=more, next_cursor=f'{snapshot}:{offset + len(items)}' if more else None)})
+
+            if not fits(page([])):
+                return failure('page-frame-exceeds-cap')
+            items = []
+            for card in values[offset:offset + 16]:
+                if not fits(page(items + [card])):
+                    break
+                items.append(card)
+            if values and not items:
+                return failure('item-exceeds-cap')
+            data = page(items)
+        result['data'] = data
+    if len(canonical_bytes(result)) > cap:
+        return failure('response-exceeds-cap')
     return result

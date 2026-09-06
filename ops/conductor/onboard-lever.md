@@ -33,8 +33,8 @@ A listed file's presence establishes availability,
 not current authority for every passage. In particular, `stack.md` is dated
 origin material: its replacement/convergence doctrine cannot override the
 owner's 2026-09-05 separation. AARs, handoffs and register observations also
-retain their provenance without reviving superseded policy. This correction
-does not change the tool's reading-list data or claim it enforces work scope.
+retain their provenance without reviving superseded policy. The reading list includes the accepted discovery contract and startup sequence;
+its presence checks do not enforce work scope.
 
 **`== law`** — the reading list, data in the tool, amended by commit
 (the lever-registry pattern):
@@ -46,6 +46,8 @@ does not change the tool's reading-list data or claim it enforces work scope.
 | `ops/conductor/instrument-conventions.md` | the lane's base contract: wire, identity, exits |
 | `ops/conductor/stack.md` | the stack: layers, incumbents, open seats |
 | `ops/conductor/coverage-zones.md` | what gates what |
+| `ops/conductor/discovery-lever.md` | profile discovery, source custody, and uncertainty |
+| `ops/conductor/conductor-start-plan.md` | the conductor startup sequence and admission boundaries |
 
 One line per entry: `OK <path> — <one-liner>` when the file exists and
 is non-empty, `ABSENT <path> — <one-liner>` otherwise. An absence is
@@ -147,9 +149,25 @@ it earns its THIS-FILE-ONLY row (S603), stated in the PR.
 
 Discovery of homes, retained-ref handoffs, and owner action interfaces
 is specified in [`discovery-lever.md`](discovery-lever.md). This
-instrument's brief, law table, and CLI are unchanged. Adding those
-contract paths to the law table is a declared smallest extension, not
-applied here.
+instrument's CLI and state acquisition remain unchanged. Its law table now
+includes discovery and the startup sequence. Discovery/3 deliberately retains
+the five-row compact law projection specified by its accepted envelopes.
+
+The v3 runtime is projected by `tools/lane_mcp.py` through the shared
+`tools/lane_read.py` core and `tools/lane_refs.py` acquisition coordinator.
+Trusted launch supplies a complete v3 descriptor; `check` validates it without
+acquiring sources. `lane_start` requires a configured profile, then targeted
+homes, handoffs and actions use the same source snapshot. Work continuations
+use the returned cursor and snapshot through the CLI or MCP tools.
+
+The adapter reads local SHA-1 loose objects and indexed Git packs directly,
+with descriptor-relative access, byte verification and acquisition budgets.
+Unsupported storage formats and unsafe bindings produce explicit unavailable
+readings. It neither invokes Git nor interprets local Git configuration.
+Definition bytes and anchor identities are pinned at boot; each query reads
+its profile's complete bounded source closure and checks it for change.
+These interfaces enable later automatic onboarding; they do not start conduct,
+activate host settings, enforce harness permissions or publish lifecycle records.
 
 The v3 [local composition table](discovery-lever.md#local-source-composition)
 explicitly leaves register/ledger/PR readings unavailable and projects only
