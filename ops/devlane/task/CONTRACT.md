@@ -464,15 +464,19 @@ schema validation alone. Dispatch provides adapter grants/reservations from
 admitted harness declarations; task validates the complete output declaration
 and its collisions without loading or selecting an adapter implementation.
 
-`selection` is `TaskSelection`, exactly
+For a worker, `selection` is `TaskSelection`, exactly
 `{harness,model,effort,role,job_role,profile}`. role is literal `worker`, job_role
 is `read` or `write` equal to the trusted job role, effort is null or nonempty
 printable ASCII, and model is explicit nonempty printable ASCII; model/effort
 are at most 128 bytes. harness is a discovery ID; profile is null only while
 resolving absence under the policy selection/default rule, otherwise a valid
 policy profile id. Before binding it must be the resolved nonempty profile.
-Conductor uses startup's separate LaunchSelection with role conductor and
-job_role null; no job declaration infers conductor authority. Requested and
+For a conductor, the same LaunchDeclarations transport accepts startup's
+separate LaunchSelection with role conductor and job_role null; its canonical
+[record variant](../dispatch/CONTRACT.md#canonical-conductor-record-variant-proposed)
+has stage conduct, job null and brief null. This is a closed union selected by
+selection.role; worker requires read/write job_role and conductor requires null.
+No job declaration infers conductor authority. Requested and
 observed model fields retain their distinct existing owners.
 
 `requested_scope`, `job_grants`, `role_grants` and `adapter_grants` each have
@@ -485,6 +489,9 @@ an explicit trusted request, not permission by itself. `--scope` and scope-file
 prose remain brief content and cannot populate these structured grant sets.
 `context.include` is visibility, not requested write authority. Role read always
 has an empty repository grant; outputs do not relax snapshot immutability.
+Conductor job_grants and role_grants are exactly `{repository:[],outputs:[]}`,
+and outputs is `[]`; it has no task output demand or direct source-write role.
+Coordination/delegation remains separately authorized through existing levers.
 Absent source grant terms normalize to empty arrays with absence recorded in
 sources; explicit empty terms also grant nothing and retain their measured source.
 
@@ -510,8 +517,13 @@ Every component except dependencies must have source coverage; dependencies
 names its admitted analyzer when carried in policy's separate evidence object.
 A component may cite multiple verified Git sources for its closure. Selection,
 job, role, adapter and reservations need available verified sources before
-admission; absent scope or outputs can supply only empty grants. The outputs
-component may cite the catalogue whose measured omission yields `[]`, keeping
+admission; absent scope or outputs can supply only empty grants. For a conductor,
+the outputs component is explicitly absent, as is job (job_grants is empty);
+this is the sole exception to the available job-source requirement. Its role
+source covers admitted conductor restrictions and startup template; selection,
+role, adapter and reservations still require available verified sources. No
+consumer indexes jobs.json with null or infers a read/write job for this case.
+For a worker, outputs may cite the catalogue whose measured omission yields `[]`, keeping
 that observation distinct from an unavailable catalogue.
 
 Dispatch verifies Git sources against the old admitted declaration closure and
@@ -522,6 +534,15 @@ existing template_sha256. Source receipts are retained with the normalized grant
 and exact original output array outside worker writes; no extra brief.policy
 key is introduced. Independent producers can construct policy mocks from this
 shape without task importing the consumer.
+
+Policy derives normalized scope/job/role/adapter from requested_scope/job_grants/
+role_grants/adapter_grants respectively, and normalized outputs from every C2
+entry.path as `{repository:[],outputs:<sorted unique paths>}`. File leaves and
+scratch subtrees keep their original relative spelling and kind semantics;
+reservations never enter that set. Policy's
+[exact derivation](../../conductor/lane-policy.md#trusted-binding-input-and-declaration-transport)
+also owns maintenance-row decoding and hash bytes. Retain sources and the
+original ordered C2 array so consumers can recompute, not invent, those values.
 
 A synthetic declaration fragment illustrates requested scope, not authorization:
 
@@ -558,6 +579,12 @@ the launcher retains the worker's original response and partial evidence,
 serializes the owning refusal under policy's late Abort rule, and emits invalid
 with null verdict and a reason in note; an existing tripped outcome remains
 tripped, never approve. No independent findings/counts are silently repaired.
+This envelope rule applies when a worker response exists. With none, dispatch
+retains result.envelope null and refused PolicyResult; task validates no invented
+response. Conductor results always bypass the worker envelope validator and use
+their declared canonical variant. Pre-effect/late timing is per invocation:
+the successful directory claim is already an effect even before an attempt;
+resume/collect preflight can still reject before their own first mutation.
 The existing optional write-job commit transport and narrow inline planning
 exception retain their current authority and later integration requirements.
 No report, scratch, reuse request or policy receipt widens either exception.

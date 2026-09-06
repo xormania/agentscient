@@ -339,7 +339,11 @@ owning recipes. Do not substitute this encoder for them.
 `DispatchID` is the canonical execution record's `id` under the
 [dispatch job directory](../devlane/dispatch/CONTRACT.md#the-job-directory):
 `<UTC stamp>-<stage>-<harness>-<6 hex>`, for example
-`20260906T103421Z-code-codex-20aa14`. It is not discovery's `ID`.
+`20260906T120000Z-conduct-codex-a1b2c3` for a conductor. Stage is literal
+`conduct`; role is conductor; job and brief are null under dispatch's
+[complete canonical variant](../devlane/dispatch/CONTRACT.md#canonical-conductor-record-variant-proposed).
+Worker stages and read/write job roles stay distinct. This declared extension
+awaits runtime/validator support; it is not discovery's `ID` or a worker job.
 `launch_id` equals that record's id byte-for-byte: launch reserves a fresh id
 through the canonical dispatch owner before admission, and resume retains the
 same id from the trusted record and parent descriptor. Model observations,
@@ -358,7 +362,7 @@ This named launch type is distinct from discovery's handoff `Selection`.
 | operation | `launch` or `resume` |
 | selection | LaunchSelection |
 | custody_sha256 | digest of the retained trusted caller custody evidence; verified against the previously admitted anchor, never supplied by the candidate |
-| policy_binding_sha256 | digest of the policy owner's verified bound context, retained with its declaration sources; not a fabricated worker brief or a replacement for brief.policy |
+| policy_binding_sha256 | canonical digest of policy's closed ConductorBinding, retained as record.conductor.binding; exact [derivation](lane-policy.md#trusted-binding-input-and-declaration-transport), no fabricated worker brief |
 | discovery | `{config_sha256:SHA256,repository:Repository,anchors:[{id:ID,device:int,inode:int},...]}`; config digest is exact v3 file bytes; nonnegative device/inode, unique anchors sorted by id, exactly the config anchor set |
 | adapter | `{revision:SHA256,mechanism:string,grammar_sha256:SHA256,normalizer_sha256:SHA256,executable_sha256:SHA256,config_sha256:SHA256}`; mechanism is nonempty printable ASCII, at most 128 bytes; bound effective controlled configuration, not ambient user settings; exact [capability mapping](harness-capabilities.md#conduct-capability-identity-encoding) |
 | forwarded_tokens | admitted array of strings under the safe argv grammar, never raw rejected input |
@@ -386,6 +390,11 @@ operation launch and resume null is structurally compatible; it still requires
 all other fields, held input equality and live capability before admission.
 Model observation records requested versus actual identity through the existing
 execution record. An absent or conflicting observation cannot certify selection.
+The descriptor is retained as record.conductor.descriptor; its selection must
+equal both ConductorBinding.selection and LaunchDeclarations.selection. Null job
+does not skip source/grant/capability checks or select worker defaults. Dispatch
+owns record construction, supervision, close/resume and every consumer's variant
+handling; startup neither emits a task envelope nor creates a second store.
 
 ### Connection, onboarding and resume binding
 
@@ -430,6 +439,15 @@ For example: `conduct-mcp: expected bound client connection; found unavailable;
 needed run the independent doctor and restore verified connection evidence`.
 Adapter and tool refusals retain their own classes. No permission prompt,
 attended fallback, self-admission or automatic harness substitution is allowed.
+The [policy timing boundary](lane-policy.md#pre-effect-rejection-and-late-refusal)
+also governs conduct-config/conduct-mcp: before any launch mutation, exit 2,
+empty stdout and one refusal line; from the successful canonical directory claim
+onward, Abort 3 with retained partials. Actual-client connection checks occur
+after child creation and their failure is therefore late, even before control
+is handed to the conductor. Resume preflight precedes its first mutation;
+reconnection failure after restoring state/starting the client is late.
+The refused PolicyResult and conductor result.status carry non-acceptance;
+missing evidence uses null, never a fictitious attempt, connection or receipt.
 
 Independent startup cases must cover: full synthetic descriptor round-trip;
 unknown/duplicate keys and missing nulls; untrusted matching digests; all five
@@ -439,3 +457,16 @@ profiles without path hints; and resume mutation before any transport effects.
 Use test_conduct_start.py and test_conduct_enforcement.py under the existing
 conductor test owner, with verified fake counterparties. These are construction
 targets, not assertions that tests or live mechanisms have already passed.
+
+### Correction custody — 2026-09-06 ruling
+
+The bounded unit1a correction preserves combined commit
+`f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc`, invalid worker record
+`20260906T111519Z-code-codex-dce07d` and the historical absence checker.
+The conductor separately retains the original `01-interface-fix.patch` with
+`01-COMMIT_MSG` and `02-unit1a.patch` with `02-COMMIT_MSG` as durable coordination
+inputs. That is the conductor's retention duty, not a claim that this correction
+has copied or verified those artifacts. Do not reconstruct an original split,
+rewrite the combined commit, repair the historical verdict or reuse its checker
+as present acceptance. The ruling permits one clean correction commit; runtime,
+independent tests, live capability and policy admission remain separate.

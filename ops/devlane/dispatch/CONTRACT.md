@@ -392,7 +392,10 @@ launch.py brief --check ID
   defaults to the invoking checkout's current branch; `--unit` defaults
   to the lineage branch and groups records when one branch carries
   several work units; `--stage` is one of `plan`, `tests`,
-  `check-tests`, `code`, `review`, `adjudicate`.
+  `check-tests`, `code`, `review`, `adjudicate` for worker invocation.
+  The proposed canonical record union additionally has `conduct`, supplied
+  only by trusted conductor startup, not this worker CLI or a jobs entry;
+  see [the complete variant](#canonical-conductor-record-variant-proposed).
 - `--scope` is the **one free field** the dispatcher may add, capped at
   **1024 bytes**, reproduced verbatim in the record. A job whose
   template has no `{scope}` refuses it.
@@ -467,7 +470,9 @@ bookkeeping goes under `snapshot/`. Two incidents sit behind that
 line: report files at a snapshot root tripped the vocabulary wall
 twice, and bookkeeping files counted as repository changes.
 
-`id` is `<UTC stamp>-<stage>-<harness>-<6 hex>`.
+`id` is `<UTC stamp>-<stage>-<harness>-<6 hex>`. The stamp is real UTC
+`YYYYMMDDTHHMMSSZ`; stage and harness equal the record fields. The proposed
+`conduct` stage uses this same namespace, directory and record owner.
 
 ### Template values
 
@@ -677,7 +682,7 @@ implementation per rule as `envelope.py` does; a record that fails
 validation is never committed and the launcher exits non-zero naming
 the field.
 
-Fields, in this order:
+Worker fields, in this order (the conductor extension follows below):
 
 ```text
 id, lane ("dev"), stage, unit, lineage {branch, base_sha}, follows [ids],
@@ -740,6 +745,84 @@ bound snapshot and must be reachable from the branch; `result.head` must descend
 from `ref_sha` and is a fetched commit with its own dates and trailers;
 spend and `model.ran` must agree with a stream in the harness's own
 store; and the record is a commit, so changing it is a diff.
+
+### Canonical conductor record variant (proposed)
+
+This extends the existing canonical execution service and record/store, not
+the worker job catalogue. It awaits implementation and independent tests.
+At `56125e6d04e6dcbe774206dcfd03b24b0406659d`, source inspection of
+`launch.py` (`STAGES`, `_resume`, `--stage`) and `record.py` (`FIELDS`,
+`validate`) shows worker-only stage/role and job lookup paths. Those paths
+do not support this variant today. Updating one enumeration is insufficient.
+
+The closed record union is selected by `role`: `read|write` is a worker;
+`conductor` is a conductor. Worker bytes and existing job-role meanings stay
+unchanged; actor role is `worker` in their retained TaskSelection. No top-level
+worker `role` is renamed to `worker`. New bound workers retain TaskSelection
+in LaunchDeclarations; legacy records without it remain historical/unbound.
+The conductor has exactly the worker top-level keys listed above plus
+`conductor`. All are required; `result` is explicitly null while launched.
+The following overrides completely define the non-worker variant; other fields
+keep their existing meanings and custody, including model/session observations,
+supervision, lineage checks and record-only publication.
+
+| field | conductor value and producer/consumer obligation |
+|:--|:--|
+| id / stage | reserved canonical DispatchID / literal `conduct`; e.g. `20260906T120000Z-conduct-codex-a1b2c3`; stamp, stage and harness must match |
+| lane / unit / lineage / follows | infrastructure `dev`; nonempty unit; frozen `{branch,base_sha}`; explicit prior record ids (possibly `[]`), never a worker-stage dependency by implication |
+| role / job | literal `conductor` / null; null means no worker job, not a missing catalogue entry |
+| conductor | exactly `{descriptor,binding,declarations,custody}`, each a retained policy `{path,sha256}` handle; descriptor is conductor-launch/1, binding is policy's ConductorBinding, declarations is LaunchDeclarations, custody is the previously trusted caller evidence |
+| brief | null; no task prompt/template lookup, task envelope schema or fabricated worker brief |
+| snapshot | existing closed snapshot object, mode `whole`; selected ref and prospective canonical root held before materialization; root is a location, never proof of an existing snapshot |
+| harness / model | existing objects; descriptor.selection.harness equals harness.name; model.requested/effort_requested equal descriptor selection; actual model still requires stream evidence |
+| caps / overrides | existing supervision transport from admitted conductor configuration, with source; no worker job/default-role lookup or conductor-to-write fallback; only already declared overridable refusals |
+| attempts / at | existing attempt entries and UTC times; `[]` until an attempt is actually registered; at.launched is admitted record creation time, at.closed null until terminal |
+| result | null while launched; at terminal exactly `{head,changed_paths,residual_paths,envelope,policy,status,note}`; envelope always null, policy is PolicyResult, status is `ok`, `invalid` or `tripped`, note null on success or a nonempty reason on failure |
+| status | existing `launched`, `closed` or `died`; `died` is loss during an actual attempt, never a synonym for refusal before a child exists |
+
+Every conductor handle must verify before child invocation. If post-claim
+preparation fails, an unretained handle is null only in the terminal refused
+record; retain all obtained handles. Before a child, model.ran/read_from and
+session.id/stream/stream_sha256_at_close are null with the existing unresolved
+model note; do not manufacture observations. Terminal result.head is null only
+if the candidate cannot be measured; changed_paths/residual_paths are null
+only for unavailable measurement, distinct from measured `[]`. A successful
+conductor requires a completed untripped attempt, verified connection/onboarding,
+observed model, all handles and passing settlement; head equals snapshot.ref_sha
+and both path lists are empty. Conductor source writes are forbidden. No task
+verdict, auto-commit of source, collected marker or accepted dispatch ref is
+produced. Authorized coordination/delegation uses its existing levers and grants;
+it does not confer direct source/output writes on the conductor.
+
+Selection has one producer: TaskSelection for workers, LaunchSelection for
+conductors. All six members are closed; role/job_role/profile are never derived
+from stage, lane, harness or a null job. Conductor descriptor selection equals
+ConductorBinding.selection and LaunchDeclarations.selection byte-for-byte under
+canonical encoding. Worker job_role equals record.role and its admitted job;
+conductor job_role is null and record.job is null. Resume preserves these
+equalities, the same id and stage, and the original source identities.
+
+Every closed consumer must implement this union or explicitly refuse the
+unsupported variant before effects. This is the required implementation frontier:
+
+| consumer | required handling |
+|:--|:--|
+| launch / record build, validate, validate_context, relocation | branch on the record variant before job lookup, stage defaults, rendering or snapshot/role checks; retain all conductor keys; validate descriptor/binding/id equality and nullable preparation evidence |
+| dispatch/go / ladder stage specs and selection checks | remain worker frontends with the six worker stages; reject `conduct` and null job; a conductor may invoke them to create distinct worker records |
+| conduct / prepare_conductor / compile_launch | supply `conduct`, null job and LaunchSelection through trusted in-process transport; use the same launch service, no new executor or direct worker CLI flag |
+| harness isolation, caps, argv, stream readers and resume | consume explicit actor role and nullable job_role; require conductor-specific admitted configuration/witness, never fall through a read/write branch or use jobs[null]; preserve requested/observed model separation |
+| task rendering / envelope validation | worker-only; no conductor envelope enters either; task may validate the shared C2/declaration structure without creating a job |
+| policy bind/check / tool evaluator | consume ConductorBinding for this variant, unchanged worker PolicyBinding otherwise; evaluate_tool receives its verified descriptor handle; no per-job maintenance grant for a null job |
+| status / wait / close / resume / brief --check | read both variants; terminal conductor status comes from result.status and policy, not result.envelope; wait uses the existing 0/1/2 semantics; close preserves partials; resume uses conductor configuration and rechecks MCP; brief check verifies retained startup template/descriptor bytes, never jobs.json |
+| collect / land / ladder acceptance | require a worker of the appropriate job-role/stage before verification, fetch-for-acceptance, cherry-pick or advance; refuse a conductor even if its terminal status is ok; no synthesized worker verdict |
+| lane_read/lane_mcp/discovery, findings, monitor and worth | retain canonical id, stage, nullable job and conductor role as observations; never coerce to read/write or manufacture envelope counts/verdict; worker-only summaries exclude it explicitly or report unsupported/unavailable within their existing closed projection |
+
+Existing read projections keep their schemas and v1/v2 bytes. lane_read's
+read/write job-catalogue predicate remains worker-only; a conductor is not a
+dispatchable catalogue row. Record summaries that cannot represent the variant
+report unsupported/unavailable, never worker success. This contract neither
+claims current variant acceptance nor adds MCP fields.
+Old records and captures are neither rewritten nor backfilled at cutover.
 
 ### Watching, and picking up after a kill
 
@@ -829,6 +912,8 @@ only when both explicit and structured profile selections are absent. Empty,
 unknown or conflicting values refuse, never fall back or infer from record.lane.
 Conductor startup uses its separately declared LaunchSelection and the same
 canonical DispatchID reservation duty, without inventing a worker job binding.
+It supplies stage `conduct`, role `conductor`, job null and the
+[canonical conductor variant](#canonical-conductor-record-variant-proposed).
 
 The existing `mint_id(stage,harness)` helper supplies the canonical
 `<UTC stamp>-<stage>-<harness>-<6 hex>` value in memory, before validating per-job
@@ -880,7 +965,8 @@ locations alone cannot establish trusted provenance. No new state namespace,
 registry or worker-writable authority file is introduced.
 
 OutputAttempt is exactly `{dispatch,attempt,files}`. dispatch equals the reserved
-canonical id; attempt is null before launch and otherwise the positive existing
+canonical id; attempt is null until an attempt is registered, even after the
+job-directory claim or snapshot preparation, and otherwise the positive existing
 `attempts[].n`; files is empty before an attempt exists. Each file receipt is
 exactly `{artifact,path,sha256,bytes,production,reuse,evidence}`. artifact and path
 match the original C2 file declaration (path is relative to canonical out),
@@ -938,9 +1024,20 @@ marker, successful verification or an unverified/stale result.policy.
 
 The [policy timing rule](../../conductor/lane-policy.md#pre-effect-rejection-and-late-refusal)
 controls new lane-* failures. Before acting, exit 2 with empty stdout and one
-refusal line; after attempt/verification effects, retain partials and the stopped
+refusal line; from the successful job-directory claim (or the first resume/
+verification mutation) onward, retain partials and the stopped
 reading, serialize refused policy evidence, and return Abort 3. Invalid/null
 verdict names the refusal in note; existing tripped results remain tripped.
+With no worker response, result.envelope is null and refused result.policy is
+the terminal non-acceptance; no synthetic task envelope or attempt is required.
+Worker result keeps its existing members plus policy; head and measured path
+lists may be null only when unavailable on refusal. Status/wait/close and all
+acceptance consumers must handle this partial worker variant before envelope
+access. OutputAttempt may be `{dispatch,attempt:null,files:[]}` if those bytes
+were retained; otherwise PolicyResult.outputs is null. Never name an uncreated
+receipt as retained. Conductor terminal status follows its variant above.
+For a terminal partial worker with null envelope, wait returns 1 and close
+retains non-acceptance; land/collect/ladder cannot infer success from exit 0.
 Do not erase emitted output, publish an accepted ref or commit on a refused
 check. A post-commit recheck can preserve an already created local candidate
 commit as partial evidence but cannot publish it as accepted. Detached callers
