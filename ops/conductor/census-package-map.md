@@ -1,5 +1,12 @@
 # Census-to-package map — what we have, mapped to where it lands
 
+Current scope notice, owner 2026-09-05:
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
+supersedes this draft's dev-lane twin/strangler retirement and app-dependent
+Mate recommendations. The original census below is historical provenance,
+not current operational policy. Application research belongs to
+`docs/mapping.md`, scoped there to prod work; dev tooling evolves independently.
+
 Standing: DRAFT — conductor surface per the coverage-zones precedent;
 placement is the owner's call. Source of demand: owner, 2026-09-01,
 in session: "i just want the what we have - but there - plus i need

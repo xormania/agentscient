@@ -33,6 +33,18 @@ first-class: declared, typed, verified, priced.
    frontier of edges needing re-verification — a change re-verifies
    the frontier, never re-integrates the world.
 
+## Lane permission boundary
+
+[AGENTS.md §Lane boundary and precedence](../AGENTS.md#lane-boundary-and-precedence)
+governs the permission obligation across dev tooling and the prod application.
+Shared wire, contracts, probes and provenance do not authorize a runtime
+dependency from dev tooling onto the Symfony app, container, services or
+vendor directory. Application inspection may report an unavailable app;
+the tooling itself must remain operable. Application package graduation
+does not retire or replace lane instruments. Each lane evolves under its
+own declared and verified edges. This obligation is prescribed; a prose
+reference alone is not evidence of mechanical enforcement.
+
 ## Priced coupling
 
 An edge's true cost is its verification cost times its change
