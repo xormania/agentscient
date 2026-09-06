@@ -1,0 +1,173 @@
+{
+  "id": "20260906T143449Z-tests-grok-399902",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-adapter-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-adapter-tests-20260906",
+    "base_sha": "c2f6fd877e08caf08581a4a19c72154c88e92b69"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T14:34:49Z",
+    "closed": "2026-09-06T14:46:42Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c2f6fd877e08caf08581a4a19c72154c88e92b69",
+    "ref_sha": "c2f6fd877e08caf08581a4a19c72154c88e92b69",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "db79d40f-157d-4dc9-adfa-9c55cba48781",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/home/grok-stream/sessions/<snapshot-encoded>/db79d40f-157d-4dc9-adfa-9c55cba48781/summary.json"
+  },
+  "session": {
+    "id": "db79d40f-157d-4dc9-adfa-9c55cba48781",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/home/grok-stream/sessions/<snapshot-encoded>/db79d40f-157d-4dc9-adfa-9c55cba48781/summary.json",
+    "stream_sha256_at_close": "f793a49eedb66c9e73eee6ef59de99444ab85668454732a4c02a0dd4af3f861e",
+    "spend": {
+      "input": 3490561,
+      "cached": 3339136,
+      "output": 44357,
+      "total": 3534918,
+      "cost_usd_ticks": 3805552000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/home/grok-stream/sessions/<snapshot-encoded>/db79d40f-157d-4dc9-adfa-9c55cba48781/summary.json",
+      "messages": 272
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-adapter-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct the six adapter fixture findings per supplied third-harness ruling, only in adapter_test_support.py, test_adapter_argv.py and test_output_capability.py. Verify original bytes first. Fix evidence-root relative paths and shared positive config digests without weakening independent custody; isolate unknown-grammar and token-bound faults, add conduct mapping and witness controls. Preserve all seven previously closed corrections, exact declared APIs and compiler versus launch grading separation. No runtime inspection, contracts, other tests or live authority. Run focused assertion-red/zero errors, registered lint and local guards; reseal three hashes and retain exact receipts. Report any construction gap rather than guess. Source trailers name Grok 4.6; WF_AGENT identifies the invoking conductor, not this test author. No full floor.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/in/ag-conduct-adapter-fixture-ruling.md",
+        "sha256": "3c56df5e0afa75f2a8a39eb1f66369ebfaaa7081e649d0ea2414a8035023c0ae"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/in/ag-conduct-adapter-tests-recheck.json",
+        "sha256": "b4c5d862aa1f566ee25856e37abc35034fbfab840ea5095d155ea15acbddd369"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T143449Z-tests-grok-399902/in/ag-conduct-adapter-tests-fix.json",
+        "sha256": "60f5bb3293d223daae087980156f2369d0e5e18556d216e3dc5bf97e004f99be"
+      }
+    ],
+    "sha256": "8a41567788419b69de9db8803617665b0e0edb389381ffceb43b7cac89825fbf",
+    "bytes": 3191
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:34:49Z",
+      "ended": "2026-09-06T14:46:42Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d7b26be7dd1bed40394e0beb52b2cbeab7d6dc37",
+    "changed_paths": [
+      "ops/devlane/harness/tests/adapter_test_support.py",
+      "ops/devlane/harness/tests/test_adapter_argv.py",
+      "ops/devlane/harness/tests/test_output_capability.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "adapter_test_support": "ops/devlane/harness/tests/adapter_test_support.py",
+        "test_adapter_argv": "ops/devlane/harness/tests/test_adapter_argv.py",
+        "test_output_capability": "ops/devlane/harness/tests/test_output_capability.py",
+        "patch": "out/adapter-tests.patch",
+        "hashes": "out/file-hashes.txt",
+        "argv_red": "out/red-adapter-argv-HEAD.txt",
+        "output_red": "out/red-output-capability-HEAD.txt",
+        "combined_red": "out/red-combined-HEAD.txt"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3534918,
+        "out": 44357,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c2f6fd877e08caf08581a4a19c72154c88e92b69",
+        "started": "2026-09-06T14:35:41Z",
+        "ended": "2026-09-06T14:46:05Z"
+      },
+      "note": "Corrected only adapter_test_support.py, test_adapter_argv.py and test_output_capability.py at c2f6fd877e08caf08581a4a19c72154c88e92b69 per third-harness ruling 20260906T141232Z-review-claude-53274e. Implementation not read; adapters.py absent (ls). Input sha256 matched the brief: ruling 3c56df5e0afa75f2a8a39eb1f66369ebfaaa7081e649d0ea2414a8035023c0ae, recheck b4c5d862aa1f566ee25856e37abc35034fbfab840ea5095d155ea15acbddd369, fix json 60f5bb3293d223daae087980156f2369d0e5e18556d216e3dc5bf97e004f99be.\n\nOriginal hashes at d3ea314ba00456ed65751d3f9aa0381e000a58b0 reproduced: adapter_test_support.py 7adb1c9b14777f32ea42a8a61d123edf54691693cdad538deea4907ab9bda825, test_adapter_argv.py 977c7d84e7fb3b1cbab3a739fa8aaea725176fe47c4d8b78ee1b03e42c2ba625, test_output_capability.py 2816833c261c43fd83d2e63375534285d1cc94817d74b3824d186410ba348bd5. Prior reseal at f125c9f7 reproduced 095de81e..., f718a3d6..., 827da6dd.... Grammar sha256 unchanged: c890b02324a81b0a78d0f8664e016b92097bf14fb13f9444120f10de1a2b2698 and empty d52b0691419a699f4d1ab444723926271740acae121864febfa470e3816a17b7.\n\nClosed the six upheld fixture findings without weakening independent custody or compiler-versus-launch grading. Evidence relative handles are mock-verification.json, witness.json and age-policy.json under the protected evidence root; joined paths exist and no longer double the evidence/ component. matching_identity/declared_adapter compute the fixture configuration digest once for descriptor and identity; raw identity_for still carries digest_name('config') so planted mismatches remain possible. Unknown grammar sets the same unmeasured digest on descriptor and identity, leaving only absent grammar. Conduct mapping covers CONDUCT_ADAPTER_KEYS / CONDUCT_MANIFEST_ADAPTER_KEYS including normalizer_sha256, with a planted normalizer mismatch as stale; worker mapping is preserved. Per-token bound uses declared-shape FLAG_257 in BYTE_BOUND_GRAMMAR (257 UTF-8 bytes, --[a-z][a-z0-9-]*); no construction gap. Witness missing/unreadable/digest-mismatch refuse as custody; a self-consistent neighbour is not a compile fault. The seven previously closed corrections, declared APIs and launch-side observation grading are unchanged.\n\nResealed at d7b26be7dd1bed40394e0beb52b2cbeab7d6dc37: adapter_test_support.py f8898ba33c08b2778adc15e71a4a2d76a5fd889a0086cbd447e55aeb843a188a, test_adapter_argv.py 4aa19e5c5f2a04741d2770155e204f22e09b2f1e5751213421ca5506c099ec73, test_output_capability.py 39157f2df9cab42f80d31204623645728ce8b723860f75ae87db3358d2c7f942. Patch sha256 94dffce6add8388b065f557bf59abfe54ad73d1f5852de008f7f256488113606. Commits 77e9fd78c1cbdd445094ab71989a61f8d5347388, 5d66ccbbeb0a31400fbe4c04dc23dc6ff3e2cd39, d7b26be7dd1bed40394e0beb52b2cbeab7d6dc37.\n\nFocused assertion-red at HEAD, 0 collection errors, 0 errors: python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_adapter_argv.py' \u2192 Ran 40 tests, 64 assertion failures. python3 -B -m unittest discover -s ops/devlane/harness/tests -p 'test_output_capability.py' \u2192 Ran 32 tests, 32 assertion failures. Combined TestSuite testsRun 72, failures 96, errors 0. ruff check 0.16.5 All checks passed. python3 ops/devlane/hooks/claude/test-guard.py: every plant is guarded (3 file(s) scanned). git diff --check c2f6fd8..HEAD on the tests directory: clean. Working tree clean. No full floor."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:46:41.369Z"
+    }
+  },
+  "status": "closed"
+}
