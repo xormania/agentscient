@@ -106,6 +106,7 @@ class CompileLaunchIsTheDeclaredSeam(unittest.TestCase):
         self.assertEqual(binding["operation"], "launch")
         cap = result["capability"]
         self.assertEqual(set(cap), set(ats.CONDUCT_CAPABILITY_KEYS))
+        self.assertEqual(set(cap["adapter"]), set(ats.CONDUCT_ADAPTER_KEYS))
         self.assertEqual(cap["role"], "conductor")
 
 
@@ -578,9 +579,15 @@ class SafeArgvGrammarNegative(unittest.TestCase):
         self.assertTrue(ats.is_success(result), ats.explain(result))
 
     def test_a_token_longer_than_two_hundred_fifty_six_bytes_refuses(self):
-        token = "x" * 257
+        token = ats.FLAG_257
         self.assertEqual(len(token.encode("utf-8")), 257)
-        self._refuse([token], index=0)
+        self.assertRegex(token, r"^--[a-z][a-z0-9-]*$")
+        transport = self.fx.transport(
+            self.selection, grammar=ats.BYTE_BOUND_GRAMMAR,
+        )
+        names = [option["name"] for option in transport.manifest["grammar"]["options"]]
+        self.assertIn(token, names)
+        self._refuse([token], index=0, transport=transport)
 
     def test_invalid_manifest_flag_with_values_does_not_admit(self):
         broken = {
@@ -602,8 +609,17 @@ class SafeArgvGrammarNegative(unittest.TestCase):
 
     def test_unknown_installation_syntax_is_unmeasured_not_a_guess(self):
         transport = self.fx.transport(self.selection)
+        unmeasured = ats.digest_name("unmeasured")
         transport.manifest["grammar"] = None
-        transport.manifest["adapter"]["grammar_sha256"] = ats.digest_name("unmeasured")
+        transport.manifest["adapter"]["grammar_sha256"] = unmeasured
+        identity = deepcopy(transport.evidence.identity)
+        identity["adapter"]["grammar_sha256"] = unmeasured
+        transport.evidence.identity = identity
+        self.assertEqual(
+            transport.manifest["adapter"]["grammar_sha256"],
+            transport.evidence.identity["adapter"]["grammar_sha256"],
+        )
+        self.assertIsNone(transport.manifest["grammar"])
         result = ats.compile_launch(
             self.selection, self.grants, transport, ["--quiet"], "launch",
         )
