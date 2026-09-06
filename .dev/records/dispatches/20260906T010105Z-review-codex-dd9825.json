@@ -1,0 +1,102 @@
+{
+  "id": "20260906T010105Z-review-codex-dd9825",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "5fa3a23087bbd56e414efdf5c4aa415eb5505c7a"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:01:05Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5fa3a23087bbd56e414efdf5c4aa415eb5505c7a",
+    "ref_sha": "5fa3a23087bbd56e414efdf5c4aa415eb5505c7a",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "a5f918c9-0231-44fd-be31-75f554adf4ec",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read-only reference research, parallel to current discovery-contract work. Owner: some ideas came from earlier work at https://github.com/xormania/loopstrap and asks what is useful there. Network reads of that repository are authorized. Inspect its actual current docs/code at a recorded immutable revision; clone only to disposable job scratch if needed. Focus harness configuration/extensibility, roles/capabilities, onboarding/discovery, session lifecycle, enforcement and diagnostics. Compare with supplied Agentscient owner brief and home map; recommend reuse/adaptation only where it has an existing owner here. Return <=1200-word source-linked report: concrete useful mechanisms, implemented versus aspirational, fit/gaps, and small follow-ups grouped into steps 1-4. No automatic adoption, copied implementation, new authority, settings/test/source changes or broad redesign. Keep provenance repo@sha and cite exact paths/lines. If access fails report could-not-look; do not infer absence. No credentials in output.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/in/discovery-contract-owner.md",
+        "sha256": "73986f85edc300740331e98d168d363677b3d3a9ab54ffba3b45957550deae82"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/in/conductor-start-home-map-20260905.md",
+        "sha256": "d83b5b1321894e69a5928a1c9b6e3c39c087fbb41943376a8697ae27ac20aa7d"
+      }
+    ],
+    "sha256": "1c03d6d848631b370a2be11a2aeed0bc28ca7345851546abba3556ee3ab0331e",
+    "bytes": 3332
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
