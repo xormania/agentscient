@@ -1,6 +1,8 @@
 # Authorized work: document the sequence and complete discovery contract step 1
 
-## Latest owner scope correction: dev-lane services, no Symfony application dependency
+## Latest owner scope correction: enduring independent lanes
+
+Owner: "previous models seemed to think that we'll be using the prod-lane to replace the dev-lane as we go - no, this is NOT the case." The dev lane is not an incumbent awaiting replacement by the prod application. Its machinery evolves independently. This supersedes active twin/strangler/retirement doctrine wherever it makes the prod application the future owner of dev-lane functionality. Correct plans accordingly; historical records retain provenance but do not govern current operation. A dedicated enforcement track is authorized by "It must be enforced", under lane/lane-boundary-20260905, and must protect this distinction in authoritative instructions and measurable dispatch/acceptance boundaries.
 
 Owner: "Symfony - no, this is dev-lane right now - we're not using symfony app". This correction supersedes this brief's earlier recommendations to implement conductor/worker MCP or consolidated execution using Symfony services. The work is on the existing dev-lane machinery under ops/. Reuse its service/CLI boundaries; do not introduce a Symfony application dependency or make its implementation a prerequisite. The prod work profile describes development of the Symfony application; it does not determine the implementation technology of the dev-lane tools. Broader migration direction is not part of this slice. Existing job snapshots captured earlier assumptions: reconcile their results against this correction before admission.
 

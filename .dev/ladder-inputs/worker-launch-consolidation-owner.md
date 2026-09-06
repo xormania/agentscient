@@ -1,5 +1,7 @@
 # Parallel worker launch consolidation
 
+Further owner ruling: "previous models seemed to think that we'll be using the prod-lane to replace the dev-lane as we go - no, this is NOT the case." Consolidation belongs permanently to independent dev-lane machinery, without an implicit prod-application twin replacement or retirement trajectory. Supersede that active doctrine in this plan; historical source records are provenance, not current authority. Enforcement work is separately scoped under lane/lane-boundary-20260905 and will provide the shared policy boundary; do not duplicate it.
+
 Latest owner correction: "Symfony - no, this is dev-lane right now - we're not using symfony app". Consolidate the existing dev-lane machinery under ops/ without a Symfony application dependency or framework migration. This supersedes the earlier Symfony/AI implementation recommendation in the captured initial job brief. The prod profile describes the application being developed, not the technology implementing dev-lane tools. Preserve valid measured baseline findings from earlier jobs; reconcile their proposed architecture against this correction before admission.
 
 Owner, 2026-09-05: "you said their are mutliple ways to launch worker harness - that's not good - we need to consolidate"; then "start parallel work on it".
