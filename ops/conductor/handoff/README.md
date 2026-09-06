@@ -37,5 +37,28 @@ evidence cannot establish a unique handoff. AARs are reports governed here,
 never their own contract or authority. Onboard's existing newest-filename
 thread behavior stays unchanged; discovery's selection is a separate read.
 
+Supersedes remains same-kind, same-lineage and acyclic. Discovery restricts
+handoff reachability to readable relevant IDs; irrelevant superseders cannot
+make a handoff stale, and missing relevant evidence makes selection unknown.
+A complete nonempty set has an unsuperseded ID and therefore a current handoff.
+[D-A16](../discovery-lever.md#non-executable-acceptance-rows) covers a stale-only
+presentation page whose terminal current handoff is elsewhere in the complete
+set: global selection still names that terminal key, and named stale detail
+stays readable without becoming selected. A nonempty complete stale-only
+acquisition is impossible, not a skip or permission to add retirement metadata,
+cycles, hidden superseders or fabricated preclassified mocks. Complete-empty
+none and missing-evidence unknown retain their separate acceptance rows.
+
+Producer receipts and commit messages keep their original history. An object
+that cannot be resolved in a dispatch snapshot is inaccessible there, not
+therefore absent from the canonical repository. The conductor retains the
+original records and owns canonical producer-pointer verification; measure
+that pointer where accessible, otherwise declare the limit and reproduce the
+five discovery-document blob hashes at the available ref. A content-tree
+pointer describes its own stamped bytes, not necessarily the later commit's
+whole tree. Neither a snapshot limitation nor a new correction authorizes
+rewriting provenance. Discovery metadata and selection still require the
+readable relevant evidence above, regardless of historical pointer custody.
+
 The House's hand-over records do not cross. This directory begins with
 the substrate work of 2026-09-02, which was this project's own session.
