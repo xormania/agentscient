@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T00:10:19Z",
-    "closed": null
+    "closed": "2026-09-06T00:19:07Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/home/grok-stream/sessions/<snapshot-encoded>/6f0f4b52-64c8-45ff-adc9-b1e539c91c6e/summary.json"
   },
   "session": {
     "id": "6f0f4b52-64c8-45ff-adc9-b1e539c91c6e",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/home/grok-stream/sessions/<snapshot-encoded>/6f0f4b52-64c8-45ff-adc9-b1e539c91c6e/summary.json",
+    "stream_sha256_at_close": "e468b7d074276f77ef89312b4fd77945988f277f65e548ce6484ae522998ad24",
+    "spend": {
+      "input": 1303151,
+      "cached": 1187840,
+      "output": 30007,
+      "total": 1333158,
+      "cost_usd_ticks": 1707792800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/home/grok-stream/sessions/<snapshot-encoded>/6f0f4b52-64c8-45ff-adc9-b1e539c91c6e/summary.json",
+      "messages": 217
+    }
   },
   "brief": {
     "template": {
@@ -99,10 +107,70 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T00:10:19Z",
+      "ended": "2026-09-06T00:19:06Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e94db0a866b73cf4de9a306bea9a9adec53d2f97",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "jobs.json plan prompt; .dev/wip/calibration-buckets.md",
+          "claim": "The plan prompt names .dev/wip/calibration-buckets.md as the calibration-row shape, but at e94db0a that path is absent; only .dev/wip/calibration-buckets.md.txt exists. The artifact uses the archived shape and says so.",
+          "reproduce": "test ! -e /home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/snapshot/.dev/wip/calibration-buckets.md && test -e /home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/snapshot/.dev/wip/calibration-buckets.md.txt && echo ABSENT_LIVE_PRESENT_TXT"
+        },
+        {
+          "severity": "p3",
+          "where": "jobs.json plan prompt walkthrough environment",
+          "claim": "The plan prompt tells the worker to trace a no-network, read-only git directory. Measured at 2026-09-05T20:11:02-04:00 in this job: curl https://github.com returned HTTP/2 200; touch of .git/PLAN_WRITE_PROBE and PLAN_WRITE_PROBE succeeded (removed; git status --porcelain empty). jobs.json plan constraints are only read-only / do not edit the snapshot. The artifact walkthrough uses the measurement and writes the refusal not to treat the prompt's environment as a fact.",
+          "reproduce": "curl -sI --max-time 2 https://github.com | awk 'NR==1{print}'; test -w /home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/snapshot/.git && echo GITDIR_WRITABLE"
+        }
+      ],
+      "artifacts": {
+        "PLAN.md": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/out/PLAN.md",
+        "digest": "134a6af0f93324a9d078fe67600ad36d1d1e0de7dab4180510f93024e70b585d"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1333158,
+        "out": 30007,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e94db0a866b73cf4de9a306bea9a9adec53d2f97",
+        "started": "2026-09-06T00:10:19Z",
+        "ended": "2026-09-05T20:18:50-04:00"
+      },
+      "note": "Contract/design only at e94db0a; 2333 words; sha256 134a6af0f93324a9d078fe67600ad36d1d1e0de7dab4180510f93024e70b585d; snapshot unedited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T00:19:05.900Z"
+    }
+  },
+  "status": "closed"
 }
