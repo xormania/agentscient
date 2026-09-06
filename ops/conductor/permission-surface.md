@@ -92,6 +92,75 @@ binding and admitted tool declarations; the request cannot select it. The
 normalizer is pinned adapter code. Never trust a model-supplied classification,
 claimed effect list, command substring or tool display name as provenance.
 
+### Opaque role and target handles
+
+`bound_role` is an immutable in-process capability minted by the admitted policy
+binder from verified startup inputs. It is neither JSON nor a duck-typed mapping
+with descriptor_sha256/binding/tools members. The consuming evaluator must
+verify issuance and current custody; equal dictionaries, copied digests and
+candidate-supplied validator callables do not produce such a handle. The
+in-process interface exposes only these read operations:
+
+| operation | result and obligation |
+|---|---|
+| descriptor_digest() | SHA256 of the held complete conductor descriptor |
+| policy_binding() | immutable view of its verified ConductorBinding |
+| is_current() | boolean from held binding/custody lifetime; false closes admission |
+| resolve_tool(kind, target) | one opaque verified target handle or null; exact lookup in already admitted owner declarations, no wildcard/default |
+
+The target handle exposes `validate_arguments(arguments)` returning boolean
+without effects, and immutable `schema`, `declaration`, `execution`, `grants`
+and `effects` views of the existing owner's retained evidence. These are opaque
+owner values, not another serialized target schema. `schema` includes the exact
+closed argument definition and all referenced schema bytes; `declaration` binds
+its source/ref/digest; `execution` binds actual executable/import closure, cwd
+and closed environment; grants/effects retain that lever's authorization and
+operation identity/reconciliation duties. Validation performs no resolution from
+candidate paths, remote schema loading or execution. Missing closure is an
+unavailable target, not an object-only `{type:"object"}` validator. The binder
+verifies these views through existing source custody; the evaluator rechecks
+current binding, schema and grants on every request. No constructor accessible
+to a model, serialization round-trip or newly persisted role registry is added.
+
+`bound_context` is the adapter-owned opaque handle containing that bound_role,
+the selected admitted mechanism and live intercepted native call/connection
+handles. Only trusted adapter code allocates request ids and derives native
+execution identity. Verified independent mocks implement these operations
+through their trusted fixture binder; they must reject unissued lookalikes.
+Policy tests consume normalized Requests through a valid role handle; adapter
+tests supply a valid bound_context and mechanism-native bytes. Neither test
+may confer authority by assigning attributes to a namespace.
+
+### Native input belongs to its mechanism
+
+There is no common native_request JSON shape. The admitted adapter mechanism
+selects exactly one pinned native schema and transport, before parsing a call;
+the payload cannot choose a protocol. For `codex-sole-client-relay/1`,
+native_request is the validated **DynamicToolCallParams** object from an
+upstream `item/tool/call` request, exactly
+`{threadId,turnId,callId,namespace,tool,arguments}`, with the constraints in
+[RPC and capability ownership](#rpc-and-capability-ownership). Framing and
+correlation run first in the relay; no jsonrpc wrapper enters normalize_tool.
+The held connection supplies provenance and the exact target row supplies
+kind/target. Native command/file approval requests, TUI command/exec, unknown
+methods and malformed frames receive their declared terminal dispositions at
+the relay gate; they are not invented dynamic calls or shell Requests.
+
+For any other admitted mechanism, its owner must retain a complete closed
+native schema, field-to-Request translation and verified interception provenance
+under the existing adapter revision/normalizer and tools-contract digests.
+No such declaration means unavailable capability; do not synthesize a Claude,
+Grok or hook payload from the common Request. Codex stock PreToolUse remains
+rejected under the current relay declaration. A separately declared synthetic
+adapter may test common compilation/grammar, but cannot certify vendor-native
+mediation or be selected merely because a fixture names it `fixture-cli`.
+The supplied PIN_NATIVE_REQUEST `{surface,argv,cwd,environment,executable}` is
+rejected as a universal protocol: every authority-bearing field is caller
+selected. Shell normalization below is conditional on a mechanism that proves
+that surface; it does not grant the Codex relay a shell execution route.
+
+### Common request and decision
+
 Counterpart ownership: adoption unit 1a supplies the matching declaration of
 `evaluate_tool(bound_role, normalized_request)` and its Request/Decision coupling
 in [lane-policy.md](lane-policy.md). At review `20260906T110711Z-review-claude-e4968e`
@@ -186,6 +255,36 @@ N1–N10, R1–R5 and I1 remain binding. In particular shared inspection reads s
 permitted; the older unarmed guard's ban on hand investigation supplies no new
 authority. Doctor findings propose bounded remedies; neither a diagnostic run
 nor a passing observation can ratify policy or widen permissions.
+
+### Enforcement-test corrections
+
+These instructions apply to supplied test_conduct_enforcement.py and
+conduct_test_support.py from test-author record `20260906T125326Z-tests-grok-23e1d6`,
+read against the relay at `8324aa389a467417380683e6cd135efdd818acfa`. They resolve
+PIN_NATIVE_REQUEST and the invented bound-role/tools mapping without editing
+tests here. Use the [startup corrections](conductor-start-plan.md#startup-test-correction-instructions)
+for bootstrap, compilation, connection and timing cases.
+
+| test/helper | precise correction and correct owner |
+|---|---|
+| conduct_test_support.native_request | Replace the universal surface/argv helper with mechanism-specific native builders. For Codex emit the six DynamicToolCallParams members, wrapped in the pinned RPC frame only when testing the relay parser. Require a live fixture bound_context; raw executable/cwd/environment never come from the model. |
+| CanonicalDelegation.test_evaluate_tool_allows_dispatch_go_and_ladder | Supply an issued opaque role and a separately verified declaration/schema for each frontend. Replace generic object schemas and `{job:"author-tests"}` with a full owner-valid request per frontend. Assert allow for each, and refusal for a missing declaration, missing required member, extra member and unissued lookalike. These are pure evaluator tests; no worker invocation occurs here. |
+| CanonicalDelegation.test_coordination_read_is_allowed_without_wf_agent | Supply a declared read target with closed arguments and custody-scoped execution identity; verify allow with WF_AGENT absent. A tools mapping with kind alone or an invented git-status/ref argument is not that declaration. |
+| CanonicalDelegation.test_read_containing_apply_is_not_classified_as_mutation | Pass an owner-valid structured read containing literal apply as data through the declared read target. For Codex use item/tool/call for that target, then normalize/evaluate; do not invent a shell native surface. A separate shell-mechanism fixture is valid only after its own protocol and tokenizer/execution proof are declared. |
+| CanonicalDelegation.test_compound_command_naming_dispatch_is_not_an_allowed_request | At the Codex relay gate send a prohibited command/exec RPC or undeclared command argument on a dynamic target. Assert its prescribed terminal error/refusal and zero canonical invocations; do not require a fabricated forbidden/shell-escape Request from an unsupported protocol. |
+| ForbiddenHandwork._evaluate and test_direct_edit_is_refused_before_effects; test_git_mutation_is_refused_before_effects; test_shell_escape_is_refused_before_effects; test_raw_vendor_is_refused_before_effects; test_in_session_agent_is_refused_before_effects | Keep the normalized forbidden-Request tests as pure policy cases, with an issued role and exact Reason/Decision wire. Separately drive each actual forbidden vendor surface through its admitted mechanism's resolution/interception gate and assert zero effects; evaluator purity alone proves no interception. |
+| ForbiddenHandwork.test_every_fixed_reason_code_is_accepted_as_a_reason | Test the closed Reason enum at the common Request/evaluator owner with a valid role. For native coverage use each mechanism's declared mapping; Codex approval denials and disabled/unknown tools need their actual gate outcomes, not a universal surface-to-reason map. Include malformed-request and binding-mismatch at their owning common boundary. |
+| ForbiddenHandwork.test_binding_mismatch_is_refused; test_malformed_request_is_refused | Keep the changed Request digest/argument type, but supply a valid issued current role. Assert the exact fixed binding-mismatch/malformed-request Decision, no execution, and no raw echo. Test invalid role handles separately as unavailable authority, never an allow. |
+| ForbiddenHandwork.test_decision_serializes_to_the_wire_without_raw_echo | Use an issued role, compare all fixed refusal fields and the exact wire, and verify rejected bytes/hashes never enter lane evidence. |
+| ForbiddenHandwork.test_adapter_cannot_turn_refusal_into_a_prompt | Move response handling to the adapter/relay with a real pending fixture call and refused Decision; assert no target invocation, no approval/prompt callback and no weaker retry. An unrelated CLI output without the word permission proves nothing. |
+| FaultyControls.test_replayed_binding_prevents_admission | Move replay consumption to the adapter/canonical execution owner. Obtain a valid allow for a pending request, consume it once, then inject the same Decision again; require zero second invocation. Repeated evaluate_tool calls are not a replay store and need not change a pure decision. For Codex also duplicate completed native call identity and require retained-result replay, and plant uncertain effects to require reconciliation refusal. |
+| LaunchResumeBeforeEffects.test_cond_effect_n1_delegation_does_not_grant_source_writes | Retain the empty conductor output/source-write grants check, then drive one schema-valid canonical delegation through the real execution boundary with a verified worker counterparty. Observe one canonical operation identity/result and only its declared effects; compare source/index/refs and prevent direct conductor writes. A prepared capability object alone proves no delegated effect boundary. |
+
+No test may fabricate a positive target when its owner has not declared a full
+schema, executable closure and required effect reconciliation. Record that edge
+as unavailable and require refusal until an independently verified counterparty
+exists. Fixture protocols can isolate owners; they cannot supply new production
+authority, admission or another executor.
 
 ## Codex relay protocol
 
