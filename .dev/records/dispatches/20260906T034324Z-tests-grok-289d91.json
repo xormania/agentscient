@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T03:43:24Z",
-    "closed": null
+    "closed": "2026-09-06T03:50:40Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034324Z-tests-grok-289d91/home/grok-stream/sessions/<snapshot-encoded>/876af300-5265-4fdb-8ceb-caed59a1b2f7/summary.json"
   },
   "session": {
     "id": "876af300-5265-4fdb-8ceb-caed59a1b2f7",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034324Z-tests-grok-289d91/home/grok-stream/sessions/<snapshot-encoded>/876af300-5265-4fdb-8ceb-caed59a1b2f7/summary.json",
+    "stream_sha256_at_close": "8beb5fff56d14d375a7dcc4f385ab564a182fa3eea77ddc8e2a4a7d4bef63a04",
+    "spend": {
+      "input": 1605267,
+      "cached": 1430016,
+      "output": 28152,
+      "total": 1633419,
+      "cost_usd_ticks": 2098517400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T034324Z-tests-grok-289d91/home/grok-stream/sessions/<snapshot-encoded>/876af300-5265-4fdb-8ceb-caed59a1b2f7/summary.json",
+      "messages": 210
+    }
   },
   "brief": {
     "template": {
@@ -99,10 +107,64 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:43:24Z",
+      "ended": "2026-09-06T03:50:40Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "30b86d626fe5c6f416bc9361f5b8f1be4dbd01ca",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_record.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/dispatch/tests/test_record.py",
+        "commit": "30b86d626fe5c6f416bc9361f5b8f1be4dbd01ca",
+        "base": "7d670a4015868d7c8f4869ba5d82a231d11190e7",
+        "frozen_command": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py",
+        "test_guard": "python3 ops/devlane/hooks/claude/test-guard.py ops/devlane/dispatch/tests/test_record.py",
+        "object_format": "sha1",
+        "diff_stat": "ops/devlane/dispatch/tests/test_record.py | 193 +++++++++++++++++++++++++-----  1 file changed, 165 insertions(+), 28 deletions(-)"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1633419,
+        "out": 28152,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7d670a4015868d7c8f4869ba5d82a231d11190e7",
+        "started": "2026-09-06T03:44:57Z",
+        "ended": "2026-09-06T03:49:40Z"
+      },
+      "note": "Corrected only ops/devlane/dispatch/tests/test_record.py per policy-record-test-correction-ruling.md and Claude bf58a4. Did not read record.py or other implementation. Did not invent schema. Did not change source, contracts, settings, host, DB, or network. Git object format measured at this tree: git rev-parse --show-object-format -> sha1. The valid ref fixture remains the full 40-character lowercase hex Git id for that measured format; it is not a universal SHA-1 policy rule and SHA-256 repository support was not added. Full-id validation was not weakened to a minimum length. Profile ids use [a-z][a-z0-9-]* without membership lookup. No contradiction with lane-policy.md Binding and acceptance was found: that text already requires a full lowercase Git id for the repository object format and names profile ids from the declared namespace. Frozen command restamped at 30b86d626fe5c6f416bc9361f5b8f1be4dbd01ca: python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py -> Ran 96 tests in 0.095s, FAILED (failures=65), errors=0. Every failure is AssertionError: Exception not raised. Zero import or collection errors. 35 pre-existing tests pass. 9 positive neighbors pass (8 previous plus test_a_digit_bearing_syntactically_valid_synthetic_profile_validates). The 65 intended assertion reds are the prior 54 plus these 11 new refusal methods, each proven red in isolation before the frozen suite: test_admission_record_missing_the_D_prefix_is_refused, test_empty_admission_record_is_refused, test_non_string_admission_record_is_refused, test_uppercase_template_sha256_is_refused, test_short_template_sha256_is_refused, test_non_string_grants_sha256_is_refused, test_per_job_item_missing_record_is_refused, test_per_job_item_missing_sha256_is_refused, test_duplicate_per_job_record_id_is_refused, test_per_job_decision_id_outside_the_pattern_is_refused, test_per_job_item_uppercase_digest_is_refused. python3 ops/devlane/hooks/claude/test-guard.py ops/devlane/dispatch/tests/test_record.py -> every plant is guarded (1 file(s) scanned). Commit 30b86d626fe5c6f416bc9361f5b8f1be4dbd01ca, trailers Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. Independent measurement-only verification and Claude test acceptance remain next; GPT-6 implementation is still later and separate."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T03:50:39.506Z"
+    }
+  },
+  "status": "closed"
 }
