@@ -1087,6 +1087,33 @@ class AnUnknownJobIsInvalid(_TempRun):
             "an unknown job must not launch",
         )
 
+    def test_an_absent_job_under_direct_or_stub_is_not_the_vendor_refusal(self):
+        name = "no-such-job-7e1c9a3d"
+        replay = self.write_replay(envelope.build(
+            "author-tests",
+            status="ok",
+            verdict="changes",
+            findings=[],
+            spend={"harness": "stub", "total": 1, "out": 1, "runs": 1},
+            stamp={"ref": self.ref},
+        ))
+        cases = (
+            ("direct", {"harness": "direct", "role": "read"}),
+            ("stub", {"harness": "stub", "role": "write", "replay": str(replay)}),
+        )
+        for harness, runtime in cases:
+            with self.subTest(harness=harness):
+                env = self.call_run(name, runtime=runtime)
+                self.assert_invalid(env, naming=name)
+                note = env.get("note") or ""
+                self.assertNotIn("found task vendor mode", note)
+                self.assertNotIn("expected canonical worker execution", note)
+                self.assertNotIn("needed ops/devlane/dispatch/launch.py", note)
+                self.assertFalse(
+                    self.record_path.exists(),
+                    "an unknown job must not launch",
+                )
+
     def test_load_jobs_reads_the_json_table(self):
         data = run.load_jobs()
         self.assertIsInstance(data, dict)
