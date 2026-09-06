@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T02:52:24Z",
-    "closed": null
+    "closed": "2026-09-06T02:57:42Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/home/grok-stream/sessions/<snapshot-encoded>/34cdc906-0acf-4f1c-9cbb-54dd773f7752/summary.json"
   },
   "session": {
     "id": "34cdc906-0acf-4f1c-9cbb-54dd773f7752",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/home/grok-stream/sessions/<snapshot-encoded>/34cdc906-0acf-4f1c-9cbb-54dd773f7752/summary.json",
+    "stream_sha256_at_close": "0d90eb18026cdec8b692f53a0a40dd259ea4fba47a5fa858b832aaa42b453de5",
+    "spend": {
+      "input": 630562,
+      "cached": 532096,
+      "output": 19019,
+      "total": 649581,
+      "cost_usd_ticks": 981059800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/home/grok-stream/sessions/<snapshot-encoded>/34cdc906-0acf-4f1c-9cbb-54dd773f7752/summary.json",
+      "messages": 111
+    }
   },
   "brief": {
     "template": {
@@ -99,10 +107,64 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:52:24Z",
+      "ended": "2026-09-06T02:57:42Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6adb9c870527ac94d8faa2ecf710789fa810a615",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "commit": "6adb9c870527ac94d8faa2ecf710789fa810a615",
+        "parent": "6ff3cffa2127fa73e77b9c8c1dc80f7b14356280",
+        "file": "ops/conductor/discovery-lever.md",
+        "security_ref": "0095b97edee1c1d5605d7aca61b554ee15114aea",
+        "links": "37 occurrences vs 33 matching lines (14+2+17); 27 local dest occurrences (15+2+10) vs 23 from 33-10 remote; 10 remote; 20 unique local destinations",
+        "envelopes": "3641,881,1043,1053,1058,165,1165,1819 unchanged; examples sha256 4cdfb5cf794b36a3b7e3bc7722af22e1dcee25cd8a27caa7e5e4cbdc2d6945a4",
+        "tools": "v1/v2/v3 counts 4/7/11; D-A3 and D-A38b/c remain 11",
+        "DA38b": "8/8/4 byte-identical to 0095b97",
+        "DA38c": "22 source_ids; 26 Source entries=5+21; offsets 0/5/10/15/20 return 5/5/5/5/1; S:20 fetches 21st; S:21 and S:20-when-total-20 refuse"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 649581,
+        "out": 19019,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6adb9c870527ac94d8faa2ecf710789fa810a615",
+        "started": "2026-09-06T02:52:24Z",
+        "ended": "2026-09-06T02:57:20Z"
+      },
+      "note": "Approve 6adb9c870527ac94d8faa2ecf710789fa810a615. f80e4c edited only ops/conductor/discovery-lever.md (+13/-6 vs 6ff3cff; git diff --check clean). Claude 950f23 F1 is closed: 22 source IDs still leave 21 authorized dispatch IDs when retained is absent from source_ids; work_bindings stay 0..20 metadata and do not cap the work list; lane_start grammar is 0..20 with offset below total, so offset 20 is valid when total is 21. D-A26 matches. D-A38c plants that 21-card case: empty bindings, 21 unknown metadata-missing cards, 22 source_ids, 26 Source entries (config/contract/adapter/repo/disabled-retained plus 21 dispatch), initial eight-card drop with work omitted: 21 and S:0, then CLI/MCP 5/5/5/5/1 at 0/5/10/15/20 each <=8192, S:20 returns the 21st card once, S:21 and S:20-when-total-20 refuse. D-A38b 8/8/4 is byte-identical to 0095b97; eight example envelopes stay 3641, 881, 1043, 1053, 1058, 165, 1165, 1819; discovery-examples.md and conductor-start-plan.md hashes match 0095b97. Tools remain 4/7/11. 0095b97 is an unamended ancestor still carrying 0..19 and \"27 local links\". Link rule: each ](dest) occurrence, local iff dest lacks ://. Measured 37 occurrences versus 33 matching lines (14+2+17); 27 local (15+2+10) versus Claude's 23 from 33-10 remote; 20 unique local destinations. Wrapping recipe, launch-assumption, readOnlyHint, D-A32/40/41/42 match Daybreak 5d264c at 0095b97."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T02:57:41.936Z"
+    }
+  },
+  "status": "closed"
 }
