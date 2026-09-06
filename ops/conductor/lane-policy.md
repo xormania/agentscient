@@ -344,10 +344,11 @@ enumerated cache-shape exemptions in the [dispatch contract](../devlane/dispatch
 unknown cache layouts and source files in cache-named directories remain checked.
 These exemptions do not bless cache contents as trusted execution inputs.
 
-Acceptance evidence is launcher-produced `result.policy`: the full `brief.policy`
-binding, checked snapshot ref, result head, SHA-256 of the measured artifact
-manifest and dependency evidence, check time and outcome (`pass` or `refused`,
-with the refusal line). The manifest covers the checked paths, statuses, modes,
+Acceptance evidence is launcher-produced `result.policy`, exactly the nine-member
+[PolicyResult](#candidate-evidence-and-policyresult) below. Its artifacts,
+dependencies and outputs are `{path,sha256}` handles, not bare digests; only
+refusals permit unavailable evidence as null. Its binding is the unchanged worker
+brief.policy or ConductorBinding below. The manifest covers paths, statuses, modes,
 content digests and rename endpoints; the dependency evidence and manifest are
 retained beside the record with byte digests, so consumers can rederive them.
 An absent or stale receipt never means pass. Consumers verify provenance and
@@ -362,7 +363,8 @@ This completes only the pending documentary edges from adoption review
 `20260906T102712Z-plan-codex-bc6012`. The evaluator remains the future stdlib
 library named below. No policy admission, runtime, test, registry, host grant
 or state change follows from these declarations. C1/C2 and the accepted
-policy binding above retain their schemas and owners. In particular the
+worker brief.policy binding above retain their schemas and owners. PolicyResult
+below is the sole result.policy shape. In particular the
 existing optional `brief.policy` structural validator is not replaced.
 
 ### Trusted binding input and declaration transport
@@ -389,7 +391,10 @@ self-consistent payload can replace that custody anchor.
 The declaration transport is the task-owned closed `LaunchDeclarations` object.
 Its worker selection is `TaskSelection`; conductor startup retains the distinct
 [LaunchSelection](conductor-start-plan.md#trusted-conductor-launch-descriptor),
-with conductor role and null job_role, never a fabricated worker job. Profile
+with conductor role and null job_role, never a fabricated worker job. Its record
+obeys dispatch's [complete variant](../devlane/dispatch/CONTRACT.md#canonical-conductor-record-variant-proposed):
+stage conduct, job null, brief null. LaunchDeclarations.selection accepts that
+non-worker branch without a catalogue job. Profile
 resolution follows the existing explicit/declaration/default rule above; before
 binding, resolve one profile and require every supplied selection to agree.
 Missing required model, unsupported effort, conflicting role/job_role or harness
@@ -407,16 +412,45 @@ the existing record. Resume reuses the original declaration and sources; a new
 catalogue never widens its grant. All subsequent transitions rederive the binding
 and demand stationary source identities and live register digests.
 
-For `grants_sha256`, normalize exactly
+For `grants_sha256`, derive exactly
 `{scope,job,role,adapter,outputs,maintenance}`. The first five values are closed
 `{repository:[path,...],outputs:[relative-output-path,...]}` sets. Repository
 paths use this policy's exact/prefix grammar; output paths use C2 leaf/subtree
 semantics from the validated declarations. Each list is sorted and unique;
-`outputs.repository` is empty. `maintenance` is the sorted unique union of
-verified maintenance paths actually consumed. Missing grant terms are empty,
-never profile ceilings. This object is the consumed grant input, not a union
-of effective permissions: apply both existing intersection formulas and C2's
-G=D and A=D requirements. `outputs` omission normalizes to empty lists.
+`outputs.repository` is empty. The complete producer mapping is normative:
+
+| normalized key | producing value and exact derivation |
+|:--|:--|
+| scope | LaunchDeclarations.requested_scope |
+| job | LaunchDeclarations.job_grants |
+| role | LaunchDeclarations.role_grants |
+| adapter | LaunchDeclarations.adapter_grants |
+| outputs | `{repository:[],outputs:sorted(unique(entry.path for entry in LaunchDeclarations.outputs))}`; include every validated C2 file and scratch path |
+| maintenance | sorted unique union of payload.paths from every verified standing/per_job row named in binding.maintenance; null binding.maintenance yields `[]`; derive payloads from retained exact show bytes using the register recipe |
+
+Copy the first four sets by value after validation. Sorting/uniqueness specifies
+encoding, not repair of invalid duplicate declarations. DeclarationSource
+component scope covers requested_scope, job covers job_grants, role covers
+role_grants, adapter covers adapter_grants and outputs covers the original C2
+array. Neither prompt prose nor C2 demand supplies the four independent ceilings.
+The maintenance union includes complete paths of every bound row, not only
+changed paths or a path expansion; coverage and intersection still limit writes.
+Here binding.maintenance means worker PolicyBinding.maintenance or
+ConductorBinding.policy.maintenance, respectively; it adds no new binding key.
+
+Output tokens retain exact C2 spelling: file means one leaf, scratch means its
+subtree, without appending a slash, wildcard, parent or absolute root. Kind and
+operations come from the retained original C2 array and admitted witness; the
+path digest alone cannot distinguish kinds. Every transition verifies stationary
+source identities and original declarations even if normalized paths agree.
+Reservations and sources are retained/validated, not extra keys in this hash;
+transport reservations never confer worker writes. Missing source grant terms
+supply empty required sets, and source output omission supplies `outputs:[]`.
+A missing LaunchDeclarations key refuses; no term defaults to profile ceilings.
+This object is consumed grant input, not a union of effective permissions:
+apply both existing intersection formulas and C2's G=D and A=D requirements.
+External job demand is the C2 array; job_grants remains an independent repository
+term, not an added external-output term absent from the accepted formula.
 Hash UTF-8 JSON with sorted keys, ASCII escaping, compact separators and no
 newline. This fixes the byte encoding of the existing grants receipt without
 adding keys to `brief.policy`; retain the declarations and sources alongside
@@ -425,10 +459,24 @@ it for rederivation. The selected profile and full binding are held separately.
 `bind_launch` returns a trusted handle containing these normalized grants,
 verified sources, effective grants and the unchanged `brief.policy` for a
 worker. It also binds selection, dispatch/job/lineage and canonical roots.
-Conductor binding covers the same policy/source/grant duties in its trusted
-context; its descriptor's policy_binding_sha256 hashes that canonical bound
-context without runtime handles or secrets. The consumer retains those exact
-serialized bytes and verifies their custody; matching a digest is insufficient.
+Conductor binding covers those duties with closed ConductorBinding, all keys
+required:
+`{policy,selection,dispatch,stage,job,lineage,snapshot_ref,template,declarations_sha256,custody_sha256}`.
+policy has exactly the unchanged nine worker PolicyBinding keys above. template
+is `{path,sha256}` naming the admitted repository-relative startup template leaf
+and exact byte digest; policy.template_sha256 equals template.sha256, not a
+nonexistent brief.template. The template's Git source is covered by the role
+DeclarationSource closure. selection is LaunchSelection; dispatch is the reserved
+id; stage is conduct; job is null; lineage and snapshot_ref equal the record.
+declarations_sha256 hashes canonical LaunchDeclarations; custody_sha256 hashes
+retained trusted caller evidence and equals the descriptor's custody digest.
+policy.grants_sha256 uses the mapping above. Conductor job/role/output grants
+are empty and policy.maintenance is null: no worker job or per-job maintenance
+row is fabricated. Direct source/output writes are forbidden; coordination acts
+use separate lever authority. The descriptor's policy_binding_sha256 hashes
+these exact canonical ConductorBinding bytes, without runtime handles, secrets
+or circular descriptor hashes. The record's conductor.binding handle retains
+those same bytes. Verify custody; matching a digest alone is insufficient.
 Neither tool nor worker may construct the handle from a claimed receipt.
 
 ### Candidate evidence and PolicyResult
@@ -445,10 +493,14 @@ outputs; hash exact retained bytes. A handle conveys no authority to read a
 caller-selected path. Verify custody, type, containment and digest on consumption.
 
 `candidate_evidence` is exactly `{snapshot_ref,head,artifacts,dependencies,outputs}`:
-the refs identify the checked source and candidate; artifacts and dependencies
-are held manifest values before admission, retained with handles afterward;
+snapshot_ref is the known selected Git id; head is the measured candidate Git id,
+null only when unavailable on refusal. artifacts/dependencies/outputs are held
+ArtifactManifest/DependencyEvidence/OutputAttempt values in this call; dispatch
+resolves retained handles to verified values before calling. Each evidence value
+may be null only for unavailable evidence on refusal, never for a pass;
 outputs is the dispatch-owned [attempt receipt](../devlane/dispatch/CONTRACT.md#unit1a-attempt-and-result-transport).
-Before launch its attempt is null and files is empty: no output attempt exists.
+Until an attempt is registered its attempt is null and files is empty, even
+after preparation effects. This is measured absence, not an invented attempt.
 Missing or unavailable evidence is explicit, never a successful empty manifest.
 
 ArtifactManifest is exactly `{snapshot_ref,head,entries}`. An entry is exactly
@@ -499,11 +551,14 @@ dependency for dev tooling. Evidence availability is never inferred from silence
 
 PolicyResult is exactly
 `{binding,snapshot_ref,head,artifacts,dependencies,outputs,checked_at,outcome,refusal}`.
-binding equals the entire unchanged `brief.policy`; refs equal the checked
-candidate; artifacts/dependencies/outputs are verified retained handles, or null
-only on refusal when the corresponding evidence could not be obtained. outcome
+binding equals unchanged brief.policy for a worker or ConductorBinding for a
+conductor, selected by trusted record role, never by the receipt's claim.
+snapshot_ref equals the known selected ref; head equals the measured candidate,
+null only on refusal when it cannot be measured. artifacts/dependencies/outputs
+are verified retained handles, or null only on refusal when evidence could not
+be obtained and retained. Held-but-unpersisted bytes justify no handle. outcome
 is `pass` or `refused`. refusal is null on pass, otherwise the full single-line
-owning expected/found/needed refusal. A pass requires all handles, matching
+owning expected/found/needed refusal. A pass requires all handles, non-null matching
 refs/digests, complete evidence and the independently recomputed binding.
 The launcher serializes this value as `result.policy`; the worker envelope has
 no policy field and cannot supply it. Keep prior transition/attempt receipts
@@ -534,18 +589,53 @@ before successful admission. Resume refusal likewise precedes marker/store/cap/
 attempt mutations. A pre-act lane rejection returns exit 2, empty stdout and
 one refusal line on stderr. Suppress launch acknowledgements until admission.
 
-After launch preparation, an attempt or verification has acted, failure of a
-required policy check
-is a late refusal: record the same refusal line in a refused PolicyResult,
+For each invocation, pre-effect admission ends at its first successful durable
+mutation. Fresh launch crosses at the atomic job-directory claim, even without
+a snapshot, attempt, child or artifact. A failed claim creating nothing stays
+pre-effect. Resume crosses at the first marker/cap/attempt/destination/store
+mutation; collect crosses when verification starts (it may write), or at any
+earlier mutation. Prior attempts alone do not make a new resume/collect preflight
+failure late. Read-only checks and in-memory reservation are not effects.
+After this boundary, failure of a required policy check is a late refusal:
+record the same refusal line in a refused PolicyResult,
 retain partial evidence and the last reading, and stop acceptance with Abort
 exit 3. Do not promise to erase already emitted stdout or report a prelaunch
 rejection. A completed worker result becomes invalid with null verdict and a
 note naming the refusal; an existing tripped result stays tripped and cannot
-approve. No automatic commit, accepted ref, collected marker or ladder advance
+approve. With no worker response, result.envelope is null in dispatch's partial
+record variant, not a fabricated deliverable. A conductor uses result.status
+and a null envelope. Without an attempt, keep attempts empty and
+OutputAttempt.attempt null. Retain an empty OutputAttempt only if its bytes were
+actually produced and retained; otherwise PolicyResult.outputs is null. Missing
+artifact/dependency evidence is null, never a fabricated empty manifest. Known
+binding and snapshot_ref survive from admitted inputs; unavailable head is null.
+On a record-path collision, retain diagnostics only in this launch's claimed
+directory, never overwrite another record. If diagnostic storage itself fails,
+report unavailable durable evidence on stderr with the last reading and Abort 3;
+do not claim a retained receipt or accepted result.
+No automatic commit of work, accepted ref, collected marker or ladder advance
 follows a refused check. Durable diagnostics do not make the result accepted.
 Detached acknowledgement certifies only admitted launch; its later outcome is
 read from the canonical record. Existing unrelated dispatch/C2 exits are outside
 this clarification. No override or permission prompt repairs a lane refusal.
+
+### Closed-shape walkthroughs
+
+These are synthetic construction duties, not runtime observations or admission.
+Every success below includes trusted source equality and full required dependency
+coverage; an empty dependency edge array alone is not that evidence.
+
+| path | producer to consumer, including terminal shape |
+|:--|:--|
+| worker success | Task validates C2 check-tests file SKEPTIC.md and scratch tmp, retains that ordered array in LaunchDeclarations; policy copies requested_scope/job_grants/role_grants/adapter_grants to scope/job/role/adapter and derives outputs `{repository:[],outputs:["SKEPTIC.md","tmp"]}`. With no maintenance, maintenance is `[]`; canonical bytes produce grants_sha256 in unchanged brief.policy. Dispatch reserves a check-tests id, checks held manifests and OutputAttempt `{dispatch:<id>,attempt:null,files:[]}`, claims the directory, retains and verifies the prospective launch handles, then registers attempt 1. Settlement retains the nonempty file's fresh-production evidence and one file receipt (no scratch receipt); PolicyResult has all three handles, exact binding/refs, outcome pass and refusal null. Task validates the worker envelope and exact artifact handle; read-role settlement enforces unchanged source. Read jobs do not gain collect/land authority. |
+| conductor success | Startup supplies LaunchSelection, stage conduct, null job/brief, empty job/role/C2 grants and admitted sources. Policy derives the same six normalized keys and ConductorBinding; its canonical digest is descriptor.policy_binding_sha256. Dispatch retains descriptor/binding/declarations/custody handles in the conductor record. Before an attempt, OutputAttempt is the measured null/empty value; after client launch and verified MCP/onboarding, it has attempt 1 and files `[]`. Settlement consumes complete ArtifactManifest/DependencyEvidence and OutputAttempt, with unchanged head and no source residue. Terminal record status closed, result.status ok, result.envelope null, result.policy pass; status/wait consume this branch. Resume retains identity and rechecks connection; collect/land/ladder refuse it as worker-stage evidence. |
+| pre-effect rejection | A profile conflict, foreign job-bound grant or invalid declaration returns its owning refusal from bind_launch before any claim. No canonical record, attempt or retained PolicyResult is invented; exit 2, empty stdout, one expected/found/needed stderr line. A refused resume/collect preflight likewise preserves prior record/receipts unchanged. |
+| late preparation refusal | Claim succeeds, then required custody/retention fails before an attempt. attempts remains `[]`, result.envelope null, terminal record closed and PolicyResult refused; conductor result.status is invalid. Binding and snapshot_ref are held, head is null if not measured; each evidence handle is retained or null individually. OutputAttempt may still have null attempt/empty files, but a handle is emitted only if those exact bytes were retained. Return Abort 3, preserve own partials; a colliding record is never overwritten. |
+| late attempt / collect refusal | A real attempt or collect verification writes outside grants, or actual-client MCP verification fails. Preserve measured manifests, partial OutputAttempt and refused PolicyResult. An existing worker envelope becomes invalid/null-verdict with note, tripped stays tripped; absent envelope stays null. Conductor uses result.status invalid/tripped. A refused collect keeps its prior record/ref and a separate diagnostic receipt. No accepted commit/ref/marker/advance follows. |
+
+A launch pass with null OutputAttempt.attempt certifies preflight only, not a
+completed deliverable. Settlement success requires a real completed attempt and
+all declared files, so a launch receipt cannot stand in for terminal evidence.
 
 ### Conductor tool counterpart
 
