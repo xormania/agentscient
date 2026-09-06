@@ -18,6 +18,7 @@ envelope = support.load("envelope")
 
 MISSING_VALIDATE = {"_missing_seam": "envelope.validate_outputs"}
 MISSING_FROM_JOB = {"_missing_seam": "envelope.outputs_from_job"}
+MISSING_LOAD = {"_missing_seam": "envelope.load_outputs"}
 MISSING_RENDER = ""
 NATIVE = {
     "plan": [{"kind": "file", "path": "PLAN.md", "artifact": "plan"}],
@@ -50,6 +51,13 @@ def validate_outputs(*args, **kwargs):
     fn = getattr(envelope, "validate_outputs", None)
     if not callable(fn):
         return MISSING_VALIDATE
+    return fn(*args, **kwargs)
+
+
+def load_outputs(*args, **kwargs):
+    fn = getattr(envelope, "load_outputs", None)
+    if not callable(fn):
+        return MISSING_LOAD
     return fn(*args, **kwargs)
 
 
