@@ -1,0 +1,194 @@
+{
+  "id": "20260906T134803Z-tests-grok-acdc6f",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-start-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-start-tests-20260906",
+    "base_sha": "15e2ae78a384a19b173ae34a6a3b3c3e0d6f9de9"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T13:48:04Z",
+    "closed": "2026-09-06T14:09:42Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "15e2ae78a384a19b173ae34a6a3b3c3e0d6f9de9",
+    "ref_sha": "15e2ae78a384a19b173ae34a6a3b3c3e0d6f9de9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "410cf366-4c32-4190-a0a8-8ef1509a0f6d",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/home/grok-stream/sessions/<snapshot-encoded>/410cf366-4c32-4190-a0a8-8ef1509a0f6d/summary.json"
+  },
+  "session": {
+    "id": "410cf366-4c32-4190-a0a8-8ef1509a0f6d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/home/grok-stream/sessions/<snapshot-encoded>/410cf366-4c32-4190-a0a8-8ef1509a0f6d/summary.json",
+    "stream_sha256_at_close": "4542268e7921c7b1782692b2c9ae6a290e4c4b166b2130b2e6fb9a2da3959d5f",
+    "spend": {
+      "input": 9108338,
+      "cached": 8859776,
+      "output": 83865,
+      "total": 9192203,
+      "cost_usd_ticks": 14719171200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/home/grok-stream/sessions/<snapshot-encoded>/410cf366-4c32-4190-a0a8-8ef1509a0f6d/summary.json",
+      "messages": 449
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-start-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only conductor/tests/conduct_test_support.py, test_conduct_start.py and test_conduct_enforcement.py from original Grok 3980c3b0 using merged startup/permission contracts and supplied six-gap resolution. Verify original hashes first. Replace guessed bootstrap, return packaging, native_request, config wire, client-observation and bound-role/tool shapes with exact declared couplings. Preserve pure preflight versus post-child actual MCP acceptance, owned lifecycle triggers and dev/prod separation. Include effort where the six-member selection invariant requires it. No runtime inspection/edit, contracts, frozen policy tests or live authority. Contract review is active; report unresolved gaps instead of inventing fields, and do not call this judge frozen. Run focused assertion-red with zero errors, lint/custody checks; reseal three hashes with exact receipts. No full floor during active dispatch.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/in/ag-conduct-start-tests.json",
+        "sha256": "43f28adc3660c2fb5e79c4843c93bd3fc78fbe7294681808a05cbc9cbd864bff"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/in/ag-conduct-start-coupling.json",
+        "sha256": "f4ce13d9d96535aa89cfc5ea8749bb683ba831bf2e14af9cca18f861fbe9b7cb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T134803Z-tests-grok-acdc6f/in/ag-conduct-policy-tests-recheck.json",
+        "sha256": "55a30882e0ce67db77fae8d2a71c04066450969f9efbd62a2b348cf37a0fe23d"
+      }
+    ],
+    "sha256": "17b256e5be9c76de63b20fce0bf64e009070d2fade07a41700a56c1cfb249f67",
+    "bytes": 3255
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:48:04Z",
+      "ended": "2026-09-06T14:09:42Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "487f8d9807e78243d40d565ccfa649335c8bf3ba",
+    "changed_paths": [
+      "ops/conductor/tests/conduct_test_support.py",
+      "ops/conductor/tests/test_conduct_enforcement.py",
+      "ops/conductor/tests/test_conduct_start.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/permission-surface.md:182-190,403-405",
+          "claim": "evaluate_tool delegate arguments for dispatch/go/ladder have no closed JSON object in the permission surface; the frontend owners declare CLI. Tests plant fixture encodings of those CLI operands (dispatch job/harness/model/ref, go intent/branch/scope, ladder scope/branch) as independently verified declarations and still require allow plus missing-declaration, missing-member, extra-member and unissued-lookalike refusals. A loader that treats those JSON keys as undeclared is still within the contract.",
+          "reproduce": "sed -n '175,190p;396,405p' ops/conductor/permission-surface.md; sed -n '480,500p' ops/devlane/dispatch/CONTRACT.md; sed -n '8,10p' ops/bin/go.sh; sed -n '17,21p' ops/conductor/ladder-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/CONTRACT.md:14-22",
+          "claim": "The board owner declares CLI verbs branches/prs/decisions/dispatches/all with --json/--offline. test_coordination_read_is_allowed_without_wf_agent and the apply-as-data Codex call use fixture JSON keys section/json/offline. Those keys are not a closed evaluate_tool schema.",
+          "reproduce": "sed -n '14,22p' ops/conductor/CONTRACT.md; sed -n '259,273p' ops/conductor/tests/test_conduct_enforcement.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/conductor-start-plan.md:349-354; ops/conductor/harness-capabilities.md:450-468",
+          "claim": "Bootstrap slot transport.json for Codex is the closed codex-relay/1 object (processes, endpoint, configuration, rpc, targets, deadlines, resume). Tests supply mechanism identity, interception evidence and a relay schema tag, not that complete member set. A loader that requires the full object is still the contract.",
+          "reproduce": "sed -n '347,355p' ops/conductor/conductor-start-plan.md; sed -n '450,468p' ops/conductor/harness-capabilities.md"
+        }
+      ],
+      "artifacts": {
+        "test_conduct_start": "ops/conductor/tests/test_conduct_start.py",
+        "test_conduct_enforcement": "ops/conductor/tests/test_conduct_enforcement.py",
+        "conduct_test_support": "ops/conductor/tests/conduct_test_support.py",
+        "start_red": "../out/conduct-start-red.txt",
+        "enforcement_red": "../out/conduct-enforcement-red.txt",
+        "combined_red": "../out/conduct-combined-red.txt",
+        "hashes": "../out/hashes.txt",
+        "commands": "../out/commands.txt",
+        "head": "487f8d9807e78243d40d565ccfa649335c8bf3ba",
+        "start_commit": "ef5a4bd98e1cbb4da0ce49393dd3f951e947b0f7"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 9192203,
+        "out": 83865,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "15e2ae78a384a19b173ae34a6a3b3c3e0d6f9de9",
+        "started": "2026-09-06T13:48:39Z",
+        "ended": "2026-09-06T14:08:53Z"
+      },
+      "note": "Corrected only ops/conductor/tests/conduct_test_support.py, test_conduct_start.py and test_conduct_enforcement.py from original Grok 3980c3b0c2e000c058060d36368e386f02be2f84. Original hashes verified at that commit before any edit: support c657db3b2f29e312d3c2cd3f83898cf5891ddd9b2ff27cdf30b156c3e0b7dd73, start cff9440ec054cd553234ffc7cc2e45dfcb53f6f53aa40de876f172d27a026bf2, enforcement 68324dc3a33db8aeee842c5044c20c55ed6ef03d25f3e1a02b844d4d06de453e. Tree 15e2ae78a384a19b173ae34a6a3b3c3e0d6f9de9. Implementation unread and still absent: ops/conductor/tools/conduct.py, ops/bin/conduct, ops/conductor/tools/lane_policy.py, ops/devlane/harness/adapters.py.\n\nReplaced guessed bootstrap, return packaging, native_request, conduct-config wire, FakeMcpClient attachment and bound-role/tools mappings with the declared couplings: inherited FD 3\u20138 sealed anonymous buffers; prepare success exactly {descriptor,compiled_launch}; Codex DynamicToolCallParams {threadId,turnId,callId,namespace,tool,arguments}; conduct-config expected/found/needed with the five closed reasons; actual-client observations {seq,request,response} on bound pipes; opaque issued BoundRole/BoundTarget. invoke_conduct is the public CLI with explicit FD allowlist and no prepare fallback. prepare_conductor stays the four-argument pure preflight: zero MCP, hooks, prompts, transport writes, attempts or children. Late connection failure is Abort 3 with partials, never exit 2. Synthetic display grammar is fixture-scoped; Codex uses empty grammar and may keep identical app-server argv on resume. Catalogue uses the eleven owner schemas (lane_findings/lane_changes/lane_jobs plus v3 discovery tools), not eleven names with {type:object}. COND-AXIS-N1 now conflicts all six LaunchSelection members including effort. Dev/prod/docs stay separate profiles without path hints. Changed v3 config on resume refuses lane-resume; acquired discovery content under identical config/anchors takes a new snapshot.\n\nReds are assertion failures against absent source, not collection errors. python3 -B -m unittest discover -s ops/conductor/tests -p 'test_conduct_start.py' at 15e2ae78: 54 tests, 59 failures, 0 errors, 0 skipped. python3 -B -m unittest discover -s ops/conductor/tests -p 'test_conduct_enforcement.py' at ef5a4bd: 42 tests, 53 failures, 0 errors, 0 skipped. Combined -p 'test_conduct_*.py' at 487f8d9: 96 tests, 112 failures, 0 errors. ruff check: All checks passed. ruff format --check: 3 files already formatted. git status --short empty after the combined run; isolated dispatch store absent. Commits ef5a4bd and 487f8d9 carry Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. File sha256 at 487f8d9: support 467e1aa6d3fa23090fe5740ab50965547ee099470abae24afae5f78a657846e1, start 30c1f685f954999288d0925e46c6f87571ee575b13fd02677bb84d52d8e5c058, enforcement bfdac294a8bb06cd3dd1f59e96e8d1b706a3f22d2d07645b7f0e60de8e5e8b40. No full floor. Contract review is active; this set is not a frozen judge. Remaining undeclared JSON keys are in findings."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:09:41.119Z"
+    }
+  },
+  "status": "closed"
+}
