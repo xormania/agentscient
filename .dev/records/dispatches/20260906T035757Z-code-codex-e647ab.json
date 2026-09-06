@@ -1,0 +1,112 @@
+{
+  "id": "20260906T035757Z-code-codex-e647ab",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "24d10347bf45e58d44ac2ff03bde7e62a9b33975"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:57:57Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "24d10347bf45e58d44ac2ff03bde7e62a9b33975",
+    "ref_sha": "24d10347bf45e58d44ac2ff03bde7e62a9b33975",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "b141868f-a74d-435d-b0f9-cc4730f41949",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement only the structural brief.policy validation bucket in policy-record-first-bucket.md, after the supplied independent skeptic acceptance. Edit only ops/devlane/dispatch/record.py; tests are frozen and you neither author nor approve them. Extend the existing build/validate path from lane-policy.md, preserving valid/absent legacy records and existing identity/result checks. No live authority lookup, CLI, new grants, policy activation or hardcoded profile membership. Do not invent constraints on fields the contract leaves unspecified. Run exactly python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py to green, then bash ops/bin/suites.sh and git diff --check. Report exact results, scope and any unresolved contract/gate issue; do not weaken tests/gates or change unrelated files to obtain green. No host/DB/settings/network changes or vendor launches. Commit plain prose with Source and actual-model Co-Authored-By trailers. Independent implementation review follows.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/in/policy-record-tests-accepted.md",
+        "sha256": "78ad7d884ab5b1b6d8268ed1926a8c29b8bb27d1ab4408be7aaf07f9d2f16e1a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/in/policy-record-first-bucket.md",
+        "sha256": "d5ce6b65470be3bf7f0df5e3e86e6bec24386984536090faa302ceaf34bbf5e7"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/in/20260906T035203Z-check-tests-claude-c89579.json",
+        "sha256": "661735ce5f92c5620fdee73e7e672816185f62f7950e7f3bd36f2074673e03c3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/in/20260906T035117Z-check-tests-codex-b79cb9.json",
+        "sha256": "2bc1b9670c57d0cbe8091da37e375109d3a8bf7e6e4cda81bbe11b18d846dbff"
+      }
+    ],
+    "sha256": "0ef368a39af436303671927ebb745680043a7d1b31b15131c32cd637a8229da2",
+    "bytes": 4853
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
