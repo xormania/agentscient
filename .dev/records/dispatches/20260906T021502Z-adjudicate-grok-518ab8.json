@@ -1,0 +1,197 @@
+{
+  "id": "20260906T021502Z-adjudicate-grok-518ab8",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "ab6fe92774ff452abdb04039643a5a6032f9c8bc"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:15:03Z",
+    "closed": "2026-09-06T02:21:50Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ab6fe92774ff452abdb04039643a5a6032f9c8bc",
+    "ref_sha": "ab6fe92774ff452abdb04039643a5a6032f9c8bc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "bf2b4a03-03e8-403e-8be6-a3b7fb76b8ee",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/home/grok-stream/sessions/<snapshot-encoded>/bf2b4a03-03e8-403e-8be6-a3b7fb76b8ee/summary.json"
+  },
+  "session": {
+    "id": "bf2b4a03-03e8-403e-8be6-a3b7fb76b8ee",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/home/grok-stream/sessions/<snapshot-encoded>/bf2b4a03-03e8-403e-8be6-a3b7fb76b8ee/summary.json",
+    "stream_sha256_at_close": "3b2be47b28d9fdf5e5afff56906673b47bf36b9efdd65c0790b35570adb04922",
+    "spend": {
+      "input": 806118,
+      "cached": 544384,
+      "output": 22791,
+      "total": 828909,
+      "cost_usd_ticks": 1585090200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/home/grok-stream/sessions/<snapshot-encoded>/bf2b4a03-03e8-403e-8be6-a3b7fb76b8ee/summary.json",
+      "messages": 208
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate Claude b0e12f's six findings on GPT-6 worker-launch plan 1d09bc. Read owner brief, plan, review and inventory 464dfc. Rule each with precise current-source evidence. Keep convergence on one execution path, supported behavior or explicit tested refusal, independent dev tooling and configurable harness/model/role/profile. Avoid the 28-bucket all-at-once ladder; identify only the first dependency-ready contract slice. Launch/task owns job output and harness capability declarations; consume profile policy later without duplicating it or creating cycles. Distinguish required parity from dormant filesets/staging. Preserve provenance and honest per-harness capabilities; do not universalize the temporary inline-plan workaround. No general audit or implementation design. Return concise RULING as an inline envelope artifact, including narrow C1 scope and dependencies. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/in/worker-launch-consolidation-owner.md",
+        "sha256": "b0cbc8cb97eeb81c263b1f7427c852b43831050cff53e9cbf1faa8d1e7ec7e64"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/in/20260906T013433Z-plan-codex-1d09bc.json",
+        "sha256": "e163af0fd89e5377d3415d56d1c2525fc606566fa0c764b28ee8e2a494ac81c2"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/in/20260906T014712Z-review-claude-b0e12f.json",
+        "sha256": "0a31044e6d25ae23d8e1a8682e6b602dac90cf115d4316a0c3f7c36a3bb0a5ac"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021502Z-adjudicate-grok-518ab8/in/20260906T012006Z-review-codex-464dfc.json",
+        "sha256": "da32e5c31bf6cfe7a971258c8abc390587e2549e0a518a27d9570734616cabfc"
+      }
+    ],
+    "sha256": "3011b4eee2360476d3c92d74f6db3bcebf5c79b0797f435fb2aece81c6cffb71",
+    "bytes": 3271
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:15:03Z",
+      "ended": "2026-09-06T02:21:50Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ab6fe92774ff452abdb04039643a5a6032f9c8bc",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 3,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "plan 1d09bc PLAN rows S04,S10,S16-S18; ops/devlane/task/jobs.json:57,60,68,72,92,95; ops/devlane/dispatch/launch.py:952,1213",
+          "claim": "Plan 1d09bc is not admitted. S04 waits on an accepted output-policy interface and S16-S18 wait on S10, which waits on a lane-boundary handoff; this tree has no lane-policy path. Job output grants are derived from declared {out} artifacts and belong to launch/task. Profile policy is consumed later and must not be duplicated into this track or made a cycle. S00 itself is unblocked.",
+          "reproduce": "git ls-files | grep -iE 'lane.policy|lane_policy' || echo NO_LANE_POLICY_PATHS; grep -n 'PLAN.md\\|SKEPTIC.md\\|RULING.md' ops/devlane/task/jobs.json; grep -n 'writable_out=' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "plan 1d09bc PLAN rows S13-S16; ops/devlane/dispatch/launch.py:1095; ops/devlane/dispatch/CONTRACT.md:243; ops/devlane/task/tests/test_run.py:410",
+          "claim": "Caller convergence is chained through S15-S14-S13 (task frontend, fileset, staging). launch.py already refuses fileset as mode-unavailable. The only run.run caller in ops/ is the task test module. Required parity is dispatch.sh/go.sh/ladder onto launch.py. Fileset/staging and the task vendor path stay dormant until a measured obligation or an explicit tested refusal.",
+          "reproduce": "sed -n '1091,1095p' ops/devlane/dispatch/launch.py; sed -n '242,243p' ops/devlane/dispatch/CONTRACT.md; grep -n 'run.run(' ops/devlane/task/tests/test_run.py ops/devlane/task/run.py"
+        },
+        {
+          "severity": "p2",
+          "where": "plan 1d09bc PLAN machine lines (28 slice/bucket pairs); ops/conductor/tools/ladder.py:324,1376",
+          "claim": "The plan emits 28 buckets and relies on prose to pick one. parse_plan loads every bucket in the file and the run loop starts one implementation stage per bucket. Emit only the C1 bucket. Do not change the driver.",
+          "reproduce": "sed -n '324,356p' ops/conductor/tools/ladder.py; sed -n '1376,1380p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p2",
+          "where": "plan 1d09bc PLAN row S04; ops/devlane/dispatch/launch.py:379,442,530; ops/devlane/dispatch/tests/test_launch_skeptic_write.py:181",
+          "claim": "S04 extends only the Codex check-tests suite. Containment is os only for Codex. Claude runs acceptEdits with --add-dir out and CLAUDE_DENIED_TOOLS=(WebFetch, WebSearch, Agent, Task). Grok runs always-approve. Later output-grant work needs per-harness witnesses or an explicit unsupported-capability refusal. Do not treat Codex OS sandbox as universal. Not C1 runtime.",
+          "reproduce": "sed -n '376,382p' ops/devlane/dispatch/launch.py; sed -n '439,442p' ops/devlane/dispatch/launch.py; sed -n '526,536p' ops/devlane/dispatch/launch.py; sed -n '475,481p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "plan 1d09bc PLAN row S02; ops/devlane/task/envelope.py:25,125",
+          "claim": "S02 must not be the first runtime slice and must not add a standing artifact-mode. envelope.py requires handles, not contents. Inline PLAN was authorized only for the immediate planning reassignment. Keep handle rules. Optional commit and counts/status agreement are later acceptance work, not C1.",
+          "reproduce": "sed -n '25,29p' ops/devlane/task/envelope.py; sed -n '125,138p' ops/devlane/task/envelope.py; sed -n '253,310p' ops/devlane/task/envelope.py"
+        }
+      ],
+      "artifacts": {
+        "RULING": "RULING of Claude b0e12f on GPT-6 plan 1d09bc at ab6fe92774ff452abdb04039643a5a6032f9c8bc (inventory 464dfc; owner brief). Plan not admitted. Next dispatch is C1 only.\n\nF1 p1 policy-wait: PARTIAL. Stands: S04 waits on an accepted output-policy interface; S16-S18 wait on S10/lane-boundary; git ls-files has no lane-policy path; launch.py:952,1213 still name-branches writable out to check-tests while jobs.json declares {out}/PLAN.md, SKEPTIC.md, RULING.md. Launch/task own those grants. Consume profile policy later; do not duplicate it or cycle through it. Does not stand: first deliverable blocked \u2014 S00 is unblocked.\nF2 p2 fileset-on-path: UPHELD. S16->S15->S14->S13. launch.py:1095 and CONTRACT.md:243 already refuse fileset (tested). Only ops/devlane/task/tests/test_run.py calls run.run. Wrapper convergence does not need fileset/staging/task vendor parity.\nF3 p2 S01 doctrine files: PARTIAL. Do not duplicate lane-boundary enforcement/policy and do not rewrite docs/mapping.md application-twin rows. This tree has no lane-boundary content, so dual ownership of AGENTS.md/ops/README.md is unverified. The plan Standing section already supersedes twin-retirement doctrine in plan text. S01 is not C1.\nF4 p2 28-bucket ladder: UPHELD. parse_plan (ladder.py:324) loads every bucket; the code loop (1376) runs one implementation stage each. Emit one bucket. No driver change.\nF5 p2 per-harness isolation: UPHELD. S04 names test_launch_skeptic_write.py only. Codex is the os-containment harness; Claude is policy/acceptEdits; Grok is always-approve (honest measured capability). Later slices need per-harness witnesses or explicit unsupported-capability refusals. Not C1.\nF6 p3 inline artifact-mode: UPHELD. Do not universalize the temporary inline-PLAN workaround. Handles remain the contract.\n\nMissed: S00 is not blocked; C1-C9 still over-scopes the next job; commit_trailers.py is not a task.run caller; Grok always-approve is not a missing OS sandbox to invent; worker-execution.md is a new file and is out of C1.\n\nC1-contract (only admitted slice). Size S. Dependencies: none (not lane-policy, not discovery, not fileset).\nFiles: ops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md\nIn: launch.py as the sole worker execution service; dispatch.sh, go.sh and ladder as frontends of that contract; harness, model, role and work profile as independent configurable dimensions; job output grants derived from jobs.json declared {out} paths and owned by launch/task; harness capability declarations in the dispatch contract, declared versus measured (Codex os/read-only|workspace-write; Claude policy/acceptEdits; Grok policy/always-approve); one envelope semantic authority in task with handle artifacts; inline content as a named temporary transport for specific read-only jobs, not a general mode; fileset remains the existing tested mode-unavailable refusal; task/run vendor path and shell levers classified dormant/manual for later explicit tested refusal or owner-admitted retirement; lane-policy named as a later consume-only join, not implemented here.\nOut: launch.py runtime edits, adapters.py, breaker join, fileset/staging implementation, task frontend parity, lever/recipe migration, AGENTS.md/ops/README.md/docs/mapping.md doctrine edits, wire-gate expansion, 28-bucket ladder, Symfony/prod replacement, new worker-execution.md.\nUnblocks later independent test authorship. Does not implement later slices.\n\nslice\tC1-contract\tS\nbucket\tC1-contract\tS\tops/devlane/dispatch/CONTRACT.md ops/devlane/task/CONTRACT.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 828909,
+        "out": 22791,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ab6fe92774ff452abdb04039643a5a6032f9c8bc",
+        "started": "2026-09-06T02:16:30Z",
+        "ended": "2026-09-06T02:20:43Z"
+      },
+      "note": "Adjudication only; no source/test/settings/host/DB/network edits and no vendor launch. Execution estates ops/devlane, ops/bin, ops/conductor/tools, ops/process, docs, AGENTS.md unchanged versus inventory ref e59a52bc. Suites not rerun (could not look). lane/lane-boundary-20260905 content is absent from this tree. Live operator use of go/levers/cross-review unmeasured."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T02:21:50.002Z"
+    }
+  },
+  "status": "closed"
+}
