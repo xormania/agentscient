@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T01:20:00Z",
-    "closed": null
+    "closed": "2026-09-06T01:30:34Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -63,14 +63,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-00-01a0744d-0971-7400-a44c-2fd34b9bc0b6.jsonl"
   },
   "session": {
-    "id": "02025e1b-0648-4115-afc8-e726ea57a26e",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a0744d-0971-7400-a44c-2fd34b9bc0b6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-00-01a0744d-0971-7400-a44c-2fd34b9bc0b6.jsonl",
+    "stream_sha256_at_close": "bdca7dad97afcbc3be912c83f952aab04a0d33c4f227e885be403e1e2f9ed5d8",
+    "spend": {
+      "input": 1320642,
+      "cached": 1206656,
+      "output": 15041,
+      "total": 1335683,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-00-01a0744d-0971-7400-a44c-2fd34b9bc0b6.jsonl",
+      "messages": 128
+    }
   },
   "brief": {
     "template": {
@@ -97,10 +104,63 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:20:00Z",
+      "ended": "2026-09-06T01:30:34Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "out/PLAN.md",
+          "claim": "Required artifact could not be saved: the write was rejected by the read-only sandbox, with approval unavailable. Verified PLAN.md does not exist.",
+          "reproduce": "python3 -B -c 'from pathlib import Path; print(Path(\"../out/PLAN.md\").exists())'"
+        }
+      ],
+      "artifacts": {
+        "requested_plan": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011959Z-plan-codex-976735/out/PLAN.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1335683,
+        "out": 15041,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+        "started": "2026-09-06T01:20:09Z",
+        "ended": "2026-09-06T01:30:19Z"
+      },
+      "note": "Inputs and founding docs read; mapping remeasured; launch paths inventoried; draft prepared but not persisted. All 59 existing plan-prompt tests passed. Snapshot unchanged; no network, real harness launches or session-store reads. Rerun requires writable out/ with snapshot protection retained."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:30:33.429Z"
+    }
+  },
+  "status": "closed"
 }
