@@ -212,6 +212,42 @@ with a known defect and it must surface it; run it clean and it must
 stay quiet. A job that cannot catch its own planted fault is a
 no-op with good throughput.
 
+### C1 task frontend construction decision
+
+For this correction, choose C1's explicit refusal branch for task vendor
+mode. Keep the existing callable
+`run(job, *, context, require, runtime, jobs=None, adapters=None) -> dict`
+and `main(argv=None) -> int`. A harness job with runtime.harness other than
+`direct` or `stub` returns task's semantic `invalid` envelope, null verdict,
+empty findings/artifacts, zero counts and
+`spend={harness:null,total:0,out:0,runs:0}`, before snapshotting,
+rendering, adapter lookup, process creation or store access. Its note is
+`execution: expected canonical worker execution; found task vendor mode; needed ops/devlane/dispatch/launch.py <job> --harness H --model M --ref R`.
+Stamp the caller's supplied string ref as an unverified request (null if absent),
+never claim a resolved manifest, observed model or completed attempt.
+Malformed local inputs and unknown jobs retain their own invalid diagnosis.
+The CLI prints that envelope and exits 2; usage remains 64. This is the
+existing task projection, not a change to dispatch's refusal wire.
+
+Direct verification still delegates to `verify.check` and returns its
+envelope unchanged, with `{harness:null,total:0,out:0,runs:1}` spend. Stub
+replay still reads runtime.replay and uses task's shared envelope semantics,
+without a worker launch. Their existing fileset behavior stays local.
+Retain the pure render/load_jobs helpers and direct/stub adapter data.
+No `run.resume`, injectable `run.canonical_launch`, executor registry or
+task-to-dispatch import is required or authorized by this correction.
+Worker execution and resume use the existing
+[launch verbs and result transport](../dispatch/CONTRACT.md#c1-frontend-inputs-and-results).
+Task's legacy context.into/include, runtime caps and adapter dictionaries
+are not silently translated into launch paths, permissions or configuration.
+Unsupported fileset mode continues to refuse at launch.
+
+This settles the test-author construction gap, not runtime retirement by
+documentation. The independent author must apply the
+[bounded correction](#c1c2-independent-test-correction) before handing tests
+to an implementation producer. Unchanged historical assertions do not
+override this target or authorize rebuilding the dormant vendor engine.
+
 ## Harnesses
 
 The job is harness-independent; an adapter absorbs the differences
@@ -354,6 +390,63 @@ dispatch, not inferred from the schema. A regular
 document must not be multiply linked; no output or ancestor may be a
 symlink. Lexical and real-path checks alone do not prove race-proof
 containment.
+
+### C2 library adoption seams
+
+Reuse `run.load_jobs(path=JOBS_PATH) -> dict` as task's catalogue reader;
+dispatch may consume it through the existing dispatch-to-task edge. Input
+is a string or path-like filesystem path to the held trusted catalogue,
+read as strict UTF-8 JSON. Decode the entire document before selecting a
+job, checking object member pairs before constructing each dictionary.
+Reject duplicates at every depth, including unselected jobs, escaped-key
+equivalents and repeated top-level job names; reject malformed JSON and
+non-finite constants. A native dictionary or its re-encoding is not proof
+of a strict original decode. Return the original mapping of nonempty job
+names to job objects, retaining values and output order, without adding
+defaults or interpreting prompt text. This does not introduce a closed job
+schema. Preserve `RunError` for unavailable/undecodable files and malformed
+catalogue shape; duplicate members raise `envelope.OutputsError` with
+`outputs-schema`, naming the duplicate key. No offending value spelling is
+required. Dispatch retains exact source bytes/digest and maps that exception
+to its existing C2 refusal before filesystem effects. Resume uses retained
+declarations; any catalogue it must read uses the same strict reader.
+
+The following task-owned `envelope.py` signatures extend the existing
+library, with no policy or adapter implementation import:
+
+```text
+outputs_from_job(spec, reserved=TRANSPORT_RESERVED) -> list[dict]
+render_declared_outputs(outputs, out_root, reserved=TRANSPORT_RESERVED) -> str
+append_declared_outputs(prompt, outputs, out_root, reserved=TRANSPORT_RESERVED) -> str
+```
+
+`spec` is a job dictionary; omission of outputs returns `[]`, explicit null
+refuses. `outputs` is a C2 array; `out_root` is the canonical absolute string
+bound by dispatch; `prompt` is a string. `reserved` accepts a list, tuple,
+set or frozenset of C2 relative transport paths. Always union it with
+`TRANSPORT_RESERVED = {"COMMIT_MSG","last-message.json"}`; even an explicit
+empty collection cannot remove those leaves. Null, strings and malformed
+members refuse `outputs-schema`. The same complete set reaches
+`validate_outputs`, extraction, rendering and append; omission is only the
+library's compatibility default, never evidence that an adapter needs no
+additional transport. Each call validates before returning any text or
+array, preserves declaration order and spelling, and performs no filesystem
+write. Rendering returns exactly the section below; append returns
+`prompt.rstrip("\r\n") + "\n\n" + section`. A failure returns neither a
+partial section nor a grant. Existing `load_outputs`/`validate_outputs`
+inputs, results and frozen C2 tests stay unchanged.
+
+`OutputsError` remains a distinct subclass of `EnvelopeError`. Declaration
+and reservation failures are `outputs-schema`, unrepresentable bound paths
+are `outputs-path`, and `validate(env, outputs=rows, out_root=root)` raises
+`OutputsError` for `outputs-handle` mismatch. Each includes expected, found
+and needed. General envelope errors retain `EnvelopeError`; validation
+without outputs retains historical relative handles. The optional closed
+`commit` object `{subject:<string>,body:<string>}` survives recognition and
+semantic validation, whether the response is top-level or under `result`.
+Absence stays absence; unrelated keys still refuse. Launch extracts worker
+responses and consumes task validation; task replay consumes the same rules.
+Neither needs a second vendor response parser in task's refusal frontend.
 
 ### Native declarations and rendered deliverables
 
@@ -608,7 +701,118 @@ is a declared boundary, not a claim of an installed import gate.
 `jobs.json` stays here — it is data the dispatch app reads by path,
 not an import — and so do `run.py`, `envelope.py`, `fileset.py`, and
 `verify.py`.
-The manual/dormant task vendor path awaits a later explicit tested refusal
-or owner-admitted retirement with supported behavior accounted for.
+The manual/dormant task vendor path's later explicit tested refusal is
+specified by the [construction decision](#c1-task-frontend-construction-decision),
+with supported behavior accounted for by the correction below.
 Fileset/staging parity is not required for dispatch/go/ladder convergence;
 dispatch's existing tested `mode-unavailable` refusal remains in force.
+
+## C1/C2 independent test correction
+
+This instruction is for the independent test producer, before runtime work;
+the implementation producer neither edits nor approves tests. It applies
+only to the supplied `test_run.py`, `test_execution_frontend.py` and
+`test_execution_adoption.py` from `1139d52f1206688a8d648c0a1bd23900b9c000c4`.
+Measured on 2026-09-06 against `3f84832108274403a4f2c58bc12410ae896da2c0`
+with `sha256sum ../in/test_*.py`: run `3692dcda0cc5b0c41cdb1b67bb1003450c60525b12aed3d49c780b14a34cdf43`,
+frontend `07abaf471c39bd20cc5508c1c67b3612d267511ef7df0675b6b05d43ccb0112f`,
+adoption `951e48aac226d5bd6d356b47d77501244beb620cf0e778e454bd52cdd99c23ae`.
+These are supplied artifacts, not a claim they are installed at this ref.
+
+In the tables, method names omit only the literal `test_` prefix; every
+named method gets the stated correction. Move a duty by rewriting that
+case against canonical launch fixtures, then removing its task-vendor
+assertion in the same test change. Do not skip, xfail, delete coverage or
+hand an implementer both incompatible assertions. Existing dispatch tests
+may discharge a duty only with an explicit case-to-case coverage citation;
+otherwise retain a synthetic positive and faulty control in the moved case.
+No real vendor, live store, catalogue activation or capability admission.
+
+### Old test_run.py assertions superseded
+
+| class / methods | bounded correction and preserved duty |
+|:--|:--|
+| RunBuildsTheSnapshotWithFileset: the_snapshot_is_a_fileset_snapshot_of_the_ref_not_the_worktree; the_source_repo_is_not_checked_out_or_mutated | R1: remove vendor fileset.snapshot/FILESET.md/include-set assertions. Test launch whole-ref bytes versus dirty source and its permitted record-only invoking-repo delta; retain independent fileset tests and mode-unavailable refusal. |
+| StampRefComesFromTheManifest: stamp_ref_is_the_sha_the_manifest_names; an_unresolvable_ref_is_invalid_and_never_launches | R2: launch owns ref resolution/stamping and pre-effect bad-ref refusal. No task vendor manifest or frontend stamp overlay. |
+| RoleSelectsTheSandbox: a_write_role_receives_the_write_sandbox_not_the_read_value; a_read_role_receives_the_read_sandbox; a_grok_write_role_is_auto_not_plan; builtin_write_values_are_not_the_read_only_ones | R3: move role separation to launch's admitted isolation fixtures; remove task ADAPTERS pins and Grok auto/plan requirement. Assert declared mechanics and unsupported-role refusal; sandbox labels alone never prove C2 capability. |
+| AnUnknownHarnessIsInvalid: an_unknown_harness_is_invalid_with_a_note_naming_it | R4: launch's unknown selection refuses without substitution or child; task vendor mode uses execution refusal regardless of vendor name. |
+| AMissingCliIsInvalidNotAVerdict: a_missing_cli_is_invalid_with_a_note_naming_the_gap; a_missing_cli_is_not_ok_changes_about_the_work | R5: move fake missing executable to launch; preserve named non-acceptance and no invented work findings. Task must not resolve vendor binaries. |
+| TheBatteryIsArmedWithCapOut: a_cache_heavy_total_does_not_trip_when_output_is_under_cap_out | R8: launch synthetic stream records 7000000 total/50 output under cap-out 1000 without trip; remove task battery argv/process requirement. |
+| ABatteryTripIsNotACompletedRun: a_battery_trip_is_status_tripped_with_no_verdict_and_a_note | R9: launch kills the over-budget group, retains partials and tripped/non-approve with reason. Null remains the no-partial-verdict fixture expectation, not a ban on permitted partial findings. |
+| StreamDiscoveryNamesTheSnapshot: the_stream_that_names_the_snapshot_is_chosen_over_a_newer_sibling | R10: launch's isolated store/session/cwd identity beats newer foreign evidence; remove global task store/name heuristics. |
+| AbsentSpendIsNotZeroSpend: no_stream_is_unknown_spend_not_a_measured_zero | R11: launch declares missing evidence versus measured zero and terminates an unsupervised live child after grace. Supersede the unconditional ok-with-no-stream expectation. |
+| RawOutputLivesInsideTheSnapshot: raw_output_is_inside_the_snapshot_and_not_inlined | R12: launch raw.out is under the canonical job directory, outside snapshot. Preserve exact raw bytes and bounded handles, never inline raw contents. |
+| RunDoesNotInterpretProse: a_structured_envelope_from_the_harness_is_parsed; prose_that_says_approve_does_not_become_a_verdict | R13: launch extracts structured responses and consumes task semantics; prose remains invalid/null with reason. Preserve replay recognition locally. |
+| AnUnknownJobIsInvalid: an_absent_job_is_invalid_with_a_note_naming_it; load_jobs_reads_the_json_table; load_jobs_reads_a_path_it_is_given | R14: retain all three local checks; no snapshot/child on unknown job. Reader positives use the strict seam above. This class is not blanket-retired. |
+| MainIsACli: a_changes_run_prints_json_and_returns_one; an_approving_run_prints_json_and_returns_zero | R15: replace implicit vendor success fixtures with controlled local direct verify findings/approval; preserve JSON and 1/0 mapping. Test explicit task vendor refusal separately; never default a model to rescue these calls. |
+| MainIsACli: an_invalid_run_prints_json_and_returns_two; a_usage_error_returns_sixty_four | R15: retain local invalid JSON/2 and usage/64 checks. Dispatch exits are separately tested, not copied to task. |
+| TheHarnessReceivesTheRenderedPrompt: the_harness_receives_the_scope_and_the_ref | Move scope/ref delivery to launch's prompt witness; task vendor mode does not render a worker brief. |
+| TheHarnessReceivesTheRenderedPrompt: render_fills_the_job_template | Keep pure task rendering unchanged. |
+| ATrippedRunLeavesNothingBehind: the_group_dies_even_when_the_parent_was_already_reaped; the_group_is_recorded_at_launch | Move orphan termination and launch-time pgid evidence to the canonical supervisor; remove run._terminate/_remember_group/_task_pgid implementation pins. Retain direct-operation cleanup coverage in verify's own suite. |
+| TheConductorsDialReachesTheHarness: grok_receives_both_dials; claude_receives_both_dials; codex_receives_the_model_dial; codex_receives_both_dials; an_unset_dial_adds_nothing | Move dial encoding to launch's fake argv witness; never run._adapter_argv. The unset control omits optional effort but supplies required model, with a separate missing-model refusal. |
+| TheRealAdaptersBindToTheirEvidence: grok_discovery_is_bound_to_the_snapshot; every_live_adapter_can_carry_a_model | Move cwd/session attribution and explicit model delivery/refusal to launch; remove task live-table structure assertions. Fake evidence does not admit a live adapter. |
+
+Keep every method in DirectDelegatesToVerify (R6), StubReplaysWithoutLaunching
+(R7), TheJobAsksForWhatTheRunnerParses and TheDocAndTheRegistryAgree unchanged.
+Their duties are local verification/replay, prompt/schema agreement and exact
+job-table coverage. The R1–R5/R8–R15 blanket retirement in the supplied report
+is therefore too broad: R14, half of R15 and pure rendering remain.
+
+### Supplied C1 and frontend cases
+
+| class / methods | correction |
+|:--|:--|
+| C1VendorModeDelegatesToCanonicalLaunch: vendor_mode_refuses_or_transfers_and_never_owns_a_second_executor | Require the exact task execution refusal and absence of snapshot, prompt, child and store effects; remove the synthetic-transfer alternative. |
+| C1VendorModeDelegatesToCanonicalLaunch: when_vendor_mode_transfers_explicit_selection_is_identical | Move to admitted dispatch/go/ladder invocation; compare exact job/ref/lineage and all six TaskSelection members, including profile, using the dispatch input/result contract. No substring search in a call blob. |
+| C1VendorModeDelegatesToCanonicalLaunch: direct_verify_does_not_transfer_and_still_returns_verify_check; stub_replay_does_not_transfer_and_still_replays; vendor_mode_does_not_import_dispatch_or_harness | Keep behavior, replace invented callback instrumentation with child/effect and import-boundary observations. |
+| C1VendorFrontendParsesOptionalCommit: a_commit_bearing_envelope_is_accepted_not_treated_as_absent; the_same_envelope_without_commit_is_still_found; a_commit_bearing_envelope_nested_under_result_is_accepted | Use runtime.harness=stub and runtime.replay naming each fixture for these three parser cases, preserving subject/body and absence controls; launch extraction of the same fixtures stays in adoption tests. No successful task vendor execution. |
+| C1LoadJobsDecodesTheCatalogueStrictly: duplicate_members_are_refused_before_dict_collapse; reencoding_a_collapsed_dict_does_not_recover_the_duplicate | Keep raw-byte faulty/control pair; require OutputsError/outputs-schema for duplicates. Add duplicate job, unselected job and escaped-equivalent key subcases, without weakening frozen C2 array tests. |
+| FrontendSupervisionIsLaunchs: a_canonical_launch_trip_is_returned_unchanged; vendor_mode_does_not_rewrite_a_launch_trip_to_ok | Run the existing launch entrypoint with synthetic over-cap evidence; compare canonical record/envelope status and partial findings, then the frontend projection. Remove callback-return oracle. |
+| FrontendRefusalsAreLaunchs: a_canonical_launch_refusal_is_invalid_with_the_refusal_text; a_faulty_synthetic_executor_does_not_launch_a_harness_cli | Exercise real launch preflight with a missing model or isolation fixture. Assert exit/stderr/no-state per owning refusal; pre-act dispatch has no fabricated envelope. Task's own invalid refusal is covered above. |
+| FrontendResumeDelegates: resume_is_a_public_seam_that_transfers_the_same_id; resume_does_not_invent_a_new_dispatch_id | Invoke launch.main(["resume", id]) in existing launch fixtures; verify exact record id, cwd, session, original selection, appended attempt and prior-evidence preservation on refusal. Remove run.resume and meaningless absence-of-one-random-id assertion. |
+| FrontendResultsAreLaunchs: the_frontend_returns_launchs_envelope_without_rebuilding_it; requested_model_is_not_copied_onto_observed_spend | Compare decoded canonical result fields through actual frontend transport, not Python object identity. Preserve optional commit, findings, stamp, tripped/invalid and measured spend. Pin requested/observed model to record.model.requested/ran/read_from with distinct synthetic identities; spend.harness is a harness, not a model id. |
+| FrontendDirectAndStubStayLocal: direct_verify_does_not_see_a_synthetic_launch_trip | Keep direct positive result and no worker effects; drop monkeypatch of the undeclared callable. |
+
+Remove _SyntheticLaunch, bind_canonical_launch and selection_blob dependencies
+after converting their callers. Use existing launch.main(argv), fake CLIs,
+record readers and deterministic clocks, or a contract-verified frontend
+process double that returns precisely launch's existing exit/stdout/stderr.
+Relocate launcher-facing cases into the supplied dispatch adoption test home;
+keep task-only controls in their supplied task homes. No new production API
+is a remedy for test placement or a mock's preferred return value.
+
+### Supplied test_execution_adoption.py cases
+
+Retain every method of OptionalCommitSurvivesValidateAndLaunch,
+CompleteReservationsReachEverySeam and OutputsErrorIsTheC2RefusalFamily.
+The three reserved= call sites are now declared above; they must still fire
+before text is returned. Preserve unknown-key, counts-mismatch, no-extra-
+reservation, native render and historical-handle controls.
+
+In CatalogueDecodesDuplicatesBeforeDictCollapse, change only
+`test_launch_refuses_duplicate_catalogue_members_before_a_child`'s required
+phrases from path/B.md to the duplicate key path plus outputs-schema wire
+detail; a strict decoder need not expose the overwritten value. Keep
+`test_reencoding_the_collapsed_catalogue_is_a_different_input` unchanged.
+
+In LaunchAdmissionCarriesCompleteReservations, retain
+`test_a_file_named_last_message_json_is_refused_before_a_child` and
+`test_a_file_named_commit_msg_is_refused_before_a_child`. Extend their
+pre-effect witness to no job directory/record/home/prompt as well as no child.
+For `test_native_plan_declaration_is_rendered_into_the_brief`, provide a
+contract-verified synthetic capability witness with exact file authority
+and a fake worker producing PLAN.md plus its exact artifact handle; pair
+with missing/unavailable witness refusal. Fake Grok success alone is not
+admission. Keep `test_omission_renders_the_none_grant_line` with empty extra
+authority. An extra transport collision is supplied through trusted
+LaunchDeclarations.reservations, never adapter.reservations or new policy
+mock methods. Check the identical set at extraction/render/append and resume.
+
+Correction acceptance requires all named old assertions either retained or
+replaced as directed, no contradictory vendor-engine tests in the handed-off
+suite, direct/stub positives and faulty controls, explicit profile agreement/
+conflict/default/absence cases, and unchanged frozen C2 tests. Run each corrected
+file against the baseline to distinguish intended behavioral reds from fixture
+errors, then `ops/bin/suites.sh` for runtime landing. This contract-only change
+edits no tests/runtime/catalogue/settings/state/admission and claims no such
+suite pass or capability proof.
