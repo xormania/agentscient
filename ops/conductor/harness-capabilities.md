@@ -72,3 +72,197 @@ and their verbs; the stores and their schemas; installed hooks;
 dispatch jobs; concern rows; contract-and-gate coverage (which
 promises have which checkers — the coupling census). Each lands as
 its own contract draft; this file is the pattern's first instance.
+
+
+## Conduct adapter interface
+
+Adoption unit 1b, contract-only. The dated inventory above remains historical
+reliance evidence; it does not admit installed versions today. The
+[startup descriptor](conductor-start-plan.md#trusted-conductor-launch-descriptor)
+and [shared policy](lane-policy.md) supply selection and authority. Adapter
+mechanics belong to the existing harness owner; configurable Claude, Codex and
+Grok implementations share this interface and never duplicate policy decisions.
+No installed option spelling is certified by the synthetic examples below.
+
+`compile_launch(selection, grants, transport, forwarded_tokens, operation)`
+returns exactly `{argv, environment, reservations, capability, binding}` or a
+wire refusal. It is deterministic and performs no launch, write, model selection
+or grant derivation. `selection` uses startup's LaunchSelection (worker calls
+use their task-owned role/job declaration); `grants` is the verified policy/task result,
+never scope prose; `transport` holds verified executable/configuration, adapter
+manifest, canonical paths and, for resume only, the retained session binding.
+`operation` is launch or resume and must agree with the binding.
+
+- `argv`: exact nonempty string vector beginning with the admitted absolute
+  executable. No shell evaluation, shell joining or reparsing by a shell.
+- `environment`: closed name-to-string map compiled from trusted declarations;
+  no inherited PATH/config/environment overlays. Secret authentication transport
+  remains under existing custody and is never a forwarded option or logged value.
+- `reservations`: existing C2 transport declarations, distinct from model output
+  grants; admitted scratch alone supplies its TMPDIR, never a parent grant.
+- `capability`: required tuple from
+  [C2 freshness](../devlane/dispatch/CONTRACT.md#capability-evidence-and-freshness),
+  extended by grammar, tool-normalizer and MCP binding digests for conduct.
+- `binding`: exactly `{invariant_sha256,argv_sha256,operation}`; digests use the
+  startup canonical encoding. argv_sha256 hashes the complete final vector.
+  invariant_sha256 hashes `{selection,grants,adapter,forwarded_tokens,mcp}`
+  from verified transport, with adapter equal to the complete startup descriptor
+  adapter object, excluding only the operation-specific session segment.
+
+On resume, compare invariant_sha256 to retained launch evidence and require a
+fresh matching resume witness. Recompile the entire vector and verify exact
+launcher-owned session segment against retained session identity. A resume
+argv digest normally differs from launch; it must equal its independently
+compiled expected resume vector. Repeated resume with identical inputs must
+produce identical bytes. Record both digests and the operation, not a false
+claim that launch and resume vectors are byte-identical. Relocation permitted
+by C2 rebinds canonical output paths through its custody checks; it cannot widen
+grants, change source anchors or bypass conductor stationary-binding checks.
+
+## Safe argv grammar
+
+Each measured executable/version/operation declares a closed grammar in the
+existing adapter declaration, digest-bound to its configuration. A declaration
+has exactly `{schema:"adapter-argv/1",options:[Option,...]}`. Each Option is
+exactly `{name,forms,values,repeatable}`: name matches `--[a-z][a-z0-9-]*`;
+forms is a nonempty unique subset of `flag,split,equals`; values is null for
+flag-only or a nonempty unique array of literal safe values for split/equals;
+repeatable is boolean. Flag cannot coexist with value forms. Values are
+printable ASCII, 1..128 bytes, must not start with `-`, and must come from an
+independently reviewed harmless finite vocabulary. Names are unique. Empty
+options explicitly allows only an empty forwarded vector. No permissive regex,
+free-text value, path, URL, arbitrary number, positional argument or opaque blob
+is admitted by this initial grammar. Safe value-bearing options remain usable.
+
+Parse the caller's already separated tokens once, left to right. Match only
+exact declared names and forms. Consume exactly one following token for split
+and exactly the suffix after the first equals for equals. Count repetitions by
+option identity across forms; refuse a second occurrence unless repeatable.
+Reject short aliases, bundles, abbreviations, missing/extra values, bare `--`,
+response-file forms and any token not consumed by a rule. Maximum 64 tokens,
+each at most 256 UTF-8 bytes, total at most 8192 bytes; reject NUL/control bytes.
+These are argv token bytes after the invoking shell, not its source quotation.
+Preserve every accepted token byte-for-byte, in original order and form, as one
+contiguous segment at the adapter's measured insertion point; no equals/split
+conversion, deduplication, escaping, truncation or silent dropping.
+
+The manifest must never admit options affecting permissions/approval/sandbox,
+write roots, settings/config files, environment/headers/credentials, hooks/tools,
+MCP servers, executable/plugins, working directory, session/resume, role/profile,
+model/effort or launcher transport/output. Their aliases, repetition, indirect
+config/response-file forms and future equivalents are reserved too. They belong
+only to trusted compilation. Manifest review and verified mock/live probes must
+prove semantic classification against the exact installed syntax; a name-based
+blacklist alone cannot establish safety. Unknown installation syntax means no
+measured grammar and prevents capability admission. A token rejected by an
+available closed grammar is a deterministic refusal, not UNREACHABLE.
+
+Synthetic grammar and admissible vector (fixture executable only):
+
+```json
+{"schema":"adapter-argv/1","options":[{"name":"--display","forms":["split","equals"],"values":["compact","plain"],"repeatable":false},{"name":"--quiet","forms":["flag"],"values":null,"repeatable":false}]}
+```
+
+```json
+["--display=compact","--quiet"]
+```
+
+`["--display","plain"]` also passes and keeps its two tokens. Repeated display
+across forms, `--dis`, `-q`, `--display=SECRET`, `@file`, `--config=x`, or trailing
+positional text refuses. These examples grant no real vendor option.
+
+Reject before prompt assembly, record/attempt creation, subprocess invocation or
+logging raw input. Never interpolate rejected option names/values, raw vendor
+parse errors or a hash of rejected secret material into diagnostics. Return
+`conduct-argv: expected declared safe tokens; found invalid token at index N;
+needed use the measured adapter grammar or run the independent doctor`, where
+N is the zero-based numeric index (0 for a vector-level violation). Record only
+admitted non-secret tokens and effective-vector digests. The credential-canary
+acceptance scope is this input pipeline: prompt, stderr/stdout, diagnostics,
+state/records and Git objects; it does not promise censorship of arbitrary
+future model prose. Controlled environment credentials are never serialized.
+
+## Capability admission and independent cases
+
+Shared policy calls the normalized request interface in
+[permission-surface.md](permission-surface.md#normalized-conductor-tool-interface).
+An adapter must expose every effective tool surface before effects and translate
+the shared decision without asking the user to approve it. Missing hooks,
+malformed decisions, a tool bypass or unavailable deterministic interception
+makes that harness/operation unavailable for conduct. Settings, CLI help and
+synthetic argv alone are insufficient. Launch and resume need separate positive,
+negative and prompt-observation arms in the
+[live extension](probes-lever.md#conduct-live-diagnostics).
+
+C2's G=D and actual A=D, source isolation, transport separation, freshness,
+configured age limit and verified mock requirements remain unchanged. Conductor
+restriction evidence additionally binds policy evaluator, normalizer, safe
+grammar, effective configuration and actual MCP connection. Changed tuple means
+stale evidence; missing measurement means unresolved; an observed failed control
+is failed evidence. All prevent admission with an owning capability refusal;
+UNREACHABLE describes a probe's inability to measure, not permission to run.
+
+### Conduct capability identity encoding
+
+For independent producers, `capability` above and a non-null live report
+`identity` use this exact closed object. This encodes C2's required tuple for
+conduct; it does not change worker output declarations or their admission.
+All keys are required. SHA256, ID, LaunchSelection and digest encoding come from
+startup. Text fields are nonempty printable ASCII, at most 128 bytes. Paths
+are verified absolute paths from trusted transport, not caller locators.
+
+| field | closed shape |
+|---|---|
+| harness | `{name:ID,version:text,executable:{path:absolute-path,sha256:SHA256}}` |
+| adapter | `{revision:SHA256,mechanism:text,config_sha256:SHA256,grammar_sha256:SHA256,normalizer_sha256:SHA256}` |
+| platform | `{os:text,sandbox:{name:text,version:text},filesystem:{name:text,alias_semantics:text}}` |
+| role | literal conductor for this interface; no inherited worker grants |
+| operation | launch or resume, equal to the report/compile input |
+| policy | `{blob_sha256:SHA256,evaluator_sha256:SHA256}`; current admitted policy and evaluator closure |
+| scope | `{source_reads:[absolute-path,...],source_write_denials:[absolute-path,...],outputs:[Output,...],limits:[text,...]}` |
+| contracts | `{outputs_sha256:SHA256,tools_sha256:SHA256}`; exact owning contract bytes |
+| mcp | the startup descriptor's exact mcp object |
+| probe | `{revision:SHA256}` |
+| mock | `{revision:SHA256,verification:{path:relative-file,sha256:SHA256}}`; retained passing verification under existing evidence custody |
+
+Output is exactly `{kind:"file"|"scratch",path:absolute-path,operations:[Op,...]}`;
+Op is `create,write,delete,rename,chmod`. The operations list is nonempty,
+unique and sorted, and records the exact admitted operations, never implied
+parent rights. File means one leaf; scratch means that subtree. All path/text
+lists are sorted unique; outputs sort by path with unique paths. Empty lists
+are explicit empty grants/limits, not unavailable analysis. The witness must
+prove complete source coverage and the C2 grant equality; matching a list alone
+is not containment proof. Unavailable tuple members make identity null with an
+unreachable reason, never an invented version such as unknown. A measured
+absence of OS sandbox may be described explicitly as name/version none, but
+cannot satisfy a required OS boundary.
+
+The live report supplies checked_at, results and digest-backed evidence;
+retained mock verification must independently pass. Compare the current tuple
+and scope before each operation under C2 freshness. Every descriptor adapter
+field must equal the following capability identity field byte-for-byte:
+
+| descriptor field | capability identity field |
+|---|---|
+| adapter.revision | adapter.revision |
+| adapter.mechanism | adapter.mechanism |
+| adapter.grammar_sha256 | adapter.grammar_sha256 |
+| adapter.normalizer_sha256 | adapter.normalizer_sha256 |
+| adapter.executable_sha256 | harness.executable.sha256 |
+| adapter.config_sha256 | adapter.config_sha256 |
+
+This covers both closed adapter objects completely, including the executable
+digest at its harness-owned location. The descriptor digest bound by each tool
+Request and the compiled invariant digest therefore cover the pinned normalizer
+and mechanism as well as grammar, executable and configuration. A changed field
+requires renewed matching evidence before launch/resume. The descriptor's policy
+binding must resolve to this policy. Probe/mock changes invalidate the edge;
+this encoding is not an extra capability registry or an authority record.
+
+Independent test_adapter_argv.py/test_output_capability.py cases cover every
+form, byte/order preservation, duplicates across forms, reserved aliases and
+indirect channels, invalid manifests, secret canary non-persistence, all selection
+axes, unsupported combinations, changed bindings and legitimate operation-owned
+resume tokens. Existing dispatch admission cases remain the C1/C2 owners' duty.
+Live observation format and diagnostic bootstrap are owned by probes-lever.md;
+this contract does not create another witness authority or implementation.

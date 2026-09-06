@@ -3,7 +3,7 @@
 Standing: authorized documentation of the four-step sequence. Owner,
 2026-09-05: "document it and start on step 1". The earlier pause on
 contract work is superseded for this bounded step. This file is the
-sequence, not a lever contract and not an implementation.
+sequence and the bounded launch-interface contract below, not an implementation.
 
 The discovery contract is [`discovery-lever.md`](discovery-lever.md), with
 [non-executable payload examples](discovery-examples.md). This correction
@@ -13,8 +13,10 @@ The [correction disposition](reports/discovery-contract-correction-20260906.md)
 is the preserved prior producer report, not current measurements or admission.
 The [2026-09-06 reconciliation](reports/discovery-reconciliation-20260906.md)
 records the latest owner scope and this recovery's evidence separately.
-Step 1 ends only after admission for independent test authors. Steps 2–4
-remain future work.
+Discovery and C1/C2 contract acceptance are recorded in the linked owning
+reports. Executable steps remain subject to their acceptance duties. The
+[launch interface below](#trusted-conductor-launch-descriptor) completes adoption
+unit 1b; it neither reopens those boundaries nor declares runtime activation.
 
 The latest supplied `discovery-contract-owner.md` supersedes earlier framework
 assumptions: dev-lane tools evolve independently under `ops/`; the prod Symfony
@@ -74,14 +76,20 @@ MCP visibility does not enforce access through other harness tools.
 ## Later interface (documented, not implemented)
 
 ```
-conduct <harness> dev
-conduct <harness> prod
-conduct <harness> test
-conduct <harness> <profile> test
+conduct <harness> dev [-- <adapter-token>...]
+conduct <harness> prod [-- <adapter-token>...]
+conduct <harness> test [-- <adapter-token>...]
+conduct <harness> <profile> test [-- <adapter-token>...]
 ```
 
-Everything after `--` is forwarded as harness arguments, subject to
-conductor policy. `test` exercises live harness enforcement; a profile
+The optional `--` follows all conduct positionals, including `test` when present;
+it may have zero following tokens. No conduct positional is parsed after it.
+Forwarding is admitted on all four forms. Unprofiled test validates the same
+vector for every enumerated profile before any diagnostic effects; a rejection
+in any profile refuses the invocation. Tokens after the first `--` must satisfy
+the adapter
+[closed safe grammar](harness-capabilities.md#safe-argv-grammar). Accepted tokens
+are forwarded exactly, in order; rejected tokens never reach launch records. `test` exercises live harness enforcement; a profile
 before `test` narrows that diagnostic. The command stays thin: policy,
 workflow, diagnostics, and evidence ownership are declared outside
 harness CLI syntax.
@@ -116,8 +124,9 @@ the missing generic workflow runtime (`wf.py` remains absent).
 
 ### Parallel track: worker execution consolidation
 
-The owner authorized this track in parallel with discovery. Its own contract
-still needs admission. Consolidation must complete before step 3 conduct
+The owner authorized this track in parallel with discovery. Its C1/C2 contract
+acceptance is [recorded](reports/worker-launch-contract-acceptance-20260906.md).
+Executable consolidation must complete before step 3 conduct
 startup; it blocks neither step 1 nor the read-only service in step 2.
 The [prior home-map](reports/conductor-start-home-map-20260905.md) reports an
 active `launch.py` and a separate `task/run.py` implementation inaccurately
@@ -278,15 +287,155 @@ link availability and live compatibility were not reverified here.
 These are not this step's work. They are named so they are not
 silently closed:
 
-1. Physical file placement of the shared-policy engine (step 3; the
-   audits differ; one conductor policy contract plus adapters is the
-   common requirement).
+1. Shared-policy implementation and activation under
+   [lane-policy.md](lane-policy.md#bootstrap-and-minimum-complete-activation),
+   which owns the evaluator at `ops/conductor/tools/lane_policy.py`.
 2. Adapter internals: closed git subprocess versus reading git objects
    (step 2; the contract allows either behind `lane_refs`).
 3. Adding these two paths to onboard's law table (smallest extension,
    declared in the discovery contract, not applied here so the
    onboard instrument does not drift from its contract).
-4. Admission and proof of the parallel worker consolidation contract before
-   conduct startup; authoritative lane-boundary enforcement remains pending.
+4. Executable proof of the accepted worker consolidation and lane-policy
+   contracts before conduct startup; contract acceptance is not runtime proof.
 5. Worker context/MCP and two role-specific server entrypoints; writable MCP
    requires a separately admitted change to the standing read-only boundary.
+
+
+## Trusted conductor launch descriptor
+
+Adoption unit 1b freezes this interface for independent construction. It is
+contract-only, under the owner assignment of 2026-09-06 and GPT-6 adoption
+review `20260906T102712Z-plan-codex-bc6012`, unit 1b. Accepted
+[discovery](reports/discovery-contract-acceptance-20260906.md),
+[C1/C2](reports/worker-launch-contract-acceptance-20260906.md) and
+[policy](lane-policy.md) retain their owners and acceptance requirements.
+The descriptor is transport between trusted startup, shared policy and adapters;
+it creates no authority, configuration registry, executor or session store.
+
+`prepare_conductor(trusted_context, selection, forwarded_tokens, operation)`
+is the startup composition interface. It returns the descriptor below and the
+adapter's compiled launch, or a refusal before durable state or child creation.
+`trusted_context` is supplied by the admitted caller through a direct in-process
+argument or inherited read-only descriptor, never a caller path, environment
+variable, model tool argument or MCP parameter. It contains the policy owner's
+verified binding, declaration sources, custody anchor and discovery boot inputs.
+A digest is only an equality check against these held inputs, never proof of
+trusted origin. Resolve executable/configuration identities and selection first,
+reserve the canonical dispatch identity in memory on launch (reuse it on resume),
+validate policy/grants/capability, then let the
+canonical dispatch/harness owner prepare transport and invoke the child.
+
+The serialized descriptor is strict UTF-8 JSON, at most 65536 bytes, nesting
+at most 32; reject duplicate/unknown/missing keys, non-finite numbers, wrong
+types (boolean is not integer) and control characters in strings. All objects
+below are closed and all keys required, including nullable keys. `SHA256` is
+64 lowercase hex; `ID` and repository/anchor types are exactly
+[discovery's types](discovery-lever.md#trusted-configuration-and-bounded-profiles).
+Canonical digest encoding for these new interfaces is sorted object keys,
+ASCII JSON escaping, compact separators, UTF-8, no trailing newline; arrays
+retain order. Exact file-byte digests and policy `show` digests retain their
+owning recipes. Do not substitute this encoder for them.
+
+`DispatchID` is the canonical execution record's `id` under the
+[dispatch job directory](../devlane/dispatch/CONTRACT.md#the-job-directory):
+`<UTC stamp>-<stage>-<harness>-<6 hex>`, for example
+`20260906T103421Z-code-codex-20aa14`. It is not discovery's `ID`.
+`launch_id` equals that record's id byte-for-byte: launch reserves a fresh id
+through the canonical dispatch owner before admission, and resume retains the
+same id from the trusted record and parent descriptor. Model observations,
+custody and receipts resolve through that record; no second id or correlation
+store is introduced. Refuse a mismatched record/descriptor binding before effects.
+
+`LaunchSelection` is exactly
+`{harness:ID,model:string,effort:string|null,role:"conductor",job_role:null,profile:ID}`.
+Model and non-null effort are nonempty, at most 128 printable ASCII bytes.
+This named launch type is distinct from discovery's handoff `Selection`.
+
+| field | type / obligation |
+|---|---|
+| schema | literal `conductor-launch/1` |
+| launch_id | DispatchID, bound to the canonical execution record as above; no filesystem reservation before admission |
+| operation | `launch` or `resume` |
+| selection | LaunchSelection |
+| custody_sha256 | digest of the retained trusted caller custody evidence; verified against the previously admitted anchor, never supplied by the candidate |
+| policy_binding_sha256 | digest of the policy owner's verified bound context, retained with its declaration sources; not a fabricated worker brief or a replacement for brief.policy |
+| discovery | `{config_sha256:SHA256,repository:Repository,anchors:[{id:ID,device:int,inode:int},...]}`; config digest is exact v3 file bytes; nonnegative device/inode, unique anchors sorted by id, exactly the config anchor set |
+| adapter | `{revision:SHA256,mechanism:string,grammar_sha256:SHA256,normalizer_sha256:SHA256,executable_sha256:SHA256,config_sha256:SHA256}`; mechanism is nonempty printable ASCII, at most 128 bytes; bound effective controlled configuration, not ambient user settings; exact [capability mapping](harness-capabilities.md#conduct-capability-identity-encoding) |
+| forwarded_tokens | admitted array of strings under the safe argv grammar, never raw rejected input |
+| mcp | `{server_sha256:SHA256,config_sha256:SHA256,catalogue_sha256:SHA256}`; server digest covers pinned server/runtime closure; config equals discovery.config_sha256; catalogue hashes canonical tools/list result including schemas |
+| resume | null on launch; otherwise `{parent_descriptor_sha256:SHA256,session_binding_sha256:SHA256}` from trusted retained transport |
+
+`Repository` above is discovery's exact repository object, not a new root
+locator. Startup supplies the existing v3 `--config FILE` to lane_mcp from
+held, verified bytes and pinned anchor handles. It does not add descriptor
+keys to v3 or a profile key to lane.conf. Any configured selection and explicit
+selection must agree; no job/model table, infrastructure lane inference or
+Daybreak role promotion. The selected profile must exist in both admitted
+policy and discovery configuration; discovery work_roots describe relevance,
+never effective write grants. Additional configured profiles use the same path.
+
+A structural example fragment (not an entire descriptor or live evidence):
+
+```json
+{"harness":"codex","model":"fixture-model","effort":null,"role":"conductor","job_role":null,"profile":"dev"}
+```
+
+Independent fixtures supply full descriptors from synthetic trusted inputs,
+then change each required field independently. A descriptor with that selection,
+operation launch and resume null is structurally compatible; it still requires
+all other fields, held input equality and live capability before admission.
+Model observation records requested versus actual identity through the existing
+execution record. An absent or conflicting observation cannot certify selection.
+
+### Connection, onboarding and resume binding
+
+Before handing control to a conductor, verify the connection from that actual
+client: fresh MCP initialize/tools/list and a real tools/call `lane_start` with
+`{"profile":"dev"}` for the example. Check catalogue identity, config/anchor
+binding and the complete discovery envelope. Bind the client/session and server
+transport identities in trusted transport evidence; a separately launched CLI
+query proves read-service parity only. A server self-reported digest or a
+configured server entry alone cannot prove which server the client reached.
+Absent connection evidence prevents startup; a partial but valid discovery
+packet may onboard with its explicit unavailable/unknown sources. It must not
+invent a handoff, select by filename/time or ask for filesystem hints. Supply
+one bounded lane_start packet automatically, then relevant named detail under
+its snapshot/cursor rules. Preserve eleven v3 tools and v1/v2 bytes.
+
+An `Invalid params` response requires comparison of actual tools/list and
+request bytes from the connected client; it does not establish server absence.
+Diagnostics report this without rewriting host settings. MCP stays read-only;
+[tool decisions](permission-surface.md#normalized-conductor-tool-interface)
+govern other tools and canonical CLI delegation independently.
+
+Resume revalidates custody and stationary policy, selection, source grants,
+v3 config/anchors, adapter, safe tokens and MCP catalogue before restoring
+session state, clearing markers, incrementing attempts or starting a child.
+Recompile with operation resume; verify the recorded invariant launch digest
+and the operation-specific vector rules in the adapter contract. Launcher-owned
+session tokens may differ only as those rules declare; raw vendor resume flags
+are never an alternative route. Reverify the actual client MCP connection and
+perform automatic onboarding again. Changed discovery content gets a fresh
+snapshot; it cannot silently change bound roots, permissions or profile.
+Unbound legacy sessions remain readable; continuation requires a fresh admitted
+launch. Existing canonical records carry custody and receipts, no new store.
+
+### Startup refusal and verification boundary
+
+Use the owning lane-profile/lane-policy/lane-resume refusals for those failures.
+`conduct-config` covers malformed/untrusted descriptor transport; `conduct-mcp`
+covers missing or mismatched actual connection. Both use the wire and
+secret-free fixed reasons, with a remedy naming the independent doctor.
+For example: `conduct-mcp: expected bound client connection; found unavailable;
+needed run the independent doctor and restore verified connection evidence`.
+Adapter and tool refusals retain their own classes. No permission prompt,
+attended fallback, self-admission or automatic harness substitution is allowed.
+
+Independent startup cases must cover: full synthetic descriptor round-trip;
+unknown/duplicate keys and missing nulls; untrusted matching digests; all five
+selection axes independently; positive coordination/delegation; safe forwarding;
+missing/mismatched MCP versus partial valid discovery; dev/prod/additional
+profiles without path hints; and resume mutation before any transport effects.
+Use test_conduct_start.py and test_conduct_enforcement.py under the existing
+conductor test owner, with verified fake counterparties. These are construction
+targets, not assertions that tests or live mechanisms have already passed.
