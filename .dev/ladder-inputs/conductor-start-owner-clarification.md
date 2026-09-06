@@ -39,3 +39,14 @@ locate a record in a retained worktree and paste its path into the next session.
 Investigate the existing Claude onboarding/closeout behavior before proposing
 its common Claude/Codex/Grok form. The investigation remains discussion-only.
 Lifecycle review: `20260905T235716Z-review-codex-af223c`.
+
+The owner proposed live policy verification:
+
+> how about `conduct <harness> test` that loads a diagnostic prompt that goes through all policy and verifies?
+
+Discuss a diagnostic mode using the same conductor policy as ordinary startup,
+with a declared policy corpus and deterministic grading of tool attempts, hook
+decisions, and observable effects. Each policy needs positive and negative
+controls. Unattempted or unreachable cases remain explicit, never a pass.
+Use disposable local fixtures and mock remote actions. Bind results to harness,
+policy, and adapter versions. No diagnostic implementation is authorized yet.
