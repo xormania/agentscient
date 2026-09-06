@@ -28,3 +28,14 @@ The three current dispatches produce research/design evidence only:
 - `20260905T234530Z-plan-claude-56d481`
 - `20260905T234559Z-review-codex-a079d6`
 - `20260905T234846Z-review-grok-8e1450`
+
+The owner further specified the operator interface:
+
+> i would like to be able to start a session with a script like `conduct codex` and then it handles loading the harness and auto onboard
+
+The session lifecycle and conductor tools must be easy to understand and use.
+Handoff placement and discovery belong to the system: an operator must not
+locate a record in a retained worktree and paste its path into the next session.
+Investigate the existing Claude onboarding/closeout behavior before proposing
+its common Claude/Codex/Grok form. The investigation remains discussion-only.
+Lifecycle review: `20260905T235716Z-review-codex-af223c`.
