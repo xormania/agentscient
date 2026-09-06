@@ -45,6 +45,60 @@ def _need(condition, field, detail="is invalid"):
         raise RecordError(f"record field {field} {detail}")
 
 
+def _policy_match(value, pattern, field, detail):
+    _need(isinstance(value, str) and re.fullmatch(pattern, value) is not None,
+          field, detail)
+
+
+def _policy_receipt(value, field):
+    _need(isinstance(value, dict), field, "must be an object")
+    _policy_match(value.get("record"), r"D-[A-Z0-9]+-[0-9]+",
+                  f"{field}.record", "must be a decision id")
+    _policy_match(value.get("sha256"), r"[0-9a-f]{64}",
+                  f"{field}.sha256", "must be a lowercase SHA-256 digest")
+
+
+def _validate_policy(brief):
+    """Check binding structure only, without admitting policy or looking it up."""
+    if not isinstance(brief, dict) or "policy" not in brief:
+        return
+    policy = brief["policy"]
+    _need(isinstance(policy, dict), "brief.policy", "must be an object")
+    for key in ("schema", "path", "ref", "sha256", "admission", "profile",
+                "template_sha256", "grants_sha256", "maintenance"):
+        _need(key in policy, f"brief.policy.{key}", "is missing")
+    _need(policy["schema"] == "agentscient.lane-policy/v1",
+          "brief.policy.schema", "must be agentscient.lane-policy/v1")
+    _need(policy["path"] == "ops/lane-policy.json",
+          "brief.policy.path", "must be ops/lane-policy.json")
+    _policy_match(policy["ref"], r"(?:[0-9a-f]{40}|[0-9a-f]{64})",
+                  "brief.policy.ref", "must be a full immutable Git object id")
+    for key in ("sha256", "template_sha256", "grants_sha256"):
+        _policy_match(policy[key], r"[0-9a-f]{64}", f"brief.policy.{key}",
+                      "must be a lowercase SHA-256 digest")
+    _policy_receipt(policy["admission"], "brief.policy.admission")
+    _policy_match(policy["profile"], r"[a-z][a-z0-9-]*",
+                  "brief.policy.profile", "must be a syntactically valid profile id")
+    template = brief.get("template")
+    _need(isinstance(template, dict)
+          and policy["template_sha256"] == template.get("sha256"),
+          "brief.policy.template_sha256", "must equal brief.template.sha256")
+    maintenance = policy["maintenance"]
+    if maintenance is None:
+        return
+    _need(isinstance(maintenance, dict)
+          and set(maintenance) == {"standing", "per_job"},
+          "brief.policy.maintenance", "must contain exactly standing and per_job")
+    for key in ("standing", "per_job"):
+        field = f"brief.policy.maintenance.{key}"
+        rows = maintenance[key]
+        _need(isinstance(rows, list), field, "must be a list")
+        for index, row in enumerate(rows):
+            _policy_receipt(row, f"{field}[{index}]")
+        ids = [row["record"] for row in rows]
+        _need(ids == sorted(set(ids)), field, "must be sorted by unique record id")
+
+
 def validate_context(rec, *, expected_id=None, expected_snapshot=None):
     _need(isinstance(rec, dict), "record", "must be an object")
     ident = rec.get("id")
@@ -141,4 +195,5 @@ def validate(rec, *, expected_id=None, expected_snapshot=None):
         )
         _need(valid, "result.collected",
               "must carry at, by, head, and verify.exit equal to 0")
+    _validate_policy(rec["brief"])
     return rec
