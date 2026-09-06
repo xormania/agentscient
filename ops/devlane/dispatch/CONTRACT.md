@@ -432,10 +432,14 @@ for collected results. Worker verdict, envelope status, process exit 0 and
 collect verification success confer no exception. New `lane-*` refusals follow
 the shared wire's exit 2 and expected/found/needed line, without override.
 
-Policy/instruction maintenance uses bounded authorization under the previously
-admitted policy and trusted consumer; candidate bytes never self-authorize.
-Bootstrap requires explicit owner admission of independently verified policy
-and consumer revisions. Existing records retain their bytes and historical
+Policy/instruction maintenance requires the true maintenance boolean and bounded
+standing/per-job evidence under the previously admitted policy. Existing standing
+owner authorization binds subsequent jobs without another owner act. Admission
+and grant digests cover exact existing-register `show` stdout, read from the host
+store by the admitted reader/runtime and configuration, never candidate copies
+or the worker HOME. Candidate policy, reader, config and seed bytes cannot
+self-authorize. Bootstrap binds independently verified policy, consumer and
+reader/runtime custody. Existing records retain their bytes and historical
 status, without backfill or a claim that old sessions were enforced. After
 cutover unbound work cannot write-resume, collect for acceptance, land or advance
 a ladder; continuing it requires a fresh bound dispatch with retained provenance.
