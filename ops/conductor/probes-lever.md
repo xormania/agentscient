@@ -147,10 +147,12 @@ is computable when `run` exits 0 over the manifest the session wrote.
 
 ## Exits
 
-0 — every row PASS. 1 (Finding) — the report carries FAIL or
-UNREACHABLE rows. 2 (Rejection) — the refusal wire says why. Nothing
-here can Abort: row commands run under bounded timeouts, and a row
-that exceeds one is UNREACHABLE on its line, not a hang.
+For the read-only `probes.py` run/ask/grade verbs: 0 — every row PASS
+(or ask emitted the staging surface). 1 (Finding) — the report carries FAIL or
+UNREACHABLE rows. 2 (Rejection) — the refusal wire says why. These verbs do not
+produce Abort: row commands run under bounded timeouts, and a row that exceeds
+one is UNREACHABLE on its line, not a hang. The separate conduct live diagnostic
+exits, including supervision Abort (3), are defined in [Live observation format](#live-observation-format).
 
 ## Conformance and lint
 
@@ -255,7 +257,7 @@ model-provided locator. Hash exact retained bytes.
 | candidate_sha256, bootstrap_sha256 | SHA256, matching apparatus |
 | descriptor_sha256 | SHA256 or null if startup descriptor preparation was unreachable |
 | checked_at | UTC `YYYY-MM-DDTHH:MM:SSZ` |
-| selection | exact startup Selection, no axis inferred from harness |
+| selection | exact startup LaunchSelection, no axis inferred from harness |
 | operation | launch or resume |
 | identity | null if unavailable, otherwise the complete C2 witness identity and conduct adapter/grammar/normalizer/MCP extension; retained as the required capability tuple, not a second competing tuple |
 | cases | nonempty array of Case, exactly the requested case ids in declared order, including unattempted arms |
@@ -288,7 +290,10 @@ later observation is incomplete. Record partial events in either case. Manifest
 and event digests allow mechanical regrading, not reliance on model prose.
 
 Report exit 0 requires every requested arm PASS, matching verified identities
-and cleanup complete. Exit 1 carries FAIL or UNREACHABLE rows or cleanup failure.
+and cleanup complete. A completed report exits 1 when any row is FAIL or
+UNREACHABLE, or cleanup is `failed` or `unreachable`, including all-PASS rows
+with unobservable cleanup. Cleanup unreachable remains unavailable evidence,
+not an observed failure.
 Malformed diagnostic arguments/untrusted bootstrap transport refuse pre-act with
 exit 2 and empty stdout; use `conduct-diagnostic` and fixed expected/found/needed
 with the independent doctor as remedy. A supervision abort retains partial
@@ -320,7 +325,7 @@ probe or mock digest and admission must demand renewed evidence. The exact C2
 freshness predicate (including optional configured age bound and equality at its
 limit) remains owned by dispatch; launch evidence cannot stand for resume.
 
-A schema/example construction recipe: choose the synthetic Selection in
+A schema/example construction recipe: choose the synthetic LaunchSelection in
 [startup](conductor-start-plan.md#trusted-conductor-launch-descriptor), requested case COND-HAND-N1 with expected refuse, and
 ordered request/attempted, decision/refuse, tool/blocked, effect/none,
 prompt/none, complete/succeeded events backed by fixture handles. With matching

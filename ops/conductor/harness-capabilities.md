@@ -87,8 +87,8 @@ No installed option spelling is certified by the synthetic examples below.
 `compile_launch(selection, grants, transport, forwarded_tokens, operation)`
 returns exactly `{argv, environment, reservations, capability, binding}` or a
 wire refusal. It is deterministic and performs no launch, write, model selection
-or grant derivation. `selection` uses the startup shape (worker calls use their
-task-owned role/job declaration); `grants` is the verified policy/task result,
+or grant derivation. `selection` uses startup's LaunchSelection (worker calls
+use their task-owned role/job declaration); `grants` is the verified policy/task result,
 never scope prose; `transport` holds verified executable/configuration, adapter
 manifest, canonical paths and, for resume only, the retained session binding.
 `operation` is launch or resume and must agree with the binding.
@@ -106,7 +106,8 @@ manifest, canonical paths and, for resume only, the retained session binding.
 - `binding`: exactly `{invariant_sha256,argv_sha256,operation}`; digests use the
   startup canonical encoding. argv_sha256 hashes the complete final vector.
   invariant_sha256 hashes `{selection,grants,adapter,forwarded_tokens,mcp}`
-  from verified transport, excluding only the operation-specific session segment.
+  from verified transport, with adapter equal to the complete startup descriptor
+  adapter object, excluding only the operation-specific session segment.
 
 On resume, compare invariant_sha256 to retained launch evidence and require a
 fresh matching resume witness. Recompile the entire vector and verify exact
@@ -206,7 +207,7 @@ UNREACHABLE describes a probe's inability to measure, not permission to run.
 For independent producers, `capability` above and a non-null live report
 `identity` use this exact closed object. This encodes C2's required tuple for
 conduct; it does not change worker output declarations or their admission.
-All keys are required. SHA256, ID, Selection and digest encoding come from
+All keys are required. SHA256, ID, LaunchSelection and digest encoding come from
 startup. Text fields are nonempty printable ASCII, at most 128 bytes. Paths
 are verified absolute paths from trusted transport, not caller locators.
 
@@ -238,10 +239,25 @@ cannot satisfy a required OS boundary.
 
 The live report supplies checked_at, results and digest-backed evidence;
 retained mock verification must independently pass. Compare the current tuple
-and scope before each operation under C2 freshness. The descriptor's adapter
-fields must match this identity, and its policy binding must resolve to this
-policy. Probe/mock changes invalidate the edge; this encoding is not an extra
-capability registry or an authority record.
+and scope before each operation under C2 freshness. Every descriptor adapter
+field must equal the following capability identity field byte-for-byte:
+
+| descriptor field | capability identity field |
+|---|---|
+| adapter.revision | adapter.revision |
+| adapter.mechanism | adapter.mechanism |
+| adapter.grammar_sha256 | adapter.grammar_sha256 |
+| adapter.normalizer_sha256 | adapter.normalizer_sha256 |
+| adapter.executable_sha256 | harness.executable.sha256 |
+| adapter.config_sha256 | adapter.config_sha256 |
+
+This covers both closed adapter objects completely, including the executable
+digest at its harness-owned location. The descriptor digest bound by each tool
+Request and the compiled invariant digest therefore cover the pinned normalizer
+and mechanism as well as grammar, executable and configuration. A changed field
+requires renewed matching evidence before launch/resume. The descriptor's policy
+binding must resolve to this policy. Probe/mock changes invalidate the edge;
+this encoding is not an extra capability registry or an authority record.
 
 Independent test_adapter_argv.py/test_output_capability.py cases cover every
 form, byte/order preservation, duplicates across forms, reserved aliases and
