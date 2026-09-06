@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T01:32:04Z",
-    "closed": null
+    "closed": "2026-09-06T01:33:39Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -63,14 +63,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013203Z-plan-codex-73c888/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-32-04-01a07458-1543-7ca2-9c7a-d016463d1e04.jsonl"
   },
   "session": {
-    "id": "81f593fa-85f5-4fc1-ae26-78433c08edf9",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a07458-1543-7ca2-9c7a-d016463d1e04",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013203Z-plan-codex-73c888/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-32-04-01a07458-1543-7ca2-9c7a-d016463d1e04.jsonl",
+    "stream_sha256_at_close": "326243148e75a428d7e819c99a2f7b1d52651667f6e39806ab2c01442242ae14",
+    "spend": {
+      "input": 683109,
+      "cached": 583680,
+      "output": 1942,
+      "total": 685051,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013203Z-plan-codex-73c888/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-32-04-01a07458-1543-7ca2-9c7a-d016463d1e04.jsonl",
+      "messages": 88
+    }
   },
   "brief": {
     "template": {
@@ -97,10 +104,40 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 900.0,
+    "timeout_source": "default"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:32:04Z",
+      "ended": "2026-09-06T01:33:39Z",
+      "exit": -15,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "78366384953a6ac596a195abd86e9038373a9929",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "plan",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "78366384953a6ac596a195abd86e9038373a9929"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited -15"
+    },
+    "cause": {
+      "reason": "harness-cli:-15"
+    }
+  },
+  "status": "closed"
 }
