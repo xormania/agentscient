@@ -1,0 +1,108 @@
+{
+  "id": "20260906T025224Z-review-grok-873a3a",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "6adb9c870527ac94d8faa2ecf710789fa810a615"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:52:24Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6adb9c870527ac94d8faa2ecf710789fa810a615",
+    "ref_sha": "6adb9c870527ac94d8faa2ecf710789fa810a615",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "34cdc906-0acf-4f1c-9cbb-54dd773f7752",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "34cdc906-0acf-4f1c-9cbb-54dd773f7752",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Recheck only GPT-6 f80e4c's one-file cursor correction against discovery-cursor-ruling.md and Claude 950f23. Verify work can contain 21 authorized dispatch IDs independent of 20 metadata bindings; offset 20 is valid below total; new D-A38c proves reachability/fit, D-A38b's 8/8/4 and all eight envelope payloads stay unchanged. Reproduce the link-count reconciliation: occurrences versus matching lines, 27 local destinations versus 23 claimed by subtracting remote from matching-line count. No historical rewrite. Verify eleven tools and unchanged security-related semantics from 5d264c's approved ref. Return <=500-word approve/changes with evidence; no broad audit or runtime requirement. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/in/discovery-cursor-ruling.md",
+        "sha256": "747e933ad952f5553f10053c53a9e263a2e020582ddcf0aebbca513d89c8eb63"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/in/20260906T023500Z-review-claude-950f23.json",
+        "sha256": "90d595aa8ec37b9285315cdfdf93ee8cabcd691e5f3864571941afb399867c12"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T025224Z-review-grok-873a3a/in/20260906T024619Z-code-codex-f80e4c.json",
+        "sha256": "c77e8fa69aa5f3d8ab4aa94e6628291848b409242292b784931e29438b71d140"
+      }
+    ],
+    "sha256": "e37e3ea92d4b5bcf14a80cf8c529213c0fd7f434dc546c041dc73ba245b586db",
+    "bytes": 3077
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
