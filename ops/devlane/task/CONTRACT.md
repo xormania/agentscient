@@ -223,10 +223,17 @@ possible, and `worth waste`'s cache-churn signal is how it is checked.
 
 Target ownership: task owns output requirements in [jobs.json](jobs.json);
 launch resolves declared `{out}` paths into grants and records custody.
-At the C1 baseline, `plan` declares `{out}/PLAN.md`, `check-tests` declares
-`{out}/SKEPTIC.md`, and `adjudicate` declares `{out}/RULING.md` (reproduce:
+At the C1 baseline, prompt prose requests `{out}/PLAN.md` for `plan`,
+`{out}/SKEPTIC.md` for `check-tests`, and `{out}/RULING.md` for `adjudicate` (reproduce:
 `rg -n 'PLAN.md|SKEPTIC.md|RULING.md' ops/devlane/task/jobs.json`). These are
 job outputs outside the source snapshot, not source-write roles.
+
+A later slice adds an explicit per-job `outputs` declaration in `jobs.json`,
+owned by launch/task, and defines and tests its schema before executable
+adoption. No such machine-readable declaration exists today; prompt prose
+records demand and must not be parsed to authorize filesystem grants.
+Missing declarations mean no extra grant. The named temporary inline
+planning reassignment above remains limited to that specific reassignment.
 
 **Target:** grants follow declared artifact needs, not arbitrary job-name
 branches. A read role retains source isolation and unchanged-source

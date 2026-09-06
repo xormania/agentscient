@@ -43,7 +43,7 @@ not conductor-wide discovery; both MCP surfaces remain read-only.
 ### Measured baseline and limits
 
 Source re-read on 2026-09-06 at `2b0491203cb9b37459fb2af6ac703940051374d2`:
-`git diff e59a52bce37dbd1fed52d358b655bae00267f71f HEAD --name-only --
+`git diff e59a52bce37dbd1fed52d358b655bae00267f71f 2b0491203cb9b37459fb2af6ac703940051374d2 --name-only --
 ops/devlane ops/bin ops/conductor/tools ops/process` returned no paths.
 Inventory `464dfc` remains source evidence for these estates, not proof
 of current operator use. `rg -n 'run\.run\(' ops --glob '*.py'` found only
@@ -334,7 +334,7 @@ satisfy it. `override` marks the only overridable one.
 | `mode-unavailable` | the job declares a mode the launcher does not yet mint (`fileset`) | expected `whole`; found `fileset` on `<job>`; stage it by hand with `stage.py` and name the dispatch in the PR body until fileset mode lands |
 | `write-role-unadmitted` | a write role on a harness whose adapter row has no write sandbox (claude) | expected a write row with a containment entry; found none for `<harness>`; run the containment probe and add the row, or dispatch the role on codex or grok |
 | `scope-cap` | `--scope` over 1024 bytes, or given to a job with no `{scope}` | expected ≤ 1024 bytes on a job that takes a scope; found `<n>` bytes / a scope on `<job>`, which takes none; shorten it — a scope that needs more is a brief, and briefs are derived — or drop it |
-| `caps` | an unknown wire, or `cap` and `total` (or `cap_out` and `out`) both given | the launch preflight's own text |
+| `caps` (**proposed for launch**) | an unknown wire, or `cap` and `total` (or `cap_out` and `out`) both given | launch has no caps preflight; existing validation text is `RunError` from `_breaker_argv` in the dormant [task runner](../task/run.py), not a current dispatch refusal |
 | `off-lineage-head` (at close or collect, write roles) | the snapshot's `HEAD` is not a descendant of `ref_sha` | expected `HEAD` to descend from `<ref_sha>`; found `<head>`; nothing is fetched, and the close record says so or collect refuses |
 | `resume-store` | a codex or grok resume has no session store in either its live or archived home | expected the store for `<session id>` under both named paths; found neither; resume a job whose store survived, or launch afresh |
 | `collect-role` | `collect` names a read role | expected a write role; found read; collect only a failed write job |
