@@ -775,10 +775,51 @@ supervision, lineage checks and record-only publication.
 | brief | null; no task prompt/template lookup, task envelope schema or fabricated worker brief |
 | snapshot | existing closed snapshot object, mode `whole`; selected ref and prospective canonical root held before materialization; root is a location, never proof of an existing snapshot |
 | harness / model | existing objects; descriptor.selection.harness equals harness.name; model.requested/effort_requested equal descriptor selection; actual model still requires stream evidence |
-| caps / overrides | existing supervision transport from admitted conductor configuration, with source; no worker job/default-role lookup or conductor-to-write fallback; only already declared overridable refusals |
+| caps / overrides | existing supervision transport from admitted conductor configuration, with source and timeout provenance as defined below; no worker job/default-role lookup or conductor-to-write fallback; only already declared overridable refusals |
 | attempts / at | existing attempt entries and UTC times; `[]` until an attempt is actually registered; at.launched is admitted record creation time, at.closed null until terminal |
 | result | null while launched; at terminal exactly `{head,changed_paths,residual_paths,envelope,policy,status,note}`; envelope always null, policy is PolicyResult, status is `ok`, `invalid` or `tripped`, note null on success or a nonempty reason on failure |
 | status | existing `launched`, `closed` or `died`; `died` is loss during an actual attempt, never a synonym for refusal before a child exists |
+
+For this conductor variant, `caps.timeout` is a required finite positive number
+of seconds resolved solely from admitted conductor configuration before the
+canonical directory claim. `caps.timeout_source` is required and is exactly
+`conductor-config`; it names that answering layer, not a worker job or default.
+The existing supervision keys (including `cap-out` and `source`) remain present;
+`source` names their admitted configuration source. Retain the exact source
+bytes, ref and digest through the verified role source closure in
+LaunchDeclarations and the canonical record's declarations handle. The token
+alone is not provenance evidence. Missing, invalid or unverified configuration
+refuses before effects; do not inherit ambient `DISPATCH_TIMEOUT`, consult
+jobs.json or substitute 900 for a conductor. Resume revalidates that retained
+source before any mutation; authorized cap changes retain their source and
+the existing resume reason/override evidence. This adds no configuration store.
+
+Worker timeout resolution and its closed `DISPATCH_TIMEOUT`, `job`, `default`
+enum above are unchanged. `conductor-config` is admissible only when record.role
+is `conductor`; the runtime/validator frontier below must enforce that split.
+
+Complete synthetic caps objects for the representative conductor cases follow.
+Here `source` identifies the admitted conductor configuration layer; the fixture
+must retain its exact source evidence as above. These are caps examples, not
+full records, runtime defaults or evidence of acceptance.
+
+Success (attempt 1 registered and completed):
+
+```json
+{"cap-out":500000,"source":"conductor-config","timeout":1200.0,"timeout_source":"conductor-config"}
+```
+
+Late refusal after directory claim but before attempt registration (`attempts`
+is `[]`): the already resolved caps remain complete, even if another preparation
+handle is unavailable.
+
+```json
+{"cap-out":500000,"source":"conductor-config","timeout":1200.0,"timeout_source":"conductor-config"}
+```
+
+Pre-claim refusal creates no canonical record and therefore no caps object.
+Neither omission of timeout keys in a retained record nor a fabricated attempt
+can stand in for unavailable evidence.
 
 Every conductor handle must verify before child invocation. If post-claim
 preparation fails, an unretained handle is null only in the terminal refused
