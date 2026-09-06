@@ -1,0 +1,102 @@
+{
+  "id": "20260906T024750Z-plan-codex-93f60d",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "dfcfb464841a2e8184b62ac759a2f663fca0c50b"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:47:51Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "dfcfb464841a2e8184b62ac759a2f663fca0c50b",
+    "ref_sha": "dfcfb464841a2e8184b62ac759a2f663fca0c50b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024750Z-plan-codex-93f60d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024750Z-plan-codex-93f60d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024750Z-plan-codex-93f60d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024750Z-plan-codex-93f60d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T024750Z-plan-codex-93f60d/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "542f00f8-4dc8-4f29-87ee-38677d587257",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Plan only the next C2 declared-job-output slice from accepted C1 contracts and f82853 review. Inline PLAN artifact; no file output. Specify exact jobs.json outputs schema, refusals and grant intersection consumed by one launch path; no prompt-prose authorization, job-name hardcoding or duplicate lane policy. Distinguish per-harness prevention from acceptance detection; unsupported capabilities refuse. Preserve read snapshot immutability, native plan/skeptic/adjudication demand, no declaration means no extra grant, and explicit-model/configurable selection. Name dependencies, independent tests and the first ready 1-3-file bucket only; no full roadmap or fileset work. For CLI permissions use the OpenAI docs skill/local installed help first; help/version reads allowed, no model/vendor runs. No source/tests/settings/host/DB/dependency changes or external publishing. Read primary official docs only if local evidence is insufficient. Mark unproved capabilities honestly.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024750Z-plan-codex-93f60d/in/worker-launch-consolidation-owner.md",
+        "sha256": "b0cbc8cb97eeb81c263b1f7427c852b43831050cff53e9cbf1faa8d1e7ec7e64"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024750Z-plan-codex-93f60d/in/20260906T024254Z-review-grok-f82853.json",
+        "sha256": "d2b6d5aa55d79ea69645350e86004c37dac9efe2273b3b2a4a2d59a8720b7da6"
+      }
+    ],
+    "sha256": "564b47a90e0d0b2013363d31df4630212cd0097a2b983ccc89f109166d1a2a71",
+    "bytes": 3285
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
