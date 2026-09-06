@@ -142,3 +142,16 @@ an absence on its line, not a hang.
 
 Inherited. The tool shells to `git`, `gh`, and sibling instruments —
 it earns its THIS-FILE-ONLY row (S603), stated in the PR.
+
+## Related
+
+Discovery of homes, retained-ref handoffs, and owner action interfaces
+is specified in [`discovery-lever.md`](discovery-lever.md). This
+instrument's brief, law table, and CLI are unchanged. Adding those
+contract paths to the law table is a declared smallest extension, not
+applied here.
+
+The v3 [local composition table](discovery-lever.md#local-source-composition)
+explicitly leaves register/ledger/PR readings unavailable and projects only
+authorized local dispatch summaries and pinned Git state. It does not inherit
+this instrument's subprocess, home lookup or network acquisition.

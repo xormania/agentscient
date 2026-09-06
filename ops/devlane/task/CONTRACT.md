@@ -38,12 +38,18 @@ Two costs follow from that, and both are what this app removes:
 
 ## The call
 
+This is the target calling convention, not a claim that every field is
+already accepted by either CLI. C1 standing and measured baseline are in
+the [dispatch contract](../dispatch/CONTRACT.md#c1--execution-authority-target-not-runtime-completion).
+Dev tooling remains permanent and independent of the Symfony application;
+`prod` is a work profile, not a tooling implementation or retirement plan.
+
 ```
 task(
     job,                                   # which pre-made task
     context = {ref, diff_base, include, prior},
     require = {schema, scope, constraints},
-    runtime = {harness, model, effort, caps},
+    runtime = {harness, model, role, profile, effort, caps},
 )
 ```
 
@@ -61,8 +67,15 @@ task(
 only, plant on copies, never edit the snapshot).
 
 **`runtime`** states who runs it and under what ceiling: `harness`,
-`model`, `effort`, and the supervision `caps` handed to
-`ops/devlane/telemetry/breaker.py`. A job never names a model — that
+`model`, `role`, `profile`, `effort`, and supervision `caps`. Harness,
+model, role and work profile are independent configurable dimensions,
+constrained by the job and admitted capabilities; a job's declared role
+is not permission to guess a model or widen source access for an output.
+Profile policy is a later consume-only join owned by the parallel
+`lane/lane-boundary-20260905` track, not defined by task or dispatch.
+The current task vendor runner uses the telemetry battery; launch has
+different inline supervision, as the dispatch baseline records.
+A job never names a model — that
 is the Conductor's dial, which is what makes "eight cheap ones" and "one
 careful one" the same job.
 
@@ -76,14 +89,15 @@ reading the work:
   "job": "adversarial-review",
   "status": "ok | invalid | tripped",
   "verdict": "approve | changes | null",
-  "counts": {"p1": 0, "p2": 2, "p3": 1},
+  "counts": {"p1": 0, "p2": 1, "p3": 0, "opinions": 0},
   "findings": [
     {"severity": "p2", "where": "file.py §section", "claim": "...",
      "reproduce": "python3 -m unittest ..."}
   ],
   "artifacts": {"raw": "<path>", "diff": "<path>"},
   "spend": {"harness": "grok", "total": 0, "out": 0, "runs": 0},
-  "stamp": {"ref": "<sha>", "started": "...Z", "ended": "...Z"}
+  "stamp": {"ref": "<sha>", "started": "...Z", "ended": "...Z"},
+  "note": null
 }
 ```
 
@@ -100,6 +114,34 @@ Three fields carry the weight:
   repo they served: roughly 118M tokens of review on 2026-08-22 went
   unattributed. The stamp is what closes that.
 
+**One semantic authority:** task's [envelope.py](envelope.py) owns the
+shape and acceptance rules; dispatch and all frontends must consume that
+authority. Counts are derived from findings, including `opinions` for a
+null reproduction; a parsed tally mismatch is refused, not repaired.
+Artifacts remain non-empty, single-line handles bounded by `HANDLE_MAX`,
+not embedded reports. Workers leave the declared zero spend placeholder;
+the launcher resolves measured spend, declaring unavailable evidence
+instead of treating that placeholder as a measurement.
+
+**Current acceptance defect (C1 baseline):** `run.py` calls
+`envelope.validate`, while launch uses `_schema_valid`, adding only an
+invalid-plus-approve check to the schema. Shared JSON shape therefore does
+not establish shared counts/status/handle acceptance. The optional write
+job `commit` transport also needs later reconciliation with the validator's
+fixed fields. C1 changes neither validator, schema nor transport; later
+acceptance work must preserve harness response extraction and provenance.
+Reproduce with `sed -n '240,310p' ops/devlane/task/envelope.py`,
+`sed -n '297,335p' ops/devlane/task/run.py` and
+`sed -n '708,745p' ops/devlane/dispatch/launch.py` at the dispatch baseline.
+
+**Named temporary exception — inline planning reassignment.** The owner
+brief authorized the immediate read-only architecture review to return
+the plan as an artifact string after plan record `976735` could not write
+`out/PLAN.md` under Codex read-only containment. That specific reassignment
+is temporary transport, not a standing artifact mode or general permission
+for read-only jobs to embed reports. Ordinary plan, skeptic and ruling
+jobs still require file handles. C1 does not universalize the workaround.
+
 ## Statuses, and the refusal rule
 
 `status` is the routing decision, and it is not the same as `verdict`:
@@ -113,6 +155,11 @@ Three fields carry the weight:
 A task that could not look must not return `approve`. This is the same
 rule the registered checks follow, and the reason `status` and
 `verdict` are separate fields rather than one.
+`invalid` requires a null verdict and a note naming why it could not do
+the job; `tripped` may carry partial findings but never `approve`.
+For implementation jobs, `ok` requires the named acceptance command to
+exit 0 in the final tree; otherwise `invalid` names the failing command.
+Process exit zero alone is not accepted-envelope evidence.
 
 ## Jobs
 
@@ -148,8 +195,11 @@ to land.
 
 ## What the runner does, and does not
 
-The runner wires: it snapshots, launches, supervises with the battery,
-collects, parses, records. It does **not** read the work product, and
+The target worker execution service is dispatch's `launch.py`: it
+snapshots, launches, supervises, collects, parses and records. The separate
+`run.py` vendor engine is manual/dormant at the measured baseline, not its
+backend; direct verification and stub replay are distinct uses. It does
+**not** read the work product, and
 it does not decide anything a job could not have decided in
 advance.
 
@@ -177,20 +227,239 @@ A loop whose context grows every round has a horizon; one that stays
 flat can run as long as the work does. The envelope is what makes that
 possible, and `worth waste`'s cache-churn signal is how it is checked.
 
-## Dispatch — moved to its own app
+## Declared job outputs
 
-The dev-lane launcher — `launch.py`, the policy over `run.py`, and
-its record builder `record.py` — no longer lives here. It executes
-the harness app's isolation and reads its budget wiring, so it
-genuinely depends on `harness`; the cross-app import contract forbids
-`task → harness`. Rather than weaken that rule, the launcher moved to
-a composition app that may depend on both this app and `harness`:
+Target ownership: task owns output requirements in [jobs.json](jobs.json);
+launch resolves declared `{out}` paths into grants and records custody.
+At the C1 baseline, prompt prose requests `{out}/PLAN.md` for `plan`,
+`{out}/SKEPTIC.md` for `check-tests`, and `{out}/RULING.md` for `adjudicate` (reproduce:
+`rg -n 'PLAN.md|SKEPTIC.md|RULING.md' ops/devlane/task/jobs.json`). These are
+job outputs outside the source snapshot, not source-write roles.
 
-- its contract is `ops/devlane/dispatch/CONTRACT.md`;
-- no guide page is carried here; its contract is the whole specification;
-- the allowed edges `dispatch → task` and `dispatch → harness` are
-  declared in `ops/contracts/imports.json`.
+A later runtime slice adopts the C2 `outputs` declaration below in `jobs.json`.
+No such machine-readable declaration exists today; prompt prose
+records demand and must not be parsed to authorize filesystem grants.
+Missing declarations mean no extra grant. The named temporary inline
+planning reassignment above remains limited to that specific reassignment.
+
+**Target:** grants follow declared artifact needs, not arbitrary job-name
+branches. A read role retains source isolation and unchanged-source
+settlement while writing its declared outputs. Neither an output handle
+nor a profile can confer broad source/host permission. Each harness must
+prove the required capability or explicitly refuse it; dispatch owns that
+[capability evidence](../dispatch/CONTRACT.md#isolation-per-harness).
+Output declarations and grants are owned here and in launch, with no wait
+on or duplicate of the parallel lane-policy contract.
+
+**Measured transport gap:** launch renders `{out}` and `{inputs}`, but
+`writable_out` is selected by `job == "check-tests"` on launch and resume.
+Other Codex read jobs remain read-only; there is no generic output grant.
+The owner brief records `976735` invalid because its required plan write
+was rejected. Task run does not automatically supply document-job output
+or input paths either. Rendering a path and declaring a capability do not
+prove that a worker can deliver it. Reproduce the name branch with
+`rg -n 'writable_out=' ops/devlane/dispatch/launch.py`. C1 documents this
+defect; independent runtime/test work follows.
+
+### C2 standing and declaration schema
+
+**Contract only:** this is the two-file bucket from GPT-6 plan
+`20260906T024750Z-plan-codex-93f60d`, Claude review
+`20260906T025522Z-review-claude-cfc890`, and the supplied
+`launch-c2-contract-ruling.md`, incorporating F1–F5. Task owns declaration
+vocabulary, validation and deliverable rendering;
+[launch](../dispatch/CONTRACT.md#c2--output-admission-contract-only) resolves
+paths, admits grants and checks filesystem custody. No executable code,
+catalogue, prompts or capabilities change here. Historical evidence and the
+narrow inline planning exception above retain their standing; C2 does not
+retroactively reject old records or generalize that exception.
+
+Source checked on 2026-09-06 at `19f938e339cc519d66eb65989915decfa00439df`:
+`cat ops/devlane/task/jobs.json` shows no `outputs` declarations and native
+prompts request their document paths without fixed artifact keys;
+`rg -n 'ENVELOPE\.|\.validate\(|writable_out=|TMPDIR|COMMIT_MSG|last-message.json'
+ops/devlane/dispatch/launch.py` shows the job-name grant branches and the
+semantic-validator gap described above. This is source evidence, not live
+containment proof. Runtime adoption remains later independent work.
+
+An optional `outputs` member on a harness job has exactly this standalone
+JSON Schema. Omission is defined as `[]`, with no additional worker output
+grant. Explicit `null` is invalid. Each `file` is a required, non-empty
+document; `scratch` authorizes temporary work and requires no artifact.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "uniqueItems": true,
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "kind": {"const": "file"},
+          "path": {"$ref": "#/$defs/path"},
+          "artifact": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "maxLength": 64
+          }
+        },
+        "required": ["kind", "path", "artifact"],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "kind": {"const": "scratch"},
+          "path": {"$ref": "#/$defs/path"}
+        },
+        "required": ["kind", "path"],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "maxLength": 240,
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*(/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$"
+    }
+  }
+}
+```
+
+Task's semantic declaration validation additionally rejects duplicate
+JSON object members, duplicate paths even across different kinds, repeated
+artifact keys, ancestor/descendant overlaps and more than one scratch
+entry. Paths and keys must match their grammar over the entire string
+(including rejecting a trailing newline). Paths are case-sensitive POSIX
+relative names beneath the job's canonical `out/`, never templates or
+shell expressions: absolute paths, dot segments, backslashes, whitespace,
+globs and substitutions refuse. No case folding or path normalization may
+turn invalid input into a different grant. Normalized declarations mean
+validated values with omission expanded to `[]`, preserving array order.
+
+Launch supplies adapter/launcher transport reservations to validation;
+equal, ancestor or descendant collisions refuse. Reserved leaves include
+`last-message.json` and `COMMIT_MSG` beneath `out/`; neither is a report or
+scratch declaration. The list must include any further transport paths an
+adapter needs. At adoption, declared and admitted scratch owns its temporary
+subtree and `TMPDIR` mapping, replacing any legacy launcher-created temporary
+output directory for that purpose; it is not also reserved as transport.
+Thus the declared `tmp` below is scratch, while genuine transport leaves
+remain reserved and file/scratch collisions still refuse. Existing path
+types, links and unsupported filesystem alias behavior are checked by
+dispatch, not inferred from the schema. A regular
+document must not be multiply linked; no output or ancestor may be a
+symlink. Lexical and real-path checks alone do not prove race-proof
+containment.
+
+### Native declarations and rendered deliverables
+
+The following is catalogue data for later adoption, not a catalogue edit
+in this bucket. Each value is the named job's `outputs` array:
+
+```json
+{
+  "plan": [{"kind": "file", "path": "PLAN.md", "artifact": "plan"}],
+  "check-tests": [
+    {"kind": "file", "path": "SKEPTIC.md", "artifact": "skeptic"},
+    {"kind": "scratch", "path": "tmp"}
+  ],
+  "adjudicate": [
+    {"kind": "file", "path": "RULING.md", "artifact": "ruling"},
+    {"kind": "scratch", "path": "tmp"}
+  ]
+}
+```
+
+Preserve native document demands, destinations and `role=read`. Skeptic
+mutation and adjudication reproductions use disposable copies in declared
+scratch. A renamed job with identical declarations gets identical output
+treatment; plain reviews with omission or `[]` gain no writes. Runtime
+authorization never searches prompt prose or branches on these names.
+
+Task owns a deterministic deliverable section, consumed by launch on every
+initial and resumed worker brief regardless of harness schema transport.
+After removing trailing CR/LF from the rendered native prompt, before any
+appended envelope schema, append two LFs and `Declared job outputs:` followed
+by LF. Visit entries in declaration order. Substitute the canonical absolute path
+and declared key into these exact line templates; each substitution is a
+JSON string literal (double-quoted, ASCII-escaped with lowercase hex for
+non-ASCII characters, no optional slash escaping or shell expansion), and
+each line ends in LF:
+
+```text
+Required file: <path>. Write a non-empty document; set artifacts[<artifact>] to <path>.
+Scratch subtree: <path>. Temporary work only; no artifact is required; TMPDIR is <path>.
+```
+
+For omission or `[]`, the only following line is
+`None. No additional worker output write grant.` plus LF. No key is chosen
+from prose or inferred from the filename. For canonical `out/` at
+`/jobs/example/out`, check-tests renders exactly:
+
+```text
+Declared job outputs:
+Required file: "/jobs/example/out/SKEPTIC.md". Write a non-empty document; set artifacts["skeptic"] to "/jobs/example/out/SKEPTIC.md".
+Scratch subtree: "/jobs/example/out/tmp". Temporary work only; no artifact is required; TMPDIR is "/jobs/example/out/tmp".
+```
+
+Rendering communicates an admitted declaration; it cannot authorize a
+grant. Later catalogue/prompt alignment must remove contradictory output
+instructions while retaining native work requirements, and test the exact
+key/path pair for each job and a renamed equivalent. No current prompt is
+silently changed here. Permission failures cannot fall back to inline
+prose. The specific inline planning reassignment persists until its
+transition is independently defined and tested, without becoming a new
+`outputs` kind or standing report mode.
+
+### Output acceptance
+
+For every `file`, `artifacts[artifact]` must equal the canonical absolute
+path rendered to the worker and resolve to that declared regular file,
+non-empty in bytes, under the bound job `out/`. Equality is exact string
+equality of the decoded handle and the rendered absolute path value;
+a different spelling that resolves to the same file does not satisfy it.
+This deliberately tightens the plan's resolving-handle language for newly
+declared outputs. It neither retroactively invalidates historical records
+nor removes the existing narrow inline planning transport exception.
+Task's [envelope.py](envelope.py)
+remains the single authority for bounded, non-empty, single-line handles,
+counts and status/verdict semantics. Launch consumes that validation and
+adds filesystem/attempt custody checks; it must not copy those semantic
+rules into another validator. If a bound path cannot be represented as a
+valid handle, admission refuses `outputs-path` before child execution.
+
+Missing files, a missing/wrong key or handle, unreadable evidence, unsafe
+types/links or unverifiable custody prevent `status=ok`. Dispatch records
+each accepted file's digest and current-attempt custody. Other evidence
+handles remain references and confer no write authority. Scratch is not a
+substitute report and is never automatically published. Prior attempt
+reports remain prior evidence; current completion needs new production or
+explicit verified reuse as specified by dispatch. Changed read-role HEAD
+or snapshot residue still invalidates even when every output is present.
+
+The [runtime adoption checklist](../dispatch/CONTRACT.md#c2-runtime-adoption-dependencies)
+requires task semantic-validator integration into launch, including optional
+write-job commit transport and the narrow inline exception, catalogue/prompt
+alignment, independently authored tests and fresh capability proof. These
+are later dependencies, not effects of this two-file contract.
+
+## Dispatch ownership
+
+Target: [dispatch](../dispatch/CONTRACT.md) consumes task's jobs and envelope
+semantics plus harness isolation/budget wiring. The declared edges are
+`dispatch → task` and `dispatch → harness`; task must not depend on
+dispatch, harness or lane-policy implementation. The historical
+`ops/contracts/imports.json` is absent at the measured baseline, so this
+is a declared boundary, not a claim of an installed import gate.
 
 `jobs.json` stays here — it is data the dispatch app reads by path,
 not an import — and so do `run.py`, `envelope.py`, `fileset.py`, and
 `verify.py`.
+The manual/dormant task vendor path awaits a later explicit tested refusal
+or owner-admitted retirement with supported behavior accounted for.
+Fileset/staging parity is not required for dispatch/go/ladder convergence;
+dispatch's existing tested `mode-unavailable` refusal remains in force.

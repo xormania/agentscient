@@ -6,6 +6,7 @@ against the tree at `36fe0562e32dd5e8ae0b4378712e662a8fc28ff0` on
 `42cb46bab5501a00bd90b5dbef391c5a0e98fe085675083cf739b7be391f0398`).
 It is closed: what it does not name is not promised. Everything in
 `lane-mcp-lever.md` stands unchanged unless a line here says otherwise.
+Startup, homes, handoffs and actions are [`discovery-lever.md`](discovery-lever.md), not this extension.
 This document inherits `ops/conductor/instrument-conventions.md` and the
 lever's boundary paragraph (no launcher, monitor, watchdog or writer
 imports; no subprocess; no network; no file or database origination;

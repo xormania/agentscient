@@ -20,6 +20,10 @@ through onboarding retain provenance but cannot govern against that boundary.
 | `tests/` | thirteen suites, the conformance gate among them; `ops/bin/suites.sh` runs them |
 | `contracts/` | the board contract estate: `board.cue`, its example, its fault corpus |
 | `*.md` | the instrument contracts and the lane's doctrine — `instrument-conventions.md` first, every instrument inherits it |
+| `conductor-start-plan.md` | the four-step conduct/MCP sequence; step 1 is documentation only |
+| `discovery-lever.md` | shared CLI/MCP discovery contract and acceptance rows; instrument ABSENT until step 2 |
+| [discovery-examples.md](discovery-examples.md) | non-executable v3 payload examples; correction awaits independent review |
+| [discovery reconciliation](reports/discovery-reconciliation-20260906.md) | recovered draft provenance, latest owner scope, current checks and pending parallel tracks |
 | `ideas/` | the idea records, `I-NNN-<slug>.md` — see `ideas/README.md` |
 | `handoff/` | hand-over records and the probes corpus — see `handoff/README.md` |
 | `AAR-*.md` | after-action reports; the newest one's calibration clause is what `onboard` serves as the thread |

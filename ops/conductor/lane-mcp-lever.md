@@ -2,9 +2,17 @@
 
 The [version-2 extension](lane-mcp-v2.md) declares additional conductor reads
 and request metadata compatibility; this document remains the v1 baseline.
+The [discovery contract](discovery-lever.md) is the version-3 extension
+(startup, homes, handoffs, actions). v1 and v2 stay unchanged. Sequence:
+[conductor-start-plan.md](conductor-start-plan.md).
+
+The corrected v3 proposal targets conductors only and is awaiting independent
+review. Its [payload examples](discovery-examples.md) and
+[fixed acquisition boundary](discovery-lever.md#fixed-acquisition-boundary)
+do not relax this v1 baseline or the shared read core's subprocess prohibition.
 
 Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
-and handoff. Dev-lane machinery only, not Symfony work. This read-only
+and handoff. Dev-lane machinery only, not Symfony work. This independent, read-only
 projection inherits `instrument-conventions.md`; it adds no workflow engine.
 
 The owner correction of 2026-09-05 is governed by
@@ -21,7 +29,11 @@ contract continues to permit only its declared read-only surface.
 Measured at dev c0ce300 on 2026-09-05: the tracked MCP files are .mcp.json
 (Serena), the historical tool wishlist, and the workflow MCP CUE contract.
 composer.lock includes ai-mate, not mcp/sdk or mcp-bundle. docs/mapping.md
-names the later Symfony MCP projection; no PHP dependency is changed here.
+names Symfony application projections. The latest owner scope supersedes its
+dev-tool replacement direction: this read plane has no Symfony application
+dependency or eventual prod replacement. Separate conductor/worker MCP
+entrypoints and writable conductor tools remain proposals; the read-only
+contract here stands. See the [reconciliation](reports/discovery-reconciliation-20260906.md).
 The precursor workflow server at commit 99334f71ae9af9fa324a1a27241e60af62f8f340
 demonstrates one query layer behind tools/resources/CLI. Reuse that pattern,
 not its retired engine or cache-rebuilding launcher. No vendor is required.
