@@ -40,24 +40,26 @@ RULING_ABS = osu.OUT_ROOT + "/RULING.md"
 
 class _AcceptCase(unittest.TestCase):
     def declared_validate_params(self):
-        params = inspect.signature(envelope.validate).parameters
-        has_var_kw = any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
-        )
-        return params, has_var_kw
+        return inspect.signature(envelope.validate).parameters
 
     def require_outputs_param(self):
-        params, has_var_kw = self.declared_validate_params()
-        self.assertTrue(
-            "outputs" in params or has_var_kw,
+        params = self.declared_validate_params()
+        sig = inspect.signature(envelope.validate)
+        self.assertIn(
+            "outputs", params,
             "missing public seam envelope.validate(..., outputs=, out_root=); "
-            f"found signature {inspect.signature(envelope.validate)}",
+            f"found signature {sig}",
+        )
+        self.assertIn(
+            "out_root", params,
+            "missing public seam envelope.validate(..., outputs=, out_root=); "
+            f"found signature {sig}",
         )
 
     def require_inline_param(self):
-        params, has_var_kw = self.declared_validate_params()
-        self.assertTrue(
-            "inline_planning_exception" in params or has_var_kw,
+        params = self.declared_validate_params()
+        self.assertIn(
+            "inline_planning_exception", params,
             "missing public seam envelope.validate("
             "..., inline_planning_exception=); "
             f"found signature {inspect.signature(envelope.validate)}",
@@ -84,6 +86,7 @@ class ExactDecodedHandle(_AcceptCase):
         self.assertEqual(got["artifacts"]["skeptic"], SKEPTIC_ABS)
 
     def test_a_relative_handle_is_refused_when_outputs_are_declared(self):
+        self.require_outputs_param()
         env = self.ok_env("check-tests", {"skeptic": "SKEPTIC.md"})
         self.assertEqual(env["artifacts"]["skeptic"], "SKEPTIC.md")
         with self.assertRaises(envelope.EnvelopeError):
@@ -94,6 +97,7 @@ class ExactDecodedHandle(_AcceptCase):
             )
 
     def test_a_dot_segment_spelling_is_refused(self):
+        self.require_outputs_param()
         spelled = osu.OUT_ROOT + "/./SKEPTIC.md"
         env = self.ok_env("check-tests", {"skeptic": spelled})
         self.assertEqual(env["artifacts"]["skeptic"], spelled)
@@ -105,6 +109,7 @@ class ExactDecodedHandle(_AcceptCase):
             )
 
     def test_a_trailing_slash_spelling_is_refused(self):
+        self.require_outputs_param()
         spelled = SKEPTIC_ABS + "/"
         env = self.ok_env("check-tests", {"skeptic": spelled})
         self.assertEqual(env["artifacts"]["skeptic"], spelled)
@@ -116,6 +121,7 @@ class ExactDecodedHandle(_AcceptCase):
             )
 
     def test_a_json_encoded_handle_is_not_the_decoded_path(self):
+        self.require_outputs_param()
         encoded = '"' + SKEPTIC_ABS + '"'
         env = self.ok_env("check-tests", {"skeptic": encoded})
         self.assertEqual(env["artifacts"]["skeptic"], encoded)
@@ -128,6 +134,7 @@ class ExactDecodedHandle(_AcceptCase):
             )
 
     def test_a_missing_declared_key_is_refused(self):
+        self.require_outputs_param()
         env = self.ok_env("check-tests", {"raw": "/tmp/t/raw.txt"})
         self.assertNotIn("skeptic", env["artifacts"])
         with self.assertRaises(envelope.EnvelopeError):
@@ -138,6 +145,7 @@ class ExactDecodedHandle(_AcceptCase):
             )
 
     def test_a_wrong_artifact_key_is_refused(self):
+        self.require_outputs_param()
         env = self.ok_env("check-tests", {"plan": SKEPTIC_ABS})
         self.assertIn("plan", env["artifacts"])
         self.assertNotIn("skeptic", env["artifacts"])
@@ -149,6 +157,7 @@ class ExactDecodedHandle(_AcceptCase):
             )
 
     def test_pointing_the_file_handle_at_scratch_is_refused(self):
+        self.require_outputs_param()
         scratch = osu.OUT_ROOT + "/tmp"
         env = self.ok_env("check-tests", {"skeptic": scratch})
         self.assertEqual(env["artifacts"]["skeptic"], scratch)
@@ -221,6 +230,7 @@ class HistoricalRecordsRemainValid(_AcceptCase):
         self.assertEqual(got["artifacts"]["plan"], spelled)
 
     def test_omission_does_not_require_declared_file_keys(self):
+        self.require_outputs_param()
         env = self.ok_env("adversarial-review", {"raw": "/tmp/t/raw.txt"})
         got = osu.validate_envelope(env, outputs=[], out_root=osu.OUT_ROOT)
         self.assertEqual(got["artifacts"]["raw"], "/tmp/t/raw.txt")
@@ -243,6 +253,7 @@ class NarrowInlinePlanningException(_AcceptCase):
             envelope.validate(env)
 
     def test_the_flag_accepts_the_plan_as_an_artifact_string(self):
+        self.require_outputs_param()
         self.require_inline_param()
         env = self._inlined_env("plan", "plan", PLAN_INLINE)
         got = osu.validate_envelope(
@@ -255,6 +266,8 @@ class NarrowInlinePlanningException(_AcceptCase):
         self.assertIn("\n", got["artifacts"]["plan"])
 
     def test_the_exception_does_not_allow_an_inlined_skeptic_report(self):
+        self.require_outputs_param()
+        self.require_inline_param()
         env = self._inlined_env("check-tests", "skeptic", PLAN_INLINE)
         with self.assertRaises(envelope.EnvelopeError):
             osu.validate_envelope(
@@ -265,6 +278,8 @@ class NarrowInlinePlanningException(_AcceptCase):
             )
 
     def test_the_exception_does_not_allow_an_inlined_ruling(self):
+        self.require_outputs_param()
+        self.require_inline_param()
         env = self._inlined_env("adjudicate", "ruling", PLAN_INLINE)
         with self.assertRaises(envelope.EnvelopeError):
             osu.validate_envelope(
@@ -281,6 +296,7 @@ class NarrowInlinePlanningException(_AcceptCase):
             osu.validate_outputs([row])
 
     def test_permission_failure_does_not_fall_back_to_inline_without_the_flag(self):
+        self.require_outputs_param()
         env = self._inlined_env("plan", "plan", PLAN_INLINE)
         with self.assertRaises(envelope.EnvelopeError):
             osu.validate_envelope(

@@ -83,7 +83,12 @@ def append_declared_outputs(*args, **kwargs):
 
 
 def validate_envelope(env, **kwargs):
-    """Call envelope.validate, falling back to today's kwargs-free form."""
+    """Call envelope.validate with declared-output keywords.
+
+    Calls that pass outputs= or inline_planning_exception= must reach
+    that seam. A TypeError for unexpected keywords is an assertion
+    failure, never a silent rewrite onto today's kwargs-free validate(env).
+    """
     fn = envelope.validate
     if not kwargs:
         return fn(env)
@@ -92,7 +97,12 @@ def validate_envelope(env, **kwargs):
     except TypeError as exc:
         msg = str(exc)
         if "unexpected keyword" in msg or "positional" in msg:
-            return fn(env)
+            names = ", ".join(sorted(kwargs))
+            raise AssertionError(
+                "envelope.validate does not accept declared-output "
+                f"keywords ({names}); historical kwargs-free validate "
+                "must not be used as a fallback"
+            ) from exc
         raise
 
 
