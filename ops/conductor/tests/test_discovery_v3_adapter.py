@@ -122,7 +122,7 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             unread = self.detail("lane_handoffs", {"profile": "dev"})
         finally:
             if records_dir.exists() and records_dir.is_dir():
-                os.chmod(records_dir, 0o755)
+                os.chmod(records_dir, 0o755)  # noqa: S103 - restore after make_inaccessible plant
         retained_bad = [src for src in unread["sources"] if src["id"] == "retained"][0]
         self.assertEqual(retained_bad["state"], "unavailable")
         self.assertEqual(retained_bad["reason"], "unreadable")
