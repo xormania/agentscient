@@ -1,0 +1,108 @@
+{
+  "id": "20260906T021446Z-adjudicate-grok-2d0f7a",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "c2596ed078bca713eb311211b5fa40f098a53b68"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:14:47Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "c2596ed078bca713eb311211b5fa40f098a53b68",
+    "ref_sha": "c2596ed078bca713eb311211b5fa40f098a53b68",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f74d75de-0815-4429-b068-85983e3b9183",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "f74d75de-0815-4429-b068-85983e3b9183",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate Claude e1c454's eight and Daybreak 695db7's two remaining discovery-contract findings; you authored neither revision nor findings. Read owner brief, reports and precise owning passages. Rule each UPHELD/PARTIAL/REJECTED with evidence; prescribe minimal coherent correction groups, preserving verified example payloads where possible. Scope is read-only conductor discovery, no worker server or live host implementation. Clarify actual trusted config/launch boundary without inventing host isolation; delimiting untrusted record text must precede model transport but cannot guarantee semantic injection resistance. Resolve realistic handoff/AAR defaults, complete/unknown semantics, work overflow reachability, exact lock membership and field fingerprints/evidence. Do not reopen resolved findings or demand future runtime. Return <=1400-word RULING as an inline envelope artifact with exact correction targets. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/in/discovery-contract-owner.md",
+        "sha256": "1d815b62cc5dd8e9d516e14f29455b0699744ff8d5baa87095b7b2575eafe901"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/in/20260906T015906Z-review-claude-e1c454.json",
+        "sha256": "fbe3fd85081dc350c561c65e1c9c04ea03fcda0cce77b669a0aacf230cc33c2b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021446Z-adjudicate-grok-2d0f7a/in/20260906T015323Z-review-codex-695db7.json",
+        "sha256": "c7818dbd74c0fcede7f101612e079b114cdd9b7f5f2129d2038d7bfa5cfffd77"
+      }
+    ],
+    "sha256": "4737cba7469cd66d47bac9ef81dcb65ce544da8694d5f5822de67ef90baf28d0",
+    "bytes": 3311
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
