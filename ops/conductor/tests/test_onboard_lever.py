@@ -41,8 +41,6 @@ RUN_CAP = 30
 
 # Contract table, verbatim one-liners, em dash as written there.
 # onboard-lever.md §The brief: seven declared rows in table order.
-# Planting still uses LAW; DECLARED_LAW is the exact gate until the
-# fixture correction points LAW at the same seven rows.
 LAW = (
     ("AGENTS.md", "the operating contract"),
     ("CONTRIB.md", "naming, PR bodies, fix commits, the review wire"),
@@ -55,8 +53,6 @@ LAW = (
         "the stack: layers, incumbents, open seats",
     ),
     ("ops/conductor/coverage-zones.md", "what gates what"),
-)
-DECLARED_LAW = LAW + (
     (
         "ops/conductor/discovery-lever.md",
         "profile discovery, source custody, and uncertainty",
@@ -845,7 +841,7 @@ class _OnboardFixture(unittest.TestCase):
         absent: tuple[str, ...] = (),
         empty: tuple[str, ...] = (),
     ) -> list[str]:
-        rows = DECLARED_LAW if table is None else table
+        rows = LAW if table is None else table
         missing = set(absent) | set(empty)
         out: list[str] = []
         for path, one_liner in rows:
@@ -863,7 +859,7 @@ class _OnboardFixture(unittest.TestCase):
         absent: tuple[str, ...] = (),
         empty: tuple[str, ...] = (),
     ) -> None:
-        rows = DECLARED_LAW if table is None else table
+        rows = LAW if table is None else table
         found = self.law_body_lines(stdout)
         expected = self.expected_law_lines(
             rows, absent=absent, empty=empty
@@ -871,6 +867,11 @@ class _OnboardFixture(unittest.TestCase):
         self.assertEqual(len(rows), 7, "declared law table is seven rows")
         self.assertEqual(len(found), 7, stdout)
         self.assertEqual(found, expected, stdout)
+        self.assertNotEqual(
+            found,
+            list(expected[1:]) + expected[:1],
+            "order pin would accept a rotation of the same rows",
+        )
         missing = set(absent) | set(empty)
         for (path, one_liner), line in zip(rows, found, strict=True):
             if path in missing:
@@ -881,11 +882,6 @@ class _OnboardFixture(unittest.TestCase):
                     line.endswith(f"{EM} {one_liner}"),
                     f"one-liner drift on {path}: {line!r}",
                 )
-            self.assertNotEqual(
-                found,
-                list(expected[1:]) + expected[:1],
-                "order pin would accept a rotation of the same rows",
-            )
 
     def labelled_line(self, stdout: str, label: str) -> str:
         prefix = label if label.endswith(":") else f"{label}:"
@@ -948,9 +944,9 @@ class ExactLawTable(_OnboardFixture):
     """Exact seven-row table, order, and one-liners from onboard-lever.md."""
 
     def test_law_prints_exactly_the_seven_declared_rows_in_table_order(self):
-        self.assertEqual(len(DECLARED_LAW), 7)
+        self.assertEqual(len(LAW), 7)
         self.assertEqual(
-            [path for path, _one in DECLARED_LAW],
+            [path for path, _one in LAW],
             [
                 "AGENTS.md",
                 "CONTRIB.md",
@@ -964,12 +960,12 @@ class ExactLawTable(_OnboardFixture):
         self.ready()
         proc = self.invoke()
         stdout = proc.stdout or ""
-        expected = tuple(ok_line(path, one) for path, one in DECLARED_LAW)
+        expected = tuple(ok_line(path, one) for path, one in LAW)
         found = self.law_body_lines(stdout)
         self.assertEqual(len(found), 7, stdout)
         self.assertEqual(found, list(expected), stdout)
         self.assertNotEqual(found, list(expected[1:]) + [expected[0]])
-        for (_path, one_liner), line in zip(DECLARED_LAW, found, strict=True):
+        for (_path, one_liner), line in zip(LAW, found, strict=True):
             self.assertTrue(line.endswith(f"{EM} {one_liner}"), line)
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
         self.assertEqual(len(ok_lines), 7, stdout)
@@ -991,7 +987,7 @@ class HappyPath(_OnboardFixture):
         self.assertLess(state_i, thread_i, stdout)
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
         self.assertEqual(len(ok_lines), 7, stdout)
-        self.assertEqual(len(DECLARED_LAW), 7)
+        self.assertEqual(len(LAW), 7)
         self.assert_exact_law_table(stdout)
         register = self.labelled_line(stdout, "register")
         self.assertIn("proposed=3", register)
@@ -1036,6 +1032,20 @@ class MissingLaw(_OnboardFixture):
         stdout = proc.stdout or ""
         self.assertIn(absent_line(missing, one_liner), stdout)
         self.assertNotIn(ok_line(missing, one_liner), stdout)
+        self.assert_exact_law_table(stdout, absent=(missing,))
+        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
+        self.assertEqual(proc.returncode, 1, self.combined(proc))
+
+    def test_missing_discovery_lever_counts_one_absence_in_table_order(self):
+        missing = "ops/conductor/discovery-lever.md"
+        one_liner = "profile discovery, source custody, and uncertainty"
+        self.ready(omit_law=(missing,))
+        self.assertFalse((self.repo / missing).exists(), "INVALID: omit failed")
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        self.assertIn(absent_line(missing, one_liner), stdout)
+        self.assertNotIn(ok_line(missing, one_liner), stdout)
+        self.assert_exact_law_table(stdout, absent=(missing,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
@@ -1054,6 +1064,7 @@ class EmptyLawFile(_OnboardFixture):
         stdout = proc.stdout or ""
         self.assertIn(absent_line(empty, one_liner), stdout)
         self.assertNotIn(ok_line(empty, one_liner), stdout)
+        self.assert_exact_law_table(stdout, empty=(empty,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
@@ -1082,6 +1093,7 @@ class DispatchStore(_OnboardFixture):
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "dispatches")
         self.assertIn("absent", line.lower())
+        self.assert_exact_law_table(stdout)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertEqual(self.last_line(stdout), "brief complete")
 
@@ -1228,6 +1240,7 @@ class ReadOnly(_OnboardFixture):
         self.heading_index(stdout, "== law")
         self.heading_index(stdout, "== state")
         self.heading_index(stdout, "== thread")
+        self.assert_exact_law_table(stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertFalse(self.store.exists(), "tool created a dispatch store")
