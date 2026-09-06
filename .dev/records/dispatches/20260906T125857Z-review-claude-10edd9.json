@@ -1,0 +1,302 @@
+{
+  "id": "20260906T125857Z-review-claude-10edd9",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-adapter-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-adapter-tests-20260906",
+    "base_sha": "d3ea314ba00456ed65751d3f9aa0381e000a58b0"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T12:58:57Z",
+    "closed": "2026-09-06T13:07:12Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d3ea314ba00456ed65751d3f9aa0381e000a58b0",
+    "ref_sha": "d3ea314ba00456ed65751d3f9aa0381e000a58b0",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125857Z-review-claude-10edd9/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "b918ae84-9c4b-4ae0-8db8-1b8c28f1ae0b",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125857Z-review-claude-10edd9/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125857Z-review-claude-10edd9/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T125857Z-review-claude-10edd9/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/b918ae84-9c4b-4ae0-8db8-1b8c28f1ae0b.jsonl"
+  },
+  "session": {
+    "id": "b918ae84-9c4b-4ae0-8db8-1b8c28f1ae0b",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/b918ae84-9c4b-4ae0-8db8-1b8c28f1ae0b.jsonl",
+    "stream_sha256_at_close": "4c1894601fe0af225b344c72a18e70fa485a29d7ac3c7038b0edfd1b0263c8a0",
+    "spend": {
+      "input": 68,
+      "cached": 3326051,
+      "output": 34402,
+      "total": 3360521,
+      "source": "result.usage",
+      "messages": 34,
+      "cost_usd": 3.728409500000001
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-adapter-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the three Grok adapter/output-capability test files against harness-capabilities.md, C2, permission-surface.md and startup's descriptor. Verify all safe grammar forms/bounds, token preservation, selection axes, refusal redaction, launch/resume invariants, G=D/A=D and transport separation. Challenge vacuous controls and fixture-only authority claims; distinguish verified mock duties from unmeasured live capability. Assess the reported transport-key/refusal-type gaps precisely: tests must not invent an API or force undocumented keys while preserving legitimately opaque trusted inputs. Run the 54-test red receipt and discriminating controls where allowed, record exact hashes, and identify construction-blocking gaps before freeze. No implementation or test edits. Return approve/changes, evidence and limits; note at most 900 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125857Z-review-claude-10edd9/in/ag-conduct-adapter-tests.json",
+        "sha256": "b7c7d0b64345edc88b7fa00dc55e398dc811f693e8669462b35285065a02726b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125857Z-review-claude-10edd9/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "f4d1ce23ea0d08f8a60d0c0dfd0c2044ce4a5e3d165475709704a8b5bd324de3",
+    "bytes": 1637
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:58:57Z",
+      "ended": "2026-09-06T13:07:11Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d3ea314ba00456ed65751d3f9aa0381e000a58b0",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/harness/tests/test_adapter_argv.py:192-244 (test_each_axis_change_alters_the_invariant_and_does_not_rewrite_selection)",
+          "claim": "The role axis forces a contract violation and the test cannot pass otherwise. The transport is deepcopied from the base conductor fixture, so its witness identity carries role=conductor while the selection is mutated to role=worker; C2 freshness (dispatch/CONTRACT.md:236-244) puts role in the tuple that must equal the currently measured selected tuple, so a faithful implementation refuses as stale. The test permits that refusal, but job_role already yields the literal \"refused\", so measured then holds 5 distinct values and the closing assertEqual(len(set(measured.values())), 6) fails. The only passing path requires admitting a role-mismatched witness and returning capability.role=='worker', which also contradicts harness-capabilities.md:228 (role is literal conductor for this interface).",
+          "reproduce": "Implement compile_launch to enforce C2 role freshness: the role subtest returns a refusal, measured = {harness:inv, model:inv, effort:inv, role:'refused', job_role:'refused', profile:inv}, set size 5, final assertion fails against 6."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_output_capability.py:566-629 (FaultyControlsAreDiscriminated)",
+          "claim": "Both C5 controls demand a refusal that is not derivable from declared inputs. After plant_mutate the identity's mock.verification.sha256 is reset to the mutated file's digest, so the evidence is internally consistent; compile_launch is given no evidence-custody root against which the relative verification path resolves (harness-capabilities.md:235 says relative-file under existing evidence custody; transport.canonical_paths carries only out), and no declared binding from mock.revision to an expected verification digest. The first control additionally mutates only the control label (result stays PASS), and no contract fixes a control vocabulary. The controls therefore discriminate only if the implementer hard-codes fixture semantics.",
+          "reproduce": "Implement compile_launch strictly from declared inputs: it cannot read the verification file (no custody root) and the supplied digest matches the identity, so both faulty transports admit and both tests fail."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/adapter_test_support.py:487-543 and test_adapter_argv.py:559-589",
+          "claim": "Three inputs the tests require are absent from every frozen contract, so unit 4 cannot be built from the tests plus contracts alone: (a) transport has no declared key schema \u2014 executable/configuration/manifest/canonical_paths/witness/admission_at are test names; (b) the safe-argv rule requires insertion at 'the adapter's measured insertion point' (harness-capabilities.md:146) but the closed startup adapter object (conductor-start-plan.md:367) has exactly six fields and none carries it; (c) resume transport supplies only parent_descriptor_sha256 and session_binding_sha256, no session identity, yet test_resume_keeps_the_launch_invariant asserts the resume argv digest differs from launch. Grok names (a) in its note; (b) and (c) are unnamed.",
+          "reproduce": "Write adapters.compile_launch against the contracts: no field yields a session token, so the resume vector equals the launch vector and assertNotEqual(argv_sha256) fails; insertion position and transport key names must be guessed."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/adapter_test_support.py:374-441 identity_for, used with selection_worker throughout test_output_capability.py",
+          "claim": "The tests apply the conduct capability identity encoding (harness-capabilities.md:216-247, an eleven-field closed object) to worker launches with role='worker', while that encoding states role is literally conductor and that it 'does not change worker output declarations or their admission'. The worker-path capability shape is nowhere frozen, so every positive admission in this file rests on an encoding the contract scopes to conduct and whose role value it forbids.",
+          "reproduce": "An implementation validating capability identity per harness-capabilities.md refuses role='worker' identities; test_exact_leaf_with_matching_actual_authority_admits and the other success cases fail."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/adapter_test_support.py:506-513 (default identity has empty source_reads/source_write_denials) versus test_output_capability.py:207-217",
+          "claim": "Every positive case in test_adapter_argv.py and test_empty_declarations_require_empty_actual_authority admits on a witness whose scope proves no source isolation (explicit empty denials), while test_clean_diff_limit_without_source_denials_is_not_prevention requires refusal on empty denials. That pins an undeclared exemption \u2014 source-isolation evidence required only when outputs are non-empty \u2014 although C2 (dispatch/CONTRACT.md:241-244, 298) requires the witness to cover retained source isolation for admission generally, and harness-capabilities.md:206 says C2 source isolation is unchanged.",
+          "reproduce": "Enforce source isolation unconditionally: roughly twenty argv positives refuse and fail; relax it and the clean-diff control's discrimination rests on output emptiness, not on the planted fault."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_adapter_argv.py:77-99",
+          "claim": "test_success_result_is_the_closed_five_key_object asserts only membership of the five keys, never set equality, so a result with extra keys passes despite harness-capabilities.md:87-88 ('returns exactly {argv, environment, reservations, capability, binding}'). Closedness is pinned for binding but not for the result object the test is named after.",
+          "reproduce": "Return the five keys plus a sixth: is_success and every assertIn hold, the test passes."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_adapter_argv.py:255, :58-75; test_output_capability.py:283-332, :349-362",
+          "claim": "Four controls are vacuous or near-vacuous: assertNotIn('write', selection['model']) is true for the constant 'fixture-model' regardless of behaviour; the '.ran' marker is never written by any fixture, so the no-launch proof rests only on mtime and the cleared execute bit; the TMPDIR and PATH/HOME assertions use env.get(...) inequality and pass on an empty environment, so they cannot distinguish 'no overlay' from 'no environment compiled'; lines 328-332 assert the same condition twice.",
+          "reproduce": "Return environment={} from compile_launch: test_without_scratch_tmpdir_is_not_inherited and test_environment_does_not_inherit_path_or_config_overlays both pass while proving nothing about the compiled closed map."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_adapter_argv.py:441-448",
+          "claim": "Vector bounds are partly untested and partly over-pinned: the 8192-byte total bound (harness-capabilities.md:143) has no case, and 65 repetitions of the non-repeatable --quiet is asserted to refuse at index 0, which fixes a bound-check-before-parse ordering the contract does not declare \u2014 left-to-right parsing would report the repetition at index 1.",
+          "reproduce": "Implement parse-then-bounds: the refusal names index 1, assertIn('invalid token at index 0') fails, though the implementation is contract-conformant."
+        }
+      ],
+      "artifacts": {
+        "test_adapter_argv": "ops/devlane/harness/tests/test_adapter_argv.py",
+        "test_output_capability": "ops/devlane/harness/tests/test_output_capability.py",
+        "adapter_test_support": "ops/devlane/harness/tests/adapter_test_support.py",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T125857Z-review-claude-10edd9/context/diff.patch"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 3360521,
+        "out": 34402,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d3ea314ba00456ed65751d3f9aa0381e000a58b0",
+        "started": null,
+        "ended": "2026-09-06T13:05:54Z"
+      },
+      "note": "Changes. The three files are careful, contract-faithful work, but one test cannot pass against a conforming implementation and four gaps must close before construction.\n\nMeasured here, at the snapshot. File sha256 reproduced and equal to the authoring record: adapter_test_support.py 7adb1c9b14777f32ea42a8a61d123edf54691693cdad538deea4907ab9bda825, test_adapter_argv.py 977c7d84e7fb3b1cbab3a739fa8aaea725176fe47c4d8b78ee1b03e42c2ba625, test_output_capability.py 2816833c261c43fd83d2e63375534285d1cc94817d74b3824d186410ba348bd5. ops/devlane/harness/adapters.py is absent (ls of ops/devlane/harness). Test-method count is 31 + 23 = 54, matching the claimed testsRun. Canonicalising the grammar literal published in harness-capabilities.md:163 under startup's encoding (sorted keys, ASCII, compact, no trailing newline; conductor-start-plan.md:334-337) and hashing it gives c890b02324a81b0a78d0f8664e016b92097bf14fb13f9444120f10de1a2b2698, and the empty grammar gives d52b0691419a699f4d1ab444723926271740acae121864febfa470e3816a17b7 \u2014 both equal the reported constants, so SYNTHETIC_GRAMMAR is the contract's grammar as a JSON value and ats.canonical_json is startup's encoder.\n\nVerified against contracts, not assumed. LaunchDeclarations keys, TaskSelection, LaunchSelection, DeclarationSource (component/kind/path/ref/sha256, absent all-null, conductor's absent job and outputs sources), the closed adapter and mcp objects, the resume pair, C2's reserved leaves last-message.json and COMMIT_MSG, C2's output-capability refusal id and its unsupported/stale/failed/unresolved vocabulary, and the conduct-argv line text are all used as declared. The documentary counts match exactly: three positives (two present, one synthetic empty) and nine negatives (seven described, plus bare -- and missing display value). Preservation, equals-versus-split non-rewriting, repeatable retention, reserved-channel refusal, canary absence from the refusal line, invariant-versus-argv digest separation, launch-does-not-admit-resume, age equality at the bound and old-but-matching evidence are all pinned correctly.\n\nTransport-key and refusal-type gaps, precisely. Grok did not invent a public API: transport contents are listed in prose (harness-capabilities.md:91-93) with no closed key schema, and the wrapper accepting either a raised or a returned expected-found-needed line is the right treatment of an undeclared exception type \u2014 trusted opaque input stays opaque. But the tests do de facto freeze key names an implementer must adopt, and they push one item beyond mapping: the capability witness is not among the listed transport contents, and admission_at (the freshness clock) is supplied through it. That is a documentation decision for unit 1b, not a test edit. Two further inputs are missing outright: the measured insertion point has no home in the closed six-field adapter object, and the resume binding carries digests but no session identity while the tests require a differing resume vector.\n\nMock duty versus live capability. The suites correctly claim only synthetic admission logic; fixture executables are planted with the execute bit cleared and never spawned, no auth or vendor path is touched, and C2's 'a witness for one harness cannot admit another' is exercised through descriptor-versus-identity digest mismatch, which is a declared rule. Nothing here measures an installed harness, and nothing claims to.\n\nLanding consequence. ops/bin/suites.sh:17 discovers test_*.py under ops/devlane/harness/tests, so the lane's single green oracle is red on this branch \u2014 54 failing tests \u2014 until unit 4 lands. Under AGENTS.md a PR is marked ready only when its checks are green, so tests and implementation have to arrive together or the branch stays draft.\n\nLimits, declared. I could not look at three things. python3 execution was refused twice by this dispatch's permission surface, so I did not reproduce the 54-test red receipt, the 78 failure count, or any control discrimination; the counts above are static. Reading the source, every test's first compile_launch result is MISSING_LAUNCH, which satisfies neither is_success nor is_refusal, so all 54 should fail on assertions with no collection error \u2014 analysis, not measurement. git was refused, so commit trailers, lineage and the claimed authoring shas 522f0b1/a3eacd9 are unverified. I read the three test files, the five named contracts and both in/ inputs whole; I did not read a diff of the other 54 changed files beyond their names."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
