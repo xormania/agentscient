@@ -407,6 +407,42 @@ the harness home, then moved forward again after the attempt. A failed
 resume cannot downgrade the prior stream, model, spend, or cause, and
 every completed attempt commits the updated record.
 
+### Proposed lane-policy coupling — inert until complete activation
+
+[Lane policy](../../conductor/lane-policy.md) owns the profile ceiling,
+protected authority, dependency exclusions and policy acceptance requirements;
+its [proposed data](../../lane-policy.json) lives at the fixed tracked path
+`ops/lane-policy.json`, bound to an owner-admitted Git ref and byte digest.
+Environment, laneconf, candidate output and prose cannot relocate authority
+or reclassify work. Launch/task retains ownership of job output, requested
+scope, role and adapter declarations. Policy consumes outputs if present as
+an intersection term; absence adds no root and never falls back to profile
+roots. A read role retains an immutable snapshot, even with declared,
+adapter-isolated external `out/` writes. No jobs schema is introduced here.
+
+Future records bind nested `brief.policy` and launcher-produced `result.policy`
+as specified by that contract; `lane` and `WF_LANE` stay infrastructure markers.
+The minimum complete activation checks fresh launch, settlement (including
+write-resume settlement), write-resume before attempt/marker/store mutations,
+and collect both before and after verification, before commit/ref publication.
+It consumes existing `_residual_entries`, including ignored-file enumeration
+and the existing narrow cache exemptions. Land and ladder must independently
+refuse missing, mismatched or failed policy evidence before acceptance, even
+for collected results. Worker verdict, envelope status, process exit 0 and
+collect verification success confer no exception. New `lane-*` refusals follow
+the shared wire's exit 2 and expected/found/needed line, without override.
+
+Policy/instruction maintenance uses bounded authorization under the previously
+admitted policy and trusted consumer; candidate bytes never self-authorize.
+Bootstrap requires explicit owner admission of independently verified policy
+and consumer revisions. Existing records retain their bytes and historical
+status, without backfill or a claim that old sessions were enforced. After
+cutover unbound work cannot write-resume, collect for acceptance, land or advance
+a ladder; continuing it requires a fresh bound dispatch with retained provenance.
+Partial deployment is not activation. This section is a contract/data proposal,
+not a live gate or stronger harness containment claim; executable consumers and
+independent tests follow. Existing unrelated dispatch behavior remains as above.
+
 ### Lane
 
 Current ownership and precedence are defined by
