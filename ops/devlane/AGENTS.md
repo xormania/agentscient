@@ -4,6 +4,14 @@ The Agentscient dev-lane. The machinery: `dispatch/` launches harness workers,
 `task/` holds the job registry, `harness/` proves isolation, `telemetry/`
 reads usage, `fixtures/` supplies synthetic replay data.
 
+Read [the root lane boundary](../../AGENTS.md#lane-boundary-and-precedence)
+and [ops/README.md](../README.md) first. This tooling must operate without
+the Symfony application or its vendor directory and evolves independently.
+Application twins do not require its retirement. Work profile is separate
+from harness and conductor/worker role; application work dispatched here
+still follows the prod application's Symfony rules. Shared contracts and
+application inspection are permitted without making the app a dependency.
+
 ## Trust boundary — READ THIS BEFORE DISPATCHING
 
 This lane runs harness workers **on the operator's host** with edit and

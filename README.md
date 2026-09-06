@@ -10,8 +10,10 @@ evidence supports accepting the result.
 This repository contains a Symfony application shell and a working development
 lane built in Python and Bash. The lane dispatches harness workers, records
 their results, supports independent testing and review, and serves operational
-observations. The product architecture brings these capabilities into Symfony
-packages, preserving their contracts as each implementation moves.
+observations. The production application develops Symfony packages; the dev
+tooling evolves independently. [The lane boundary and precedence ruling](AGENTS.md#lane-boundary-and-precedence)
+preserves shared contracts without making the app a dependency or replacement
+of dev tooling.
 
 ## Current status
 
@@ -85,9 +87,9 @@ Packages begin under `packages/<name>/` with their own `composer.json` of type
 Composer. A package graduates to its own repository and Flex recipe when its
 boundary is proven. See [the package conventions](packages/README.md).
 
-The Python lane is the existing functional reference for these future Symfony
-implementations. A replacement must pass the inherited conformance requirements
-before the incumbent is retired. External capabilities are intended to remain
+Dev tooling must operate without the Symfony application or its vendor
+directory. Application capabilities do not trigger retirement or graduation
+of lane instruments. External capabilities are intended to remain
 replaceable through a declared contract, a live probe, and a verified mock.
 
 | Path | Purpose |

@@ -1,0 +1,303 @@
+{
+  "id": "20260906T022855Z-review-claude-954c77",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "9ca4727237ba036885eebcce50156f617a411f17"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:28:55Z",
+    "closed": "2026-09-06T02:37:13Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9ca4727237ba036885eebcce50156f617a411f17",
+    "ref_sha": "9ca4727237ba036885eebcce50156f617a411f17",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "6cf4465b-bd2a-4e92-adac-a2ec5d0bc1ac",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/6cf4465b-bd2a-4e92-adac-a2ec5d0bc1ac.jsonl"
+  },
+  "session": {
+    "id": "6cf4465b-bd2a-4e92-adac-a2ec5d0bc1ac",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/6cf4465b-bd2a-4e92-adac-a2ec5d0bc1ac.jsonl",
+    "stream_sha256_at_close": "3958c937b0db799a9c98f9016cc66bcaf4ddd6edc697c0b57f201adffbbcd559",
+    "spend": {
+      "input": 106,
+      "cached": 3829502,
+      "output": 36181,
+      "total": 3865789,
+      "source": "result.usage",
+      "messages": 53,
+      "cost_usd": 3.6707274999999995
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review GPT-6's first lane-policy contract/data slice against the owner scope and adjudicated ruling. Limit to the three changed files and necessary owning seams. Check implementable authority/ref/digest binding, profile/role/harness separation, exact effective grants, maintenance without self-authorization, startup/bootstrap and old records, complete settle/resume/collect/land/ladder coverage, actual dependency boundaries and truthful containment. Product writes must pass only in the proper profile; shared inspection and dev tooling must remain usable without the Symfony app/vendor. Missing metadata cannot widen grants. Check third-profile cases, exact refusal order/shapes and independent-test readiness. No runtime implementation demanded in this inert contract slice; no broad audit. Return concise approve/changes with reproducible material gaps and smallest corrections. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/in/lane-policy-contract-owner.md",
+        "sha256": "dba0914ffae4619e0cb4a33f39e1bb30f0ac9e0f2b7480700aee79f1680878c8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/in/20260906T021124Z-adjudicate-grok-8ce9f8.json",
+        "sha256": "af8c228718636a6bc2d24c31497dfb38b30e243e9b08735086fe561f31e7e06c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/in/20260906T021901Z-code-codex-444175.json",
+        "sha256": "34af78866be7ebd043bafd7de61222374dbd90f66612503674efedc7cd0ee5c6"
+      }
+    ],
+    "sha256": "4e1f5b61feed3519d8d2c55271141373a401d33f3c23067ad456db9d00e6d50a",
+    "bytes": 1753
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:28:55Z",
+      "ended": "2026-09-06T02:37:12Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9ca4727237ba036885eebcce50156f617a411f17",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/lane-policy.json:5-15,18 protected_authority_paths vs dev.write_roots; ops/conductor/lane-policy.md:275,288,95",
+          "claim": "The protected set omits the gate and authorization sources the contract itself calls mandatory, and every one of them sits inside `dev`'s sole write root `ops/`. lane-policy.md:288 requires `ops/bin/suites.sh` \"including existing laneconf closure, literal and instrument-conformance gates\" and :275 says \"Existing suite/conformance gates remain mandatory for executable delivery\", yet `ops/bin/suites.sh`, `ops/conductor/tools/laneconf.py`, `ops/bin/dispatch.sh`, `ops/bin/go.sh`, all of `ops/devlane/hooks/`, `ops/conductor/tools/decisions.py` and `ops/conductor/decisions.seed.json` appear nowhere in protected_authority_paths. Under :95 (\"Protected paths cannot be edited by routine profile membership alone\") the converse holds: an ordinary `dev` job, with no maintenance record and no owner decision, may delete the suite entrypoint, the closure/literals gates, the hooks, and the tracked seed export the decisions register names as its restore source (ops/conductor/tools/decisions.py:138) \u2014 while the same job is blocked from `ops/README.md`. The list protects five consumer modules (launch.py, record.py, land.py, ladder.py, isolation.py) and leaves the enforcement levers and the decision-store restore path open, so the declared gate-source discipline at :106-107 has no data behind it. Smallest correction: add `ops/bin/`, `ops/devlane/hooks/`, `ops/conductor/tools/laneconf.py`, `ops/conductor/tools/decisions.py` and `ops/conductor/decisions.seed.json` to protected_authority_paths, and state the inclusion rule (every gate entrypoint, conformance module and authorization store is protected) so the list is derivable rather than enumerated by hand.",
+          "reproduce": "sed -n '5,15p;16,18p' ops/lane-policy.json; sed -n '95p;275p;288p' ops/conductor/lane-policy.md; git ls-files ops/bin ops/devlane/hooks; grep -c 'suites.sh' ops/lane-policy.json; grep -n 'seed the store' ops/conductor/tools/decisions.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/lane-policy.json:4; ops/conductor/lane-policy.md:52-53,40-41,293-294",
+          "claim": "`shared_read_roots` is a mandatory key with no semantics anywhere in the change. It appears exactly twice: once as data (`[\"AGENTS.md\",\"CLAUDE.md\",\"docs/\",\"ops/\"]`) and once in the key list at :52. No rule defines what it permits or forbids, no refusal class references it, the effective-grants section (:117-154) covers only writes and dependency edges, and no prescribed case exercises it. Worse, the only reading that would make it load-bearing contradicts the contract: as a read ceiling it excludes `src/` and `packages/`, so :40-41 (\"Both lanes may read shared contracts and inspect or describe application source\") and case P1 (\":293, `dev` ... describes Symfony: pass\") would refuse, and `prod` could not read its own `src/`. An independent implementer must either enforce it and break P1/P2 or ignore a key the contract declares required. Smallest correction: either define the key as an additive cross-profile read allowance that never narrows profile reads, with a prescribed case, or drop it from the schema and from the data.",
+          "reproduce": "grep -n 'shared_read_roots' ops/conductor/lane-policy.md ops/lane-policy.json; sed -n '40,41p;52,53p;293,294p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:29,95-96,129",
+          "claim": "The protected-path rule is stated three times with two incompatible meanings, so the `authority_maintenance` boolean's effect is undetermined. The profile table at :29 grants `dev` \"`ops/`, excluding protected authority unless separately authorized\" \u2014 authorization alone, no profile condition. The grants formula at :129 subtracts \"protected paths lacking the maintenance authorization\" \u2014 again no profile condition. But :95-96 reads \"A profile with `authority_maintenance: true` may propose edits only when the trusted caller also supplies ... record\", which is a necessary condition for true-valued profiles and says nothing about false-valued ones. Under the loose reading a `dev` job plus a valid maintenance record may edit `ops/README.md` and the boolean is decorative; under the strict reading it refuses `lane-write`. No prescribed case decides it: P4 (:296) exercises only the `authority-maintenance` profile, and there is no negative case for false-profile-plus-record. An independent test author cannot write that test. Smallest correction: state at :95 that `authority_maintenance: false` refuses every protected path regardless of any supplied record, restate :29 and :129 in those terms, and add a negative case \"`dev` with a valid maintenance record editing `ops/README.md`: `lane-write`\".",
+          "reproduce": "sed -n '29p;95,96p;129p;296p' ops/conductor/lane-policy.md; sed -n '25p;36p;50p' ops/lane-policy.json"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:76-78,159-161,296",
+          "claim": "The admission record is the single root of trust and has no named store, format or field set. :76-78 says the owner admits ref and digest \"through the existing conductor decision/custody record\" without naming it; the repository holds three candidates (`ops/conductor/decisions-register.md` with its host store `~/.local/state/agentscient/decisions.db`, `ops/conductor/decisions.seed.json`, `ops/conductor/handwork-ledger.md`) and the contract picks none. `brief.policy.admission` at :159-161 is `(record, sha256)` with no statement of what `record` references, what it must contain, or how a consumer verifies it \"outside worker control\" (:99). The register the phrase most likely points at is itself standing PROPOSED (ops/conductor/decisions-register.md:3). Consequence: P4's positive half (\"plus existing trusted authorization\", :296) cannot be constructed by the independent test author this slice is written for, and the whole authority chain at :75-104 is unimplementable as written. Smallest correction: name the store and verb (e.g. `ops/conductor/tools/decisions.py show <id>` against the host store), give the admission record's required fields (id, path, ref, blob sha256, decided_by owner, evidence), and state that the store is outside every profile's repository write roots.",
+          "reproduce": "sed -n '76,78p;99p;159,161p;296p' ops/conductor/lane-policy.md; ls ops/conductor/decisions-register.md ops/conductor/decisions.seed.json ops/conductor/handwork-ledger.md; sed -n '1,8p;17,20p' ops/conductor/decisions-register.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:96-98 vs 103-104",
+          "claim": "The two rules for what authorizes protected maintenance are mutually exclusive. :96-98 requires \"an existing owner-authorized maintenance record identifying the principal, admitted policy ref/digest, exact bounded paths, purpose and job/lineage\" \u2014 fields that only a per-dispatch artifact can carry, since job/lineage and the admitted ref/digest are not knowable when a standing instruction is written. :103-104 then says \"An existing applicable owner instruction suffices; do not invent a fresh approval ritual for already authorized maintenance\" \u2014 the owner's requirement of no permission questions for ordinary authorized work. A standing owner instruction cannot satisfy the :97-98 field list, so exactly one of the two sentences is operative and the contract does not say which. This is the seam the owner brief singled out (\"Explain how policy/instruction maintenance is authorized under the existing trusted policy without candidate self-authorization\"), and P4's phrase \"existing trusted authorization\" inherits the ambiguity. Smallest correction: split the two forms explicitly \u2014 a standing owner instruction admitted once as a maintenance grant covering named path prefixes, versus a per-job record for paths outside any standing grant \u2014 and say which fields each requires.",
+          "reproduce": "sed -n '96,98p;103,104p;296p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:54-55; ops/lane-policy.json:3",
+          "claim": "The permitted value set for `standing` is unstated. :54-55 says only \"`standing` is `proposal` (descriptive, never an activation switch)\", which reads as a fixed required literal, while :60 refuses \"unknown keys, wrong types\" without covering out-of-set values. An activated policy would have to keep saying `proposal` or change this contract, and no prescribed case fixes either the accepted set or the refusal for a bad value. Smallest correction: enumerate the allowed values (e.g. `proposal`, `active`) and add one negative case for an unknown value refusing `lane-policy`.",
+          "reproduce": "sed -n '54,55p;60p' ops/conductor/lane-policy.md; sed -n '2,3p' ops/lane-policy.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:131-132,295,302",
+          "claim": "The `allow_declared_outputs: false` branch is never exercised by any prescribed case. :131-132 says external-output writes \"are empty when the profile's `allow_declared_outputs` is false\", but all three shipped profiles set it true (ops/lane-policy.json:26,37,51), P3 (:295) sets \"both booleans false\" on the fixture profile yet prescribes only the repository-write results (`unittest/example.txt` passes, `src/Example.php` refuses), and N6 (:302) tests only the missing-declaration path with an implied true. The independent test author has no case telling them that a present, valid output declaration must still yield no grant under a false-valued profile. Smallest correction: extend P3's prescribed result to state that a declared external `out/` write refuses `lane-write` under that fixture profile.",
+          "reproduce": "sed -n '131,132p;295p;302p' ops/conductor/lane-policy.md; sed -n '26p;37p;51p' ops/lane-policy.json"
+        },
+        {
+          "severity": "p3",
+          "where": "commit 9ca4727237ba036885eebcce50156f617a411f17 message body",
+          "claim": "The landed commit message is corrupted relative to the producer's envelope. The code record's `envelope.commit.body` (in/20260906T021901Z-code-codex-444175.json:223) has the two-line sentence \"Validation: git diff --check; strict JSON parsing, changed links and static / example consistency checked by a disposable script outside the source tree.\" Because the first wrapped line matches `Token: value`, trailer handling hoisted it into the trailer block below `Source: owner 2026-09-05`, leaving its continuation \"example consistency checked by a disposable script outside the source tree.\" stranded in the body as a sentence fragment. The landed \"Validation:\" trailer therefore ends mid-clause and states a truncated claim about what was checked. The `Source:` and `Co-Authored-By: gpt-6-astra <noreply@openai.com>` trailers are otherwise correct and the actual-model naming is right. Smallest correction: reflow the body so no wrapped prose line begins with a trailer-shaped token, or make Validation a single-line trailer.",
+          "reproduce": "git log -1 --format=%B 9ca4727237ba036885eebcce50156f617a411f17; grep -n 'Validation: git diff' /home/scientdb/.local/state/agentscient/dispatch/20260906T022855Z-review-claude-954c77/in/20260906T021901Z-code-codex-444175.json"
+        }
+      ],
+      "artifacts": {
+        "REVIEW": "REVIEW of 9ca4727237ba036885eebcce50156f617a411f17 against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Artifact: GPT-6's first lane-policy contract/data slice, three files (ops/conductor/lane-policy.md +325, ops/lane-policy.json +54, ops/devlane/dispatch/CONTRACT.md +36). This reviewer produced none of them. Inputs read whole from in/. Verdict: changes.\n\nWHAT HOLDS. Scope is exactly the three authorized files; no executable source, tests, lane.conf key, executor, jobs schema, hook or MCP action was added. The ruling's essential corrections are present and correctly stated: authority is the fixed tracked path plus admitted git ref and blob digest, with laneconf.get/LANE_CONF/LANE_POLICY_PATH/lane.local.conf/environment explicitly excluded (lane-policy.md:75-86) \u2014 I confirmed laneconf.py:140 resolves LANE_CONF and values()/get() at 187-197 overlay the environment ahead of the file, so the rejection is well founded. Launch/task ownership with policy as one intersection term, and absence contributing the empty set rather than profile roots, is explicit (:120-135). All six refusal classes are declared with wire-conformant shape (:214-223); the one worked example matches docs/wire.md's expected/found/needed line. Containment honesty is accurate: I confirmed launch.py:379-382 sets containment \"os\" only for codex and \"policy\" for claude/grok, and CLAUDE_DENIED_TOOLS at :442 carries no Write/Edit, matching :230-235. The residual claim is measured-true: _residual_entries exists at launch.py:1614, uses `status --porcelain=v1 -z -uall` and a separate `ls-files --others --ignored --exclude-standard -z` at :1646-1650, handles R/C endpoints at :1635-1641, and filters only _is_cache_residual \u2014 so \"`git status -uall` alone does not see ignored files\" (:186-187) is correct. The acceptance holes the ruling named are covered: land.py:203-227 accepts envelope-not-ok when collected and ladder.py:717 accepts closed+ok, and the transition table at :177-183 plus N5 forbid worker verdict, exit 0 and collect-verify from accepting. brief.policy/result.policy nest cleanly under record.py's FIELDS projection (record.py:11-15,39) without touching the field list. Profile separation is right: no profile carries both product and tooling write roots, prod cannot write ops/, dev cannot write product roots, and dependency-installation is explicitly not a profile grant (:37-38). Bootstrap is honest \u2014 the slice lands under existing owner authorization, its own record is declared unbound, old records keep bytes without backfill (:238-270). All ten changed links resolve, including the #collect and #the-refusal-wire anchors and both .dev/ladder-inputs owner briefs; every protected path exists in the tree except ops/conductor/tools/lane_policy.py, which is the intended future evaluator.\n\nWHAT MUST CHANGE. One P1: the protected set (lane-policy.json:5-15) omits the gate levers and authorization stores the contract calls mandatory \u2014 ops/bin/suites.sh, ops/conductor/tools/laneconf.py, ops/bin/dispatch.sh, ops/bin/go.sh, ops/devlane/hooks/, ops/conductor/tools/decisions.py, ops/conductor/decisions.seed.json \u2014 all of which lie inside dev's sole write root, so an ordinary dev job may delete the enforcement gates and the decision-store restore seed with no authorization while being refused ops/README.md. Four P2: shared_read_roots is a required key with no semantics whose only load-bearing reading contradicts case P1 and prod's own src/ reads; the protected-path rule is stated three times with two incompatible meanings, leaving authority_maintenance:false-plus-record undetermined and untested; the admission record that anchors the whole trust chain has no named store, format or fields, so P4's positive case is unbuildable; and the two rules for what authorizes maintenance (a per-job record carrying job/lineage versus an existing standing owner instruction) are mutually exclusive as written. Three P3: standing's permitted value set, the unexercised allow_declared_outputs:false branch, and a trailer-mangled commit message whose Validation line ends mid-clause.\n\nABSENCE DECLARED. I did not execute the JSON through a parser: python3 invocation was refused by this session's sandbox. Structure was verified by whole-file inspection \u2014 five top-level keys matching the declared set, three profiles each with exactly the four declared subkeys, no duplicate keys, no repeated entries in any root list \u2014 but strict-parse confirmation is inspection, not measurement. No suites were run and no runtime enforcement was exercised or claimed; none is demanded by this inert slice. No source, tests, settings, host, database or network changes; no vendor launch."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 3865789,
+        "out": 36181,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9ca4727237ba036885eebcce50156f617a411f17",
+        "started": "2026-09-06T02:29:10Z",
+        "ended": "2026-09-06T02:35:29Z"
+      },
+      "note": "Independent review of GPT-6's first lane-policy contract/data slice at 9ca4727 against c06ed94, limited to the three changed files and the owning seams (launch.py, land.py, ladder.py, record.py, laneconf.py, decisions.py, registry, CONTRACT.md \u00a7Collect). Verdict changes: one P1 (protected_authority_paths omits the gate levers and authorization stores the contract calls mandatory, all inside dev's write root), four P2 (undefined shared_read_roots contradicting P1/P2 reads; protected-path rule stated three ways leaving the authority_maintenance boolean's effect undetermined; admission record with no named store, format or fields making P4 unbuildable; per-job record versus standing owner instruction as mutually exclusive maintenance authorization), three P3 (standing value set, unexercised allow_declared_outputs:false branch, trailer-mangled commit message). The ruling's six essential corrections, the profile/role/harness separation, the intersection-not-fallback grant rule, the containment honesty and the residual/land/ladder seam claims all check out against current source. JSON strict-parse was not measured: python3 invocation was refused by this sandbox; structure verified by inspection only. No suites run, no enforcement exercised, no edits."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
