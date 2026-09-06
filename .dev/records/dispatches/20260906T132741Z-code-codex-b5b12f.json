@@ -1,0 +1,465 @@
+{
+  "id": "20260906T132741Z-code-codex-b5b12f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conduct-policy-code-20260906",
+  "lineage": {
+    "branch": "lane/conduct-policy-code-20260906",
+    "base_sha": "4019372b3a156c6f037c0285fe4970a3f9bd372c"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T13:27:41Z",
+    "closed": "2026-09-06T13:59:05Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4019372b3a156c6f037c0285fe4970a3f9bd372c",
+    "ref_sha": "4019372b3a156c6f037c0285fe4970a3f9bd372c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T09-27-42-01a076e7-4205-7f70-82c8-87f2abb6b024.jsonl"
+  },
+  "session": {
+    "id": "01a076e7-4205-7f70-82c8-87f2abb6b024",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T09-27-42-01a076e7-4205-7f70-82c8-87f2abb6b024.jsonl",
+    "stream_sha256_at_close": "87a556238759eb41de43c1ca9f69116ec63dd97624eb64ad500b18cf3e6bd5be",
+    "spend": {
+      "input": 4471935,
+      "cached": 4221696,
+      "output": 47675,
+      "total": 4519610,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T09-27-42-01a076e7-4205-7f70-82c8-87f2abb6b024.jsonl",
+      "messages": 343
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-policy-code-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement the inert stdlib policy library in ops/conductor/tools/lane_policy.py only, against the accepted contracts and frozen independently reviewed policy tests. Provide bind_launch, check_transition and evaluate_tool with trusted old-authority/runtime custody, exact show-byte digests, declared grant/source/dependency checks, closed bindings/results, completed output receipts and strict request/decision binding. Preserve opaque trusted inputs without treating candidate claims or environment as authority. Do not edit any test, contract, wrapper, live policy/store/settings or add a CLI. Run the frozen test_lane_policy suite, relevant preservation checks, ruff and bash ops/bin/suites.sh; retain any shared-store race evidence and report limits without disabling guards. Verify frozen test hashes before/after. Clean Source/actual GPT-6 trailers. Inline envelope with commands, results, exact source hash and residual obligations.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/in/ag-conduct-policy-tests-fix.json",
+        "sha256": "ec53e8096b77fcd3aaaf3a529893ee8e46f0d5e71afa68c246508c5681dacdb4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/in/ag-conduct-policy-tests-recheck.json",
+        "sha256": "55a30882e0ce67db77fae8d2a71c04066450969f9efbd62a2b348cf37a0fe23d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T132741Z-code-codex-b5b12f/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "d367d3322c77488cb137735d6d33737ced1c7b2390c8bb4507d73f6e5bdfbd7f",
+    "bytes": 4785
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:27:41Z",
+      "ended": "2026-09-06T13:59:05Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9ab2a370351ec5b43f808ea6b97ebb3f489245e3",
+    "changed_paths": [
+      "ops/conductor/tools/lane_policy.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 7,
+        "p3": 40,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py::CasesN2.test_n2_environment_laneconf_and_scope_text_cannot_move_authority",
+          "claim": "The positive fixture changes requested_scope without updating its invocation-source digest. Strict source verification refuses the mismatch.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py::_LanePolicyCase.evidence",
+          "claim": "Under the contract's dispatch-owned retention rule, terminal positives lack retained evidence handles. The library refuses held-but-unpersisted evidence. A scratch invocation with caller-owned retention produced a pass.",
+          "reproduce": "See commands 30 and 33 in ../out/commands.json."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py::CasesP2; CasesP4",
+          "claim": "Some positive manifests supply entries in an order contrary to the contract's mandatory artifact ordering.",
+          "reproduce": "sed -n '1380,1570p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py::CasesP4.test_p4_standing_grant_covers_two_jobs_without_fresh_owner_act",
+          "claim": "A further masked mismatch binds DISPATCH_B but constructs its OutputAttempt with DISPATCH. The scratch diagnostic confirms that strict dispatch binding refuses this receipt.",
+          "reproduce": "See command 30 in ../out/commands.json."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py::CasesN9.test_n9_forged_reader_config_seed_and_worker_home_cannot_admit",
+          "claim": "The negative replaces the supplied trusted host-HOME anchor without providing an independent prior identity. The library cannot distinguish that substitution from a legitimate trusted input using directory names as evidence.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_lane_policy.py::CasesN4.test_n4_committed_untracked_ignored_rename_symlink_and_cache_refuse",
+          "claim": "The cache-source case expects lane-write for a path inside its declared grants. Its missing dependency coverage instead produces lane-dependency.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py::LiteralsVerb.test_literals_exits_0_on_the_tree",
+          "claim": "The unchanged literal guard rejects the fixed protocol declaration in lane_policy.py. Its existing exception covers record.py only. No encoding workaround or guard modification was applied.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 1",
+          "claim": "Initial tree clean at the requested ref; input files located.",
+          "reproduce": "pwd; git status --short; git rev-parse HEAD; ls ../in; rg --files docs ops/conductor | head -100"
+        },
+        {
+          "severity": "p3",
+          "where": "command 2",
+          "claim": "Read all three supplied input envelopes; exit 0.",
+          "reproduce": "cat ../in/*"
+        },
+        {
+          "severity": "p3",
+          "where": "command 3",
+          "claim": "Read founding documentation; exit 0.",
+          "reproduce": "cat docs/*.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 4",
+          "claim": "Read lane instructions and located frozen tests. The library was absent; exit 1.",
+          "reproduce": "cat ops/README.md; rg --files -g AGENTS.md -g '*policy*' -g '*preserv*' -g '*worker*' ops; cat ops/conductor/tools/lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 5",
+          "claim": "Read the complete policy contract; exit 0.",
+          "reproduce": "cat ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 6",
+          "claim": "Read permissions, policy acceptance and board contract; exit 0.",
+          "reproduce": "cat ops/conductor/permission-surface.md; cat ops/conductor/reports/lane-policy-contract-acceptance-20260906.md; cat ops/conductor/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 7",
+          "claim": "Initial policy-test hash matched the reviewed receipt; read the first fixture section.",
+          "reproduce": "sha256sum ops/conductor/tests/test_lane_policy.py; sed -n '1,650p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 8",
+          "claim": "Read frozen fixtures and binding/result assertions; exit 0.",
+          "reproduce": "sed -n '650,1370p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 9",
+          "claim": "Read frozen positive and negative cases; exit 0.",
+          "reproduce": "sed -n '1370,2090p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Read frozen authority, transition and conductor cases; exit 0.",
+          "reproduce": "sed -n '2090,2740p' ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Read remaining frozen tests and tool/declaration interfaces; exit 0.",
+          "reproduce": "sed -n '2740,3300p' ops/conductor/tests/test_lane_policy.py; sed -n '86,150p' ops/conductor/permission-surface.md; rg -n 'Unit1a|DeclarationSource|LaunchDeclarations|OutputAttempt' ops/devlane/task/CONTRACT.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Read declaration/output contracts, inert policy, suite entrypoint and preservation seams; exit 0.",
+          "reproduce": "sed -n '450,552p' ops/devlane/task/CONTRACT.md; sed -n '956,1006p' ops/devlane/dispatch/CONTRACT.md; cat ops/lane-policy.json; cat ops/bin/suites.sh; rg -n 'cache|residual' ops/devlane/dispatch/launch.py | head -35; rg --files ops/conductor/tests ops/devlane/dispatch/tests | rg 'laneconf|literal|conform|record|onboard'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Baseline reproduced 66 tests and 78 assertion failures against the absent library. The outer read/tail command exited 0.",
+          "reproduce": "sed -n '1,100p' ops/conductor/tools/decisions.py; sed -n '1524,1613p' ops/devlane/dispatch/launch.py; python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' > ../out/policy-baseline.log 2>&1; tail -8 ../out/policy-baseline.log"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Measured register/output seams and test inventory; recorded UTC reading.",
+          "reproduce": "rg -n 'def show|events|event_id' ops/conductor/tools/decisions.py | tail -20; rg -n 'C2|relative path|scratch|artifact' ops/devlane/task/CONTRACT.md | head -30; rg --files ops/conductor/tests | rg 'guard|instrument|lane|literal'; git ls-files '*test*.py' | wc -l; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "First implementation run logged 66 tests and 36 failures. Its process exit was not retained by the command recorder.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' > ../out/policy-first.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Initial ruff found six issues and formatting differences; exit 1.",
+          "reproduce": "ruff check ops/conductor/tools/lane_policy.py; ruff format --check ops/conductor/tools/lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "Fixed lint/formatting and inspected initial failures; exit 0.",
+          "reproduce": "ruff check --fix ops/conductor/tools/lane_policy.py > ../out/ruff-fix.log 2>&1; ruff format ops/conductor/tools/lane_policy.py >> ../out/ruff-fix.log 2>&1; cat ../out/ruff-fix.log; tail -5 ../out/policy-first.log; rg '^FAIL:|^AssertionError:' ../out/policy-first.log"
+        },
+        {
+          "severity": "p3",
+          "where": "command 18",
+          "claim": "Inspected show/C2 definitions and implementation; only lane_policy.py was untracked.",
+          "reproduce": "sed -n '245,266p' ops/conductor/tools/decisions.py; sed -n '285,355p' ops/devlane/task/CONTRACT.md; sed -n '170,255p' ops/conductor/tools/lane_policy.py; sed -n '1000,1060p' ops/conductor/tools/lane_policy.py; git diff --stat; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "command 19",
+          "claim": "Inspected reader, binding and retention implementation; exit 0.",
+          "reproduce": "sed -n '270,353p' ops/conductor/tools/lane_policy.py; sed -n '875,960p' ops/conductor/tools/lane_policy.py; sed -n '1350,1435p' ops/conductor/tools/lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 20",
+          "claim": "Inspected transition ordering and maintenance derivation; exit 0.",
+          "reproduce": "sed -n '1430,1475p' ops/conductor/tools/lane_policy.py; sed -n '825,854p' ops/conductor/tools/lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 21",
+          "claim": "Inspected stationarity error handling; exit 0.",
+          "reproduce": "sed -n '930,970p' ops/conductor/tools/lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 22",
+          "claim": "Ruff passed and formatted the revised library.",
+          "reproduce": "ruff check ops/conductor/tools/lane_policy.py > ../out/ruff-second.log 2>&1; ruff format ops/conductor/tools/lane_policy.py >> ../out/ruff-second.log 2>&1; cat ../out/ruff-second.log"
+        },
+        {
+          "severity": "p3",
+          "where": "command 23",
+          "claim": "Second frozen run exited 1: 66 tests, 24 failures.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' > ../out/policy-second.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 24",
+          "claim": "Laneconf preservation exited 1: 52 tests, one literal-guard failure.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py' > ../out/preserve-laneconf.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 25",
+          "claim": "Instrument preservation passed: 18 tests.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_instrument_conventions.py' > ../out/preserve-instruments.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 26",
+          "claim": "Record preservation passed: 100 tests.",
+          "reproduce": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_record*.py' > ../out/preserve-record.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 27",
+          "claim": "Initial full-suite run exited 1; complete log retained.",
+          "reproduce": "bash ops/bin/suites.sh > ../out/suites.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 28",
+          "claim": "Inspected guard locations and intermediate logs. The final grep had no full-suite output yet; exit 1.",
+          "reproduce": "rg -n 'literal|POLICY_SCHEMA|agentscient.lane-policy|tools/' ops/conductor/tests/test_laneconf.py ops/conductor/tools/laneconf.py | tail -35; tail -5 ../out/policy-second.log; tail -4 ../out/preserve-laneconf.log; rg '^FAIL:|^ERROR:|^Ran |^FAILED|^OK|^==' ../out/suites.log"
+        },
+        {
+          "severity": "p3",
+          "where": "command 29",
+          "claim": "Inspected policy and literal-guard failure details; exit 0.",
+          "reproduce": "cat ../out/preserve-laneconf.log; rg '^FAIL:|^AssertionError:' ../out/policy-second.log; rg -n 'def literals|literals|PROTOCOL|POLICY_SCHEMA' ops/conductor/tools/laneconf.py | tail -30; rg --files ops | rg 'laneconf|literal'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 30",
+          "claim": "Scratch diagnostic using unchanged fixture helpers: unpersisted terminal evidence refused, caller-retained evidence passed, foreign dispatch receipt refused.",
+          "reproduce": "python3 -c \"import json,subprocess; raise SystemExit(subprocess.call(json.load(open('../out/commands.json'))['commands'][29]['command'], shell=True))\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 31",
+          "claim": "Read the shared schema declaration and completed suite/preservation summaries; exit 0.",
+          "reproduce": "sed -n '1,80p' ops/devlane/dispatch/record.py; rg -n 'record|schema' docs/verified-couplings.md ops/conductor/lane-policy.md | tail -12; rg '^FAIL:|^ERROR:|^Ran |^FAILED|^OK|^==' ../out/suites.log; tail -6 ../out/preserve-record.log; tail -6 ../out/preserve-instruments.log"
+        },
+        {
+          "severity": "p3",
+          "where": "command 32",
+          "claim": "Final formatting, ruff and tracked diff checks passed; source and frozen test hashes measured.",
+          "reproduce": "ruff format ops/conductor/tools/lane_policy.py; ruff check ops/conductor/tools/lane_policy.py; ruff format --check ops/conductor/tools/lane_policy.py; sha256sum ops/conductor/tools/lane_policy.py ops/conductor/tests/test_lane_policy.py; git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "command 33",
+          "claim": "Final frozen suite exited 1: 66 tests, 24 assertion failures, zero errors and skips.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' > ../out/policy-final.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 34",
+          "claim": "All 124 tracked test_*.py files matched the requested Git tree; before/after manifests retained.",
+          "reproduce": "python3 -c \"import json,subprocess; raise SystemExit(subprocess.call(json.load(open('../out/commands.json'))['commands'][33]['command'], shell=True))\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 35",
+          "claim": "Git staging failed with read-only .git/index.lock, exit 128. Commit message retained for the launcher.",
+          "reproduce": "git add -- ops/conductor/tools/lane_policy.py && git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "command 36",
+          "claim": "Final full suite exited 1; complete output retained.",
+          "reproduce": "bash ops/bin/suites.sh > ../out/suites-final.log 2>&1"
+        },
+        {
+          "severity": "p3",
+          "where": "command 37",
+          "claim": "Hash verification, ruff and tracked-scope checks passed. Only lane_policy.py is new; HEAD remains the supplied ref.",
+          "reproduce": "tail -5 ../out/policy-final.log; sha256sum -c ../out/frozen-after.sha256 > ../out/frozen-verification.log; ruff check ops/conductor/tools/lane_policy.py; ruff format --check ops/conductor/tools/lane_policy.py; git diff --check; git diff --exit-code 4019372b3a156c6f037c0285fe4970a3f9bd372c -- . ':!ops/conductor/tools/lane_policy.py'; git status --short; git rev-parse HEAD; sha256sum ops/conductor/tools/lane_policy.py ops/conductor/tests/test_lane_policy.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 38",
+          "claim": "Measured final logs and hashes. No shared-store race diagnostics matched; frozen manifests remained identical.",
+          "reproduce": "python3 -c \"import json,subprocess; raise SystemExit(subprocess.call(json.load(open('../out/commands.json'))['commands'][37]['command'], shell=True))\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 39",
+          "claim": "Retained the new-file patch; no-index diff exit 1 denotes differences.",
+          "reproduce": "git diff --no-index -- /dev/null ops/conductor/tools/lane_policy.py > ../out/lane-policy.patch"
+        },
+        {
+          "severity": "p3",
+          "where": "command 40",
+          "claim": "Counted 2,152 full-suite tests: eight passing suites, including seven fixture skips, and conductor with 25 failures.",
+          "reproduce": "python3 -c \"import json,subprocess; raise SystemExit(subprocess.call(json.load(open('../out/commands.json'))['commands'][39]['command'], shell=True))\""
+        }
+      ],
+      "artifacts": {
+        "source": "ops/conductor/tools/lane_policy.py",
+        "source_sha256": "0da86425a60dd766dec51c3b996d6746e406b28cc79444f9a959358f1c2f83a9",
+        "source_git_blob": "594076eeed93559a05fac09d81f87ed99e41c755",
+        "frozen_policy_tests_sha256": "5a095972311a5f1b62fdeb0d6a90493b6a49c53999a9bf22baca21142ed9188f",
+        "commands": "../out/commands.json",
+        "patch": "../out/lane-policy.patch",
+        "policy_tests": "../out/policy-final.log",
+        "policy_tests_log_sha256": "459a11ad28a65b74791e1023b27b94b8af1ac9788c6a8e0e6ab9ad1817239c6a",
+        "full_suite": "../out/suites-final.log",
+        "full_suite_log_sha256": "cfca0c8f796c2f03c7369a0d71b767af578e719c167620ecf21f2728b9b3eb33",
+        "earlier_full_suite": "../out/suites.log",
+        "frozen_before": "../out/frozen-before.sha256",
+        "frozen_after": "../out/frozen-after.sha256",
+        "frozen_verification": "../out/frozen-verification-final.log",
+        "shared_store_race_evidence": "../out/shared-store-race-evidence.json",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4519610,
+        "out": 47675,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4019372b3a156c6f037c0285fe4970a3f9bd372c",
+        "started": null,
+        "ended": "2026-09-06T13:55:34Z"
+      },
+      "note": "Implementation saved in lane_policy.py only; acceptance remains invalid. The named frozen command exits 1 with 24 failures, including test_p1_dev_writes_ordinary_tooling_without_maintenance and test_n2_environment_laneconf_and_scope_text_cannot_move_authority. The full suite exits 1 with those failures plus test_literals_exits_0_on_the_tree. Complete failing-test names and tracebacks are retained in the logs.\n\nImplemented bind_launch, check_transition and evaluate_tool with private custody-bearing bindings, exact authority/source digests, grant/dependency checks, output receipt validation and closed decisions. Interpretation: dispatch owns evidence retention; terminal handles cannot be invented from held values. Trusted anchors and runtime-closure provenance remain caller obligations. Binding-mismatch decisions echo the request identity while refusing it.\n\nAll 124 tracked test_*.py hashes remained unchanged. Ruff, record preservation and instrument preservation passed. No shared-store race diagnostic matched the retained logs; this is not proof of race isolation. No guard was disabled, and no test, contract, wrapper, policy data or settings file was edited.\n\nResidual obligations: independently reconcile the fixture/contract conflicts, resolve the literal-guard allowance through its owning process, and verify caller custody, retention, analyzer closure, adapter enforcement and complete acceptance integration before activation. No live enforcement or containment is certified. Git staging was refused by the read-only sandbox; COMMIT_MSG contains Source: original and the actual GPT-6 attribution.",
+      "commit": {
+        "subject": "Implement inert lane policy evaluation with trusted custody",
+        "body": "Add bind_launch, check_transition and evaluate_tool in lane_policy.py only.\nKeep old authority, exact source/show digests, closed receipts and request binding.\nTerminal acceptance requires caller-retained evidence rather than invented handles.\n\nAcceptance is blocked: the frozen policy suite has incompatible fixture duties,\nand the unchanged lane literal guard rejects the new protocol declaration.\nNo test, contract, wrapper, live policy, store or settings was edited.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>\n"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T13:59:04.918Z"
+    }
+  },
+  "status": "closed"
+}
