@@ -90,14 +90,30 @@ class RenderExactNativeExamples(unittest.TestCase):
         self.assertEqual(text, ADJUDICATE_SECTION)
 
     def test_a_renamed_job_with_the_same_array_renders_identically(self):
-        native = osu.render_declared_outputs(
-            osu.copy_native("check-tests"), osu.OUT_ROOT,
+        check_spec = {
+            "name": "check-tests",
+            "outputs": osu.copy_native("check-tests"),
+        }
+        renamed_spec = {
+            "name": "skeptic-renamed",
+            "outputs": osu.copy_native("check-tests"),
+        }
+        self.assertNotEqual(
+            check_spec["name"], renamed_spec["name"],
+            "plant: job identity differs",
         )
-        renamed = osu.render_declared_outputs(
-            osu.copy_native("check-tests"), osu.OUT_ROOT,
+        self.assertEqual(
+            check_spec["outputs"], renamed_spec["outputs"],
+            "plant: same outputs array",
         )
-        self.assertEqual(native, CHECK_TESTS_SECTION)
-        self.assertEqual(renamed, native)
+        check = osu.outputs_from_job(check_spec)
+        renamed = osu.outputs_from_job(renamed_spec)
+        self.assertEqual(check, osu.NATIVE["check-tests"])
+        self.assertEqual(renamed, check)
+        native_text = osu.render_declared_outputs(check, osu.OUT_ROOT)
+        renamed_text = osu.render_declared_outputs(renamed, osu.OUT_ROOT)
+        self.assertEqual(native_text, CHECK_TESTS_SECTION)
+        self.assertEqual(renamed_text, native_text)
 
     def test_declaration_order_is_the_visit_order(self):
         declared = [
