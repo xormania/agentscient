@@ -2,22 +2,13 @@ diff --git a/ops/conductor/README.md b/ops/conductor/README.md
 index 70f1659..f4e59f3 100644
 --- a/ops/conductor/README.md
 +++ b/ops/conductor/README.md
-@@ -16,6 +16,7 @@ crossed, the House's records did not.
- | `*.md` | the instrument contracts and the lane's doctrine — `instrument-conventions.md` first, every instrument inherits it |
- | `conductor-start-plan.md` | the four-step conduct/MCP sequence; step 1 is documentation only |
- | `discovery-lever.md` | shared CLI/MCP discovery contract and acceptance rows; instrument ABSENT until step 2 |
+@@ -18,0 +19 @@ crossed, the House's records did not.
 +| [discovery-examples.md](discovery-examples.md) | non-executable v3 payload examples; correction awaits independent review |
- | `ideas/` | the idea records, `I-NNN-<slug>.md` — see `ideas/README.md` |
- | `handoff/` | hand-over records and the probes corpus — see `handoff/README.md` |
- | `AAR-*.md` | after-action reports; the newest one's calibration clause is what `onboard` serves as the thread |
 diff --git a/ops/conductor/conductor-start-plan.md b/ops/conductor/conductor-start-plan.md
 index 2a3d600..06fd934 100644
 --- a/ops/conductor/conductor-start-plan.md
 +++ b/ops/conductor/conductor-start-plan.md
-@@ -5,9 +5,14 @@ Standing: authorized documentation of the four-step sequence. Owner,
- contract work is superseded for this bounded step. This file is the
- sequence, not a lever contract and not an implementation.
- 
+@@ -8,3 +8,8 @@ sequence, not a lever contract and not an implementation.
 -The discovery contract is [`discovery-lever.md`](discovery-lever.md).
 -Step 1 ends when that contract is admitted for independent test
 -authors. Steps 2–4 remain unbuilt.
@@ -29,13 +20,7 @@ index 2a3d600..06fd934 100644
 +maps every supplied finding to its revised boundary.
 +Step 1 ends only after admission for independent test authors. Steps 2–4
 +remain future work.
- 
- ## What this is not
- 
-@@ -42,10 +47,19 @@ Git branches or deployment environments:
- | `dev` | development machinery (`ops/` in the default profile config) |
- | `prod` | the Symfony application (`src/`, `packages/`, `config/`, `public/` in the default profile config) |
- 
+@@ -45,4 +50,13 @@ Git branches or deployment environments:
 -Harness adapters (Claude, Codex, Grok) are a separate axis. Shared
 -policy, lifecycle, discovery, and grading are not implemented per
 -harness or per profile. Adapters translate vendor request/response
@@ -53,13 +38,7 @@ index 2a3d600..06fd934 100644
 +different catalogues. Trusted launch and job contracts grant source access;
 +no caller role switch and no conductor-wide worker inheritance. Read-only
 +MCP visibility does not enforce access through other harness tools.
- 
- ## Later interface (documented, not implemented)
- 
-@@ -82,8 +96,13 @@ acceptance rows in `discovery-lever.md` for both profiles.
- Independent tests, then implementation, then review, against
- `discovery-lever.md`. Prove a fresh conductor can find the right tools
- and context without owner-supplied filesystem paths. Extend
+@@ -85,2 +99,7 @@ and context without owner-supplied filesystem paths. Extend
 -`lane_read.py` / `lane_mcp.py`; add the declared adapter. Do not
 -require the missing generic workflow runtime (`wf.py` remains absent).
 +`lane_read.py` / `lane_mcp.py`; add the declared fixed acquisition adapter
@@ -69,13 +48,7 @@ index 2a3d600..06fd934 100644
 +register/ledger/PR local readings remain explicitly unavailable; do not
 +execute onboard or its subprocess dependencies to fill them. Do not require
 +the missing generic workflow runtime (`wf.py` remains absent).
- 
- ### 3. `conduct` with shared enforcement and live diagnostics
- 
-@@ -95,6 +114,32 @@ policy is not placed under one vendor. Diagnostic mode extends
- `docs/probes.md` / `probes-lever.md` (positive, negative, unreachable);
- synthetic payload tests alone do not certify a live harness.
- 
+@@ -97,0 +117,26 @@ synthetic payload tests alone do not certify a live harness.
 +Build on the existing dispatch/harness machinery, configuration owners and
 +the declared Symfony AI Platform boundary with CLI bridges in
 +[`docs/mapping.md`](../../docs/mapping.md); no second harness system. Validate
@@ -102,13 +75,7 @@ index 2a3d600..06fd934 100644
 +a forbidden attempt, effects, malformed hooks, conflicting overrides, resume,
 +actual MCP connection and automatic onboarding. Unreachable is never pass.
 +
- ### 4. Owner-initiated session lifecycle
- 
- Handoff, AAR, and an explicit combined action, each owner-initiated
-@@ -105,6 +150,13 @@ Unfinished checkpoints are an instance of the workflow genus in
- the publication lineage; `refs/conductor/closeout/*` is not admitted.
- Harness transcripts are evidence, not the checkpoint owner.
- 
+@@ -107,0 +153,7 @@ Harness transcripts are evidence, not the checkpoint owner.
 +Within that existing workflow owner, specify idempotent reservations and
 +revision checks before publication/recovery: duplicate owner requests do not
 +duplicate records and stale responses cannot publish against a moved lineage.
@@ -116,13 +83,7 @@ index 2a3d600..06fd934 100644
 +Fresh-session acceptance recovers an unfinished checkpoint as unfinished and
 +finds separately published handoff/AAR evidence after explicit owner action.
 +
- ## Mapping to existing homes
- 
- Session start, recovery, and owner-requested publication are instances
-@@ -118,17 +170,17 @@ alerts, write checkpoints, or publish refs.
- 
- ## Symfony mapping, remeasured
- 
+@@ -121,4 +173,4 @@ alerts, write checkpoints, or publish refs.
 -Measured 2026-09-06T00:56:13Z at
 -`c5d7f99b1c4ed66dc6e7967cf696b1f217ee9283`. Commands: `php -r
 -'echo PHP_VERSION;'`, parse `composer.json` and `composer.lock`,
@@ -131,22 +92,13 @@ index 2a3d600..06fd934 100644
 +`3682a8c58e304e7025036f1b3ec4edb63424832e`: Python parsed composer.json and
 +composer.lock, enumerated packages and checked vendor/instrument paths and
 +lane_read's AST. No installation, runtime probe or Packagist refresh.
- 
- | fact | reading |
- |---|---|
+@@ -128 +180 @@ Measured 2026-09-06T00:56:13Z at
 -| PHP | 8.4.25 |
 +| PHP runtime | not remeasured in this correction; composer requirement is >=8.4 |
- | composer.json require | php >=8.4; `symfony/console`, `dotenv`, `flex`, `framework-bundle`, `runtime`, `yaml` at 8.1.* / ^2 |
- | composer.json require-dev | phpunit ^13.3; `symfony/ai-mate` 0.13.0; `symfony/ai-symfony-mate-extension` 0.13.0; phpunit-bridge 8.1.* |
+@@ -131 +183 @@ Measured 2026-09-06T00:56:13Z at
 -| lock installed | console v8.1.6, framework-bundle v8.1.6, runtime v8.1.0, yaml v8.1.6, flex v2.11.0, dotenv v8.1.6, phpunit 13.3.2, phpunit-bridge v8.1.6, ai-mate v0.13.0, ai-mate-composer-plugin v0.13.0, ai-symfony-mate-extension v0.13.0 |
 +| locked/resolved | console v8.1.6, framework-bundle v8.1.6, runtime v8.1.0, yaml v8.1.6, flex v2.11.0, dotenv v8.1.6, phpunit 13.3.2, phpunit-bridge v8.1.6, ai-mate v0.13.0, ai-mate-composer-plugin v0.13.0, ai-symfony-mate-extension v0.13.0 |
- | lock absent | `symfony/mcp-bundle`, `mcp/sdk`, `symfony/ai-platform`, `symfony/workflow`, `api-platform/core`, `api-platform/mcp` |
- | `packages/` | only `README.md` (empty by declaration) |
- | `vendor/` | absent in this snapshot |
-@@ -149,6 +201,28 @@ report them as present.
- - No writes, network, arbitrary paths, credentials, or user-directory
-   exploration.
- 
+@@ -151,0 +204,22 @@ report them as present.
 +## Bounded Loopstrap recommendations for later slices
 +
 +Source: `xormania/loopstrap@ca5ab8d363f8822ac5406f5e0bf5c94288102f1a`, as
@@ -169,9 +121,6 @@ index 2a3d600..06fd934 100644
 +ledger, kernel, certification authority or implementation is copied. Remote
 +link availability and live compatibility were not reverified here.
 +
- ## Unresolved, deferred
- 
- These are not this step's work. They are named so they are not
 diff --git a/ops/conductor/discovery-examples.md b/ops/conductor/discovery-examples.md
 new file mode 100644
 index 0000000..78ebc25
@@ -878,9 +827,7 @@ diff --git a/ops/conductor/discovery-lever.md b/ops/conductor/discovery-lever.md
 index d7a3dba..f367fff 100644
 --- a/ops/conductor/discovery-lever.md
 +++ b/ops/conductor/discovery-lever.md
-@@ -1,600 +1,701 @@
- # Discovery lever — contract
- 
+@@ -3,82 +3,78 @@
 -Standing: contract admitted for authorized step 1 (owner, 2026-09-05).
 -The instrument is ABSENT until step 2. This document is the
 -specification independent test authors write against. It inherits
@@ -1041,7 +988,7 @@ index d7a3dba..f367fff 100644
 +|---|---|---|---|
 +| dev | development machinery / `["ops/"]` | `["lane-mcp","dispatch","onboard"]` | all index concepts except mapping, packages, projections |
 +| prod | Symfony application / `["src/","packages/","config/","public/"]` | `["mapping","packages","projections"]` | all index concepts except wf-runtime, dispatch, harness, jobs, ci-store, ladder |
- 
+@@ -86 +82,7 @@ retries a different prefix.
 -Profiles are config, not code. Harness choice is independent.
 +The homes lists above expand in index order; source_ids default to
 +`["repo"]`, lineage to the profile ID. A valid additional profile is
@@ -1050,11 +997,11 @@ index d7a3dba..f367fff 100644
 +Same algorithms, limits and resources apply. Config may override defaults;
 +acceptance uses the shipped declarations. Profiles are neither Git branches
 +nor deployment environments.
- 
+@@ -88,2 +90 @@ Profiles are config, not code. Harness choice is independent.
 -Version-3 config must declare at least `dev` and `prod`. Default
 -meanings, overridable only by config:
 +`discovery` has exactly these fields:
- 
+@@ -91 +92,46 @@ meanings, overridable only by config:
 -| id | label | default `work_roots` |
 +| field | exact type and meaning |
 +|---|---|
@@ -1102,7 +1049,7 @@ index d7a3dba..f367fff 100644
 +Closed operations, all bound to the repository capability above:
 +
 +| operation | input | successful data |
- |---|---|---|
+@@ -93,2 +139,396 @@ meanings, overridable only by config:
 -| `dev` | development machinery | `["ops/"]` |
 -| `prod` | Symfony application | `["src/", "packages/", "config/", "public/"]` |
 +| anchor_head | trusted head OID and optional trusted ref | `{head:OID,ref:string\|null,ref_commit:OID\|null}`; verify commit type and ref correspondence |
@@ -1501,10 +1448,10 @@ index d7a3dba..f367fff 100644
 +Resource first pages omit snapshot/cursor. Continuation is tool-only.
 +URI segments have the corresponding argument grammars, no decoding into paths;
 +unknown/malformed resource URIs retain -32602. v1 template handling stays -32601.
- 
+@@ -96 +536 @@ meanings, overridable only by config:
 -They are not Git branches, deployment environments, or harnesses.
 +## Refusals and exits
- 
+@@ -98 +538,6 @@ They are not Git branches, deployment environments, or harnesses.
 -## Configuration
 +Validation order: config; argument object/required keys/types/grammars;
 +configured profile; cursor grammar and required matching snapshot; acquisition;
@@ -1512,7 +1459,7 @@ index d7a3dba..f367fff 100644
 +arguments. Refusals are one stderr line and exit 2 with empty stdout; MCP
 +isError=true carries the same line. Templates (all substitutions bounded,
 +validated values only; arbitrary malformed input rendered as `invalid`):
- 
+@@ -100,5 +545,7 @@ They are not Git branches, deployment environments, or harnesses.
 -Two prior versions remain valid and byte-identical. Version 3 adds
 -discovery sources. Config is a regular file, nonblocking, at most
 -64 KiB, loaded once per process, same printable/path rules as
@@ -1525,7 +1472,7 @@ index d7a3dba..f367fff 100644
 +| profile | `profile: expected configured profile; found ID; needed use a profile from configuration` |
 +| cursor | `cursor: expected current snapshot and valid page offset; found invalid; needed restart from lane_start` (grammar/offset) |
 +| cursor | `cursor: expected snapshot CURRENT; found GIVEN; needed restart from lane_start` (mismatch) |
- 
+@@ -106,278 +553,4 @@ environment lookup, or default retained-ref path.
 -| version | exact keys | `check.tools` |
 -|---|---|---|
 -| 1 | `version, dispatch_store, job_ids, monitor_state, consumer, usage_rollout` | 4 |
@@ -1808,12 +1755,10 @@ index d7a3dba..f367fff 100644
 +Exit 3 only outer wall/kill, not source timeout (a reading).
 +No identity refusal. Refusal examples and exact successful envelopes are in
 +[discovery examples](discovery-examples.md); the document is non-executable.
- 
- ## Action index
- 
+@@ -387 +560 @@ filled only on named `lane_handoffs`. Over cap: `body: null`,
 -| name | owner | entrypoint | available |
 +| name | owner | entrypoint | availability derivation |
- |---|---|---|---|
+@@ -389,4 +562,4 @@ filled only on named `lane_handoffs`. Over cap: `body: null`,
 -| `onboard` | this instrument's sibling | `python3 ops/conductor/tools/onboard.py` | true if that file is present |
 -| `handoff` | owner-initiated; placement declared in `handoff/README.md` | null | false, reason `"no handoff instrument"` |
 -| `aar` | owner-initiated; AAR files live under `ops/conductor/` | null | false, reason `"no aar instrument"` |
@@ -1822,16 +1767,14 @@ index d7a3dba..f367fff 100644
 +| handoff | ops/conductor/handoff/README.md | null | false; disabled |
 +| aar | ops/conductor/handoff/README.md | null | false; disabled |
 +| closeout | docs/workflow.md | null | false; disabled |
- 
+@@ -394,2 +567,4 @@ filled only on named `lane_handoffs`. Over cap: `body: null`,
 -Exit, crash, and compaction do not manufacture these records. Future
 -writes are step 4, outside discovery.
 +Here available means a documented implementation entrypoint exists, not an
 +installed callable handle or permission to act. All installation/activation/
 +probe fields remain null. Owner-initiated handoff/AAR/combined writes are
 +step 4; exit, crash and compaction create no completed records.
- 
- ## Concept index
- 
+@@ -399,163 +574,77 @@ writes are step 4, outside discovery.
 -Amended by commit, like onboard's law table. The home-map is
 -evidence that informed this list; it is not an authoritative source
 -and must not appear as `home`. Where a live entrypoint is missing,
@@ -2072,7 +2015,7 @@ index d7a3dba..f367fff 100644
 +A counterparty change re-demands its coupled rows.
 +
 +| id | planted case | required observation |
- |---|---|---|
+@@ -563,38 +652,50 @@ compared as canonical bytes.
 -| D-A1 | v1 config `check.tools` is 4; discovery names refuse `arguments` | exit 2, empty stdout |
 -| D-A2 | v2 config `check.tools` is 7; v2 payloads unchanged | byte-identical to v2 fixtures |
 -| D-A3 | v3 config `check.tools` is 11 | `{valid:true,tools:11}` |
@@ -2165,10 +2108,7 @@ diff --git a/ops/conductor/handoff/README.md b/ops/conductor/handoff/README.md
 index c82ab5a..356549a 100644
 --- a/ops/conductor/handoff/README.md
 +++ b/ops/conductor/handoff/README.md
-@@ -23,5 +23,19 @@ Candidate discovery across tracked files and the retained-ref namespace
- [`../discovery-lever.md`](../discovery-lever.md). Publication remains
- manual; discovery does not write these records.
- 
+@@ -25,0 +26,14 @@ manual; discovery does not write these records.
 +## Discovery metadata extension
 +
 +The corrected [discovery contract](../discovery-lever.md#record-identity-trust-and-selection)
@@ -2183,32 +2123,21 @@ index c82ab5a..356549a 100644
 +never their own contract or authority. Onboard's existing newest-filename
 +thread behavior stays unchanged; discovery's selection is a separate read.
 +
- The House's hand-over records do not cross. This directory begins with
- the substrate work of 2026-09-02, which was this project's own session.
 diff --git a/ops/conductor/lane-mcp-lever.md b/ops/conductor/lane-mcp-lever.md
 index 3a16ac1..044b689 100644
 --- a/ops/conductor/lane-mcp-lever.md
 +++ b/ops/conductor/lane-mcp-lever.md
-@@ -6,6 +6,11 @@ The [discovery contract](discovery-lever.md) is the version-3 extension
- (startup, homes, handoffs, actions). v1 and v2 stay unchanged. Sequence:
- [conductor-start-plan.md](conductor-start-plan.md).
- 
+@@ -8,0 +9,5 @@ The [discovery contract](discovery-lever.md) is the version-3 extension
 +The corrected v3 proposal targets conductors only and is awaiting independent
 +review. Its [payload examples](discovery-examples.md) and
 +[fixed acquisition boundary](discovery-lever.md#fixed-acquisition-boundary)
 +do not relax this v1 baseline or the shared read core's subprocess prohibition.
 +
- Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
- and handoff. Dev-lane machinery only, not Symfony work. This thin incumbent
- projection inherits `instrument-conventions.md`; it adds no workflow engine.
 diff --git a/ops/conductor/onboard-lever.md b/ops/conductor/onboard-lever.md
 index 1ab461d..a2776a2 100644
 --- a/ops/conductor/onboard-lever.md
 +++ b/ops/conductor/onboard-lever.md
-@@ -138,3 +138,8 @@ is specified in [`discovery-lever.md`](discovery-lever.md). This
- instrument's brief, law table, and CLI are unchanged. Adding those
- contract paths to the law table is a declared smallest extension, not
- applied here.
+@@ -140,0 +141,5 @@ applied here.
 +
 +The v3 [local composition table](discovery-lever.md#local-source-composition)
 +explicitly leaves register/ledger/PR readings unavailable and projects only
