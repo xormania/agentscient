@@ -112,6 +112,10 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
         self.assertEqual(empty["data"]["handoffs"]["selection"], "none")
         records_dir = self.gitdir / "refs" / "heads" / "records"
         records_dir.mkdir(parents=True, exist_ok=True)
+        self.plant_ref("refs/heads/records/denied", self.head)
+        # Root runners must read as an unprivileged child; chmod alone is void.
+        # Only our TemporaryDirectory needs traversal for that child.
+        os.chmod(Path(self._tmp.name), 0o755)  # noqa: S103 - root-only child traversal of synthetic fixture
         mode = records_dir.stat().st_mode
         os.chmod(records_dir, 0)
         try:
@@ -119,7 +123,30 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
                 retained_refs="refs/heads/records/",
                 source_ids=["repo", "retained"],
             )
-            unread = self.detail("lane_handoffs", {"profile": "dev"})
+            import subprocess
+
+            probe = subprocess.run(
+                [
+                    sys.executable,
+                    "-B",
+                    "-c",
+                    "import os,sys; os.listdir(sys.argv[1])",
+                    str(records_dir),
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+                **(
+                    {"user": 65534, "group": 65534, "extra_groups": []}
+                    if os.geteuid() == 0
+                    else {}
+                ),
+            )
+            self.assertNotEqual(probe.returncode, 0)
+            self.assertIn(
+                "PermissionError", probe.stderr, "permission fault did not land"
+            )
+            unread = self.detail("lane_handoffs", {"profile": "dev"}, unprivileged=True)
         finally:
             os.chmod(records_dir, mode)
         retained_bad = [src for src in unread["sources"] if src["id"] == "retained"][0]
@@ -209,7 +236,9 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             self.head = self.git("rev-parse", "HEAD").stdout.strip()
             self.plant_v3_config()
         start = self.start()
-        contrib = [row for row in start["data"]["law"] if row["path"] == "CONTRIB.md"][0]
+        contrib = [row for row in start["data"]["law"] if row["path"] == "CONTRIB.md"][
+            0
+        ]
         self.assertIn(contrib["status"], ("missing", "unavailable"))
 
     def test_d_a31_changed_during_read_is_unavailable(self):
@@ -231,13 +260,15 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
                 rec_path.write_bytes((json.dumps(fat) + "\n").encode())
                 time.sleep(0.001)
 
-        worker = threading.Thread(target=mutate, daemon=True)
-        worker.start()
-        try:
-            proc = self.query("lane_start", {"profile": "dev"}, cap=15)
-        finally:
-            stop.set()
-            worker.join(timeout=2)
+        with self.fixture_writer(rec_path):
+            worker = threading.Thread(target=mutate, daemon=True)
+            worker.start()
+            try:
+                proc = self.query("lane_start", {"profile": "dev"}, cap=15)
+            finally:
+                stop.set()
+                worker.join(timeout=2)
+                self.assertFalse(worker.is_alive())
         payload = self.load_envelope(proc, "lane_start")
         self.assertEqual(payload["state"], "unavailable", payload)
         self.assertEqual(payload["reason"], "changed-during-read")
@@ -329,15 +360,19 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
         self.plant_tree()
         conductor = self.plant_v3_config()
         job_config = self.work / "job-bound.json"
-        self.plant_v3_config(path=job_config, extra_profile={
-            "label": "documentation",
-            "work_roots": ["docs/"],
-            "homes": ["wire", "onboard"],
-            "startup_homes": ["wire"],
-            "source_ids": ["repo"],
-            "lineage": "docs",
-        })
+        self.plant_v3_config(
+            path=job_config,
+            extra_profile={
+                "label": "documentation",
+                "work_roots": ["docs/"],
+                "homes": ["wire", "onboard"],
+                "startup_homes": ["wire"],
+                "source_ids": ["repo"],
+                "lineage": "docs",
+            },
+        )
         self.assertNotEqual(job_config.read_bytes(), conductor.read_bytes())
+        before = self.owned_surface()
         via_job = self.invoke(
             ["query", "lane_start", json.dumps({"profile": "docs"})],
             config=job_config,
@@ -356,5 +391,143 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             with self.subTest(arguments=arguments):
                 proc = self.query("lane_start", arguments, config=conductor)
                 self.assert_refusal(proc, "arguments")
-                before = self.git("status", "--porcelain").stdout
-                self.assertEqual(self.git("status", "--porcelain").stdout, before)
+                self.assertEqual(self.owned_surface(), before)
+
+
+import unittest  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+
+
+def _namespace_reply(case, fault, *args, **kwargs):
+    from discovery_v3_support import contract_start_frame
+
+    reply = contract_start_frame()
+    config = json.loads(case.config_path.read_bytes())
+    enabled = config["discovery"]["retained_refs"] is not None
+    records = case.gitdir / "refs" / "heads" / "records"
+    denied = records.exists() and stat.S_IMODE(records.stat().st_mode) == 0
+    source = next(s for s in reply["sources"] if s["id"] == "retained")
+    if enabled:
+        source.update(
+            state="unavailable" if denied else "ok",
+            reason="unreadable" if denied else None,
+        )
+        if fault == "swallow-unreadable" and denied:
+            source.update(state="ok", reason=None)
+        selection = dict(
+            selection="unknown" if denied else "none",
+            selected_key=None,
+            complete=not denied,
+            current=None if denied else 0,
+            stale=None if denied else 0,
+            unknown=None if denied else 0,
+        )
+        reply["data"] = {"handoffs": selection}
+    return reply
+
+
+class TestDiscoveryV3AdapterControls(unittest.TestCase):
+    def test_faulty_unreadable_namespace(self):
+        from discovery_v3_support import prove_counterparty
+
+        prove_counterparty(
+            self,
+            TestDiscoveryV3Adapter,
+            "test_d_a28_unreadable_empty_and_disabled_namespaces",
+            {"start": _namespace_reply, "detail": _namespace_reply},
+            fault="swallow-unreadable",
+            assertion="ok.*unavailable",
+        )
+
+    def test_owned_tree_custody_faults_and_concurrent_neighbor(self):
+        import tempfile
+
+        from discovery_v3_support import CONTROL_RECEIPTS, _LaneMcpFixture
+
+        case = _DiscoveryV3Fixture()
+        case.setUp()
+        try:
+            case.plant_tree()
+            case.plant_v3_config()
+            # No real checkout writes: an unrelated suite has its own temp tree.
+            with tempfile.TemporaryDirectory(prefix="discovery-neighbor-") as tmp:
+                neighbor = Path(tmp) / "other-suite"
+                for target in (
+                    case.home / "canary",
+                    case.gitdir / "config",
+                    case.gitdir / "index",
+                    case.store / "new-job" / "record.json",
+                    case.db,
+                    case.scratch / "injected.py",
+                ):
+                    with self.subTest(
+                        target=str(target.relative_to(Path(case._tmp.name)))
+                    ):
+                        existed = target.exists()
+                        original = target.read_bytes() if existed else None
+
+                        def write_fault(*args, target=target, **kwargs):
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            target.write_bytes(b"unauthorized mutation")
+
+                        with patch.object(
+                            _LaneMcpFixture, "invoke", side_effect=write_fault
+                        ):
+                            with self.assertRaisesRegex(
+                                AssertionError, "owned fixture mutated"
+                            ):
+                                case.invoke(["check"])
+                        CONTROL_RECEIPTS.append(
+                            {
+                                "test": "owned_tree_custody",
+                                "fault": str(target.relative_to(Path(case._tmp.name))),
+                                "assertion": "owned fixture mutated by reader",
+                                "errors": 0,
+                            }
+                        )
+                        if existed:
+                            target.write_bytes(original)
+                        else:
+                            target.unlink()
+
+                        def clean_neighbor(*args, **kwargs):
+                            neighbor.write_bytes(b"unrelated concurrent suite")
+                            return "clean"
+
+                        with patch.object(
+                            _LaneMcpFixture, "invoke", side_effect=clean_neighbor
+                        ):
+                            self.assertEqual(case.invoke(["check"]), "clean")
+                writer = case.store / "race" / "record.json"
+                case._plant_bytes(writer, b"initial")
+                with case.fixture_writer(writer):
+
+                    def permitted_fixture_writer(*args, **kwargs):
+                        writer.write_bytes(b"fixture race")
+
+                    with patch.object(
+                        _LaneMcpFixture, "invoke", side_effect=permitted_fixture_writer
+                    ):
+                        case.invoke(["check"])
+
+                    def unrelated_write(*args, **kwargs):
+                        writer.write_bytes(b"fixture race again")
+                        (case.home / "escape").write_bytes(b"reader write")
+
+                    with patch.object(
+                        _LaneMcpFixture, "invoke", side_effect=unrelated_write
+                    ):
+                        with self.assertRaisesRegex(
+                            AssertionError, "owned fixture mutated"
+                        ):
+                            case.invoke(["check"])
+                    CONTROL_RECEIPTS.append(
+                        {
+                            "test": "owned_tree_custody",
+                            "fault": "race-canary-other-path",
+                            "assertion": "owned fixture mutated by reader",
+                            "errors": 0,
+                        }
+                    )
+        finally:
+            case.tearDown()

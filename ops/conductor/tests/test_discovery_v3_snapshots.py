@@ -5,7 +5,6 @@ Acceptance rows: D-A24, D-A25, D-A26, D-A39, D-A46, D-A47.
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -68,14 +67,16 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
         self.plant_v3_config()
         after_content = self.start()
         self.assertNotEqual(after_content["snapshot"], snap)
-        self.plant_v3_config(extra_profile={
-            "label": "documentation",
-            "work_roots": ["docs/"],
-            "homes": ["wire", "onboard"],
-            "startup_homes": ["wire"],
-            "source_ids": ["repo"],
-            "lineage": "docs",
-        })
+        self.plant_v3_config(
+            extra_profile={
+                "label": "documentation",
+                "work_roots": ["docs/"],
+                "homes": ["wire", "onboard"],
+                "startup_homes": ["wire"],
+                "source_ids": ["repo"],
+                "lineage": "docs",
+            }
+        )
         after_profile = self.start()
         self.assertNotEqual(after_profile["snapshot"], after_content["snapshot"])
         inner = b"bound"
@@ -115,8 +116,7 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
             job_ids=jobs,
             source_ids=["repo", *[f"dispatch/{j}" for j in jobs]],
             work_bindings=[
-                {"id": j, "lineage": "dev", "work_paths": ["ops/a.md"]}
-                for j in jobs
+                {"id": j, "lineage": "dev", "work_paths": ["ops/a.md"]} for j in jobs
             ],
         )
         start = self.start()
@@ -126,7 +126,11 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
         homes = self.detail("lane_homes", {"profile": "dev"})
         home_total = homes["data"]["page"]["total"]
         cases = [
-            ("malformed", "lane_start", {"profile": "dev", "snapshot": snap, "cursor": "nope"}),
+            (
+                "malformed",
+                "lane_start",
+                {"profile": "dev", "snapshot": snap, "cursor": "nope"},
+            ),
             (
                 "leading-zero",
                 "lane_start",
@@ -190,13 +194,10 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
     def test_d_a39_stationary_cli_tool_resource_byte_identity(self):
         self.plant_tree()
         self.plant_v3_config()
-        first = self.start()
-        second = self.start()
+        first = self.raw_query("lane_start", {"profile": "dev"})
+        second = self.raw_query("lane_start", {"profile": "dev"})
         self.assertEqual(first, second)
-        self.assertEqual(canonical_bytes(first), canonical_bytes(second))
-        dumped = canonical_bytes(first)
-        self.assertNotIn(b"T1", dumped)
-        snap = first["snapshot"]
+        snap = self.load_query(self.query("lane_start", {"profile": "dev"}))["snapshot"]
         pairs = [
             ("lane_start", {"profile": "dev"}, "lane://start/dev"),
             ("lane_homes", {"profile": "dev"}, "lane://homes/dev"),
@@ -215,15 +216,20 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
         ]
         cli = {}
         for tool, arguments, _uri in pairs:
-            payload = self.detail(tool, arguments) if tool != "lane_start" else self.start(arguments)
-            again = self.detail(tool, arguments) if tool != "lane_start" else self.start(arguments)
-            self.assertEqual(payload, again, tool)
+            raw = self.raw_query(tool, arguments)
+            self.assertEqual(raw, self.raw_query(tool, arguments), tool)
+            payload = self.load_query(self.query(tool, arguments))
+            self.assertEqual(
+                raw, canonical_bytes(payload) + b"\n", "noncanonical CLI bytes"
+            )
             self.assertEqual(payload["snapshot"], snap)
-            cli[(tool, tuple(sorted(arguments.items())))] = payload
+            cli[(tool, tuple(sorted(arguments.items())))] = raw
         requests = []
         rpc_id = 20
         for tool, arguments, uri in pairs:
-            requests.append(rpc("tools/call", rpc_id, {"name": tool, "arguments": arguments}))
+            requests.append(
+                rpc("tools/call", rpc_id, {"name": tool, "arguments": arguments})
+            )
             rpc_id += 1
             requests.append(rpc("resources/read", rpc_id, {"uri": uri}))
             rpc_id += 1
@@ -232,30 +238,43 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
         objs = self.rpc_objects(proc)
         idx = 0
         for tool, arguments, _uri in pairs:
-            call_payload = self.lane_from_rpc(self.rpc_by_id(objs, 20 + idx))
-            read_payload = self.lane_from_rpc(self.rpc_by_id(objs, 21 + idx))
+            call_bytes = self.rpc_bytes(self.rpc_by_id(objs, 20 + idx))
+            read_bytes = self.rpc_bytes(self.rpc_by_id(objs, 21 + idx), resource=True)
             idx += 2
             expected = cli[(tool, tuple(sorted(arguments.items())))]
-            self.assertEqual(call_payload, expected, tool)
-            self.assertEqual(read_payload, expected, tool)
+            # Remove no arbitrary whitespace: one measured CLI framing LF only.
+            self.assertEqual(call_bytes + b"\n", expected, tool)
+            self.assertEqual(read_bytes + b"\n", expected, tool)
 
     def test_d_a46_failed_source_fingerprint_is_stable_until_recovery(self):
         self.plant_tree()
-        self.plant_v3_config(
-            retained_refs="refs/heads/records/",
-            source_ids=["repo", "retained"],
-        )
+        path = self.plant_dispatch("broken", raw=b"{not-json")
+        self.assertEqual(path.read_bytes(), b"{not-json")
+        self.plant_v3_config(job_ids=["broken"], source_ids=["repo", "dispatch/broken"])
+        config_before = self.config_path.read_bytes()
         first = self.start()
         second = self.start()
+        failed = next(src for src in first["sources"] if src["id"] == "dispatch/broken")
+        again = next(src for src in second["sources"] if src["id"] == "dispatch/broken")
+        self.assertEqual(
+            (failed["state"], failed["reason"]), ("unavailable", "malformed")
+        )
+        self.assertEqual(again, failed)
         self.assertEqual(first["snapshot"], second["snapshot"])
-        retained = [src for src in first["sources"] if src["id"] == "retained"][0]
-        again = [src for src in second["sources"] if src["id"] == "retained"][0]
-        self.assertEqual(retained["fingerprint"], again["fingerprint"])
-        self.plant_ref("refs/heads/records/r0", self.head)
+        self.plant_dispatch("broken")
+        self.assertNotEqual(path.read_bytes(), b"{not-json")
+        self.assertEqual(self.config_path.read_bytes(), config_before)
         third = self.start()
+        recovered = next(
+            src for src in third["sources"] if src["id"] == "dispatch/broken"
+        )
+        self.assertEqual((recovered["state"], recovered["reason"]), ("ok", None))
+        self.assertNotEqual(recovered["fingerprint"], failed["fingerprint"])
         self.assertNotEqual(third["snapshot"], first["snapshot"])
-        recovered = [src for src in third["sources"] if src["id"] == "retained"][0]
-        self.assertNotEqual(recovered["fingerprint"], retained["fingerprint"])
+        self.assertEqual(
+            [s for s in first["sources"] if s["id"] != "dispatch/broken"],
+            [s for s in third["sources"] if s["id"] != "dispatch/broken"],
+        )
 
     def test_d_a47_contract_revision_tracks_launch_supplied_bytes(self):
         self.plant_tree()
@@ -266,25 +285,234 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
         staged = self.contract_copy.read_bytes()
         self.assertEqual(planted, original)
         self.assertEqual(staged, original)
-        first = self.start()
-        contract = [src for src in first["sources"] if src["id"] == "contract"][0]
-        self.assertEqual(contract["state"], "ok")
-        revision = sha256_hex(original)
-        dumped = canonical_bytes(first)
-        self.assertIn(revision.encode(), dumped)
-        mutated = original + b"\n# fixture-byte-change\n"
-        self._plant_bytes(self.contract_copy, mutated)
-        objects = self.gitdir / "objects"
-        mode = objects.stat().st_mode
-        os.chmod(objects, 0)
-        try:
+        # Fail repo from the first reading, without chmod or changing config.
+        with self.missing_head_object():
+            first = self.start()
+            contract = next(src for src in first["sources"] if src["id"] == "contract")
+            self.assertEqual((contract["state"], contract["reason"]), ("ok", None))
+            self.assertEqual(
+                contract["fingerprint"], self.contract_fingerprint(original)
+            )
+            self.assertEqual(
+                next(s for s in first["sources"] if s["id"] == "repo")["state"],
+                "unavailable",
+            )
+            mutated = original + b"\n# fixture-byte-change\n"
+            self._plant_bytes(self.contract_copy, mutated)
+            self.assertNotEqual(self.contract_copy.read_bytes(), original)
             second = self.start()
-        finally:
-            os.chmod(objects, mode)
-        contract2 = [src for src in second["sources"] if src["id"] == "contract"][0]
-        self.assertEqual(contract2["state"], "ok")
-        repo_src = [src for src in second["sources"] if src["id"] == "repo"][0]
-        self.assertEqual(repo_src["state"], "unavailable")
-        self.assertNotEqual(second["snapshot"], first["snapshot"])
-        self.assertIn(sha256_hex(mutated).encode(), canonical_bytes(second))
-        self.assertNotEqual(contract2["fingerprint"], contract["fingerprint"])
+            contract2 = next(
+                src for src in second["sources"] if src["id"] == "contract"
+            )
+            self.assertEqual((contract2["state"], contract2["reason"]), ("ok", None))
+            self.assertEqual(
+                contract2["fingerprint"], self.contract_fingerprint(mutated)
+            )
+            self.assertNotEqual(contract2["fingerprint"], contract["fingerprint"])
+            self.assertNotEqual(second["snapshot"], first["snapshot"])
+            self.assertEqual(
+                next(s for s in second["sources"] if s["id"] == "repo")["state"],
+                "unavailable",
+            )
+            self.assertEqual(
+                [s for s in first["sources"] if s["id"] != "contract"],
+                [s for s in second["sources"] if s["id"] != "contract"],
+            )
+
+
+def _source_reply(case, fault, arguments=None, **kwargs):
+    """Immutable Source fixtures; only definition uses the full hash recipe."""
+    import json
+
+    from discovery_v3_support import contract_start_frame
+
+    reply = contract_start_frame()
+    config = json.loads(case.config_path.read_bytes())
+    sources = reply["sources"]
+    next(s for s in sources if s["id"] == "config")["fingerprint"] = sha256_hex(
+        canonical_bytes(config)
+    )
+    if config["job_ids"]:
+        raw = (case.store / "broken" / "record.json").read_bytes()
+        failed = raw == b"{not-json"
+        source = dict(
+            id="dispatch/broken",
+            state="unavailable" if failed else "ok",
+            reason="malformed" if failed else None,
+            fingerprint=sha256_hex(raw),
+        )
+        if fault == "empty-instead-of-failure" and failed:
+            source.update(state="ok", reason=None)
+        if fault == "no-recovery-fingerprint":
+            source["fingerprint"] = "b" * 64
+        sources.append(source)
+    else:
+        raw = case.contract_copy.read_bytes()
+        source = next(s for s in sources if s["id"] == "contract")
+        source["fingerprint"] = case.contract_fingerprint(raw)
+        if fault == "bare-revision":
+            source["fingerprint"] = sha256_hex(raw)
+        if fault == "compiled-definition":
+            source["fingerprint"] = case.contract_fingerprint(
+                CONTRACT_PATH.read_bytes()
+            )
+        next(s for s in sources if s["id"] == "repo").update(
+            state="unavailable", reason="unreadable"
+        )
+    sources.sort(key=lambda s: s["id"])
+    reply["snapshot"] = sha256_hex(
+        canonical_bytes(
+            dict(
+                protocol="discovery/3",
+                audience="conductor",
+                profile="dev",
+                sources=sources,
+            )
+        )
+    )
+    return reply
+
+
+def _parity_packet(tool):
+    from discovery_v3_support import contract_start_frame
+
+    reply = contract_start_frame()
+    reply["query"] = tool
+    if tool == "lane_homes":
+        reply["data"] = {"homes": [], "home": None, "page": None}
+        reply["reason"] = "unknown-concept"
+    elif tool == "lane_handoffs":
+        reply["data"] = {
+            "candidates": [],
+            "candidate": None,
+            "handoffs": reply["data"]["handoffs"],
+            "page": {
+                "offset": 0,
+                "count": 0,
+                "total": 0,
+                "more": False,
+                "next_cursor": None,
+            },
+        }
+    elif tool == "lane_actions":
+        reply["data"] = {"actions": reply["data"]["actions"], "action": None}
+    return reply
+
+
+def _parity_query(case, fault, tool, arguments, **kwargs):
+    import subprocess
+
+    raw = canonical_bytes(_parity_packet(tool)).decode() + "\n"
+    if fault == "cli-trailing-space":
+        raw += " "
+    return subprocess.CompletedProcess([], 0, raw, "")
+
+
+def _parity_serve(case, fault, lines, **kwargs):
+    import json
+    import subprocess
+
+    responses = []
+    for line in lines:
+        req = json.loads(line)
+        if req["method"] not in ("tools/call", "resources/read"):
+            continue
+        resource = req["method"] == "resources/read"
+        tool = (
+            "lane_" + req["params"]["uri"].split("/")[2]
+            if resource
+            else req["params"]["name"]
+        )
+        packet = _parity_packet(tool)
+        text = canonical_bytes(packet).decode()
+        if fault == "rpc-key-order":
+            text = json.dumps(packet, separators=(",", ":"), sort_keys=False)
+        if fault == "rpc-escape-drift":
+            text = text.replace("lane", "\\u006cane")
+        if fault == "rpc-trailing-lf":
+            text += "\n"
+        result = (
+            {
+                "contents": [
+                    {
+                        "uri": req["params"]["uri"],
+                        "mimeType": "application/json",
+                        "text": text,
+                    }
+                ]
+            }
+            if resource
+            else {
+                "content": [{"type": "text", "text": text}],
+                "structuredContent": packet,
+            }
+        )
+        responses.append({"jsonrpc": "2.0", "id": req["id"], "result": result})
+    return subprocess.CompletedProcess(
+        [], 0, "\n".join(json.dumps(r) for r in responses), ""
+    )
+
+
+import unittest  # noqa: E402
+
+
+class TestDiscoveryV3SnapshotControls(unittest.TestCase):
+    def test_faulty_source_counterparties(self):
+        from discovery_v3_support import definition_fingerprint, prove_counterparty
+
+        # Measured independently with sha256sum over a hand-spelled 297-byte
+        # canonical source object (empty config/anchors, exact b"abc\n" bytes).
+        self.assertEqual(
+            definition_fingerprint({}, [], b"abc\n"),
+            "a21cdc7a895ff8970a59c804ca293476315a798b9e8f275137aeb2d8f43bb498",
+        )
+        for method, fault, assertion in (
+            (
+                "test_d_a46_failed_source_fingerprint_is_stable_until_recovery",
+                "empty-instead-of-failure",
+                "unavailable",
+            ),
+            (
+                "test_d_a46_failed_source_fingerprint_is_stable_until_recovery",
+                "no-recovery-fingerprint",
+                "==",
+            ),
+            (
+                "test_d_a47_contract_revision_tracks_launch_supplied_bytes",
+                "bare-revision",
+                "!=",
+            ),
+            (
+                "test_d_a47_contract_revision_tracks_launch_supplied_bytes",
+                "compiled-definition",
+                "!=",
+            ),
+        ):
+            with self.subTest(fault=fault):
+                prove_counterparty(
+                    self,
+                    TestDiscoveryV3Snapshots,
+                    method,
+                    {"start": _source_reply},
+                    fault=fault,
+                    assertion=assertion,
+                )
+
+    def test_faulty_projection_counterparties(self):
+        from discovery_v3_support import prove_counterparty
+
+        for fault, assertion in (
+            ("cli-trailing-space", "noncanonical CLI"),
+            ("rpc-key-order", "noncanonical MCP"),
+            ("rpc-escape-drift", "noncanonical MCP"),
+            ("rpc-trailing-lf", "noncanonical MCP"),
+        ):
+            with self.subTest(fault=fault):
+                prove_counterparty(
+                    self,
+                    TestDiscoveryV3Snapshots,
+                    "test_d_a39_stationary_cli_tool_resource_byte_identity",
+                    {"query": _parity_query, "serve": _parity_serve},
+                    fault=fault,
+                    assertion=assertion,
+                )

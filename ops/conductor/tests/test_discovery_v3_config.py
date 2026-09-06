@@ -115,6 +115,7 @@ class TestDiscoveryV3Config(_DiscoveryV3Fixture):
         self.plant_tree()
         self.plant_v3_config(
             dispatch_store="store/blocked",
+            dispatch_binding={"anchor": "jobs", "path": "store/blocked"},
             job_ids=[JOB],
             retained_refs=None,
         )
@@ -262,7 +263,11 @@ class TestDiscoveryV3Config(_DiscoveryV3Fixture):
         self.plant_v3_config()
         cases = [
             ("missing-profile", "lane_start", {}),
-            ("unknown-field", "lane_start", {"profile": "dev", "audience": "conductor"}),
+            (
+                "unknown-field",
+                "lane_start",
+                {"profile": "dev", "audience": "conductor"},
+            ),
             ("role", "lane_start", {"profile": "dev", "role": "conductor"}),
             ("path", "lane_homes", {"profile": "dev", "path": "ops/"}),
             ("command", "lane_actions", {"profile": "dev", "command": "onboard"}),
@@ -343,7 +348,7 @@ class TestDiscoveryV3Config(_DiscoveryV3Fixture):
             ("lane_changes", {}),
             ("lane_jobs", {}),
         ):
-            v2_payloads[tool] = self.load_query(self.query(tool, arguments))
+            v2_payloads[tool] = self.raw_query(tool, arguments)
         self.plant_tree()
         self.plant_v3_config(job_ids=[JOB])
         for tool, arguments in (
@@ -356,5 +361,54 @@ class TestDiscoveryV3Config(_DiscoveryV3Fixture):
             ("lane_jobs", {}),
         ):
             with self.subTest(tool=tool):
-                v3 = self.load_query(self.query(tool, arguments))
+                v3 = self.raw_query(tool, arguments)
                 self.assertEqual(v3, v2_payloads[tool])
+
+
+import json  # noqa: E402
+import unittest  # noqa: E402
+
+
+def _old_encoding(case, fault, tool, arguments):
+    # The opaque byte-comparison boundary only; this is not an acquisition
+    # fixture. Include Unicode so ensure_ascii drift is discriminated too.
+    payload = {
+        "schema": "agentscient.lane/v1",
+        "query": tool,
+        "state": "unavailable",
+        "reason": "disabled",
+        "fixture": "é",
+    }
+    version = json.loads(case.config_path.read_bytes())["version"]
+    from discovery_v3_support import canonical_bytes
+
+    raw = canonical_bytes(payload) + b"\n"
+    if version == 3:
+        if fault == "key-order":
+            raw = (json.dumps(payload, separators=(",", ":")) + "\n").encode()
+        elif fault == "unicode":
+            raw = (
+                json.dumps(
+                    payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+                )
+                + "\n"
+            ).encode()
+        elif fault == "trailing":
+            raw += b" "
+    return raw
+
+
+class TestDiscoveryV3ConfigControls(unittest.TestCase):
+    def test_faulty_old_query_encoding(self):
+        from discovery_v3_support import prove_counterparty
+
+        for fault in ("key-order", "unicode", "trailing"):
+            with self.subTest(fault=fault):
+                prove_counterparty(
+                    self,
+                    TestDiscoveryV3Config,
+                    "test_d_a44_v3_preserves_v2_bytes_on_unchanged_inputs",
+                    {"raw_query": _old_encoding},
+                    fault=fault,
+                    assertion="!=",
+                )
