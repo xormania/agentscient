@@ -1,35 +1,22 @@
 """run: snapshot, launch, supervise, collect — never judge the work.
 
-Written from SPEC.md, before the module had behaviour. Each test names
-the contract rule it pins:
+Corrected from original Grok 4784cd45 against the merged canonical
+contract candidate. Vendor mode is the refusing task projection:
+direct verify and stub replay stay local; worker execution belongs
+to launch.py. No run.resume or injectable run.canonical_launch.
 
-  R1  `run` builds its snapshot with fileset.snapshot; never copies a
-      tree itself and never git-checkouts
-  R2  stamp.ref comes from the snapshot manifest; an unresolvable ref
-      is invalid, never a launch
-  R3  runtime.role selects the adapter sandbox map; write must not get
-      the read-only value (measured: empty deliverable, zero exit)
-  R4  an unknown harness is invalid with a note naming it
-  R5  a harness whose CLI is not on PATH is invalid with a note —
-      never a verdict about the work
+  R1-R5, R8-R13  vendor mode refuses before snapshot, prompt, child
+                 or store effects; launch owns those worker duties
   R6  `direct` delegates to verify.check and returns that envelope;
       zero tokens, spend.harness None
   R7  `stub` replays a file named in runtime and launches nothing
-  R8  the battery is armed with --cap-out from runtime.caps; a --cap
-      that counts re-sent cache is not a default
-  R9  a battery trip is status tripped, verdict None, a note; a killed
-      run is never a completed one
-  R10 a stream_names_cwd candidate must name this snapshot; two runs
-      of one harness must not resolve to the same stream
-  R11 no stream found means spend is unknown, not zero
-  R12 raw output is a file inside the snapshot, named by artifacts.raw,
-      never inlined
-  R13 run may parse a structured envelope; it must not interpret prose
-  R14 a job absent from the table is invalid
-  R15 main is a CLI: JSON on stdout; 0 / 1 / 2 / 64
+  R14 a job absent from the table is invalid; load_jobs stays local
+  R15 main is a CLI: JSON on stdout; 0 / 1 / 2 / 64. Vendor success
+      fixtures are replaced by direct verify; vendor CLI is exit 2
 
-The stub returns {}, "" and 0. Every test below fails on its own
-assertion against that, not on an import error and not on a crash.
+C1  exact execution refusal naming launch.py; optional commit via
+    stub replay; strict catalogue OutputsError plus run()/main()
+    mapping to invalid envelope, outputs-schema note, exit 2.
 """
 
 from __future__ import annotations
@@ -39,7 +26,6 @@ import hashlib
 import io
 import json
 import os
-import signal
 import stat
 import subprocess
 import sys
@@ -147,9 +133,6 @@ if done_path:
     Path(done_path).write_text("COMPLETED\n", encoding="utf-8")
 """
 
-_MISSING = object()
-
-
 class _PopenRecorder:
     """Wrap subprocess.Popen and keep every argv. The original still runs."""
 
@@ -172,25 +155,6 @@ class _PopenRecorder:
             if "launch.py" in blob or blob.rstrip().endswith(" launch"):
                 found.append(argv)
         return found
-
-
-class _SyntheticLaunch:
-    """In-process stand-in for dispatch/launch.py. No vendor, no store."""
-
-    def __init__(self, *, envelope=None, exit_code=0, stderr=""):
-        self.calls = []
-        self.envelope = envelope
-        self.exit_code = exit_code
-        self.stderr = stderr
-
-    def invoke(self, *args, **kwargs):
-        self.calls.append({"args": args, "kwargs": kwargs})
-        if self.envelope is not None:
-            return self.envelope
-        return self.exit_code
-
-    def selection_blob(self):
-        return json.dumps(self.calls, default=str)
 
 
 def _git_env(home: Path) -> dict:
@@ -519,11 +483,54 @@ class _TempRun(unittest.TestCase):
         if naming is not None:
             self.assertIn(naming, note)
 
+    def assert_vendor_refusal(self, env, *, job="author-tests", harness="codex",
+                              model="test-model", ref=None):
+        """C1: task vendor mode refuses before any worker effect."""
+        ref = self.ref if ref is None else ref
+        self.assertIsInstance(env, dict)
+        self.assertEqual(env.get("status"), "invalid")
+        self.assertIsNone(env.get("verdict"))
+        findings = env.get("findings") if isinstance(env.get("findings"), list) else None
+        self.assertEqual(findings, [])
+        artifacts = env.get("artifacts") if isinstance(env.get("artifacts"), dict) else None
+        self.assertEqual(artifacts, {})
+        counts = env.get("counts") if isinstance(env.get("counts"), dict) else {}
+        self.assertEqual(counts.get("p1"), 0)
+        self.assertEqual(counts.get("p2"), 0)
+        self.assertEqual(counts.get("p3"), 0)
+        self.assertEqual(counts.get("opinions"), 0)
+        self.assertEqual(
+            env.get("spend"),
+            {"harness": None, "total": 0, "out": 0, "runs": 0},
+        )
+        note = env.get("note")
+        self.assertIsInstance(note, str)
+        self.assertIn("execution:", note)
+        self.assertIn("expected canonical worker execution", note)
+        self.assertIn("found task vendor mode", note)
+        self.assertIn("needed ops/devlane/dispatch/launch.py", note)
+        self.assertIn(job, note)
+        self.assertIn(f"--harness {harness}", note)
+        self.assertIn(f"--model {model}", note)
+        self.assertIn(f"--ref {ref}", note)
+        stamp = env.get("stamp") if isinstance(env.get("stamp"), dict) else {}
+        self.assertEqual(stamp.get("ref"), ref)
+        self.assertFalse(
+            self.record_path.exists(),
+            "task vendor mode must not Popen a harness CLI",
+        )
+        into = getattr(self, "last_into", None)
+        if into is not None:
+            self.assertFalse(
+                (Path(into) / "FILESET.md").exists(),
+                "vendor refusal is before snapshotting",
+            )
+
     def _patch_attr(self, obj, name, replacement):
         """Wrap a function on a module run.py may have imported already.
 
         `from fileset import snapshot` binds a name on run; `import fileset`
-        leaves the function on that module. Patching both is how R1/R6 pin
+        leaves the function on that module. Patching both is how R6 pins
         delegation without guessing the import spelling. Unique (id, name)
         so wrapping fileset and run.fileset (the same object) cannot
         restore a wrapped function over the original.
@@ -535,35 +542,10 @@ class _TempRun(unittest.TestCase):
         self._patches.append((obj, name, getattr(obj, name)))
         setattr(obj, name, replacement)
 
-    def _install_attr(self, obj, name, replacement):
-        """Install a transfer-seam attribute even when run.py has no such name.
-
-        C1 vendor mode must bind canonical launch without task importing
-        dispatch. Tests inject a synthetic executor on this name. Restoring
-        a missing original deletes the attribute rather than leaving the
-        fake bound.
-        """
-        if obj is None:
-            return
-        if hasattr(obj, name):
-            self._patch_attr(obj, name, replacement)
-            return
-        self._patches.append((obj, name, _MISSING))
-        setattr(obj, name, replacement)
-
     def _unpatch(self):
         while self._patches:
             obj, name, original = self._patches.pop()
-            if original is _MISSING:
-                if hasattr(obj, name):
-                    delattr(obj, name)
-            else:
-                setattr(obj, name, original)
-
-    def bind_canonical_launch(self, synthetic):
-        """Bind a synthetic executor on the C1 transfer seam."""
-        self._install_attr(run, "canonical_launch", synthetic.invoke)
-        return synthetic
+            setattr(obj, name, original)
 
     def record_popen(self):
         """Record subprocess.Popen argv from both the stdlib and run's binding."""
@@ -572,6 +554,11 @@ class _TempRun(unittest.TestCase):
         self._patch_attr(getattr(run, "subprocess", None), "Popen", recorder)
         return recorder
 
+    def write_replay(self, recorded):
+        replay = self.home / ("replay-" + uuid.uuid4().hex + ".jsonl")
+        replay.write_text(json.dumps(recorded) + "\n", encoding="utf-8")
+        return replay
+
 
 # ---------------------------------------------------------------------------
 # R1
@@ -579,12 +566,9 @@ class _TempRun(unittest.TestCase):
 
 
 class RunBuildsTheSnapshotWithFileset(_TempRun):
-    """R1 — the snapshot is fileset.snapshot's, not cp -r and not a checkout.
-
-    Hand-rolled copies on 2026-08-22 produced eight snapshots and a
-    launch parameter wrong on six of them. fileset.snapshot is the
-    one call that writes FILESET.md and reads blobs at ref without
-    touching the source worktree.
+    """R1 — vendor mode refuses before fileset.snapshot. Launch owns
+    whole-ref bytes versus dirty source (adoption tests). Direct/stub
+    keep their local fileset behaviour.
     """
 
     def test_the_snapshot_is_a_fileset_snapshot_of_the_ref_not_the_worktree(self):
@@ -602,33 +586,16 @@ class RunBuildsTheSnapshotWithFileset(_TempRun):
             self._patch_attr(run, "snapshot", wrapped)
 
         env = self.call_run()
+        self.assert_vendor_refusal(env)
+        self.assertEqual(
+            calls, [],
+            "vendor refusal must not call fileset.snapshot",
+        )
         into = self.last_into
-        md = into / "FILESET.md"
-        written = into / "alpha.py"
-        self.assertTrue(
-            md.is_file(),
-            "FILESET.md is how a fileset.snapshot is told from cp -r",
-        )
-        self.assertTrue(written.is_file(), "the include set must be written")
-        self.assertEqual(written.read_text(encoding="utf-8"), "alpha v2\n")
-        self.assertNotEqual(
-            written.read_text(encoding="utf-8"), "DIRTY VERSION\n")
-        self.assertIn(self.ref, md.read_text(encoding="utf-8"))
-        self.assertFalse(
-            (into / "beta.py").exists(),
-            "include is a closed set; a bystander must not appear",
-        )
-        self.assertTrue(
-            calls,
-            "run must call fileset.snapshot, not copy a tree itself",
-        )
-        # The envelope is the proof the run used the snapshot, not
-        # that it merely built one and threw it away.
-        stamp = env.get("stamp") if isinstance(env.get("stamp"), dict) else {}
-        self.assertEqual(stamp.get("ref"), self.ref)
+        self.assertFalse((into / "FILESET.md").exists())
+        self.assertFalse((into / "alpha.py").exists())
 
     def test_the_source_repo_is_not_checked_out_or_mutated(self):
-        # A clean repo cannot show checkout damage. The pin is a dirty one.
         self._write("alpha.py", "DIRTY VERSION\n")
         self._write("untracked.txt", "do not delete me\n")
         self._write("to_stage.py", "staged new file\n")
@@ -636,16 +603,8 @@ class RunBuildsTheSnapshotWithFileset(_TempRun):
         before = self._fingerprint()
 
         env = self.call_run()
-        into = self.last_into
-        written = into / "alpha.py"
-        self.assertTrue(
-            written.is_file(),
-            "the snapshot must still be produced from a dirty repo",
-        )
-        self.assertEqual(written.read_text(encoding="utf-8"), "alpha v2\n")
+        self.assert_vendor_refusal(env)
         self.assertEqual(self._fingerprint(), before)
-        self.assertIsInstance(env.get("status"), str)
-        self.assertNotEqual(env.get("status"), "")
 
 
 # ---------------------------------------------------------------------------
@@ -654,32 +613,26 @@ class RunBuildsTheSnapshotWithFileset(_TempRun):
 
 
 class StampRefComesFromTheManifest(_TempRun):
-    """R2 — without a ref the envelope names no state. The manifest is
-    the state that was actually snapshotted; the harness's own stamp
-    is not that."""
+    """R2 — vendor refusal stamps the caller's supplied string as an
+    unverified request. Launch owns ref resolution and pre-effect
+    bad-ref refusal.
+    """
 
     def test_stamp_ref_is_the_sha_the_manifest_names(self):
         env = self.call_run()
-        md = self.last_into / "FILESET.md"
-        self.assertTrue(md.is_file(), "the manifest must exist to supply the ref")
-        self.assertIn(self.ref, md.read_text(encoding="utf-8"))
+        self.assert_vendor_refusal(env)
         stamp = env.get("stamp") if isinstance(env.get("stamp"), dict) else {}
         self.assertEqual(stamp.get("ref"), self.ref)
-        # The fake CLI prints a placeholder. Overlaying it is the rule.
         self.assertNotEqual(stamp.get("ref"), "harness-placeholder")
+        self.assertFalse((self.last_into / "FILESET.md").exists())
 
     def test_an_unresolvable_ref_is_invalid_and_never_launches(self):
         missing = "no-such-ref-7e1c9a3d"
         env = self.call_run(context=self.make_context(ref=missing))
-        self.assert_invalid(env)
-        note = env.get("note")
-        self.assertTrue(
-            missing in note or "ref" in note.lower(),
-            f"invalid ref must be explained: {note!r}",
-        )
+        self.assert_vendor_refusal(env, ref=missing)
         self.assertFalse(
             self.record_path.exists(),
-            "an unresolvable ref is never a launch",
+            "vendor refusal is never a launch, even with a bad ref",
         )
 
 
@@ -689,16 +642,11 @@ class StampRefComesFromTheManifest(_TempRun):
 
 
 class RoleSelectsTheSandbox(_TempRun):
-    """R3 — a WRITE role must not receive the adapter's read-only value.
-
-    Measured: `--sandbox read-only` for a role whose deliverable is a
-    file produced an empty deliverable and a zero exit — success-shaped
-    failure. The map is data; the role is the lookup key.
+    """R3 — task vendor mode does not resolve sandbox labels. Launch
+    owns admitted isolation; sandbox strings never prove C2 capability.
     """
 
     def test_a_write_role_receives_the_write_sandbox_not_the_read_value(self):
-        # Unique tokens, not the builtin strings: so a hardcoded
-        # "workspace-write" cannot satisfy a map it never consulted.
         write_tok = "WRITE-" + uuid.uuid4().hex
         read_tok = "READ-" + uuid.uuid4().hex
         adapters = self.make_adapters(
@@ -707,14 +655,10 @@ class RoleSelectsTheSandbox(_TempRun):
             runtime={"harness": "codex", "role": "write"},
             adapters=adapters,
         )
-        argv = self.recorded_argv()
-        self.assertIn(write_tok, argv)
-        self.assertNotIn(read_tok, argv)
-        self.assertIsInstance(env.get("status"), str)
+        self.assert_vendor_refusal(env, harness="codex")
+        self.assertFalse(self.record_path.exists())
 
     def test_a_read_role_receives_the_read_sandbox(self):
-        # Contrast: if write-not-readonly were implemented as "never
-        # pass a sandbox", this would fail too, and should.
         write_tok = "WRITE-" + uuid.uuid4().hex
         read_tok = "READ-" + uuid.uuid4().hex
         adapters = self.make_adapters(
@@ -724,33 +668,24 @@ class RoleSelectsTheSandbox(_TempRun):
             runtime={"harness": "codex", "role": "read"},
             adapters=adapters,
         )
-        argv = self.recorded_argv()
-        self.assertIn(read_tok, argv)
-        self.assertNotIn(write_tok, argv)
-        self.assertIsInstance(env.get("status"), str)
+        self.assert_vendor_refusal(
+            env, job="adversarial-review", harness="codex",
+        )
+        self.assertFalse(self.record_path.exists())
 
     def test_a_grok_write_role_is_auto_not_plan(self):
         env = self.call_run(
             runtime={"harness": "grok", "role": "write"},
         )
-        argv = self.recorded_argv()
-        self.assertIn("auto", argv)
-        self.assertNotIn("plan", argv)
-        self.assertIsInstance(env.get("status"), str)
+        self.assert_vendor_refusal(env, harness="grok")
+        self.assertFalse(self.record_path.exists())
 
     def test_builtin_write_values_are_not_the_read_only_ones(self):
-        # Measured facts in the adapter table. .get so a missing
-        # key is an assertion failure, not a KeyError against the stub.
-        cases = (
-            ("codex", "workspace-write", "read-only"),
-            ("grok", "auto", "plan"),
+        env = self.call_run(
+            runtime={"harness": "codex", "role": "write"},
         )
-        for name, write, read in cases:
-            with self.subTest(harness=name):
-                sandbox = (run.ADAPTERS.get(name) or {}).get("sandbox") or {}
-                self.assertEqual(sandbox.get("write"), write)
-                self.assertEqual(sandbox.get("read"), read)
-                self.assertNotEqual(sandbox.get("write"), sandbox.get("read"))
+        self.assert_vendor_refusal(env, harness="codex")
+        self.assertNotIn("canonical_launch", dir(run))
 
 
 # ---------------------------------------------------------------------------
@@ -759,12 +694,14 @@ class RoleSelectsTheSandbox(_TempRun):
 
 
 class AnUnknownHarnessIsInvalid(_TempRun):
-    """R4 — never a default, never a guess. The note names the stranger."""
+    """R4 — vendor mode uses the execution refusal regardless of vendor
+    name. Launch's unknown selection refuses without substitution.
+    """
 
     def test_an_unknown_harness_is_invalid_with_a_note_naming_it(self):
         name = "not-a-real-harness-7e1c9a3d"
         env = self.call_run(runtime={"harness": name})
-        self.assert_invalid(env, naming=name)
+        self.assert_vendor_refusal(env, harness=name)
         self.assertFalse(
             self.record_path.exists(),
             "an unknown harness must not launch a different one",
@@ -777,17 +714,16 @@ class AnUnknownHarnessIsInvalid(_TempRun):
 
 
 class AMissingCliIsInvalidNotAVerdict(_TempRun):
-    """R5 — 'the harness is missing' and 'the work found nothing' must
-    not produce the same envelope. Assert the note, not just the status."""
+    """R5 — task must not resolve vendor binaries. Missing-CLI named
+    non-acceptance lives on launch. Vendor mode is the execution
+    refusal, never invented work findings.
+    """
 
     def test_a_missing_cli_is_invalid_with_a_note_naming_the_gap(self):
         missing = "run-test-no-such-cli-7e1c9a3d"
         adapters = self.make_adapters()
         adapters["ghost"] = {
             "argv": [missing, "exec", "--sandbox", "{sandbox}", "-"],
-            # A dial the fixture sets must have somewhere to go, or the
-            # launch is refused for THAT and never reaches the missing
-            # CLI this case is about.
             "dials": {"model": ["-m", "{model}"]},
             "prompt": "stdin",
             "sandbox": {"read": "read-only", "write": "workspace-write"},
@@ -797,20 +733,7 @@ class AMissingCliIsInvalidNotAVerdict(_TempRun):
         }
         env = self.call_run(runtime={"harness": "ghost", "role": "write"},
                             adapters=adapters)
-        self.assert_invalid(env)
-        note = env.get("note")
-        # The note is the pin. Status-only would treat a silent skip
-        # the same as a missing binary.
-        self.assertTrue(
-            missing in note
-            or "PATH" in note
-            or "not found" in note.lower()
-            or "missing" in note.lower()
-            or "absent" in note.lower()
-            or "no such" in note.lower(),
-            f"note must explain the missing CLI: {note!r}",
-        )
-        self.assertIsNone(env.get("verdict"))
+        self.assert_vendor_refusal(env, harness="ghost")
         findings = env.get("findings") if isinstance(env.get("findings"), list) else []
         self.assertEqual(findings, [])
         self.assertFalse(self.record_path.exists())
@@ -828,12 +751,10 @@ class AMissingCliIsInvalidNotAVerdict(_TempRun):
             "stream_names_cwd": True,
         }
         env = self.call_run(runtime={"harness": "ghost"}, adapters=adapters)
-        self.assertEqual(env.get("status"), "invalid")
+        self.assert_vendor_refusal(env, harness="ghost")
         self.assertNotEqual(env.get("status"), "ok")
         self.assertNotEqual(env.get("verdict"), "changes")
         self.assertNotEqual(env.get("verdict"), "approve")
-        self.assertIsInstance(env.get("note"), str)
-        self.assertTrue(env.get("note", "").strip())
 
 
 # ---------------------------------------------------------------------------
@@ -972,9 +893,9 @@ class StubReplaysWithoutLaunching(_TempRun):
 
 
 class TheBatteryIsArmedWithCapOut(_TempRun):
-    """R8 — --cap-out is the runaway wire. A --cap that counts re-sent
-    cache killed a review (7.0M tokens to redo). The complementary
-    pin is R9: when output *does* exceed cap-out, the run trips.
+    """R8 — launch owns the battery. Vendor mode refuses before any
+    stream is supervised; cache-heavy evidence must not become an
+    ok vendor run.
     """
 
     def test_a_cache_heavy_total_does_not_trip_when_output_is_under_cap_out(self):
@@ -982,23 +903,18 @@ class TheBatteryIsArmedWithCapOut(_TempRun):
         dirname = f"snap-{snap_id}"
         into = self.home / dirname
         stream = self.codex_store / f"rollout-{dirname}.jsonl"
-        # 7.0M total is the measured figure. 50 output is under the cap.
         write_codex_stream(stream, total=7000000, out=50)
         env = self.call_run(
             context=self.make_context(into=into),
             runtime={"harness": "codex", "role": "write",
                      "caps": {"cap-out": 1000}},
         )
-        self.assertTrue(
-            self.record_path.is_file(),
-            "the launch must have happened for the battery to supervise it",
-        )
-        self.assertEqual(env.get("status"), "ok")
+        self.assert_vendor_refusal(env)
+        self.assertNotEqual(env.get("status"), "ok")
         self.assertNotEqual(env.get("status"), "tripped")
         spend = env.get("spend") if isinstance(env.get("spend"), dict) else {}
-        # Accounting may count the cache; the cap must not trip on it.
-        self.assertEqual(spend.get("total"), 7000000)
-        self.assertEqual(spend.get("out"), 50)
+        self.assertEqual(spend.get("total"), 0)
+        self.assertEqual(spend.get("out"), 0)
 
 
 # ---------------------------------------------------------------------------
@@ -1007,11 +923,8 @@ class TheBatteryIsArmedWithCapOut(_TempRun):
 
 
 class ABatteryTripIsNotACompletedRun(_TempRun):
-    """R9 — a killed run is never reported as a completed one.
-
-    The fake CLI writes the over-budget stream, then sleeps. If the
-    battery is armed with --terminate, the COMPLETED marker is never
-    written. If the runner just waits for the process, it is.
+    """R9 — launch kills the over-budget group. Vendor mode never
+    completes a worker run, tripped or otherwise.
     """
 
     def test_a_battery_trip_is_status_tripped_with_no_verdict_and_a_note(self):
@@ -1028,16 +941,12 @@ class ABatteryTripIsNotACompletedRun(_TempRun):
             runtime={"harness": "codex", "role": "write",
                      "caps": {"cap-out": 100}, "timeout": 60},
         )
-        self.assertEqual(env.get("status"), "tripped")
-        self.assertIsNone(env.get("verdict"))
-        self.assertNotEqual(env.get("verdict"), "approve")
-        self.assertNotEqual(env.get("verdict"), "changes")
-        note = env.get("note")
-        self.assertIsInstance(note, str)
-        self.assertTrue(note.strip(), "a trip must say which wire fired")
+        self.assert_vendor_refusal(env)
+        self.assertNotEqual(env.get("status"), "tripped")
+        self.assertNotEqual(env.get("status"), "ok")
         self.assertFalse(
             done.is_file(),
-            "a killed run must not be allowed to complete",
+            "vendor refusal must not run a child to completion",
         )
 
 
@@ -1047,12 +956,8 @@ class ABatteryTripIsNotACompletedRun(_TempRun):
 
 
 class StreamDiscoveryNamesTheSnapshot(_TempRun):
-    """R10 — two concurrent runs of one harness must not resolve to the
-    same stream. Measured: a lookup took a sibling session's file and
-    one review was supervised against the wrong evidence.
-
-    Plant two candidates; only one names the snapshot. The wrong one
-    is newer, so an mtime/latest rule picks it and this fails.
+    """R10 — launch owns isolated store/session/cwd identity. Vendor
+    mode does not discover streams or charge a sibling session.
     """
 
     def test_the_stream_that_names_the_snapshot_is_chosen_over_a_newer_sibling(self):
@@ -1070,13 +975,10 @@ class StreamDiscoveryNamesTheSnapshot(_TempRun):
             runtime={"harness": "codex", "role": "write"},
             adapters=self.make_adapters(stream_names_cwd=True),
         )
-        self.assertTrue(
-            self.record_path.is_file(),
-            "the launch must have happened so a stream can be discovered",
-        )
+        self.assert_vendor_refusal(env)
         spend = env.get("spend") if isinstance(env.get("spend"), dict) else {}
-        self.assertEqual(spend.get("total"), 42)
-        self.assertEqual(spend.get("out"), 7)
+        self.assertEqual(spend.get("total"), 0)
+        self.assertNotEqual(spend.get("total"), 42)
         self.assertNotEqual(spend.get("total"), 999)
 
 
@@ -1086,13 +988,9 @@ class StreamDiscoveryNamesTheSnapshot(_TempRun):
 
 
 class AbsentSpendIsNotZeroSpend(_TempRun):
-    """R11 — if no stream is found the run still completes, and the
-    envelope says the spend is unknown. A genuine zero is a stream
-    that recorded zero; those two must not look the same.
-
-    envelope.py requires spend.total to be a non-negative integer, so
-    unknown cannot live there as None. The note is how the envelope
-    *says* unknown; the pair of envelopes is how we tell them apart.
+    """R11 — vendor refusal spend is the unused-worker zero with
+    harness None, not a completed ok-with-no-stream. Launch declares
+    missing evidence versus measured zero.
     """
 
     def test_no_stream_is_unknown_spend_not_a_measured_zero(self):
@@ -1100,55 +998,12 @@ class AbsentSpendIsNotZeroSpend(_TempRun):
             runtime={"harness": "codex", "role": "write"},
             adapters=self.make_adapters(stream_names_cwd=True),
         )
-        self.assertTrue(
-            self.record_path.is_file(),
-            "the run still completes — the CLI launched; only the stream is missing",
-        )
-        self.assertEqual(unknown.get("status"), "ok")
-        self.assertNotEqual(unknown.get("status"), "tripped")
-
-        u_note = unknown.get("note")
+        self.assert_vendor_refusal(unknown)
+        self.assertNotEqual(unknown.get("status"), "ok")
         u_spend = unknown.get("spend") if isinstance(unknown.get("spend"), dict) else {}
-        u_text = u_note.lower() if isinstance(u_note, str) else ""
-        says_unknown = any(
-            word in u_text
-            for word in (
-                "unknown", "no stream", "absent", "missing stream",
-                "stream not found", "without a stream", "no session",
-            )
-        )
-        self.assertTrue(
-            says_unknown or u_spend.get("total") not in (0, None),
-            "the envelope must say the spend is unknown, not look like "
-            f"a zero: spend={u_spend!r} note={u_note!r}",
-        )
-
-        # Genuine zero: a stream that recorded 0/0, named for this snapshot.
-        if self.record_path.exists():
-            self.record_path.unlink()
-        snap_id = uuid.uuid4().hex
-        dirname = f"snap-{snap_id}"
-        into = self.home / dirname
-        stream = self.codex_store / f"rollout-{dirname}.jsonl"
-        write_codex_stream(stream, total=0, out=0)
-        zero = self.call_run(
-            context=self.make_context(into=into),
-            runtime={"harness": "codex", "role": "write"},
-            adapters=self.make_adapters(stream_names_cwd=True),
-        )
-        z_spend = zero.get("spend") if isinstance(zero.get("spend"), dict) else {}
-        self.assertEqual(z_spend.get("total"), 0)
-        self.assertEqual(z_spend.get("out"), 0)
-        z_text = (zero.get("note") or "").lower() if isinstance(zero.get("note"), str) else ""
-        self.assertFalse(
-            any(word in z_text for word in ("unknown", "no stream", "missing stream")),
-            f"a measured zero must not be labelled unknown: {zero.get('note')!r}",
-        )
-        self.assertNotEqual(
-            (u_spend, u_note),
-            (z_spend, zero.get("note")),
-            "unknown spend and a genuine zero must be distinguishable",
-        )
+        self.assertEqual(u_spend.get("harness"), None)
+        self.assertEqual(u_spend.get("total"), 0)
+        self.assertEqual(u_spend.get("runs"), 0)
 
 
 # ---------------------------------------------------------------------------
@@ -1157,9 +1012,8 @@ class AbsentSpendIsNotZeroSpend(_TempRun):
 
 
 class RawOutputLivesInsideTheSnapshot(_TempRun):
-    """R12 — artifacts are handles. The output text belongs in a file
-    inside the snapshot, not in /tmp and not in the envelope. Inlining
-    it is how iteration N starts costing more than iteration 1.
+    """R12 — launch raw.out lives under the canonical job directory.
+    Vendor refusal returns empty artifacts and never inlines raw bytes.
     """
 
     def test_raw_output_is_inside_the_snapshot_and_not_inlined(self):
@@ -1167,28 +1021,9 @@ class RawOutputLivesInsideTheSnapshot(_TempRun):
         os.environ["TASK_RUN_STDOUT"] = "token"
         os.environ["TASK_RUN_TOKEN"] = token
         env = self.call_run()
-        into = self.last_into.resolve()
+        self.assert_vendor_refusal(env)
         artifacts = env.get("artifacts") if isinstance(env.get("artifacts"), dict) else {}
-        raw = artifacts.get("raw")
-        self.assertIsInstance(raw, str)
-        self.assertTrue(raw.strip(), "artifacts.raw must name a file")
-        raw_path = Path(raw)
-        if not raw_path.is_absolute():
-            raw_path = into / raw_path
-        raw_path = raw_path.resolve()
-        self.assertTrue(raw_path.is_file(), f"artifacts.raw is not a file: {raw!r}")
-        self.assertTrue(
-            raw_path == into or into in raw_path.parents,
-            f"raw {raw_path} is not inside the snapshot {into}",
-        )
-        self.assertNotEqual(
-            raw_path.parent,
-            Path(tempfile.gettempdir()).resolve(),
-            "raw output must not be a /tmp tempfile; it belongs in the snapshot",
-        )
-        body = raw_path.read_text(encoding="utf-8", errors="replace")
-        self.assertIn(token, body)
-        # The handle may appear in the envelope; the output must not.
+        self.assertEqual(artifacts, {})
         blob = json.dumps(env)
         self.assertNotIn(token, blob)
 
@@ -1199,32 +1034,39 @@ class RawOutputLivesInsideTheSnapshot(_TempRun):
 
 
 class RunDoesNotInterpretProse(_TempRun):
-    """R13 — run may parse a structured envelope the harness emitted.
-    It must not interpret prose. Unparseable output is invalid
-    (CONTRACT §Statuses), never an approving verdict read off the page.
+    """R13 — vendor mode does not parse harness stdout. Stub replay
+    still recognises a structured envelope and does not promote prose
+    to approve.
     """
 
     def test_a_structured_envelope_from_the_harness_is_parsed(self):
         unique = "STRUCTURED-CLAIM-" + uuid.uuid4().hex
-        os.environ["TASK_RUN_STDOUT"] = "envelope"
-        os.environ["TASK_RUN_CLAIM"] = unique
-        os.environ["TASK_RUN_VERDICT"] = "changes"
-        env = self.call_run()
+        recorded = envelope.build(
+            "author-tests",
+            status="ok",
+            verdict="changes",
+            findings=[envelope.finding(
+                "p2", "alpha.py §top", unique,
+                reproduce="python3 -m unittest")],
+            spend={"harness": "stub", "total": 11, "out": 4, "runs": 1},
+            stamp={"ref": self.ref},
+        )
+        replay = self.write_replay(recorded)
+        env = self.call_run(
+            runtime={"harness": "stub", "role": "write",
+                     "replay": str(replay)},
+        )
         findings = env.get("findings") if isinstance(env.get("findings"), list) else []
         claims = [f.get("claim") for f in findings if isinstance(f, dict)]
         self.assertIn(unique, claims)
         self.assertEqual(env.get("verdict"), "changes")
         self.assertEqual(env.get("status"), "ok")
+        self.assertFalse(self.record_path.exists())
 
     def test_prose_that_says_approve_does_not_become_a_verdict(self):
-        os.environ["TASK_RUN_STDOUT"] = "prose"
         env = self.call_run()
+        self.assert_vendor_refusal(env)
         self.assertNotEqual(env.get("verdict"), "approve")
-        self.assertEqual(env.get("status"), "invalid")
-        self.assertIsNone(env.get("verdict"))
-        note = env.get("note")
-        self.assertIsInstance(note, str)
-        self.assertTrue(note.strip())
 
 
 # ---------------------------------------------------------------------------
@@ -1280,31 +1122,58 @@ class MainIsACli(_TempRun):
         run.JOBS_PATH = comm
 
     def test_a_changes_run_prints_json_and_returns_one(self):
+        unique = "CLI-CHANGES-" + uuid.uuid4().hex
+        finding = envelope.finding(
+            "p2", "alpha.py §top", unique, reproduce="python3 -m unittest",
+        )
+        changed = envelope.build(
+            "verify",
+            status="ok",
+            verdict="changes",
+            findings=[finding],
+            spend={"harness": None, "total": 0, "out": 0, "runs": 1},
+            stamp={"ref": self.ref},
+        )
+        self._patch_attr(verify, "check", lambda *a, **k: changed)
+        self._patch_attr(getattr(run, "verify", None), "check",
+                         lambda *a, **k: changed)
         into = self.home / f"cli-{uuid.uuid4().hex}"
-        os.environ["TASK_RUN_VERDICT"] = "changes"
         code, out, _err = run_main([
-            "author-tests",
+            "verify",
             "--repo", str(self.repo),
             "--ref", self.ref,
-            "--base", self.base,
-            "--harness", "codex",
-            "--role", "write",
+            "--harness", "direct",
+            "--role", "read",
             "--into", str(into),
         ])
         self.assertEqual(code, 1)
         env = self.parse_stdout(out)
         self.assertEqual(env.get("status"), "ok")
         self.assertEqual(env.get("verdict"), "changes")
+        claims = [
+            f.get("claim") for f in (env.get("findings") or [])
+            if isinstance(f, dict)
+        ]
+        self.assertIn(unique, claims)
 
     def test_an_approving_run_prints_json_and_returns_zero(self):
+        approved = envelope.build(
+            "verify",
+            status="ok",
+            verdict="approve",
+            spend={"harness": None, "total": 0, "out": 0, "runs": 1},
+            stamp={"ref": self.ref},
+        )
+        self._patch_attr(verify, "check", lambda *a, **k: approved)
+        self._patch_attr(getattr(run, "verify", None), "check",
+                         lambda *a, **k: approved)
         into = self.home / f"cli-{uuid.uuid4().hex}"
-        os.environ["TASK_RUN_VERDICT"] = "approve"
         code, out, _err = run_main([
-            "author-tests",
+            "verify",
             "--repo", str(self.repo),
             "--ref", self.ref,
-            "--harness", "codex",
-            "--role", "write",
+            "--harness", "direct",
+            "--role", "read",
             "--into", str(into),
         ])
         env = self.parse_stdout(out)
@@ -1352,11 +1221,11 @@ class TheHarnessReceivesTheRenderedPrompt(_TempRun):
         env = self.call_run(
             require={"scope": scope, "constraints": ["no network"]},
         )
-        rec = self.read_record()
-        blob = (rec.get("stdin") or "") + (rec.get("prompt_text") or "")
-        self.assertIn(scope, blob)
-        self.assertIn(self.ref, blob)
-        self.assertIsInstance(env.get("status"), str)
+        self.assert_vendor_refusal(env)
+        self.assertFalse(
+            self.record_path.exists(),
+            "task vendor mode does not render a worker brief",
+        )
 
     def test_render_fills_the_job_template(self):
         scope = "RENDER-" + uuid.uuid4().hex
@@ -1369,142 +1238,6 @@ class TheHarnessReceivesTheRenderedPrompt(_TempRun):
         self.assertIsInstance(text, str)
         self.assertIn(scope, text)
         self.assertIn(self.ref, text)
-
-
-@unittest.skipUnless(os.name == "posix", "process groups are posix")
-class ATrippedRunLeavesNothingBehind(unittest.TestCase):
-    """The runaway guard has to outlive the harness parent.
-
-    Verified as broken before the fix: with the parent already reaped,
-    _terminate returned early and a `sleep 60` grandchild was still
-    running afterwards (Codex, PR #49).
-    """
-
-    def _orphan_maker(self):
-        """A parent that exits fast, leaving one descendant behind."""
-        proc = subprocess.Popen(
-            ["sh", "-c", "sleep 60 & echo $! ; exec sleep 0.2"],
-            stdout=subprocess.PIPE, text=True, start_new_session=True)
-        run._remember_group(proc)
-        child = int(proc.stdout.readline().strip())
-        proc.wait()
-        return proc, child
-
-    @staticmethod
-    def _alive(pid):
-        # kill(0) also reports zombies as present.  A killed orphan can stay
-        # zombied until PID 1 reaps it in a container, but it is no longer a
-        # runnable descendant and must not make this isolation check flaky.
-        try:
-            if Path(f"/proc/{pid}/stat").read_text().split()[2] == "Z":
-                return False
-        except (FileNotFoundError, IndexError, OSError):
-            pass
-        try:
-            os.kill(pid, 0)
-            return True
-        except ProcessLookupError:
-            return False
-
-    def test_the_group_dies_even_when_the_parent_was_already_reaped(self):
-        proc, child = self._orphan_maker()
-        self.addCleanup(lambda: self._alive(child) and os.kill(child, signal.SIGKILL))
-        # the fixture must actually present the condition under test
-        self.assertIsNotNone(proc.poll(), "INVALID: parent not reaped")
-        self.assertTrue(self._alive(child), "INVALID: no orphan to clean up")
-        run._terminate(proc)
-        deadline = time.time() + 5
-        while self._alive(child) and time.time() < deadline:
-            time.sleep(0.05)
-        self.assertFalse(self._alive(child),
-                         "the descendant survived a tripped run")
-
-    def test_the_group_is_recorded_at_launch(self):
-        proc = subprocess.Popen(["sleep", "0.2"], start_new_session=True)
-        self.addCleanup(proc.wait)
-        run._remember_group(proc)
-        self.assertEqual(getattr(proc, "_task_pgid", None), proc.pid,
-                         "start_new_session makes the child its own leader")
-
-
-class TheConductorsDialReachesTheHarness(unittest.TestCase):
-    """runtime.model and runtime.effort must arrive, or be refused.
-
-    Verified as dropped before the fix: `_adapter_argv` formatted both
-    into a mapping no template referenced and no env carried, so every
-    launch used harness defaults while CONTRACT.md sold the dial as what
-    makes "eight cheap ones" and "one careful one" the same job
-    (Codex + Grok, PR #49).
-
-    Every flag below was read from the CLI's own --help, not from a
-    review: a review reported grok's as `--effort`; it is
-    `--reasoning-effort`.
-    """
-
-    def rendered(self, harness, runtime):
-        return run._adapter_argv(run.ADAPTERS[harness], sandbox="plan",
-                                 prompt="/tmp/p", root="/tmp/r", runtime=runtime)
-
-    def test_grok_receives_both_dials(self):
-        argv = self.rendered("grok", {"model": "M", "effort": "E"})
-        self.assertIn("-m", argv)
-        self.assertEqual(argv[argv.index("-m") + 1], "M")
-        self.assertIn("--reasoning-effort", argv)
-        self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "E")
-
-    def test_claude_receives_both_dials(self):
-        argv = self.rendered("claude", {"model": "M", "effort": "E"})
-        self.assertEqual(argv[argv.index("--model") + 1], "M")
-        self.assertEqual(argv[argv.index("--effort") + 1], "E")
-
-    def test_codex_receives_the_model_dial(self):
-        argv = self.rendered("codex", {"model": "M"})
-        self.assertEqual(argv[argv.index("-m") + 1], "M")
-
-    def test_codex_receives_both_dials(self):
-        tokens = ["-c", 'model_reasoning_effort="E"']
-        try:
-            argv = self.rendered("codex", {"model": "M", "effort": "E"})
-        except run.RunError as exc:
-            self.fail(
-                f"codex argv must carry adjacent {tokens}; "
-                f"adapter refused: {exc}"
-            )
-        self.assertEqual(argv[argv.index("-m") + 1], "M")
-        self.assertTrue(
-            any(argv[i:i + 2] == tokens for i in range(len(argv) - 1)),
-            f"codex argv must carry adjacent {tokens}: {argv!r}",
-        )
-
-    def test_an_unset_dial_adds_nothing(self):
-        """The control: without the dial the argv is the bare template."""
-        bare = self.rendered("grok", {})
-        self.assertNotIn("-m", bare)
-        self.assertNotIn("--reasoning-effort", bare)
-
-
-class TheRealAdaptersBindToTheirEvidence(unittest.TestCase):
-    """Pins on the shipped adapter table, not the fixture's fakes.
-
-    The fakes can be configured per case; these are the values a live
-    run actually uses, and two of them were defects.
-    """
-
-    def test_grok_discovery_is_bound_to_the_snapshot(self):
-        """False here made _discover_stream take the newest updates.jsonl
-        anywhere under the global store, so a concurrent Grok session
-        could be supervised, its spend charged here, or the wrong task
-        terminated (Codex + Grok, PR #49). Grok url-encodes only `/`, so
-        the snapshot's directory name survives in the path and the
-        marker test in _stream_names_snapshot matches it."""
-        self.assertIs(run.ADAPTERS["grok"]["stream_names_cwd"], True)
-
-    def test_every_live_adapter_can_carry_a_model(self):
-        for harness in ("codex", "grok", "claude"):
-            with self.subTest(harness=harness):
-                dials = run.ADAPTERS[harness].get("dials") or {}
-                self.assertIn("model", dials,
-                              f"{harness} cannot carry runtime.model")
 
 
 class TheJobAsksForWhatTheRunnerParses(unittest.TestCase):
@@ -1577,72 +1310,44 @@ class TheDocAndTheRegistryAgree(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# C1 — vendor mode is a frontend for dispatch/launch.py
+# C1 — vendor mode is the refusing task projection
 # ---------------------------------------------------------------------------
 
 
-def _ok_envelope(job, *, note, model="codex"):
-    return envelope.build(
-        job,
-        status="ok",
-        verdict="changes",
-        findings=[envelope.finding(
-            "p2", "alpha.py §top", note,
-            reproduce="python3 -m unittest")],
-        spend={"harness": model, "total": 0, "out": 0, "runs": 0},
-        stamp={"ref": "synthetic-ref"},
-        note=note,
+def _require_outputs_error(test):
+    err = getattr(envelope, "OutputsError", None)
+    test.assertTrue(
+        isinstance(err, type) and issubclass(err, envelope.EnvelopeError),
+        "missing public class envelope.OutputsError(EnvelopeError)",
     )
+    test.assertIsNot(
+        err, envelope.EnvelopeError,
+        "OutputsError must be a distinct subclass, not an alias",
+    )
+    return err
 
 
 class C1VendorModeDelegatesToCanonicalLaunch(_TempRun):
     """C1 — production worker execution belongs to launch.py.
 
-    Vendor mode on run.py must refuse or transfer at the frontend
-    boundary with the caller's explicit selection. It must not keep a
-    second executor, and it must not import dispatch or harness (task
-    CONTRACT.md §Dispatch ownership). Direct verify and stub replay
-    stay non-worker operations.
+    Vendor mode returns the exact execution refusal before snapshot,
+    prompt, child or store effects. Direct verify and stub replay stay
+    local. No injectable canonical_launch and no run.resume.
     """
 
-    def _transferred(self, synthetic, recorder):
-        launch_argv = recorder.launch_argv() if recorder is not None else []
-        return bool(synthetic.calls) or bool(launch_argv), launch_argv
-
     def test_vendor_mode_refuses_or_transfers_and_never_owns_a_second_executor(self):
-        note = "TRANSFER-" + uuid.uuid4().hex
-        syn = _SyntheticLaunch(envelope=_ok_envelope("author-tests", note=note))
-        self.bind_canonical_launch(syn)
         recorder = self.record_popen()
         env = self.call_run(
             runtime={"harness": "codex", "model": "test-model", "role": "write"},
         )
-        transferred, launch_argv = self._transferred(syn, recorder)
-        note_text = env.get("note") or ""
-        refused = (
-            env.get("status") == "invalid"
-            and "launch" in note_text.lower()
-        )
-        self.assertTrue(
-            refused or transferred,
-            "vendor mode must refuse naming canonical launch, or transfer "
-            f"to it; status={env.get('status')!r} note={note_text!r} "
-            f"canonical_launch_calls={len(syn.calls)} "
-            f"launch.py_argv={launch_argv!r}",
-        )
-        if transferred:
-            self.assertFalse(
-                self.record_path.exists(),
-                "after transfer, run.py must not Popen the harness CLI itself",
-            )
+        self.assert_vendor_refusal(env, harness="codex", model="test-model")
+        self.assertEqual(recorder.launch_argv(), [])
+        self.assertFalse(hasattr(run, "canonical_launch"))
+        self.assertFalse(hasattr(run, "resume"))
 
     def test_when_vendor_mode_transfers_explicit_selection_is_identical(self):
         unique_model = "model-" + uuid.uuid4().hex
         unique_effort = "high-" + uuid.uuid4().hex[:8]
-        note = "SELECT-" + uuid.uuid4().hex
-        syn = _SyntheticLaunch(envelope=_ok_envelope(
-            "adversarial-review", note=note, model="grok"))
-        self.bind_canonical_launch(syn)
         recorder = self.record_popen()
         env = self.call_run(
             job="adversarial-review",
@@ -1653,32 +1358,16 @@ class C1VendorModeDelegatesToCanonicalLaunch(_TempRun):
                 "role": "read",
             },
         )
-        transferred, launch_argv = self._transferred(syn, recorder)
-        if env.get("status") == "invalid":
-            self.assertIn(
-                "launch", (env.get("note") or "").lower(),
-                "a vendor refusal must name canonical launch, not guess a "
-                f"harness: {env.get('note')!r}",
-            )
-            self.assertFalse(self.record_path.exists())
-            return
-        self.assertTrue(
-            transferred,
-            "vendor mode that did not refuse must transfer to canonical launch",
+        self.assert_vendor_refusal(
+            env,
+            job="adversarial-review",
+            harness="grok",
+            model=unique_model,
         )
-        blob = syn.selection_blob() + json.dumps(launch_argv)
-        self.assertIn(unique_model, blob)
-        self.assertIn(unique_effort, blob)
-        self.assertIn("grok", blob)
-        self.assertIn("adversarial-review", blob)
-        self.assertNotEqual(
-            env.get("note"), None,
-            "transfer must return launch's result, not a silent skip",
-        )
+        self.assertEqual(recorder.launch_argv(), [])
+        self.assertNotIn("--profile", env.get("note") or "")
 
     def test_direct_verify_does_not_transfer_and_still_returns_verify_check(self):
-        syn = _SyntheticLaunch(envelope=_ok_envelope("verify", note="not-used"))
-        self.bind_canonical_launch(syn)
         recorder = self.record_popen()
         env = self.call_run(
             "verify",
@@ -1690,11 +1379,7 @@ class C1VendorModeDelegatesToCanonicalLaunch(_TempRun):
             },
             runtime={"harness": "direct", "role": "read"},
         )
-        transferred, launch_argv = self._transferred(syn, recorder)
-        self.assertFalse(
-            transferred,
-            f"direct verify must not transfer to launch: {launch_argv!r}",
-        )
+        self.assertEqual(recorder.launch_argv(), [])
         self.assertEqual(env.get("job"), "verify")
         self.assertEqual(env.get("status"), "ok")
         self.assertEqual(env.get("verdict"), "approve")
@@ -1716,25 +1401,44 @@ class C1VendorModeDelegatesToCanonicalLaunch(_TempRun):
             spend={"harness": "stub", "total": 11, "out": 4, "runs": 1},
             stamp={"ref": self.ref},
         )
-        replay = self.home / "recorded-stream.jsonl"
-        replay.write_text(json.dumps(recorded) + "\n", encoding="utf-8")
-        syn = _SyntheticLaunch(envelope=_ok_envelope(
-            "author-tests", note="not-the-stub"))
-        self.bind_canonical_launch(syn)
+        replay = self.write_replay(recorded)
         recorder = self.record_popen()
         env = self.call_run(
             runtime={"harness": "stub", "role": "write",
                      "replay": str(replay)},
         )
-        transferred, launch_argv = self._transferred(syn, recorder)
-        self.assertFalse(
-            transferred,
-            f"stub replay must not transfer to launch: {launch_argv!r}",
-        )
+        self.assertEqual(recorder.launch_argv(), [])
         findings = env.get("findings") if isinstance(env.get("findings"), list) else []
         self.assertTrue(findings, "replayed envelope must carry the recorded finding")
         self.assertEqual(findings[0].get("claim"), unique)
         self.assertEqual(env.get("verdict"), "changes")
+        self.assertFalse(self.record_path.exists())
+
+    def test_vendor_cli_prints_the_execution_refusal_and_exits_two(self):
+        into = self.home / f"cli-{uuid.uuid4().hex}"
+        code, out, err = run_main([
+            "author-tests",
+            "--repo", str(self.repo),
+            "--ref", self.ref,
+            "--harness", "codex",
+            "--role", "write",
+            "--into", str(into),
+        ])
+        self.assertEqual(code, 2)
+        self.assertNotIn("Traceback", err)
+        env = self.parse_stdout(out)
+        self.assertEqual(env.get("status"), "invalid")
+        self.assertIsNone(env.get("verdict"))
+        note = env.get("note") or ""
+        self.assertIn("execution:", note)
+        self.assertIn("expected canonical worker execution", note)
+        self.assertIn("found task vendor mode", note)
+        self.assertIn("needed ops/devlane/dispatch/launch.py", note)
+        self.assertIn("author-tests", note)
+        self.assertIn("--harness", note)
+        self.assertIn("--model", note)
+        self.assertIn("--ref", note)
+        self.assertFalse((into / "FILESET.md").exists())
         self.assertFalse(self.record_path.exists())
 
     def test_vendor_mode_does_not_import_dispatch_or_harness(self):
@@ -1759,21 +1463,41 @@ class C1VendorModeDelegatesToCanonicalLaunch(_TempRun):
             "task/run.py must not import dispatch or harness: "
             f"{leaked!r}",
         )
+        self.assertNotIn("canonical_launch", dir(run))
+        self.assertNotIn("resume", dir(run))
 
 
 class C1VendorFrontendParsesOptionalCommit(_TempRun):
-    """Optional write-job commit transport must survive frontend parsing.
+    """Optional write-job commit transport must survive stub replay.
 
     ENVELOPE_SCHEMA advertises commit; envelope.validate accepts it.
-    A recognizer that requires tuple(keys)==envelope.FIELDS drops the
-    envelope the schema just accepted (Claude review P2 on run.py).
+    No successful task vendor execution.
     """
+
+    def _commit_envelope(self, subject, *, nest=False):
+        env = dict(envelope.build(
+            "author-tests",
+            status="ok",
+            verdict="changes",
+            findings=[envelope.finding(
+                "p2", "alpha.py §top", "commit-parse",
+                reproduce="python3 -m unittest")],
+            spend={"harness": "stub", "total": 1, "out": 1, "runs": 1},
+            stamp={"ref": self.ref},
+        ))
+        env["commit"] = {"subject": subject, "body": "why"}
+        got = envelope.validate(env)
+        self.assertEqual(got["commit"]["subject"], subject)
+        payload = {"result": env} if nest else env
+        return self.write_replay(payload)
 
     def test_a_commit_bearing_envelope_is_accepted_not_treated_as_absent(self):
         subject = "task: pin commit transport " + uuid.uuid4().hex[:8]
-        os.environ["TASK_RUN_ENVELOPE_COMMIT"] = subject
-        os.environ["TASK_RUN_VERDICT"] = "changes"
-        env = self.call_run()
+        replay = self._commit_envelope(subject)
+        env = self.call_run(
+            runtime={"harness": "stub", "role": "write",
+                     "replay": str(replay)},
+        )
         self.assertNotEqual(
             env.get("status"), "invalid",
             "a schema-legal envelope with commit is not 'no envelope': "
@@ -1784,21 +1508,36 @@ class C1VendorFrontendParsesOptionalCommit(_TempRun):
         self.assertIn("commit", env)
         self.assertEqual(env["commit"].get("subject"), subject)
         self.assertEqual(env["commit"].get("body"), "why")
+        self.assertFalse(self.record_path.exists())
 
     def test_the_same_envelope_without_commit_is_still_found(self):
-        os.environ.pop("TASK_RUN_ENVELOPE_COMMIT", None)
-        os.environ["TASK_RUN_VERDICT"] = "changes"
-        env = self.call_run()
+        recorded = envelope.build(
+            "author-tests",
+            status="ok",
+            verdict="changes",
+            findings=[envelope.finding(
+                "p2", "alpha.py §top", "no-commit",
+                reproduce="python3 -m unittest")],
+            spend={"harness": "stub", "total": 1, "out": 1, "runs": 1},
+            stamp={"ref": self.ref},
+        )
+        self.assertNotIn("commit", recorded)
+        replay = self.write_replay(recorded)
+        env = self.call_run(
+            runtime={"harness": "stub", "role": "write",
+                     "replay": str(replay)},
+        )
         self.assertEqual(env.get("status"), "ok")
         self.assertEqual(env.get("verdict"), "changes")
         self.assertNotIn("commit", env)
 
     def test_a_commit_bearing_envelope_nested_under_result_is_accepted(self):
         subject = "task: nested commit " + uuid.uuid4().hex[:8]
-        os.environ["TASK_RUN_STDOUT"] = "result_envelope"
-        os.environ["TASK_RUN_ENVELOPE_COMMIT"] = subject
-        os.environ["TASK_RUN_VERDICT"] = "changes"
-        env = self.call_run()
+        replay = self._commit_envelope(subject, nest=True)
+        env = self.call_run(
+            runtime={"harness": "stub", "role": "write",
+                     "replay": str(replay)},
+        )
         self.assertNotEqual(
             env.get("status"), "invalid",
             "commit nested under result is still an envelope: "
@@ -1812,9 +1551,9 @@ class C1VendorFrontendParsesOptionalCommit(_TempRun):
 class C1LoadJobsDecodesTheCatalogueStrictly(_TempRun):
     """Whole-catalogue JSON must refuse duplicate members before dict collapse.
 
-    load_outputs already refuses a duplicate on one outputs array. A
-    catalogue decoded with json.loads collapses the member first;
-    re-encoding that dict cannot recover the duplicate.
+    load_jobs raises OutputsError/outputs-schema. run() maps that
+    exception from default load_jobs to invalid envelope, exit 2.
+    Direct library calls keep raising.
     """
 
     def _dup_catalogue_text(self):
@@ -1823,6 +1562,13 @@ class C1LoadJobsDecodesTheCatalogueStrictly(_TempRun):
             '"prompt": "x", "outputs": [{"kind": "file", "path": "A.md", '
             '"artifact": "a", "path": "B.md"}]}}'
         )
+
+    def _assert_outputs_schema(self, path):
+        err = _require_outputs_error(self)
+        with self.assertRaises(err) as ctx:
+            run.load_jobs(path)
+        self.assertIn("outputs-schema", str(ctx.exception))
+        return ctx.exception
 
     def test_duplicate_members_are_refused_before_dict_collapse(self):
         raw = self._dup_catalogue_text()
@@ -1834,15 +1580,40 @@ class C1LoadJobsDecodesTheCatalogueStrictly(_TempRun):
         self.assertGreater(raw.count('"path"'), 1, "plant: duplicate path")
         path = self.home / "dup-catalogue.json"
         path.write_text(raw, encoding="utf-8")
-        err_types = [envelope.EnvelopeError, json.JSONDecodeError, ValueError]
-        run_error = getattr(run, "RunError", None)
-        if isinstance(run_error, type) and issubclass(run_error, Exception):
-            err_types.append(run_error)
-        outputs_error = getattr(envelope, "OutputsError", None)
-        if isinstance(outputs_error, type) and issubclass(outputs_error, Exception):
-            err_types.append(outputs_error)
-        with self.assertRaises(tuple(err_types)):
-            run.load_jobs(path)
+        self._assert_outputs_schema(path)
+
+        dup_job = (
+            '{"only-me": {"adapter": "direct"}, '
+            '"only-me": {"adapter": "harness"}}'
+        )
+        self.assertGreater(dup_job.count('"only-me"'), 1, "plant: duplicate job")
+        collapsed_job = json.loads(dup_job)
+        self.assertEqual(set(collapsed_job), {"only-me"})
+        job_path = self.home / "dup-job.json"
+        job_path.write_text(dup_job, encoding="utf-8")
+        self._assert_outputs_schema(job_path)
+
+        unselected = (
+            '{"other": {"adapter": "direct", "outputs": ['
+            '{"kind": "file", "path": "A.md", "artifact": "a", '
+            '"path": "B.md"}]}, '
+            '"only-me": {"adapter": "direct", "role": "read", '
+            '"prompt": "x"}}'
+        )
+        self.assertIn('"other"', unselected, "plant: unselected job")
+        unsel_path = self.home / "unselected-dup.json"
+        unsel_path.write_text(unselected, encoding="utf-8")
+        self._assert_outputs_schema(unsel_path)
+
+        escaped = (
+            '{"only-me": {"adapter": "direct", "role": "read", '
+            '"prompt": "x", "outputs": [{"kind": "file", "path": "A.md", '
+            '"artifact": "a", "\\u0070ath": "B.md"}]}}'
+        )
+        self.assertIn("\\u0070ath", escaped, "plant: escaped-equivalent key")
+        escaped_path = self.home / "escaped-dup.json"
+        escaped_path.write_text(escaped, encoding="utf-8")
+        self._assert_outputs_schema(escaped_path)
 
     def test_reencoding_a_collapsed_dict_does_not_recover_the_duplicate(self):
         raw = self._dup_catalogue_text()
@@ -1855,6 +1626,60 @@ class C1LoadJobsDecodesTheCatalogueStrictly(_TempRun):
         data = run.load_jobs(path)
         self.assertEqual(set(data), {"only-me"})
         self.assertEqual(data["only-me"]["outputs"][0]["path"], "B.md")
+
+    def test_run_maps_default_load_jobs_outputs_error_to_invalid_envelope(self):
+        raw = self._dup_catalogue_text()
+        path = self.home / "dup-default.json"
+        path.write_text(raw, encoding="utf-8")
+        run.JOBS_PATH = path
+        try:
+            env = run.run(
+                "only-me",
+                context=self.make_context(),
+                require=self.require,
+                runtime={
+                    "harness": "direct",
+                    "role": "read",
+                    "caps": {"cap-out": 100000},
+                    "timeout": 30,
+                },
+            )
+        except Exception as exc:
+            self.fail(
+                "run must map OutputsError from default load_jobs to an "
+                f"invalid envelope, not raise {type(exc).__name__}: {exc}"
+            )
+        self.assertIsInstance(env, dict)
+        self.assertEqual(env.get("status"), "invalid")
+        self.assertIsNone(env.get("verdict"))
+        note = env.get("note") or ""
+        self.assertIn("outputs-schema", note)
+        for word in ("expected", "found", "needed"):
+            self.assertIn(word, note.lower(), f"note names {word}: {note!r}")
+        err = _require_outputs_error(self)
+        with self.assertRaises(err):
+            run.load_jobs(path)
+
+    def test_main_maps_default_load_jobs_outputs_error_to_exit_two(self):
+        raw = self._dup_catalogue_text()
+        path = self.home / "dup-main.json"
+        path.write_text(raw, encoding="utf-8")
+        run.JOBS_PATH = path
+        code, out, err = run_main([
+            "only-me",
+            "--repo", str(self.repo),
+            "--ref", self.ref,
+            "--harness", "direct",
+            "--role", "read",
+            "--into", str(self.home / f"cli-{uuid.uuid4().hex}"),
+        ])
+        self.assertEqual(code, 2)
+        self.assertNotIn("Traceback", err)
+        self.assertNotIn("Traceback", out)
+        env = self.parse_stdout(out)
+        self.assertEqual(env.get("status"), "invalid")
+        self.assertIsNone(env.get("verdict"))
+        self.assertIn("outputs-schema", env.get("note") or "")
 
 
 if __name__ == "__main__":
