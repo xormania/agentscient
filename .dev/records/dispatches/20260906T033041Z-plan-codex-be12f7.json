@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T03:30:42Z",
-    "closed": null
+    "closed": "2026-09-06T03:47:19Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -63,14 +63,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-30-43-01a074c4-b2f9-7813-8aa9-96b69118c0ed.jsonl"
   },
   "session": {
-    "id": "ab89eabf-e984-4da0-8172-4e45c1d331f2",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a074c4-b2f9-7813-8aa9-96b69118c0ed",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-30-43-01a074c4-b2f9-7813-8aa9-96b69118c0ed.jsonl",
+    "stream_sha256_at_close": "8363d1703cabce4a8432664f2a127a158b52f45c18ccfffc46f9c2ebe0cb899a",
+    "spend": {
+      "input": 1466754,
+      "cached": 1355776,
+      "output": 21725,
+      "total": 1488479,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-30-43-01a074c4-b2f9-7813-8aa9-96b69118c0ed.jsonl",
+      "messages": 175
+    }
   },
   "brief": {
     "template": {
@@ -97,10 +104,63 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:30:42Z",
+      "ended": "2026-09-06T03:47:19Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "40baad7a554cba811e1e39092224e848af4ca59d",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/lane-policy.md:272; ops/conductor/lane-policy.md:302; ops/conductor/lane-policy.md:332",
+          "claim": "The deferred public-interface boundary remains incomplete: authority/profile/receipt transport, caller-ID timing, normalized grants, dependency evidence and result-policy serialization are not fixed sufficiently for independent integration fixtures. Current dispatch/launch parsers expose none of those inputs. The PLAN proposes one contract-only closure without reopening the accepted final corrections or activating enforcement.",
+          "reproduce": "At 40baad7a554cba811e1e39092224e848af4ca59d: sed -n '119,141p;202,234p;272,342p' ops/conductor/lane-policy.md; sed -n '151,178p;259,282p' ops/conductor/tools/dispatch.sh; sed -n '1149,1160p;1197,1224p;2083,2125p' ops/devlane/dispatch/launch.py"
+        }
+      ],
+      "artifacts": {
+        "PLAN": "PLAN \u2014 public-interface contract bucket; PROPOSED throughout unless marked measured.\n\nBoundary and evidence. Measured at 40baad7a554cba811e1e39092224e848af4ca59d against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc: all three supplied inputs read whole; patch equals git diff. Source reads: dispatch.sh:151\u2013178,259\u2013282; go.sh; launch.py:111\u2013114,1149\u20131160,1197\u20131224,2083\u20132125; record.py:build/validate; land.py:preconditions; ladder.py:dispatch_args/load_envelope/main; their contracts. Current wrappers have no policy transport; --scope-file becomes prose --scope. mint_id is internal; lineage.base_sha is the pre-record branch tip, not necessarily snapshot.ref_sha or review merge-base. Wrapper stdout precedes launch; ordinary launch refusals use 3. No lane_policy.py exists. Final protection/rotation/note corrections are present; do not reopen them.\n\nOne next bucket: GPT-6 authors only ops/conductor/lane-policy.md and ops/devlane/dispatch/CONTRACT.md. Freeze the following normative interface addendum, including its named go/land/ladder consumers and precedence over their older policy-unaware verb descriptions. Keep ops/lane-policy.json inert. No source, tests, activation, new registry or executor. Preserve brief.policy verbatim: 53263f owns structural record tests separately.\n\nTransport. Add dispatch.sh and launch.py job flags --trusted-anchor A [--profile P] [--policy-scope S] [--dispatch-id I] [--maintenance-receipt R]. After cutover A is mandatory on actions; omission never selects an unbound fallback. Repeated profile flags refuse lane-profile; other repeated policy flags refuse lane-policy. A/S/R are canonical absolute regular files supplied by the trusted conductor, never worker --input files. S is exactly {repo:[path],out:[path]}; out paths are relative to the existing isolated job out/, not repository out/. Missing scope grants nothing. Missing P uses only the admitted default; empty/unknown/conflicting values refuse. Launch/task may supply its independently owned structured profile; exact agreement is required.\n\ngo.sh gains leading --trusted-anchor A --profile P --policy-scope S before its existing intent/branch/scope positionals, forwarding them unchanged; it never infers profile from intent/harness. Per-job receipt dispatches use dispatch.sh; go fanout derives separate standing receipts and refuses uncovered work. ladder.sh gains those same leading flags on SCOPE BRANCH [PLAN], adding policy={anchor_sha256,profile,scope:{path,sha256}} to its existing record, with scope.path the retained canonical absolute S and anchor_sha256 hashing A's exact bytes; each stage derives its own receipt. Uncovered stage work stops, without fabricated ratification. launch.py resume/close/collect, land.py RECORD_ID, and ladder.sh resume ID accept only --trusted-anchor A as additional policy transport; selection/grants come from retained binding, never replacement flags. Status/wait/brief reads remain available for legacy records.\n\nCustody. A has exactly {schema:\"agentscient.lane-anchor/v1\",owner,host_home,repository,admission,consumer_ref,reader,reader_checkout,python,runtime_manifest}. Strings are nonempty; home/repository/checkout/python/manifest are canonical absolute paths; consumer_ref and reader.ref are full Git IDs; reader is exactly the existing {ref,runtime_sha256} tuple. Admission ID, principal, runtime manifest bytes/closure and exact show-output hashing retain current contract rules. The admitted invoker must compare A with its previously retained bootstrap custody before executing pinned wrapper/consumer/reader code. A candidate-supplied locator or self-consistent anchor is insufficient. Reject substitution through LAUNCHER_PIN, candidate imports/config/seed, worker HOME or environment policy overrides. Model/effort selection stays independent. No anchor or registry writes occur during covered dispatch.\n\nID timing and maintenance receipt. Make existing mint_id(stage,harness) a supported in-memory conductor helper; no reservation verb/store. With I omitted, launch mints once before policy evaluation; with I supplied, validate the existing UTC-stage-harness-six-lowercase-hex format and selected stage/harness. Resolve and freeze actual lineage tip before receipt derivation; recheck it before recording. Check job directory, record and dispatch-ref collisions, then atomically claim the job directory only after successful preflight. Never silently remint a supplied ID. Receipt failure creates no attempt/child/snapshot; a collision refuses lane-policy.\n\nR is exactly {dispatch,job,lineage,standing,per_job}; lineage is {branch,base_sha}; arrays contain existing {record,sha256} pairs sorted uniquely by record ID. R must match I/job/frozen lineage. Supplying R requires I. The launcher independently rereads all standing rows and supplied per-job rows and derives coverage; R cannot grant anything. Omission automatically derives standing receipts after mint, with no owner act. Per-job evidence is obtained only for uncovered exact paths using the already specified register evidence encoding. Protected work binds all admission-listed standing rows; ordinary work retains maintenance:null. Covered repeat jobs, including policy maintenance under old grants, need zero new owner acts.\n\nCanonical receipts. All new objects have exactly their listed keys, strict UTF-8 JSON, no duplicate keys/nonfinite numbers. C(x) is UTF-8 JSON with sorted keys, compact separators, ensure_ascii=true, no newline. H is SHA-256; digests are lowercase 64-hex; Git IDs follow repository object format. Path lists use existing exact/prefix rules and sorted uniqueness.\n\nNormalized grants G={scope,job,role,adapter,outputs,maintenance}. Each of the first five values is {repo:[path],out:[path],sources:[Source]}; Source={kind,path,ref,sha256}, kind=git|scope. Git sources name admitted repository-relative files and full refs; scope sources name retained policy/scope.json with ref:null. Source arrays sort uniquely by kind/path/ref. Nonempty grants require reproducible sources. outputs.repo=[]; absent declarations normalize to empty lists, never profile roots. maintenance is the sorted unique effective maintenance-path union. Hash C(G) as the existing grants_sha256; retain policy/grants/<digest>.json and source bytes. This is a consumption format owned jointly at the launch/task-policy edge, not a jobs schema, output registry or permission to synthesize adapter grants. Explicitly apply the existing repository and external-output intersection formulas.\n\nArtifact manifest M={snapshot_ref,head,entries}; refs are full Git IDs equal to the bound snapshot ref and measured HEAD. Each entry={layer,status,before,after}. layer=committed|index|worktree|output; status=A|M|D|T|R|C|?|!. Each endpoint is null or {path_b64,mode,sha256}: standard padded base64 of raw relative filename bytes, mode string=100644|100755|120000, H(content), hashing symlink target bytes without following them. At least one endpoint exists; A/?/! have only after, D only before, R/C both distinct paths, M/T both same path. Sort uniquely by layer/before-path/after-path/status, null before strings. Measure snapshot-to-HEAD, HEAD-to-index, index-to-worktree and all declared external output files, including ignored files and both rename/copy endpoints. Unsupported modes, unrepresentable paths and unresolved symlink targets refuse; retain existing narrow cache exemptions only. Policy checks both lexical and resolved targets.\n\nDependency evidence D={snapshot_ref,head,manifest_sha256,producer,coverage,edges,unresolved,unavailable}. producer is a Git Source naming the admitted analyzer; coverage=[path] states inspected repository roots. edge={source_b64,kind,target_space,target_root}, kind=import|autoload|subprocess|service; target_space=repo|host. Repository roots obey policy paths; host roots are canonical absolute paths under already verified external couplings, never new host grants. Service targets resolve to application source roots. unresolved rows={source_b64,kind,reason}; unavailable is null or nonempty reason. Arrays sort uniquely by C(row); coverage sorts uniquely. A measured empty result has edges=[],unresolved=[],unavailable:null with explicit coverage. Required coverage contains all requested repository scope paths and their resolved transitive runtime targets; missing analyzer support is unavailable, not measured empty. Unresolved/unavailable/incomplete required coverage refuses lane-dependency. Bind H(C(M)); rerun measurement whenever HEAD/index/worktree changes. Static coverage cannot prove dynamic closure; independent coupling/instruction review remains required.\n\nEvidence ownership and result. Trusted launch/task callers produce G/M/D, supplied as JSON values through proposed lane_policy.check(*,anchor,binding,grants,manifest,dependencies,phase); worker files never substitute. phase=launch|settle|resume|collect-before|collect-after|land|ladder. check returns {binding,snapshot_ref,head,artifacts,dependencies,checked_at,outcome,refusal}; binding equals existing brief.policy. artifacts/dependencies each={path,sha256}, naming immutable job-relative policy/artifacts/<digest>.json and policy/dependencies/<digest>.json containing C(M)/C(D). checked_at is UTC YYYY-MM-DDTHH:MM:SSZ; outcome=pass|refused; refusal=null on pass, otherwise the full wire line. An unavailable descriptor is null only on refused results. Retained scope/grants/evidence are central conductor-owned job artifacts outside snapshot/, verified by source digests and tree recomputation, not by location alone. Receipts are launcher-owned result.policy at settlement/successful collection; other callers independently recompute, without rewriting dispatch evidence. Failed collect preserves its existing record/ref and precondition guarantees, retaining refused diagnostic receipts alongside the record. No unavailable observation becomes an empty successful manifest.\n\nTransition and wire. Validate before attempts; settle before auto-commit, remeasure any resulting commit before publication; write-resume before cap/marker/store/attempt changes, then full settlement; collect before verification and after its writes, before commit/ref/marker changes; land/ladder against exact fetched/result head and lineage before acceptance. Use lane-policy, lane-profile, lane-write, lane-dependency, lane-artifact in existing order; resume binding failure maps first to lane-resume. No override. Clarify the current contract's overbroad exit/empty-stdout sentence: each pre-act policy rejection returns 2, empty stdout and one expected/found/needed stderr line; suppress wrapper launch summaries until preflight succeeds. After an attempt/verification has acted, the checker records that same lane refusal, but the enclosing launcher/collect/ladder returns the shared wire's Abort=3 with durable non-acceptance and a final stopped reading. This explicitly amends the late-failure mapping rather than promising to erase already-emitted output. Detached acknowledgement means preflight/durable launch only; later outcome is read from its record. Preserve the current record-ID signal/log handshake. Legacy unrelated refusal mappings stay unchanged.\n\nFixtures to publish inline in this bucket, not executable tests. Use temporary Git repositories, synthetic decision stores, actual show serialization and admitted-reader closure fixtures; no live-store copying. Pair: dev ordinary ops/hooks pass with application/vendor absent versus product write refusal; prod app/Composer pass versus ops refusal; synthetic fixture-only profile (write_roots=[unittest/], forbidden_dependency_roots=[vendor/], both booleans false) permits unittest/example.txt but refuses src/Example.php and declared external output; inspection text pass versus runtime dependency refusal. Test absent grants versus explicit empty grants, read stdout versus changed snapshot despite declared out/, complete dependency emptiness versus unavailable/underscoped evidence. Repeat across independent harness/model selections; read role always removes repository writes.\n\nConcrete fixture constants: owner=\"Fixture Owner <owner@example.invalid>\", branch=lane/fixture, jobs=implement/adversarial-review; A points into a temporary immutable reader checkout and HOME. Commit the fixture policy to obtain P and branch tip B using Git, independently hash its blob; create D-POLICY-1 admission and D-GRANT-1 standing evidence through existing add/ratify verbs. Grant paths=[\"docs/\",\"ops/lane-policy.json\"]. Compute show digests from actual stdout, not made-up hashes. Maintenance R uses dispatch=20260906T000000Z-code-codex-000001, job=implement, lineage={branch:\"lane/fixture\",base_sha:B}, standing=[{record:\"D-GRANT-1\",sha256:H(show)}],per_job=[]. A second ID ends 000002. Negative fixtures change exactly one field/byte from these neighbors; gate-source maintenance with authority_maintenance:false must still refuse lane-write.\n\nPair two distinct IDs covered by one standing authorization, zero register writes, with mixed uncovered per-job coverage; wrong dispatch/job/base tip, standing-overlap, maintenance:false, invalid listed row and same-ID collision refuse. Test supplied ID before snapshot, branch movement, and no dry-run reservation. Preserve rotation R4 and note R5: old binding refuses, fresh authorized binding succeeds, historical bytes unchanged.\n\nTransport fixtures assert exact argv through real --branch/--scope-file, quoted paths, repeat/empty flags, no environment profile selection, malicious anchor/reader substitutions and empty preflight-refusal stdout. Assert late Abort=3 separately. Acceptance fixtures plant ignored/binary/deleted/renamed/symlink paths, changed source digest, stale M/D, worker-forged pass, collected-exit-zero bypass and legacy resume/land/ladder bypass; assert no forbidden commit/ref/attempt mutation. Exercise both collect checks and write-resume settlement. Register corresponding wire cases.\n\nProduction after independent contract review, not execution here: Grok owns tests; Claude skeptically reviews them using inline read-only transport; GPT-6 owns code, never its tests. Future transport tests belong to ops/conductor/tests/test_dispatch_wrapper.py; launch/policy-schema vectors to ops/devlane/dispatch/tests/test_launch_lane_policy.py; collect/land/ladder vectors extend their existing owning suites. Use real existing parser/settlement seams and launch_support fixtures; no missing-module/collection-error red, skip, or permissive evaluator stand-in. Commands:\nbash ops/bin/dispatch.sh --branch \"$BRANCH\" --job author-tests --harness grok --model \"$GROK_MODEL\" --stage tests --scope-file \"$TEST_SCOPE\"\nbash ops/bin/dispatch.sh --branch \"$BRANCH\" --job adversarial-review --harness claude --model \"$CLAUDE_MODEL\" --stage check-tests --scope-file \"$SKEPTIC_SCOPE\" --input \"$TEST_ARTIFACT\"\nbash ops/bin/dispatch.sh --branch \"$BRANCH\" --job implement --harness codex --model gpt-6-astra --stage code --scope-file \"$CODE_SCOPE\"\nScopes name only the reviewed bucket and frozen test command; no 53263f rebinding or test review here. Contract acceptance: diff --check, strict parsing of examples, link/schema consistency. Executable delivery later requires independent behavioral tests and ops/bin/suites.sh.\n\nCutover remains indivisible under the existing policy contract. Unsupported declaration/adapter combinations refuse. Bootstrap uses existing authorization, honestly unbound; old records remain readable without backfill. D-LANES-1 is semantic evidence only. Work profile never replaces infrastructure lane or role/harness/model identity; custody is central, and profile checks do not claim stronger OS containment."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1488479,
+        "out": 21725,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "40baad7a554cba811e1e39092224e848af4ca59d",
+        "started": "2026-09-06T03:30:56Z",
+        "ended": "2026-09-06T03:44:57Z"
+      },
+      "note": "Scoped interface-readiness review; PLAN is under 2200 words. Supplied patch exactly matches the requested Git comparison; git diff --check exits 0. Strict policy JSON parses with standing=proposal; all 11 relative lane-policy links resolve. Working tree remains clean. No edits, test execution, structural-test review, session/decision-store reads, DB/host/settings/network writes, vendor launches or activation. All added interfaces and the late-failure wire clarification are proposals."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T03:47:18.413Z"
+    }
+  },
+  "status": "closed"
 }
