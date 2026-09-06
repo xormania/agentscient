@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T03:57:57Z",
-    "closed": null
+    "closed": "2026-09-06T04:02:11Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-57-58-01a074dd-a6ce-79e0-bf79-02acd1f8b27e.jsonl"
   },
   "session": {
-    "id": "b141868f-a74d-435d-b0f9-cc4730f41949",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a074dd-a6ce-79e0-bf79-02acd1f8b27e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-57-58-01a074dd-a6ce-79e0-bf79-02acd1f8b27e.jsonl",
+    "stream_sha256_at_close": "bd46b3bfd974eda272717fc3862598154110fbb10fcdcd8cf2fde5e665aab1f4",
+    "spend": {
+      "input": 804387,
+      "cached": 746112,
+      "output": 5943,
+      "total": 810330,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035757Z-code-codex-e647ab/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-57-58-01a074dd-a6ce-79e0-bf79-02acd1f8b27e.jsonl",
+      "messages": 119
+    }
   },
   "brief": {
     "template": {
@@ -103,10 +110,148 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:57:57Z",
+      "ended": "2026-09-06T04:02:11Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "adcb41cb265327a5aa7e04a4754a71f0a97f891c",
+    "changed_paths": [
+      "ops/devlane/dispatch/record.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 13,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Confirmed the requested HEAD and initially clean tree. Discovery exited 2 because some searched directories did not exist; both supplied inputs were found under ../in/.",
+          "reproduce": "pwd && git status --short && git rev-parse HEAD && rg --files -g AGENTS.md -g '*.md' docs ops in ../in 2>/dev/null"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read both supplied inputs whole, including independent skeptic acceptance. Read repository instructions and contracts. Command exited 0; combined displayed output was truncated.",
+          "reproduce": "cat ../in/policy-record-first-bucket.md ../in/policy-record-tests-accepted.md AGENTS.md ops/devlane/AGENTS.md ops/README.md docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read operating instructions and founding contracts separately after output truncation. Exit 0.",
+          "reproduce": "cat ops/README.md docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/record.py",
+          "claim": "Read the existing implementation, policy contract and suite entrypoint. Exit 0; combined displayed output was truncated.",
+          "reproduce": "cat ops/conductor/lane-policy.md ops/devlane/dispatch/record.py ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md",
+          "claim": "Read the complete policy contract separately. Interpretation: enforce declared structural constraints, permitting unspecified extra fields except in the explicitly exact maintenance container. Exit 0.",
+          "reproduce": "cat ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Read coupling and dispatch contracts. Exit 0; combined displayed output was truncated.",
+          "reproduce": "cat docs/verified-couplings.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py",
+          "claim": "Inspected frozen tests without authoring or approving them. Confirmed test, contract and preimplementation blobs match supplied acceptance: 59e24097881607d994ec68fa8838d76969931a7e, e658b13c941a3832871348ebd14f2f10e96ad1ad and 74dfcef6ff6712eb67402e1f44880ed61d133480. HEAD is detached. Exit 0.",
+          "reproduce": "cat ops/devlane/dispatch/tests/test_record.py && git rev-parse HEAD:ops/devlane/dispatch/tests/test_record.py HEAD:ops/conductor/lane-policy.md HEAD:ops/devlane/dispatch/record.py && git branch --show-current"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py",
+          "claim": "Required command exited 0: 96 tests in 0.110s, zero failures or errors. No implementation changes followed this run.",
+          "reproduce": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:768",
+          "claim": "Full suite gate exited 1. Sole failure: test_laneconf.LiteralsVerb.test_literals_exits_0_on_the_tree rejects the contract-required schema literal at record.py:70 and :71. Suite results: dispatch 384 OK; harness 34 OK; task 213 OK; telemetry 227 OK; hooks 215 OK; fixtures 221 OK with 7 skips; workflow 48 OK; conductor 622 with 1 failure; pr-overview 8 OK. ResourceWarnings also appeared for subprocess/file cleanup and remain uninvestigated follow-ups. No tests or gates were weakened.",
+          "reproduce": "bash ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/record.py",
+          "claim": "Diff inspection confirmed only record.py changed; frozen tests and policy contract remained unchanged. Existing identity/result checks remain intact. Exit 0.",
+          "reproduce": "git diff -- ops/devlane/dispatch/record.py && git status --short && git diff --exit-code -- ops/devlane/dispatch/tests/test_record.py ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Whitespace gate exited 0 with no output.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/laneconf.py",
+          "claim": "Located literal-gate enforcement and exemptions. Search exited 2 because the guessed laneconf-literals.json path does not exist.",
+          "reproduce": "rg -n 'literal|agentscient|SCHEMA' ops/conductor/tools/laneconf.py ops/conductor/tests/test_laneconf.py ops/devlane/dispatch/record.py ops/conductor/instrument-conventions.md ops/conductor/tests/laneconf-literals.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/record.py",
+          "claim": "Final scope: one file, 55 insertions. Final implementation blob is 036f4d0442bc65a0409a09f5e8a7ed1ef2485bce; test and contract blobs remain accepted versions. Gate inspection confirms no exemption for this schema literal. Exit 0.",
+          "reproduce": "sed -n '350,415p' ops/conductor/tools/laneconf.py && git diff --stat && git status --short && git hash-object ops/devlane/dispatch/record.py ops/devlane/dispatch/tests/test_record.py ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot/.git/index.lock",
+          "claim": "Commit attempt exited 128: sandbox refused index.lock creation on the read-only Git directory. Commit message and actual-model attribution are supplied in the commit object.",
+          "reproduce": "git add -- ops/devlane/dispatch/record.py && git commit -m 'Validate structural policy bindings in dispatch records' -m 'Check present brief.policy bindings through the existing build and validate path while preserving absent-policy records and existing identity and result checks. Validate only the declared structural fields without live authority lookup or policy activation.\n\nThe record command passes all 96 tests. The full suite gate fails test_laneconf.LiteralsVerb.test_literals_exits_0_on_the_tree because it rejects the contract-required schema literal. git diff --check passes. Tests and gates remain unchanged; independent implementation review is pending.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>'"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/dispatch/record.py",
+        "implementation_blob": "036f4d0442bc65a0409a09f5e8a7ed1ef2485bce",
+        "frozen_tests_blob": "59e24097881607d994ec68fa8838d76969931a7e",
+        "policy_contract_blob": "e658b13c941a3832871348ebd14f2f10e96ad1ad"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 810330,
+        "out": 5943,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "24d10347bf45e58d44ac2ff03bde7e62a9b33975"
+      },
+      "note": "Status ok means the named record command exits 0 in the final tree; full-suite acceptance remains blocked by test_laneconf.LiteralsVerb.test_literals_exits_0_on_the_tree. Only structural brief.policy validation was implemented. No live lookup, CLI, grants, activation, hardcoded profile membership or unrelated edits. Independent implementation review remains pending, including the two behaviors named in the supplied acceptance. Git commit was blocked by the sandbox.",
+      "commit": {
+        "subject": "Validate structural policy bindings in dispatch records",
+        "body": "Check present brief.policy bindings through the existing build and validate path while preserving absent-policy records and existing identity and result checks. Validate only the declared structural fields without live authority lookup or policy activation.\n\nThe record command passes all 96 tests. The full suite gate fails test_laneconf.LiteralsVerb.test_literals_exits_0_on_the_tree because it rejects the contract-required schema literal. git diff --check passes. Tests and gates remain unchanged; independent implementation review is pending.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T04:02:11.013Z"
+    }
+  },
+  "status": "closed"
 }
