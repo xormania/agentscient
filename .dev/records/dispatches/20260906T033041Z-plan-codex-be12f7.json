@@ -1,0 +1,106 @@
+{
+  "id": "20260906T033041Z-plan-codex-be12f7",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "40baad7a554cba811e1e39092224e848af4ca59d"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:30:42Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "40baad7a554cba811e1e39092224e848af4ca59d",
+    "ref_sha": "40baad7a554cba811e1e39092224e848af4ca59d",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "ab89eabf-e984-4da0-8172-4e45c1d331f2",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "GPT-6 planning only: resolve the deferred public-interface gaps in plan 0fa801 against current lane-policy.md and existing dispatch/go/launch, record, collect/land/ladder contracts. Propose one bounded contract-only next bucket with exact transport, receipt/dependency/result schemas, ownership, job-ID timing, refusal classes and positive/negative fixtures sufficient for independent tests. Preserve work profile versus infrastructure lane, role/harness/model independence, central trusted custody and zero new owner acts for covered work. Structural record tests in 53263f proceed separately; do not redesign their binding or review/implement tests. Measure current public interfaces; proposed ones must be labeled. Use real wrapper --branch/--scope-file; Grok tests, Claude skeptic, GPT-6 code. Inline PLAN <=2200 words. No edits, DB/host/settings/network writes, vendor launches or activation. Do not expand into the whole implementation plan or invent another launcher, decision store or authority source.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/in/20260906T031249Z-plan-codex-0fa801.json",
+        "sha256": "13ff52b969b7603ee3506e7fccfdfdbc923b9558ba68ab753793bd10ea3f8f8b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/in/20260906T031653Z-review-grok-798c5a.json",
+        "sha256": "75e4b5bd07abaf658d5aaf4c0f153eda74f3081aa4b7313185b828453725eeca"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033041Z-plan-codex-be12f7/in/policy-record-first-bucket.md",
+        "sha256": "d5ce6b65470be3bf7f0df5e3e86e6bec24386984536090faa302ceaf34bbf5e7"
+      }
+    ],
+    "sha256": "ccc0e91fc9de30bd77830715d0feac2f7ead13ad897e6321c31c8417ae03db2e",
+    "bytes": 3317
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
