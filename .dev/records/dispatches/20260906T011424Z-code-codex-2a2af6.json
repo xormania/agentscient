@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T01:14:25Z",
-    "closed": null
+    "closed": "2026-09-06T01:39:18Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-14-26-01a07447-ed90-7c70-9d42-48d873b600e7.jsonl"
   },
   "session": {
-    "id": "2818fe44-4150-4e1f-84b4-3cdb4f4047dc",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a07447-ed90-7c70-9d42-48d873b600e7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-14-26-01a07447-ed90-7c70-9d42-48d873b600e7.jsonl",
+    "stream_sha256_at_close": "e7c99cb34ad69eca4ef6e98cbdd99c6bd992db06d0cc0808d714cec87e2f31cc",
+    "spend": {
+      "input": 3611619,
+      "cached": 3485952,
+      "output": 37832,
+      "total": 3649451,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-14-26-01a07447-ed90-7c70-9d42-48d873b600e7.jsonl",
+      "messages": 287
+    }
   },
   "brief": {
     "template": {
@@ -107,10 +114,285 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:14:25Z",
+      "ended": "2026-09-06T01:39:17Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9b828d1d3c7fed652b23ed98ef0c0cadd67eef4c",
+    "changed_paths": [
+      "ops/conductor/README.md",
+      "ops/conductor/conductor-start-plan.md",
+      "ops/conductor/discovery-examples.md",
+      "ops/conductor/discovery-lever.md",
+      "ops/conductor/handoff/README.md",
+      "ops/conductor/lane-mcp-lever.md",
+      "ops/conductor/onboard-lever.md",
+      "ops/conductor/reports/discovery-contract-correction-20260906.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 34,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "task acceptance",
+          "claim": "No executable acceptance command was supplied; its required exit-0 condition remains unverified.",
+          "reproduce": null
+        },
+        {
+          "severity": "p3",
+          "where": "command/01",
+          "claim": "Input inventory exited 0.",
+          "reproduce": "bash ../out/commands/01.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/02",
+          "claim": "Base and repository inventory exited 0.",
+          "reproduce": "bash ../out/commands/02.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/03",
+          "claim": "Supplied input reads exited 0.",
+          "reproduce": "bash ../out/commands/03.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/04",
+          "claim": "Founding-document reads exited 0.",
+          "reproduce": "bash ../out/commands/04.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/05",
+          "claim": "Owner brief and ruling reads exited 0.",
+          "reproduce": "bash ../out/commands/05.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/06",
+          "claim": "Security and comparison record reads exited 0.",
+          "reproduce": "bash ../out/commands/06.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/07",
+          "claim": "Discovery contract read exited 0.",
+          "reproduce": "bash ../out/commands/07.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/08",
+          "claim": "Founding contract reads exited 0.",
+          "reproduce": "bash ../out/commands/08.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/09",
+          "claim": "Plan and custody contract reads exited 0.",
+          "reproduce": "bash ../out/commands/09.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/10",
+          "claim": "Security record read exited 0.",
+          "reproduce": "bash ../out/commands/10.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/11",
+          "claim": "Plan and coupling contract reads exited 0.",
+          "reproduce": "bash ../out/commands/11.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/12",
+          "claim": "MCP baseline reads exited 0.",
+          "reproduce": "bash ../out/commands/12.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/13",
+          "claim": "Ownership and convention reads exited 0.",
+          "reproduce": "bash ../out/commands/13.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/14",
+          "claim": "Mapping and ownership reads exited 0.",
+          "reproduce": "bash ../out/commands/14.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/15",
+          "claim": "Harness and context contract reads exited 0.",
+          "reproduce": "bash ../out/commands/15.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/16",
+          "claim": "Lock, presence and read-core measurements exited 0.",
+          "reproduce": "bash ../out/commands/16.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/17",
+          "claim": "Contract acquisition for editing exited 0.",
+          "reproduce": "bash ../out/commands/17.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/18",
+          "claim": "Initial documentation example generation exited 0.",
+          "reproduce": "bash ../out/commands/18.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/19",
+          "claim": "Intermediate diff checks exited 0.",
+          "reproduce": "bash ../out/commands/19.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/20",
+          "claim": "Contract consistency search exited 0.",
+          "reproduce": "bash ../out/commands/20.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/21",
+          "claim": "Tracked-path and status inspection exited 0.",
+          "reproduce": "bash ../out/commands/21.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/22",
+          "claim": "Schema section inspection exited 0.",
+          "reproduce": "bash ../out/commands/22.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/23",
+          "claim": "Revised documentation example generation exited 0.",
+          "reproduce": "bash ../out/commands/23.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/24",
+          "claim": "Example document read exited 0.",
+          "reproduce": "bash ../out/commands/24.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/25",
+          "claim": "Pagination and ownership inspection exited 0.",
+          "reproduce": "bash ../out/commands/25.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/26",
+          "claim": "Markdown table delimiter correction exited 0.",
+          "reproduce": "bash ../out/commands/26.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/27",
+          "claim": "Documentation checks exited 0.",
+          "reproduce": "bash ../out/commands/27.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/28",
+          "claim": "Whitespace and documentation scope checks exited 0.",
+          "reproduce": "bash ../out/commands/28.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/29",
+          "claim": "Diff statistics and status inspection exited 0.",
+          "reproduce": "bash ../out/commands/29.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/30",
+          "claim": "Final plan and custody diff inspection exited 0.",
+          "reproduce": "bash ../out/commands/30.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/31",
+          "claim": "Git staging exited 128: .git/index.lock is on a read-only filesystem. Launcher commit message supplied.",
+          "reproduce": "bash ../out/commands/31.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/32",
+          "claim": "Final documentation checks passed: 50 links/fragments, 46 acceptance rows and eight JSON examples with matching snapshots and byte caps.",
+          "reproduce": "bash ../out/commands/32.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/33",
+          "claim": "Final git diff --check exited 0; all eight changed paths are Markdown.",
+          "reproduce": "bash ../out/commands/33.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command/34",
+          "claim": "Final timestamp, unchanged HEAD and documentation status inspection exited 0.",
+          "reproduce": "bash ../out/commands/34.sh"
+        }
+      ],
+      "artifacts": {
+        "contract": "ops/conductor/discovery-lever.md",
+        "plan": "ops/conductor/conductor-start-plan.md",
+        "examples": "ops/conductor/discovery-examples.md",
+        "disposition": "ops/conductor/reports/discovery-contract-correction-20260906.md",
+        "checks": "../out/checks.txt",
+        "commands": "../out/commands.json",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3649451,
+        "out": 37832,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3682a8c58e304e7025036f1b3ec4edb63424832e",
+        "ended": "2026-09-06T01:37:23Z"
+      },
+      "note": "All supplied correction groups are addressed in documentation; independent review remains pending. Assumption: pinned HEAD-tree records and trusted relevance bindings, with missing metadata reported explicitly. No source/settings/dependency/DB/host or executable-test changes. Runtime behavior and remote links remain unverified. Status is invalid because no executable acceptance command was provided; no failing test can be identified. Git staging was sandbox-blocked.",
+      "commit": {
+        "subject": "docs(conductor): correct step-1 discovery contract and plan",
+        "body": "Resolve the supplied functional/security ruling with bounded profiles and catalogues, anchored acquisition, explicit local composition, deterministic record selection, exact snapshots/envelopes and distinct trust/availability. Document harness extensibility, conductor/worker separation and bounded source-linked Loopstrap recommendations within existing owners.\n\nDocumentation only: acceptance rows, literal examples and links. Checks passed: git diff --check; 50 local links/fragments; 46 non-executable rows; eight JSON examples with snapshot/size checks. No executable service tests. Revision awaits independent review. No executable acceptance command was supplied, so its exit-0 condition remains unverified.\n\nSource: original\nSource: owner 2026-09-05\nSource: xormania/loopstrap@ca5ab8d363f8822ac5406f5e0bf5c94288102f1a\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:39:15.865Z"
+    }
+  },
+  "status": "closed"
 }
