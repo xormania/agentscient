@@ -1,5 +1,13 @@
 # MCP tools for a conductor with less context to carry
 
+Supersession notice, owner 2026-09-05:
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
+governs current operation. The later-Symfony-twin / bounded-incumbent
+replacement recommendation below is withdrawn. Dev tooling evolves
+independently, without a Symfony application dependency or replacement mandate.
+The original 2026-09-05 research body is preserved below; its measured demand
+retains its original ref/date, not authority for that recommendation.
+
 Measured 2026-09-05 against `dev` at
 `c91d47a3ce165e620b6f03405d8f055e36b6a8e7`, before this feature's dispatches.
 This is research and a scoped recommendation, not new pipeline law.
