@@ -1,11 +1,18 @@
 # The mapping — what we have, what Symfony has, what is left
 
+Scope correction, owner 2026-09-05: this is dated application research.
+[AGENTS.md §Lane boundary and precedence](../AGENTS.md#lane-boundary-and-precedence)
+supersedes its dev-lane replacement recommendations. The rows may inform
+prod application design after remeasurement; they neither require Symfony
+in dev tooling nor authorize moving its responsibilities into the app.
+The measurements below retain their original ref/date, not current standing.
+
 Standing: RECORD, measured. Written at the owner's word (2026-09-03:
 "record the ruling and do the mapping") under the standing ruling in
 `AGENTS.md` §Standing rulings: Symfony is the framework, whole; four
 projections of one service. Every row below answers one question
-before any contract is written — *which package already covers this?*
-— and names what is left over once it does. The left-over column is
+before any application contract is written — *which package already
+covers this?* — and names what is left over once it does. The left-over column is
 the product.
 
 Every figure here was produced by a command at the moment of writing
@@ -224,6 +231,12 @@ Process-driven over any binary; gestated under `packages/wire/` in
 this project and composed by its application shell, its Flex recipe
 written at graduation. Smallest surface, most doctrine, and it proves
 the four-projection shape before any capability rides it.
+
+### Superseded migration proposal — historical only
+
+The following proposal is retained as provenance, withdrawn by the
+2026-09-05 owner correction above. It cannot direct current operation or
+make application conformance a retirement trigger for dev tooling.
 
 The strangler order this map proposes, each step on the owner's
 word: the wire; the decisions register (smallest instrument that

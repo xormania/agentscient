@@ -4,8 +4,17 @@ The [version-2 extension](lane-mcp-v2.md) declares additional conductor reads
 and request metadata compatibility; this document remains the v1 baseline.
 
 Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
-and handoff. Dev-lane machinery only, not Symfony work. This thin incumbent
+and handoff. Dev-lane machinery only, not Symfony work. This read-only
 projection inherits `instrument-conventions.md`; it adds no workflow engine.
+
+The owner correction of 2026-09-05 is governed by
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence).
+The lane MCP service evolves independently of prod projections and must
+operate without the Symfony app or its vendor directory. The shared-Symfony
+recommendation for lane MCP and launcher work is withdrawn. Earlier discovery
+and launch designs must be reconciled with this boundary before acceptance.
+Separate conductor/worker servers and action tools remain proposals; this
+contract continues to permit only its declared read-only surface.
 
 ## Existing capability and boundary
 
@@ -17,7 +26,7 @@ The precursor workflow server at commit 99334f71ae9af9fa324a1a27241e60af62f8f340
 demonstrates one query layer behind tools/resources/CLI. Reuse that pattern,
 not its retired engine or cache-rebuilding launcher. No vendor is required.
 
-Production files: tools/lane_read.py (read queries) and tools/lane_mcp.py
+Implementation files: tools/lane_read.py (read queries) and tools/lane_mcp.py
 (stdio/CLI projection). They must not import launcher, monitor, watchdog or
 other writing lane modules, spawn subprocesses, use a network, or originate
 files/databases. Disable Python bytecode writes at the entry point before

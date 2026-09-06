@@ -39,18 +39,57 @@ boundary is not a declared, verifiable coupling.
   consumed through a contract, a probe, and a verified mock, and is
   removable for the cost of a configuration line.
 
+## Lane boundary and precedence
+
+Owner, 2026-09-05: "Symfony - no, this is dev-lane right now - we're
+not using symfony app"; "previous models seemed to think that we'll
+be using the prod-lane to replace the dev-lane as we go - no, this is
+NOT the case."
+
+Dev tooling under `ops/` and the prod application are independent.
+The dev lane must operate without the Symfony application, its kernel,
+container, services or `vendor/`. It evolves independently; no automatic
+twin, strangler, retirement or graduation into application machinery is
+required or implied. The prod lane develops the Symfony application and
+its packages under the application rulings below.
+
+Work profile describes the work's boundary; it is independent of harness,
+model and conductor/worker role. Using dev tooling to work on the prod
+application does not make the tooling part of that application. Both
+lanes may read shared contracts and describe or inspect the application;
+that permission does not authorize a runtime dependency on it. Shared
+wire, provenance, custody and independent-producer obligations still hold.
+
+This owner correction governs wherever older repository language would
+force Symfony into dev tooling or make the application its replacement.
+Apply it when reading seeds, scoped instructions, briefs and contracts.
+Historical migration doctrine, stack/census records, ideas, AARs,
+handoffs and captured plans retain provenance, but conflicting passages
+have no current operational authority. A stale brief or resumed job does
+not restore that authority. The withdrawn shared-Symfony recommendation
+for lane MCP and launcher work cannot support acceptance of those designs.
+Unknown or conflicting scope must refuse with expected–found–needed,
+not silently reclassify the work or seek approval for a forbidden action.
+
+This is the owning instruction boundary. `ops/README.md` carries its
+operating references; `docs/verified-couplings.md` carries its dependency
+obligation. Mechanical enforcement design belongs to the separate planner;
+this documentation correction does not establish a live guard.
+
 ## Standing rulings
 
+These framework, projection and package rulings govern the prod application.
+
 - **Symfony is the framework, whole** (owner, 2026-09-03: "we use
-  Symfony/ai — we use everything Symfony has to offer"). Every
+  Symfony/ai — we use everything Symfony has to offer"). Every application
   capability is built on what Symfony and its ecosystem already ship,
   symfony/ai included. The functionality carried over from the House
-  lane is proven; what it needs is organization and abstraction, not
-  reinvention. Before any contract is written, the first question is
+  lane can inform application contracts without replacing that lane.
+  Before any application contract is written, the first question is
   which package already covers it; `docs/mapping.md` is the measured
-  answer and is re-measured before it is relied on. This supersedes
-  the migration doctrine's "harness CLIs stay dispatched subprocesses,
-  never language SDKs": model access goes through the symfony/ai
+  answer and is re-measured before it is relied on. For application model
+  access this supersedes the migration doctrine's "harness CLIs stay
+  dispatched subprocesses, never language SDKs": access goes through the symfony/ai
   Platform, whose Claude Code and Codex bridges spawn those same CLIs
   as subprocesses, so the wire and the subprocess hold while the
   abstraction changes. Unchanged: no vendor becomes load-bearing
@@ -58,8 +97,8 @@ boundary is not a declared, verifiable coupling.
   model is named at dispatch, never in a table.
 - **Four projections of one service** (owner, 2026-09-03: "this is
   about providing cli, mcp and api resources", "and probably a TUI").
-  Every capability is exposed as a Console command, a TUI view, an
-  MCP resource, and an API resource, each a projection of the same
+  Every application capability is exposed as a Console command, a TUI
+  view, an MCP resource, and an API resource, each a projection of the same
   service generated from the same contract. The wire holds on all
   four: exit classes on the CLI, problem details on the API, error
   results on MCP, the refusal line wherever text is shown. MCP stays
@@ -86,9 +125,8 @@ boundary is not a declared, verifiable coupling.
 
 The operating apparatus lives under `ops/`. `ops/devlane/` is the dev
 lane — dispatch, harness, task, telemetry, hooks, guards — carried over
-from the House lane as the bounded Python incumbent: every instrument
-there is the functional specification for a Symfony Console twin, and
-retires only when its twin passes the same conformance row.
+from the House lane and maintained independently under the lane boundary
+above. Its contracts and conformance obligations hold as it evolves.
 `ops/conductor/` is the conductor lane — the instruments, their
 contracts, the ideas and hand-off records, the register — with its own
 state under `~/.local/state/agentscient/`. `ops/process/` holds the
@@ -105,6 +143,9 @@ The conductor lane for this project runs from the sibling working
 repository under the same organization; sessions coordinate by
 message and by record, never by memory. When in doubt, the record
 outranks recall.
+
+The following diagnostic instructions apply to prod application work.
+Mate is not a prerequisite for operating or developing the dev lane.
 
 <!-- BEGIN AI_MATE_INSTRUCTIONS -->
 AI Mate: project diagnostic tools, exposed through the `vendor/bin/mate` CLI.
