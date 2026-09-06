@@ -1,0 +1,200 @@
+{
+  "id": "20260906T105951Z-tests-codex-8f47ab",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-discovery-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-20260906",
+    "base_sha": "63c225080a61c2919d3a653aedf86c1aee484e96"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T10:59:51Z",
+    "closed": "2026-09-06T11:28:35Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "63c225080a61c2919d3a653aedf86c1aee484e96",
+    "ref_sha": "63c225080a61c2919d3a653aedf86c1aee484e96",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T06-59-52-01a0765f-e8cc-7a12-84d6-50f5cb78b8cc.jsonl"
+  },
+  "session": {
+    "id": "01a0765f-e8cc-7a12-84d6-50f5cb78b8cc",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T06-59-52-01a0765f-e8cc-7a12-84d6-50f5cb78b8cc.jsonl",
+    "stream_sha256_at_close": "a107ffb5758e0c55721c6eaab785b36a28d903528b7008668728b24a17de74d4",
+    "spend": {
+      "input": 5200414,
+      "cached": 5017344,
+      "output": 42569,
+      "total": 5242983,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T06-59-52-01a0765f-e8cc-7a12-84d6-50f5cb78b8cc.jsonl",
+      "messages": 361
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently verify and correct discovery test review findings against discovery-lever.md, never the parallel implementation. Test/helper/fixture edits only in the seven discovery_v3 files. Fix confirmed P1/P2 contradictions and weak discrimination; independently measure the disputed page-size arithmetic with contract-verified fixture/encoder reasoning, not reviewer estimates or implementation output. Keep absolute caps, deterministic outcomes, raw canonical-byte parity, genuine failed-source recovery and constraint-only lock canaries. Address root-sensitive fixtures, vacuous assertions and concurrent live-repo guard without weakening custody; the intended-red branch stays isolated until code integration. Preserve all acceptance rows. No implementation/contracts/settings/host changes or reading other workers. Return exact red/error counts, faulty-counterparty controls, dispositions and frozen hashes; credit Claude Opus 5 finder and actual GPT-6 test fixer.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/in/conduct-launcher-owner.md",
+        "sha256": "173bddbdae93f44a9e8ff2c5c6394508f1377bf0f428be64a2bf3ff117159255"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/in/ag-conduct-discovery-test-review.json",
+        "sha256": "3cfa9023d90672319ea22f7cb546502a0094effd80495403a55685235f4e7535"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T105951Z-tests-codex-8f47ab/in/ag-conduct-discovery-tests-record.json",
+        "sha256": "16ee10a44cf94dd090001d4573713a3f4c3fae7305dd3ebf6ea0a02a1124ce1f"
+      }
+    ],
+    "sha256": "2b63bc2f12d775adf9f2a8f465877ca6c83510180e32461bde5f6a5ad67533c3",
+    "bytes": 3315
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T10:59:51Z",
+      "ended": "2026-09-06T11:28:35Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "426972b7bb44c2cfc70f81e7dfc404916fc8d9a1",
+    "changed_paths": [
+      "ops/conductor/tests/discovery_v3_support.py",
+      "ops/conductor/tests/test_discovery_v3_adapter.py",
+      "ops/conductor/tests/test_discovery_v3_catalogues.py",
+      "ops/conductor/tests/test_discovery_v3_config.py",
+      "ops/conductor/tests/test_discovery_v3_handoffs.py",
+      "ops/conductor/tests/test_discovery_v3_snapshots.py",
+      "ops/conductor/tests/test_discovery_v3_startup.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "test_discovery_v3_handoffs.py:test_d_a16_stale_only_handoffs_select_none",
+          "claim": "D-A16\u2019s nonempty stale-only premise contradicts the acyclic readable-superseder rules. Row preserved as an explicit skip pending contract resolution.",
+          "reproduce": "The added DAG control checks 33,867 graphs; the original assertion also rejects contract-required unknown freshness."
+        },
+        {
+          "severity": "p2",
+          "where": "test_discovery_v3_adapter.py:test_d_a31_changed_during_read_is_unavailable",
+          "claim": "The inherited threaded race fixture still cannot guarantee mutation during acquisition. Deterministic behavioral verification needs a declared synchronization or injection seam.",
+          "reproduce": null
+        }
+      ],
+      "artifacts": {
+        "patch": "../out/discovery-tests.patch",
+        "dispositions": "../out/dispositions.json",
+        "execution": "../out/discovery-final.json",
+        "per_file_red": "../out/per-file-red.json",
+        "original_assertion_red": "../out/original-assertion-red.json",
+        "coverage": "../out/coverage.json",
+        "results": "65 tests; 75 failure events across 51 methods; 0 errors; 1 skip. Failures: 74 v3-config prerequisites, 1 adapter-presence check. Separately: 32 targeted faulty counterparties rejected, clean neighbors passed. Existing suite: 21 passed.",
+        "arithmetic": "D-A38b: 8111/8111/7313 bytes, confirming 8/8/4. Corrected D-A38c five/six-card sizes: 8107/8370, 8108/8371, 8107/8370, 8107/8264. Final one-card page: 6949.",
+        "sha256:discovery_v3_support.py": "6d13badfc8c9c62ff1790f9db7f256a118953ed7dcd14591f09549115808a20c",
+        "sha256:test_discovery_v3_adapter.py": "0b46de3a24ecb2cef262c75468942912785c9dddb5ee8274adf6d5ca36df7174",
+        "sha256:test_discovery_v3_catalogues.py": "2c9347769d460f88813da6c711f8e85e995afa48cb83ded8b7d9305ec4564630",
+        "sha256:test_discovery_v3_config.py": "654b6fe8df83ef85c6fc08c607dbe9e6a39f3952495e1d1af843a12783c6ec92",
+        "sha256:test_discovery_v3_handoffs.py": "dc428820d8271f161589e8b183fac516625328ee5c32672ab5983e62e011635a",
+        "sha256:test_discovery_v3_snapshots.py": "b7d92416a15f53b7334b44312f579e77430eec4928ebe7fac3b9fe20a3b6d70e",
+        "sha256:test_discovery_v3_startup.py": "3f2024ae8e960be56df844e9a6e28c91a8f78e3b7b9f1499255b778205e914c1"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5242983,
+        "out": 42569,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "63c225080a61c2919d3a653aedf86c1aee484e96",
+        "started": null,
+        "ended": "2026-09-06T11:27:49.807649+00:00"
+      },
+      "note": "Only seven authorized files changed. All 53 acceptance row names retained; D-A16 blocked. Lint, formatting and diff checks pass. Corrections saved; read-only .git denied staging. Snapshot remains isolated and intentionally red. Finder: Claude Opus 5; actual test fixer: GPT-6. No implementation source used for test design.",
+      "commit": {
+        "subject": "test(discovery): correct reviewed fixtures and calibrate assertion controls",
+        "body": "Correct contract fixtures, raw-byte parity, recovery, pagination and custody assertions. Preserve acceptance rows and disclose remaining contract/timing limitations. Keep isolated pending independent integration.\n\nFinder: Claude Opus 5 <noreply@anthropic.com>\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T11:28:34.920Z"
+    }
+  },
+  "status": "closed"
+}
