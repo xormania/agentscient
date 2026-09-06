@@ -49,4 +49,31 @@ with a declared policy corpus and deterministic grading of tool attempts, hook
 decisions, and observable effects. Each policy needs positive and negative
 controls. Unattempted or unreachable cases remain explicit, never a pass.
 Use disposable local fixtures and mock remote actions. Bind results to harness,
-policy, and adapter versions. No diagnostic implementation is authorized yet.
+policy, and adapter versions. At this point no diagnostic implementation was
+authorized; the subsequent owner agreement below is the current direction.
+
+## Owner agreement and refinements
+
+The owner agreed to the proposed startup, live diagnostic, and lifecycle design,
+with two explicit constraints:
+
+> make sure we're not hardcoding everything, seperation of concerns is important (so harnesses implimentation is abstracted)
+
+> the hand-off and AAR are initiated by me in session easily
+
+Shared conductor policy, lifecycle, diagnostic corpus/grading, and record
+publication/discovery must be independent of harness-specific implementations.
+Harness adapters own CLI syntax, argument handling, hook request/response
+translation, and measured capabilities. Configuration supplies project and
+runtime choices. Adding or changing a harness must not rewrite lifecycle or
+policy logic. Reuse the existing lane contracts and mechanisms before adding
+new abstractions.
+
+Handoff and AAR are explicit owner-initiated in-session actions, with simple
+requests such as "handoff", "AAR", or "close with handoff and AAR". The system
+owns placement, publication, and next-session discovery. Process exit, a crash,
+or routine checkpointing must not synthesize a completed handoff or AAR. A
+checkpoint is recoverable unfinished state, distinct from owner-issued closeout.
+
+Proceed contract-first under these refinements. Do not use the earlier broad
+sandbox proposal or its optional attended fallback as an admitted design.
