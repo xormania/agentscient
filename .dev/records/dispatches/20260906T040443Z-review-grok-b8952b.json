@@ -1,0 +1,112 @@
+{
+  "id": "20260906T040443Z-review-grok-b8952b",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "0b4c1c7e0fd928055b27adb51e8dda8bb716b02c"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T04:04:43Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "0b4c1c7e0fd928055b27adb51e8dda8bb716b02c",
+    "ref_sha": "0b4c1c7e0fd928055b27adb51e8dda8bb716b02c",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "6e660939-898e-4c52-863a-2d9cf4678942",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "6e660939-898e-4c52-863a-2d9cf4678942",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review only record.py's structural policy bucket against lane-policy.md and supplied acceptance/implementation evidence. Check real build/validate, malformed fields/digests/IDs, qualified refusals, maintenance, synthetic profiles and valid/absent legacy behavior; verify tests unchanged. Run python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py. Also exercise both c89579 follow-ups directly using disposable fixtures: populated standing/per_job evidence survives unchanged; valid-prefix/nonnumeric-tail decision IDs refuse in admission and both lists. Record commands/results. Inspect supplied suites evidence; repeat only for a specific concern. No live admission/membership lookup, grants, CLI or activation. Read-only; no code/test/host/DB/settings/network changes or vendor launches. Inline REVIEW <=1100 words with exact ref, approve/changes and actionable findings. You review implementation; Claude already accepted test design. Keep deferred transport work outside scope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/in/policy-record-gate-pending.md",
+        "sha256": "69a06e257a7b2009e2061ded61335f6d3792ea2e7eeef38ee9a4eb34dca979ae"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/in/policy-record-tests-accepted.md",
+        "sha256": "78ad7d884ab5b1b6d8268ed1926a8c29b8bb27d1ab4408be7aaf07f9d2f16e1a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/in/policy-record-first-bucket.md",
+        "sha256": "d5ce6b65470be3bf7f0df5e3e86e6bec24386984536090faa302ceaf34bbf5e7"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T040443Z-review-grok-b8952b/in/20260906T035757Z-code-codex-e647ab.json",
+        "sha256": "6b107dccc8ab5c6f4cb04cad1013e2bd01b53fef20b2344fae9f66034af6ec16"
+      }
+    ],
+    "sha256": "b0b37e3d0bee3a5a60b30cf357913e34fe17b8a61b43988d19e39c874a4307b6",
+    "bytes": 3315
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
