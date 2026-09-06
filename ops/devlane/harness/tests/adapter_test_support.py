@@ -210,12 +210,14 @@ def flag_token(length: int) -> str:
 FLAG_128 = flag_token(128)
 FLAG_129 = flag_token(129)
 FLAG_256 = flag_token(256)
+FLAG_257 = flag_token(257)
 BYTE_BOUND_GRAMMAR = {
     "schema": "adapter-argv/1",
     "options": [
         {"name": FLAG_128, "forms": ["flag"], "values": None, "repeatable": True},
         {"name": FLAG_129, "forms": ["flag"], "values": None, "repeatable": True},
         {"name": FLAG_256, "forms": ["flag"], "values": None, "repeatable": True},
+        {"name": FLAG_257, "forms": ["flag"], "values": None, "repeatable": True},
     ],
 }
 VECTOR_8192 = [FLAG_256] * 32
@@ -517,7 +519,7 @@ def identity_for(
     mock = {
         "revision": digest_name("mock"),
         "verification": {
-            "path": "evidence/mock-verification.json",
+            "path": "mock-verification.json",
             "sha256": digest_name("mock-verification"),
         },
     }
@@ -759,28 +761,30 @@ class FixtureRoot:
             recognisable=b'"fixture":true',
         )
         self.settings_sha256 = sha256_bytes(settings_body)
-        self.verification_rel = "evidence/mock-verification.json"
+        # Relative handles resolve beneath the protected evidence root.
+        # Do not prefix them with "evidence/" — that component is the root.
+        self.verification_rel = "mock-verification.json"
         self.passing_verification = canonical_json({
             "kind": "receipt",
             "claim": "synthetic leaf/scratch admission control",
             "control": "leaf-write-and-source-deny",
             "result": "PASS",
         }).encode("utf-8")
-        self.verification_path = self.root / self.verification_rel
+        self.verification_path = self.held_path(self.verification_rel)
         plant_bytes(
             self.verification_path,
             self.passing_verification,
             recognisable=b"leaf-write-and-source-deny",
         )
         self.verification_sha256 = sha256_bytes(self.passing_verification)
-        self.witness_rel = "evidence/witness.json"
+        self.witness_rel = "witness.json"
         self.passing_witness = canonical_json({
             "kind": "witness",
             "claim": "synthetic capability witness",
             "control": "source-isolation-and-leaf",
             "result": "PASS",
         }).encode("utf-8")
-        self.witness_path = self.root / self.witness_rel
+        self.witness_path = self.held_path(self.witness_rel)
         plant_bytes(
             self.witness_path,
             self.passing_witness,
@@ -788,13 +792,18 @@ class FixtureRoot:
         )
         self.witness_sha256 = sha256_bytes(self.passing_witness)
         age_body = b'{"max_age_seconds":60}\n'
-        self.age_policy_rel = "evidence/age-policy.json"
+        self.age_policy_rel = "age-policy.json"
         plant_bytes(
-            self.root / self.age_policy_rel,
+            self.held_path(self.age_policy_rel),
             age_body,
             recognisable=b"max_age_seconds",
         )
         self.age_policy_sha256 = sha256_bytes(age_body)
+        self._assert_held_resolves(self.verification_rel, self.verification_path)
+        self._assert_held_resolves(self.witness_rel, self.witness_path)
+        self._assert_held_resolves(
+            self.age_policy_rel, self.held_path(self.age_policy_rel),
+        )
         self.reserved_abs = [
             str((self.out / "last-message.json").resolve()),
             str((self.out / "COMMIT_MSG").resolve()),
@@ -802,6 +811,27 @@ class FixtureRoot:
 
     def close(self):
         shutil.rmtree(self.root, ignore_errors=True)
+
+    def held_path(self, rel) -> Path:
+        """Join a relative evidence handle under the protected evidence root."""
+        relative = Path(rel)
+        parts = relative.parts
+        if relative.is_absolute() or not parts or any(
+            part in (".", "..") for part in parts
+        ):
+            raise AssertionError(
+                f"evidence handle {rel!r} is not a relative file under root"
+            )
+        return (Path(self.evidence.resolve()) / relative).resolve()
+
+    def _assert_held_resolves(self, rel, planted: Path):
+        joined = self.held_path(rel)
+        if joined != planted.resolve():
+            raise AssertionError(
+                f"handle {rel!r} joins to {joined}, planted at {planted}"
+            )
+        if not joined.is_file():
+            raise AssertionError(f"held evidence {joined} is missing")
 
     def isolation(self):
         return list(self.source_reads), list(self.source_write_denials)
@@ -817,6 +847,103 @@ class FixtureRoot:
             "path": self.witness_rel,
             "sha256": self.witness_sha256,
         }
+
+    def declared_config_sha256(
+        self,
+        selection,
+        *,
+        configuration=None,
+        insertion=None,
+        relay=None,
+    ):
+        """Fixture configuration digest bound to descriptor and identity together."""
+        role = selection["role"]
+        insertion = dict(insertion or {"launch": 1, "resume": 1})
+        configuration = deepcopy(
+            configuration
+            if configuration is not None
+            else self.default_configuration(role),
+        )
+        return config_digest(configuration, insertion, relay)
+
+    def declared_adapter(
+        self,
+        selection,
+        *,
+        grammar=None,
+        mechanism="fixture-argv",
+        configuration=None,
+        insertion=None,
+        relay=None,
+        extra=None,
+    ):
+        """Adapter object whose config digest matches this fixture's transport."""
+        exe = self.executables[selection["harness"]]
+        adapter = adapter_descriptor(
+            grammar=grammar,
+            mechanism=mechanism,
+            role=selection["role"],
+            extra=extra,
+        )
+        adapter["executable_sha256"] = exe["sha256"]
+        adapter["config_sha256"] = self.declared_config_sha256(
+            selection,
+            configuration=configuration,
+            insertion=insertion,
+            relay=relay,
+        )
+        return adapter
+
+    def matching_identity(
+        self,
+        selection,
+        operation="launch",
+        *,
+        outputs=None,
+        source_reads=None,
+        source_write_denials=None,
+        limits=None,
+        platform=None,
+        role=None,
+        grammar=None,
+        mechanism="fixture-argv",
+        configuration=None,
+        insertion=None,
+        relay=None,
+        extra=None,
+    ):
+        """Identity whose adapter.config_sha256 matches the declared digest."""
+        adapter = self.declared_adapter(
+            selection,
+            grammar=grammar,
+            mechanism=mechanism,
+            configuration=configuration,
+            insertion=insertion,
+            relay=relay,
+            extra=extra,
+        )
+        exe = self.executables[selection["harness"]]
+        reads = self.source_reads if source_reads is None else source_reads
+        denials = (
+            self.source_write_denials
+            if source_write_denials is None
+            else source_write_denials
+        )
+        identity = identity_for(
+            selection,
+            operation,
+            executable_path=exe["path"],
+            executable_sha256=exe["sha256"],
+            adapter=adapter,
+            outputs=outputs,
+            source_reads=reads,
+            source_write_denials=denials,
+            limits=limits,
+            platform=platform,
+            role=role,
+        )
+        identity["mock"]["verification"] = self.verification_handle()
+        return identity
 
     def default_configuration(self, role, extra_env=None):
         environment = dict(TRUSTED_ENV)
@@ -919,18 +1046,19 @@ class FixtureRoot:
         role = selection["role"]
         exe = self.executables[harness]
         grammar = SYNTHETIC_GRAMMAR if grammar is None else grammar
-        adapter = adapter_descriptor(
-            grammar=grammar, mechanism=mechanism, role=role,
-        )
-        adapter["executable_sha256"] = exe["sha256"]
         insertion = insertion or {"launch": 1, "resume": 1}
         configuration = deepcopy(
             configuration
             if configuration is not None
             else self.default_configuration(role),
         )
-        adapter["config_sha256"] = config_digest(
-            configuration, insertion, relay,
+        adapter = self.declared_adapter(
+            selection,
+            grammar=grammar,
+            mechanism=mechanism,
+            configuration=configuration,
+            insertion=insertion,
+            relay=relay,
         )
         reads = self.source_reads if source_reads is None else source_reads
         denials = (
