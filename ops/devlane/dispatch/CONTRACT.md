@@ -1,22 +1,88 @@
 # The dispatch app — the dev-lane launcher
 
-`launch.py` is the **policy** over the task app's `run.py` mechanism,
-and the record it writes is built and validated by `record.py`.
+## C1 — execution authority (target, not runtime completion)
+
+Standing: docs-only C1-contract, Grok ruling `518ab8`
+(`20260906T021502Z-adjudicate-grok-518ab8`), owner brief
+`worker-launch-consolidation-owner.md`, inventory `464dfc`. Dev tooling is
+permanent and independent of the Symfony application. A `prod` work
+profile describes the application being developed, not these tools'
+implementation or a replacement for them. C1 changes only this contract
+and the [task contract](../task/CONTRACT.md), for independent tests and
+review; runtime convergence and generic output grants have not landed.
+
+**Target:** `launch.py` is the sole worker execution service: admission,
+snapshot and input custody, invocation and resume, supervision, envelope
+acceptance, settlement and recovery. `record.py` owns dispatch record
+construction and validation. Frontends consume the same service:
+
+| frontend | owns |
+|:--|:--|
+| [dispatch.sh](../../bin/dispatch.sh) / [wrapper](../../conductor/tools/dispatch.sh) | worktree/ref resolution, selection and inputs, foreground/detached invocation |
+| [go.sh](../../bin/go.sh) | intent shorthand and configurable selection, forwarded to dispatch |
+| [ladder](../../conductor/tools/ladder.py) | stage order, custody between jobs, retries and ladder records; worker execution and session resume stay in launch |
+
+Frontends preserve the same effective selection, refusals and accepted
+result; they do not own alternate execution or envelope engines. Harness
+(CLI mechanics), model (explicit identity and effort), role (source
+authority), and work profile (policy context) are independent configurable
+dimensions, subject to job constraints and capability admission. No fixed
+job-to-model table or vendor hierarchy confers authority. The target records
+resolved selection and its configuration source. Actual-model provenance
+remains stream-backed `model.ran`, never copied from `model.requested`.
+
+Launch/task own job output requirements and grants; dispatch owns harness
+capability declarations below; harness owns isolation/probes; task owns
+envelope semantics. **Lane policy is a later consume-only coupling** owned
+by the parallel `lane/lane-boundary-20260905` track. Its accepted interface
+will supply profile policy. This track defines no duplicate policy and
+does not make that owner depend on output grants. C1 has no lane-policy,
+discovery or fileset dependency. Workers receive job-authorized context,
+not conductor-wide discovery; both MCP surfaces remain read-only.
+
+### Measured baseline and limits
+
+Source re-read on 2026-09-06 at `2b0491203cb9b37459fb2af6ac703940051374d2`:
+`git diff e59a52bce37dbd1fed52d358b655bae00267f71f HEAD --name-only --
+ops/devlane ops/bin ops/conductor/tools ops/process` returned no paths.
+Inventory `464dfc` remains source evidence for these estates, not proof
+of current operator use. `rg -n 'run\.run\(' ops --glob '*.py'` found only
+`task/tests/test_run.py`; `git ls-files '*lane*policy*'
+'ops/contracts/imports.json'` found neither tracked path. C1 makes no live
+vendor, host, session-store or network measurement.
+
+| path / defect | current source behavior; boundary consequence |
+|:--|:--|
+| `launch.py` and `task/run.py` | Both call `subprocess.Popen`; launch does not call run. Task's vendor path is manual/dormant with no production caller found in the inspected tree, not a proven backend. Direct verification and stub replay remain non-worker uses. |
+| dispatch/go/ladder | Wired to launch; wrapper permits `LAUNCHER_PIN`. Go defaults Claude for tests/implementation while launch refuses Claude writes; ladder selects Grok/Codex. Wiring is not selection parity. |
+| shell levers and [cross-review recipe](../../process/cross-review.md) | Manual paths with distinct snapshots, records and supervision; live use unmeasured. Preserve supported unique behavior before later explicit tested refusal or owner-admitted retirement, including recipe consumers. |
+| probes and fixtures | Diagnostic and synthetic paths, not production frontends. Fileset/staging and task vendor parity are not prerequisites to frontend convergence. |
+| supervision | Launch checks individual `output_tokens`, wall time and stream grace inline; task run arms the telemetry battery. Aggregate/repeat/error/stall/size parity is not established. Resume re-enters launch's inline supervisor. |
+| transport and acceptance | Launch's schema matcher differs from task's semantic validator. Declared document outputs do not yet yield generic grants; see [job outputs](../task/CONTRACT.md#declared-job-outputs). Process exit zero alone does not certify a deliverable. |
+
+Reproduce implementation distinctions with `rg -n
+'Popen|writable_out=|def _schema_valid|output_tokens|mode-unavailable'
+ops/devlane/dispatch/launch.py ops/devlane/task/run.py`, and selection with
+`rg -n 'LAUNCHER_PIN|def_harness|author-tests|implement'
+ops/conductor/tools/dispatch.sh ops/bin/go.sh ops/conductor/tools/ladder.py`.
+The sections below retain existing dispatch obligations, with proposals
+and defects identified explicitly; C1 is not a broad roadmap.
 
 Dispatch is a *composition* app. It reads the task app's job registry
 (`ops/devlane/task/jobs.json`) and drives the harness app's isolation and
 budget wiring (`ops/devlane/harness/isolation.py`,
 `ops/devlane/harness/wires.py`). It was split out of the task app so it may
 depend on both without the `task → harness` edge the cross-app import
-contract forbids: a launcher that executes `isolation.isolated` and
+boundary forbids: a launcher that executes `isolation.isolated` and
 reads `wires.budget` genuinely depends on `harness`, and the task app
 must not. The allowed edges `dispatch → task` and `dispatch → harness`
-are declared in `ops/contracts/imports.json`; the reverse would be a
-cycle.
+are declared here. The historical `ops/contracts/imports.json` is absent
+in this tree, so no executable import gate is claimed. Task must not depend
+on dispatch or harness; the reverse would create a cycle.
 
 | file | job |
 |:--|:--|
-| `ops/devlane/dispatch/launch.py` | the §Dispatch policy: mint a snapshot, launch, supervise, collect, record |
+| `ops/devlane/dispatch/launch.py` | worker execution: mint a snapshot, launch, supervise, collect, record |
 | `ops/devlane/dispatch/record.py` | build and validate one dispatch record, one implementation per rule |
 
 The rest of this file is the launcher's contract, written before the
@@ -25,15 +91,12 @@ is carried here; this contract is the whole specification.
 
 ## Dispatch — the dev-lane launcher
 
-`run.py` is the mechanism: snapshot, launch, supervise, collect, parse.
-`launch.py` is the policy over it, and the **sole dispatch path for
-dev-lane work**: it mints a snapshot from a named ref, keeps every
+`launch.py` mints a snapshot from a named ref, keeps every
 artifact outside the tree, applies the preconditions below as refusals,
 supervises inline, returns the envelope, and writes a dispatch record
 into a tracked directory on the branch. This section is its contract.
-It is written before the launcher exists, so that the tests can be
-authored from it and the implementation judged against it; invocation
-examples therefore sit in plain fences until the file they name does.
+Its target sole-authority boundary is declared in C1 above; the measured
+multiple paths have not been removed by this contract change.
 
 Vocabulary: the **invoking repository** is the checkout the launcher
 is run from; the **lineage branch** is the branch the work unit lives
@@ -98,15 +161,18 @@ what the `live-target` refusal exists to catch) and not `git clone
 after `origin` is removed, and makes the source object store writable
 by absolute path).
 
-**`fileset`** — `fileset.snapshot` with `include` and `withheld`,
+**`fileset` (unimplemented proposal)** — `fileset.snapshot` with `include` and `withheld`,
 proved by `stage.prove` in both directions, and **no `.git`**: a
 withheld file is one `git show HEAD:path` away in any snapshot with
 history. Its manifest and diff live in the job directory, not at the
-snapshot root. This mode lands after `whole`; until it does, a job that
-declares it is refused by name.
+snapshot root. The existing tested `mode-unavailable` refusal remains
+(`tests/test_launch_refusals.py`, `HistoryVersusWithheldAndModeUnavailable`).
+There is no commitment to implement filesets in C1; dormant staging is off
+the required frontend convergence path. Manual staging is not equivalent
+dispatch.
 
-`direct` jobs (`verify`) take the caller's fileset as today and declare
-no mode.
+`direct` jobs (`verify`) stay in task, take the caller's fileset and declare
+no mode; launch admits only harness jobs.
 
 ### The job directory
 
@@ -119,8 +185,8 @@ no mode.
   raw.out        the harness's stdout, byte for byte
   stderr         the harness's stderr
   launcher.log    detached wrapper output, when launched with --detach
-  breaker.log    the battery's stderr
-  TRIPPED.md     written by the battery on a trip
+  breaker.log    proposed battery stderr; launch currently supervises inline
+  TRIPPED.md     written by launch on an inline supervisor stop
   state.json     pid, pgid, session id, stream path, attempt
   exit           the harness's exit status, written last
   home/codex     minimal home for codex (auth.json only)
@@ -159,6 +225,25 @@ PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8 LC_ALL=C.UTF-8`, plus
 
 ### Isolation, per harness
 
+**Capability authority and evidence.** Dispatch declares the capabilities
+it consumes; adapter mechanics implement argv, hooks, parsing, resume and
+MCP integration without becoming policy owners. The table below is the
+current source-selected behavior at the C1 baseline, reproduced by
+`sed -n '360,555p' ops/devlane/dispatch/launch.py` and
+`sed -n '70,150p' ops/devlane/harness/isolation.py`. It is not a claim that
+live containment probes ran. A capability declaration names the supported
+operation and role, output/source access, mechanism and limits, harness
+version, dated probe result and evidence handle, and contract-verified
+mock. Missing observation is `unresolved`; an arm that could not run is
+INVALID, never a pass. Evidence expires when the counterparty changes.
+
+Target output grants need per-harness witnesses for both the declared
+output write and retained source isolation, or an explicit
+unsupported-capability refusal with expected, found and needed. A Codex
+witness cannot admit Claude or Grok. Configuration isolation is not host
+containment, and a recorded `os` label is not a universal security proof.
+No new runtime refusal or probe is implemented in C1.
+
 `isolation.isolated()` runs on every new launch; there is no argument that
 turns it off, and a harness with no entry is refused. A relocated record
 re-derives its home environment, flags, and stream store from that same
@@ -170,12 +255,12 @@ in `~/.codex/sessions` would report "no stream" and run unsupervised.
 
 | harness | isolation | read sandbox | write sandbox | containment | model that ran |
 |:--|:--|:--|:--|:--|:--|
-| claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `plan` | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
+| claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `acceptEdits`; `--add-dir out` is not OS containment | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
 | codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only`; check-tests exception below | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
-| grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `plan` | `auto` | policy, until an owner-named `--sandbox` profile is added to the row | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; read-role `head_commit` equals `snapshot.ref_sha`; write-role `head_commit` equals either that immutable ref or the actual local `HEAD`, which is always verified as its descendant; every other hash is rejected |
+| grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `always-approve` | `always-approve` | policy; no OS sandbox claimed or invented | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; read-role `head_commit` equals `snapshot.ref_sha`; write-role `head_commit` equals either that immutable ref or the actual local `HEAD`, which is always verified as its descendant; every other hash is rejected |
 
-**Proposed Codex check-tests alignment, for owner review — not an
-approved security guarantee.** The check-tests job remains role `read`,
+**Measured Codex check-tests implementation — not a live containment
+proof.** The check-tests job remains role `read`,
 but its Codex process uses the `workspace-write` sandbox label so it can
 write its document and scratch files under the job `out/`, which is added
 as a writable root; `TMPDIR` is a real, non-symlinked `out/tmp`. Before the
@@ -193,6 +278,9 @@ and recorded under `harness.permissions`. Allow rules beginning
 `Bash(bash ops/bin/` are dropped because they admit network access, an
 interpreter, or worker-editable scripts; malformed or absent project
 settings are declared `unresolved`.
+Current Claude argv also denies `WebFetch`, `WebSearch`, `Agent` and
+`Task`; Grok receives `--always-approve --disable-web-search`. These are
+adapter policy settings, not evidence of an OS boundary.
 
 `containment` says what stops a write role reaching outside its
 snapshot: `os` when the harness's own sandbox enforces it, `policy` when
@@ -226,7 +314,10 @@ whose observation has not run carries `observed: {"unresolved":
 
 ### Refusals
 
-Exit 3, before anything is minted unless the table says otherwise. The
+Current dispatch refusal exit: 3, before anything is minted unless the
+table says otherwise. This differs from the founding [wire](../../../docs/wire.md)
+(Rejection 2, Abort 3); shell levers and task CLI also have distinct exit
+mappings. Reconciliation and wire-gate expansion are outside C1. The
 text of each names what was expected, what was found, and what would
 satisfy it. `override` marks the only overridable one.
 
@@ -243,7 +334,7 @@ satisfy it. `override` marks the only overridable one.
 | `mode-unavailable` | the job declares a mode the launcher does not yet mint (`fileset`) | expected `whole`; found `fileset` on `<job>`; stage it by hand with `stage.py` and name the dispatch in the PR body until fileset mode lands |
 | `write-role-unadmitted` | a write role on a harness whose adapter row has no write sandbox (claude) | expected a write row with a containment entry; found none for `<harness>`; run the containment probe and add the row, or dispatch the role on codex or grok |
 | `scope-cap` | `--scope` over 1024 bytes, or given to a job with no `{scope}` | expected ≤ 1024 bytes on a job that takes a scope; found `<n>` bytes / a scope on `<job>`, which takes none; shorten it — a scope that needs more is a brief, and briefs are derived — or drop it |
-| `caps` | an unknown wire, or `cap` and `total` (or `cap_out` and `out`) both given | `run.py`'s own text |
+| `caps` | an unknown wire, or `cap` and `total` (or `cap_out` and `out`) both given | the launch preflight's own text |
 | `off-lineage-head` (at close or collect, write roles) | the snapshot's `HEAD` is not a descendant of `ref_sha` | expected `HEAD` to descend from `<ref_sha>`; found `<head>`; nothing is fetched, and the close record says so or collect refuses |
 | `resume-store` | a codex or grok resume has no session store in either its live or archived home | expected the store for `<session id>` under both named paths; found neither; resume a job whose store survived, or launch afresh |
 | `collect-role` | `collect` names a read role | expected a write role; found read; collect only a failed write job |
@@ -255,8 +346,8 @@ Runtime outcomes that are not refusals, and still produce a record:
 `unsupervised` (no session stream under the isolated store within the
 grace period, 120 seconds until measured, while the process lives →
 terminated, `invalid`), `harness-cli`, `envelope-parse`, `timeout`,
-`trip` — as `run.py` returns them today. An override on any id not
-marked overridable, or with an empty reason, is itself refused.
+`trip` — produced by launch itself, not delegated to `run.py`. An override
+on any id not marked overridable, or with an empty reason, is itself refused.
 
 ### Collect
 
@@ -399,8 +490,8 @@ exits 2.
 `resume ID` relaunches in the same snapshot directory — grok scopes
 sessions by cwd — with `claude -p -r <id>`, `grok -r <id>`, or `codex
 exec resume <id>`, clears the previous exit and trip markers before
-registering, appends output rather than truncating it, re-arms the
-battery, and appends an `attempts` entry. A job the battery tripped
+registering, appends output rather than truncating it, re-enters the
+inline supervisor, and appends an `attempts` entry. A tripped job
 resumes only with a changed cap or a stated reason, recorded.
 Before a codex or grok resume the archived session store is restored to
 the harness home, then moved forward again after the attempt. A failed
@@ -410,8 +501,9 @@ every completed attempt commits the updated record.
 ### Lane
 
 Everything here is dev-lane: the launcher code under
-`ops/devlane/dispatch/` (over the task app's `run.py`), the records
+`ops/devlane/dispatch/`, the records
 under `.dev/records/`, `lane: "dev"` in every record,
 `WF_LANE=dev` in every child, and a refusal to record on `main`. The
-product lane's Conductor will carry its own launcher and its own
-records; nothing here binds it.
+application neither implements nor retires these permanent tools. Profile
+policy is consumed from the parallel boundary track as declared in C1;
+application authority documents are outside this change.

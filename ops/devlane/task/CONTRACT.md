@@ -30,12 +30,18 @@ Two costs follow from that, and both are what this app removes:
 
 ## The call
 
+This is the target calling convention, not a claim that every field is
+already accepted by either CLI. C1 standing and measured baseline are in
+the [dispatch contract](../dispatch/CONTRACT.md#c1--execution-authority-target-not-runtime-completion).
+Dev tooling remains permanent and independent of the Symfony application;
+`prod` is a work profile, not a tooling implementation or retirement plan.
+
 ```
 task(
     job,                                   # which pre-made task
     context = {ref, diff_base, include, prior},
     require = {schema, scope, constraints},
-    runtime = {harness, model, effort, caps},
+    runtime = {harness, model, role, profile, effort, caps},
 )
 ```
 
@@ -53,8 +59,15 @@ task(
 only, plant on copies, never edit the snapshot).
 
 **`runtime`** states who runs it and under what ceiling: `harness`,
-`model`, `effort`, and the supervision `caps` handed to
-`ops/devlane/telemetry/breaker.py`. A job never names a model — that
+`model`, `role`, `profile`, `effort`, and supervision `caps`. Harness,
+model, role and work profile are independent configurable dimensions,
+constrained by the job and admitted capabilities; a job's declared role
+is not permission to guess a model or widen source access for an output.
+Profile policy is a later consume-only join owned by the parallel
+`lane/lane-boundary-20260905` track, not defined by task or dispatch.
+The current task vendor runner uses the telemetry battery; launch has
+different inline supervision, as the dispatch baseline records.
+A job never names a model — that
 is the Conductor's dial, which is what makes "eight cheap ones" and "one
 careful one" the same job.
 
@@ -68,14 +81,15 @@ reading the work:
   "job": "adversarial-review",
   "status": "ok | invalid | tripped",
   "verdict": "approve | changes | null",
-  "counts": {"p1": 0, "p2": 2, "p3": 1},
+  "counts": {"p1": 0, "p2": 1, "p3": 0, "opinions": 0},
   "findings": [
     {"severity": "p2", "where": "file.py §section", "claim": "...",
      "reproduce": "python3 -m unittest ..."}
   ],
   "artifacts": {"raw": "<path>", "diff": "<path>"},
   "spend": {"harness": "grok", "total": 0, "out": 0, "runs": 0},
-  "stamp": {"ref": "<sha>", "started": "...Z", "ended": "...Z"}
+  "stamp": {"ref": "<sha>", "started": "...Z", "ended": "...Z"},
+  "note": null
 }
 ```
 
@@ -92,6 +106,34 @@ Three fields carry the weight:
   repo they served: roughly 118M tokens of review on 2026-08-22 went
   unattributed. The stamp is what closes that.
 
+**One semantic authority:** task's [envelope.py](envelope.py) owns the
+shape and acceptance rules; dispatch and all frontends must consume that
+authority. Counts are derived from findings, including `opinions` for a
+null reproduction; a parsed tally mismatch is refused, not repaired.
+Artifacts remain non-empty, single-line handles bounded by `HANDLE_MAX`,
+not embedded reports. Workers leave the declared zero spend placeholder;
+the launcher resolves measured spend, declaring unavailable evidence
+instead of treating that placeholder as a measurement.
+
+**Current acceptance defect (C1 baseline):** `run.py` calls
+`envelope.validate`, while launch uses `_schema_valid`, adding only an
+invalid-plus-approve check to the schema. Shared JSON shape therefore does
+not establish shared counts/status/handle acceptance. The optional write
+job `commit` transport also needs later reconciliation with the validator's
+fixed fields. C1 changes neither validator, schema nor transport; later
+acceptance work must preserve harness response extraction and provenance.
+Reproduce with `sed -n '240,310p' ops/devlane/task/envelope.py`,
+`sed -n '297,335p' ops/devlane/task/run.py` and
+`sed -n '708,745p' ops/devlane/dispatch/launch.py` at the dispatch baseline.
+
+**Named temporary exception — inline planning reassignment.** The owner
+brief authorized the immediate read-only architecture review to return
+the plan as an artifact string after plan record `976735` could not write
+`out/PLAN.md` under Codex read-only containment. That specific reassignment
+is temporary transport, not a standing artifact mode or general permission
+for read-only jobs to embed reports. Ordinary plan, skeptic and ruling
+jobs still require file handles. C1 does not universalize the workaround.
+
 ## Statuses, and the refusal rule
 
 `status` is the routing decision, and it is not the same as `verdict`:
@@ -105,6 +147,11 @@ Three fields carry the weight:
 A task that could not look must not return `approve`. This is the same
 rule the registered checks follow, and the reason `status` and
 `verdict` are separate fields rather than one.
+`invalid` requires a null verdict and a note naming why it could not do
+the job; `tripped` may carry partial findings but never `approve`.
+For implementation jobs, `ok` requires the named acceptance command to
+exit 0 in the final tree; otherwise `invalid` names the failing command.
+Process exit zero alone is not accepted-envelope evidence.
 
 ## Jobs
 
@@ -140,8 +187,11 @@ to land.
 
 ## What the runner does, and does not
 
-The runner wires: it snapshots, launches, supervises with the battery,
-collects, parses, records. It does **not** read the work product, and
+The target worker execution service is dispatch's `launch.py`: it
+snapshots, launches, supervises, collects, parses and records. The separate
+`run.py` vendor engine is manual/dormant at the measured baseline, not its
+backend; direct verification and stub replay are distinct uses. It does
+**not** read the work product, and
 it does not decide anything a job could not have decided in
 advance.
 
@@ -169,20 +219,47 @@ A loop whose context grows every round has a horizon; one that stays
 flat can run as long as the work does. The envelope is what makes that
 possible, and `worth waste`'s cache-churn signal is how it is checked.
 
-## Dispatch — moved to its own app
+## Declared job outputs
 
-The dev-lane launcher — `launch.py`, the policy over `run.py`, and
-its record builder `record.py` — no longer lives here. It executes
-the harness app's isolation and reads its budget wiring, so it
-genuinely depends on `harness`; the cross-app import contract forbids
-`task → harness`. Rather than weaken that rule, the launcher moved to
-a composition app that may depend on both this app and `harness`:
+Target ownership: task owns output requirements in [jobs.json](jobs.json);
+launch resolves declared `{out}` paths into grants and records custody.
+At the C1 baseline, `plan` declares `{out}/PLAN.md`, `check-tests` declares
+`{out}/SKEPTIC.md`, and `adjudicate` declares `{out}/RULING.md` (reproduce:
+`rg -n 'PLAN.md|SKEPTIC.md|RULING.md' ops/devlane/task/jobs.json`). These are
+job outputs outside the source snapshot, not source-write roles.
 
-- its contract is `ops/devlane/dispatch/CONTRACT.md`;
-- no guide page is carried here; its contract is the whole specification;
-- the allowed edges `dispatch → task` and `dispatch → harness` are
-  declared in `ops/contracts/imports.json`.
+**Target:** grants follow declared artifact needs, not arbitrary job-name
+branches. A read role retains source isolation and unchanged-source
+settlement while writing its declared outputs. Neither an output handle
+nor a profile can confer broad source/host permission. Each harness must
+prove the required capability or explicitly refuse it; dispatch owns that
+[capability evidence](../dispatch/CONTRACT.md#isolation-per-harness).
+Output declarations and grants are owned here and in launch, with no wait
+on or duplicate of the parallel lane-policy contract.
+
+**Measured transport gap:** launch renders `{out}` and `{inputs}`, but
+`writable_out` is selected by `job == "check-tests"` on launch and resume.
+Other Codex read jobs remain read-only; there is no generic output grant.
+The owner brief records `976735` invalid because its required plan write
+was rejected. Task run does not automatically supply document-job output
+or input paths either. Rendering a path and declaring a capability do not
+prove that a worker can deliver it. Reproduce the name branch with
+`rg -n 'writable_out=' ops/devlane/dispatch/launch.py`. C1 documents this
+defect; independent runtime/test work follows.
+
+## Dispatch ownership
+
+Target: [dispatch](../dispatch/CONTRACT.md) consumes task's jobs and envelope
+semantics plus harness isolation/budget wiring. The declared edges are
+`dispatch → task` and `dispatch → harness`; task must not depend on
+dispatch, harness or lane-policy implementation. The historical
+`ops/contracts/imports.json` is absent at the measured baseline, so this
+is a declared boundary, not a claim of an installed import gate.
 
 `jobs.json` stays here — it is data the dispatch app reads by path,
 not an import — and so do `run.py`, `envelope.py`, `fileset.py`, and
 `verify.py`.
+The manual/dormant task vendor path awaits a later explicit tested refusal
+or owner-admitted retirement with supported behavior accounted for.
+Fileset/staging parity is not required for dispatch/go/ladder convergence;
+dispatch's existing tested `mode-unavailable` refusal remains in force.
