@@ -523,8 +523,8 @@ this is the sole exception to the available job-source requirement. Its role
 source covers admitted conductor restrictions and startup template; selection,
 role, adapter and reservations still require available verified sources. No
 consumer indexes jobs.json with null or infers a read/write job for this case.
-For a worker, outputs may cite the catalogue whose measured omission yields `[]`, keeping
-that observation distinct from an unavailable catalogue.
+For a worker, outputs may cite the catalogue whose measured omission yields
+`[]`, keeping that observation distinct from an unavailable catalogue.
 
 Dispatch verifies Git sources against the old admitted declaration closure and
 retains invocation bytes under caller custody; a model-created matching digest,
