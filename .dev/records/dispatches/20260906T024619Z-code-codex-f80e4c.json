@@ -1,0 +1,112 @@
+{
+  "id": "20260906T024619Z-code-codex-f80e4c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "bc5a5785a3974910d5d50380bff8f9f8dbd49e0f"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:46:19Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "bc5a5785a3974910d5d50380bff8f9f8dbd49e0f",
+    "ref_sha": "bc5a5785a3974910d5d50380bff8f9f8dbd49e0f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "7496d7d9-7f98-4c14-8dd4-63a93868490e",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply discovery-cursor-ruling.md to discovery-lever.md only. Fix the lane_start cursor/work-list mismatch, including the authorized 21st dispatch source and offset 20; distinguish work_bindings from work-list limits. Add a precise boundary acceptance case, preserving the 20-item 8/8/4 case, eleven tools and all eight envelope payloads. Read Claude 950f23 and producer verification input. Reconcile the prior local-link count in the new envelope with an explicit counting rule; no history rewrite. Acceptance command: git diff --check; verify boundary math, links and unchanged examples. No code/tests/settings/host/DB/network edits or new architecture. Use ordinary commit prose and required actual-model trailers; narrow independent recheck follows.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/in/discovery-cursor-ruling.md",
+        "sha256": "747e933ad952f5553f10053c53a9e263a2e020582ddcf0aebbca513d89c8eb63"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/in/20260906T023500Z-review-claude-950f23.json",
+        "sha256": "90d595aa8ec37b9285315cdfdf93ee8cabcd691e5f3864571941afb399867c12"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/in/verification.json",
+        "sha256": "5193eaa9ea8ab1563db3f3624c6cdf1e601f05e5a8091b82b89bdcf94346c671"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/in/verify_discovery.py",
+        "sha256": "4bd6113c74874a81c8b886ccb12411848f2a3b06514657ad65420bcdc4b2e16f"
+      }
+    ],
+    "sha256": "d42615225515546982c9f224c38e6fa1b832f3b16e1e606a3a1e3410edf9e1c3",
+    "bytes": 4599
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
