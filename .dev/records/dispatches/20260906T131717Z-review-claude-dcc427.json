@@ -1,0 +1,284 @@
+{
+  "id": "20260906T131717Z-review-claude-dcc427",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conduct-policy-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-policy-tests-20260906",
+    "base_sha": "7c819cf4385c12d6970c059ade9c1e0dc720f668"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T13:17:17Z",
+    "closed": "2026-09-06T13:24:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "7c819cf4385c12d6970c059ade9c1e0dc720f668",
+    "ref_sha": "7c819cf4385c12d6970c059ade9c1e0dc720f668",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131717Z-review-claude-dcc427/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "94d15451-59d0-43c1-b345-0872bf9cf53a",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T131717Z-review-claude-dcc427/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T131717Z-review-claude-dcc427/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T131717Z-review-claude-dcc427/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/94d15451-59d0-43c1-b345-0872bf9cf53a.jsonl"
+  },
+  "session": {
+    "id": "94d15451-59d0-43c1-b345-0872bf9cf53a",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/94d15451-59d0-43c1-b345-0872bf9cf53a.jsonl",
+    "stream_sha256_at_close": "265a66b4c1967ee847ad5893a59e6e8ca39b27cfacb7e2c2af34fc92e27345b4",
+    "spend": {
+      "input": 58,
+      "cached": 3152568,
+      "output": 29939,
+      "total": 3182565,
+      "source": "result.usage",
+      "messages": 29,
+      "cost_usd": 3.6011850000000005
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-policy-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Recheck the eight policy-test findings plus checked_at UTC against the supplied correction. Scope only test_lane_policy.py and its inline fixtures. Verify completed terminal attempts, fresh/reused receipts and null-preflight negatives; whole ConductorBinding digest and unconditional closure; exact Decision/request identity and reasons; independent reserialization/newline controls; finally restoration and pinned lane store. Confirm 66-method assertion-red receipt, exact hashes and discriminating controls where permitted. Treat opaque custody contents honestly; inspect existing owner contracts for the remaining positive coordination schema instead of inventing it or silently skipping the required positive. No implementation/test edits, live state/settings/admission or vendor launches. Return approve/changes with per-finding closure and any actual construction blocker; note at most 900 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131717Z-review-claude-dcc427/in/ag-conduct-policy-tests-fix.json",
+        "sha256": "ec53e8096b77fcd3aaaf3a529893ee8e46f0d5e71afa68c246508c5681dacdb4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131717Z-review-claude-dcc427/in/ag-conduct-policy-tests-review.json",
+        "sha256": "4722f2e80ead0ed5026d8bdd80738e55f520b39cc84d5a34e8fd07a077bc6972"
+      }
+    ],
+    "sha256": "318f64706ebc6749962ec8a57094ba7f267a5f16de2c693b5997ee67a24070a8",
+    "bytes": 1680
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:17:17Z",
+      "ended": "2026-09-06T13:24:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7c819cf4385c12d6970c059ade9c1e0dc720f668",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py:2776,2832,2855",
+          "claim": "ConductorTools contains no allow-outcome case for kind='coordinate' or kind='mcp-read': the only coordinate request expects malformed-request (2840) and the only mcp-read request expects unknown-tool (2863), while test_evaluate_tool_allows_canonical_delegation_and_coordination_reads (2776) despite its name sends only delegate/dispatch, read/inspect and read/git-status. permission-surface.md:170-172 makes 'necessary coordination reads work' an acceptance duty. The correction's note declares the board positive untestable because 'permission-surface.md names the owner's closed schema, not the keys', but ops/conductor/CONTRACT.md:14-24 is that owner contract and does declare the verb surface (branches, prs, decisions, dispatches, all; --json/--offline; the envelope's requested 'query'); only the normalized JSON argument key is undeclared, and the suite already invents such keys for read targets.",
+          "reproduce": "An evaluate_tool that returns outcome='refuse' for every request whose kind is 'coordinate' or 'mcp-read' \u2014 a clear contract violation \u2014 passes all 66 methods, because no assertion anywhere in the file expects outcome='allow' for either kind."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py:2836,2884",
+          "claim": "The two argument oracles are jointly satisfiable only by guessing the fixture's invented key names. coordinate/board with the undeclared key 'command' must refuse malformed-request (2840), while read/inspect with the undeclared key 'query' must allow (2887) and read/inspect with 'path' must also allow (2788). permission-surface.md:122-123 requires arguments to be verified against the target's closed schema before evaluation; applied uniformly, that rule refuses the 'query' case as readily as the 'command' case, and no argument schema for inspect or board is declared anywhere in the contracts.",
+          "reproduce": "An evaluator that strictly validates arguments against a one-key inspect schema {path} refuses request {'query': 'how does git apply work in this contract'} with malformed-request, failing assertEqual(decision['outcome'],'allow') at line 2887 while conforming to permission-surface.md:122-123; an evaluator permissive enough to pass 2887 accepts board {'command': ...} and fails line 2840."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_lane_policy.py:2759,2878",
+          "claim": "On a binding-mismatch refusal the suite forces Decision.binding_sha256 to echo the forged request value. _decision asserts mapping['binding_sha256'] == request['binding_sha256'] (2759) and test_evaluate_tool_binding_mismatch_refuses repeats it after setting the request digest to 'a'*64 (2872-2878). permission-surface.md:148 says 'The id/binding must match Request and the held current binding' \u2014 a requirement no Decision can satisfy in exactly this case, so the contract does not settle which value the field carries and the oracle picks one branch exclusively.",
+          "reproduce": "An evaluator that refuses binding-mismatch and returns the held current binding digest in Decision.binding_sha256 (satisfying the second half of permission-surface.md:148) fails assertEqual at line 2759 and again at line 2878, though its outcome and Reason code are correct."
+        }
+      ],
+      "artifacts": {
+        "reviewed_head": "7c819cf4385c12d6970c059ade9c1e0dc720f668",
+        "base": "710dbac38c3b187eb4b3302308430c0a6dec4d76",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T131717Z-review-claude-dcc427/context/diff.patch",
+        "commit_scope": "git show --stat 7c819cf \u2014 ops/conductor/tests/test_lane_policy.py | 900 +++, 1 file changed, 778 insertions(+), 122 deletions(-)",
+        "tests_sha256": "5a095972311a5f1b62fdeb0d6a90493b6a49c53999a9bf22baca21142ed9188f  ops/conductor/tests/test_lane_policy.py",
+        "lane_policy_json_sha256": "e656af4242f0c635008c6654402c1f0730ed145f7739cc47bc6dc2145299c438  ops/lane-policy.json",
+        "lane_policy_md_sha256": "8f7a82b7170b9c992ccc2444493f66e9ecfd6794fdf19d52bbef22b73060d12e  ops/conductor/lane-policy.md",
+        "permission_surface_md_sha256": "f5daf3395c1c1c74de3c20ef4b97264f3a2240324c08da6b29c525d6eb9dddb1  ops/conductor/permission-surface.md",
+        "dispatch_contract_sha256": "cab4d459cd24a3b185c391ac4578ad26dce0659f5bc09d7caf08c8c5a2a545f7  ops/devlane/dispatch/CONTRACT.md",
+        "unittest": "python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' at 7c819cf \u2014 Ran 66 tests in 1.819s, FAILED (failures=78); grep -c 'skipped|^ERROR:' over the output = 0",
+        "failure_classes": "all 78 are AssertionError: 45 'unexpectedly None', 18 'None is not an instance of dict', 8 'expected lane-policy refusal, got None', 5 'expected lane-profile refusal, got None', 1 'RED: library is absent', 1 'RED: loaded the absent stand-in'",
+        "ruff": "ruff check ops/conductor/tests/test_lane_policy.py \u2014 All checks passed!; ruff format --check \u2014 1 file already formatted",
+        "method_count": "66 (grep -c '    def test_') across 29 classes (grep -c '^class ')",
+        "implementation": "ops/conductor/tools/lane_policy.py ABSENT at 7c819cf (ls ops/conductor/tools lists 19 files, none named lane_policy.py)",
+        "custody_after_runs": "git status --short empty after three suite runs; the tearDown live-store and pinned-lane-store guards never fired (grep -c 'store mutated|tests created the live store' = 0)",
+        "receipt_grep": "grep -c 'production' ops/conductor/tests/test_lane_policy.py = 15 (was 0)"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 3182565,
+        "out": 29939,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7c819cf4385c12d6970c059ade9c1e0dc720f668",
+        "started": "2026-09-06T13:17:20Z",
+        "ended": "2026-09-06T13:23:05Z"
+      },
+      "note": "Verdict: approve. Scope held to ops/conductor/tests/test_lane_policy.py and its inline fixtures; 7c819cf touches that file only (+778/-122). The three governing contracts are byte-identical to the earlier review's measurements, so the oracles were re-read against the same law.\n\nReceipt reproduced, not transcribed. python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_policy.py' at the reviewed head: Ran 66 tests, FAILED (failures=78); grep over the output for \"skipped\" and \"^ERROR:\" returns 0; every failure is an AssertionError against the absent stand-in (tally in artifacts), never an import or collection error. 66 methods by grep across 29 classes. ruff check and ruff format --check are clean. tests sha256 5a09597\u2026 matches the record. Three runs left git status --short empty and never tripped the live-store or pinned-lane-store guards.\n\nPer-finding closure, all nine items.\n\n1 (P1, inverted terminal oracle): closed. evidence() now takes completed/attempt/files; terminal calls carry attempt 1 (check_writes default; R1 at 2236-2251), launch keeps the null preflight (1370, 2246, 2973). test_null_preflight_cannot_substitute_for_terminal_pass (2983) refuses the null value at settle, collect-before, collect-after, land and ladder with lane-artifact. The passes that still send files [] all bind declarations with no C2 outputs, so lane-policy.md:637-638's \"all declared files\" is met, and dev's allow_declared_outputs is true where declared outputs are used.\n\n2 (P2, binding_sha256): closed. conductor_binding_digest (1032) hashes the canonical whole 10-key ConductorBinding; _role_and_request carries that digest, and 1087-1090 assert it differs from grants_sha256, declarations_sha256, custody_sha256 and policy.sha256.\n\n3 (P2, guarded closure): closed. assert_conductor_binding asserts sorted(mapping) == CONDUCTOR_BINDING_KEYS unconditionally (1050); declarations_sha256 is checked against sha256 of the canonical declarations (1079).\n\n4 (P2, C2 receipts): closed. FILE_RECEIPT_KEYS and file_receipt (1199-1234) match ops/devlane/dispatch/CONTRACT.md:966-978 exactly, including reuse null-for-fresh and {attempt,receipt} for reuse with a strictly earlier attempt. OutputAttemptReceipts adds a fresh-production pass, a verified reuse pass, and foreign-dispatch, future-attempt and stale-digest refusals (3077-3208), the four cases that contract names as refusing outputs-custody.\n\n5 (P3, reserialization): closed and now discriminating. ExactShowDigest plants indented, key-shuffled stdout, proves planted, reserialized and rstripped are pairwise distinct (2927-2931), and binds the admission digest to the planted bytes only (2939-2945). The newline arm and the reserialization arm can now fail independently.\n\n6 (P3, Decision): closed. _decision requires the exact five-key set, id equality and binding equality (2756-2759); all eight Reason codes appear and are asserted as the closed set (2816-2830).\n\n7 (P3, coordinate class): closed as directed \u2014 board with an undeclared command key expects malformed-request (2840), and a separate case keeps the normalized forbidden wrapper at shell-escape (2843-2853).\n\n8 (P3, teardown and live store): closed. The environment restore and tmp cleanup are in finally (427-433); LIVE_STORE derives LANE_NAME from pinned ops/lane.conf (75-91), and a second guard watches the fixture lane's host store.\n\nchecked_at: closed. assert_policy_result requires ^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z on every outcome, with no offset and no fractional seconds (1099-1102).\n\nOpaque custody kept honestly: custody_sha256 is asserted only as 64 hex and folded into the whole-binding digest, which is what a test that cannot see the custody object can prove; trusted_context and bound_role key names stay declared inventions in the docstring. No oracle was weakened \u2014 every removed line has a stricter replacement. No implementation exists at the reviewed head, so nothing was accepted.\n\nOn the coordination positive I was asked to inspect: the \"cannot construct\" claim is half right. ops/conductor/CONTRACT.md:14-24 is the board owner's contract and does declare the verb surface; what is undeclared is the normalized JSON argument key, and the suite invents exactly that kind of key for read targets. Hence P3-1 and P3-2. I found no actual construction blocker and no invented API in this correction. This was a read-role review: I edited nothing, ran only the suite and ruff, and touched no live state, settings, admission record or vendor."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
