@@ -89,8 +89,8 @@ returns exactly `{argv, environment, reservations, capability, binding}` or a
 wire refusal. It is deterministic and performs no launch, write, model selection
 or grant derivation. `selection` uses startup's LaunchSelection (worker calls
 use their task-owned role/job declaration); `grants` is the verified policy/task result,
-never scope prose; `transport` holds verified executable/configuration, adapter
-manifest, canonical paths and, for resume only, the retained session binding.
+never scope prose; `transport` is the trusted compilation input frozen below,
+including the C2 owner's already verified evidence and retained resume identity.
 `operation` is launch or resume and must agree with the binding.
 
 - `argv`: exact nonempty string vector beginning with the admitted absolute
@@ -107,7 +107,8 @@ manifest, canonical paths and, for resume only, the retained session binding.
   startup canonical encoding. argv_sha256 hashes the complete final vector.
   invariant_sha256 hashes `{selection,grants,adapter,forwarded_tokens,mcp}`
   from verified transport, with adapter equal to the complete startup descriptor
-  adapter object, excluding only the operation-specific session segment.
+  adapter object for conduct (the C2 adapter projection for workers), and mcp
+  null for workers. The operation-specific session segment is excluded.
 
 On resume, compare invariant_sha256 to retained launch evidence and require a
 fresh matching resume witness. Recompile the entire vector and verify exact
@@ -118,6 +119,89 @@ produce identical bytes. Record both digests and the operation, not a false
 claim that launch and resume vectors are byte-identical. Relocation permitted
 by C2 rebinds canonical output paths through its custody checks; it cannot widen
 grants, change source anchors or bypass conductor stationary-binding checks.
+
+### Trusted compilation transport
+
+Construction completion under the supplied adapter-test ruling, following the
+relay declaration. This is a contract, not admission of a catalogue or harness.
+Canonical launch supplies an opaque, read-only in-process transport handle;
+an inherited read-only descriptor is decoded only by that admitted caller.
+There is no public dictionary-to-trusted-handle constructor, candidate path,
+environment selector or `trusted`/`verified` flag. A serialized matching claim
+cannot manufacture custody. The handle exposes exactly these members to compile:
+
+| member | exact content |
+|---|---|
+| executable | `{path:absolute-path,sha256:SHA256}`; admitted binary, server binary for relay |
+| configuration | `{environment:{name:string,...},settings:[{path:absolute-path,sha256:SHA256},...],mcp}`; closed non-secret environment; settings sorted unique by path, retained exact configuration leaves; mcp is startup's object for conduct, null for workers |
+| manifest | `{adapter,grammar,insertion:{launch:int,resume:int}}`; adapter is startup's unchanged six-field object for conduct, the C2 five-field projection for workers; grammar is adapter-argv/1 |
+| canonical_paths | `{cwd:absolute-path,out:absolute-path,reservations:[absolute-path,...]}`; sorted unique path reservations under existing C2 custody; non-path process/FD reservations remain in the relay specification; no output authority inferred from a location |
+| evidence | opaque C2 evidence handle described under [evidence custody](../devlane/dispatch/CONTRACT.md#compilation-evidence-custody); never a candidate witness object |
+| launch_session | `{launch_id,id:string\|null}`; canonical reserved dispatch id and launcher-minted harness session id, or null id when the harness creates it after launch; retained unchanged on resume |
+| resume | null on launch; otherwise `{parent_descriptor_sha256,session_binding_sha256:SHA256,session}` as defined below |
+| relay | null for ordinary CLI mechanisms; otherwise exactly the codex-relay/1 specification [below](#trusted-relay-transport) |
+
+Startup strict JSON/types/bounds apply to serializable members; integers exclude
+booleans. Opaque handles themselves are neither JSON nor digest input. Paths and
+bytes are held by the caller, outside candidate writes; compile may read and
+check held evidence but cannot resolve a new authority root or perform admission.
+Configuration settings contain no credentials. Authentication retains the
+existing separately held custody channel and never enters this view or result.
+
+Grammar digest hashes canonical manifest.grammar. Config digest hashes exactly
+`{configuration,insertion,relay}` with insertion from manifest and relay.resume
+set to null (relay itself null for other mechanisms). Settings byte digests and
+the relay's sealed config/registry/protocol digests are therefore included without
+hashing adapter.config_sha256 into itself. Adapter revision pins compiler/runtime
+closure; executable digest must equal executable.sha256. No per-model table is
+introduced: that compiler uses the supplied selection and granted operations.
+
+For each operation the pinned compiler first builds the complete trusted base
+argv, including its launcher-owned session segment, with no forwarded tokens.
+The measured insertion integer is the zero-based boundary in that base vector:
+`1 <= insertion[operation] <= len(base_argv)`. Return precisely
+`base_argv[:i] + forwarded_tokens + base_argv[i:]`. The measured boundary must
+not split an option/value pair or enter a positional/resume operand region.
+Its safety for that executable/version/operation is a mock/live obligation,
+not inferred from index validity. Configuration digest binds both indices;
+changing one requires renewed evidence. This adds no startup adapter field.
+The relay server base vector must equal relay.processes.server.argv, and its
+executable/environment/cwd must equal the common transport values. Other CLI
+base vectors come from the pinned compiler, not candidate-supplied templates.
+Initial CLI session flags consume launch_session.id when the measured mechanism
+requires a minted id; absence then refuses, never generates randomness inside
+compile. A non-null id obeys the session-id bounds below. A harness-created id
+is observed and retained by canonical launch after child creation, not invented
+at preflight. launch_session.launch_id must equal the caller's reserved/retained
+record id, and on resume session.launch_id must equal it too. A launcher-minted
+id must equal the observed session.id; no fallback to another session is allowed.
+
+`session` is a read-only retained binding with exactly
+`{launch_id,harness,id,invariant_sha256,connection,receipts}`. launch_id is the
+existing canonical dispatch id; harness equals selection.harness; id is the
+actual nonempty session identifier (printable ASCII, at most 128 bytes, further
+restricted by the measured harness syntax). It comes from the launcher-minted
+id checked against the observed session, or the observed server-created id;
+never from a digest, argv guess, latest-session search or a candidate locator.
+connection is null for workers, otherwise exactly
+`{client_sha256:SHA256,server_sha256:SHA256}` binding the retained actual-client
+connection evidence. receipts is a sorted unique-by-path array of retained
+`{path:relative-file,sha256:SHA256}` handles, empty when none exist. All resolve
+under the same evidence custody. session_binding_sha256 hashes this canonical
+session object. parent_descriptor_sha256 is the retained launch descriptor digest
+for conduct and null for workers; worker resume instead checks its retained
+canonical record/selection. Compare session.invariant_sha256 to the freshly
+compiled invariant and verify record id, prior session observation and connection
+custody before effects. No session token is added to startup's two-digest pair.
+
+Ordinary CLI resume renders session.id through its pinned operation-specific
+compiler; compare the entire expected vector, not merely unequal hashes. Relay
+resume uses that id as relay.resume.thread_id in the sealed thread/resume RPC,
+with identical session binding digest and receipts in both views. It adds no
+CLI resume flag to app-server or remote TUI. Their argv may equal launch argv;
+fresh resume witness and re-onboarding are still mandatory. The relay spec and
+common transport are two views of one held launch input; disagreement refuses,
+never a second executor, configuration source or session store.
 
 ## Safe argv grammar
 
@@ -217,7 +301,8 @@ UNREACHABLE describes a probe's inability to measure, not permission to run.
 
 For independent producers, `capability` above and a non-null live report
 `identity` use this exact closed object. This encodes C2's required tuple for
-conduct; it does not change worker output declarations or their admission.
+conduct; workers use the separate [C2 encoding](../devlane/dispatch/CONTRACT.md#worker-capability-identity-encoding)
+without changing shared output or source-isolation obligations.
 All keys are required. SHA256, ID, LaunchSelection and digest encoding come from
 startup. Text fields are nonempty printable ASCII, at most 128 bytes. Paths
 are verified absolute paths from trusted transport, not caller locators.
@@ -278,6 +363,53 @@ resume tokens. Existing dispatch admission cases remain the C1/C2 owners' duty.
 Live observation format and diagnostic bootstrap are owned by probes-lever.md;
 this contract does not create another witness authority or implementation.
 
+### Bounded independent test correction
+
+The independent Grok test owner corrects only adapter_test_support.py,
+test_adapter_argv.py and test_output_capability.py under the existing harness
+tests home, after checking original bytes against review
+`20260906T125857Z-review-claude-10edd9` at
+`d3ea314ba00456ed65751d3f9aa0381e000a58b0`. Preserve original tests/review history;
+unavailable originals must be reported, not reconstructed as verified quotations.
+Claude rechecks the corrected tests before implementation acceptance. This
+contract producer neither authors nor approves those tests.
+
+1. Replace fixture-selected transport keys with the closed view above, supplied
+   by a separately controlled synthetic launch/evidence counterparty. Keep its
+   admitted identity/root/clock outside mutable candidate fixtures. No production
+   authority constructor or candidate flag is requested. Put policy/admission
+   cases at the launch counterparty (dispatch test owner when integration is
+   required); compile tests check already-granted inputs and consistency only.
+2. Split valid rebound axis changes from required refusals. Compare invariant
+   digests only for successful compilations; never count a shared refusal marker
+   as a launch digest. Use each actor's encoding and real synthetic source-read
+   and write-denial observations for every positive, including empty outputs.
+3. Plant faulty evidence on an acceptance property with independent observations
+   and a fixed admitted handle. Add the self-consistent, merely relabelled clean
+   neighbor; do not demand magic detection after replacing the oracle too.
+4. Assert exact five-key result and three-key binding sets, the entire closed
+   environment and expected executable/vector. Test the measured insertion index
+   including a changed-index binding refusal, byte-for-byte contiguous forwarding,
+   and real retained resume id. Ordinary CLI expected resume vectors and the
+   relay's equal-argv/RPC thread resume need separate cases; digest inequality is
+   not universal. The relay grammar remains empty and is not the display fixture.
+5. Replace constant model-substring tests with a model containing that substring
+   and unchanged grants; spy on the actual subprocess seam with a positive
+   harness proving the spy fires, then assert compilation never reaches it.
+   Seed PATH/HOME/config/TMPDIR canaries and compare the full trusted environment,
+   including required entries, so an empty map cannot pass. Remove duplicate
+   assertions; retain rejected-secret checks over all declared observation sinks.
+6. Test 64/65-token and 8192/8193-total-byte bounds independently of repetitions,
+   token length and invalid vocabulary, using reviewed synthetic repeatable
+   grammars. Exercise per-token bounds separately. Vector-level refusals use
+   index zero; a vector with multiple defects cannot pin validation priority.
+
+Retain grammar forms, empty grammar, aliases/indirect overrides, G=D/A=D,
+transport/scratch separation, unsupported combinations and freshness boundary
+cases. Report exact checked tree/file hashes, control outcomes and red/green
+counts; absent implementation must fail assertions, not imports. These bounded
+instructions authorize no implementation, live capability or catalogue activation.
+
 ## Codex sole-client relay — declared mechanism
 
 Standing: contract-only, UNPROBED; no runtime admission. This resolves the supplied
@@ -317,8 +449,9 @@ grammar is `{"schema":"adapter-argv/1","options":[]}`. The earlier display
 example remains synthetic. Model/effort travel in sealed thread/turn settings,
 not an invented app-server CLI option or a default model table.
 
-Transport holds exactly `{schema,processes,endpoint,configuration,rpc,targets,
-deadlines,resume}` for its relay specification; schema is `codex-relay/1`.
+Common transport.relay holds exactly `{schema,processes,endpoint,configuration,
+rpc,targets,deadlines,resume}`; schema is `codex-relay/1`. This nested relay
+specification is not an alternative top-level compile transport.
 Startup strict JSON/canonical encoding applies; every object is closed and every
 listed key required. This specification is passed by trusted in-process handle
 or inherited read-only descriptor. No path/env toggle supplied by the TUI,
@@ -352,13 +485,16 @@ reaps all descendants within shutdown_ms; surviving descendants prevent success.
 Raw server/TUI stderr is drained under a bound and filtered, never copied to lane
 logs. Relay health/control events carry fixed codes, no raw frames.
 
-The existing adapter.config_sha256 binds the canonical relay specification with
-resume set to null, server/TUI config byte digests, registry and protocol digests;
-adapter.revision binds relay/runtime code. No new descriptor/capability fields
+The existing adapter.config_sha256 uses the common transport digest recipe above,
+including the canonical relay specification with resume set to null, server/TUI
+config byte digests, registry and protocol digests; common settings must include
+the same server/TUI leaves and hashes. adapter.revision binds relay/runtime code.
+No new conductor descriptor/capability fields
 are added. Both process vectors therefore enter invariant_sha256 through the
 existing adapter object, while argv_sha256 continues to hash the app-server vector
 alone. Resolve paths and compare all held bytes before creating reservations.
-The resume segment is separately covered by startup's session binding digest;
+The resume segment is separately covered by startup's session binding digest
+over the retained session object declared above;
 it cannot change the invariant or select another thread. Reservations include
 socket, pipes/control handles, sealed configs, credential mount, private vendor
 history and existing receipts, disjoint from source/model output grants. They
