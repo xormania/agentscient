@@ -6,6 +6,12 @@ state directory, its own records, its own register. Nothing here shares
 a file or a store with the House; the contracts and the instruments
 crossed, the House's records did not.
 
+Read [the lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
+and [ops/README.md](../README.md#lane-boundary-and-precedence) before using
+these instruments or records. Conductor apparatus is independent dev tooling;
+the prod application is not its replacement. Historical proposals served
+through onboarding retain provenance but cannot govern against that boundary.
+
 ## What lives here
 
 | path | holds |

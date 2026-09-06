@@ -409,6 +409,18 @@ every completed attempt commits the updated record.
 
 ### Lane
 
+Current ownership and precedence are defined by
+[AGENTS.md §Lane boundary and precedence](../../../AGENTS.md#lane-boundary-and-precedence)
+and [ops/README.md](../../README.md#lane-boundary-and-precedence).
+The launcher is dev tooling and must operate without the Symfony application
+or its vendor directory. Its work profile is independent of harness and
+conductor/worker role; using it to dispatch prod application work does not
+change its ownership or retire it in favor of an application launcher.
+The legacy `lane: "dev"` and `WF_LANE=dev` below describe the apparatus,
+not a classification of every job's authorized work. Briefs, resumed jobs
+and accepted artifacts remain subject to the current boundary; this
+documentation correction adds no profile field or enforcement mechanism.
+
 Everything here is dev-lane: the launcher code under
 `ops/devlane/dispatch/` (over the task app's `run.py`), the records
 under `.dev/records/`, `lane: "dev"` in every record,

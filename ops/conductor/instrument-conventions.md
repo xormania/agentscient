@@ -1,5 +1,13 @@
 # Instrument conventions — the lane's base contract
 
+Scope: dev tooling, governed by
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence).
+These instruments operate independently of the Symfony application and
+its vendor directory. Shared wire and provenance remain binding; the
+application's four projections do not prescribe these tools' runtime or
+retirement. The 2026-09-05 owner correction overrides conflicting older
+stack, migration and planning records, including when served by onboarding.
+
 Standing: PROPOSED (D-LAW-8). Source of demand: the same conventions
 were retyped from recall into three instrument contracts in one night
 (register, ledger, watch) and the third retyping dropped a clause — the
