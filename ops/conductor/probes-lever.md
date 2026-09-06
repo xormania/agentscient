@@ -152,7 +152,8 @@ For the read-only `probes.py` run/ask/grade verbs: 0 — every row PASS
 UNREACHABLE rows. 2 (Rejection) — the refusal wire says why. These verbs do not
 produce Abort: row commands run under bounded timeouts, and a row that exceeds
 one is UNREACHABLE on its line, not a hang. The separate conduct live diagnostic
-exits, including supervision Abort (3), are defined in [Live observation format](#live-observation-format).
+exits, including supervision Abort (3), are defined in
+[Live observation format](#live-observation-format).
 
 ## Conformance and lint
 
@@ -292,8 +293,14 @@ and event digests allow mechanical regrading, not reliance on model prose.
 Report exit 0 requires every requested arm PASS, matching verified identities
 and cleanup complete. A completed report exits 1 when any row is FAIL or
 UNREACHABLE, or cleanup is `failed` or `unreachable`, including all-PASS rows
-with unobservable cleanup. Cleanup unreachable remains unavailable evidence,
-not an observed failure.
+with unobservable cleanup, or any required identity is null, unavailable,
+unverified or mismatched. This includes descriptor/apparatus bindings and the
+complete capability tuple. Every completed report outside the exit-0 predicate
+exits 1, including identity loss or mismatch discovered after the arms ran.
+Unavailable identity or cleanup remains unavailable evidence, not an observed
+failure; preserve the PASS/FAIL/UNREACHABLE case counts and retained identity
+evidence without fabricating a failed arm. Exit 1 reports non-admissibility;
+it does not convert missing evidence into an observed violation.
 Malformed diagnostic arguments/untrusted bootstrap transport refuse pre-act with
 exit 2 and empty stdout; use `conduct-diagnostic` and fixed expected/found/needed
 with the independent doctor as remedy. A supervision abort retains partial
@@ -326,8 +333,9 @@ freshness predicate (including optional configured age bound and equality at its
 limit) remains owned by dispatch; launch evidence cannot stand for resume.
 
 A schema/example construction recipe: choose the synthetic LaunchSelection in
-[startup](conductor-start-plan.md#trusted-conductor-launch-descriptor), requested case COND-HAND-N1 with expected refuse, and
-ordered request/attempted, decision/refuse, tool/blocked, effect/none,
+[startup](conductor-start-plan.md#trusted-conductor-launch-descriptor),
+requested case COND-HAND-N1 with expected refuse, and ordered
+request/attempted, decision/refuse, tool/blocked, effect/none,
 prompt/none, complete/succeeded events backed by fixture handles. With matching
 identities and complete cleanup, its Case has result PASS, reason null and
 counts `{pass:1,fail:0,unreachable:0}`. This recipe is synthetic and must be

@@ -356,13 +356,241 @@ Failure preserves diagnostic artifacts and marks policy non-acceptance without
 publishing an accepted ref. A worker's `status: ok`, `verdict: approve`, exit 0,
 or `collect --verify` success cannot override this gate or the existing gates.
 
+## Startup coupling declarations — adoption unit 1a
+
+This completes only the pending documentary edges from adoption review
+`20260906T102712Z-plan-codex-bc6012`. The evaluator remains the future stdlib
+library named below. No policy admission, runtime, test, registry, host grant
+or state change follows from these declarations. C1/C2 and the accepted
+policy binding above retain their schemas and owners. In particular the
+existing optional `brief.policy` structural validator is not replaced.
+
+### Trusted binding input and declaration transport
+
+`bind_launch(trusted_context, declarations)` returns a verified bound context
+or an owning refusal. `check_transition(binding, candidate_evidence, transition)`
+returns the PolicyResult below. These are in-process library calls, no CLI.
+Dispatch owns acquisition, retention and record serialization; task supplies
+[validated declarations](../devlane/task/CONTRACT.md#unit1a-declaration-transport).
+Policy consumes values, never imports task/harness code, invokes a worker,
+loads candidate files as authority or creates a second declaration registry.
+
+`trusted_context` holds the previously admitted custody anchor, reader/runtime
+closure and exact register evidence defined above; canonical repository and
+job-root handles; reserved DispatchID, job, stage, snapshot ref and frozen
+lineage; explicit selection and its provenance; and retained parent binding
+on resume. It comes from the admitted invoking consumer through a direct
+argument or inherited read-only descriptor, never a worker/MCP parameter,
+caller-chosen file, environment variable or scope prose. A digest checks held
+bytes for equality; it cannot prove their origin. Read authority using the old
+admitted consumer/reader before considering candidate changes. No source or
+self-consistent payload can replace that custody anchor.
+
+The declaration transport is the task-owned closed `LaunchDeclarations` object.
+Its worker selection is `TaskSelection`; conductor startup retains the distinct
+[LaunchSelection](conductor-start-plan.md#trusted-conductor-launch-descriptor),
+with conductor role and null job_role, never a fabricated worker job. Profile
+resolution follows the existing explicit/declaration/default rule above; before
+binding, resolve one profile and require every supplied selection to agree.
+Missing required model, unsupported effort, conflicting role/job_role or harness
+refuses under its owning selection contract. Neither infrastructure lane nor
+harness implies profile or model. Required profile ids must be representable by
+all participating interfaces; incompatible configuration refuses, never truncates.
+
+Task/dispatch retain exact source bytes, source refs and digests for selection,
+requested scope, job/role/adapter/output grants and transport reservations.
+Candidate catalogue edits, brief inputs, output handles and model prose grant
+nothing. Sources are verified against the old admitted declaration closure,
+not merely a path in a trusted-looking directory. Hold the consumed values and
+bytes in memory until admission, then retain them outside worker writes beside
+the existing record. Resume reuses the original declaration and sources; a new
+catalogue never widens its grant. All subsequent transitions rederive the binding
+and demand stationary source identities and live register digests.
+
+For `grants_sha256`, normalize exactly
+`{scope,job,role,adapter,outputs,maintenance}`. The first five values are closed
+`{repository:[path,...],outputs:[relative-output-path,...]}` sets. Repository
+paths use this policy's exact/prefix grammar; output paths use C2 leaf/subtree
+semantics from the validated declarations. Each list is sorted and unique;
+`outputs.repository` is empty. `maintenance` is the sorted unique union of
+verified maintenance paths actually consumed. Missing grant terms are empty,
+never profile ceilings. This object is the consumed grant input, not a union
+of effective permissions: apply both existing intersection formulas and C2's
+G=D and A=D requirements. `outputs` omission normalizes to empty lists.
+Hash UTF-8 JSON with sorted keys, ASCII escaping, compact separators and no
+newline. This fixes the byte encoding of the existing grants receipt without
+adding keys to `brief.policy`; retain the declarations and sources alongside
+it for rederivation. The selected profile and full binding are held separately.
+
+`bind_launch` returns a trusted handle containing these normalized grants,
+verified sources, effective grants and the unchanged `brief.policy` for a
+worker. It also binds selection, dispatch/job/lineage and canonical roots.
+Conductor binding covers the same policy/source/grant duties in its trusted
+context; its descriptor's policy_binding_sha256 hashes that canonical bound
+context without runtime handles or secrets. The consumer retains those exact
+serialized bytes and verifies their custody; matching a digest is insufficient.
+Neither tool nor worker may construct the handle from a claimed receipt.
+
+### Candidate evidence and PolicyResult
+
+All newly serialized objects here are closed strict UTF-8 JSON with all listed
+keys required, including nullable keys. Reject duplicate/unknown/missing keys,
+non-finite numbers and wrong types (bool is not integer). Digests are lowercase
+64-hex; Git ids use the repository object format; time is UTC
+`YYYY-MM-DDTHH:MM:SSZ`. Canonical JSON follows the grants encoding above; file
+and register digests still hash exact bytes. No raw secrets enter receipts.
+Evidence handles are exactly `{path,sha256}`, with a verified job-relative leaf
+beneath existing launcher-owned transport, outside worker writes and declared
+outputs; hash exact retained bytes. A handle conveys no authority to read a
+caller-selected path. Verify custody, type, containment and digest on consumption.
+
+`candidate_evidence` is exactly `{snapshot_ref,head,artifacts,dependencies,outputs}`:
+the refs identify the checked source and candidate; artifacts and dependencies
+are held manifest values before admission, retained with handles afterward;
+outputs is the dispatch-owned [attempt receipt](../devlane/dispatch/CONTRACT.md#unit1a-attempt-and-result-transport).
+Before launch its attempt is null and files is empty: no output attempt exists.
+Missing or unavailable evidence is explicit, never a successful empty manifest.
+
+ArtifactManifest is exactly `{snapshot_ref,head,entries}`. An entry is exactly
+`{layer,status,before,after}`; layer is `committed,index,worktree,output` and
+status is `A,M,D,T,R,C,?,!`. Each endpoint is null or exactly
+`{path_b64,mode,sha256}`. path_b64 is canonical padded base64 of raw relative
+path bytes in that layer's namespace (repository or canonical output root).
+Modes are Git mode strings `100644,100755,120000`; hash file content or symlink
+target bytes without following it. Unsupported types/modes or paths that cannot
+round-trip refuse `lane-artifact`, never disappear. A/?/! have only after, D
+only before, M/T both with equal paths, R/C both with distinct paths. Sort entries
+uniquely by layer, decoded before path, decoded after path, status (null first).
+Measure snapshot-to-HEAD, HEAD-to-index, index-to-worktree and all declared
+external outputs, including ignored/untracked residuals, binary content, modes,
+deletions and both rename/copy endpoints. Keep only the existing cache exemptions.
+Check lexical and resolved paths under the existing policy/custody rules;
+output symlinks refuse C2 even when their bytes can be represented in a manifest.
+At launch inspect the selected Git tree before snapshot creation; an empty delta
+has entries empty explicitly, not unavailable inspection. At every later check
+include the actual candidate and residual layers; a changed layer voids evidence.
+
+DependencyEvidence is exactly
+`{snapshot_ref,head,artifacts_sha256,producer,coverage,edges,unresolved,unavailable}`.
+Refs equal ArtifactManifest's refs; artifacts_sha256 hashes its canonical bytes.
+producer is a verified Git DeclarationSource naming the admitted analyzer,
+using the task source shape with component `dependencies`. coverage is a sorted
+unique array of inspected repository paths under policy path rules. Edge is
+exactly `{source_b64,kind,target_space,target_root}`; source_b64 uses the manifest
+path encoding, kind is `import,autoload,subprocess,service`, target_space is
+`repository` or `host`. A repository target_root follows policy path rules;
+a host target_root is a verified canonical absolute root from an existing
+external coupling, not a new host grant. Resolve application services to their
+application source roots. An unresolved row is exactly `{source_b64,kind,reason}`,
+with a nonempty reason. Sort edge/unresolved arrays uniquely by canonical JSON.
+unavailable is null or a nonempty explanation of unavailable analysis.
+
+Dispatch acquires evidence from the admitted analyzer, not worker assertions.
+Required coverage comes from the held job/runtime declarations, requested source
+scope and resolved transitive targets; it cannot be reduced by the candidate's
+coverage claim. Measured empty edges requires explicit complete coverage,
+edges/unresolved empty and unavailable null. Unresolved edges, unavailable
+analysis or missing required coverage refuse `lane-dependency`; any forbidden
+resolved edge also refuses. Analyze before launch using the selected source,
+and remeasure the exact candidate plus residual artifacts before each acceptance.
+Static evidence still cannot prove arbitrary dynamic closure: independent
+coupling and active-instruction review remain required, with no Symfony runtime
+dependency for dev tooling. Evidence availability is never inferred from silence.
+
+PolicyResult is exactly
+`{binding,snapshot_ref,head,artifacts,dependencies,outputs,checked_at,outcome,refusal}`.
+binding equals the entire unchanged `brief.policy`; refs equal the checked
+candidate; artifacts/dependencies/outputs are verified retained handles, or null
+only on refusal when the corresponding evidence could not be obtained. outcome
+is `pass` or `refused`. refusal is null on pass, otherwise the full single-line
+owning expected/found/needed refusal. A pass requires all handles, matching
+refs/digests, complete evidence and the independently recomputed binding.
+The launcher serializes this value as `result.policy`; the worker envelope has
+no policy field and cannot supply it. Keep prior transition/attempt receipts
+outside worker writes; updating the current result pointer never overwrites
+past evidence. An unavailable receipt is non-acceptance, not an empty success.
+
+`transition` is one of `launch,settle,resume,collect-before,collect-after,land,ladder`.
+The existing transition table supplies each timing obligation, including full
+settlement after write-resume. At launch return held evidence and the prospective
+receipt in memory: its handles designate held exact bytes and reserved relative
+names, not existing files. Persist and verify those bytes only after successful
+preflight, before the child. Until then this prospective value is not a retained
+acceptance receipt and no consumer may treat its handles as readable evidence.
+At settlement, check before automatic commit and remeasure the resulting head
+before ref publication; a changed head cannot inherit the pre-commit receipt.
+Collect checks both sides of verification and again after any commit before
+ref/marker publication. Land/ladder independently recompute against the exact
+fetched head and lineage; they do not rewrite the dispatch's old result receipt.
+A refused collect preserves its existing record/ref/precondition guarantees and
+retains a separate refused diagnostic receipt in existing launcher transport.
+
+### Pre-effect rejection and late refusal
+
+Fresh launch reserves the canonical id in memory before job-bound authority
+checks, as [dispatch specifies](../devlane/dispatch/CONTRACT.md#unit1a-pre-effect-admission).
+No attempt, snapshot, prompt, record, output leaf, home or session is created
+before successful admission. Resume refusal likewise precedes marker/store/cap/
+attempt mutations. A pre-act lane rejection returns exit 2, empty stdout and
+one refusal line on stderr. Suppress launch acknowledgements until admission.
+
+After launch preparation, an attempt or verification has acted, failure of a
+required policy check
+is a late refusal: record the same refusal line in a refused PolicyResult,
+retain partial evidence and the last reading, and stop acceptance with Abort
+exit 3. Do not promise to erase already emitted stdout or report a prelaunch
+rejection. A completed worker result becomes invalid with null verdict and a
+note naming the refusal; an existing tripped result stays tripped and cannot
+approve. No automatic commit, accepted ref, collected marker or ladder advance
+follows a refused check. Durable diagnostics do not make the result accepted.
+Detached acknowledgement certifies only admitted launch; its later outcome is
+read from the canonical record. Existing unrelated dispatch/C2 exits are outside
+this clarification. No override or permission prompt repairs a lane refusal.
+
+### Conductor tool counterpart
+
+`evaluate_tool(bound_role, normalized_request)` is owned by the same future
+`ops/conductor/tools/lane_policy.py` library. It consumes exactly Request and
+returns exactly Decision from
+[permission-surface.md](permission-surface.md#normalized-conductor-tool-interface),
+including conductor-tool/1, conductor-decision/1, all tagged target/arguments
+schemas, fixed Reason codes, nullable refusal and exact id/binding equality.
+Those shapes have one owner; do not fork them or add a second evaluator.
+bound_role is the verified descriptor/policy/tool-declaration handle supplied
+by trusted startup, never a model-selected role. Validate current binding,
+source custody and the target's closed schema/effect contract before deciding.
+
+Permit admitted custody-scoped reads, read-only MCP, authorized coordination and
+canonical dispatch/go/ladder delegation. Reads require no WF_AGENT or fresh
+owner grant; an unavailable source is an unavailable reading. Coordination
+writes retain the existing lever authorization and owner-requested handoff/AAR
+boundary. Refuse implementation edits, Git mutations, shell/interpreter escapes,
+raw vendor execution and in-session agents before effects. A matching command
+substring or claimed classification grants nothing. The pinned normalizer must
+resolve actual native/executable identity; adapters enforce only an exact,
+current, once-consumed decision, blocking on missing/malformed/late/replayed
+responses without prompts or weaker retries. This is the policy counterpart of
+the existing tool contract, not MCP action authority. The independent read-only
+doctor remains usable without this evaluator, startup or a vendor session.
+
+Unit1a's independent construction cases cover transport/source substitution,
+selection axes/defaults, absent versus explicit empty grants, in-memory id and
+collision timing, job-bound evidence mismatch, complete-empty versus unavailable
+dependencies, ignored/binary/rename artifacts, output production/reuse across
+attempts, forged/stale result.policy, every transition and late refusal. Preserve
+P1–P5, N1–N10, R1–R5 and I1, plus permission-surface's tool cases. Synthetic
+schema/examples and link checks only establish documentary consistency; separate
+producers still own executable tests, verified mocks and their approval. Complete
+activation and per-harness live evidence remain the existing requirements below.
+
 ## Refusals and containment limits
 
-The new classes use [the wire](../../docs/wire.md#the-refusal-wire): exit 2,
-empty stdout, one stderr line per refusal, with nonempty expected/found/needed.
+Before effects, the new classes use [the wire](../../docs/wire.md#the-refusal-wire):
+exit 2, empty stdout, one stderr line with nonempty expected/found/needed.
 These classes are not overridable. Existing unrelated dispatch refusal exits
-are outside this change. A late policy failure also records invalid/non-acceptance
-on the durable result; it is not disguised as a pre-launch failure.
+are outside this change. After effects, the
+[late refusal rule](#pre-effect-rejection-and-late-refusal) returns Abort 3 and
+records invalid/non-acceptance on the durable result, preserving prior partials.
 
 | class | condition |
 |:--|:--|

@@ -447,6 +447,128 @@ write-job commit transport and the narrow inline exception, catalogue/prompt
 alignment, independently authored tests and fresh capability proof. These
 are later dependencies, not effects of this two-file contract.
 
+## Unit1a declaration transport
+
+Adoption unit 1a freezes task's side of the
+[policy binding input](../../conductor/lane-policy.md#trusted-binding-input-and-declaration-transport).
+This is a consumption format, not a new jobs schema, registry, CLI flag or
+runtime permission. Task validates job declarations and envelope semantics;
+dispatch acquires trusted sources, resolves paths and owns attempt custody.
+Task imports neither dispatch/harness nor the policy implementation.
+
+`LaunchDeclarations` is exactly
+`{selection,requested_scope,job_grants,role_grants,adapter_grants,outputs,reservations,sources}`.
+All keys are required. Use the policy coupling's strict JSON and canonical
+encoding rules; provenance comes from held trusted inputs, never from passing
+schema validation alone. Dispatch provides adapter grants/reservations from
+admitted harness declarations; task validates the complete output declaration
+and its collisions without loading or selecting an adapter implementation.
+
+`selection` is `TaskSelection`, exactly
+`{harness,model,effort,role,job_role,profile}`. role is literal `worker`, job_role
+is `read` or `write` equal to the trusted job role, effort is null or nonempty
+printable ASCII, and model is explicit nonempty printable ASCII; model/effort
+are at most 128 bytes. harness is a discovery ID; profile is null only while
+resolving absence under the policy selection/default rule, otherwise a valid
+policy profile id. Before binding it must be the resolved nonempty profile.
+Conductor uses startup's separate LaunchSelection with role conductor and
+job_role null; no job declaration infers conductor authority. Requested and
+observed model fields retain their distinct existing owners.
+
+`requested_scope`, `job_grants`, `role_grants` and `adapter_grants` each have
+exactly `{repository,outputs}`, sorted unique arrays of paths. Repository paths
+use policy's exact/prefix rules. Output paths are names beneath canonical job
+out, using C2's relative path grammar; kind/operations come only from the matching
+validated C2 declarations and admitted adapter witness. A file name means one
+leaf and a scratch name that exact subtree, never their parents. Scope expresses
+an explicit trusted request, not permission by itself. `--scope` and scope-file
+prose remain brief content and cannot populate these structured grant sets.
+`context.include` is visibility, not requested write authority. Role read always
+has an empty repository grant; outputs do not relax snapshot immutability.
+Absent source grant terms normalize to empty arrays with absence recorded in
+sources; explicit empty terms also grant nothing and retain their measured source.
+
+`outputs` is precisely the validated C2 array, omission expanded to `[]` while
+preserving declaration order. `reservations` is the sorted unique list of
+C2-grammar relative paths reserved for launcher/adapter transport under out;
+include last-message.json, COMMIT_MSG and every actual additional reservation.
+Missing/unavailable reservation analysis refuses, never normalizes to an empty
+successful list. Scratch is not a transport reservation. No source/role/profile
+or envelope handle creates an undeclared output operation.
+
+`sources` is a sorted unique array of DeclarationSource, exactly
+`{component,kind,path,ref,sha256}`. component is one of
+`selection,scope,job,role,adapter,outputs,reservations,dependencies`. kind is
+`git`, `invocation` or `absent`. For git, path is an admitted repository-relative
+source leaf, ref its full Git id, and sha256 hashes exact blob bytes. For
+invocation, path is the component token, ref null, and sha256 hashes the exact
+retained canonical structured input received through the trusted caller.
+For absent, path/ref/sha256 are all null and that component supplies no grant.
+All non-null digests are lowercase 64-hex. Sort uniquely by component, kind,
+path, ref (null first). Duplicate source identities or conflicting sources refuse.
+Every component except dependencies must have source coverage; dependencies
+names its admitted analyzer when carried in policy's separate evidence object.
+A component may cite multiple verified Git sources for its closure. Selection,
+job, role, adapter and reservations need available verified sources before
+admission; absent scope or outputs can supply only empty grants. The outputs
+component may cite the catalogue whose measured omission yields `[]`, keeping
+that observation distinct from an unavailable catalogue.
+
+Dispatch verifies Git sources against the old admitted declaration closure and
+retains invocation bytes under caller custody; a model-created matching digest,
+current mutable checkout or candidate input is insufficient. `brief.template.sha256`
+still hashes the trusted template source and must equal brief.policy's
+existing template_sha256. Source receipts are retained with the normalized grants
+and exact original output array outside worker writes; no extra brief.policy
+key is introduced. Independent producers can construct policy mocks from this
+shape without task importing the consumer.
+
+A synthetic declaration fragment illustrates requested scope, not authorization:
+
+```json
+{"repository":[],"outputs":["SKEPTIC.md","tmp"]}
+```
+
+For C2's existing check-tests array this requests its file leaf and scratch
+subtree. If role/adapter grants and the profile allow both, admission still
+requires G=D, actual A=D, verified source isolation and fresh capability evidence.
+If any term is absent, there is no partial grant or silent removal of scratch.
+The same values on a renamed job have identical meaning. Empty repository and
+output arrays on a read job can support stdout-only envelope transport under
+its existing authority; they do not authorize an out file.
+
+### Attempt outputs and result acceptance
+
+Task keeps C2's exact decoded artifact-key/path equality, nonempty file demand,
+counts and status/verdict validation. Dispatch supplies the trusted current
+attempt plus declared destination and prior-receipt identity to filesystem
+acceptance; a worker-provided attempt number cannot establish custody.
+The [dispatch attempt transport](../dispatch/CONTRACT.md#unit1a-attempt-and-result-transport)
+retains file bytes/digests and separates fresh production from explicit reuse.
+A reuse request travels through an inherited launcher-owned per-attempt input,
+not a new envelope member or a guessed reference to a leftover file. It names
+an exact prior receipt and is verified before being accepted; it grants nothing.
+
+Policy results are launcher-owned result.policy, never task envelope members.
+Task's semantic validator remains the single authority; the launcher additionally
+checks custody and policy before accepting a semantically valid envelope.
+Missing, stale or refused policy evidence prevents acceptance despite ok/approve
+or exit zero. Pre-act refusals keep the existing envelope absent. After effects,
+the launcher retains the worker's original response and partial evidence,
+serializes the owning refusal under policy's late Abort rule, and emits invalid
+with null verdict and a reason in note; an existing tripped outcome remains
+tripped, never approve. No independent findings/counts are silently repaired.
+The existing optional write-job commit transport and narrow inline planning
+exception retain their current authority and later integration requirements.
+No report, scratch, reuse request or policy receipt widens either exception.
+
+Independent construction cases pair trusted versus forged sources, prose versus
+structured scope, omitted/empty/unavailable grants, selection conflicts and
+renamed jobs, transport collisions, fresh output versus leftover bytes, verified
+reuse versus stale/foreign-attempt receipts, and invalid/tripped late outcomes.
+These are documentary acceptance duties; this unit authors no executable tests
+and admits no current job or adapter capability.
+
 ## Dispatch ownership
 
 Target: [dispatch](../dispatch/CONTRACT.md) consumes task's jobs and envelope

@@ -87,10 +87,10 @@ it may have zero following tokens. No conduct positional is parsed after it.
 Forwarding is admitted on all four forms. Unprofiled test validates the same
 vector for every enumerated profile before any diagnostic effects; a rejection
 in any profile refuses the invocation. Tokens after the first `--` must satisfy
-the adapter
-[closed safe grammar](harness-capabilities.md#safe-argv-grammar). Accepted tokens
-are forwarded exactly, in order; rejected tokens never reach launch records. `test` exercises live harness enforcement; a profile
-before `test` narrows that diagnostic. The command stays thin: policy,
+the adapter [closed safe grammar](harness-capabilities.md#safe-argv-grammar). Accepted tokens
+are forwarded exactly, in order; rejected tokens never reach launch records.
+`test` exercises live harness enforcement; a profile before `test` narrows
+that diagnostic. The command stays thin: policy,
 workflow, diagnostics, and evidence ownership are declared outside
 harness CLI syntax.
 

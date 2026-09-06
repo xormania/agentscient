@@ -205,8 +205,9 @@ destinations available. A leftover report alone cannot satisfy completion.
 Reuse must be explicitly named by the current attempt, checked against the
 trusted prior artifact/digest, rechecked for present type/containment/links,
 and recorded as reuse from that prior attempt; otherwise require fresh
-production. Exact record/reuse transport integration is later work owned
-by `record.py` and launch, with task envelope semantics retained.
+production. The exact record/reuse transport is declared in
+[unit1a](#unit1a-attempt-and-result-transport); its implementation remains later
+work owned by record.py and launch, with task envelope semantics retained.
 
 Keep read-role HEAD/residual settlement in addition to output acceptance.
 The current Git/cache exclusions below do not establish byte-for-byte
@@ -805,6 +806,154 @@ a ladder; continuing it requires a fresh bound dispatch with retained provenance
 Partial deployment is not activation. This section is a contract/data proposal,
 not a live gate or stronger harness containment claim; executable consumers and
 independent tests follow. Existing unrelated dispatch behavior remains as above.
+
+### Unit1a pre-effect admission
+
+Adoption unit 1a completes this declaration through task's
+[LaunchDeclarations](../task/CONTRACT.md#unit1a-declaration-transport) and policy's
+[bind_launch/check_transition](../../conductor/lane-policy.md#trusted-binding-input-and-declaration-transport).
+Dispatch/go/ladder transfer the same trusted structured selection, requested
+scope, declarations and source bytes to the canonical service, by direct
+in-process arguments or an inherited read-only descriptor from the admitted
+consumer. No new public flags, scope-prose parser or environment policy switch
+is introduced here. Candidate launcher pins/config/imports cannot substitute
+for the admitted consumer. Task stays a declaration/semantic provider; policy
+stays a consume-only stdlib dependency of dispatch, with no reverse import.
+These are target couplings, not claims of current runtime wiring.
+
+Resolve explicit model/effort, harness, worker/job role, profile selection,
+source ref and actual lineage first; retain their configuration provenance.
+The admitted caller freezes the lineage branch and full base_sha for the job;
+recheck that tip before creating durable launch state. Resolve policy's default
+only when both explicit and structured profile selections are absent. Empty,
+unknown or conflicting values refuse, never fall back or infer from record.lane.
+Conductor startup uses its separately declared LaunchSelection and the same
+canonical DispatchID reservation duty, without inventing a worker job binding.
+
+The existing `mint_id(stage,harness)` helper supplies the canonical
+`<UTC stamp>-<stage>-<harness>-<6 hex>` value in memory, before validating per-job
+maintenance evidence. A trusted caller may reserve it first to obtain job-bound
+evidence and pass that exact value through the held context; validate real UTC,
+stage/harness equality, six lowercase hex characters and the entire spelling.
+No separate reservation verb, record, lock file, ref or store is created.
+Omission mints once; a supplied id is never silently reminted. Per-job evidence
+must match this id, job and frozen lineage; standing coverage is derived from
+unchanged existing authorization without a fresh owner act.
+
+Before any filesystem/attempt effects, verify old authority and reader custody,
+selection, task declarations and source digests, structured scope, job/role/
+adapter/output intersections, known dependency evidence and current capability
+witnesses. Hold canonical prospective paths and manifests in memory; inspect
+existing ancestors without creating them. Validate task transport collisions
+and C2 path/handle representability. No snapshot, prompt, record, output leaf,
+home, marker, session, attempt entry or child may be minted during these checks.
+This ordering resolves job-bound evidence without permitting speculative state.
+
+Check existing job-directory, record-path and dispatch-ref collisions. After
+all preflight checks pass, atomically claim the canonical job directory for the
+reserved id using the existing launcher owner; a collision refuses lane-policy
+before an attempt and never reuses another job's state. Recheck held authority,
+lineage and path custody at the claim boundary. In-memory reservation alone is
+not a cross-process lock. A racing collision on another destination stops this
+launch, preserves others' bytes and retains only its own post-claim diagnostics
+under the late-failure rule; it cannot overwrite a record/ref or retry with a
+new id. Prepare admitted transport and publish the admitted launch acknowledgement
+only after the checks succeed. No read-only status/doctor path requires admission.
+
+Resume revalidates the original id, binding, sources, declarations, roots,
+artifact/dependency evidence and a fresh operation-specific capability witness
+before clearing markers, altering caps/attempt count, restoring stores or making
+output destinations writable. Relocation rebinds relative output names under
+the verified current job root using C2 custody; it never widens declarations or
+changes selection. Failure preserves prior attempt history and receipts. Legacy
+unbound records remain readable and require a fresh admitted dispatch to continue.
+
+### Unit1a attempt and result transport
+
+`record.py` owns record shape/serialization; launch alone produces trusted
+receipts, using task's unchanged semantic acceptance. Preserve existing
+brief.policy and template digest fields. Retain normalized consumed grants,
+source bytes/refs/digests and the original declaration array beside the canonical
+record in existing launcher transport, outside snapshot and worker-writable out.
+Retained handles use policy's exact `{path,sha256}` encoding and custody rules;
+locations alone cannot establish trusted provenance. No new state namespace,
+registry or worker-writable authority file is introduced.
+
+OutputAttempt is exactly `{dispatch,attempt,files}`. dispatch equals the reserved
+canonical id; attempt is null before launch and otherwise the positive existing
+`attempts[].n`; files is empty before an attempt exists. Each file receipt is
+exactly `{artifact,path,sha256,bytes,production,reuse,evidence}`. artifact and path
+match the original C2 file declaration (path is relative to canonical out),
+sha256 hashes exact accepted file bytes, bytes is a positive integer, production
+is `fresh` or `reuse`, reuse is null for fresh or exactly `{attempt,receipt}` for
+reuse, with a strictly earlier positive attempt and a digest-backed prior receipt
+handle. evidence is a nonempty array of verified retained handles proving current
+production or checked reuse. Files retain declaration order and unique artifact/
+path identities; accepted completion requires every declared file exactly once.
+Scratch creates no report entry and is not automatically published. A refused
+result may retain the subset actually verified, explicitly non-accepting.
+
+A current attempt's explicit reuse input is exactly
+`{dispatch,attempt,files:[{artifact,path,from_attempt,receipt},...]}`. It is supplied
+through the same trusted per-attempt transport, with unique declared artifact/
+path pairs and from_attempt strictly less than attempt; omission means no reuse.
+It identifies intention only, never a grant or custody proof. No envelope field
+is added. The trusted caller can relay a reuse request but cannot turn a model's
+claimed receipt into launcher-owned evidence. Dispatch verifies the retained
+prior receipt, dispatch id, declaration, prior bytes/digest and current destination
+type/containment/links; it records reuse only if all match. Foreign jobs, future
+attempts, stale digests and unverified leftovers refuse outputs-custody.
+
+After child writes stop, accept outputs under C2. Before a subsequent admitted
+attempt can access destinations, retain previous report bytes and their complete
+receipts/digests outside worker writes. Fresh production needs launcher-observed
+current-attempt evidence; matching old bytes or mtime alone is insufficient.
+An unchanged prior report satisfies completion only through explicit verified
+reuse. Recheck exact decoded envelope handles and read-role HEAD/residuals in
+addition to output custody. Keep original response bytes and all earlier attempt
+receipts; do not overwrite history to turn a failed attempt into a pass.
+
+`result.policy` is exactly policy's
+[PolicyResult](../../conductor/lane-policy.md#candidate-evidence-and-policyresult).
+Dispatch retains the exact canonical ArtifactManifest, DependencyEvidence and
+OutputAttempt bytes named by its handles. Include committed delta, index/worktree
+residuals including ignored files, binary paths/modes and both rename endpoints;
+unknown/unavailable evidence refuses, never supplies an empty pass. The admitted
+analyzer supplies dependency coverage/source/target-root evidence bound to this
+candidate manifest; source inspection citations are not runtime edges. Missing
+required coverage or unresolved dependencies prevents acceptance. Worker status,
+verdict, receipt or process exit cannot replace independent rederivation.
+
+Prelaunch check_transition uses held evidence before any state creation, then
+retains the admitted launch receipt. Settle/close checks before automatic commit,
+then binds the resulting head before accepted ref publication. Write-resume
+checks before effects and runs full settlement afterward. Collect checks before
+and after verification, and remeasures any resulting commit before ref/collected
+marker mutation. Land/ladder independently check exact fetched/result head,
+lineage, binding and retained evidence before cherry-pick/stage advance. Preserve
+all existing non-policy gates and failed-collect record/ref guarantees; a failed
+collect retains a separate refused diagnostic receipt without rewriting its
+prior result. No accepted transition can rely solely on a previously collected
+marker, successful verification or an unverified/stale result.policy.
+
+The [policy timing rule](../../conductor/lane-policy.md#pre-effect-rejection-and-late-refusal)
+controls new lane-* failures. Before acting, exit 2 with empty stdout and one
+refusal line; after attempt/verification effects, retain partials and the stopped
+reading, serialize refused policy evidence, and return Abort 3. Invalid/null
+verdict names the refusal in note; existing tripped results remain tripped.
+Do not erase emitted output, publish an accepted ref or commit on a refused
+check. A post-commit recheck can preserve an already created local candidate
+commit as partial evidence but cannot publish it as accepted. Detached callers
+read the terminal outcome from the canonical record. No permission prompt,
+override or automatic harness substitution may convert refusal into acceptance.
+
+Independent cases cover pre-effect source/selection/grant/dependency checks,
+in-memory id reservation and racing collisions, per-job identity mismatch,
+resume timing and relocation, retained output/reuse custody, both collect checks,
+late serialization and all acceptance consumers. The policy's P/N/R/I cases
+and C1/C2 acceptance requirements still apply. These declarations neither author
+those tests nor activate any admission; complete cutover remains separately
+owner-admitted and dev tooling remains independent of the Symfony application.
 
 ### Lane
 
