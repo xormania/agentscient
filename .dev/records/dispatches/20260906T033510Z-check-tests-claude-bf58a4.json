@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T03:35:11Z",
-    "closed": null
+    "closed": "2026-09-06T03:40:29Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -157,14 +157,22 @@
       "--effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/8d8fee69-d664-4457-acc5-fca4d03e6a0f.jsonl"
   },
   "session": {
     "id": "8d8fee69-d664-4457-acc5-fca4d03e6a0f",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/8d8fee69-d664-4457-acc5-fca4d03e6a0f.jsonl",
+    "stream_sha256_at_close": "5c5ef95ab71a5143b7104c8366a625507db7706bca92ea83360a4689a660cd9a",
+    "spend": {
+      "input": 48,
+      "cached": 1465489,
+      "output": 22581,
+      "total": 1488118,
+      "source": "result.usage",
+      "messages": 24,
+      "cost_usd": 1.9047414999999999
+    }
   },
   "brief": {
     "template": {
@@ -191,10 +199,118 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:35:11Z",
+      "ended": "2026-09-06T03:40:28Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "21bffaa73d8221850052257414c2b56381bf71e5",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 6,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "dispatch apparatus / ops/devlane/dispatch/tests/test_record.py",
+          "claim": "COULD NOT LOOK, not looked-and-found-nothing: the two verification steps the brief made mandatory were not run. Every `python3` invocation in this dispatch is refused by the harness ('This command requires approval'), including the frozen `python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py` and `python3 ops/devlane/hooks/claude/test-guard.py ops/devlane/dispatch/tests/test_record.py`. So the intended-assertion reds, the zero-import/collection-error claim, the 35 passing old tests and the 8 positive neighbors are UNVERIFIED here. Separately, the author's own counts are stamped to `cb17c1fd7ede864d28671981f609c6e2e840f800`, which is not the reviewed commit and does not exist in this snapshot (`git cat-file -t cb17c1fd...` -> 'fatal: could not get object info'; `git log --all | grep -c cb17c1f` -> 0). No run stamped to 21bffaa exists from either producer. Remedy: re-run both commands on a harness where an interpreter is permitted and restamp to the reviewed ref.",
+          "reproduce": "python3 -c \"print(1)\"  ->  refused: 'This command requires approval' (same for the frozen unittest command and test-guard.py). git cat-file -t cb17c1fd7ede864d28671981f609c6e2e840f800 -> fatal: could not get object info."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_record.py:874-905 (maintenance per_job cases)",
+          "claim": "Asymmetric maintenance coverage: `standing` rows get full row-shape negatives (missing record, missing sha256, unsorted, duplicate id, id outside ^D-[A-Z0-9]+-[0-9]+$, uppercase digest) but `per_job` gets only two \u2014 not-a-list and not-sorted. lane-policy.md 'Binding and acceptance' fixes the SAME shape for both lists ('each a list of {\"record\": <decision id>, \"sha256\": <show digest>} sorted by unique record id'), so the missing per_job negatives are contract-backed, not invented schema. Surviving mutant: validate applies the full row check to maintenance['standing'] and, for maintenance['per_job'], only `isinstance(rows, list)` plus a sortedness check on [r['record'] for r in rows]. The whole suite stays green while a record binds per_job=[{'record':'job-1','sha256':'F'*64}] \u2014 malformed decision id AND uppercase digest admitted. Duplicate per_job record ids are likewise admitted.",
+          "reproduce": "Add to per_job the five negatives that already exist for standing: missing `record`, missing `sha256`, uppercase digest, duplicate record id, and a record id outside ^D-[A-Z0-9]+-[0-9]+$."
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_record.py:696-703 (test_admission_record_outside_the_decision_id_pattern_is_refused)",
+          "claim": "`admission.record` has exactly one pattern negative, 'd-lanes-1', which differs from the valid 'D-LANES-1' only by case. Nothing forces admission.record to be checked against the register pattern lane-policy.md pins at ^D-[A-Z0-9]+-[0-9]+$. Surviving mutant: validate checks admission.record with `isinstance(v, str) and v and v == v.upper()`. It refuses 'd-lanes-1' (test passes) while admitting 'LANES-1', 'XYZ', 'D-LANES-' and 'D_LANES_1'. The standing list DOES carry the structural negative 'LANES-1' (test_standing_decision_id_outside_the_pattern_is_refused), but no test requires the two sites to share a checker, so a two-code-path implementation survives. Also missing: non-string and empty-string admission.record.",
+          "reproduce": "Add test_admission_record_missing_the_D_prefix_is_refused using 'LANES-1' (mirroring the standing case) plus a non-string admission.record."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py:108-112 helper used at 579-584 (test_each_required_binding_field_missing_is_refused)",
+          "claim": "`_raises_naming` asserts only `field in str(exc).lower()`, so two of the nine required-field subtests cannot tell which field was named \u2014 the very thing Rec6 pins. Subtest field='sha256': 'sha256' is a substring of both 'template_sha256' and 'grants_sha256', so a refusal message naming either satisfies it. Subtest field='path': the record already carries brief.template.path, snapshot.root and harness.isolation.home, and any message mentioning 'path' passes. Surviving mutant: on a policy missing `sha256`, validate raises with the message 'brief.policy.template_sha256 could not be checked' \u2014 the subtest is green though `sha256` is never validated as its own field. Refusal behaviour is still forced; only the naming half of Rec6 is unpinned.",
+          "reproduce": "Assert the qualified token for these subtests, e.g. 'policy.sha256' and 'policy.path', the way the ref subtest already does via `field if field != 'ref' else 'policy.ref'`."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py:723-736 (test_template_sha256_unequal_to_brief_template_is_refused) and 745-753 (grants_sha256)",
+          "claim": "`template_sha256` is pinned only by an inequality negative ('a'*64 vs the fixture's 'c'*64) and the missing-key subtest. It has no case, length or type negative, unlike `sha256` and `grants_sha256`. Surviving mutant: validate compares `policy['template_sha256'].lower() == rec['brief']['template']['sha256'].lower()`, admitting 'C'*64 in the binding against 'c'*64 in the template \u2014 contradicting lane-policy.md's 'Digests are 64 lowercase hex characters' and 'template_sha256 must equal the existing brief.template.sha256'. Same family, smaller: `grants_sha256` has uppercase and short negatives but no non-string one, while `sha256` and `ref` both have theirs.",
+          "reproduce": "Add test_uppercase_template_sha256_is_refused (policy 'C'*64 against template 'c'*64) and test_non_string_grants_sha256_is_refused."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py:766-786 (profile syntax cases)",
+          "claim": "Fixture luck on the positive side of the profile syntax rule. The invalid set is good (empty, uppercase, leading digit, underscore, leading hyphen, slash) but the ONLY valid profile exercised anywhere in the class is 'fixture-only', which contains no digit. lane-policy.md fixes profile ids as [a-z][a-z0-9-]*. Surviving mutant: validate uses `re.fullmatch(r'[a-z][a-z-]*', profile)` \u2014 digits forbidden. Every negative still refuses, every positive neighbor still passes, and a legitimate profile id such as 'dev2' or 'lane-policy-v1' is wrongly refused with the suite green.",
+          "reproduce": "Add a second positive neighbor validating a digit-bearing syntactically valid profile, e.g. 'fixture-only2'."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py:911-926 (test_a_complete_valid_binding_validates)",
+          "claim": "The one full-binding positive asserts eight fields individually and never asserts the policy survives validate intact. `grants_sha256` and `admission['sha256']` are read back nowhere on the positive path. Surviving mutant: validate normalises or drops brief.policy['grants_sha256'] (e.g. pops it as 'derived, recomputed later') \u2014 every red still reds, every neighbor still passes, and the receipt lane-policy.md requires the trusted consumer to compare is silently gone from the record. A single assertEqual(out['brief']['policy'], binding) closes it and costs one line.",
+          "reproduce": "Replace the field-by-field reads with, or add, `self.assertEqual(out['brief']['policy'], self._binding())`."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py:520-528 (_REQUIRED) and 767-773 (invalid)",
+          "claim": "Catalogue item 2, empty-set passes, in its latent form. Both subtest loops iterate a collection with no cardinality assertion first: `for field in self._REQUIRED` (9 entries) and `for label, profile in invalid.items()` (6 entries). Neither is reachable-empty today, so this is not a live green-on-nothing, but a later edit that trims `_REQUIRED` \u2014 or a merge that drops entries \u2014 narrows the check silently and the run still prints the same 'ok' for that method. The class already writes cardinality assertions elsewhere (assertEqual(len(...), 64), assertEqual(len(...), 7)); these two loops are the exception.",
+          "reproduce": "Prepend self.assertEqual(len(self._REQUIRED), 9) and self.assertEqual(len(invalid), 6) so a shrunken table fails loudly."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_record.py:531 and 616-650 (ref cases) \u2014 CONTRACT GAP, reported not invented",
+          "claim": "The brief asked that a listed structural field not actually fixed by the owning contract be reported rather than schematised. Two such fields, and the author's handling of each: (a) `ref` LENGTH is unspecified. lane-policy.md says only 'full admitted Git id' and 'full lowercase Git id for the repository's object format' \u2014 it never fixes 40. The tests nonetheless hard-code 'c'*40 as the valid ref and refuse 'c'*7 as abbreviated. That is defensible for a SHA-1 repository and the author declared it in the record note, but it does pin an unspecified length: it forbids an implementation that requires the 64-char SHA-256 object id, and it equally admits a lax implementation accepting any lowercase hex of length >= 40. (b) brief.policy.`profile` SYNTAX is fixed only transitively: lane-policy.md pins [a-z][a-z0-9-]* for the ids in the policy file's `profiles` mapping, while the 'Binding and acceptance' section names brief.policy.profile without restating a syntax. Treating them as the same alphabet is one inference step, not a quotation. Neither is a reason to block; both should be named in the contract before the implementer treats the tests as the spec.",
+          "reproduce": "Amend lane-policy.md 'Binding and acceptance' to state the Git object-id length brief.policy.ref must carry, and to restate that brief.policy.profile is a profile id matching [a-z][a-z0-9-]*."
+        }
+      ],
+      "artifacts": {
+        "reviewed": "ops/devlane/dispatch/tests/test_record.py",
+        "reviewed_ref": "21bffaa73d8221850052257414c2b56381bf71e5",
+        "baseline_ref": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260906T033510Z-check-tests-claude-bf58a4/context/diff.patch",
+        "role": "ops/process/roles/test-skeptic.md",
+        "contract": "in/lane-policy.md",
+        "brief": "in/policy-record-first-bucket.md",
+        "author_record": "in/20260906T032203Z-tests-grok-53263f.json"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1488118,
+        "out": 22581,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "21bffaa73d8221850052257414c2b56381bf71e5",
+        "started": "2026-09-05T00:00:00Z",
+        "ended": null
+      },
+      "note": "SKEPTIC / verdict changes / ref 21bffaa73d8221850052257414c2b56381bf71e5 vs c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Scope judged: only the +455-line addition to ops/devlane/dispatch/tests/test_record.py (git diff --stat over the two refs: 1 file changed, 455 insertions, 0 deletions). record.py and every other implementation were NOT read; no tests or code were written.\n\nCOMMANDS RUN AND RESULTS. git diff --stat / git diff / git log over the two refs: succeeded, one file in scope. grep -n over test_record.py, launch_support.py, support.py, lane-policy.md, ops/lane-policy.json: succeeded. git cat-file -t cb17c1fd7ede864d28671981f609c6e2e840f800 -> 'fatal: could not get object info'; git log --oneline --all | grep -c cb17c1f -> 0. COMMANDS REFUSED: python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py, python3 ops/devlane/hooks/claude/test-guard.py, and even python3 -c \"print(1)\" \u2014 all returned 'This command requires approval'. No interpreter is executable in this dispatch. Declared absence: could not look, NOT looked-and-found-nothing. The reds, the zero-import/collection-error claim, the 35 old passes and the 8 neighbor passes are unverified at this ref (finding 1).\n\nWHAT I COULD VERIFY WITHOUT RUNNING. Static counts corroborate the author's arithmetic exactly: 84 `    def test_` methods total in the file, 49 added by this diff, 39 method-level `_raises_naming` calls added plus 2 inside subTest loops = 41 red methods, 49 - 41 = 8 positive neighbors, 84 - 49 = 35 pre-existing. The claimed 54 failures reconcile as 41 - 2 + 9 (required-field subtests) + 6 (profile subtests) = 54. The eight neighbors named in the record are the eight methods in the diff that call validate without _raises_naming. Consistent, but consistency is not a run.\n\nPLANTS: PROVEN. Every one of the 41 refusal tests asserts the mutated value is present and recognisable BEFORE calling _raises_naming \u2014 e.g. assertEqual + len() on the corrupted ref, assertNotIn on the deleted key, assertEqual(set(maintenance), {'standing','per_job','purpose'}) on the extra key. No moved-anchor .replace()/sed plants anywhere; corruption is by dict construction on a deep-copied binding. Catalogue item 3 clean.\n\nNO IMPORT-ERROR RED. The class overrides recmod() to use support.load('record') instead of ls.require_module, which deliberately removes the _absent_record() echo stand-in that require_module would substitute. That is the brief's instruction ('no missing-module stand-in, echo fallback, skips or import-error red'), and record.py is present, so the reds are contracted-assertion reds by construction. Correct choice, worth the implementer knowing: a syntax error introduced into record.py will now surface as 49 ERRORs in this class rather than fails.\n\nSHAPE VS AUTHORITY. Held correctly throughout. No test looks up a profile in ops/lane-policy.json (I checked: grep -c 'fixture-only' ops/lane-policy.json -> 0, so 'fixture-only' is a synthetic id and test_a_syntactically_valid_synthetic_profile_validates_without_membership genuinely proves syntax-without-membership), none recomputes grants_sha256, none reaches a decision store, none exercises a CLI, anchor, dependency or result.policy interface. Present-null vs absent is properly separated by the test_a_null_policy_is_refused / test_a_legacy_record_with_policy_absent_validates pair. Rec1 field order is unaffected: FieldOrderIsTheContract asserts top-level keys only, and policy is added under brief.\n\nWHY CHANGES, NOT APPROVE. Three P2s. (1) The mandated verification could not run at all here and the only extant counts are stamped to a sha absent from this repository. (2) and (3) are surviving mutants I can name: per_job row validation can be a stub while the suite is green, and admission.record can be a case-only check while the suite is green. Both are backed by verbatim lane-policy.md text, not invented schema. The six P3s are cheap closes (one or two lines each) and none of them alone would block. The two contract gaps in finding 9 are reported, not schematised, as the brief directed: ref length and the transitive derivation of brief.policy.profile syntax should be pinned in lane-policy.md before the implementer treats these tests as the spec. This is a strong test boundary \u2014 the reds are real reds, the plants are proven, the shape/authority line holds \u2014 and it is close to acceptable; it should not be accepted on an unrun claim with two named surviving mutants outstanding."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
 }
