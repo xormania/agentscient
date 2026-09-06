@@ -1,0 +1,193 @@
+{
+  "id": "20260906T123541Z-tests-grok-fbea69",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-canonical-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-canonical-tests-20260906",
+    "base_sha": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Grok 4.6 <noreply@x.ai>",
+  "at": {
+    "launched": "2026-09-06T12:35:41Z",
+    "closed": "2026-09-06T12:53:47Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+    "ref_sha": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "120dd0db-e0ca-46b1-a367-1a16c5d35767",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/home/grok-stream/sessions/<snapshot-encoded>/120dd0db-e0ca-46b1-a367-1a16c5d35767/summary.json"
+  },
+  "session": {
+    "id": "120dd0db-e0ca-46b1-a367-1a16c5d35767",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/home/grok-stream/sessions/<snapshot-encoded>/120dd0db-e0ca-46b1-a367-1a16c5d35767/summary.json",
+    "stream_sha256_at_close": "82623d6fb10272169c80ad63aede1f12077ba5c661b5dd7a149357ce3e70e465",
+    "spend": {
+      "input": 6652336,
+      "cached": 6440960,
+      "output": 59898,
+      "total": 6712234,
+      "cost_usd_ticks": 8114817400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/home/grok-stream/sessions/<snapshot-encoded>/120dd0db-e0ca-46b1-a367-1a16c5d35767/summary.json",
+      "messages": 376
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-canonical-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent tests for C1 worker frontend convergence and C2 adoption, using dispatch/task contracts and supplied review dispositions. Own only task/tests/test_run.py, task/tests/test_execution_frontend.py and dispatch/tests/test_execution_adoption.py under ops/devlane. Never read or author implementation. Test task vendor mode delegates to canonical launch with identical explicit selection, supervision/refusals/resume/results; preserve direct verify and stub replay. Cover optional commit transport, strict whole-catalogue duplicate decoding before dict collapse, complete reservations through admission/rendering, and OutputsError consistency. Use synthetic executors/fixtures with positive and faulty controls; no real vendor or state. Do not activate catalogue or invent policy/adapter interfaces. Report undeclared boundaries precisely. Run relevant tests against baseline, distinguish failures/errors, record hashes and commands. Clean Grok-only trailers; inline envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/in/ag-conduct-task-adoption-ruling.md",
+        "sha256": "d364c88c1bbd5f53ec12aaa26df368b905f008bd69efb47561617751f4967937"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/in/ag-conduct-task-source-review.json",
+        "sha256": "cfe037dced219b6da14cbe9bb5dbf93499fa65b444bc9df02c5c3e72a36555b4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T123541Z-tests-grok-fbea69/in/ag-conduct-adoption-review.json",
+        "sha256": "9aa670de383c7e05f43694e5ef641878f7231d1ddf30be5c265c10f3ce8f1814"
+      }
+    ],
+    "sha256": "a5d2c1a3034b152e4e3b3c9820f10f5f4521b13a7785cf483672609ef21db9a2",
+    "bytes": 3332
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T12:35:41Z",
+      "ended": "2026-09-06T12:53:47Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1139d52f1206688a8d648c0a1bd23900b9c000c4",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_execution_adoption.py",
+      "ops/devlane/task/tests/test_execution_frontend.py",
+      "ops/devlane/task/tests/test_run.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_run.py",
+          "claim": "Existing R1\u2013R5 and R8\u2013R15 classes still pin the dormant fileset/Popen vendor engine; C1 classes pin refuse-or-transfer at the frontend boundary. Direct verify and stub replay (R6/R7) stay. The later run.py compatibility producer cannot satisfy both sets without a test change, which that producer is denied.",
+          "reproduce": "python3 -B -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_execution_frontend.py",
+          "claim": "The contracts name transfer at the frontend boundary and launch.py resume ID, but they do not name a public run.resume or run.canonical_launch callable. Tests freeze those two names so vendor mode can transfer without task importing dispatch or harness.",
+          "reproduce": "python3 -B -m unittest discover -s ops/devlane/task/tests -p 'test_execution_frontend.py' -k Resume"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_execution_adoption.py",
+          "claim": "Extra adapter transport reservations have no public adapter interface in the accepted contracts. Tests pass reserved= into outputs_from_job, render_declared_outputs and append_declared_outputs, and pin launch default leaves last-message.json and COMMIT_MSG. No adapter.reservations or policy bind_launch/compile_launch was invented.",
+          "reproduce": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_execution_adoption.py' -k CompleteReservations"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md",
+          "claim": "LaunchDeclarations.selection includes profile; the worker launch.py verb list does not name --profile. Identical-selection tests pin harness, model, effort, job and ref only.",
+          "reproduce": "rg -n 'launch.py <job>|--profile' ops/devlane/dispatch/CONTRACT.md"
+        }
+      ],
+      "artifacts": {
+        "test_run": "ops/devlane/task/tests/test_run.py",
+        "test_execution_frontend": "ops/devlane/task/tests/test_execution_frontend.py",
+        "test_execution_adoption": "ops/devlane/dispatch/tests/test_execution_adoption.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6712234,
+        "out": 59898,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3ee48f0d8e9dc7f76a5ab9d6f600136338973118",
+        "started": "2026-09-06T12:45:17Z",
+        "ended": "2026-09-06T12:52:59Z"
+      },
+      "note": "Author-tests for C1 worker frontend convergence and C2 adoption. Implementation was not read or authored. Catalogue not activated: jobs.json sha256 6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec, 9 jobs, 0 outputs keys. Synthetic executors/fixtures only. Trailers on all three commits: Source: original / Co-Authored-By: Grok 4.6 <noreply@x.ai>. commit_trailers.py --range 3ee48f0d8e9dc7f76a5ab9d6f600136338973118..HEAD: checked 3, clean.\n\nCommits on lane/conduct-canonical-tests-20260906 from baseline 3ee48f0d8e9dc7f76a5ab9d6f600136338973118: c319c32 test_run.py; 678e078 test_execution_frontend.py; 1139d52 test_execution_adoption.py. git diff --name-status 3ee48f0..HEAD is M test_run.py, A test_execution_frontend.py, A test_execution_adoption.py. Working tree clean at 1139d52f1206688a8d648c0a1bd23900b9c000c4.\n\nHashes at HEAD: test_run.py 3692dcda0cc5b0c41cdb1b67bb1003450c60525b12aed3d49c780b14a34cdf43; test_execution_frontend.py 07abaf471c39bd20cc5508c1c67b3612d267511ef7df0675b6b05d43ccb0112f; test_execution_adoption.py 951e48aac226d5bd6d356b47d77501244beb620cf0e778e454bd52cdd99c23ae.\n\nReds measured at HEAD, failures vs errors distinguished. python3 -B -m unittest discover -s ops/devlane/task/tests -p 'test_run.py' -k C1 \u2014 Ran 10, FAILED (failures=5), 0 errors: transfer/refuse, identical selection, commit parse (top-level and nested), strict catalogue decode. Controls pass: direct verify, stub replay, import boundary, envelope without commit, collapsed re-encode. Full test_run.py \u2014 Ran 55, FAILED (failures=5), 0 errors. python3 -B -m unittest discover -s ops/devlane/task/tests -p 'test_execution_frontend.py' \u2014 Ran 9, FAILED (failures=8), 0 errors: trip, refusal, resume seam, result identity, requested-vs-observed model. Direct-verify control passes. python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_execution_adoption.py' \u2014 Ran 19, FAILED (failures=10), 0 errors: duplicate catalogue before child, reserved= on outputs_from_job/render/append, launch last-message.json and COMMIT_MSG admission, declared-outputs rendering including omission none-grant, counts-mismatch semantic acceptance, outputs-handle as OutputsError. Controls pass: envelope.validate accepts commit and refuses transcript, launch already keeps optional commit, outputs_from_job without extra reserved, native check-tests render, collapsed re-encode, schema and path OutputsError, historical relative handle without outputs=.\n\nEach file was committed after its red was proven. No real vendor, session store, network or live capability. No policy or adapter interfaces invented."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T12:53:47.078Z"
+    }
+  },
+  "status": "closed"
+}
