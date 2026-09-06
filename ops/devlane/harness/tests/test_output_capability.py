@@ -1,22 +1,25 @@
 """Independent tests for compile_launch output-capability admission.
 
 Written from ops/devlane/dispatch/CONTRACT.md C2 (G=D, A=D, transport
-separation, freshness), harness-capabilities.md capability identity,
-task CONTRACT.md C2 outputs, and adoption review unit 4. Implementation
-was not read.
+separation, freshness, worker encoding, evidence custody),
+harness-capabilities.md capability identity, task CONTRACT.md C2
+outputs, and adoption review unit 4. Corrected from d3ea314b against
+review 20260906T125857Z-review-claude-10edd9. Implementation was not
+read.
 
 Each test names the contract rule it pins:
 
   C1  G=D and A=D on an exact file leaf, with a verified synthetic
-      mechanism; empty D is empty A
+      mechanism; empty D is empty A; source isolation is mandatory
   C2  a parent-directory grant, chmod-only operations, a sandbox label
       or a clean-diff limit cannot satisfy the leaf
   C3  transport reservations stay distinct from output grants; admitted
-      scratch alone supplies TMPDIR
+      scratch alone supplies TMPDIR; environment is the closed trusted map
   C4  unsupported combinations and unmeasured/stale/failed/unresolved
       evidence refuse as output-capability before execution
   C5  launch evidence does not admit resume; freshness holds time/tuple
-      still, and discriminates faulty controls from passing neighbours
+      still; independently held evidence refuses replaced candidate bytes
+      without grading a self-consistent relabelled neighbour
 """
 
 from __future__ import annotations
@@ -58,7 +61,9 @@ class OutputCapabilitySeam(unittest.TestCase):
     def _transport(self, identity_outputs, **kwargs):
         selection = kwargs.pop("selection", self.selection)
         operation = kwargs.pop("operation", "launch")
-        adapter = ats.adapter_descriptor()
+        denials = kwargs.pop("source_write_denials", self.fx.source_write_denials)
+        reads = kwargs.pop("source_reads", self.fx.source_reads)
+        adapter = ats.adapter_descriptor(role=selection["role"])
         exe = self.fx.executables[selection["harness"]]
         adapter["executable_sha256"] = exe["sha256"]
         identity = ats.identity_for(
@@ -68,20 +73,17 @@ class OutputCapabilitySeam(unittest.TestCase):
             executable_sha256=exe["sha256"],
             adapter=adapter,
             outputs=identity_outputs,
-            source_reads=[str(self.fx.root / "snapshot")],
-            source_write_denials=[
-                str(self.fx.root / "snapshot"),
-                str(self.fx.root / "snapshot" / ".git"),
-            ],
+            source_reads=reads,
+            source_write_denials=denials,
         )
-        identity["mock"]["verification"] = {
-            "path": self.fx.verification_rel,
-            "sha256": self.fx.verification_sha256,
-        }
+        identity["mock"]["verification"] = self.fx.verification_handle()
         return self.fx.transport(
             selection,
             operation,
             identity=identity,
+            outputs=identity_outputs,
+            source_reads=reads,
+            source_write_denials=denials,
             **kwargs,
         )
 
@@ -91,6 +93,10 @@ class OutputCapabilitySeam(unittest.TestCase):
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
         cap = result["capability"]
+        self.assertEqual(set(cap), set(ats.WORKER_CAPABILITY_KEYS))
+        self.assertEqual(cap["role"], "worker")
+        self.assertNotIn("mcp", cap)
+        self.assertNotIn("policy", cap)
         admitted = cap["scope"]["outputs"]
         self.assertEqual(len(admitted), 1, admitted)
         self.assertEqual(admitted[0]["kind"], "file")
@@ -101,17 +107,57 @@ class OutputCapabilitySeam(unittest.TestCase):
             str(self.fx.out.resolve()),
             "A must be the leaf, not its parent directory",
         )
+        self.assertEqual(
+            cap["scope"]["source_reads"],
+            sorted(self.fx.source_reads),
+        )
+        self.assertEqual(
+            cap["scope"]["source_write_denials"],
+            sorted(self.fx.source_write_denials),
+        )
+        self.assertTrue(cap["scope"]["source_write_denials"])
 
-    def test_empty_declarations_require_empty_actual_authority(self):
+    def test_empty_declarations_require_empty_actual_authority_and_isolation(self):
         selection = ats.selection_conductor()
         grants = ats.grants_for(selection)
+        self.assertEqual(grants["outputs"], [])
         transport = self.fx.transport(selection)
+        self.assertEqual(
+            transport.evidence.identity["scope"]["outputs"],
+            [],
+        )
+        self.assertTrue(
+            transport.evidence.identity["scope"]["source_write_denials"],
+        )
+        self.assertTrue(transport.evidence.identity["scope"]["source_reads"])
         result = ats.compile_launch(
             selection, grants, transport, [], "launch",
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
-        self.assertEqual(result["capability"]["scope"]["outputs"], [])
+        cap = result["capability"]
+        self.assertEqual(set(cap), set(ats.CONDUCT_CAPABILITY_KEYS))
+        self.assertEqual(cap["scope"]["outputs"], [])
         self.assertEqual(grants["outputs"], [])
+        self.assertTrue(cap["scope"]["source_write_denials"])
+        self.assertTrue(cap["scope"]["source_reads"])
+
+    def test_empty_denials_with_empty_outputs_do_not_discharge_isolation(self):
+        selection = ats.selection_conductor()
+        grants = ats.grants_for(selection)
+        transport = self.fx.transport(
+            selection,
+            source_reads=self.fx.source_reads,
+            source_write_denials=[],
+        )
+        identity = transport.evidence.identity
+        identity["scope"]["source_write_denials"] = []
+        transport.evidence.identity = identity
+        result = ats.compile_launch(
+            selection, grants, transport, [], "launch",
+        )
+        self.assertTrue(ats.is_refusal(result), ats.explain(result))
+        line = ats.refusal_text(result)
+        self.assertTrue(line.startswith(ats.CAPABILITY_REFUSAL_PREFIX), line)
 
     def test_prompt_prose_does_not_create_a_grant(self):
         selection = ats.selection_worker()
@@ -122,6 +168,15 @@ class OutputCapabilitySeam(unittest.TestCase):
         )
         result = ats.compile_launch(
             selection, grants, transport, [], "launch",
+        )
+        self.assertTrue(ats.is_refusal(result), ats.explain(result))
+        line = ats.refusal_text(result)
+        self.assertTrue(line.startswith(ats.CAPABILITY_REFUSAL_PREFIX), line)
+
+    def test_conduct_identity_cannot_admit_a_worker_selection(self):
+        conduct_transport = self.fx.transport(ats.selection_conductor())
+        result = ats.compile_launch(
+            self.selection, self.grants, conduct_transport, [], "launch",
         )
         self.assertTrue(ats.is_refusal(result), ats.explain(result))
         line = ats.refusal_text(result)
@@ -147,8 +202,11 @@ class LeafEqualityRefusesBroaderProofs(unittest.TestCase):
     def _compile(self, identity_outputs, *, platform=None, limits=None,
                  denials=None):
         exe = self.fx.executables[self.selection["harness"]]
-        adapter = ats.adapter_descriptor()
+        adapter = ats.adapter_descriptor(role="worker")
         adapter["executable_sha256"] = exe["sha256"]
+        isolation_denials = (
+            self.fx.source_write_denials if denials is None else denials
+        )
         identity = ats.identity_for(
             self.selection,
             "launch",
@@ -156,16 +214,18 @@ class LeafEqualityRefusesBroaderProofs(unittest.TestCase):
             executable_sha256=exe["sha256"],
             adapter=adapter,
             outputs=identity_outputs,
-            source_write_denials=denials or [],
+            source_reads=self.fx.source_reads,
+            source_write_denials=isolation_denials,
             limits=limits or [],
             platform=platform,
         )
-        identity["mock"]["verification"] = {
-            "path": self.fx.verification_rel,
-            "sha256": self.fx.verification_sha256,
-        }
+        identity["mock"]["verification"] = self.fx.verification_handle()
         transport = self.fx.transport(
-            self.selection, identity=identity,
+            self.selection,
+            identity=identity,
+            outputs=identity_outputs,
+            source_reads=self.fx.source_reads,
+            source_write_denials=isolation_denials,
         )
         return ats.compile_launch(
             self.selection, self.grants, transport, [], "launch",
@@ -245,34 +305,41 @@ class TransportAndScratchSeparation(unittest.TestCase):
             job_grants={"repository": [], "outputs": [LEAF, SCRATCH]},
         )
         exe = self.fx.executables[self.selection["harness"]]
-        adapter = ats.adapter_descriptor()
+        adapter = ats.adapter_descriptor(role="worker")
         adapter["executable_sha256"] = exe["sha256"]
+        identity_outputs = [
+            ats.capability_output("file", self.leaf_abs, OPS_WRITE),
+            ats.capability_output(
+                "scratch",
+                self.scratch_abs,
+                ("create", "write", "delete"),
+            ),
+        ]
         identity = ats.identity_for(
             self.selection,
             "launch",
             executable_path=exe["path"],
             executable_sha256=exe["sha256"],
             adapter=adapter,
-            outputs=[
-                ats.capability_output("file", self.leaf_abs, OPS_WRITE),
-                ats.capability_output(
-                    "scratch",
-                    self.scratch_abs,
-                    ("create", "write", "delete"),
-                ),
-            ],
-            source_write_denials=[str(self.fx.root / "snapshot")],
+            outputs=identity_outputs,
+            source_reads=self.fx.source_reads,
+            source_write_denials=self.fx.source_write_denials,
         )
-        identity["mock"]["verification"] = {
-            "path": self.fx.verification_rel,
-            "sha256": self.fx.verification_sha256,
-        }
-        transport = self.fx.transport(self.selection, identity=identity)
+        identity["mock"]["verification"] = self.fx.verification_handle()
+        transport = self.fx.transport(
+            self.selection,
+            identity=identity,
+            outputs=identity_outputs,
+        )
         result = ats.compile_launch(
             self.selection, grants, transport, [], "launch",
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
         env = result["environment"]
+        self.assertEqual(
+            env,
+            ats.expected_environment(transport, tmpdir=self.scratch_abs),
+        )
         self.assertEqual(env.get("TMPDIR"), self.scratch_abs)
         reservations = result["reservations"]
         self.assertIn("last-message.json", reservations)
@@ -289,21 +356,22 @@ class TransportAndScratchSeparation(unittest.TestCase):
             job_grants={"repository": [], "outputs": [LEAF]},
         )
         exe = self.fx.executables[self.selection["harness"]]
-        adapter = ats.adapter_descriptor()
+        adapter = ats.adapter_descriptor(role="worker")
         adapter["executable_sha256"] = exe["sha256"]
+        identity_outputs = [
+            ats.capability_output("file", self.leaf_abs, OPS_WRITE),
+        ]
         identity = ats.identity_for(
             self.selection,
             "launch",
             executable_path=exe["path"],
             executable_sha256=exe["sha256"],
             adapter=adapter,
-            outputs=[ats.capability_output("file", self.leaf_abs, OPS_WRITE)],
-            source_write_denials=[str(self.fx.root / "snapshot")],
+            outputs=identity_outputs,
+            source_reads=self.fx.source_reads,
+            source_write_denials=self.fx.source_write_denials,
         )
-        identity["mock"]["verification"] = {
-            "path": self.fx.verification_rel,
-            "sha256": self.fx.verification_sha256,
-        }
+        identity["mock"]["verification"] = self.fx.verification_handle()
         inherited = str(self.fx.root / "inherited-tmp")
         previous = os.environ.get("TMPDIR")
         os.environ["TMPDIR"] = inherited
@@ -318,18 +386,16 @@ class TransportAndScratchSeparation(unittest.TestCase):
         transport = self.fx.transport(
             self.selection,
             identity=identity,
-            configuration={"TMPDIR": inherited},
+            outputs=identity_outputs,
         )
         result = ats.compile_launch(
             self.selection, grants, transport, [], "launch",
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
         env = result["environment"]
+        self.assertEqual(env, ats.expected_environment(transport))
         self.assertNotEqual(env.get("TMPDIR"), inherited)
-        self.assertFalse(
-            env.get("TMPDIR") == inherited,
-            "no inherited temporary path may add worker write authority",
-        )
+        self.assertNotIn("TMPDIR", env)
 
     def test_transport_leaf_cannot_be_declared_as_an_output(self):
         outputs = [
@@ -349,17 +415,28 @@ class TransportAndScratchSeparation(unittest.TestCase):
     def test_environment_does_not_inherit_path_or_config_overlays(self):
         selection = ats.selection_conductor()
         grants = ats.grants_for(selection)
-        transport = self.fx.transport(
-            selection,
-            configuration={"PATH": "/opt/vendor/bin", "HOME": "/opt/vendor/home"},
-        )
+        previous = {name: os.environ.get(name) for name in ("PATH", "HOME")}
+        os.environ["PATH"] = "/opt/vendor/bin"
+        os.environ["HOME"] = "/opt/vendor/home"
+
+        def restore():
+            for name, value in previous.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
+        self.addCleanup(restore)
+        transport = self.fx.transport(selection)
         result = ats.compile_launch(
             selection, grants, transport, [], "launch",
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
         env = result["environment"]
+        self.assertEqual(env, ats.expected_environment(transport))
         self.assertNotEqual(env.get("PATH"), "/opt/vendor/bin")
         self.assertNotEqual(env.get("HOME"), "/opt/vendor/home")
+        self.assertIn("FIXTURE_MARK", env)
 
 
 class UnsupportedAndUnmeasured(unittest.TestCase):
@@ -379,7 +456,7 @@ class UnsupportedAndUnmeasured(unittest.TestCase):
 
     def _identity(self, **overrides):
         exe = self.fx.executables[self.selection["harness"]]
-        adapter = ats.adapter_descriptor()
+        adapter = ats.adapter_descriptor(role="worker")
         adapter["executable_sha256"] = exe["sha256"]
         identity = ats.identity_for(
             self.selection,
@@ -388,12 +465,10 @@ class UnsupportedAndUnmeasured(unittest.TestCase):
             executable_sha256=exe["sha256"],
             adapter=adapter,
             outputs=[ats.capability_output("file", self.leaf_abs, OPS_WRITE)],
-            source_write_denials=[str(self.fx.root / "snapshot")],
+            source_reads=self.fx.source_reads,
+            source_write_denials=self.fx.source_write_denials,
         )
-        identity["mock"]["verification"] = {
-            "path": self.fx.verification_rel,
-            "sha256": self.fx.verification_sha256,
-        }
+        identity["mock"]["verification"] = self.fx.verification_handle()
         identity.update(overrides)
         return identity
 
@@ -438,8 +513,8 @@ class UnsupportedAndUnmeasured(unittest.TestCase):
     def test_launch_witness_does_not_admit_resume(self):
         identity = self._identity()
         identity["operation"] = "launch"
-        transport = self.fx.transport(
-            self.selection, "resume", identity=identity,
+        transport = self.fx.resume_transport(
+            self.selection, self.grants, [], identity=identity,
         )
         result = ats.compile_launch(
             self.selection, self.grants, transport, [], "resume",
@@ -492,12 +567,11 @@ class UnsupportedAndUnmeasured(unittest.TestCase):
             selection,
             outputs=[{"kind": "file", "path": LEAF, "artifact": "report"}],
         )
-        transport = self.fx.transport(
-            selection, mechanism="fixture-argv-no-leaf",
-        )
-        # Witness that cannot enforce a file leaf (scratch-only mechanism).
         exe = self.fx.executables["grok"]
-        adapter = transport["adapter"]
+        adapter = ats.adapter_descriptor(
+            role="worker", mechanism="fixture-argv-no-leaf",
+        )
+        adapter["executable_sha256"] = exe["sha256"]
         identity = ats.identity_for(
             selection,
             "launch",
@@ -505,10 +579,15 @@ class UnsupportedAndUnmeasured(unittest.TestCase):
             executable_sha256=exe["sha256"],
             adapter=adapter,
             outputs=[],
+            source_reads=self.fx.source_reads,
+            source_write_denials=self.fx.source_write_denials,
             limits=["unsupported-file-leaf"],
         )
+        identity["mock"]["verification"] = self.fx.verification_handle()
         transport = self.fx.transport(
-            selection, identity=identity, mechanism="fixture-argv-no-leaf",
+            selection,
+            identity=identity,
+            mechanism="fixture-argv-no-leaf",
         )
         result = ats.compile_launch(
             selection, grants, transport, [], "launch",
@@ -522,7 +601,7 @@ class UnsupportedAndUnmeasured(unittest.TestCase):
         transport = self.fx.transport(
             self.selection, witness_identity="null",
         )
-        exe = transport["executable"]["path"]
+        exe = transport.executable["path"]
         before = os.stat(exe)
         result = ats.compile_launch(
             self.selection, self.grants, transport, [], "launch",
@@ -533,7 +612,7 @@ class UnsupportedAndUnmeasured(unittest.TestCase):
 
 
 class FaultyControlsAreDiscriminated(unittest.TestCase):
-    """C5 — planted faulty controls fire; clean neighbours stay distinct."""
+    """C5 — held evidence stays fixed; candidate bytes cannot rewrite custody."""
 
     def setUp(self):
         self.fx = ats.FixtureRoot()
@@ -547,26 +626,36 @@ class FaultyControlsAreDiscriminated(unittest.TestCase):
             job_grants={"repository": [], "outputs": [LEAF]},
         )
         exe = self.fx.executables[self.selection["harness"]]
-        adapter = ats.adapter_descriptor()
+        adapter = ats.adapter_descriptor(role="worker")
         adapter["executable_sha256"] = exe["sha256"]
+        identity_outputs = [
+            ats.capability_output("file", self.leaf_abs, OPS_WRITE),
+        ]
         self.passing_identity = ats.identity_for(
             self.selection,
             "launch",
             executable_path=exe["path"],
             executable_sha256=exe["sha256"],
             adapter=adapter,
-            outputs=[ats.capability_output("file", self.leaf_abs, OPS_WRITE)],
-            source_write_denials=[str(self.fx.root / "snapshot")],
+            outputs=identity_outputs,
+            source_reads=self.fx.source_reads,
+            source_write_denials=self.fx.source_write_denials,
         )
-        self.passing_identity["mock"]["verification"] = {
-            "path": self.fx.verification_rel,
-            "sha256": self.fx.verification_sha256,
-        }
+        self.passing_identity["mock"]["verification"] = self.fx.verification_handle()
+        self.identity_outputs = identity_outputs
 
-    def test_passing_and_faulty_verification_hashes_differ(self):
+    def test_replaced_candidate_bytes_differ_from_the_held_verification_handle(self):
+        passing_transport = self.fx.transport(
+            self.selection,
+            identity=deepcopy(self.passing_identity),
+            outputs=self.identity_outputs,
+        )
+        held_sha = passing_transport.evidence.verification["sha256"]
+        held_identity_sha = passing_transport.evidence.identity["mock"]["verification"]["sha256"]
+        self.assertEqual(held_sha, self.fx.verification_sha256)
+        self.assertEqual(held_identity_sha, held_sha)
         before = self.fx.verification_path.read_bytes()
         self.assertIn(b"leaf-write-and-source-deny", before)
-        passing_sha = self.fx.verification_sha256
         planted = ats.plant_mutate(
             self.fx.verification_path,
             lambda body: body.replace(
@@ -578,72 +667,151 @@ class FaultyControlsAreDiscriminated(unittest.TestCase):
         self.assertEqual(planted, before)
         after = self.fx.verification_path.read_bytes()
         self.assertNotEqual(after, before)
-        faulty_sha = ats.sha256_bytes(after)
-        self.assertNotEqual(faulty_sha, passing_sha)
+        candidate_sha = ats.sha256_bytes(after)
+        self.assertNotEqual(candidate_sha, held_sha)
         self.assertIn(b"chmod-then-restore-control", after)
         self.assertIn(b"synthetic", after)
-        faulty_identity = deepcopy(self.passing_identity)
-        faulty_identity["mock"]["verification"]["sha256"] = faulty_sha
+        self.assertEqual(
+            passing_transport.evidence.verification["sha256"],
+            held_sha,
+        )
+        candidate_identity = deepcopy(self.passing_identity)
+        candidate_identity["mock"]["verification"]["sha256"] = candidate_sha
+        self.assertNotEqual(
+            candidate_identity["mock"]["verification"]["sha256"],
+            passing_transport.evidence.identity["mock"]["verification"]["sha256"],
+        )
         result = ats.compile_launch(
-            self.selection,
-            self.grants,
-            self.fx.transport(self.selection, identity=faulty_identity),
-            [],
-            "launch",
+            self.selection, self.grants, passing_transport, [], "launch",
         )
         self.assertTrue(ats.is_refusal(result), ats.explain(result))
+        line = ats.refusal_text(result)
+        self.assertTrue(line.startswith(ats.CAPABILITY_REFUSAL_PREFIX), line)
 
-    def test_faulty_control_refuses_while_the_passing_neighbour_would_bind(self):
+    def test_relabelled_self_consistent_neighbour_is_not_a_compile_fault(self):
         passing_transport = self.fx.transport(
-            self.selection, identity=deepcopy(self.passing_identity),
+            self.selection,
+            identity=deepcopy(self.passing_identity),
+            outputs=self.identity_outputs,
         )
         passing = ats.compile_launch(
             self.selection, self.grants, passing_transport, [], "launch",
         )
-        ats.plant_mutate(
-            self.fx.verification_path,
-            lambda body: body.replace(
-                b'"result":"PASS"',
-                b'"result":"FAIL"',
-            ),
-            recognisable=b'"result":"FAIL"',
+        relabelled = ats.canonical_json({
+            "kind": "receipt",
+            "claim": "synthetic leaf/scratch admission control",
+            "control": "relabelled-leaf-write-and-source-deny",
+            "result": "PASS",
+        }).encode("utf-8")
+        self.assertIn(b'"result":"PASS"', relabelled)
+        self.assertNotEqual(relabelled, self.fx.passing_verification)
+        relabel_rel = "evidence/relabelled-verification.json"
+        ats.plant_bytes(
+            self.fx.root / relabel_rel,
+            relabelled,
+            recognisable=b"relabelled-leaf-write-and-source-deny",
         )
-        faulty_sha = ats.sha256_bytes(self.fx.verification_path.read_bytes())
-        self.assertNotEqual(faulty_sha, self.fx.verification_sha256)
-        faulty_identity = deepcopy(self.passing_identity)
-        faulty_identity["mock"]["verification"]["sha256"] = faulty_sha
-        faulty_transport = self.fx.transport(
-            self.selection, identity=faulty_identity,
+        neighbour_sha = ats.sha256_bytes(relabelled)
+        self.assertNotEqual(neighbour_sha, self.fx.verification_sha256)
+        neighbour_verification = {
+            "path": relabel_rel,
+            "sha256": neighbour_sha,
+        }
+        neighbour_identity = deepcopy(self.passing_identity)
+        neighbour_identity["mock"]["verification"] = dict(neighbour_verification)
+        neighbour_transport = self.fx.transport(
+            self.selection,
+            identity=neighbour_identity,
+            outputs=self.identity_outputs,
+            verification=neighbour_verification,
         )
-        faulty = ats.compile_launch(
-            self.selection, self.grants, faulty_transport, [], "launch",
+        self.assertEqual(
+            neighbour_transport.evidence.verification["sha256"],
+            neighbour_sha,
+        )
+        self.assertEqual(
+            neighbour_transport.evidence.identity["mock"]["verification"]["sha256"],
+            neighbour_sha,
+        )
+        neighbour = ats.compile_launch(
+            self.selection, self.grants, neighbour_transport, [], "launch",
         )
         self.assertTrue(ats.is_success(passing), ats.explain(passing))
-        self.assertTrue(ats.is_refusal(faulty), ats.explain(faulty))
-        self.assertNotEqual(passing, faulty)
-        line = ats.refusal_text(faulty)
-        self.assertTrue(line.startswith(ats.CAPABILITY_REFUSAL_PREFIX), line)
+        self.assertTrue(ats.is_success(neighbour), ats.explain(neighbour))
         self.assertNotEqual(
-            passing_transport["witness"]["identity"]["mock"]["verification"]["sha256"],
-            faulty_transport["witness"]["identity"]["mock"]["verification"]["sha256"],
+            passing_transport.evidence.verification["sha256"],
+            neighbour_transport.evidence.verification["sha256"],
         )
+
+    def test_independent_observation_of_a_forbidden_write_is_held_apart(self):
+        snapshot_file = self.fx.snapshot / "held-source.txt"
+        before = snapshot_file.read_bytes()
+        self.assertIn(b"synthetic-source", before)
+        planted = ats.plant_mutate(
+            snapshot_file,
+            lambda body: body + b"FORBIDDEN_WRITE\n",
+            recognisable=b"FORBIDDEN_WRITE",
+        )
+        self.assertEqual(planted, before)
+        after = snapshot_file.read_bytes()
+        self.assertNotEqual(after, before)
+        observation = ats.canonical_json({
+            "kind": "independent-observation",
+            "control": "source-write-then-restore",
+            "path": str(snapshot_file.resolve()),
+            "result": "FAIL",
+            "bytes_sha256": ats.sha256_bytes(after),
+        }).encode("utf-8")
+        obs_path = self.fx.evidence / "independent-observation.json"
+        ats.plant_bytes(
+            obs_path,
+            observation,
+            recognisable=b"source-write-then-restore",
+        )
+        transport = self.fx.transport(
+            self.selection,
+            identity=deepcopy(self.passing_identity),
+            outputs=self.identity_outputs,
+        )
+        self.assertEqual(
+            transport.evidence.verification["sha256"],
+            self.fx.verification_sha256,
+        )
+        self.assertNotEqual(
+            ats.sha256_bytes(observation),
+            transport.evidence.verification["sha256"],
+        )
+        self.assertTrue(transport.evidence.identity["scope"]["source_write_denials"])
+        result = ats.compile_launch(
+            self.selection, self.grants, transport, [], "launch",
+        )
+        # Compile checks held verification bytes/digests, not this observation
+        # file. The observation remains independently held for the launch
+        # evidence owner; matching held PASS bytes still compile.
+        self.assertTrue(ats.is_success(result), ats.explain(result))
+        self.assertIn(b"FORBIDDEN_WRITE", snapshot_file.read_bytes())
 
     def test_descriptor_adapter_fields_must_equal_capability_identity(self):
         transport = self.fx.transport(
-            self.selection, identity=deepcopy(self.passing_identity),
+            self.selection,
+            identity=deepcopy(self.passing_identity),
+            outputs=self.identity_outputs,
         )
         result = ats.compile_launch(
             self.selection, self.grants, transport, [], "launch",
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
         cap = result["capability"]["adapter"]
-        desc = transport["adapter"]
+        desc = transport.manifest["adapter"]
+        self.assertEqual(set(cap), set(ats.WORKER_ADAPTER_KEYS))
+        self.assertEqual(set(desc), set(ats.WORKER_MANIFEST_ADAPTER_KEYS))
         self.assertEqual(cap["revision"], desc["revision"])
         self.assertEqual(cap["mechanism"], desc["mechanism"])
         self.assertEqual(cap["grammar_sha256"], desc["grammar_sha256"])
-        self.assertEqual(cap["normalizer_sha256"], desc["normalizer_sha256"])
         self.assertEqual(cap["config_sha256"], desc["config_sha256"])
         self.assertEqual(
             result["capability"]["harness"]["executable"]["sha256"],
             desc["executable_sha256"],
         )
+        self.assertNotIn("normalizer_sha256", cap)
+        self.assertNotIn("mcp", result["capability"])
