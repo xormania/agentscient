@@ -14,6 +14,11 @@ its seven dispositions, as clarified by the contract assignment's P2.
 The supplied ruling is evidence, not an executable authority source.
 The bounded correction adopts Grok ruling `20260906T023832Z-adjudicate-grok-8cdf11`
 and the [correction assignment](../../.dev/ladder-inputs/lane-policy-correction-owner.md).
+The [final ruling](../../.dev/ladder-inputs/lane-policy-final-ruling.md) accepts
+the three remaining findings from Claude `20260906T025705Z-review-claude-104942`.
+It records `D-LANES-1` as the permanent lane boundary's semantic owner evidence
+in the conductor decisions register, with a scope-reference note on `D-SYM-1`;
+neither is admission of this policy blob, a maintenance grant or runtime activation.
 
 ## Ownership and positive scope
 
@@ -69,8 +74,10 @@ inspection grant above permits `src/` and `packages/` even though this list omit
 them. All reads still intersect custody/withholding restrictions.
 
 The protected set includes every exclusive dispatch lever and suite/conformance
-gate entrypoint named here as exact paths: `ops/bin/dispatch.sh`, `ops/bin/go.sh`,
-`ops/bin/suites.sh` and `ops/conductor/tools/laneconf.py`. Do not replace these
+gate entrypoint named here as exact paths: `ops/bin/dispatch.sh`, its body
+`ops/conductor/tools/dispatch.sh`, `ops/bin/go.sh`, `ops/bin/ladder.sh`,
+`ops/bin/suites.sh` and `ops/conductor/tools/laneconf.py`. The ladder shim's
+`ops/conductor/tools/ladder.py` body remains protected too. Do not replace these
 with `ops/bin/` or `ops/devlane/hooks/` prefixes that swallow ordinary tooling.
 The register reader and seed are not gate entrypoints; their trusted use is
 bound separately below. Unprotected tooling writes require no maintenance grant.
@@ -172,10 +179,24 @@ non-finite numbers, wrong types, mismatched ref/digest/principal/reader, missing
 rows, unreadable output or conflicting evidence refuse `lane-policy`.
 Revocation uses the existing supersede transition; there is no invented revoke
 verb or status. Proposed, rejected or superseded rows cannot authorize. Notes
-do not grant or revoke authority. Do not chase a successor as an automatic grant;
+neither add nor remove a grant, but change the exact `show` output digest:
+existing bindings refuse at the next acceptance transition (`lane-policy`, or
+`lane-resume` on write-resume). A fresh dispatch may bind the same unchanged
+authority's new digest without a new owner decision; never silently rewrite an
+existing bound record. Do not chase a successor as an automatic grant;
 the trusted admission must explicitly name the current standing-grant set.
 Read and validate every listed standing row before calculating coverage; a
 missing or invalid row is not an empty set that licenses a per-job fallback.
+
+Changing the complete standing-grant set requires a fresh ratified admission
+listing the replacement set and an update to the custody anchor's current
+admission id. Verify both the replacement admission and anchor update using the
+previously trusted consumer, reader and authority before cutover; candidate
+evidence cannot validate its own replacement. A superseded listed grant refuses
+`lane-policy` for protected maintenance until a valid replacement admission and
+anchor are in place. Rotation applies to fresh dispatches and never rewrites old
+bindings. Dispatching another job already covered by unchanged standing grants
+does not rotate the set or require a new owner act.
 
 ### Selection and maintenance grants
 
@@ -422,13 +443,15 @@ in the same change that introduces it; do not change laneconf's wire here.
 | N4 | committed, untracked and ignored product writes under `dev`, including rename endpoint and symlink escapes, refuse; unknown cache/source layouts are not exemptions |
 | N5 | `ok`, `approve`, exit 0 or collected verification cannot override missing/mismatched/refused policy evidence in land or ladder |
 | N6 | missing output declaration gives no output grant; read snapshot stays immutable even with isolated declared `out/`; missing job/adapter scope grants never widen rights |
-| N7 | `dev` writes any of the four exact gate paths without maintenance: `lane-write`; `dev` plus a valid maintenance record writes `ops/README.md`: `lane-write`; true-valued maintenance without coverage also refuses |
+| N7 | `dev` writes any exact gate path `ops/bin/dispatch.sh`, `ops/conductor/tools/dispatch.sh` (actual lever body), `ops/bin/go.sh`, `ops/bin/ladder.sh`, `ops/bin/suites.sh`, `ops/conductor/tools/laneconf.py`, or the already protected `ops/conductor/tools/ladder.py`: `lane-write`; `dev` plus a valid maintenance record writes `ops/README.md`: `lane-write`; true-valued maintenance without coverage also refuses; P1 ordinary tooling still passes |
 | N8 | `standing: "active"`, any other non-`proposal` value, duplicate keys, wrong boolean types or malformed shared-read paths: `lane-policy` |
 | N9 | forged candidate reader/config/seed output or worker HOME store cannot supply admission; mismatched reader/runtime, output byte digest (including changed events/newline), owner principal, policy ref/digest, malformed evidence, missing/conflicting/rejected/superseded rows: `lane-policy`; no successor chasing or per-job fallback for an invalid standing row |
 | N10 | per-job evidence reused for another dispatch/job/lineage, or covering a path inside the standing union: `lane-policy`; absent per-job coverage outside the union: `lane-write`; read permission cannot bypass custody |
 | R1 | stationary binding and exact artifact/dependency evidence revalidate on settle/resume/collect/land/ladder |
 | R2 | changed admitted policy/profile/template/declarations, or legacy unbound write-resume, refuses before marker/store/attempt mutation; collect verification that introduces a forbidden write cannot commit/publish |
 | R3 | unchanged legacy records remain readable but cannot land/advance; fresh dispatch preserves provenance; bootstrap is explicit and candidate evaluator cannot accept itself |
+| R4 | supersede a listed standing grant: protected maintenance refuses `lane-policy`, even with a valid per-job row; a replacement admission without the verified anchor update still refuses; ratify a fresh admission listing the complete valid replacement set and verify it and the anchor update using the previously trusted consumer/reader/authority: fresh dispatch with covered paths passes, and a second covered job passes without another owner act; old bindings stay unchanged |
+| R5 | add a note to a bound admission or grant: authority is unchanged but exact `show` bytes differ; the existing dispatch refuses `lane-policy` at its next settle/collect/land/ladder transition or `lane-resume` before write-resume mutations; a fresh dispatch binds the unchanged authority's new digest and passes without a new owner decision; the old record and digest remain unchanged |
 | I1 | active instructions reintroducing mandatory app twins/retirement or app runtime dependencies fail independent review; superseded historical quotations and legitimate product contracts remain allowed |
 
 Docs/data acceptance here is only `git diff --check`, JSON parsing, changed-link
