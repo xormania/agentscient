@@ -215,7 +215,7 @@ read-only contract. Tool annotations and catalogue visibility alone cannot
 prove unattended operation or enforce access through other harness tools.
 Any future handoff/AAR action remains owner-initiated.
 
-## Symfony mapping, remeasured
+## Symfony mapping, preserved historical measurement
 
 Historical draft measurement, preserved from invalid producer record
 `20260906T011424Z-code-codex-2a2af6`: measured 2026-09-06T01:15:46Z against

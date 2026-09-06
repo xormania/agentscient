@@ -12,8 +12,12 @@ The v3 instrument is ABSENT until step 2. The
 
 This is the conductor discovery surface. Role (conductor/worker), work
 profile (dev/prod/additional configured profiles), and harness are independent.
-Trusted launch/configuration selects the audience and its allowed sources;
-there is no caller-supplied role, repository, path, command, or consumer switch.
+Trusted launch/configuration selects the audience and its allowed sources.
+This is an assumption about launch custody, not proven host isolation.
+`--config FILE` is that launch-supplied trusted descriptor, like the anchors;
+it is not a query argument. Discovery queries/resources accept no config,
+audience, role, repository, path, command, or consumer switch. Starting a
+process with the wrong FILE is a launch defect, not a query defect.
 `conduct` starts conductors; the existing dispatcher starts workers for named
 jobs. A worker must not inherit conductor sources through a shared harness or
 profile. A separately bounded worker context/MCP follow-up belongs to the
@@ -124,8 +128,9 @@ References must exist, have the same kind and lineage, and form an acyclic
 graph; multiple revisions of one record_id are allowed only with identical
 metadata (a changed revision is still separate evidence).
 These are approved config assertions, not authentication inferred from Git.
-Config provenance/custody is a launch responsibility. An untrusted branch
-cannot install its own config or thereby authorize a record.
+Config provenance/custody is a launch responsibility. Trusted launch must
+prevent an untrusted branch from installing config or authorizing a record;
+discovery assumes that boundary rather than proving it across host tools.
 
 Anchors may point at existing state outside the repository; no store moves
 are required. Root and gitdir/common-dir device/inode identities are pinned
@@ -135,7 +140,8 @@ All components are opened descriptor-relative beneath these anchors with
 no symlink traversal, including ancestors; reject FIFO/device/socket and
 unexpected directories. Never re-resolve an anchor through a mutable pathname.
 If safe access cannot be established, report unavailable, not a fallback.
-Configuration is granted from a similarly trusted launch descriptor.
+Configuration is granted from the launch-supplied `--config FILE` descriptor;
+discovery does not authenticate its launcher or specify a host sandbox.
 
 ## Fixed acquisition boundary
 
@@ -225,7 +231,7 @@ profile dependency closure, even a named action query with a startup snapshot.
 | source ID | exact binding / derivation |
 |---|---|
 | config | canonical loaded v3 config, including all profiles, bindings and launch anchor identities |
-| contract | compiled card/shape/law/action definitions for this contract revision; digest of their canonical data |
+| contract | boot-supplied card/shape/law/action definitions; revision is SHA-256 of the launch-supplied discovery-lever.md bytes, as in the definition observation below; no second definition digest |
 | adapter | acquisition protocol version `discovery-acquisition/1`, adapter implementation SHA-256 and trusted Git executable digest/version (null executable fields for direct objects) |
 | repo | pinned HEAD and ref identity; fixed law paths, index homes/contracts/registries/entrypoints, composer.lock, and enumerated HEAD record blobs, all through the adapter |
 | retained | configured prefix plus every enumerated ref→commit, tree entry/mode/blob and read outcome; read only when this profile includes retained |
@@ -292,9 +298,11 @@ the 1 MiB source bound. Byte-identical deduplication compares bytes as well
 as digests; a digest collision is metadata-conflict, never merged evidence.
 
 Candidate cards have `relevance:"relevant"|"unknown"` (known irrelevant cards
-are excluded), and `freshness:"current"|"stale"|"unknown"`. Missing bindings,
-missing/unreadable bound evidence, metadata conflict or incomplete enabled
-scan makes selection `unknown`, even beside one readable current handoff.
+are excluded), and `freshness:"current"|"stale"|"unknown"`. An observed unbound
+handoff is a bindings failure: complete false, selection unknown and counts
+null, even beside one readable current handoff. Missing/unreadable bound
+handoff evidence, handoff metadata conflict or incomplete enabled scan also
+makes selection unknown. AAR metadata gaps do not block handoff selection.
 A binding for this profile whose bytes are absent from a complete scan is
 visible as an unavailable candidate (`missing-bound-record`). Unbound
 records remain visible as key/kind/reason only, no body or provenance paths
@@ -303,28 +311,45 @@ cross-profile prose. Unknown records do not authorize actions.
 Disabled retained refs are outside the declared scan scope: selection may be
 one within repo only, with `retained source not searched` explicitly shown.
 
-When all enabled scans are complete and relevant evidence readable:
+When all enabled scans are complete and relevant handoff evidence readable:
 zero current handoffs gives none; one gives one; two or more gives multiple.
 Only one gives selected_key, including when lists span pages. Stale-only
 handoffs give none with their stale cards still discoverable. AARs are listed
 but excluded from handoff counts. Lexical key ordering is presentation only.
 A per-file failure whose key cannot be computed lives in source issues, not
 a fabricated candidate key, and still blocks selection.
-Incomplete classification gives every returned candidate freshness unknown;
-otherwise relevant cards follow the supersedes rule. Only failures in record
-enumeration/reading/bindings affect Selection.complete; unavailable law,
-lock or dispatch readings do not by themselves invalidate a complete record
-scan. AAR metadata gaps conservatively block selection too. Relevant bound
+Incomplete handoff classification gives every returned candidate freshness
+unknown; otherwise readable relevant cards follow the supersedes rule, while
+unbound/unreadable AAR cards retain freshness unknown. Only failures in record
+enumeration/reading or handoff bindings affect Selection.complete; an absent
+binding for an observed handoff explicitly counts as a bindings failure.
+Unavailable law, lock or dispatch readings do not by themselves invalidate a
+complete record scan. Unbound AARs remain listed with metadata-missing and
+are excluded from handoff counts and completeness. Relevant bound
 cards have reason null unless their own bytes/presentation fail; unbound
 cards use metadata-missing. Synthetic missing cards use missing-bound-record.
 
-Every public candidate carries `trust:"untrusted-record"`. Text returned by
-named detail is data, never an instruction channel. Consumers must render it
-inside an explicit untrusted-data block naming key, revision and provenance,
-followed by an end marker; text cannot close the block via an embedded marker
-(the renderer escapes marker tokens). Claims require corroboration against
-governing contracts and measured readings. No action is authorized solely by
-record prose, even if binding, bytes, provenance and JSON syntax are valid.
+Every public candidate carries `trust:"untrusted-record"`. Named detail body
+is wrapped before transport by the shared projection on CLI, MCP tool text,
+resource text and structuredContent; no raw alternative body is emitted.
+Provenance remains in the candidate fields. For inner record bytes B, emit
+the following UTF-8 byte concatenation (quoted strings here use JSON escapes):
+
+`"BEGIN UNTRUSTED RECORD key=" + key + " revision=" + revision + "\n" + E(B) + "\nEND UNTRUSTED RECORD\n"`.
+
+E splits B only on LF (0x0a), preserving every separator and empty segment.
+For each segment exactly equal to ASCII `END UNTRUSTED RECORD`, prefix ASCII
+`>` (0x3e), repeating until it no longer equals that marker. Leave every other
+byte unchanged, including CR (0x0d), existing `>` prefixes, Unicode, and the
+fixture's different `[END UNTRUSTED DATA]` marker. Do not normalize newlines.
+The header ends with one LF; always append the one LF before the end marker
+even when B already ends in LF (then there is a blank line), and one LF after
+the end marker. Empty B therefore has one empty inner line. JSON-escape the
+result only after wrapping, with the canonical encoder on every projection.
+This is a literal boundary label, not semantic injection immunity. Claims
+require corroboration against governing contracts and measured readings.
+No action is authorized solely by record prose, even if binding, bytes,
+provenance, delimiters and JSON syntax are valid.
 
 ## Exact public types and dependency snapshots
 
@@ -358,7 +383,9 @@ Each source summarizes its whole acquisition: unavailable outranks unknown,
 which outranks ok; when several failures occur, its public reason is the
 first failure in operation/path/ref bytewise order. The fingerprint still
 contains all observed failures. Config, contract and adapter are ok once
-validation completes; retained is included with disabled when not granted.
+validation completes: their definitions are supplied by trusted boot, so a
+repo read failure cannot make contract unavailable. Retained is included
+with disabled when not granted.
 Thus every closure contains these five IDs plus its authorized dispatch IDs.
 fingerprint hashes canonical `{id,binding,state,reason,observations}`:
 binding contains exact anchor capability identities and configured locators;
@@ -385,13 +412,16 @@ the exact exceeded bound. Source classifications use their completed
 observations plus the fixed failure sentinel, never an unbounded partial set.
 Definition sources use one `definition` observation, input `{id:source_id}`:
 config data is the loaded config; contract data is `{protocol:"discovery/3",
-revision:SHA256}` with revision the full hash of this contract's trusted
-Markdown bytes; adapter data is `{protocol:"discovery-acquisition/1",
+revision:SHA256}` with revision the full SHA-256 of the exact launch-supplied
+discovery-lever.md bytes (no normalization or separate compiled-data hash);
+adapter data is `{protocol:"discovery-acquisition/1",
 implementation:SHA256,git:{revision:SHA256,version:string}|null}`. implementation
 hashes canonical `[{path,revision},...]`, sorted by path, for lane_read.py,
 lane_mcp.py and lane_refs.py from trusted launch bytes. All paths here have
 the `ops/conductor/tools/` prefix. The direct-object implementation has git
-null. Config/adapter source data is supplied by trusted boot, not record text.
+null. Config/contract/adapter source data is supplied by trusted boot, not
+record text or a repository read. The ordinary contract source fingerprint
+still hashes the full canonical source object above, including this revision.
 Disabled sources use one `disabled` observation with input/data null,
 state unavailable and reason disabled. Observation arrays sort by their
 complete canonical bytes and deduplicate identical entries. repo and retained
@@ -427,6 +457,10 @@ Types used by Data:
   registry:string|null,ownership:"declared"|"unresolved",document_present:bool|null,
   implementation_present:bool|null,locked:bool|null,installed:bool|null,
   activated:bool|null,probed:bool|null,intended:string|null,evidence:[source_id,...]}`.
+  evidence is ["contract"] for the compiled index row, with "repo" appended
+  iff document_present, implementation_present or locked was measured or
+  attempted from repo observations. No other source IDs. Unresolved ownership,
+  failed document reads and locked false/null still include repo when consulted.
 - `HomeSummary = {concept,home:string|null,entrypoint:string|null,
   document_present:bool|null,implementation_present:bool|null}`.
 - `Law = {path,status:"present"|"missing"|"unavailable",one_liner}`.
@@ -445,11 +479,14 @@ Types used by Data:
   commit/path/blob); occurrences is the total, no loss of identity in the
   fingerprint. Missing-bound-record uses its binding revision/key, zero
   occurrences, null provenance/body/length. Unknown relevance also suppresses
-  provenance/body/length. Lists/start never carry body.
+  provenance/body/length. Lists/start never carry body. A non-null body is the
+  literal pre-transport wrapper above; revision, key and body_bytes describe
+  the original inner bytes, excluding wrapper/escape bytes.
 - `Selection = {selection:"none"|"one"|"multiple"|"unknown",
   selected_key:string|null,current:int|null,stale:int|null,
   unknown:int|null,complete:bool}`. Counts cover handoffs only and are null
-  when any enabled scan/metadata failure prevents a complete classification.
+  when an enabled scan failure or handoff reading/binding failure prevents
+  complete handoff classification; AAR metadata gaps do not affect these counts.
   With complete true all counts are measured, unknown is zero.
 - `Action = {name,owner,entrypoint:string|null,implementation_present:bool|null,
   available:bool|null,installed:null,activated:null,probed:null,reason:Reason}`.
@@ -467,8 +504,10 @@ contract blob (directories count only if the row explicitly names a directory).
 implementation_present checks only the executable target, never a contract.
 For document-only concepts it is null; for declared unbuilt instruments false.
 A missing executable is false; a failed check is null.
-locked is membership in readable composer.lock for an exact named Composer
-package, false on measured absence, null for malformed/unavailable lock or
+locked is true only when an object in composer.lock's `packages[]` or
+`packages-dev[]` has `name` exactly equal to the intended Composer package.
+Constraint values, require/suggest keys and all other JSON locations do not
+count as membership. It is false on measured absence, null for malformed/unavailable lock or
 non-package intended values. installed/activated/probed are always null here:
 neither a lock entry nor an executable blob proves installation/live readiness.
 Only the intended value exactly equal to symfony/workflow names a Composer
@@ -482,7 +521,7 @@ Closed arguments; every new query requires `profile:ID`, optional
 
 | query | optional arguments | exact Data on success |
 |---|---|---|
-| lane_start | none | `{law:[Law],state_sources:[StateSummary],homes:[HomeSummary],work:[Work],handoffs:Selection,actions:[Action],omissions:[string]}` |
+| lane_start | cursor | `{law:[Law],state_sources:[StateSummary],homes:[HomeSummary],work:[Work],handoffs:Selection,actions:[Action],omissions:[string]}`; cursor pages work only |
 | lane_homes | concept, cursor | `{homes:[Home],home:Home\|null,page:Page\|null}` |
 | lane_handoffs | key, cursor | `{candidates:[Candidate],candidate:Candidate\|null,handoffs:Selection,page:Page\|null}` |
 | lane_actions | name | `{actions:[Action],action:Action\|null}` |
@@ -495,8 +534,10 @@ concept/key outside the profile is indistinguishable from a named miss.
 Named handoff lookup returns that card whether or not it is selected; it never
 turns a multiple/unknown selection into one.
 
-Cursor grammar is `<snapshot>:<offset>`, offset a canonical decimal integer
-1..255 (no leading zeros), snapshot 64 hex. Page one has offset 0.
+Cursor grammar is `<snapshot>:<offset>`, snapshot 64 lowercase hex, offset
+a canonical decimal integer (no leading zeros). For homes/handoffs offset is
+1..255; for lane_start it is 0..19 (0 permits retrying work omitted for fit
+on the initial read). Page one without cursor has offset 0.
 cursor binds the profile snapshot and query/list implicitly through a required
 matching `snapshot` argument plus query-specific offset bounds; it grants no
 access and may be reused as an offset on another list within the same profile
@@ -505,7 +546,7 @@ Malformed snapshot/cursor, mismatch or out-of-range offset refuses cursor.
 Pagination does not mean incomplete acquisition: enumerate the bounded set
 before computing selection, then page presentation.
 
-List pages greedily append whole cards, at most 16 and at most 16384 encoded
+Homes/handoffs list pages greedily append whole cards, at most 16 and at most 16384 encoded
 envelope bytes including final page metadata. Empty measured lists have
 `{offset:0,count:0,total:0,more:false,next_cursor:null}`.
 When items remain, at least one must fit; otherwise item-exceeds-cap, data null.
@@ -517,26 +558,54 @@ limited to 256: detect a 257th card and return query-wide unavailable with
 record-overflow and data null. Named lookup does not bypass acquisition
 overflow. The 16-card limit is presentation only and is bypassed by a name.
 
-Startup cap is 8192 encoded bytes. It carries all five law rows, all five
-state rows, all configured startup_homes (at most three), all four actions,
-and Selection. Work is the first eight eligible/unknown cards; omitted count
-is reported. If needed drop work only (all of it); never drop required owners,
-state, actions or selection. Oversized mandatory frame is unavailable with
-page-frame-exceeds-cap. Profile/anchor limits and compact summaries permit
-the shipped defaults; acceptance measures bytes. Full homes are targeted detail.
+Every lane_start response caps at 8192 encoded bytes. Without cursor it
+carries all five law rows, all five state rows, all configured startup_homes
+(at most three), all four actions, and Selection, plus the first eight
+eligible/unknown work cards (or all if fewer). If needed drop work only (all
+of it); retain the mandatory frame and the continuation omissions below.
+With cursor, use the same Data shape and repeat that entire mandatory frame;
+page only work from the supplied offset in the complete eligible/unknown
+job_ids order. Greedily append whole cards, at most eight, including final
+omission bytes in each fit calculation. Never skip a card or drop owners,
+state, actions or selection. If work remains and not even one card fits on a
+continuation, return unavailable/item-exceeds-cap with data null. An oversized
+mandatory frame (including required omissions) is unavailable with
+page-frame-exceeds-cap. No empty non-advancing continuation succeeds.
+Profile/anchor limits and compact summaries permit the shipped defaults;
+acceptance measures bytes. Full homes are targeted detail.
 All other responses cap at 16384. Body only on named handoff, valid UTF-8,
 ≤2048 bytes; larger body becomes null with length and body-exceeds-cap;
-invalid UTF-8 is malformed, no body. Count lengths before JSON escaping.
+invalid UTF-8 is malformed, no body. The 2048 limit and body_bytes count inner
+bytes before wrapper and JSON escaping; the envelope cap includes both.
 
 Startup omissions always contain, in this order: `no host activation`,
 `no live readiness`, `no role enforcement`, `no lifecycle publication`,
 `no raw documentation dump`, `HEAD tree only; dirty and untracked files excluded`,
 `register ledger prs local readings unavailable`.
 Append `retained source not searched` when disabled for this profile.
-Append `work omitted: N` when cards exceed eight or work is dropped for fit.
-No source prose in omissions.
+Let offset be zero on the initial read and the cursor offset on continuation;
+count is the returned work length, total the complete eligible/unknown count.
+When N = total-offset-count is positive, append `work omitted: N`, then
+`work next cursor: SNAPSHOT:OFFSET`, where SNAPSHOT is the envelope snapshot
+and OFFSET is offset+count in canonical decimal. These are literal ASCII
+prefixes with single spaces; no extra page field is added to lane_start.
+For an initial all-work drop OFFSET is 0. When N is zero append neither
+string. Previous slices are not counted as omissions. Empty work thus keeps
+fixture A's exact shape/bytes. No source prose in omissions.
+
+A continuation on CLI uses TOOL `lane_start` with JSON exactly
+`{"profile":"dev","snapshot":"S","cursor":"S:8"}` (S denotes the same
+measured 64-hex snapshot in both strings); MCP tools/call uses name lane_start
+and that same arguments object. Substitute the returned cursor/offset, never
+assume eight fit. Snapshot is required with cursor, including offset zero.
+Twenty fitting cards return 8, 8, 4 at offsets 0, 8, 16; only the first two
+responses advertise a next cursor. The same rule applies to every profile.
 
 CLI remains `python3 -B ops/conductor/tools/lane_mcp.py --config FILE query TOOL [JSON]`.
+FILE is supplied at trusted process launch, outside the closed JSON query
+schema; it cannot be changed by a tool call or resource URI. A job-bound launch
+descriptor is distinct from the conductor descriptor; this contract does not
+implement its worker catalogue or authenticate which process may be launched.
 Tools and resources project the SAME envelope; _meta remains transport-only
 and ignored as in v2. Resource list reads config only, adds one each of
 `lane://start/PROFILE`, `lane://homes/PROFILE`,
@@ -544,7 +613,8 @@ and ignored as in v2. Resource list reads config only, adds one each of
 Three added templates are `lane://homes/{profile}/{concept}`,
 `lane://handoffs/{profile}/record/{digest}`,
 `lane://actions/{profile}/{name}`; the v2 job template remains.
-Resource first pages omit snapshot/cursor. Continuation is tool-only.
+Resource first pages omit snapshot/cursor. Continuation is query-only through
+CLI or MCP tool calls, including lane_start work; resources have no cursor URI.
 URI segments have the corresponding argument grammars, no decoding into paths;
 unknown/malformed resource URIs retain -32602. v1 template handling stays -32601.
 
@@ -607,7 +677,7 @@ Symfony Workflow use without choosing the dev runtime's technology.
 | `verified-couplings` | `docs/verified-couplings.md` | `docs/verified-couplings.md` | null | null | `none` | null |
 | `mapping` | `docs/mapping.md` | `docs/mapping.md` | null | null | `none` | `four projections` |
 | `onboard` | `ops/conductor/onboard-lever.md` | `ops/conductor/onboard-lever.md` | `ops/conductor/tools/onboard.py` | `ops/conductor/registry/onboard.py.json` | `ops/conductor/tools/onboard.py` | null |
-| `lane-mcp` | `ops/conductor/lane-mcp-lever.md` | `ops/conductor/lane-mcp-lever.md` | `ops/conductor/tools/lane_mcp.py` | null | `ops/conductor/tools/lane_mcp.py` | null |
+| `lane-mcp` | `ops/conductor/lane-mcp-lever.md` | `ops/conductor/lane-mcp-lever.md` | `ops/conductor/tools/lane_mcp.py` | `ops/conductor/registry/lane_mcp.py.json` | `ops/conductor/tools/lane_mcp.py` | null |
 | `lane-read` | `ops/conductor/lane-mcp-lever.md` | `ops/conductor/lane-mcp-lever.md` | `ops/conductor/tools/lane_read.py` | null | `ops/conductor/tools/lane_read.py` | null |
 | `dispatch` | `ops/devlane/dispatch/CONTRACT.md` | `ops/devlane/dispatch/CONTRACT.md` | `ops/devlane/dispatch/launch.py` | `ops/devlane/task/jobs.json` | `ops/devlane/dispatch/launch.py` | null |
 | `harness` | `ops/devlane/harness/` | `ops/devlane/harness/context.cue` | null | null | `none` | null |
@@ -640,7 +710,8 @@ assumed to carry that metadata. Work bindings belong to the existing
 task/dispatch context. Extending owner schemas and independently verifying
 their custody precedes automated production of these bindings.
 
-Step 2 registers the v3 conformance row with a hermetic config refusal and
+Step 2 appends the v3 hermetic config-refusal conformance row to the existing
+`ops/conductor/registry/lane_mcp.py.json` and
 adds the discovery/sequence paths to onboard's law table and implementation
 together. Today's onboard table and CLI remain unchanged. Step 3 extends
 [harness capabilities](harness-capabilities.md) and
@@ -653,7 +724,7 @@ Historical draft measurement (not reissued as current): 2026-09-06T01:15:46Z aga
 `3682a8c58e304e7025036f1b3ec4edb63424832e`: parsed composer.json/lock,
 enumerated packages, checked vendor and proposed instrument paths, and parsed
 lane_read's AST. Relevant locked/resolved versions are in the
-[plan](conductor-start-plan.md#symfony-mapping-remeasured).
+[plan](conductor-start-plan.md#symfony-mapping-preserved-historical-measurement).
 vendor, lane_refs.py, wf.py and probes.py were absent; packages contained
 README.md only; lane_read had zero subprocess mentions. No installed runtime,
 Git namespace contents, package release freshness or host activation was
@@ -688,7 +759,9 @@ A counterparty change re-demands its coupled rows.
 | D-A14 | identical HEAD/ref bytes and two distinct blobs in one ref | one key per digest, all occurrences bound; no stem collisions |
 | D-A15 | trusted same-lineage supersedes pair | old stale, new current; AAR never selected as handoff |
 | D-A16 | bound stale-only handoffs | none plus visible stale cards |
-| D-A17 | unbound old record, unreadable candidate or missing bound record beside one good candidate | unknown, null selected_key/counts, complete false; missing evidence visible |
+| D-A17 | unbound old handoff, unreadable candidate or missing bound handoff beside one good handoff | unknown, null selected_key/counts, complete false; observed unbound handoff is a bindings failure; missing evidence visible |
+| D-A17b | one readable bound current handoff plus unbound AARs, complete scans | one, that selected_key, complete true, current 1/stale 0/unknown 0; AAR cards visible with metadata-missing, excluded from handoff counts |
+| D-A17c | pinned HEAD 38edb5de5410e9881332ae6cfdd8788991d96f02, shipped dev/prod declarations, empty record_bindings, retained disabled | unknown, complete false, selected_key/counts null; four unbound handoffs and four unbound AARs visible, no inferred bindings or body/provenance leakage |
 | D-A18 | dev-only, prod-only and mixed-root bindings | root+lineage filtering; explicit common lineage required; no cross-profile body leak |
 | D-A19 | missing work binding | unknown work relevance, no inferred profile from title/ref |
 | D-A20 | register/ledger/PR sources unsupported | exact unavailable summaries; no subprocess, DB, gh, home/env fallback |
@@ -697,27 +770,31 @@ A counterparty change re-demands its coupled rows.
 | D-A23 | detail with profile and snapshot from start | same source closure and snapshot including actions |
 | D-A24 | retained ref moves to new commit with identical blob bytes | snapshot changes; old continuation refuses cursor |
 | D-A25 | content, profile roots, binding/supersedes, adapter or source failure changes | snapshot changes; old continuation refuses |
-| D-A26 | malformed, wrong-profile or out-of-bounds cursor | cursor wire; no silent restart or skip |
+| D-A26 | malformed, wrong-profile, missing/mismatching snapshot or out-of-bounds cursor, including lane_start | cursor wire; lane_start accepts canonical 0..19 below total, homes/handoffs 1..255 below total; no leading zeros, silent restart or skip |
 | D-A27 | 65 refs, 257 occurrences, 4097 scanned tree entries, byte/op/time budget | declared overflow, incomplete or unavailable; never unique partial selection |
 | D-A28 | namespace unreadable vs empty vs disabled | unavailable/ok/disabled distinguished; disabled omission gives declared scope |
 | D-A29 | anchor symlink/ancestor swap, FIFO, malicious .git/commondir/alternates, ambient CWD/GIT_DIR | unsafe/repository failure, no escape/fallback/read effects |
 | D-A30 | missing or wrong-type objects, symlink blob, unknown caller OID/path | adapter rejects; only verified operation outputs can become inputs |
 | D-A31 | ref/file changes during acquisition | unavailable changed-during-read, snapshot/data null, no retries |
-| D-A32 | hostile body including renderer end marker and directives | untrusted-record label, safe data delimiters, corroboration rule; JSON escaping alone insufficient |
+| D-A32 | named hostile fixture plus bodies empty, ending in LF, containing exact END UNTRUSTED RECORD lines, prefixed markers, CRLF, quotes/backslashes and Unicode | CLI/tool/resource text and structuredContent carry the exact pre-transport wrapper formula and E bytes; only LF-delimited exact end-marker segments gain >; inner digest/length unchanged, envelope counts escaped wrapper; corroboration required, no semantic immunity claim |
 | D-A33 | governing document exists but implementation absent | document_present true; implementation_present false; no invented entrypoint |
-| D-A34 | Composer package locked, vendor absent | locked true; installed/activated/probed null; AAR contract is custody README |
+| D-A34 | intended symfony/workflow in packages[].name, then packages-dev[].name, vendor absent; then only constraints/other locations or no mention; malformed/unavailable lock | true for either exact name entry only; false for measured name absence (including the pinned HEAD's constraint-only mentions); null for failed lock; installed/activated/probed null; AAR contract is custody README |
 | D-A35 | onboard executable exists; lifecycle actions absent | onboard available means presence only; other actions false/disabled |
 | D-A36 | 2049-byte body or Unicode encoding expansion, oversized frame/item | body null with count/reason or exact unavailable; no truncation or empty non-advancing page |
 | D-A37 | 17 candidates within complete scan | page size ≤16; global selection unchanged; named lookup works |
-| D-A38 | oversized optional work, mandatory startup owners | work omission only; owners retained or explicit frame failure |
+| D-A38 | initial eight-work slice exceeds cap but one card fits; then one oversized card or mandatory frame | initial work dropped with work omitted: N and work next cursor: S:0; continuation greedily advances without losing owners; item-exceeds-cap if no next card fits, page-frame-exceeds-cap if mandatory frame fails; every lane_start ≤8192 |
+| D-A38b | 20 authorized relevant work bindings in job_ids order, eight cards fit per page | initial/continuation counts 8/8/4, cursor offsets 8/16 then no cursor, omissions 12/4 then none; all 20 reachable once via CLI/MCP, same owners/law/state/actions/Selection/snapshot each page; tools remain 11 |
 | D-A39 | stationary sources and resource first pages | byte-identical CLI/tool/resource envelopes, no per-call timestamps |
 | D-A40 | read without WF_AGENT, tools/list | success; readOnlyHint true, destructiveHint false |
 | D-A41 | before/after filesystem, DB, refs/index/config/object tree; import graph | unchanged; no writer imports; read core still no subprocess |
-| D-A42 | conductor vs worker launch fixture, same harness/profile | worker cannot obtain conductor catalogue; role arg rejected; separate follow-up, no claim of other-tool enforcement |
+| D-A42 | two trusted launch-supplied descriptors, conductor config versus job-bound config, same harness/profile; query attempts config/audience/role/repository/path overrides | conductor queries use the conductor descriptor; the distinct job-bound descriptor/grants are a launch fixture assumption, not a worker-server test; all override arguments rejected before acquisition; wrong FILE is a launch defect, no claimed host isolation or other-tool enforcement |
 | D-A43 | independently started conductor, dev/prod/extra profiles, no path hints | startup then targeted detail identifies owners, tools and relevant handoff or exact uncertainty |
 | D-A44 | v3 old seven queries on unchanged v2 inputs | byte-identical; no broader cleanup |
 | D-A45 | known irrelevant key requested by another profile | same unknown-key envelope as nonexistent key; no prose/provenance leakage |
 | D-A46 | same failed source twice, then recovery | deterministic failure fingerprint; recovery changes snapshot |
+| D-A47 | launch-supplied discovery-lever.md bytes fixed, then changed, with repo read failing | contract definition revision is SHA-256 of those exact bytes, contract remains ok; full source fingerprint uses the one declared observation recipe and changes with definition bytes; fixture/contract fingerprint remains planted |
+| D-A48 | Home compiled index row with repo measured/attempted, including unresolved ownership and locked false/null; no repo consultation | evidence exactly ["contract","repo"] when consulted, otherwise ["contract"]; wf-runtime example unchanged |
+| D-A49 | lane-mcp and lane-read concept rows; historical mapping heading/link | lane-mcp registry is ops/conductor/registry/lane_mcp.py.json, lane-read registry null; step 2 appends to existing file; mapping heading/link identify preserved history, no remeasurement |
 
 No source, settings, dependencies, database/host changes, executable tests,
 active config example, registry entry or PR is part of this revision.
