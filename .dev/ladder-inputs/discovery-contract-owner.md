@@ -62,6 +62,14 @@ Carry explicit role separation into the discovery contract. Role (conductor/work
 
 The current discovery slice is the conductor surface. Declare that audience and its trust boundary explicitly; identify worker-context/MCP implementation as a separate bounded follow-up using the existing task/harness owners. Role/source authorization comes from trusted launch/configuration and the job contract, not a caller-supplied role switch. Both MCP surfaces remain read-only; CLI/API actions and harness enforcement keep their own responsibilities. Do not duplicate service implementations or pretend MCP visibility enforces access through every other harness tool.
 
+## MCP actions discussion: proposed, not admitted
+
+Owner: "how far can we take our mcp server - beyond read-only? Thoughts?"
+
+Conductor recommendation for discussion: MCP could expose the conductor's operating actions over the same shared services as CLI/API, with trusted role/job/capability authorization, bounded typed inputs, state preconditions, duplicate-request protection and recorded outcomes. Conductor coordination and worker job operations would retain distinct access. Worker dispatch would use the consolidated execution service. Handoff/AAR actions remain owner-initiated. This would require a deliberate update to the standing read-only MCP contract; the question is not approval to change that contract or current runtime. Discovery remains read-only and independently useful.
+
+Protocol evidence retrieved 2026-09-06 UTC through web search: the official MCP tools specification permits external-system actions and requires access controls; tool annotations are hints, not enforcement. Sources: https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx and https://blog.modelcontextprotocol.io/posts/2026-03-16-tool-annotations/ . No claim of installed host support or protocol-version compatibility follows from those sources. Server policy and host approval behavior both need live diagnostic proof; annotations alone cannot deliver unattended operation.
+
 ## Worker execution consolidation
 
 Owner: "you said their are mutliple ways to launch worker harness - that's not good - we need to consolidate - thoughts?"
