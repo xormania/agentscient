@@ -117,9 +117,14 @@ and scratch subtrees; `R` the role and job-custody ceiling; `P` existing
 dispatch restrictions intersected with any supplied accepted profile-policy
 restriction; and `H` the operations enforceable by fresh evidence for the
 selected harness, adapter, platform and launch/resume operation. The extra
-worker grant is `G = D ∩ R ∩ P ∩ H`. Admit only if `G = D`. Omission or
-`[]` produces empty `D` and `G`, regardless of prompt prose, artifact
-handles or job name. A declaration demands capability; it does not confer
+worker grant requested after intersection is `G = D ∩ R ∩ P ∩ H`.
+Admission requires both `G = D` and `A = D`, where `A` is the actual extra
+worker write authority of the concrete admitted mechanism. The witness
+must show that undeclared sibling/ancestor writes are unavailable; a
+generic capability set containing `D` does not prove `A = D`. The file-leaf
+restriction and exact scratch-subtree exception below define that equality.
+Omission or `[]` requires empty `D`, `G` and `A`, regardless of prompt prose,
+artifact handles or job name. A declaration demands capability; it does not confer
 it. No partial grant, dropped scratch, downgraded report, inline fallback,
 automatic harness/model substitution, approval prompt or sandbox bypass
 may turn a refusal into admission.
@@ -143,10 +148,15 @@ Existing write-job `out/COMMIT_MSG` and envelope `commit` transport remain
 compatibility obligations under their existing authority; neither becomes
 a required report or a generic read-job write grant. An adapter must
 declare its transport reservations so declarations cannot overlap them.
-It cannot hide broad worker rights as bookkeeping. `TMPDIR` is set only
-from admitted declared scratch; without scratch no inherited temporary
-path may add worker write authority. A harness needing writable transport
-or temporary storage must prove that separation or refuse.
+It cannot hide broad worker rights as bookkeeping. At adoption, declared
+and admitted scratch owns its temporary subtree and `TMPDIR` mapping,
+replacing any legacy launcher-created temporary output directory for that
+purpose. That admitted scratch subtree is not also a transport reservation;
+genuine transport leaves remain reserved and file/scratch collisions still
+refuse. `TMPDIR` is set only from admitted declared scratch; without scratch
+no inherited temporary path may add worker write authority. A harness
+needing writable transport or temporary storage must prove that separation
+or refuse.
 
 The parallel boundary track owns profile policy. C2 consumes an accepted
 restriction when available and requested; it defines no profile names or

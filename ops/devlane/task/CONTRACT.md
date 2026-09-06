@@ -336,8 +336,13 @@ Launch supplies adapter/launcher transport reservations to validation;
 equal, ancestor or descendant collisions refuse. Reserved leaves include
 `last-message.json` and `COMMIT_MSG` beneath `out/`; neither is a report or
 scratch declaration. The list must include any further transport paths an
-adapter needs. Existing path types, links and unsupported filesystem alias
-behavior are checked by dispatch, not inferred from the schema. A regular
+adapter needs. At adoption, declared and admitted scratch owns its temporary
+subtree and `TMPDIR` mapping, replacing any legacy launcher-created temporary
+output directory for that purpose; it is not also reserved as transport.
+Thus the declared `tmp` below is scratch, while genuine transport leaves
+remain reserved and file/scratch collisions still refuse. Existing path
+types, links and unsupported filesystem alias behavior are checked by
+dispatch, not inferred from the schema. A regular
 document must not be multiply linked; no output or ancestor may be a
 symlink. Lexical and real-path checks alone do not prove race-proof
 containment.
@@ -406,7 +411,13 @@ transition is independently defined and tested, without becoming a new
 
 For every `file`, `artifacts[artifact]` must equal the canonical absolute
 path rendered to the worker and resolve to that declared regular file,
-non-empty in bytes, under the bound job `out/`. Task's [envelope.py](envelope.py)
+non-empty in bytes, under the bound job `out/`. Equality is exact string
+equality of the decoded handle and the rendered absolute path value;
+a different spelling that resolves to the same file does not satisfy it.
+This deliberately tightens the plan's resolving-handle language for newly
+declared outputs. It neither retroactively invalidates historical records
+nor removes the existing narrow inline planning transport exception.
+Task's [envelope.py](envelope.py)
 remains the single authority for bounded, non-empty, single-line handles,
 counts and status/verdict semantics. Launch consumes that validation and
 adds filesystem/attempt custody checks; it must not copy those semantic
