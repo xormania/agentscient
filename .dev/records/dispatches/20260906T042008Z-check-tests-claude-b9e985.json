@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T04:20:08Z",
-    "closed": null
+    "closed": "2026-09-06T04:23:42Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -157,14 +157,22 @@
       "--effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/e4a0d7e7-7cf9-43ce-8ca9-1e0e1febebd4.jsonl"
   },
   "session": {
     "id": "e4a0d7e7-7cf9-43ce-8ca9-1e0e1febebd4",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/e4a0d7e7-7cf9-43ce-8ca9-1e0e1febebd4.jsonl",
+    "stream_sha256_at_close": "38fcc7cd5670f451ae326d8c7ebf6fc4c67fce49afa00345459813728c161b97",
+    "spend": {
+      "input": 40,
+      "cached": 1061049,
+      "output": 14905,
+      "total": 1075994,
+      "source": "result.usage",
+      "messages": 20,
+      "cost_usd": 1.4647465
+    }
   },
   "brief": {
     "template": {
@@ -191,10 +199,80 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:20:08Z",
+      "ended": "2026-09-06T04:23:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1cd00ab930129caa7505380bd0179a18bf9a4ad8",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:954-1056",
+          "claim": "The permitted declaration is only ever exercised as the entire file at line 1, and no case asserts that record.py's permitted line is absent from the report. An implementation whose allowance is whole-file-content equality (or line-1 only) passes all eleven new cases: the two positives plant a one-line record.py; test_permitted_declaration_plus_another_agentscient_use_exits_1 asserts only that record.py:2 is reported and tolerates a simultaneous record.py:1 hit; test_permitted_declaration_plus_another_forbidden_token_exits_1 asserts only the origin/dev hit in a different file. The ruling's line-scoped allowance is therefore unproven inside the guard class; only the pre-existing tree baseline test_literals_exits_0_on_the_tree, which is the declared current red rather than a new guard case, discriminates. Add a case planting the exact declaration at a line other than 1 inside a multi-line benign record.py and asserting exit 0, and add assertNotIn(f'{POLICY_REL}:1: forbidden literal agentscient') to the two composite cases.",
+          "reproduce": "git show 1cd00ab930129caa7505380bd0179a18bf9a4ad8 -- ops/conductor/tests/test_laneconf.py | grep -n 'POLICY_LINE + \"\\\\n\"\\|assert_forbidden\\|assertNotIn'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_laneconf.py:977-992",
+          "claim": "The wrong-path case plants at ops/conductor/tools/policy_decl.py, which differs from ops/devlane/dispatch/record.py in both directory and basename, so an implementation keyed on the directory prefix ops/devlane/dispatch/ or on the basename record.py anywhere in the tree still passes. lane-policy.md:80 states 'No directory-level exemption or protocol encoding is permitted' and the ruling names the exact path, so the guard tests must discriminate that. Add a sibling plant of the identical line at ops/devlane/dispatch/<other>.py and a plant at <other-dir>/record.py, each asserting the forbidden hit at its own path and line.",
+          "reproduce": "git show 1cd00ab930129caa7505380bd0179a18bf9a4ad8 -- ops/conductor/tests/test_laneconf.py | grep -n 'policy_decl.py' ; grep -n 'directory-level' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/lane-policy.md:74-79",
+          "claim": "The paragraph permits 'the exact stripped line' without saying whether more than one occurrence of it in record.py is permitted. The neighbouring PIN_EXEMPTION rule at test_laneconf.py:45-46 makes a second `\"dev\"` in the same file a hit, so the two allowances read inconsistently and no test fixes the reading. State the per-occurrence rule in the contract paragraph and cover it with a duplicate-declaration case.",
+          "reproduce": "grep -n 'exact stripped line' ops/conductor/lane-policy.md ; grep -n 'PIN_EXEMPTION' -A 2 ops/conductor/tests/test_laneconf.py"
+        }
+      ],
+      "artifacts": {
+        "ref": "1cd00ab930129caa7505380bd0179a18bf9a4ad8",
+        "base": "c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc",
+        "contract": "ops/conductor/lane-policy.md blob 166f2cde8631231392060101283bde893c7542f1",
+        "tests": "ops/conductor/tests/test_laneconf.py blob 7283ee893f203addc7f672087fad334da570aba5",
+        "contract_commit": "de88d638169353e6896fc8bc916857289d01bec7",
+        "tests_commit": "1cd00ab930129caa7505380bd0179a18bf9a4ad8"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1075994,
+        "out": 14905,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1cd00ab930129caa7505380bd0179a18bf9a4ad8",
+        "started": null,
+        "ended": null
+      },
+      "note": "SKEPTIC \u2014 ref 1cd00ab930129caa7505380bd0179a18bf9a4ad8 against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Judged: ops/conductor/lane-policy.md (blob 166f2cde8631231392060101283bde893c7542f1, commit de88d63, +15 lines, sole file) and ops/conductor/tests/test_laneconf.py (blob 7283ee893f203addc7f672087fad334da570aba5, commit 1cd00ab, +233/-0, sole file). Read: those two files, policy-literal-repair-ruling.md, both dispatch records in in/, and lane-mcp-lever.md \u00a7Coupling proof and installation. Not read: laneconf.py, record.py or any implementation. No suite was run here and none is claimed; execution belongs to the parallel Codex witness. Design judgement only.\n\nContract, lane-policy.md:71-84, sits directly after the data-shape and path-rules paragraph and links lane-mcp-lever.md#coupling-proof-and-installation, an anchor that exists at lane-mcp-lever.md:144. It carries each clause the ruling demands: fixed protocol identity; the agentscient token only; the exact stripped line POLICY_SCHEMA = \"agentscient.lane-policy/v1\"; the single path ops/devlane/dispatch/record.py; outer-whitespace normalization retained; every other line, path and token still detected, including another configured token matching inside that declaration; the two MCP declarations still allowed; changed constant names or values and appended comments or statements refused; no directory-level exemption or protocol encoding; record validation and its exact schema error text unchanged; binding semantics, policy data and proposed standing unchanged; neither admission nor activation. No broad exemption, no weakened gate, no protocol encoding. Policy data and other detection are untouched.\n\nTests: class PolicyProtocolLiterals, eleven cases, pure insertion, 49 collected in the file. They drive the real literals CLI through the existing invoke and plant_scratch_repo helpers, set LANE_NAME=agentscient and re-read it from the written conf, read each plant back before invoking, and assert the composite \"path:line: forbidden literal token\" rather than a bare nonzero exit. Covered: exact declaration, outer whitespace, another path, altered constant name, altered value, appended comment, appended statement, an extra agentscient use at line 2, an extra origin/dev in a second file at line 3, a distinct configured token (TRUNK_BRANCH=lane-policy) matching inside the declaration and still reported at record.py:1, and the two MCP declarations exiting 0. The PIN_POLICY_PROTOCOL header states the boundary. Both positives are correctly the intended reds before implementation, and the tree baseline test_literals_exits_0_on_the_tree is preserved and not conscripted as a new red. No stand-ins, skips or source edits by the test author.\n\nTwo discriminating cases are missing, and each admits a wrong implementation that passes all eleven. First, the permitted line is only ever the whole file at line 1, and nothing asserts the permitted line is absent from a report; a content-equality or line-1-only allowance survives the class, and the composite cases would pass even if record.py:1 were reported alongside record.py:2. Second, the wrong-path plant differs in both directory and basename, so a directory-prefix or basename-keyed exemption survives, which is exactly what lane-policy.md:80 forbids. One p3: the contract does not say whether a second occurrence of the exact line is permitted, and the adjacent lane-kind rule makes a second occurrence a hit.\n\nVerdict: changes. The contract paragraph is acceptable as written apart from the p3 wording. The two p2 gaps are cheap, additive test cases; with them the class bounds the exemption as declared. Design approval is withheld until they land, and implementation still additionally requires the separate execution witness."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
 }
