@@ -2,6 +2,9 @@
 
 The [version-2 extension](lane-mcp-v2.md) declares additional conductor reads
 and request metadata compatibility; this document remains the v1 baseline.
+The [discovery contract](discovery-lever.md) is the version-3 extension
+(startup, homes, handoffs, actions). v1 and v2 stay unchanged. Sequence:
+[conductor-start-plan.md](conductor-start-plan.md).
 
 Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
 and handoff. Dev-lane machinery only, not Symfony work. This thin incumbent

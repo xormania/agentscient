@@ -18,5 +18,10 @@ the newest one's calibration clause is what `onboard` serves as the
 thread. A holding with neither a probe row nor an explicit left-behind
 declaration is the hand-over failing, named.
 
+Candidate discovery across tracked files and the retained-ref namespace
+`refs/heads/records/` is specified in
+[`../discovery-lever.md`](../discovery-lever.md). Publication remains
+manual; discovery does not write these records.
+
 The House's hand-over records do not cross. This directory begins with
 the substrate work of 2026-09-02, which was this project's own session.
