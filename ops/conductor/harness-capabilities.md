@@ -195,10 +195,12 @@ future model prose. Controlled environment credentials are never serialized.
 
 Shared policy calls the normalized request interface in
 [permission-surface.md](permission-surface.md#normalized-conductor-tool-interface).
-An adapter must expose every effective tool surface before effects and translate
-the shared decision without asking the user to approve it. Missing hooks,
-malformed decisions, a tool bypass or unavailable deterministic interception
-makes that harness/operation unavailable for conduct. Settings, CLI help and
+An adapter must mediate every admitted effective tool surface before effects and
+translate the shared decision without asking the user to approve it. Required
+interception may be a verified hook or the closed capability relay below; a
+missing required interceptor, malformed decision, tool bypass or unavailable
+deterministic mediation makes that harness/operation unavailable for conduct.
+Settings, CLI help and
 synthetic argv alone are insufficient. Launch and resume need separate positive,
 negative and prompt-observation arms in the
 [live extension](probes-lever.md#conduct-live-diagnostics).
@@ -275,3 +277,154 @@ axes, unsupported combinations, changed bindings and legitimate operation-owned
 resume tokens. Existing dispatch admission cases remain the C1/C2 owners' duty.
 Live observation format and diagnostic bootstrap are owned by probes-lever.md;
 this contract does not create another witness authority or implementation.
+
+## Codex sole-client relay — declared mechanism
+
+Standing: contract-only, UNPROBED; no runtime admission. This resolves the supplied
+native-prerequisites report `20260906T115721Z-plan-codex-52cd87`, mediation report
+`20260906T123030Z-plan-codex-0fdfa5`, recording-scope ruling and security disposition
+`20260906T124459Z-review-codex-ed048d`. Stock PreToolUse remains rejected as the
+enforcement mechanism: reported fail-open parsing, missing write_stdin/code-mode
+coverage and incomplete Bash execution context cannot satisfy the common API.
+Approvals alone cannot close these gaps. The accepted recording ruling removes
+the mediation report's mandatory vendor recording patch; it does not remove any
+effect, credential or resume proof. See [record custody](permission-surface.md#relay-record-custody).
+Historical reports keep their provenance and are not rewritten by this choice.
+
+The selected mechanism is `codex-sole-client-relay/1`. Existing canonical
+[launch.py](../devlane/dispatch/launch.py) owns admission, process creation,
+supervision, settlement and the conductor record. Harness owns protocol
+translation and isolated configuration; policy alone owns evaluate_tool. Native
+`codex app-server --listen stdio://` has exactly one upstream client, the relay,
+over launcher-created anonymous pipes. Native `codex --remote
+unix:///ABS/conduct.sock` connects only to the relay's Unix WebSocket listener.
+ABS is a canonical launcher reservation, never user input. There is no upstream
+TCP/Unix listener and no sidecar client alongside the TUI. The relay neither
+spawns workers nor implements a job/envelope engine: an allowed delegation calls
+the pinned dispatch frontend and thus the existing canonical worker service.
+All three processes are created and reaped by canonical launch, never by a
+second executor or the Symfony application.
+
+### Trusted relay transport
+
+The common compile_launch signature, five return keys, normalizer/Decision
+shapes and LaunchSelection axes stay unchanged. For this mechanism `argv` and
+`environment` are the **app-server** vector and closed environment. Native TUI
+argv/environment and relay runtime closure are verified launch-side transport,
+not extra return keys, forwarded tokens or model tool parameters. Safe forwarded
+tokens have one measured insertion point in the app-server vector; initial real
+grammar is `{"schema":"adapter-argv/1","options":[]}`. The earlier display
+example remains synthetic. Model/effort travel in sealed thread/turn settings,
+not an invented app-server CLI option or a default model table.
+
+Transport holds exactly `{schema,processes,endpoint,configuration,rpc,targets,
+deadlines,resume}` for its relay specification; schema is `codex-relay/1`.
+Startup strict JSON/canonical encoding applies; every object is closed and every
+listed key required. This specification is passed by trusted in-process handle
+or inherited read-only descriptor. No path/env toggle supplied by the TUI,
+workspace or model can select it. Digest equality does not establish custody.
+
+| member | frozen shape and owner |
+|---|---|
+| processes | `{server:Process,relay:Process,tui:Process}`; Process is `{executable:{path,sha256},argv:[string,...],environment:{name:string,...},cwd:absolute-path}`; executable/runtime/import closure is verified by launch, argv begins with its absolute executable; relay code is harness-owned and has no public launch entry point |
+| endpoint | `{path:absolute-path,transport:"unix-websocket",clients:1,control:"inherited-unix-socketpair"}`; parent mode 0700, socket 0600, no symlink ancestors; peer PID/UID and launch-owned process handle checked; containment must defeat same-UID access through procfs, inherited FDs, aliases and socket races, modes alone are insufficient |
+| configuration | `{server:{path,sha256},tui:{path,sha256},registry_sha256:SHA256}`; paths are sealed non-secret configuration leaves under reserved transport; registry hashes the complete effective direct AND nested tool declarations with their schemas |
+| rpc | `{source_revision:string,schema_sha256:SHA256}`; source_revision equals the exact source pin below, digest covers the complete pinned protocol schema closure plus the [closed relay rules](permission-surface.md#codex-relay-protocol) |
+| targets | sorted unique array of `{namespace:string,tool:ID,kind:"read"|"delegate"|"coordinate",target:ID,declaration:{path,sha256}}`; namespace is literal `conductor`; target owner supplies the closed argument/effect schema and executable/cwd/environment closure; no undeclared target is synthesized |
+| deadlines | `{frame_ms:5000,request_ms:5000,effect_ms:60000,shutdown_ms:2000,pending:64,queue_bytes:1048576}`; positive integer constants, shorter remaining canonical wall wins; no timeout reset on replay or partial bytes |
+| resume | null on launch, otherwise `{thread_id:string,session_binding_sha256:SHA256,receipts:[{path,sha256},...]}`; verified retained handles under existing attempt transport, sorted by path, not raw vendor resume data |
+
+Process environments are closed maps of admitted non-secret synthetic values.
+Authentication is a separately held server-only custody handle, never bytes in
+this object. FDs are handed directly to their sole intended process and marked
+close-on-exec elsewhere. Relay gets the two upstream pipes; TUI gets its terminal
+and access only to the downstream socket; neither gets authentication handles.
+One inherited anonymous Unix socketpair connects relay to canonical launch for
+effect invocation/receipts and health; it is never exposed at a filesystem path.
+Only launch creates the admitted frontend/lever subprocess and owns its receipt.
+The [control frames](permission-surface.md#replay-and-effect-reconciliation)
+carry validated common Request/Decision, not executable text or new authority.
+Canonical launch owns signal/wall/spend/stream supervision for the entire group.
+Relay readiness plus authenticated TUI attachment and verified native MCP
+onboarding precede conversational input. Loss of any required child or channel
+stops input, closes the listener, interrupts the thread, then terminates and
+reaps all descendants within shutdown_ms; surviving descendants prevent success.
+Raw server/TUI stderr is drained under a bound and filtered, never copied to lane
+logs. Relay health/control events carry fixed codes, no raw frames.
+
+The existing adapter.config_sha256 binds the canonical relay specification with
+resume set to null, server/TUI config byte digests, registry and protocol digests;
+adapter.revision binds relay/runtime code. No new descriptor/capability fields
+are added. Both process vectors therefore enter invariant_sha256 through the
+existing adapter object, while argv_sha256 continues to hash the app-server vector
+alone. Resolve paths and compare all held bytes before creating reservations.
+The resume segment is separately covered by startup's session binding digest;
+it cannot change the invariant or select another thread. Reservations include
+socket, pipes/control handles, sealed configs, credential mount, private vendor
+history and existing receipts, disjoint from source/model output grants. They
+grant no model write authority. The existing credentials-only build_home and
+worker-only argv assumptions cannot implement this transport by ignoring fields:
+until launch/isolation/record support it and its witnesses pass, refuse capability.
+This declaration does not alter those owners' APIs or grant permission to edit
+their implementation in this slice.
+
+### Sealed registry and authentication
+
+Host initialize uses experimentalApi=true; host thread/start explicitly supplies
+environments=[], selectedCapabilityRoots=[] and only dynamicTools compiled from
+the trusted targets. approvalPolicy=never and approvalsReviewer=user are sealed,
+with restrictive filesystem/network permissions, no command allow rules, no
+terminal restoration and no sandbox/approval bypass flag. Retain required ordinary
+hook trust; hooks are not the enforcement boundary. An untrusted required hook
+refuses; optional ambient user/project hooks and settings cannot be discovered.
+
+Registry closure requires agents.enabled=false, multi_agent_v2=false and
+multi_agent=false; disabling the last alone is insufficient. Disable apps,
+plugins/install suggestions, browser/computer/image generation, web search,
+memory, goals, token-budget/history-note tools and unnecessary environment
+discovery. orchestrator.skills.enabled=false and empty capability roots close
+skill sources. Only the exact bound read-only lane MCP catalogue, declared
+dynamic targets and schema-pinned inert utility tools may remain. No unnamed
+utility allowance: an empty utility list is valid, absent inventory is unresolved.
+Model metadata may select code mode; any available wrapper must resolve every
+nested call through this same registry, with no independent shell, filesystem,
+network or agent authority. Forced direct/nested forbidden calls must be denied
+at the measured resolution gate; omitted advertisements alone prove nothing.
+Fresh, resumed and later turn registries/configuration must match the sealed
+inventory. Any override, extension reload or unknown effective tool refuses.
+
+Authentication stays solely in trusted app-server plumbing. TUI has a separate
+credentialless home, no local auth/login fallback or access to vendor history.
+Model-facing tools, relay target invocations, hooks, MCP and helper descendants
+have closed credentialless environments and independently contained filesystem,
+network and process views. Deny credential targets AND aliases, symlink/hardlink
+paths, inherited handles, procfs and environment-file indirection; authentication
+symlinks and shell_environment_policy alone do not establish this boundary.
+Hooks may inherit the server environment and spawn outside the shell sandbox;
+an enabled hook needs its own proven custody or the operation stays unavailable.
+No real credential is copied into a diagnostic fixture. Failed custody requires
+host containment or removal of the capability, never secret redaction after
+exposure or permission widening. The relay's RPC protocol is not writable MCP;
+the lane MCP read-only boundary and actual-client lane_start obligation stand.
+
+### Research pins and verification frontier
+
+Source baseline supplied by research: Codex `0.153.4`, target
+`x86_64-unknown-linux-musl`, tag `rust-v0.153.4`, commit
+`3d2ee51ca2d5db578f328aa75e20aa22c0197c9a`; reported executable SHA256
+`56ef98ab4032d317ab26e9b5e5a175650717351edb16ed9cde0cb6d1734d62da`.
+These are **reported source/version pins, not a local binary measurement**,
+release-asset attestation, reproducible-build proof or successful live control.
+The app-server, TUI and protocol closure must all match this pin. Experimental
+API/config/schema or executable changes void evidence; do not track main/latest.
+
+Versioned source locators (supplied research, not independent live witnesses):
+[protocol methods/types](https://github.com/openai/codex/blob/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/app-server-protocol/src/protocol/common.rs),
+[dynamic transport](https://github.com/openai/codex/blob/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/app-server/README.md),
+[native remote TUI](https://github.com/openai/codex/blob/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/tui/src/lib.rs),
+[approval ownership/replay](https://github.com/openai/codex/blob/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/app-server/src/outgoing_message.rs),
+[registry construction](https://github.com/openai/codex/blob/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/core/src/tools/spec_plan.rs),
+[configuration](https://github.com/openai/codex/blob/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/core/config.schema.json).
+Source establishes a candidate route; only [independent mock/live acceptance](probes-lever.md#codex-relay-acceptance)
+can establish the installed registry, sole-client ownership, native TUI usability,
+credential containment, canonical delegation and crash reconciliation.
