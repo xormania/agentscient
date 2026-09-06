@@ -5,6 +5,7 @@ Acceptance rows: D-A1, D-A2, D-A3, D-A4, D-A5, D-A6, D-A40, D-A44.
 
 from __future__ import annotations
 
+import json
 import os
 import stat
 import sys
@@ -24,6 +25,7 @@ from discovery_v3_support import (  # noqa: E402
     V2_EXAMPLE,
     V3_TOOLS,
     _DiscoveryV3Fixture,
+    canonical_bytes,
     rpc,
 )
 from test_lane_mcp import FIFO_CAP, JOB  # noqa: E402
@@ -299,7 +301,8 @@ class TestDiscoveryV3Config(_DiscoveryV3Fixture):
                         {"name": "lane_start", "arguments": {"profile": "other"}},
                     )
                 ]
-            )
+            ),
+            boot=True,
         )
         self.assertEqual(mcp.returncode, 0, mcp.stderr)
         obj = self.rpc_by_id(self.rpc_objects(mcp), 2)
@@ -333,8 +336,7 @@ class TestDiscoveryV3Config(_DiscoveryV3Fixture):
             "job_registry": None,
         }
         self.plant_config(v2)
-        v2_payloads = {}
-        for tool, arguments in (
+        pairs = (
             ("lane_record", {"id": JOB}),
             ("lane_brief", {}),
             ("lane_alerts", {}),
@@ -342,19 +344,23 @@ class TestDiscoveryV3Config(_DiscoveryV3Fixture):
             ("lane_findings", {"id": JOB}),
             ("lane_changes", {}),
             ("lane_jobs", {}),
-        ):
-            v2_payloads[tool] = self.load_query(self.query(tool, arguments))
+        )
+        v2_raw = {}
+        for tool, arguments in pairs:
+            proc = self.query(tool, arguments, boot=False)
+            payload = self.load_query(proc)
+            raw = proc.stdout.encode("utf-8")
+            v2_raw[tool] = raw
+            self.assertTrue(
+                raw == canonical_bytes(payload)
+                or raw == canonical_bytes(payload) + b"\n",
+                tool,
+            )
         self.plant_tree()
         self.plant_v3_config(job_ids=[JOB])
-        for tool, arguments in (
-            ("lane_record", {"id": JOB}),
-            ("lane_brief", {}),
-            ("lane_alerts", {}),
-            ("lane_usage", {}),
-            ("lane_findings", {"id": JOB}),
-            ("lane_changes", {}),
-            ("lane_jobs", {}),
-        ):
+        for tool, arguments in pairs:
             with self.subTest(tool=tool):
-                v3 = self.load_query(self.query(tool, arguments))
-                self.assertEqual(v3, v2_payloads[tool])
+                proc = self.query(tool, arguments, boot=False)
+                raw = proc.stdout.encode("utf-8")
+                self.assertEqual(raw, v2_raw[tool], tool)
+                self.assertEqual(self.load_query(proc), json.loads(v2_raw[tool]))
