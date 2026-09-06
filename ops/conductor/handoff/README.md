@@ -23,5 +23,19 @@ Candidate discovery across tracked files and the retained-ref namespace
 [`../discovery-lever.md`](../discovery-lever.md). Publication remains
 manual; discovery does not write these records.
 
+## Discovery metadata extension
+
+The corrected [discovery contract](../discovery-lever.md#record-identity-trust-and-selection)
+specifies the smallest missing custody metadata: record ID, kind, exact byte
+digest, work paths, lineage and explicit supersedes edges. Until a separately
+authorized publication step produces this metadata through the existing record
+lineage, trusted launch configuration may bind it to existing bytes. No new
+store or ref namespace, and no rewrite of older records, is required. A record
+cannot authenticate itself by declaring these values in its body, title, date
+or branch name. Unbound records remain visible as unknown relevance; incomplete
+evidence cannot establish a unique handoff. AARs are reports governed here,
+never their own contract or authority. Onboard's existing newest-filename
+thread behavior stays unchanged; discovery's selection is a separate read.
+
 The House's hand-over records do not cross. This directory begins with
 the substrate work of 2026-09-02, which was this project's own session.
