@@ -1,0 +1,204 @@
+{
+  "id": "20260906T035203Z-check-tests-claude-c89579",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "36c383a14ae7888d732bccfa527038b57da9db29"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:52:03Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "36c383a14ae7888d732bccfa527038b57da9db29",
+    "ref_sha": "36c383a14ae7888d732bccfa527038b57da9db29",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "7db7754b-f74e-4195-b7d9-b7a78f79182d",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "7db7754b-f74e-4195-b7d9-b7a78f79182d",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Narrow independent test-design recheck of Grok 289d91 corrections to bf58a4 under policy-record-test-correction-ruling.md and policy-record-test-acceptance-gate.md. Judge only test_record.py against lane-policy.md; never read record.py/implementation or edit. Verify accepted F2-F9: per_job symmetry, admission syntax, qualified field names, digest negatives, digit-bearing synthetic profile, binding preservation, table invariants and measured object-format fixture. Do not reopen unaffected coverage or invent schema. F1 execution is being independently measured by b79cb9; do not repeat denied Python commands or claim that execution is verified here. Give a design-only approve/changes verdict with exact ref, measured static checks and remaining concrete gaps, inline SKEPTIC <=900 words. Final test acceptance requires both this design verdict and matching independent execution evidence. No host/DB/settings/network writes, vendor launches or permission requests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/in/policy-record-test-correction-ruling.md",
+        "sha256": "a6864108a9704d67338d5cd44e9b946239da5186bb90bdb316cb67b9b1445017"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/in/policy-record-test-acceptance-gate.md",
+        "sha256": "8d77cdfd8428ece9359155781c4bd42ac3831119140e38933e23063aadaeec74"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/in/20260906T033510Z-check-tests-claude-bf58a4.json",
+        "sha256": "78e13b01ca03faf1b8e11ff0e67dd54739cbd18f7b4b98482cda212909920c8f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035203Z-check-tests-claude-c89579/in/20260906T034324Z-tests-grok-289d91.json",
+        "sha256": "14bf178086ecc3d949ee8abd1703dcc3da75585e8d52fee8c99d9dc3ce4cdbb3"
+      }
+    ],
+    "sha256": "a495688262f6e9121e79c48aa00bfdcc57c2fdd5fa07d78fee1de059e8a3d5db",
+    "bytes": 1753
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
