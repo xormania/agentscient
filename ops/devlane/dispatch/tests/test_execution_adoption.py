@@ -164,8 +164,15 @@ _MISSING = object()
 def run_trusted(test, argv, *, trusted_context=_MISSING, declarations=_MISSING):
     """Invoke launch.main with unit1a in-process trusted transport.
 
-    TypeError on unexpected keywords is an assertion failure: those
-    argument names are the declared seam, not a new production API.
+    trusted_context is the contract-named seam. declarations is an
+    explicitly provisional keyword for complete LaunchDeclarations. The
+    contract still names only launch.main(argv=None) -> int and transport
+    as direct in-process arguments or an inherited read-only descriptor.
+    This test-chosen name awaits the contract owner's narrow declaration
+    and is not a second production API.
+
+    TypeError on unexpected keywords is an assertion failure so a missing
+    keyword cannot hide as a collection or TypeError red.
     """
     launch = test.load_launch()
     kwargs = {}
@@ -212,6 +219,70 @@ def run_trusted(test, argv, *, trusted_context=_MISSING, declarations=_MISSING):
 def argv_has_profile_flag(argv):
     return any(str(part) == "--profile" or str(part).startswith("--profile=")
                for part in argv)
+
+
+@contextlib.contextmanager
+def scoped_environ(key, value):
+    """Set one environment name for a block and restore the prior mapping."""
+    missing = key not in os.environ
+    old = os.environ.get(key)
+    os.environ[key] = value
+    try:
+        yield
+    finally:
+        if missing:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = old
+
+
+def sandbox_token(argv):
+    items = [str(part) for part in argv]
+    if "--sandbox" in items:
+        idx = items.index("--sandbox")
+        if idx + 1 < len(items):
+            return items[idx + 1]
+    if "--always-approve" in items:
+        return "always-approve"
+    if "--permission-mode" in items:
+        idx = items.index("--permission-mode")
+        if idx + 1 < len(items):
+            return items[idx + 1]
+    return None
+
+
+def record_created_after(test, before):
+    created = [path for path in test.record_files() if path not in before]
+    test.assertEqual(
+        len(created), 1,
+        f"expected one new record, found {created!r}",
+    )
+    return test.read_record(created[0])
+
+
+def harness_name(rec):
+    harness = rec.get("harness")
+    if isinstance(harness, dict):
+        return harness.get("name")
+    return harness
+
+
+def requested_model(rec):
+    model = rec.get("model") if isinstance(rec.get("model"), dict) else {}
+    return model.get("requested")
+
+
+R8_CACHE_HEAVY_USAGE = [[
+    {
+        "inputTokens": 6999950,
+        "outputTokens": 50,
+        "totalTokens": 7000000,
+        "cachedReadTokens": 6950000,
+        "costUsdTicks": 1,
+        "modelCalls": 1,
+        "numTurns": 1,
+    },
+]]
 
 
 def selection_from_record(rec):
@@ -778,46 +849,77 @@ class FrontendResumeDelegates(ls._TempLaunch):
     """F3 — launch.main(['resume', id]) keeps the same dispatch id."""
 
     def test_resume_is_a_public_seam_that_transfers_the_same_id(self):
-        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        rec, first, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         job_id = rec.get("id")
         self.assertIsInstance(job_id, str)
         self.assertTrue(job_id, "fresh launch must mint an id")
         first_attempts = list(rec.get("attempts") or [])
-        rec.get("session") if isinstance(rec.get("session"), dict) else {}
+        first_session = rec.get("session") if isinstance(rec.get("session"), dict) else {}
+        first_cwd = os.path.realpath(first.get("cwd") or "")
+        first_snap = os.path.realpath(self.snapshot_of(rec))
+        self.assertEqual(first_cwd, first_snap)
+        original_harness = harness_name(rec)
+        original_model = requested_model(rec)
+        original_lineage = rec.get("lineage") if isinstance(rec.get("lineage"), dict) else {}
+        original_brief = rec.get("brief")
+        original_job = rec.get("job")
+        self.witness.unlink()
         code, out, err = self.run_main(["resume", job_id])
         text = self.combined(out, err)
         self.assertNotEqual(code, ls.REFUSAL_EXIT, f"resume refused: {text!r}")
+        self.assertEqual(code, 0, f"canonical resume must succeed: {text!r}")
         resumed = self.read_record()
         self.assertEqual(resumed.get("id"), job_id)
-        self.assertEqual(
-            (resumed.get("harness") or {}).get("name") or resumed.get("harness"),
-            rec.get("harness") if isinstance(rec.get("harness"), str)
-            else (rec.get("harness") or {}).get("name"),
-        )
-        self.assertGreaterEqual(
+        self.assertEqual(harness_name(resumed), original_harness)
+        self.assertEqual(requested_model(resumed), original_model)
+        self.assertEqual(resumed.get("job"), original_job)
+        self.assertEqual(resumed.get("lineage"), original_lineage)
+        self.assertEqual(resumed.get("brief"), original_brief)
+        resumed_session = resumed.get("session") if isinstance(resumed.get("session"), dict) else {}
+        self.assertEqual(resumed_session.get("id"), first_session.get("id"))
+        second = self.read_witness()
+        self.assertEqual(os.path.realpath(second.get("cwd") or ""), first_snap)
+        self.assertGreater(
             len(resumed.get("attempts") or []),
             len(first_attempts),
             "resume appends an attempt",
         )
-        self.assertIn(job_id, out + err)
 
     def test_resume_does_not_invent_a_new_dispatch_id(self):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         job_id = rec.get("id")
-        prior = json.dumps(rec)
-        (self.bin / "grok").unlink()
-        code, _out, _err = self.run_main(["resume", job_id])
-        self.assertNotEqual(code, 0)
-        after = self.read_record()
+        prior_brief = rec.get("brief")
+        prior_lineage = rec.get("lineage")
+        prior_job = rec.get("job")
+        prior_harness = harness_name(rec)
+        prior_model = requested_model(rec)
+        prior_session = rec.get("session") if isinstance(rec.get("session"), dict) else {}
+        prior_snapshot = rec.get("snapshot")
+        prior_attempts = list(rec.get("attempts") or [])
+        path = self.the_record_path()
+        prior_bytes = path.read_bytes()
+        bogus = "20260906T010101Z-plan-grok-nope00"
+        self.assertNotEqual(bogus, job_id)
+        code, _out, _err = self.run_main(["resume", bogus])
+        after = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(after.get("id"), job_id)
-        self.assertNotIn("20260906T010101Z-review-codex-999999", after.get("id"))
-        self.assertEqual(after.get("brief"), rec.get("brief"))
-        self.assertIn(
-            rec.get("id"),
-            json.dumps(after),
-            "refusal must preserve prior evidence of the same id",
+        self.assertEqual(after.get("brief"), prior_brief)
+        self.assertEqual(after.get("lineage"), prior_lineage)
+        self.assertEqual(after.get("job"), prior_job)
+        self.assertEqual(harness_name(after), prior_harness)
+        self.assertEqual(requested_model(after), prior_model)
+        self.assertEqual(after.get("snapshot"), prior_snapshot)
+        after_session = after.get("session") if isinstance(after.get("session"), dict) else {}
+        self.assertEqual(after_session.get("id"), prior_session.get("id"))
+        self.assertEqual(after_session.get("stream"), prior_session.get("stream"))
+        after_attempts = list(after.get("attempts") or [])
+        self.assertEqual(after_attempts, prior_attempts)
+        self.assertEqual(path.read_bytes(), prior_bytes)
+        self.assertFalse(
+            (path.parent / (bogus + ".json")).is_file(),
+            "refusal must not mint a new dispatch id",
         )
-        self.assertTrue(prior)
+        self.assertNotEqual(code, 0)
 
 
 class FrontendResultsAreLaunchs(ls._TempLaunch):
@@ -882,6 +984,7 @@ class ProfileSelection(ls._TempLaunch):
         decls_null = launch_declarations(
             selection=worker_selection(profile=None, job_role="read"),
         )
+        before_explicit = set(self.record_files())
         code, out, err = run_trusted(
             self, argv_explicit,
             trusted_context=trusted_context(
@@ -890,14 +993,17 @@ class ProfileSelection(ls._TempLaunch):
             ),
             declarations=decls_null,
         )
-        rec = self.read_record() if code == 0 else {}
-        if code == 0:
-            self.assertEqual(selection_from_record(rec).get("profile"), PROFILE_DEV)
+        text = self.combined(out, err)
+        self.assertEqual(code, 0, f"explicit profile alone must launch: {text!r}")
+        rec = record_created_after(self, before_explicit)
+        self.assertEqual(selection_from_record(rec).get("profile"), PROFILE_DEV)
+        self.assertNotEqual(selection_from_record(rec).get("profile"), PROFILE_PROD)
 
         argv_struct = self._argv()
         decls_only = launch_declarations(
             selection=worker_selection(profile=PROFILE_DEV, job_role="read"),
         )
+        before_struct = set(self.record_files())
         code, out, err = run_trusted(
             self, argv_struct,
             trusted_context=trusted_context(
@@ -906,9 +1012,11 @@ class ProfileSelection(ls._TempLaunch):
             ),
             declarations=decls_only,
         )
-        if code == 0:
-            rec = self.read_record()
-            self.assertEqual(selection_from_record(rec).get("profile"), PROFILE_DEV)
+        text = self.combined(out, err)
+        self.assertEqual(code, 0, f"structured profile alone must launch: {text!r}")
+        rec = record_created_after(self, before_struct)
+        self.assertEqual(selection_from_record(rec).get("profile"), PROFILE_DEV)
+        self.assertNotEqual(selection_from_record(rec).get("profile"), PROFILE_PROD)
 
     def test_conflicting_profiles_refuse_before_effects(self):
         argv = self._argv()
@@ -966,15 +1074,15 @@ class ProfileSelection(ls._TempLaunch):
         decls = launch_declarations(
             selection=worker_selection(profile=None, job_role="read"),
         )
-        os.environ["WF_LANE"] = "dev"
-        code, out, err = run_trusted(
-            self, argv,
-            trusted_context=trusted_context(
-                profile=None,
-                policy=policy_document(),
-            ),
-            declarations=decls,
-        )
+        with scoped_environ("WF_LANE", "dev"):
+            code, out, err = run_trusted(
+                self, argv,
+                trusted_context=trusted_context(
+                    profile=None,
+                    policy=policy_document(),
+                ),
+                declarations=decls,
+            )
         assert_profile_refusal(self, code, out, err)
         text = (err or "").lower()
         self.assertNotIn("inferred", text)
@@ -1029,19 +1137,25 @@ class RoleSelectsTheSandbox(ls._TempLaunch):
     """R3 — launch admitted isolation; sandbox labels never prove capability."""
 
     def test_a_write_role_receives_the_write_sandbox_not_the_read_value(self):
-        _rec, witness, *_ = self.launch_ok(
+        rec, witness, *_ = self.launch_ok(
             job="implement", harness="codex", stage="code",
         )
         argv = [str(p) for p in (witness.get("argv") or [])]
         self.assertTrue(argv, "child argv must be recorded")
+        self.assertEqual(sandbox_token(argv), "workspace-write")
+        self.assertNotEqual(sandbox_token(argv), "read-only")
         self.assertNotIn("read-only", argv)
+        self.assertEqual(rec["harness"]["sandbox"], "workspace-write")
 
     def test_a_read_role_receives_the_read_sandbox(self):
-        _rec, witness, *_ = self.launch_ok(
-            job="plan", harness="grok", stage="plan",
+        rec, witness, *_ = self.launch_ok(
+            job="plan", harness="codex", stage="plan",
         )
         argv = [str(p) for p in (witness.get("argv") or [])]
-        self.assertTrue(argv)
+        self.assertTrue(argv, "child argv must be recorded")
+        self.assertEqual(sandbox_token(argv), "read-only")
+        self.assertNotEqual(sandbox_token(argv), "workspace-write")
+        self.assertEqual(rec["harness"]["sandbox"], "read-only")
 
     def test_a_grok_write_role_is_auto_not_plan(self):
         _rec, witness, *_ = self.launch_ok(
@@ -1052,8 +1166,15 @@ class RoleSelectsTheSandbox(ls._TempLaunch):
         self.assertNotIn("--permission-mode plan", blob)
 
     def test_builtin_write_values_are_not_the_read_only_ones(self):
-        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
-        self.assertEqual(rec.get("status"), "closed")
+        rec, witness, *_ = self.launch_ok(
+            job="implement", harness="codex", stage="code",
+        )
+        argv = [str(p) for p in (witness.get("argv") or [])]
+        write = sandbox_token(argv)
+        self.assertEqual(write, "workspace-write")
+        self.assertNotEqual(write, "read-only")
+        self.assertEqual(rec["harness"]["sandbox"], write)
+        self.assertNotEqual(rec["harness"]["sandbox"], "read-only")
 
 
 class AnUnknownHarnessIsInvalid(ls._TempLaunch):
@@ -1110,9 +1231,21 @@ class TheBatteryIsArmedWithCapOut(ls._TempLaunch):
 
     def test_a_cache_heavy_total_does_not_trip_when_output_is_under_cap_out(self):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
-        env = (rec.get("result") or {}).get("envelope") or {}
+        os.environ["TASK_LAUNCH_GROK_USAGE"] = json.dumps(R8_CACHE_HEAVY_USAGE)
+        self.witness.unlink()
+        code, out, err = self.run_main(
+            ["resume", rec["id"], "--cap-out", "1000"],
+        )
+        text = self.combined(out, err)
+        self.assertEqual(code, 0, f"cache-heavy under cap-out must not trip: {text!r}")
+        after = self.read_record()
+        self.assertEqual(after.get("status"), "closed")
+        self.assertEqual((after.get("caps") or {}).get("cap-out"), 1000)
+        env = (after.get("result") or {}).get("envelope") or {}
         self.assertNotEqual(env.get("status"), "tripped")
-        self.assertEqual(rec.get("status"), "closed")
+        spend = env.get("spend") if isinstance(env.get("spend"), dict) else {}
+        self.assertEqual(spend.get("total"), 7000000)
+        self.assertEqual(spend.get("out"), 50)
 
 
 class ABatteryTripIsNotACompletedRun(ls._TempLaunch):
@@ -1138,7 +1271,40 @@ class StreamDiscoveryNamesTheSnapshot(ls._TempLaunch):
     """R10 — isolated store/session/cwd beats newer foreign evidence."""
 
     def test_the_stream_that_names_the_snapshot_is_chosen_over_a_newer_sibling(self):
-        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        stores = ls.load_path(self, ls.STORES_PATH, "task_launch_stores")
+        decoy_id = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+        operator = self.home / ".grok"
+        stores.build_grok_store(
+            operator, "/decoy/cwd",
+            base_timestamp=ls.STREAM_EPOCH + 50_000,
+            session_id=decoy_id, model="decoy-grok-model",
+            marker="DECOY-GROK",
+            usage_runs=[[
+                {
+                    "inputTokens": 1,
+                    "outputTokens": 1,
+                    "totalTokens": 999,
+                    "cachedReadTokens": 0,
+                    "costUsdTicks": 1,
+                    "modelCalls": 1,
+                    "numTurns": 1,
+                },
+            ]],
+        )
+        decoys = list(operator.glob("sessions/*/*/summary.json"))
+        self.assertGreaterEqual(len(decoys), 1, "plant: grok decoy stream")
+        decoy_bytes = decoys[0].read_bytes()
+        self.assertIn(b"decoy-grok-model", decoy_bytes)
+        os.utime(decoys[0], (2_000_000_000, 2_000_000_000))
+        rec, witness, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        self.assertEqual(rec["model"]["ran"], ls.RAN_MODEL)
+        self.assertNotEqual(rec["model"]["ran"], "decoy-grok-model")
+        stream = rec["session"]["stream"] or ""
+        self.assertTrue(stream, "a stream path is recorded")
+        isolated = witness["env"].get("GROK_HOME")
+        self.assertTrue(isolated)
+        self.assertIn(os.path.realpath(isolated), os.path.realpath(stream))
+        self.assertNotIn(decoy_id, stream)
         spend = ((rec.get("result") or {}).get("envelope") or {}).get("spend") or {}
         self.assertNotEqual(spend.get("total"), 999)
 
@@ -1201,12 +1367,24 @@ class ATrippedRunLeavesNothingBehind(ls._TempLaunch):
         os.environ["TASK_LAUNCH_ORPHAN"] = "1"
         os.environ["TASK_LAUNCH_OVER_OUT"] = "1"
         os.environ["TASK_LAUNCH_SLEEP"] = "2"
+        os.environ["TASK_LAUNCH_GRANDCHILD"] = str(self.grandchild)
+
+        def _reap():
+            if self.grandchild.is_file():
+                gpid = self.grandchild.read_text(encoding="utf-8").strip()
+                ls.kill_if_alive(gpid)
+
+        self.addCleanup(_reap)
         _code, _out, _err = self.dispatch(self.argv_for(
             job="plan", harness="grok", stage="plan",
         ))
-        if self.grandchild.is_file():
-            pid = int(self.grandchild.read_text(encoding="utf-8").strip() or "0")
-            self.assertFalse(ls.pid_is_alive(pid), "orphan survived")
+        self.assertTrue(
+            self.grandchild.is_file(),
+            "plant: grandchild pid file must exist",
+        )
+        pid = int(self.grandchild.read_text(encoding="utf-8").strip() or "0")
+        self.assertTrue(pid, "plant: grandchild pid must be recorded")
+        self.assertFalse(ls.pid_is_alive(pid), "orphan survived")
 
     def test_the_group_is_recorded_at_launch(self):
         _rec, witness, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
