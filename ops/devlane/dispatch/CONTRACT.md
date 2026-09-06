@@ -89,6 +89,264 @@ The rest of this file is the launcher's contract, written before the
 launcher existed so its tests could be authored from it. No guide page
 is carried here; this contract is the whole specification.
 
+## C2 — output admission (contract only)
+
+Standing: GPT-6 plan `20260906T024750Z-plan-codex-93f60d`, Claude review
+`20260906T025522Z-review-claude-cfc890`, with every disposition in the
+supplied `launch-c2-contract-ruling.md`. Task owns the exact
+[outputs schema, rendering and acceptance](../task/CONTRACT.md#declared-job-outputs).
+This two-file contract changes no executable code, catalogue, prompts,
+settings or capabilities. The C1 runtime below remains unchanged, including
+its check-tests mechanism and narrow inline planning transport exception.
+Historical records retain their standing; C2 is not retroactive validation.
+
+**Broader directory grants refuse. No currently unresolved adapter is
+admitted by these docs.** A future enforceable mechanism is a runtime
+adoption dependency, not a prerequisite for writing this contract.
+Dispatch's `launch.py` alone resolves declarations, computes grants,
+invokes adapters, re-admits attempts and settles output custody;
+`record.py` owns the record shape and its validation. Dispatch/go/ladder
+consume that path. Adapters translate admitted grants without expanding
+them or choosing policy. The dev lane stays independent of Symfony; C2
+adds no lane-policy implementation, discovery, fileset or alternate runner.
+
+### Grant intersection and transport
+
+Let `D` be the write operations requested by task-validated file leaves
+and scratch subtrees; `R` the role and job-custody ceiling; `P` existing
+dispatch restrictions intersected with any supplied accepted profile-policy
+restriction; and `H` the operations enforceable by fresh evidence for the
+selected harness, adapter, platform and launch/resume operation. The extra
+worker grant is `G = D ∩ R ∩ P ∩ H`. Admit only if `G = D`. Omission or
+`[]` produces empty `D` and `G`, regardless of prompt prose, artifact
+handles or job name. A declaration demands capability; it does not confer
+it. No partial grant, dropped scratch, downgraded report, inline fallback,
+automatic harness/model substitution, approval prompt or sandbox bypass
+may turn a refusal into admission.
+
+For read roles, `R` excludes writes to the snapshot and its Git directory,
+`in/`, `context/`, control files, other jobs and the host. A `file` permits
+writing only its declared regular leaf, with no parent-directory rights;
+launch may prepare parents and safely open an empty leaf if the admitted
+mechanism requires pre-creation. The worker must still deliver non-empty
+content. An adapter requiring directory rights for creation, atomic replace
+or an editor's sibling temporary file must refuse, even if that directory
+is this job's `out/`. A `scratch` entry permits temporary files and
+subdirectories only within its declared subtree, with no link escape or
+rights over its parent/siblings. Directory granularity is acceptable for
+that exact scratch subtree, never as an over-approximation of a file leaf.
+
+Launcher/harness bookkeeping is a separate transport authority, not an
+output grant to model tools. This includes the response file
+`out/last-message.json`, records, session state and supervisor markers.
+Existing write-job `out/COMMIT_MSG` and envelope `commit` transport remain
+compatibility obligations under their existing authority; neither becomes
+a required report or a generic read-job write grant. An adapter must
+declare its transport reservations so declarations cannot overlap them.
+It cannot hide broad worker rights as bookkeeping. `TMPDIR` is set only
+from admitted declared scratch; without scratch no inherited temporary
+path may add worker write authority. A harness needing writable transport
+or temporary storage must prove that separation or refuse.
+
+The parallel boundary track owns profile policy. C2 consumes an accepted
+restriction when available and requested; it defines no profile names or
+fallback allow policy. A request needing an unavailable policy decision
+refuses. This consume-only join cannot widen `D`, create a cycle, or block
+the contract-only bucket. Harness, model, role and profile stay independently
+selected. The caller/configuration must explicitly name the model; record
+requested versus observed identity and configuration source without
+substitution, as C1 requires.
+
+### Attempt admission and custody
+
+Before minting filesystem state, task validates declarations from the
+trusted launch-side catalogue, including transport collisions. Launch binds
+the normalized declaration and catalogue SHA-256 digest into the record
+through `record.py`, together with the canonical job/output root, effective
+grant, selection and capability evidence identity. Authorization records
+and grant descriptions stay outside worker-writable storage. Never reload
+authority from a worker-edited snapshot or trust its paths as grants.
+
+Initial launch and resume use the same admission operation before starting
+a child. Recheck path types and aliases beneath the verified canonical job
+directory, role/policy intersection and capability freshness. All ancestors
+must be directories without symlinks; existing file entries must be regular
+and singly linked, and scratch must be a directory. Missing paths may be
+safely prepared by launch under the admitted mechanism. Unsupported naming,
+alias behavior or unavailable safe checks refuse; do not follow or repair
+an unsafe path. The capability witness must cover races and every worker
+write surface; lexical/real-path checks alone are insufficient.
+
+Resume uses the recorded declaration, rebinding its relative names under
+the verified current job root after relocation. A newer catalogue cannot
+add grants. A legacy record without declarations supplies no extra grant;
+if its saved session would retain an unrecorded grant, refuse resume and
+require a fresh dispatch. Re-admission precedes clearing exit/trip markers,
+restoring writable session state or invoking a child. Failed admission
+preserves prior evidence and attempt history.
+
+Normal settlement, close and recovery consume the same task acceptance
+and output custody check. Once worker writes have stopped, verify output
+type, containment and links without following an escape; bind accepted
+bytes by SHA-256 digest, artifact key, relative path and attempt number in
+the record. Preserve previous reports with their prior digests and attempt
+identity outside worker-writable storage before making the next attempt's
+destinations available. A leftover report alone cannot satisfy completion.
+Reuse must be explicitly named by the current attempt, checked against the
+trusted prior artifact/digest, rechecked for present type/containment/links,
+and recorded as reuse from that prior attempt; otherwise require fresh
+production. Exact record/reuse transport integration is later work owned
+by `record.py` and launch, with task envelope semantics retained.
+
+Keep read-role HEAD/residual settlement in addition to output acceptance.
+The current Git/cache exclusions below do not establish byte-for-byte
+immutability, all metadata integrity, or absence of writes later restored.
+The prevention witness must protect source throughout execution; chmod and
+a clean final Git diff are not that witness. Stronger settlement coverage
+requires its own independently specified evidence, not a new claim here.
+
+### Capability evidence and freshness
+
+Apply the version/date and counterparty-movement law in
+[verified couplings](../../../docs/verified-couplings.md#the-six-obligations-of-every-edge).
+Each capability witness must carry a valid UTC `checked_at` in
+`YYYY-MM-DDTHH:MM:SSZ` form, observed harness name/version and executable
+identity, adapter revision, mechanism
+and effective permission-configuration digest, platform identity (OS,
+sandbox implementation/version and filesystem alias semantics), role,
+operation (`launch` or `resume`), and exact supported output/source access
+and limits. Bind the output contract revision, probe revision/result and
+digest-backed evidence handle, plus a contract-verified mock revision and
+its passing verification evidence. Record that identity at admission;
+labels such as `os`, CLI help or mocked argv are not live proof.
+
+Freshness is a predicate evaluated before each attempt at a recorded UTC
+admission time. Every required stamp/identity/evidence item must be present,
+readable and verified; `checked_at` must not be in the future. The observed
+counterparty identity tuple (harness name/version/executable, adapter,
+mechanism, permission digest, platform, role, operation, output contract,
+probe and mock revisions) must equal the currently measured selected tuple,
+and its scope must cover every requested operation and retained source
+isolation. Any change to harness executable/version, adapter, mechanism,
+effective permissions, platform, contract, probe or verified mock voids
+the prior verification and demands a new passing witness. Launch evidence
+does not admit resume unless resume has its own passing coverage.
+
+There is no implicit age limit just because a date exists. If an accepted
+configuration sets `max_age_seconds`, record its value and source; require
+a non-negative integer and `0 <= admission_time - checked_at <= max_age_seconds`.
+Without that configured limit, elapsed age alone does not expire an
+otherwise matching witness. Missing/malformed stamps or inaccessible
+evidence are unresolved; changed-counterparty or expired evidence is
+stale; failed or unattempted controls never pass. All fail admission as
+`output-capability`, without guessing a value or prompting for permission.
+
+Independent cases can therefore hold time and tuple fixed for a positive
+case, change one tuple member for stale evidence, remove `checked_at` for
+unresolved evidence, or cross an explicitly configured age bound for expiry
+(equality at the bound passes). Old but matching evidence with no age
+policy does not fail solely for age. Synthetic counterparties prove the
+admission logic; only passing live witnesses and verified mocks admit a
+real harness.
+
+The future witness must demonstrate reading snapshot/inputs, writing the
+declared non-empty leaf and scratch, and finishing without permission
+prompts, while blocking source/Git writes, undeclared siblings, control and
+transport files, other jobs and host paths. Exercise direct tools and
+shell/subprocess writes, rename/delete, chmod-then-write, source-linked
+paths, inherited temporary paths and path races on both launch and resume.
+A write-then-restore negative control distinguishes prevention from final
+acceptance detection. Negative arms must actually attempt the forbidden
+operation; a model declining to try or a tool failing to run is unresolved,
+not proof of denial. Probe apparatus and mock must fire on planted faults
+and stay quiet on clean neighbors. Skeptics copy mutable fixtures into
+declared scratch; unavailable source/Git/network/outer-workspace authority
+must be reported, never improvised.
+
+At the supplied `19f938e339cc519d66eb65989915decfa00439df` source baseline,
+the mechanisms recorded under [isolation](#isolation-per-harness) do not
+establish this witness for Codex, Claude or Grok. Their C2 standing remains
+**unresolved, unadmitted**. No live capability probe is run or authorized by
+this bucket. Existing runtime continues as documented below; future output
+admission must refuse each unsupported capability until independently
+proved. A witness for one harness cannot admit another.
+
+### C2 refusals
+
+These are target refusals for later executable adoption, all non-overridable.
+Retain dispatch's documented exit 3 and stderr form in this bounded change:
+`<id>: expected <expected>; found <found>; needed <needed>`. Found names the
+actual offending member/operation or unavailable evidence, never just
+"invalid". Founding-wire exit reconciliation stays separate.
+
+| id | expected | found | needed / timing |
+|:--|:--|:--|:--|
+| `outputs-schema` | valid unique, non-overlapping declarations | invalid member, duplicate, overlap or transport collision | correct trusted catalogue; before minting filesystem state |
+| `outputs-path` | safe canonical, correctly typed unaliased targets and representable handles | offending path/type/link or unavailable check | corrected declaration or fresh safe job directory; before child execution |
+| `outputs-policy` | every requested operation survives role/policy | excluded operation or unavailable requested decision | compatible scope or accepted policy evidence; before child execution |
+| `output-capability` | fresh passing witness and verified mock for exact outputs plus source isolation | unsupported, stale, failed or unresolved evidence, including broader directory rights | passing witness or explicitly selected admitted harness; before child execution |
+| `outputs-resume` | trustworthy recorded declaration and reproducible grant | absent custody, inherited unrecorded grant or incompatible rebinding | fresh dispatch or restored verifiable custody; before markers/session state change |
+
+Settlement failures use the same expected/found/needed detail in the note:
+`outputs-missing` expects a required non-empty document, finds absence or
+empty content, needs current-attempt production; `outputs-handle` expects
+the declared key and bound path, finds the missing/wrong handle, needs the
+correct envelope reference; `outputs-custody` expects safe readable bytes
+with verifiable attempt provenance, finds unsafe/unreadable/stale evidence,
+needs safe production or verified reuse. They make an otherwise completed
+envelope `invalid` with null verdict, never `ok`. Existing `tripped`
+outcomes retain their class and partial evidence and never approve.
+
+### C2 runtime adoption dependencies
+
+Contract review may proceed independently. Executable adoption requires:
+
+1. Task-owned declaration validation and deterministic deliverable rendering,
+   with catalogue/prompt alignment for native jobs and renamed equivalents.
+   Declare required keys to workers before enforcing them; retain historical
+   evidence without retroactive rejection.
+2. Launch integration with task's semantic validator as the single authority,
+   reconciling optional write-job commit transport and independently defining
+   and testing the transition of the narrow inline planning exception. Do
+   not duplicate counts/status/handle validation or generalize that exception.
+3. Record/envelope integration for immutable declarations, catalogue digest,
+   grant/evidence binding and per-attempt production/reuse, shared by launch,
+   resume, close and recovery. Preserve response extraction and actual-model
+   provenance.
+4. An enforceable leaf/scratch/transport mechanism with a fresh admitted live
+   witness and contract-verified mock for each selected harness/operation.
+   No broader directory substitute satisfies the leaf contract.
+5. Independently authored behavioral tests, independent skeptic and final
+   review. The implementation producer neither writes nor approves its tests.
+   Run `ops/bin/suites.sh` for later runtime landing; this docs bucket claims
+   only its named documentation acceptance checks, not that suite or proof.
+
+Prospective test homes (not files created by C2):
+
+- `ops/devlane/task/tests/test_job_outputs.py`: native/renamed declarations,
+  omission/empty, exact rendering/key alignment, malformed/unknown members,
+  null, duplicate members/keys/paths, overlaps, traversal and reservations.
+- `ops/devlane/dispatch/tests/test_launch_outputs.py`: synthetic capability
+  intersection, contradictory prose granting nothing, partial/unsupported/
+  stale/unresolved evidence preventing child creation, unchanged source,
+  missing/forged/linked outputs, attempt/reuse custody and catalogue changes
+  unable to widen resume, plus unchanged explicit model selection.
+- `ops/devlane/harness/tests/test_output_capability.py`: independently
+  specified positive/negative controls and freshness cases above, stamped
+  per harness/version/platform/operation. Live execution requires its own
+  authorized environment; missing-symbol failures and argv-only assertions
+  are not adequate behavioral proof.
+
+Preserve existing regressions in
+[test_launch_skeptic_write.py](tests/test_launch_skeptic_write.py),
+[test_launch_snapshot.py](tests/test_launch_snapshot.py),
+[test_launch_refusals.py](tests/test_launch_refusals.py),
+[test_record_paths.py](tests/test_record_paths.py), and
+[test_launch_verbs.py](tests/test_launch_verbs.py). Sandbox-label assertions
+need independent reconciliation with capability evidence; a particular flag
+is not the security oracle. No subsequent implementation buckets are
+scheduled or capability activation authorized here.
+
 ## Dispatch — the dev-lane launcher
 
 `launch.py` mints a snapshot from a named ref, keeps every

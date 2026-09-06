@@ -228,9 +228,8 @@ At the C1 baseline, prompt prose requests `{out}/PLAN.md` for `plan`,
 `rg -n 'PLAN.md|SKEPTIC.md|RULING.md' ops/devlane/task/jobs.json`). These are
 job outputs outside the source snapshot, not source-write roles.
 
-A later slice adds an explicit per-job `outputs` declaration in `jobs.json`,
-owned by launch/task, and defines and tests its schema before executable
-adoption. No such machine-readable declaration exists today; prompt prose
+A later runtime slice adopts the C2 `outputs` declaration below in `jobs.json`.
+No such machine-readable declaration exists today; prompt prose
 records demand and must not be parsed to authorize filesystem grants.
 Missing declarations mean no extra grant. The named temporary inline
 planning reassignment above remains limited to that specific reassignment.
@@ -253,6 +252,181 @@ or input paths either. Rendering a path and declaring a capability do not
 prove that a worker can deliver it. Reproduce the name branch with
 `rg -n 'writable_out=' ops/devlane/dispatch/launch.py`. C1 documents this
 defect; independent runtime/test work follows.
+
+### C2 standing and declaration schema
+
+**Contract only:** this is the two-file bucket from GPT-6 plan
+`20260906T024750Z-plan-codex-93f60d`, Claude review
+`20260906T025522Z-review-claude-cfc890`, and the supplied
+`launch-c2-contract-ruling.md`, incorporating F1–F5. Task owns declaration
+vocabulary, validation and deliverable rendering;
+[launch](../dispatch/CONTRACT.md#c2--output-admission-contract-only) resolves
+paths, admits grants and checks filesystem custody. No executable code,
+catalogue, prompts or capabilities change here. Historical evidence and the
+narrow inline planning exception above retain their standing; C2 does not
+retroactively reject old records or generalize that exception.
+
+Source checked on 2026-09-06 at `19f938e339cc519d66eb65989915decfa00439df`:
+`cat ops/devlane/task/jobs.json` shows no `outputs` declarations and native
+prompts request their document paths without fixed artifact keys;
+`rg -n 'ENVELOPE\.|\.validate\(|writable_out=|TMPDIR|COMMIT_MSG|last-message.json'
+ops/devlane/dispatch/launch.py` shows the job-name grant branches and the
+semantic-validator gap described above. This is source evidence, not live
+containment proof. Runtime adoption remains later independent work.
+
+An optional `outputs` member on a harness job has exactly this standalone
+JSON Schema. Omission is defined as `[]`, with no additional worker output
+grant. Explicit `null` is invalid. Each `file` is a required, non-empty
+document; `scratch` authorizes temporary work and requires no artifact.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "uniqueItems": true,
+  "items": {
+    "oneOf": [
+      {
+        "type": "object",
+        "properties": {
+          "kind": {"const": "file"},
+          "path": {"$ref": "#/$defs/path"},
+          "artifact": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "maxLength": 64
+          }
+        },
+        "required": ["kind", "path", "artifact"],
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "properties": {
+          "kind": {"const": "scratch"},
+          "path": {"$ref": "#/$defs/path"}
+        },
+        "required": ["kind", "path"],
+        "additionalProperties": false
+      }
+    ]
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "maxLength": 240,
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]*(/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$"
+    }
+  }
+}
+```
+
+Task's semantic declaration validation additionally rejects duplicate
+JSON object members, duplicate paths even across different kinds, repeated
+artifact keys, ancestor/descendant overlaps and more than one scratch
+entry. Paths and keys must match their grammar over the entire string
+(including rejecting a trailing newline). Paths are case-sensitive POSIX
+relative names beneath the job's canonical `out/`, never templates or
+shell expressions: absolute paths, dot segments, backslashes, whitespace,
+globs and substitutions refuse. No case folding or path normalization may
+turn invalid input into a different grant. Normalized declarations mean
+validated values with omission expanded to `[]`, preserving array order.
+
+Launch supplies adapter/launcher transport reservations to validation;
+equal, ancestor or descendant collisions refuse. Reserved leaves include
+`last-message.json` and `COMMIT_MSG` beneath `out/`; neither is a report or
+scratch declaration. The list must include any further transport paths an
+adapter needs. Existing path types, links and unsupported filesystem alias
+behavior are checked by dispatch, not inferred from the schema. A regular
+document must not be multiply linked; no output or ancestor may be a
+symlink. Lexical and real-path checks alone do not prove race-proof
+containment.
+
+### Native declarations and rendered deliverables
+
+The following is catalogue data for later adoption, not a catalogue edit
+in this bucket. Each value is the named job's `outputs` array:
+
+```json
+{
+  "plan": [{"kind": "file", "path": "PLAN.md", "artifact": "plan"}],
+  "check-tests": [
+    {"kind": "file", "path": "SKEPTIC.md", "artifact": "skeptic"},
+    {"kind": "scratch", "path": "tmp"}
+  ],
+  "adjudicate": [
+    {"kind": "file", "path": "RULING.md", "artifact": "ruling"},
+    {"kind": "scratch", "path": "tmp"}
+  ]
+}
+```
+
+Preserve native document demands, destinations and `role=read`. Skeptic
+mutation and adjudication reproductions use disposable copies in declared
+scratch. A renamed job with identical declarations gets identical output
+treatment; plain reviews with omission or `[]` gain no writes. Runtime
+authorization never searches prompt prose or branches on these names.
+
+Task owns a deterministic deliverable section, consumed by launch on every
+initial and resumed worker brief regardless of harness schema transport.
+After removing trailing CR/LF from the rendered native prompt, before any
+appended envelope schema, append two LFs and `Declared job outputs:` followed
+by LF. Visit entries in declaration order. Substitute the canonical absolute path
+and declared key into these exact line templates; each substitution is a
+JSON string literal (double-quoted, ASCII-escaped with lowercase hex for
+non-ASCII characters, no optional slash escaping or shell expansion), and
+each line ends in LF:
+
+```text
+Required file: <path>. Write a non-empty document; set artifacts[<artifact>] to <path>.
+Scratch subtree: <path>. Temporary work only; no artifact is required; TMPDIR is <path>.
+```
+
+For omission or `[]`, the only following line is
+`None. No additional worker output write grant.` plus LF. No key is chosen
+from prose or inferred from the filename. For canonical `out/` at
+`/jobs/example/out`, check-tests renders exactly:
+
+```text
+Declared job outputs:
+Required file: "/jobs/example/out/SKEPTIC.md". Write a non-empty document; set artifacts["skeptic"] to "/jobs/example/out/SKEPTIC.md".
+Scratch subtree: "/jobs/example/out/tmp". Temporary work only; no artifact is required; TMPDIR is "/jobs/example/out/tmp".
+```
+
+Rendering communicates an admitted declaration; it cannot authorize a
+grant. Later catalogue/prompt alignment must remove contradictory output
+instructions while retaining native work requirements, and test the exact
+key/path pair for each job and a renamed equivalent. No current prompt is
+silently changed here. Permission failures cannot fall back to inline
+prose. The specific inline planning reassignment persists until its
+transition is independently defined and tested, without becoming a new
+`outputs` kind or standing report mode.
+
+### Output acceptance
+
+For every `file`, `artifacts[artifact]` must equal the canonical absolute
+path rendered to the worker and resolve to that declared regular file,
+non-empty in bytes, under the bound job `out/`. Task's [envelope.py](envelope.py)
+remains the single authority for bounded, non-empty, single-line handles,
+counts and status/verdict semantics. Launch consumes that validation and
+adds filesystem/attempt custody checks; it must not copy those semantic
+rules into another validator. If a bound path cannot be represented as a
+valid handle, admission refuses `outputs-path` before child execution.
+
+Missing files, a missing/wrong key or handle, unreadable evidence, unsafe
+types/links or unverifiable custody prevent `status=ok`. Dispatch records
+each accepted file's digest and current-attempt custody. Other evidence
+handles remain references and confer no write authority. Scratch is not a
+substitute report and is never automatically published. Prior attempt
+reports remain prior evidence; current completion needs new production or
+explicit verified reuse as specified by dispatch. Changed read-role HEAD
+or snapshot residue still invalidates even when every output is present.
+
+The [runtime adoption checklist](../dispatch/CONTRACT.md#c2-runtime-adoption-dependencies)
+requires task semantic-validator integration into launch, including optional
+write-job commit transport and the narrow inline exception, catalogue/prompt
+alignment, independently authored tests and fresh capability proof. These
+are later dependencies, not effects of this two-file contract.
 
 ## Dispatch ownership
 
