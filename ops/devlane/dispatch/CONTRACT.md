@@ -14,16 +14,20 @@ review; runtime convergence and generic output grants have not landed.
 **Target:** `launch.py` is the sole worker execution service: admission,
 snapshot and input custody, invocation and resume, supervision, envelope
 acceptance, settlement and recovery. `record.py` owns dispatch record
-construction and validation. Frontends consume the same service:
+construction and validation. Dispatch/go/ladder consume that service;
+task run is the refusing vendor projection with local direct/stub behavior:
 
 | frontend | owns |
 |:--|:--|
 | [dispatch.sh](../../bin/dispatch.sh) / [wrapper](../../conductor/tools/dispatch.sh) | worktree/ref resolution, selection and inputs, foreground/detached invocation |
 | [go.sh](../../bin/go.sh) | intent shorthand and configurable selection, forwarded to dispatch |
 | [ladder](../../conductor/tools/ladder.py) | stage order, custody between jobs, retries and ladder records; worker execution and session resume stay in launch |
+| [task run](../task/CONTRACT.md#c1-task-frontend-construction-decision) | explicit pre-effect vendor-mode refusal naming launch; direct verification and stub replay remain local |
 
-Frontends preserve the same effective selection, refusals and accepted
-result; they do not own alternate execution or envelope engines. Harness
+Consuming frontends preserve the same effective selection, refusals and
+accepted result without alternate worker execution or envelope engines.
+Task owns its vendor-mode invalid envelope and local direct/stub behavior;
+its vendor refusal returns no launch result. Harness
 (CLI mechanics), model (explicit identity and effort), role (source
 authority), and work profile (policy context) are independent configurable
 dimensions, subject to job constraints and capability admission. No fixed
@@ -36,9 +40,66 @@ capability declarations below; harness owns isolation/probes; task owns
 envelope semantics. **Lane policy is a later consume-only coupling** owned
 by the parallel `lane/lane-boundary-20260905` track. Its accepted interface
 will supply profile policy. This track defines no duplicate policy and
-does not make that owner depend on output grants. C1 has no lane-policy,
-discovery or fileset dependency. Workers receive job-authorized context,
+does not make that owner depend on output grants. C1 adds no lane-policy
+implementation, discovery or fileset dependency; its profile transport below
+consumes the policy owner's selection rule. Workers receive job-authorized context,
 not conductor-wide discovery; both MCP surfaces remain read-only.
+
+### C1 frontend inputs and results
+
+The construction seam is the existing `launch.main(argv=None) -> int`
+and its CLI, not a new callable returning an envelope. `argv` is a list
+of strings excluding the executable, or null for process argv. Fresh worker
+input is exactly the existing worker verb/options under [Verbs](#verbs),
+with invoking repository, WF_AGENT identity and admitted configuration in
+their existing channels. Resume input is `["resume", ID]`, optionally the
+existing prompt-file option; ID addresses the same canonical record. An
+accepted resume preserves original selection, sources and lineage and uses
+the same admission, supervisor, extraction and settlement as fresh launch.
+No task resume method, alternate execution service or new store is added.
+
+Frontends retain launch's exit and stderr refusal detail, stdout record
+acknowledgement `record: <id>`, and canonical record as their result source.
+Detached acknowledgement proves launch only; completion is read with the
+existing status/wait/record transport. For accepted completion consume
+`result.envelope` by value, preserving commit, findings/counts, status/verdict,
+stamp, handles and launcher-resolved spend; Python object identity is not
+a cross-process promise. Before effects a dispatch refusal produces no task
+envelope; after effects consume the retained partial result, including null
+envelope when declared by unit1a. A process code or absent envelope never
+manufactures ok/approve. Existing dispatch/C2 refusal exit 3, task CLI
+0/1/2/64, wait 0/1/2 and policy pre-effect 2/late 3 mappings retain their
+respective ownership; this correction does not reconcile those wires.
+
+**Profile transport:** the worker verb list intentionally has no `--profile`.
+Use the already declared [unit1a trusted transport](#unit1a-pre-effect-admission):
+the admitted invoking consumer holds job, stage, snapshot ref, frozen lineage,
+explicit selection/provenance and complete task LaunchDeclarations, supplied
+by direct in-process argument or inherited read-only descriptor under that
+consumer's custody. The profile inputs are the optional explicit profile
+in trusted_context and `LaunchDeclarations.selection.profile`; both are
+nonempty policy ids when supplied. Resolve agreement/one/default/absence
+exactly under [policy selection](../../conductor/lane-policy.md#selection-and-maintenance-grants).
+Null denotes absence while resolving; empty, unknown or conflicting values
+refuse lane-profile before effects. The result is the same complete
+TaskSelection `{harness,model,effort,role,job_role,profile}` in retained
+declarations/binding, with resolved nonempty profile, role worker, job_role
+equal to the admitted job, and model/effort matching explicit launch input.
+Compare job/ref/lineage separately, since they are not selection members.
+
+Dispatch/go/ladder must preserve these exact values and source identities;
+an unbound caller needing profile policy refuses until trusted transport is
+available. No environment, scope prose, caller-selected input file, lane.conf
+key, worker JSON or new public flag substitutes for that channel. Task's
+runtime.profile is declaration vocabulary, not authority or a reason for its
+refusal frontend to execute. Resume cannot change profile through prompt
+text or a newer catalogue. Model observations remain record.model.ran and
+read_from, separate from requested model and from spend.harness. This is a
+contract completion, not a claim of installed profile support.
+
+The independent test producer follows the task contract's
+[per-test correction](../task/CONTRACT.md#c1c2-independent-test-correction)
+before runtime implementation; mocks conform to these inputs/results.
 
 ### Measured baseline and limits
 
@@ -168,6 +229,35 @@ requested versus observed identity and configuration source without
 substitution, as C1 requires.
 
 ### Attempt admission and custody
+
+For C2 adoption, launch reads the entire trusted catalogue through task's
+[strict reader](../task/CONTRACT.md#c2-library-adoption-seams), before job
+selection can discard a duplicate. It holds the exact bytes/digest used;
+ordinary json.loads followed by re-encoding cannot satisfy that duty.
+Compute the complete sorted unique relative transport reservation list from
+launcher-owned leaves and the admitted adapter declarations, then carry it
+unchanged as LaunchDeclarations.reservations and as reserved= to task's
+outputs_from_job, render_declared_outputs and append_declared_outputs.
+Include COMMIT_MSG and last-message.json for every harness, not just the
+one currently using a response file. Explicitly measured no-extra paths is
+valid; unavailable reservation analysis refuses output-capability before
+effects. No adapter.reservations method or new adapter/policy API is needed:
+dispatch acquires the already declared data and source evidence, task checks
+it without selecting an adapter. Synthetic tests supply that held transport.
+
+Check the complete declaration/reservation collision set and bound handle
+representability before rendering any grant text or creating snapshot,
+prompt, record, home, output leaf, attempt or child. Equal paths and either
+ancestor direction refuse outputs-schema. Declared scratch (including tmp)
+is excluded from transport reservations and keeps its own exact authority.
+Resume rechecks retained declarations against complete current verified
+transport needs before marker/store/attempt mutation; a new collision
+refuses, never deletes a declaration or silently widens a reservation grant.
+Library compatibility defaults alone cannot certify complete launch analysis.
+Use task's OutputsError family and semantic envelope validation, including
+optional commit and counts/handle checks; never reconstruct a second
+validator in the launcher. Preserve all C2 custody/capability obligations
+below and the historical inline exception's narrow scope.
 
 Before minting filesystem state, task validates declarations from the
 trusted launch-side catalogue, including transport collisions. Launch binds
@@ -775,10 +865,51 @@ supervision, lineage checks and record-only publication.
 | brief | null; no task prompt/template lookup, task envelope schema or fabricated worker brief |
 | snapshot | existing closed snapshot object, mode `whole`; selected ref and prospective canonical root held before materialization; root is a location, never proof of an existing snapshot |
 | harness / model | existing objects; descriptor.selection.harness equals harness.name; model.requested/effort_requested equal descriptor selection; actual model still requires stream evidence |
-| caps / overrides | existing supervision transport from admitted conductor configuration, with source; no worker job/default-role lookup or conductor-to-write fallback; only already declared overridable refusals |
+| caps / overrides | existing supervision transport from admitted conductor configuration, with source and timeout provenance as defined below; no worker job/default-role lookup or conductor-to-write fallback; only already declared overridable refusals |
 | attempts / at | existing attempt entries and UTC times; `[]` until an attempt is actually registered; at.launched is admitted record creation time, at.closed null until terminal |
 | result | null while launched; at terminal exactly `{head,changed_paths,residual_paths,envelope,policy,status,note}`; envelope always null, policy is PolicyResult, status is `ok`, `invalid` or `tripped`, note null on success or a nonempty reason on failure |
 | status | existing `launched`, `closed` or `died`; `died` is loss during an actual attempt, never a synonym for refusal before a child exists |
+
+For this conductor variant, `caps.timeout` is a required finite positive number
+of seconds resolved solely from admitted conductor configuration before the
+canonical directory claim. `caps.timeout_source` is required and is exactly
+`conductor-config`; it names that answering layer, not a worker job or default.
+The existing supervision keys (including `cap-out` and `source`) remain present;
+`source` names their admitted configuration source. Retain the exact source
+bytes, ref and digest through the verified role source closure in
+LaunchDeclarations and the canonical record's declarations handle. The token
+alone is not provenance evidence. Missing, invalid or unverified configuration
+refuses before effects; do not inherit ambient `DISPATCH_TIMEOUT`, consult
+jobs.json or substitute 900 for a conductor. Resume revalidates that retained
+source before any mutation; authorized cap changes retain their source and
+the existing resume reason/override evidence. This adds no configuration store.
+
+Worker timeout resolution and its closed `DISPATCH_TIMEOUT`, `job`, `default`
+enum above are unchanged. `conductor-config` is admissible only when record.role
+is `conductor`; the runtime/validator frontier below must enforce that split.
+
+Complete synthetic caps objects for the representative conductor cases follow.
+Here `source` identifies the admitted conductor configuration layer; the fixture
+must retain its exact source evidence as above. These are caps examples, not
+full records, runtime defaults or evidence of acceptance.
+
+Success (attempt 1 registered and completed):
+
+```json
+{"cap-out":500000,"source":"conductor-config","timeout":1200.0,"timeout_source":"conductor-config"}
+```
+
+Late refusal after directory claim but before attempt registration (`attempts`
+is `[]`): the already resolved caps remain complete, even if another preparation
+handle is unavailable.
+
+```json
+{"cap-out":500000,"source":"conductor-config","timeout":1200.0,"timeout_source":"conductor-config"}
+```
+
+Pre-claim refusal creates no canonical record and therefore no caps object.
+Neither omission of timeout keys in a retained record nor a fabricated attempt
+can stand in for unavailable evidence.
 
 Every conductor handle must verify before child invocation. If post-claim
 preparation fails, an unretained handle is null only in the terminal refused

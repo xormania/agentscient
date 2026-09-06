@@ -319,6 +319,30 @@ adapter's compiled launch, or a refusal before durable state or child creation.
 argument or inherited read-only descriptor, never a caller path, environment
 variable, model tool argument or MCP parameter. It contains the policy owner's
 verified binding, declaration sources, custody anchor and discovery boot inputs.
+
+The held discovery boot inputs cross into the existing discovery process
+through the declared
+[`--discovery-boot-fd FD` transport](discovery-lever.md#trusted-discovery-boot-transport),
+alongside `--config FILE`: an inherited launcher-opened read-only directory
+descriptor for the retained runtime artifact, separate from the inspected repo.
+It grants only the discovery contract and lane_read/lane_mcp/lane_refs files
+named there, with the same 1 MiB per-file, 4 MiB total and 10-second boot limits.
+No new v3 key, query argument, store or executor is introduced.
+
+The trusted launch owner must bind actual execution inputs, including the entry
+module, to those held bytes. The lane_mcp boot custodian checks the
+[executed-byte binding gate](discovery-lever.md#executed-byte-binding-gate)
+before acquisition, repository anchors or fingerprints; a matching descriptor
+digest or server self-report cannot replace load evidence. D-A47 requires
+independent A/B mismatch and missing-load-evidence refusals, A/A and B/B clean
+controls, and receipts binding process, artifact hashes and observed execution.
+The runtime producer, trusted launch owner, independent test producer, reviewer
+and integrator retain the responsibilities assigned there. Resume must meet
+the same gate for its discovery process. Missing/rejected boot keeps discovery's
+condition-specific refusal; startup applies its pre-effect/late timing below.
+Discovery's independent recheck is pending; this reciprocal link claims no
+acceptance, runtime completion or startup admission.
+
 A digest is only an equality check against these held inputs, never proof of
 trusted origin. Resolve executable/configuration identities and selection first,
 reserve the canonical dispatch identity in memory on launch (reuse it on resume),
@@ -463,10 +487,35 @@ targets, not assertions that tests or live mechanisms have already passed.
 The bounded unit1a correction preserves combined commit
 `f15ca22c7d0cedb14f8d299fd61d7135f04ea9bc`, invalid worker record
 `20260906T111519Z-code-codex-dce07d` and the historical absence checker.
-The conductor separately retains the original `01-interface-fix.patch` with
-`01-COMMIT_MSG` and `02-unit1a.patch` with `02-COMMIT_MSG` as durable coordination
-inputs. That is the conductor's retention duty, not a claim that this correction
-has copied or verified those artifacts. Do not reconstruct an original split,
+Canonical custody is in `uscient/agentscient`, at commit
+`3ee48f0d8e9dc7f76a5ab9d6f600136338973118`:
+
+- [Archive README and retained split artifacts](https://github.com/uscient/agentscient/blob/3ee48f0d8e9dc7f76a5ab9d6f600136338973118/.dev/ladder-inputs/conduct-unit1a-20260906/README.md)
+  under `.dev/ladder-inputs/conduct-unit1a-20260906/`.
+- [Original invalid dispatch record](https://github.com/uscient/agentscient/blob/3ee48f0d8e9dc7f76a5ab9d6f600136338973118/.dev/records/dispatches/20260906T111519Z-code-codex-dce07d.json)
+  under `.dev/records/dispatches/`; its envelope remains `status: invalid`,
+  `verdict: null`.
+
+Measured 2026-09-06 against that commit using `git show COMMIT:PATH`, Python
+Base64 decoding and SHA-256: the table names decoded original patch bytes and
+plain commit-message bytes, not the Base64 storage hashes.
+
+| archived file | original bytes | SHA-256 |
+|---|---:|---|
+| `01-interface-fix.patch.b64` | 7055 | `3cd7a4838d4181870a3fe67aa89c82cecfa4d809059449ca20c3441d47fc6477` |
+| `01-COMMIT_MSG` | 873 | `30ea73a9f71b6a377b4bafc1cae327ec10e9c963d308a2de81cd493d20a1672b` |
+| `02-unit1a.patch.b64` | 37212 | `dad3831caa7b480fdb01458bdd60d252892bbee72b23b804989e119ce179c919` |
+| `02-COMMIT_MSG` | 1065 | `858833ad25591105db06f170ef07186d9a0fd2bfab6ef33927f6c3764ae93f33` |
+
+Decode with `base64 --decode FILE.patch.b64`. The original record is 15932 bytes,
+SHA-256 `80dda3ec259623cbb0fc0a2ae6fc92f2216d12982d3efc28a4ab52613a9223d9`.
+Raw capture commit `c35ed64e7154eddbc1bea3511567032813f833f3` and Base64 retention
+commit `42c9efee03831f4cfef5044dd3b29672456ed971` retain the archive history.
+All four cited commits resolve in this snapshot at
+`b15f6904932d134b5e42ee1c9c60708ca8ef48a7`; the earlier review's inaccessible
+objects describe its snapshot, not canonical absence. Remote link availability
+was not checked; their pinned Git paths were. Custody remains the conductor's
+duty; this correction copies no retained artifact. Do not reconstruct a split,
 rewrite the combined commit, repair the historical verdict or reuse its checker
 as present acceptance. The ruling permits one clean correction commit; runtime,
 independent tests, live capability and policy admission remain separate.
