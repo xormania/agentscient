@@ -1,0 +1,165 @@
+{
+  "id": "20260906T043316Z-check-tests-codex-7f42a8",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T04:33:16Z",
+    "closed": "2026-09-06T04:35:20Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+    "ref_sha": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T00-33-17-01a074fd-fbc8-7933-a3e0-95f2a387de6a.jsonl"
+  },
+  "session": {
+    "id": "01a074fd-fbc8-7933-a3e0-95f2a387de6a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T00-33-17-01a074fd-fbc8-7933-a3e0-95f2a387de6a.jsonl",
+    "stream_sha256_at_close": "249d38a4a8f05f11f179d92a0c66d232ce56040e63f4182d11ea99aaf4043731",
+    "spend": {
+      "input": 324917,
+      "cached": 282880,
+      "output": 3372,
+      "total": 328289,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/home/codex-stream/sessions/2026/09/06/rollout-2026-09-06T00-33-17-01a074fd-fbc8-7933-a3e0-95f2a387de6a.jsonl",
+      "messages": 67
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Measurement only via existing native check-tests transport; no test-design approval or implementation reading. Run python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py and python3 ops/devlane/hooks/claude/test-guard.py ops/conductor/tests/test_laneconf.py. Stamp exact HEAD and test/contract blobs. Distinguish intended allowance assertion reds, including composite absence assertions, from the known current-tree literal failure; report errors and passing rejection/MCP controls. Verify clean source. Only existing job scratch and SKEPTIC.md may be written. Any transport verdict concerns execution only; Claude judges design. No edits, host/DB/network changes, vendor launches or approval requests. Read supplied rulings and corrected author record. <=550 words.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/in/policy-literal-repair-ruling.md",
+        "sha256": "04e0c1ebb2b354c678e6b60cfe2285ad12a716708474ff856373797b7ea83983"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/in/policy-literal-test-correction.md",
+        "sha256": "3cbac8f49ec57bb62e3aff96bdca7c30095e46ba44a5fa07197d603cdd539510"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/in/20260906T042617Z-tests-grok-741ff1.json",
+        "sha256": "fb9ca6f92b3bbc2cc300ff3ca7f8d37e29d0369539810f37810558808558c8b5"
+      }
+    ],
+    "sha256": "db1c356ac8370d61874fdfc34756838ef8502c8cd902976e4b4ce41d7451c293",
+    "bytes": 3726
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:33:16Z",
+      "ended": "2026-09-06T04:35:20Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/out/SKEPTIC.md",
+        "execution": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/out/tmp/execution.json",
+        "verification": "/home/scientdb/.local/state/agentscient/dispatch/20260906T043316Z-check-tests-codex-7f42a8/out/tmp/verification.json",
+        "test_blob": "13e486c20ca2ffd22dc10a97a06d1926f70ca5f2",
+        "contract_blob": "166f2cde8631231392060101283bde893c7542f1"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 328289,
+        "out": 3372,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "a0b972bddbc54b091a3ea94a9ce9c74a20f75acf",
+        "started": "2026-09-06T04:33:27Z",
+        "ended": "2026-09-06T04:35:07Z"
+      },
+      "note": "Execution-only approval; Claude judges design. Unittest: 52 tests, 46 passes, five intended allowance assertion failures including both composite absence assertions, one separate known baseline failure, zero errors/skips. Rejection and MCP controls pass; plant guard exits 0. Source clean, HEAD unchanged; no implementation inspected. Initial read-wrapper cleanup error is documented; both required commands completed normally."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T04:35:20.307Z"
+    }
+  },
+  "status": "closed"
+}
