@@ -77,6 +77,7 @@ token = os.environ.get("TASK_RUN_TOKEN") or ""
 claim = os.environ.get("TASK_RUN_CLAIM") or "the battery is never armed"
 verdict = os.environ.get("TASK_RUN_VERDICT") or "changes"
 job = os.environ.get("TASK_RUN_JOB") or "author-tests"
+commit_subject = os.environ.get("TASK_RUN_ENVELOPE_COMMIT") or ""
 
 argv = sys.argv[1:]
 prompt_file = None
@@ -105,7 +106,7 @@ if record_path:
         encoding="utf-8",
     )
 
-if stdout_mode == "envelope":
+if stdout_mode in ("envelope", "result_envelope"):
     findings = []
     if verdict != "approve":
         findings.append({
@@ -127,7 +128,12 @@ if stdout_mode == "envelope":
         "stamp": {"ref": "harness-placeholder", "started": None, "ended": None},
         "note": None,
     }
-    sys.stdout.write(json.dumps(env) + "\n")
+    if commit_subject:
+        env["commit"] = {"subject": commit_subject, "body": "why"}
+    payload = env
+    if stdout_mode == "result_envelope":
+        payload = {"result": env}
+    sys.stdout.write(json.dumps(payload) + "\n")
 elif stdout_mode == "prose":
     sys.stdout.write("VERDICT: approve\nThe change is correct and complete.\n")
 elif stdout_mode == "token":
@@ -140,6 +146,51 @@ if sleep_s > 0:
 if done_path:
     Path(done_path).write_text("COMPLETED\n", encoding="utf-8")
 """
+
+_MISSING = object()
+
+
+class _PopenRecorder:
+    """Wrap subprocess.Popen and keep every argv. The original still runs."""
+
+    def __init__(self, original):
+        self.original = original
+        self.calls = []
+
+    def __call__(self, cmd, *args, **kwargs):
+        if isinstance(cmd, (list, tuple)):
+            argv = [str(part) for part in cmd]
+        else:
+            argv = [str(cmd)]
+        self.calls.append(argv)
+        return self.original(cmd, *args, **kwargs)
+
+    def launch_argv(self):
+        found = []
+        for argv in self.calls:
+            blob = " ".join(argv)
+            if "launch.py" in blob or blob.rstrip().endswith(" launch"):
+                found.append(argv)
+        return found
+
+
+class _SyntheticLaunch:
+    """In-process stand-in for dispatch/launch.py. No vendor, no store."""
+
+    def __init__(self, *, envelope=None, exit_code=0, stderr=""):
+        self.calls = []
+        self.envelope = envelope
+        self.exit_code = exit_code
+        self.stderr = stderr
+
+    def invoke(self, *args, **kwargs):
+        self.calls.append({"args": args, "kwargs": kwargs})
+        if self.envelope is not None:
+            return self.envelope
+        return self.exit_code
+
+    def selection_blob(self):
+        return json.dumps(self.calls, default=str)
 
 
 def _git_env(home: Path) -> dict:
@@ -214,6 +265,7 @@ class _TempRun(unittest.TestCase):
                 "TASK_RUN_RECORD", "TASK_RUN_DONE", "TASK_RUN_SLEEP",
                 "TASK_RUN_STDOUT", "TASK_RUN_TOKEN", "TASK_RUN_CLAIM",
                 "TASK_RUN_VERDICT", "TASK_RUN_JOB",
+                "TASK_RUN_ENVELOPE_COMMIT",
             )
         }
         self._saved_git = {k: os.environ[k] for k in list(os.environ)
@@ -245,6 +297,7 @@ class _TempRun(unittest.TestCase):
         os.environ.pop("TASK_RUN_TOKEN", None)
         os.environ.pop("TASK_RUN_CLAIM", None)
         os.environ.pop("TASK_RUN_VERDICT", None)
+        os.environ.pop("TASK_RUN_ENVELOPE_COMMIT", None)
 
         self._install_cli("codex")
         self._install_cli("grok")
@@ -482,10 +535,42 @@ class _TempRun(unittest.TestCase):
         self._patches.append((obj, name, getattr(obj, name)))
         setattr(obj, name, replacement)
 
+    def _install_attr(self, obj, name, replacement):
+        """Install a transfer-seam attribute even when run.py has no such name.
+
+        C1 vendor mode must bind canonical launch without task importing
+        dispatch. Tests inject a synthetic executor on this name. Restoring
+        a missing original deletes the attribute rather than leaving the
+        fake bound.
+        """
+        if obj is None:
+            return
+        if hasattr(obj, name):
+            self._patch_attr(obj, name, replacement)
+            return
+        self._patches.append((obj, name, _MISSING))
+        setattr(obj, name, replacement)
+
     def _unpatch(self):
         while self._patches:
             obj, name, original = self._patches.pop()
-            setattr(obj, name, original)
+            if original is _MISSING:
+                if hasattr(obj, name):
+                    delattr(obj, name)
+            else:
+                setattr(obj, name, original)
+
+    def bind_canonical_launch(self, synthetic):
+        """Bind a synthetic executor on the C1 transfer seam."""
+        self._install_attr(run, "canonical_launch", synthetic.invoke)
+        return synthetic
+
+    def record_popen(self):
+        """Record subprocess.Popen argv from both the stdlib and run's binding."""
+        recorder = _PopenRecorder(subprocess.Popen)
+        self._patch_attr(subprocess, "Popen", recorder)
+        self._patch_attr(getattr(run, "subprocess", None), "Popen", recorder)
+        return recorder
 
 
 # ---------------------------------------------------------------------------
@@ -1489,6 +1574,287 @@ class TheDocAndTheRegistryAgree(unittest.TestCase):
         documented = self._table_names()
         self.assertEqual(registry - documented, set(),
                          "built but not documented")
+
+
+# ---------------------------------------------------------------------------
+# C1 — vendor mode is a frontend for dispatch/launch.py
+# ---------------------------------------------------------------------------
+
+
+def _ok_envelope(job, *, note, model="codex"):
+    return envelope.build(
+        job,
+        status="ok",
+        verdict="changes",
+        findings=[envelope.finding(
+            "p2", "alpha.py §top", note,
+            reproduce="python3 -m unittest")],
+        spend={"harness": model, "total": 0, "out": 0, "runs": 0},
+        stamp={"ref": "synthetic-ref"},
+        note=note,
+    )
+
+
+class C1VendorModeDelegatesToCanonicalLaunch(_TempRun):
+    """C1 — production worker execution belongs to launch.py.
+
+    Vendor mode on run.py must refuse or transfer at the frontend
+    boundary with the caller's explicit selection. It must not keep a
+    second executor, and it must not import dispatch or harness (task
+    CONTRACT.md §Dispatch ownership). Direct verify and stub replay
+    stay non-worker operations.
+    """
+
+    def _transferred(self, synthetic, recorder):
+        launch_argv = recorder.launch_argv() if recorder is not None else []
+        return bool(synthetic.calls) or bool(launch_argv), launch_argv
+
+    def test_vendor_mode_refuses_or_transfers_and_never_owns_a_second_executor(self):
+        note = "TRANSFER-" + uuid.uuid4().hex
+        syn = _SyntheticLaunch(envelope=_ok_envelope("author-tests", note=note))
+        self.bind_canonical_launch(syn)
+        recorder = self.record_popen()
+        env = self.call_run(
+            runtime={"harness": "codex", "model": "test-model", "role": "write"},
+        )
+        transferred, launch_argv = self._transferred(syn, recorder)
+        note_text = env.get("note") or ""
+        refused = (
+            env.get("status") == "invalid"
+            and "launch" in note_text.lower()
+        )
+        self.assertTrue(
+            refused or transferred,
+            "vendor mode must refuse naming canonical launch, or transfer "
+            f"to it; status={env.get('status')!r} note={note_text!r} "
+            f"canonical_launch_calls={len(syn.calls)} "
+            f"launch.py_argv={launch_argv!r}",
+        )
+        if transferred:
+            self.assertFalse(
+                self.record_path.exists(),
+                "after transfer, run.py must not Popen the harness CLI itself",
+            )
+
+    def test_when_vendor_mode_transfers_explicit_selection_is_identical(self):
+        unique_model = "model-" + uuid.uuid4().hex
+        unique_effort = "high-" + uuid.uuid4().hex[:8]
+        note = "SELECT-" + uuid.uuid4().hex
+        syn = _SyntheticLaunch(envelope=_ok_envelope(
+            "adversarial-review", note=note, model="grok"))
+        self.bind_canonical_launch(syn)
+        recorder = self.record_popen()
+        env = self.call_run(
+            job="adversarial-review",
+            runtime={
+                "harness": "grok",
+                "model": unique_model,
+                "effort": unique_effort,
+                "role": "read",
+            },
+        )
+        transferred, launch_argv = self._transferred(syn, recorder)
+        if env.get("status") == "invalid":
+            self.assertIn(
+                "launch", (env.get("note") or "").lower(),
+                "a vendor refusal must name canonical launch, not guess a "
+                f"harness: {env.get('note')!r}",
+            )
+            self.assertFalse(self.record_path.exists())
+            return
+        self.assertTrue(
+            transferred,
+            "vendor mode that did not refuse must transfer to canonical launch",
+        )
+        blob = syn.selection_blob() + json.dumps(launch_argv)
+        self.assertIn(unique_model, blob)
+        self.assertIn(unique_effort, blob)
+        self.assertIn("grok", blob)
+        self.assertIn("adversarial-review", blob)
+        self.assertNotEqual(
+            env.get("note"), None,
+            "transfer must return launch's result, not a silent skip",
+        )
+
+    def test_direct_verify_does_not_transfer_and_still_returns_verify_check(self):
+        syn = _SyntheticLaunch(envelope=_ok_envelope("verify", note="not-used"))
+        self.bind_canonical_launch(syn)
+        recorder = self.record_popen()
+        env = self.call_run(
+            "verify",
+            require={
+                "scope": "python exits 0",
+                "constraints": ["read only"],
+                "claim": "python exits 0",
+                "command": [sys.executable, "-c", "pass"],
+            },
+            runtime={"harness": "direct", "role": "read"},
+        )
+        transferred, launch_argv = self._transferred(syn, recorder)
+        self.assertFalse(
+            transferred,
+            f"direct verify must not transfer to launch: {launch_argv!r}",
+        )
+        self.assertEqual(env.get("job"), "verify")
+        self.assertEqual(env.get("status"), "ok")
+        self.assertEqual(env.get("verdict"), "approve")
+        self.assertEqual(
+            env.get("spend"),
+            {"harness": None, "total": 0, "out": 0, "runs": 1},
+        )
+        self.assertFalse(self.record_path.exists())
+
+    def test_stub_replay_does_not_transfer_and_still_replays(self):
+        unique = "STUB-KEEP-" + uuid.uuid4().hex
+        recorded = envelope.build(
+            "author-tests",
+            status="ok",
+            verdict="changes",
+            findings=[envelope.finding(
+                "p2", "alpha.py §top", unique,
+                reproduce="python3 -m unittest")],
+            spend={"harness": "stub", "total": 11, "out": 4, "runs": 1},
+            stamp={"ref": self.ref},
+        )
+        replay = self.home / "recorded-stream.jsonl"
+        replay.write_text(json.dumps(recorded) + "\n", encoding="utf-8")
+        syn = _SyntheticLaunch(envelope=_ok_envelope(
+            "author-tests", note="not-the-stub"))
+        self.bind_canonical_launch(syn)
+        recorder = self.record_popen()
+        env = self.call_run(
+            runtime={"harness": "stub", "role": "write",
+                     "replay": str(replay)},
+        )
+        transferred, launch_argv = self._transferred(syn, recorder)
+        self.assertFalse(
+            transferred,
+            f"stub replay must not transfer to launch: {launch_argv!r}",
+        )
+        findings = env.get("findings") if isinstance(env.get("findings"), list) else []
+        self.assertTrue(findings, "replayed envelope must carry the recorded finding")
+        self.assertEqual(findings[0].get("claim"), unique)
+        self.assertEqual(env.get("verdict"), "changes")
+        self.assertFalse(self.record_path.exists())
+
+    def test_vendor_mode_does_not_import_dispatch_or_harness(self):
+        """Task must not depend on dispatch or harness (CONTRACT.md)."""
+        leaked = []
+        for name in dir(run):
+            if name.startswith("_"):
+                continue
+            value = getattr(run, name, None)
+            mod = getattr(value, "__module__", "") or ""
+            if mod.startswith("ops.devlane.dispatch") or mod.startswith(
+                    "ops.devlane.harness"):
+                leaked.append(f"{name} from {mod}")
+            path = getattr(value, "__file__", "") or ""
+            if "/dispatch/" in path.replace("\\", "/") and path.endswith(
+                    "launch.py"):
+                leaked.append(f"{name} file {path}")
+            if "/harness/" in path.replace("\\", "/"):
+                leaked.append(f"{name} file {path}")
+        self.assertEqual(
+            leaked, [],
+            "task/run.py must not import dispatch or harness: "
+            f"{leaked!r}",
+        )
+
+
+class C1VendorFrontendParsesOptionalCommit(_TempRun):
+    """Optional write-job commit transport must survive frontend parsing.
+
+    ENVELOPE_SCHEMA advertises commit; envelope.validate accepts it.
+    A recognizer that requires tuple(keys)==envelope.FIELDS drops the
+    envelope the schema just accepted (Claude review P2 on run.py).
+    """
+
+    def test_a_commit_bearing_envelope_is_accepted_not_treated_as_absent(self):
+        subject = "task: pin commit transport " + uuid.uuid4().hex[:8]
+        os.environ["TASK_RUN_ENVELOPE_COMMIT"] = subject
+        os.environ["TASK_RUN_VERDICT"] = "changes"
+        env = self.call_run()
+        self.assertNotEqual(
+            env.get("status"), "invalid",
+            "a schema-legal envelope with commit is not 'no envelope': "
+            f"status={env.get('status')!r} note={env.get('note')!r}",
+        )
+        self.assertEqual(env.get("status"), "ok")
+        self.assertEqual(env.get("verdict"), "changes")
+        self.assertIn("commit", env)
+        self.assertEqual(env["commit"].get("subject"), subject)
+        self.assertEqual(env["commit"].get("body"), "why")
+
+    def test_the_same_envelope_without_commit_is_still_found(self):
+        os.environ.pop("TASK_RUN_ENVELOPE_COMMIT", None)
+        os.environ["TASK_RUN_VERDICT"] = "changes"
+        env = self.call_run()
+        self.assertEqual(env.get("status"), "ok")
+        self.assertEqual(env.get("verdict"), "changes")
+        self.assertNotIn("commit", env)
+
+    def test_a_commit_bearing_envelope_nested_under_result_is_accepted(self):
+        subject = "task: nested commit " + uuid.uuid4().hex[:8]
+        os.environ["TASK_RUN_STDOUT"] = "result_envelope"
+        os.environ["TASK_RUN_ENVELOPE_COMMIT"] = subject
+        os.environ["TASK_RUN_VERDICT"] = "changes"
+        env = self.call_run()
+        self.assertNotEqual(
+            env.get("status"), "invalid",
+            "commit nested under result is still an envelope: "
+            f"status={env.get('status')!r} note={env.get('note')!r}",
+        )
+        self.assertEqual(env.get("status"), "ok")
+        self.assertIn("commit", env)
+        self.assertEqual(env["commit"].get("subject"), subject)
+
+
+class C1LoadJobsDecodesTheCatalogueStrictly(_TempRun):
+    """Whole-catalogue JSON must refuse duplicate members before dict collapse.
+
+    load_outputs already refuses a duplicate on one outputs array. A
+    catalogue decoded with json.loads collapses the member first;
+    re-encoding that dict cannot recover the duplicate.
+    """
+
+    def _dup_catalogue_text(self):
+        return (
+            '{"only-me": {"adapter": "direct", "role": "read", '
+            '"prompt": "x", "outputs": [{"kind": "file", "path": "A.md", '
+            '"artifact": "a", "path": "B.md"}]}}'
+        )
+
+    def test_duplicate_members_are_refused_before_dict_collapse(self):
+        raw = self._dup_catalogue_text()
+        parsed = json.loads(raw)
+        self.assertEqual(
+            parsed["only-me"]["outputs"][0]["path"], "B.md",
+            "plant: json.loads keeps the last member",
+        )
+        self.assertGreater(raw.count('"path"'), 1, "plant: duplicate path")
+        path = self.home / "dup-catalogue.json"
+        path.write_text(raw, encoding="utf-8")
+        err_types = [envelope.EnvelopeError, json.JSONDecodeError, ValueError]
+        run_error = getattr(run, "RunError", None)
+        if isinstance(run_error, type) and issubclass(run_error, Exception):
+            err_types.append(run_error)
+        outputs_error = getattr(envelope, "OutputsError", None)
+        if isinstance(outputs_error, type) and issubclass(outputs_error, Exception):
+            err_types.append(outputs_error)
+        with self.assertRaises(tuple(err_types)):
+            run.load_jobs(path)
+
+    def test_reencoding_a_collapsed_dict_does_not_recover_the_duplicate(self):
+        raw = self._dup_catalogue_text()
+        collapsed = json.loads(raw)
+        self.assertEqual(collapsed["only-me"]["outputs"][0]["path"], "B.md")
+        reencoded = json.dumps(collapsed)
+        self.assertEqual(reencoded.count('"path"'), 1)
+        path = self.home / "collapsed-catalogue.json"
+        path.write_text(reencoded, encoding="utf-8")
+        data = run.load_jobs(path)
+        self.assertEqual(set(data), {"only-me"})
+        self.assertEqual(data["only-me"]["outputs"][0]["path"], "B.md")
 
 
 if __name__ == "__main__":
