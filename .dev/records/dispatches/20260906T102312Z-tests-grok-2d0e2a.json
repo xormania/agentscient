@@ -1,0 +1,183 @@
+{
+  "id": "20260906T102312Z-tests-grok-2d0e2a",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-discovery-20260906",
+  "lineage": {
+    "branch": "lane/conduct-discovery-20260906",
+    "base_sha": "5f9390823f68f2013454c6cf8c39d09e6e475cb1"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T10:23:12Z",
+    "closed": "2026-09-06T10:48:49Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+    "ref_sha": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "8ab0b947-180d-4cfd-99a7-c74e1882baae",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/home/grok-stream/sessions/<snapshot-encoded>/8ab0b947-180d-4cfd-99a7-c74e1882baae/summary.json"
+  },
+  "session": {
+    "id": "8ab0b947-180d-4cfd-99a7-c74e1882baae",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/home/grok-stream/sessions/<snapshot-encoded>/8ab0b947-180d-4cfd-99a7-c74e1882baae/summary.json",
+    "stream_sha256_at_close": "88f419cc1c836b026a87f398baa61b464c2fc615da295ec82d4abe67661ed47a",
+    "spend": {
+      "input": 6424913,
+      "cached": 6048256,
+      "output": 94847,
+      "total": 6519760,
+      "cost_usd_ticks": 9186861200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/home/grok-stream/sessions/<snapshot-encoded>/8ab0b947-180d-4cfd-99a7-c74e1882baae/summary.json",
+      "messages": 388
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-discovery-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author independent executable tests for accepted discovery/3: ops/conductor/discovery-lever.md and discovery-examples.md, prerequisite to conduct. Read the owner assignment and contract acceptance input. Cover all acceptance rows: CLI/MCP parity, bounded catalogues/continuations, trusted profile/source custody, added profile, missing/stale/unreachable evidence, stationary snapshots, fixed ref adapter and subprocess-free read core. Use hermetic temp homes/repos/fixtures and contract-verified mocks; no live host/register/network state. Focus unittest files under ops/conductor/tests; change tests/fixtures only, never implementation, contracts, settings or suite command. Follow the contract; identify missing public interfaces explicitly. Run tests proving intended red, distinguishing import/setup failure from behavioral red; preserve existing tests. Return exact test command, coverage map and frozen test paths/hashes.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/in/conduct-launcher-owner.md",
+        "sha256": "173bddbdae93f44a9e8ff2c5c6394508f1377bf0f428be64a2bf3ff117159255"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T102312Z-tests-grok-2d0e2a/in/discovery-contract-acceptance-20260906.md",
+        "sha256": "5ed8e06ec45c4647aaad23eb0fa8ba85c91e3fa89f9c5077693ab1dc3c3dc4cd"
+      }
+    ],
+    "sha256": "51fff2e9ef63f687edf4ecb2aca95e35ef63cef38245c2c1d7b318186dd7fcf2",
+    "bytes": 3271
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T10:23:12Z",
+      "ended": "2026-09-06T10:48:49Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "981ebc9f6d6bece1deffcf796c785c0cbc67aab0",
+    "changed_paths": [
+      "ops/conductor/tests/discovery_v3_support.py",
+      "ops/conductor/tests/test_discovery_v3_adapter.py",
+      "ops/conductor/tests/test_discovery_v3_catalogues.py",
+      "ops/conductor/tests/test_discovery_v3_config.py",
+      "ops/conductor/tests/test_discovery_v3_handoffs.py",
+      "ops/conductor/tests/test_discovery_v3_snapshots.py",
+      "ops/conductor/tests/test_discovery_v3_startup.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md#fixed-acquisition-boundary",
+          "claim": "lane_refs.py is specified as the sole Git read adapter with five closed operations, but no argv, JSON-RPC method, or importable class is named. Tests therefore exercise adapter effects only through the documented lane_mcp.py CLI/MCP projection and pin file presence.",
+          "reproduce": "python3 -B -m unittest discover -s ops/conductor/tests -p test_discovery_v3_config.py -k test_d_a41_lane_refs_adapter_file_is_present"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/discovery-lever.md#local-source-composition",
+          "claim": "Trusted boot must supply discovery-lever.md bytes and a Git executable digest, but v3 config has no field for either. Tests plant the contract file next to staged tools and at ops/conductor/discovery-lever.md in the fixture repo, and ignore ambient GIT_* / PATH git wrappers.",
+          "reproduce": null
+        }
+      ],
+      "artifacts": {
+        "test_command": "python3 -B -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py'",
+        "red_proof": "At HEAD 981ebc9f6d6bece1deffcf796c785c0cbc67aab0 against implementation tree 5f9390823f68f2013454c6cf8c39d09e6e475cb1: Ran 55 tests in 7.854s, FAILED (failures=75), 0 errors. Failures are AssertionError (v3 config still refused as version 1 or 2, or lane_refs.py absent). No ImportError/collection errors. Existing ops/conductor/tests/test_lane_mcp.py: Ran 21 tests, OK. D-A1 and D-A2 stay green as v1/v2 preservation.",
+        "coverage_map": "D-A1 test_discovery_v3_config.TestDiscoveryV3Config.test_d_a1_v1_check_and_discovery_query; D-A2 test_d_a2_v2_check_tools_resources_meta_and_brief; D-A3 test_d_a3_v3_check_is_eleven_tools_and_reads_no_sources; D-A4 test_d_a4_invalid_v3_config_refuses_before_acquisition; D-A5 test_d_a5_closed_arguments_refuse_role_path_and_unknown_fields; D-A6 test_d_a6_unknown_configured_profile_uses_profile_wire; D-A7 test_discovery_v3_startup.TestDiscoveryV3Startup.test_d_a7_shipped_dev_startup_and_pageable_catalogue; D-A8 test_d_a8_shipped_prod_startup_and_lock_absence; D-A9 test_d_a9_added_docs_profile_uses_same_algorithms; D-A10 test_discovery_v3_catalogues.TestDiscoveryV3Catalogues.test_d_a10_catalogue_over_sixteen_pages_every_home_once; D-A11 test_discovery_v3_handoffs.TestDiscoveryV3Handoffs.test_d_a11_empty_head_and_empty_retained_is_complete_none; D-A12 test_d_a12_retained_unknown_filename_is_enumerated_and_named; D-A13 test_d_a13_two_current_handoffs_are_multiple_without_tiebreak; D-A14 test_d_a14_identical_bytes_share_a_key_distinct_blobs_do_not; D-A15 test_d_a15_supersedes_marks_stale_and_aar_never_selected; D-A16 test_d_a16_stale_only_handoffs_select_none; D-A17 test_d_a17_unbound_unreadable_or_missing_blocks_selection; D-A17b test_d_a17b_unbound_aars_do_not_block_handoff_selection; D-A17c test_d_a17c_unbound_head_records_leak_no_body; D-A18 test_d_a18_root_and_lineage_filter_without_cross_profile_leak; D-A19 test_d_a19_missing_work_binding_is_unknown_relevance; D-A20 test_d_a20_register_ledger_prs_are_unsupported_local_readings; D-A21 test_d_a21_zero_then_malformed_authorized_dispatch_counts; D-A22 test_d_a22_named_misses_for_all_three_detail_queries; D-A23 test_d_a23_detail_reuses_start_source_closure; D-A24 test_discovery_v3_snapshots.TestDiscoveryV3Snapshots.test_d_a24_retained_ref_move_changes_snapshot; D-A25 test_d_a25_content_profile_binding_and_failure_change_snapshot; D-A26 test_d_a26_cursor_grammar_bounds_and_no_leading_zeros; D-A27 test_discovery_v3_adapter.TestDiscoveryV3Adapter.test_d_a27_declared_overflows_never_unique_partial_selection; D-A28 test_d_a28_unreadable_empty_and_disabled_namespaces; D-A29 test_d_a29_unsafe_paths_and_ambient_git_are_rejected; D-A30 test_d_a30_only_verified_tree_outputs_become_inputs; D-A31 test_d_a31_changed_during_read_is_unavailable; D-A32 test_d_a32_untrusted_wrapper_formula_on_all_projections; D-A33 test_d_a33_governing_document_without_implementation; D-A34 test_d_a34_composer_lock_membership_not_constraints; D-A35 test_d_a35_onboard_presence_only_and_lifecycle_disabled; D-A36 test_d_a36_body_and_frame_caps_do_not_truncate; D-A37 test_d_a37_seventeen_candidates_page_at_most_sixteen; D-A38 test_d_a38_initial_work_drop_and_frame_failures; D-A38b test_d_a38b_twenty_work_cards_page_eight_eight_four; D-A38c test_d_a38c_twenty_one_dispatch_ids_five_card_continuations; D-A39 test_d_a39_stationary_cli_tool_resource_byte_identity; D-A40 test_d_a40_reads_need_no_identity_and_readonly_hints; D-A41 test_d_a41_lane_refs_adapter_file_is_present + test_d_a41_read_core_has_no_subprocess_and_leaves_trees_unchanged; D-A42 test_d_a42_conductor_descriptor_rejects_overrides_job_bound_is_distinct; D-A43 test_d_a43_independent_start_then_targeted_detail; D-A44 test_d_a44_v3_preserves_v2_bytes_on_unchanged_inputs; D-A45 test_d_a45_other_profile_key_matches_nonexistent; D-A46 test_d_a46_failed_source_fingerprint_is_stable_until_recovery; D-A47 test_d_a47_contract_revision_tracks_launch_supplied_bytes; D-A48 test_d_a48_home_evidence_contract_and_repo; D-A49 test_d_a49_lane_mcp_registry_lane_read_null_mapping_history",
+        "frozen": "ops/conductor/tests/discovery_v3_support.py sha256=1c91c10b5ab69f908abf58c1b4c22b9e336d436dbd2ab1c3cc92d1cb7a94798c; ops/conductor/tests/test_discovery_v3_config.py sha256=2d3ec055a502b8bbd87e2e47971bad67841359c93ad3bd38960b055b002411ae; ops/conductor/tests/test_discovery_v3_startup.py sha256=8c91845bf63423153a0512b78166f304f70dc74119dd0e611cfbeef95cd0b88b; ops/conductor/tests/test_discovery_v3_catalogues.py sha256=ac4b46e9998356622d2a386e85dab7d960325bb58c477c03ed36dcc15613f16d; ops/conductor/tests/test_discovery_v3_handoffs.py sha256=cca41599291aa7844d81202e4fccd67dc7cf1be2c5ca578e8e8d895be943cf15; ops/conductor/tests/test_discovery_v3_snapshots.py sha256=6d0c72e7106b0942190c7e51b8c07bccae02bae93cb0f1cef7f836c349f97b08; ops/conductor/tests/test_discovery_v3_adapter.py sha256=2da7dd2b892c0b7a86e91f6ddf8cb847c01182582e64f8fc263cb87568a549d7",
+        "commits": "0fb63e6 config/refusals; 5381d43 startup; 37121a2 catalogues; aa6790a handoffs; df0f9aa snapshots; 981ebc9 adapter. Branch lane/conduct-discovery-20260906 HEAD 981ebc9f6d6bece1deffcf796c785c0cbc67aab0"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6519760,
+        "out": 94847,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5f9390823f68f2013454c6cf8c39d09e6e475cb1",
+        "started": "2026-09-06T10:23:12Z",
+        "ended": "2026-09-06T10:47:33Z"
+      },
+      "note": "Independent discovery/3 tests covering every D-A1..D-A49 acceptance row under ops/conductor/tests, hermetic temp homes/repos only. Implementation was not read. Each file was proven red (AssertionError, 0 import/collection errors) then committed. Frozen command: python3 -B -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py' \u2014 55 tests, 75 failures, 0 errors at 981ebc9 against 5f93908. Existing test_lane_mcp.py 21/21 still OK."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T10:48:48.588Z"
+    }
+  },
+  "status": "closed"
+}
