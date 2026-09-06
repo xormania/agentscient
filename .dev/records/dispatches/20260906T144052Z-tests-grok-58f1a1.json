@@ -1,0 +1,172 @@
+{
+  "id": "20260906T144052Z-tests-grok-58f1a1",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/conduct-message-tests-20260906",
+  "lineage": {
+    "branch": "lane/conduct-message-tests-20260906",
+    "base_sha": "41370d2de35d9662a94184097fb405d6b8fff36e"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T14:40:53Z",
+    "closed": "2026-09-06T14:50:10Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "41370d2de35d9662a94184097fb405d6b8fff36e",
+    "ref_sha": "41370d2de35d9662a94184097fb405d6b8fff36e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b4512f74-5625-4c43-a6f2-1595ffd38e2c",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/home/grok-stream/sessions/<snapshot-encoded>/b4512f74-5625-4c43-a6f2-1595ffd38e2c/summary.json"
+  },
+  "session": {
+    "id": "b4512f74-5625-4c43-a6f2-1595ffd38e2c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/home/grok-stream/sessions/<snapshot-encoded>/b4512f74-5625-4c43-a6f2-1595ffd38e2c/summary.json",
+    "stream_sha256_at_close": "9684fa003c1a9c74c1fd3f58f9fe0abe88c6e42897685690ac71eb199ef271f0",
+    "spend": {
+      "input": 2288509,
+      "cached": 2128384,
+      "output": 30111,
+      "total": 2318620,
+      "cost_usd_ticks": 2660683600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/home/grok-stream/sessions/<snapshot-encoded>/b4512f74-5625-4c43-a6f2-1595ffd38e2c/summary.json",
+      "messages": 214
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-message-tests-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only ops/devlane/dispatch/tests/test_launch_harness_fixes.py under the supplied GPT-6 ruling on Claude's original review. Add the two missing independent discriminators for attribution-shaped and Dispatch-shaped lines inside prose; replace the duplicate stdlib round-trip case without losing coverage. Preserve existing message, attribution, file precedence and collected-message controls. Do not inspect or edit implementation, contracts, guards or other tests. Run the focused file, registered lint and secret scan; provide exact hashes, counts, red assertion causes and zero errors. Use actual Grok 4.6 source attribution. Keep COMMIT_MSG prose free of colon-started wrap lines while the separately owned builder fix is pending. Return the exact patch and valid tests envelope; no full floor or live store.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/in/ag-conduct-message-test-ruling.md",
+        "sha256": "50c516bb4e89e60849e1a2eed177249bd4a9bb53eeab1dcfcf3ee8cef7544c20"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/in/record.json",
+        "sha256": "05b519daf7d3efec20d53e9e9d013815fbe92c97ca6c43a8da5875c56fa3476c"
+      }
+    ],
+    "sha256": "e849995c42be5c50b6aa9b2e1f6346e8ea2646a6ce764a809373987f0b6d78e1",
+    "bytes": 3161
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T14:40:53Z",
+      "ended": "2026-09-06T14:50:10Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b952a2e1bc8153edcfa29b9b9de4f952768d053f",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_harness_fixes.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/dispatch/tests/test_launch_harness_fixes.py",
+        "commit": "b952a2e1bc8153edcfa29b9b9de4f952768d053f",
+        "seal_sha256": "f6ed8addfa04680abd7c1d0f3b4703a48e93b6b94edf25bd8f9175e3deb19a90",
+        "seal_blob": "379914022a664e653db90c8f4559b1ee912076d2",
+        "patch": "/home/scientdb/.local/state/agentscient/dispatch/20260906T144052Z-tests-grok-58f1a1/out/patch.diff",
+        "patch_sha256": "d1505ad79cb1d67bad3d00f7bd6a4962742a827c7831599671e4d6237242ad7a",
+        "focused": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_harness_fixes.py'",
+        "result": "37 tests, 11 failures, 0 errors at b952a2e1bc8153edcfa29b9b9de4f952768d053f against implementation 41370d2de35d9662a94184097fb405d6b8fff36e",
+        "red_new": "test_an_attribution_shaped_line_inside_prose_stays_and_out_of_git_trailers:352:assertIn(_ATTRIBUTION_SHAPED); test_a_producer_dispatch_line_inside_prose_stays_while_launcher_dispatch_is_kept:364:assertIn(_DISPATCH_IN_PROSE)",
+        "red_prior": "9 remaining original reds, all assertIn of complete producer paragraph (313,323,330,337,387,399,409,424,456); json_round_trip removed, 0 collected",
+        "green_class": "test_subject_body_and_display_name_attribution; test_the_harness_own_source_line_is_kept_not_stripped; test_a_second_co_author_from_the_harness_is_kept; test_without_a_commit_object_the_generic_subject_stands; test_an_unknown_model_id_is_credited_as_itself; test_trailer_shaped_body_lines_move_into_the_final_block; test_out_commit_msg_wins_over_the_envelope; test_a_blank_subject_falls_back; test_unwrapped_pass_prose_keeps_its_neighbors",
+        "lint": "python3 ops/devlane/workflow/checks/lint.py --root . ops/devlane/dispatch/tests/test_launch_harness_fixes.py -> lint: clean \u2014 1 file(s), ruff 0.16.5",
+        "custody": "python3 ops/devlane/workflow/checks/secret_scan.py --root . ops/devlane/dispatch/tests/test_launch_harness_fixes.py -> secret scan: clean \u2014 1 tracked file(s), 6 signature(s), 0 allowlisted line(s); commit_trailers.py --range 41370d2..HEAD --json checked 1 problems []; git status --porcelain empty; +33/-8"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2318620,
+        "out": 30111,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "41370d2de35d9662a94184097fb405d6b8fff36e",
+        "started": "2026-09-06T14:40:53Z",
+        "ended": "2026-09-06T14:48:16Z"
+      },
+      "note": "Corrected only ops/devlane/dispatch/tests/test_launch_harness_fixes.py under the GPT-6 ruling. Commit b952a2e1bc8153edcfa29b9b9de4f952768d053f (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>). File seal sha256 f6ed8addfa04680abd7c1d0f3b4703a48e93b6b94edf25bd8f9175e3deb19a90, git blob 379914022a664e653db90c8f4559b1ee912076d2. Exact patch vs 41370d2de35d9662a94184097fb405d6b8fff36e is out/patch.diff sha256 d1505ad79cb1d67bad3d00f7bd6a4962742a827c7831599671e4d6237242ad7a (2975 bytes, 1 file, +33/-8). Focused command at b952a2e: Ran 37 tests in 0.803s, FAILED (failures=11), 0 errors, 26 ok. New reds proven alone first with zero collection/import errors: test_an_attribution_shaped_line_inside_prose_stays_and_out_of_git_trailers line 352 assertIn(_ATTRIBUTION_SHAPED) because isolated git parse of the producer paragraph is [] yet assembly lifts 'Reviewed-by: Grok 4.6 <noreply@x.ai>' into trailers and leaves the neighbors; test_a_producer_dispatch_line_inside_prose_stays_while_launcher_dispatch_is_kept line 364 assertIn(_DISPATCH_IN_PROSE) because assembly deletes 'Dispatch: 20260101T000000Z-code-codex-000000' while launcher Dispatch 20260829T000000Z-code-codex-abc123 remains. Replaced test_json_round_trip_preserves_wrapped_prose_paragraphs (discover -k json_round_trip collected 0). Wrapped-pass coverage remains on test_wrapped_pass_prose_stays_contiguous_and_out_of_git_trailers:313. Prior reds still fail on assertIn of the complete producer paragraph: test_wrapped_pass_prose_stays_contiguous_and_out_of_git_trailers:313, test_multiline_validation_prose_stays_contiguous_and_out_of_git_trailers:323, test_an_arbitrary_prose_key_is_not_a_hard_coded_exception:330, test_a_known_trailer_key_inside_prose_is_not_metadata:337, test_commit_msg_file_wins_and_keeps_wrapped_prose:387, test_envelope_fallback_keeps_wrapped_prose_when_the_file_is_absent:399, test_true_terminal_trailers_remain_while_wrapped_prose_does_not_join_them:409, test_standalone_reviewed_by_moves_while_wrapped_prose_stays:424, test_collected_assembly_keeps_wrapped_prose_and_attribution:456. Preserved greens: the 8 original class attribution/file-precedence/Reviewed-by/Dispatch controls plus test_unwrapped_pass_prose_keeps_its_neighbors, and the other 17 tests in the file. lint: clean \u2014 1 file(s), ruff 0.16.5. secret scan: clean \u2014 1 tracked file(s), 6 signature(s), 0 allowlisted line(s). commit_trailers.py --range 41370d2de35d9662a94184097fb405d6b8fff36e..HEAD --json -> checked 1, problems []. git status --porcelain empty after commit. COMMIT_MSG prose has no colon-started wrap lines. No implementation, contract, guard, or other-test edit. No full floor, no store read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T14:50:09.095Z"
+    }
+  },
+  "status": "closed"
+}
