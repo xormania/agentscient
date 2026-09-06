@@ -492,11 +492,14 @@ Canonical envelope: 1058 bytes.
 ## Acquisition race
 
 This packet illustrates projection only. D-A31 detection additionally requires
-the real `acquire(config, boot, *, checkpoint=None)` seam and acknowledged
+the real `ops.conductor.tools.lane_refs.acquire(config, boot, *, checkpoint=None)`
+seam and acknowledged
 synchronous mutation at `before-final-revalidation` or `before-file-postcheck`,
 under the [checkpoint contract](discovery-lever.md#deterministic-acquisition-checkpoints).
-The independent fixture records ordering, fails if its checkpoint is not
-reached, keeps the ordinary budgets/checks, passes a stationary neighbor and
+The independent fixture checks exact eligible phase/source multiplicity and
+the declared per-source partial order, allowing cross-source interleaving.
+It fails if its checkpoint is not reached, accounts for failure-before-phase
+omissions, keeps the ordinary budgets/checks, passes a stationary neighbor and
 rejects an omitted-check counterparty. Thread scheduling is not that witness.
 
 `lane_actions {"name":"onboard","profile":"dev"}`
@@ -692,19 +695,35 @@ does not prove semantic injection immunity or authorize its directive.
 
 ## Refusals and continuations
 
-Valid v3 config and discovery arguments, but absent/invalid trusted boot:
+Valid v3 config and discovery arguments, but no supplied trusted boot descriptor:
 
 ```text
-config: expected trusted discovery boot descriptor; found invalid; needed launch with --discovery-boot-fd FD
+config: expected trusted discovery boot descriptor; found missing; needed launch with --discovery-boot-fd FD
 ```
 
-This refusal precedes repository acquisition. Check/list and all old queries
+With a supplied descriptor whose lane_refs.py exceeds 1 MiB:
+
+```text
+config: expected trusted discovery boot descriptor; found rejected ops/conductor/tools/lane_refs.py component-oversized; needed supply a boot component of at most 1 MiB
+```
+
+Both refusals precede repository acquisition. Other rejected supplied cases
+use the closed condition/remedy table in
+[Refusals and exits](discovery-lever.md#refusals-and-exits), distinguishing
+missing components from components that could not be read. Check/list and all old queries
 do not read boot files. D-A47's independent process fixtures supply two bounded
 boot artifacts with different exact contract bytes against the same failing
 repo/config and compute the complete definition/source hashes; a separate
 implementation-byte change exercises the sorted three-file adapter manifest.
 An external pathname change after load cannot replace retained definitions.
-These fixtures prove transport and hashing, not admission or implementation
+Those byte-change fixtures prove transport and hashing. D-A47 also requires
+the [executed-byte binding gate](discovery-lever.md#executed-byte-binding-gate):
+boot A/execution B and unverified loading refuse before anchors; A/A and B/B
+execute their planted markers and report independently computed fingerprints,
+for each module in turn. Hash-A/execute-B and omitted-binding-check faults must
+fail. The runtime boot custodian checks load evidence; the trusted launch owner
+provides the bound loader inputs; independent producers verify and integrate.
+This proves neither launcher authentication nor admission nor implementation
 of arbitrary altered prose. Fixture A's opaque contract fingerprint stays fixed.
 
 Unknown configured-profile key `other`, after valid argument parsing:

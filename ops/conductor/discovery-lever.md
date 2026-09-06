@@ -3,7 +3,7 @@
 Standing: corrected step-1 proposal under the
 [review ruling](reports/discovery-contract-review-20260905.md), awaiting
 independent review. Authorization to write is not admission or self-approval.
-The v3 instrument is ABSENT until step 2. The
+The corrected v3 obligations require independent step-2 acceptance. The
 [sequence](conductor-start-plan.md) and this contract inherit
 [instrument conventions](instrument-conventions.md) and the
 [wire](../../docs/wire.md).
@@ -162,31 +162,72 @@ enumeration or caller path selector. Require regular files, at most 1 MiB
 each and 4 MiB total, a 10-second bootstrap deadline, and before/after
 identity, size and modification checks. Trusted launch must bind the three
 executed modules to these same captured bytes; a separately claimed manifest
-does not establish that binding. Load and retain the bytes once before the
-first discovery acquisition. Close owned descriptors on every failure and
+does not establish that binding. The executed-byte gate below verifies this
+coupling separately from launcher authentication. Load and retain the bytes
+once before the first discovery acquisition. Close owned descriptors on every failure and
 normal shutdown. No adjacent-file, HOME, CWD, environment or inspected-repo
 fallback is allowed. FD numbers and filesystem timestamps enter no fingerprint.
 Use exactly the definition observation and sorted three-file implementation
 manifest recipe below; direct-object acquisition retains `git:null`.
 
 Config-only check/list operations and all seven old queries neither read boot
-files nor open repository anchors. Missing or invalid boot on a discovery
-read refuses before repository acquisition with the v3-only boot line in
+files nor open repository anchors. Missing or rejected supplied boot on a discovery
+read refuses before repository acquisition with the applicable v3-only boot line in
 [Refusals and exits](#refusals-and-exits). The independent conformance
-counterparty must register a hermetic witness with valid v3 config and absent
-or invalid boot, checking the exact line; a legacy config refusal is no proof.
+counterparty must register separate hermetic witnesses with valid v3 config
+for missing and rejected supplied boot, checking their precise lines and
+remedies; a legacy config refusal is no proof.
 This transport assumes trusted launch custody, not host admission or activation.
 The parallel interface track owns the pending reciprocal boot cross-link in
 [conductor-start-plan.md](conductor-start-plan.md); this correction does not
 edit that counterpart or change its admission standing.
+
+### Executed-byte binding gate
+
+The trusted launch owner supplies the retained artifact and a load path that
+binds each of the three modules' actual execution inputs to its captured bytes.
+The discovery boot custodian in `ops/conductor/tools/lane_mcp.py` owns checking
+that binding before calling acquisition, including its own entry module's
+load evidence. Execute retained buffers directly or establish byte-for-byte
+equality with immutable loader-owned execution inputs; reopening `__file__`,
+hashing adjacent paths, or accepting a caller's claimed manifest is insufficient.
+An already loaded module without verifiable load evidence must refuse
+`binding-unverified`; differing execution inputs must refuse `binding-mismatch`.
+No discovery module may subsequently reload from mutable paths. These checks
+share the bootstrap deadline and precede repository anchors and fingerprints.
+
+D-A47 includes the startup binding gate: an independent test producer plants
+boot artifact A and a different execution artifact B, with a harmless distinct
+execution marker in each of the three modules in turn. The fixture records
+the actual loader inputs and executed markers, computes the manifest itself,
+and requires A/B to refuse before any anchor access or discovery envelope.
+A/A and B/B clean neighbors must execute the corresponding markers and report
+their independently computed adapter fingerprints. Missing load evidence must
+refuse too. A counterparty that hashes A but executes B, or omits the binding
+check, must fail this gate. Receipts must bind process, artifact hashes and
+observed execution, not merely compare two supplied digest strings.
+
+The runtime producer owns boot-custodian implementation; the trusted launch
+owner owns the loader input guarantee, including entry-module loading. The
+independent test producer owns these fixtures, a separate reviewer checks them,
+and the integrator runs them at one combined ref before step-2 acceptance.
+This gate measures custody under a trusted launcher/interpreter; it does not
+authenticate that launcher, defeat a malicious interpreter, admit host startup,
+or prove arbitrary changed contract prose has been implemented. Hashing alone
+proves none of those claims. The reciprocal startup-plan edit remains pending
+with the parallel interface owner named above.
 
 ## Fixed acquisition boundary
 
 The current read core's no-subprocess restriction remains absolute.
 `lane_read` accepts immutable readings; it never runs Git or imports
 `lane_refs`. Both projections use one acquisition coordinator outside the
-core. The proposed `tools/lane_refs.py` is the sole, fixed Git read adapter,
-absent until step 2. The projection may call this adapter for v3 acquisition;
+core: `ops/conductor/tools/lane_refs.py` owns the public `acquire` function
+and the sole fixed Git read adapter's closed operations below. The declared
+import target is `ops.conductor.tools.lane_refs.acquire`; a fixture imports
+that symbol from the trusted runtime artifact with its root on the import
+path, never a query-selected module. `lane_mcp` calls this coordinator and
+passes its immutable reading to `lane_read` for both CLI and MCP projection;
 the v1/v2 no-subprocess boundary and entry behavior remain unchanged.
 No command string or path supplied by a query reaches it.
 
@@ -260,7 +301,8 @@ Git config/index/ref/object, database, source file or host mutation is allowed.
 
 ### Deterministic acquisition checkpoints
 
-The public in-process seam is `acquire(config, boot, *, checkpoint=None)`.
+The public in-process seam is
+`ops.conductor.tools.lane_refs.acquire(config, boot, *, checkpoint=None)`.
 The optional callback receives a closed immutable event `{phase, source_id}`
 and returns no data. `source_id` is the affected `repo`, `retained`, or
 authorized `dispatch/ID` source. The two phases are:
@@ -270,12 +312,35 @@ authorized `dispatch/ID` source. The two phases are:
 - `before-file-postcheck`: after file bytes have been read, immediately before
   their post-read identity, size and modification checks.
 
+Observable multiplicity is exact within each acquisition: one
+`before-final-revalidation` event for repo and one for enabled retained when
+that source reaches final identity revalidation; one `before-file-postcheck`
+event for each authorized dispatch/ID whose single record file reaches its
+post-read check. No other phase/source pairs occur. Empty successfully read
+namespaces still reach revalidation. Disabled sources and sources that fail
+before reaching the phase emit zero events, not synthetic checkpoints. A
+whole-acquisition stop emits no later events; retries and duplicate events for
+the same pair are forbidden.
+
+The observable order is a partial order: for each source, initial identity
+and data read precede its callback entry; callback entry precedes mutation
+and acknowledgement (or stationary return); callback return precedes the
+source's actual final identity reads or file postcheck; those checks precede
+the acquisition result. Callback invocations are synchronous and do not
+overlap. There is no relative order between different sources' events, and
+no global sort or internal traversal algorithm is prescribed. Fixtures compare
+the exact eligible event multiset and each source's ordered trace against
+these relations, accepting any cross-source interleaving that satisfies them.
+Failed-before-phase and early-stop fixtures must account for each omitted event
+by its observed failure, not silently accept a missing callback.
+
 Production supplies no callback. No environment variable, config key, query
 argument, dynamic import, skip flag or caller-supplied success result selects
 this seam. Verification, operation limits and deadlines remain active, including
 time spent in the callback. The adapter itself never writes.
 
-An independent D-A31 fixture invokes the real adapter and synchronously mutates
+An independent D-A31 fixture imports the named coordinator, invokes its real
+adapter operations and synchronously mutates
 one test-owned retained ref to an already planted commit at the first phase,
 or one authorized dispatch file at the second. It verifies changed metadata
 and acknowledges completion before acquisition resumes. Record the checkpoint,
@@ -744,11 +809,42 @@ validated values only; arbitrary malformed input rendered as `invalid`):
 | class | exact line template |
 |---|---|
 | config | `config: expected valid versioned configuration; found invalid; needed supply the declared keys and bindings` (v3 only; v1/v2 keep their existing lines) |
-| config | `config: expected trusted discovery boot descriptor; found invalid; needed launch with --discovery-boot-fd FD` (v3 discovery reads only, before repository acquisition) |
+| config | `config: expected trusted discovery boot descriptor; found missing; needed launch with --discovery-boot-fd FD` (v3 discovery read with no supplied descriptor) |
+| config | `config: expected trusted discovery boot descriptor; found rejected SUBJECT CODE; needed REMEDY` (supplied v3 boot rejected; closed substitutions below) |
 | arguments | `arguments: expected closed arguments for QUERY; found invalid; needed use the declared query schema` |
 | profile | `profile: expected configured profile; found ID; needed use a profile from configuration` |
 | cursor | `cursor: expected current snapshot and valid page offset; found invalid; needed restart from lane_start` (grammar/offset) |
 | cursor | `cursor: expected snapshot CURRENT; found GIVEN; needed restart from lane_start` (mismatch) |
+
+For rejected supplied boot, SUBJECT is literal `descriptor` or one of the four
+fixed granted paths; no caller text, FD number or OS error text is echoed.
+CODE and REMEDY are paired exactly below. An invalid/non-directory/unreadable
+FD is rejected, not missing. A missing component is observed absence under a
+supplied descriptor; unreadable means the component could not be examined.
+
+| CODE | condition / SUBJECT | REMEDY |
+|---|---|---|
+| descriptor-unreadable | unusable supplied descriptor / descriptor | supply an inherited readable directory descriptor with --discovery-boot-fd FD |
+| component-missing | fixed component does not exist / fixed path | supply all four fixed boot components in the retained artifact |
+| component-unreadable | fixed component cannot be read / fixed path | make the fixed boot component readable in the retained artifact |
+| unsafe-path | symlink component or ancestor / fixed path | supply fixed boot components beneath the descriptor without symlinks |
+| not-regular | component is not a regular file / fixed path | supply the fixed boot component as a regular file |
+| component-oversized | component exceeds 1 MiB / fixed path | supply a boot component of at most 1 MiB |
+| total-oversized | captured total exceeds 4 MiB / descriptor | supply boot components totaling at most 4 MiB |
+| changed-during-read | before/after identity, size or modification differs / fixed path | supply a stationary retained boot artifact and relaunch |
+| timeout | bootstrap exceeds 10 seconds / descriptor | supply a readable stationary boot artifact within the 10-second bootstrap deadline |
+| binding-unverified | no verifiable execution-input evidence / fixed module path | use a trusted loader that binds execution inputs to retained boot bytes and relaunch |
+| binding-mismatch | execution inputs differ from captured bytes / fixed module path | load the three discovery modules from the same retained boot bytes and relaunch |
+
+Check descriptor usability first, capture components in bytewise fixed-path
+order with path/type checks before size/read checks, then verify execution
+binding in that same module-path order. Stop at the first failed check;
+deadline/aggregate exhaustion stops immediately. The aggregate bound remains
+mandatory even though four individually bounded components cannot exceed it.
+Each refusal closes owned descriptors and precedes repository acquisition.
+These new boot lines supersede the earlier single boot line only; all other
+legacy refusal bytes remain unchanged. Independent witnesses cover missing,
+each reachable rejected condition, and a clean neighbor under D-A47.
 
 Exit 0 includes unavailable/unknown-source readings; exit 1 unused.
 Exit 3 only outer wall/kill, not source timeout (a reading).
@@ -899,7 +995,7 @@ acceptance skip. This document neither executes nor approves those tests.
 | D-A28 | namespace unreadable vs empty vs disabled | unavailable/ok/disabled distinguished; disabled omission gives declared scope |
 | D-A29 | anchor symlink/ancestor swap, FIFO, malicious .git/commondir/alternates, ambient CWD/GIT_DIR | unsafe/repository failure, no escape/fallback/read effects |
 | D-A30 | missing or wrong-type objects, symlink blob, unknown caller OID/path | adapter rejects; only verified operation outputs can become inputs |
-| D-A31 | real acquire(config, boot, checkpoint=...) at each declared phase; synchronous acknowledged retained-ref or authorized-file mutation, plus stationary neighbor and omitted-check fault control | checkpoint reached within budgets; recorded checkpoint/mutation/postcheck ordering; unavailable changed-during-read, snapshot/data null, no retries; stationary success and omitted-check rejection; injected result proves projection only |
+| D-A31 | real ops.conductor.tools.lane_refs.acquire(config, boot, checkpoint=...) at each declared phase; synchronous acknowledged retained-ref or authorized-file mutation, plus stationary neighbor and omitted-check fault control | exact eligible phase/source multiplicity and per-source partial order, including failed-before-phase/early-stop omissions; checkpoint reached within budgets; recorded checkpoint/mutation/postcheck ordering; unavailable changed-during-read, snapshot/data null, no retries; stationary success and omitted-check rejection; injected result proves projection only |
 | D-A32 | named hostile fixture plus bodies empty, ending in LF, containing exact END UNTRUSTED RECORD lines, prefixed markers, CRLF, quotes/backslashes and Unicode | CLI/tool/resource text and structuredContent carry the exact pre-transport wrapper formula and E bytes; only LF-delimited exact end-marker segments gain >; inner digest/length unchanged, envelope counts escaped wrapper; corroboration required, no semantic immunity claim |
 | D-A33 | governing document exists but implementation absent | document_present true; implementation_present false; no invented entrypoint |
 | D-A34 | intended symfony/workflow in packages[].name, then packages-dev[].name, vendor absent; then only constraints/other locations or no mention; malformed/unavailable lock | true for either exact name entry only; false for measured name absence (including the pinned HEAD's constraint-only mentions); null for failed lock; installed/activated/probed null; AAR contract is custody README |
@@ -917,7 +1013,7 @@ acceptance skip. This document neither executes nor approves those tests.
 | D-A44 | v3 old seven queries on unchanged v2 inputs | byte-identical; no broader cleanup |
 | D-A45 | known irrelevant key requested by another profile | same unknown-key envelope as nonexistent key; no prose/provenance leakage |
 | D-A46 | same failed source twice, then recovery | deterministic failure fingerprint; recovery changes snapshot |
-| D-A47 | two bounded launch artifacts via --discovery-boot-fd with changed contract bytes, fixed config and failing repo; separately changed implementation bytes; absent/invalid boot; external pathname mutation after load | independently computed contract revision/definition/source fingerprint changes with exact bytes while contract stays ok; sorted three-file manifest changes adapter identity, direct objects git:null; retained bytes do not reload; invalid boot gives exact v3 boot refusal before anchors, check/list/old queries read no boot; fixture/contract fingerprint remains planted; no host admission claim |
+| D-A47 | two bounded launch artifacts via --discovery-boot-fd with changed contract bytes, fixed config and failing repo; separately changed implementation bytes; missing/rejected supplied boot; external pathname mutation after load; executed-byte binding gate A/B mismatch, unverified load, A/A and B/B controls for each module | independently computed contract revision/definition/source fingerprint changes with exact bytes while contract stays ok; sorted three-file manifest changes adapter identity, direct objects git:null; retained bytes do not reload; exact condition-specific boot refusals before anchors, check/list/old queries read no boot; actual execution markers and loader-input receipts bind executed bytes to reported identity; omitted-check/hash-A-execute-B counterparty fails; fixture/contract fingerprint remains planted; no host admission claim |
 | D-A48 | valid config/boot, retained disabled, stable missing HEAD object; prod mapping Home through CLI/tool/resource; contrast verified HEAD followed by failed document read and measured/attempted implementation/lock fields | missing HEAD permits no Home-property tree_entry/read_blob, ownership unresolved, document_present and entrypoint null, evidence exactly ["contract"]; actual property attempt including failure or locked false/null gives ["contract","repo"]; mandatory repo source retains upstream failure without invented per-path attempts; wf-runtime example unchanged |
 | D-A49 | lane-mcp and lane-read concept rows; historical mapping heading/link | lane-mcp registry is ops/conductor/registry/lane_mcp.py.json, lane-read registry null; step 2 appends to existing file; mapping heading/link identify preserved history, no remeasurement |
 
