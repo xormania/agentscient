@@ -31,6 +31,9 @@ content, and content belongs in the file the handle names.
 
 from __future__ import annotations
 
+import json
+import re
+
 #: Key order is part of the shape: a caller diffing two envelopes, or a
 #: reviewer reading one, sees the same fields in the same places.
 FIELDS = ("job", "status", "verdict", "counts", "findings",
@@ -114,6 +117,179 @@ ENVELOPE_SCHEMA = {
 
 class EnvelopeError(ValueError):
     """The envelope would have misled the caller. Refuse, never repair."""
+
+
+class OutputsError(EnvelopeError):
+    """A declaration or bound output path cannot satisfy C2."""
+
+
+TRANSPORT_RESERVED = frozenset({"COMMIT_MSG", "last-message.json"})
+_OMITTED = object()
+_PATH_PATTERN = r"^[A-Za-z0-9_][A-Za-z0-9_.-]*(/[A-Za-z0-9_][A-Za-z0-9_.-]*)*$"
+_ARTIFACT_PATTERN = r"^[a-z][a-z0-9_-]*$"
+OUTPUTS_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "array",
+    "uniqueItems": True,
+    "items": {
+        "oneOf": [
+            {
+                "type": "object",
+                "properties": {
+                    "kind": {"const": "file"},
+                    "path": {"$ref": "#/$defs/path"},
+                    "artifact": {
+                        "type": "string", "pattern": _ARTIFACT_PATTERN,
+                        "maxLength": 64,
+                    },
+                },
+                "required": ["kind", "path", "artifact"],
+                "additionalProperties": False,
+            },
+            {
+                "type": "object",
+                "properties": {
+                    "kind": {"const": "scratch"},
+                    "path": {"$ref": "#/$defs/path"},
+                },
+                "required": ["kind", "path"],
+                "additionalProperties": False,
+            },
+        ],
+    },
+    "$defs": {
+        "path": {"type": "string", "maxLength": 240,
+                 "pattern": _PATH_PATTERN},
+    },
+}
+
+
+def _outputs_refuse(expected, found, *, kind="outputs-schema"):
+    raise OutputsError(
+        f"{kind}: expected {expected}; found {found}; "
+        "needed correct trusted output declaration or canonical output root")
+
+
+def _output_name(value, pattern, limit, field):
+    if (not isinstance(value, str) or len(value) > limit
+            or re.fullmatch(pattern, value) is None):
+        _outputs_refuse(f"{field} matching {pattern!r}, max {limit}", repr(value))
+
+
+def _overlaps(left, right):
+    return (left == right or left.startswith(right + "/")
+            or right.startswith(left + "/"))
+
+
+def validate_outputs(value=_OMITTED, reserved=TRANSPORT_RESERVED):
+    """Validate native declarations without inferring grants or normalizing paths."""
+    if value is _OMITTED:
+        value = []
+    if not isinstance(value, list):
+        _outputs_refuse("an outputs array (omission means [])", repr(value))
+    if not isinstance(reserved, (list, tuple, set, frozenset)):
+        _outputs_refuse("a collection of transport paths", repr(reserved))
+    for path in reserved:
+        _output_name(path, _PATH_PATTERN, 240, "transport path")
+    reservations = TRANSPORT_RESERVED.union(reserved)
+    paths, artifacts = [], set()
+    scratch = False
+    result = []
+    for row in value:
+        if not isinstance(row, dict) or row.get("kind") not in ("file", "scratch"):
+            _outputs_refuse("a file or scratch object", repr(row))
+        is_file = row["kind"] == "file"
+        keys = {"kind", "path", "artifact"} if is_file else {"kind", "path"}
+        if set(row) != keys:
+            _outputs_refuse(f"exact members {sorted(keys)}", repr(row))
+        path = row["path"]
+        _output_name(path, _PATH_PATTERN, 240, "path")
+        for other in (*paths, *sorted(reservations)):
+            if _overlaps(path, other):
+                _outputs_refuse("unique non-overlapping output/transport paths",
+                                f"{path!r} overlaps {other!r}")
+        paths.append(path)
+        if is_file:
+            key = row["artifact"]
+            _output_name(key, _ARTIFACT_PATTERN, 64, "artifact")
+            if key in artifacts:
+                _outputs_refuse("unique artifact keys", repr(key))
+            artifacts.add(key)
+        elif scratch:
+            _outputs_refuse("at most one scratch entry", repr(row))
+        else:
+            scratch = True
+        result.append(dict(row))
+    return result
+
+
+def load_outputs(text, reserved=TRANSPORT_RESERVED):
+    """Strict JSON text seam: reject repeated members before dict collapse."""
+    def object_pairs(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                _outputs_refuse("unique JSON object members", repr(key))
+            obj[key] = value
+        return obj
+
+    def constant(value):
+        _outputs_refuse("strict JSON", value)
+
+    if not isinstance(text, str):
+        _outputs_refuse("JSON text", type(text).__name__)
+    try:
+        value = json.loads(text, object_pairs_hook=object_pairs,
+                           parse_constant=constant)
+    except json.JSONDecodeError as exc:
+        _outputs_refuse("valid JSON text", str(exc))
+    return validate_outputs(value, reserved=reserved)
+
+
+def outputs_from_job(spec):
+    """Only an explicit outputs member supplies declarations, including natives."""
+    if not isinstance(spec, dict):
+        _outputs_refuse("a job object", repr(spec))
+    return validate_outputs(spec.get("outputs", _OMITTED))
+
+
+def _bound_output(row, out_root):
+    # The launcher proves filesystem canonicality and custody. Here we reject
+    # noncanonical lexical spellings; never resolve, create or inspect a path.
+    if (not isinstance(out_root, str) or not out_root.startswith("/")
+            or (out_root != "/" and any(
+                part in ("", ".", "..") for part in out_root[1:].split("/")))
+            or "\x00" in out_root):
+        _outputs_refuse("a canonical absolute output root", repr(out_root),
+                        kind="outputs-path")
+    path = out_root.rstrip("/") + "/" + row["path"]
+    try:
+        return _handle(row.get("artifact", "scratch"), path)
+    except EnvelopeError as exc:
+        _outputs_refuse("a representable output handle", str(exc),
+                        kind="outputs-path")
+
+
+def render_declared_outputs(outputs, out_root):
+    """Render the C2 section; this text does not authorize filesystem writes."""
+    rows = validate_outputs(outputs)
+    lines = ["Declared job outputs:\n"]
+    if not rows:
+        lines.append("None. No additional worker output write grant.\n")
+    for row in rows:
+        path = json.dumps(_bound_output(row, out_root), ensure_ascii=True)
+        if row["kind"] == "file":
+            key = json.dumps(row["artifact"], ensure_ascii=True)
+            lines.append(f"Required file: {path}. Write a non-empty document; "
+                         f"set artifacts[{key}] to {path}.\n")
+        else:
+            lines.append(f"Scratch subtree: {path}. Temporary work only; "
+                         f"no artifact is required; TMPDIR is {path}.\n")
+    return "".join(lines)
+
+
+def append_declared_outputs(prompt, outputs, out_root):
+    return prompt.rstrip("\r\n") + "\n\n" + render_declared_outputs(outputs, out_root)
 
 
 def _text(value, field):
@@ -250,14 +426,20 @@ CONTAINER_TYPES = {
 }
 
 
-def validate(env):
+def validate(env, *, outputs=_OMITTED, out_root=None,
+             inline_planning_exception=False):
     """Re-check a built or parsed envelope. Returns it, or raises."""
     if not isinstance(env, dict):
         raise EnvelopeError("an envelope is a dict")
-    if tuple(env) != FIELDS:
+    if tuple(key for key in env if key != "commit") != FIELDS:
         raise EnvelopeError(
             f"envelope fields {list(env)} are not the contract's "
             f"{list(FIELDS)}")
+    if "commit" in env:
+        commit = env["commit"]
+        if (not isinstance(commit, dict) or set(commit) != {"subject", "body"}
+                or not all(isinstance(commit[key], str) for key in commit)):
+            raise EnvelopeError("commit must contain exactly subject and body strings")
     # A worker's JSON arrives here unvalidated, and every check below
     # either iterates or indexes one of these. A wrong type has to raise
     # EnvelopeError -- which the parser turns into an `invalid` envelope
@@ -303,8 +485,28 @@ def validate(env):
         raise EnvelopeError(
             f"counts {env['counts']} disagree with the findings "
             f"{tally(env['findings'])}: the list is not the tally")
+    inline_plan = inline_planning_exception is True and env["job"] == "plan"
     for name, value in env["artifacts"].items():
-        _handle(name, value)
+        if inline_plan and name == "plan":
+            _text(value, "artifacts['plan']")
+        else:
+            _handle(name, value)
+    for row in validate_outputs(outputs):
+        path = _bound_output(row, out_root)
+        if row["kind"] != "file":
+            continue
+        key = row["artifact"]
+        # Partial/invalid envelopes may lack the deliverable. Supplied file
+        # references still have to match, and an ok result must carry every key.
+        if env["status"] != "ok" and key not in env["artifacts"]:
+            continue
+        value = env["artifacts"].get(key)
+        if inline_plan and key == "plan" and row["path"] == "PLAN.md":
+            _text(value, "artifacts['plan']")
+        elif value != path:
+            raise EnvelopeError(
+                f"outputs-handle: expected artifacts[{key!r}] equal {path!r}; "
+                f"found {value!r}; needed the exact declared output handle")
     _spend(env["spend"])
     _stamp(env["stamp"])
     return env
