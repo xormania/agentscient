@@ -145,6 +145,39 @@ class GrokNeverWaitsOnAPrompt(ls._TempLaunch):
             )
 
 
+# Synthetic producer paragraphs. A colon-prefixed wrap inside a
+# paragraph is prose: isolated git interpret-trailers --parse does not
+# take the wrapped key as a trailer until assembly lifts the line.
+_WRAPPED_PASS = (
+    "The original 83 tests remain green after the wrap.\n"
+    "pass: 100 checks, 51 local links and six JSON examples. Neighbors stay.\n"
+    "The sentence continues on the following line."
+)
+_VALIDATION = (
+    "Contracted checks include the supplied methods.\n"
+    "Validation: links and existing examples preserved; 83 supplied test methods\n"
+    "and the count is still part of this paragraph."
+)
+_ARBITRARY_KEY = (
+    "Inventory after the filter is unchanged.\n"
+    "Quux: 12 remaining after filter and still prose\n"
+    "so a denylist of pass and Validation cannot hide the defect."
+)
+_KNOWN_KEY_IN_PROSE = (
+    "The review named the required stamp as a\n"
+    "Reviewed-by: line only when a reviewer actually read the change.\n"
+    "Spelling the key inside this paragraph does not make it metadata."
+)
+_UNWRAPPED_PASS = (
+    "The original 83 tests remain green after the wrap. "
+    "pass: 100 checks, 51 local links and six JSON examples. Neighbors stay. "
+    "The sentence continues on the following line."
+)
+_TERMINAL_ACK = "Acked-by: Reviewer <r@example.invalid>"
+_OWN_COAUTHOR = "Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+_DISPATCH = "Dispatch: 20260829T000000Z-code-codex-abc123"
+
+
 class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
     """B3: five green codex runs landed under a generic subject."""
 
@@ -153,6 +186,44 @@ class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
         self.rec = {"job": "implement", "id": "20260829T000000Z-code-codex-abc123",
                     "harness": {"name": "codex"},
                     "model": {"requested": "gpt-5.6-sol", "ran": "gpt-5.6-sol"}}
+
+    def _git_parsed_trailers(self, message):
+        """git interpret-trailers --parse with isolated config; git is the oracle."""
+        env = {
+            "PATH": os.defpath,
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "LC_ALL": "C",
+        }
+        proc = subprocess.run(
+            ["git", "interpret-trailers", "--parse"],
+            input=message,
+            text=True,
+            capture_output=True,
+            check=True,
+            cwd="/",
+            env=env,
+        )
+        return [line for line in proc.stdout.splitlines() if line.strip()]
+
+    def _assert_producer_omits_prefixes(self, paragraph, *prefixes):
+        producer = "docs: example\n\n" + paragraph + "\n"
+        parsed = self._git_parsed_trailers(producer)
+        for prefix in prefixes:
+            self.assertFalse(
+                any(line.startswith(prefix) for line in parsed),
+                parsed,
+            )
+
+    def _assert_parsed_omits_prefixes(self, message, *prefixes):
+        parsed = self._git_parsed_trailers(message)
+        for prefix in prefixes:
+            self.assertFalse(
+                any(line.startswith(prefix) for line in parsed),
+                parsed,
+            )
+        return parsed
 
     def test_subject_body_and_display_name_attribution(self):
         env = {"commit": {"subject": "infra: run jobs in the host lane",
@@ -224,6 +295,147 @@ class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
     def test_a_blank_subject_falls_back(self):
         msg = self.launch._commit_message(self.rec, {"commit": {"subject": "   ", "body": "b"}})
         self.assertTrue(msg.startswith("implement: work of dispatch"))
+
+    def test_wrapped_pass_prose_stays_contiguous_and_out_of_git_trailers(self):
+        self._assert_producer_omits_prefixes(_WRAPPED_PASS, "pass:")
+        env = {"commit": {"subject": "docs: example", "body": _WRAPPED_PASS}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_WRAPPED_PASS, msg)
+        parsed = self._assert_parsed_omits_prefixes(msg, "pass:")
+        self.assertIn("Source: original", parsed)
+        self.assertIn(_OWN_COAUTHOR, parsed)
+        self.assertIn(_DISPATCH, msg)
+
+    def test_multiline_validation_prose_stays_contiguous_and_out_of_git_trailers(self):
+        self._assert_producer_omits_prefixes(_VALIDATION, "Validation:")
+        env = {"commit": {"subject": "docs: example", "body": _VALIDATION}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_VALIDATION, msg)
+        self._assert_parsed_omits_prefixes(msg, "Validation:")
+
+    def test_an_arbitrary_prose_key_is_not_a_hard_coded_exception(self):
+        self._assert_producer_omits_prefixes(_ARBITRARY_KEY, "Quux:")
+        env = {"commit": {"subject": "docs: example", "body": _ARBITRARY_KEY}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_ARBITRARY_KEY, msg)
+        self._assert_parsed_omits_prefixes(msg, "Quux:")
+
+    def test_a_known_trailer_key_inside_prose_is_not_metadata(self):
+        self._assert_producer_omits_prefixes(_KNOWN_KEY_IN_PROSE, "Reviewed-by:")
+        env = {"commit": {"subject": "docs: example", "body": _KNOWN_KEY_IN_PROSE}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_KNOWN_KEY_IN_PROSE, msg)
+        parsed = self._assert_parsed_omits_prefixes(msg, "Reviewed-by:")
+        self.assertIn("Source: original", parsed)
+
+    def test_unwrapped_pass_prose_keeps_its_neighbors(self):
+        self._assert_producer_omits_prefixes(_UNWRAPPED_PASS, "pass:")
+        env = {"commit": {"subject": "docs: example", "body": _UNWRAPPED_PASS}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_UNWRAPPED_PASS, msg)
+        self._assert_parsed_omits_prefixes(msg, "pass:")
+
+    def test_json_round_trip_preserves_wrapped_prose_paragraphs(self):
+        env = {"commit": {"subject": "docs: example", "body": _WRAPPED_PASS}}
+        round_tripped = json.loads(json.dumps(env))
+        self.assertEqual(round_tripped["commit"]["body"], _WRAPPED_PASS)
+        self.assertIn("\npass: ", round_tripped["commit"]["body"])
+        msg = self.launch._commit_message(self.rec, round_tripped)
+        self.assertIn(_WRAPPED_PASS, msg)
+        self._assert_parsed_omits_prefixes(msg, "pass:")
+
+    def test_commit_msg_file_wins_and_keeps_wrapped_prose(self):
+        envelope = {
+            "commit": {
+                "subject": "from envelope",
+                "body": "envelope only\n" + _VALIDATION,
+            },
+        }
+        with tempfile.TemporaryDirectory() as td:
+            job_dir = Path(td)
+            (job_dir / "out").mkdir()
+            (job_dir / "out" / "COMMIT_MSG").write_text(
+                "docs: from the file\n\n" + _WRAPPED_PASS + "\n",
+            )
+            msg = self.launch._commit_message(self.rec, envelope, job_dir)
+        self.assertTrue(msg.startswith("docs: from the file\n"))
+        self.assertIn(_WRAPPED_PASS, msg)
+        self.assertNotIn("envelope only", msg)
+        self.assertNotIn("from envelope", msg)
+        self._assert_parsed_omits_prefixes(msg, "pass:", "Validation:")
+
+    def test_envelope_fallback_keeps_wrapped_prose_when_the_file_is_absent(self):
+        env = {"commit": {"subject": "docs: from envelope", "body": _VALIDATION}}
+        with tempfile.TemporaryDirectory() as td:
+            job_dir = Path(td)
+            (job_dir / "out").mkdir()
+            msg = self.launch._commit_message(self.rec, env, job_dir)
+        self.assertTrue(msg.startswith("docs: from envelope\n"))
+        self.assertIn(_VALIDATION, msg)
+        self._assert_parsed_omits_prefixes(msg, "Validation:")
+
+    def test_true_terminal_trailers_remain_while_wrapped_prose_does_not_join_them(self):
+        body = _WRAPPED_PASS + "\n\n" + _TERMINAL_ACK + "\nSource: original"
+        self._assert_producer_omits_prefixes(body, "pass:")
+        producer = "docs: example\n\n" + body + "\n"
+        self.assertIn(_TERMINAL_ACK, self._git_parsed_trailers(producer))
+        env = {"commit": {"subject": "docs: example", "body": body}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_WRAPPED_PASS, msg)
+        parsed = self._assert_parsed_omits_prefixes(msg, "pass:")
+        self.assertIn(_TERMINAL_ACK, parsed)
+        self.assertIn("Source: original", parsed)
+        self.assertIn(_OWN_COAUTHOR, parsed)
+
+    def test_standalone_reviewed_by_moves_while_wrapped_prose_stays(self):
+        body = (
+            "Why.\n\n"
+            "Reviewed-by: Grok 4.6 <noreply@x.ai>\n"
+            "Reviewed-by: Claude Opus 5 <noreply@anthropic.com>\n\n"
+            "More why.\n\n" + _WRAPPED_PASS
+        )
+        env = {"commit": {"subject": "docs: example", "body": body}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_WRAPPED_PASS, msg)
+        self.assertIn("Why.", msg)
+        self.assertIn("More why.", msg)
+        lines = msg.rstrip("\n").splitlines()
+        block_start = lines.index("Source: original")
+        self.assertEqual(lines[block_start:], [
+            "Source: original",
+            "Reviewed-by: Grok 4.6 <noreply@x.ai>",
+            "Reviewed-by: Claude Opus 5 <noreply@anthropic.com>",
+            _OWN_COAUTHOR,
+        ])
+        self.assertEqual(lines[block_start - 1], "")
+        body_text = "\n".join(lines[2:block_start - 1])
+        self.assertNotIn("Reviewed-by", body_text)
+        parsed = self._assert_parsed_omits_prefixes(msg, "pass:")
+        self.assertIn("Reviewed-by: Grok 4.6 <noreply@x.ai>", parsed)
+        self.assertIn("Reviewed-by: Claude Opus 5 <noreply@anthropic.com>", parsed)
+
+    def test_collected_assembly_keeps_wrapped_prose_and_attribution(self):
+        env = {
+            "commit": {
+                "subject": "docs: example",
+                "body": (
+                    _WRAPPED_PASS
+                    + "\n\nSource: owner 2026-08-29\n"
+                    "Source: original\n"
+                    "Co-Authored-By: GPT-5 Codex <noreply@openai.com>\n"
+                    "Co-Authored-By: Grok 4.6 <noreply@x.ai>"
+                ),
+            },
+        }
+        msg = self.launch._commit_message(self.rec, env, collected=True)
+        self.assertIn(_WRAPPED_PASS, msg)
+        self.assertIn("Source: owner 2026-08-29", msg)
+        self.assertEqual(msg.count("Source: original"), 1)
+        self.assertIn("Co-Authored-By: Grok 4.6 <noreply@x.ai>", msg)
+        self.assertNotIn("GPT-5 Codex", msg)
+        self.assertIn(_OWN_COAUTHOR, msg)
+        self.assertIn(_DISPATCH, msg)
+        self._assert_parsed_omits_prefixes(msg, "pass:")
 
 
 class ADispatchThatEndsWithoutAnEnvelopeSaysWhy(unittest.TestCase):
