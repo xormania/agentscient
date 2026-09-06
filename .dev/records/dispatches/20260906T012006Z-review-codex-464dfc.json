@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T01:20:07Z",
-    "closed": null
+    "closed": "2026-09-06T01:29:19Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -63,14 +63,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-07-01a0744d-244c-7c41-beae-d605e4ed5704.jsonl"
   },
   "session": {
-    "id": "99efa085-f885-45de-8879-2c2b156c3108",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a0744d-244c-7c41-beae-d605e4ed5704",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-07-01a0744d-244c-7c41-beae-d605e4ed5704.jsonl",
+    "stream_sha256_at_close": "7dd3626da269c0651664e6e3fc3b4d403516c6e9484fa7ea45e091b84e7d1b41",
+    "spend": {
+      "input": 2759171,
+      "cached": 2578944,
+      "output": 13548,
+      "total": 2772719,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-20-07-01a0744d-244c-7c41-beae-d605e4ed5704.jsonl",
+      "messages": 193
+    }
   },
   "brief": {
     "template": {
@@ -93,10 +100,97 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:20:07Z",
+      "ended": "2026-09-06T01:29:18Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 5,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:3,28; ops/devlane/dispatch/launch.py:989; ops/devlane/task/run.py:973",
+          "claim": "The declared composition is not the implemented execution boundary. Contract: \"launch.py is the policy over\" run.py. Practice: both independently call subprocess.Popen and own snapshot, supervision and parsing logic; launch.py does not call run.py. The inspected executable tree supplies no non-test caller of task.run. Treat run.py as a callable manual/parity runner with unproved production use, not an established backend that can simply replace launch.py.",
+          "reproduce": "rg -n 'run.py|Popen|_run_attempt|def run|import run|run\\.run\\(' ops/devlane/dispatch/CONTRACT.md ops/devlane/dispatch/launch.py ops/devlane/task ops/conductor/tools"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:399; ops/devlane/dispatch/launch.py:1012; ops/devlane/task/run.py:1022; ops/devlane/telemetry/breaker.py:169",
+          "claim": "Supervision is not equivalent across engines. Contract says resume \"re-arms the battery\". launch.py instead checks individual output_tokens matches, wall time and initial stream grace. It neither invokes the battery nor supplies its accumulated-output, repeat-loop, error-storm, stall and size behavior. Several individually sub-cap Claude messages can exceed the aggregate cap without satisfying this predicate; Grok battery accounting uses outputTokens in updates.jsonl, whereas launch.py selects summary.json. Existing breaker tests do not establish launch.py parity.",
+          "reproduce": "sed -n '1012,1044p' ops/devlane/dispatch/launch.py; sed -n '583,595p' ops/devlane/dispatch/launch.py; sed -n '1008,1098p' ops/devlane/task/run.py; sed -n '72,115p' ops/devlane/telemetry/breaker.py; sed -n '165,198p' ops/devlane/telemetry/breaker.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/bin/go.sh:39,41; ops/conductor/tools/ladder.py:26; ops/devlane/dispatch/CONTRACT.md:173; ops/devlane/dispatch/launch.py:379,1092",
+          "claim": "Selection and permission declarations disagree with executable behavior. go.sh defaults tests and implement to Claude, but launch.py refuses every Claude write role; ladder instead selects Grok tests and Codex implementation. The dispatch contract names Claude read mode \"plan\" and Grok \"plan\"/\"auto\", while launch.py selects \"acceptEdits\" and \"always-approve\"; test_launch_harness_fixes.py explicitly pins those latter values. Convergence cannot treat the documented table, convenience defaults and tested adapter policy as interchangeable.",
+          "reproduce": "sed -n '34,44p' ops/bin/go.sh; sed -n '26,36p' ops/conductor/tools/ladder.py; sed -n '171,175p' ops/devlane/dispatch/CONTRACT.md; sed -n '371,387p' ops/devlane/dispatch/launch.py; sed -n '1086,1099p' ops/devlane/dispatch/launch.py; rg -n 'acceptEdits|always-approve' ops/devlane/dispatch/tests/test_launch_harness_fixes.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/process/cross-review.md:89,128; .claude/skills/cross-review/SKILL.md:6; ops/devlane/telemetry/tests/test_wiring.py:875,1225",
+          "claim": "A further manual launch path is actively prescribed and protected by conformance. Against the dispatch contract's \"sole dispatch path\", cross-review.md instructs \"nohup grok\" and direct Codex/Claude invocations, followed by a separately armed battery. Its recipe uses --cap 2000000, --cap-out 150000 and --stall 600, unlike wires.py's 500000 output cap and permanently disabled total-token wire. The cross-review skill points to this document, and five selected recipe tests pass. Source establishes prescription and test coverage, not current operator use; retiring executable levers alone would leave this path intact.",
+          "reproduce": "sed -n '85,145p' ops/process/cross-review.md; cat .claude/skills/cross-review/SKILL.md; sed -n '46,80p' ops/devlane/harness/wires.py; PYTHONPATH=ops/devlane/telemetry/tests python3 -B -m unittest test_wiring.BatteryWiringTests test_wiring.RecipeFencePinTests"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/task/envelope.py:9; ops/devlane/task/run.py:297; ops/devlane/dispatch/launch.py:708",
+          "claim": "The shared envelope schema is not a shared acceptance contract. envelope.py declares \"Counts are derived, never asserted\" and disallows approving tripped work; task/run.py calls envelope.validate. launch.py uses its own schema matcher, adding only an invalid-plus-approve prohibition. Thus schema-shaped inconsistent counts or tripped-plus-approve payloads do not receive the same validation. Parser convergence must account for semantic validation as well as Claude wrappers, Grok objects and Codex last-message precedence.",
+          "reproduce": "sed -n '1,30p' ops/devlane/task/envelope.py; sed -n '297,335p' ops/devlane/task/run.py; sed -n '708,745p' ops/devlane/dispatch/launch.py; PYTHONPATH=ops/devlane/task/tests python3 -B -m unittest test_envelope"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/wire.md:9; ops/devlane/dispatch/CONTRACT.md:229; ops/devlane/task/run.py:1289; ops/devlane/dispatch/levers/grok-dispatch.sh:42",
+          "claim": "Refusal and completion exit classes require explicit reconciliation. Founding wire: \"2 | Rejection\" and \"3 | Abort\". Dispatch deliberately declares refusal exit 3; shell levers use 64; isolation's shell interface uses 78; task CLI uses 0/1/2/64. launch.py wait has its own terminal-result mapping, and launcher return zero alone does not certify an accepted envelope. Conductor registry conformance does not cover these worker entrypoints.",
+          "reproduce": "cat docs/wire.md; sed -n '227,232p' ops/devlane/dispatch/CONTRACT.md; sed -n '1289,1330p' ops/devlane/task/run.py; rg -n 'exit 64|return 78|REFUSAL|return 2 if runtime_note' ops/devlane/dispatch/levers/grok-dispatch.sh ops/devlane/harness/isolation.py ops/devlane/dispatch/launch.py; rg --files ops/conductor/registry"
+        }
+      ],
+      "artifacts": {
+        "behavior_matrix": "Classification: execution-evidenced means committed captures support past execution; wired means source establishes a caller, not live activation.\nPath | Classification/callers | Distinct behavior and custody\nlaunch.py launch/resume | Production execution evidenced by captured Codex reviews and Grok plan/implementation; current processes unmeasured | Whole detached Git snapshot with history, explicit model, role admission, input digests, separate in/out/context, isolated harness configuration, inline supervision, session/model attribution, settlement and recovery. Canonical job record.json plus branch .dev/records/dispatches/<id>.json; writes offer refs/dispatch/<id>.\nops/bin/dispatch.sh -> conductor/tools/dispatch.sh | Wired operator entrypoint; particular capture does not prove wrapper invocation | Worktree/branch resolution; conf/local/env/flag selection; model and effort overrides; scope byte cap; ordered inputs; dry-run; foreground or setsid/nohup detached launch. LAUNCHER_PIN permits an explicit alternative executable, otherwise sibling launch.py.\nops/bin/go.sh -> dispatch.sh | Wired convenience path; live use unavailable | Intent defaults, temporary scope file, HARNESS/EFFORT/DETACH overrides; review invokes two jobs sequentially unless detached. Defaults conflict with write admission.\nops/bin/ladder.sh -> ladder.py -> dispatch.sh; launch.py wait | Wired orchestration; live ladder execution not established here | Stage sequencing, buckets, dry-run selection binding, detached workers, accepted-envelope checks, follows/input custody checks, retries/resume, land integration. Durable .dev/records/ladders/<id>.json and associated inputs; distinct from harness session resume.\ntask/run.py CLI/API | Manual/dormant candidate; only tests found calling run.run in inspected executable source | fileset.snapshot; include/base-derived or whole exported files; runtime adapter/role/dials/caps; real battery; direct verify and stub replay. FILESET manifest/diff and .run.prompt/.run.raw/trip reside inside snapshot. No launch.py-style resume, branch record commit or dispatch-ref collection found. CLI does not expose model/effort; API does. out/inputs are not automatically supplied to document-job templates.\nGrok shell lever | Preserved manual path; Fable can provision it; guard/docs reference it, no current execution proof | Ref archive or explicit subtree copy, no Git history, env allowlist and minimal home, arbitrary prompt, optional model, permission/output/max-turn/web dials, timeout. stdout/stderr/argv and run-record.json; no accepted task envelope or dispatch lifecycle.\nCodex/Fable shell levers | Preserved manual paths; Claude selftest exercises Fable with fake executable | Ref archive/subtree copy plus read-only baseline; write role gets separate wt clone or initialized baseline; lever commits edits after turn. Codex adds skip-git-repo-check and uses vendored isolation; Fable supports provision-levers and admits Claude writes unlike launch.py. timeout and run-record.json, not dispatch settlement. Vendored isolation is byte-identical to canonical at this ref.\ncross-review.md shell recipe | Manual documented path, referenced by cross-review skill and pinned by telemetry tests | Archive plus synthetic Git baseline, direct background harness, marker/newest-stream discovery and external battery; review prose and trip evidence in snapshot. No production-use claim.\nharness/probe.py | Explicit diagnostic path | Claude behavioral probe directly launches two model arms; Grok uses inspect; structural probes inspect configuration. CLEAN/LEAKING/INVALID outcomes; Codex behavioral adapter absent. Never executed here.\nstage.py / fileset.py / verify.py | Staging and generic execution helpers | stage is a library, not a worker launcher: withheld wins, given must be present, noise reported. fileset parity and verify can execute caller argv; run.py direct delegates to verify. No production stage caller or stage.prove integration into either worker engine found.\nFixtures/compatibility/adjacent | Non-production or non-launching surfaces | launch_support.py and task tests use fake harnesses; stores.py and envelope fixtures supply synthetic evidence. fixture.sh builds/calibrates fixture repositories and runs declared probes, not a dedicated vendor dispatcher. apply-push.sh consumes lever run-record.json and patch bytes; land.py consumes dispatch records. gate.sh run, verification commands and fileset parity are generic command-capable seams, with no additional dedicated vendor caller found. Watchdog, monitor, lane_read/MCP and hand's dispatch-path mapping do not launch workers.",
+        "conformance_matrix": "Existing coverage below was inspected; only the 47 explicitly listed checks were executed.\nBehavior | Exact existing coverage\nWhole snapshots and repository delta | dispatch/tests/test_launch_snapshot.py: WholeMintGuarantees, PermittedDeltaToTheInvokingRepository, CommitOnlyLeavesUnrelatedIndexEntries, FetchHeadIsNotWritten, PromptAndBookkeepingLiveInTheJobDirectory. test_launch_refusals.py: HistoryVersusWithheldAndModeUnavailable, StaleBaseIsTheOneOverridableRefusal.\nFilesets/staging | task/tests/test_fileset.py: SnapshotWritesExactlyTheIncludeSet, SnapshotRefusesAnEmptyIncludeSet, DeriveAlsoTakesPathsNamedInTheDiff, SnapshotNeverTouchesTheSourceRepo, ParityComparesWholeTreeAgainstPruned. harness/context.cue + evidence.cue, controls and vet_context.py verify declared context/evidence shapes. No executable stage()/prove() tests found in searched tests; control records naming stage.py do not prove actual staging.\nArgv/policy/isolation | dispatch/tests/test_launch_isolation.py; test_launch_refusals.py: ModelIsRequiredAndEffortReachesEveryCli, ClaudeWriteIsUnadmitted; test_launch_harness_fixes.py: ReadRolesCanExecute, GrokNeverWaitsOnAPrompt; test_launch_skeptic_write.py: CodexCheckTestsCanWriteTheJobOutDir, CodexCheckTestsResumeOmitsSandbox, CodexCheckTestsRefusesSymlinkTmpdir. harness/tests/test_isolation.py and test_isolation_contract.py. task/tests/test_run.py: RoleSelectsTheSandbox, TheConductorsDialReachesTheHarness. No go.sh intent-default execution suite found; hook tests recognizing its name are not that coverage.\nEntrypoints/orchestration | conductor/tests/test_dispatch_wrapper.py: Row1FullFlagSetArgv, Row7ConfEnvFlagPrecedence, Row9ModelByJob, Row10TwoInputsBothReachArgv, Row11LauncherSource, Row12Detach. test_ladder_lever.py: HappyPath, Withholding, ModelGuarantee, ResumeDigests, ResumeBindsJob, AuditPairTrip, WaitClosedInvalidIsNotAWall.\nResume/recovery | dispatch/tests/test_launch_watch.py: ResumeRelaunchesInTheSameSnapshot, TrippedResumeNeedsAReason, CloseDiedCommitsInvalid, ResumeFindsTheMovedStore, WaitPollsTheRecord. test_launch_prompt_feed_findings.py: ResumeFeedsTheBriefAndKeepsFlags. test_launch_review_p1_findings.py: ClosedResumedJobStaysAtCanonicalPaths. test_launch_collect.py: CollectAfterATrip, including successful resume followed by collect, failed verify, timeout and repeat-collect refusal.\nSupervision/observation | dispatch/tests/test_launch_isolation.py: UnsupervisedLiveProcessIsTerminated; test_launch_job_caps.py: SupervisionEnforcesTheResolvedJobCap. task/tests/test_run.py R8-R11: TheBatteryIsArmedWithCapOut, ABatteryTripIsNotACompletedRun, StreamDiscoveryNamesTheSnapshot, AbsentSpendIsNotZeroSpend. telemetry/tests/test_breaker.py: TokenWalls, Storms, LiveSupervision; test_breaker_grok.py: GrokCumulativeRuns. conductor/tests/test_watchdog*.py and test_monitor.py cover observation, not replacement worker supervision.\nEnvelopes and custody | task/tests/test_envelope.py and test_envelope_schema.py; dispatch/tests/test_launch_brief_schema.py, test_launch_envelope_by_construction.py, test_launch_envelope_u10_fix.py, test_launch_u10b.py. test_launch_record.py covers requested versus observed model, brief re-derivation, follows and spend; test_record_paths.py covers portable records; test_launch_record_copy.py covers job-side copy; test_launch_collect.py and test_launch_harness_fixes.py cover residual preservation. conductor/tests/test_land_lever.py checks downstream acceptance.\nManual/probe/fixture compatibility | levers/claude/selftest.sh covers early refusals and fake write/provision exclusion; levers/selftest.sh covers apply-push, not all vendor levers. No dedicated Grok/Codex lever execution suite found. harness/tests/test_probe.py and test_probe_contract.py cover failed/unreachable arms using substitutes. telemetry/tests/test_wiring.py protects the direct manual recipe. task/tests/test_run.py R6/R7 cover direct and replay adapters.\nGate integration | ops/bin/suites.sh discovers lane unittest suites and .github/workflows/ci.yml invokes it. Shell lever selftests and vet_context.py are not explicitly invoked there. conductor/tests/test_instrument_conventions.py checks registered refusal rows, including ladder.py run and watchdog.py --store /dev/null; launch.py, task/run.py and vendor shell levers are outside that registry.",
+        "observable_convergence_cases": "These are comparison/retirement witnesses for the planner, not an implementation or authored tests.\n1. Same job/ref/input selection through direct launcher, wrapper, go and ladder: compare effective harness/model/effort, role, permissions, cap sources, input digests and accepted record. Include go's currently refused default write selections and explicit LAUNCHER_PIN.\n2. Whole-history versus pruned/subtree work: compare exact given files, withheld absence, Git reachability, diff/manifest placement and source repository delta. launch.py currently refuses fileset mode; task filesets have no withheld parameter. Ladder custody scans supplied text/record markers, not snapshot file contents or history.\n3. Fresh and resumed read/write jobs: same cwd/session, restored archived store, append-only attempts/output, original policy, failed resume preserving prior evidence, relocated records and foreign-path refusals. --prompt-file is parsed for resume but no use of args.prompt_file was found; do not describe replacement-prompt support as proven. Write resume updates the record without ordinary _settle; recovery collection remains a separate observable step.\n4. Supervision: aggregate versus individual output counts; Grok cumulative updates/reset; repeat/error/stall/size; stream absent while alive; fast completion; child exit and descendants; trip evidence and recoverable files. Wall defaults and initial grace are not battery parity.\n5. Envelope acceptance: Claude structured/result wrappers, Codex last-message then stdout fallback, Grok last valid/fenced object, malformed nested fields, semantic count/status inconsistencies, retained findings and stamped ref. CLI exit alone is insufficient.\n6. Custody after success/trip/death: canonical and branch record copies, exact model attribution, residual patch, dispatch ref, green collect verification and downstream land acceptance. Existing lever wt/post_run_commit records and apply-push consumers need an explicit retained-or-retired compatibility outcome.\n7. Watchdog/monitor continuity: record.json/state.json/exit ordering, settling versus closed, unknown versus dead worker, archived stream paths and attempt counts. Watchdog is read-only and its launcher census is explicitly heuristic; it cannot supply missing execution supervision.\n8. Retirement: demonstrate that scripts, provisioned-lever option, cross-review recipe/skill and their conformance references converge or explicitly refuse. Preserve probe result semantics and synthetic/direct adapters separately from production dispatch.",
+        "commands_and_checks": "Measured HEAD: e59a52bce37dbd1fed52d358b655bae00267f71f; base: c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Read both ../in/*.md inputs whole, docs/* and ops/README.md. Used rg/rg --files, sed/nl, AST-only test inventory and selected committed-record metadata. Supplied diff equals git diff base HEAD byte-for-byte; SHA256 7ca77f0426358f4ffa3e8aef4dcf9f06086beb61efe3e0e9d1e143099d773da0. git diff --name-only base HEAD -- ops/devlane/dispatch ops/devlane/task ops/bin ops/conductor/tools returned no changed paths. Tracked status remained clean.\nExecuted: PYTHONPATH=ops/devlane/task/tests python3 -B -m unittest test_run.TheConductorsDialReachesTheHarness test_run.TheRealAdaptersBindToTheirEvidence test_envelope \u2014 38 passed.\nExecuted: PYTHONPATH=ops/devlane/harness/tests python3 -B -m unittest test_isolation_contract.IsolationContractTests.test_registry_is_exactly_the_measured_contract test_isolation_contract.IsolationContractTests.test_dispatch_env_sets_all_and_only_the_promised_overrides test_isolation_contract.IsolationContractTests.test_dispatch_flags_are_exact_and_are_not_shared_mutable_state test_isolation_contract.IsolationContractTests.test_report_is_json_containing_exactly_the_registry \u2014 4 passed.\nExecuted: PYTHONPATH=ops/devlane/telemetry/tests python3 -B -m unittest test_wiring.BatteryWiringTests test_wiring.RecipeFencePinTests \u2014 5 passed.\nTotal: 47 existing checks passed; no vendor process launched. Bytecode writes disabled.",
+        "coverage_limits": "Inspected evidence: committed captures 20260906T001547Z-review-codex-9bab31 and 20260906T004903Z-code-grok-30509c report closed execution through launch-shaped argv and records. These establish historical execution evidence, not current liveness or canonical-store equality. The capture 20260906T011424Z-code-codex-2a2af6 remains launched at this ref; its later outcome is unavailable here.\nNo session store, credentials, host activation, live process census, network or runtime database was inspected. Full suites, temporary-repository integrations, lever selftests, CUE vet and behavioral probes were not run in the read-only sandbox. Existing integration tests were inventoried, not certified green.\nInspected absence: vendor/, vendor/bin/mate, packages/wire and ops/contracts/imports.json are absent; packages contains README.md. composer.lock records symfony/process v8.1.6 and ai-mate v0.13.0, but no ai-platform/Claude-Code/Codex bridges, Workflow, Messenger, TUI or MCP bundle among the queried names. Thus docs/mapping.md supplies architectural direction, not an available execution service. Installed capability and current upstream versions were not measured.\nSearch found no production caller of stage.py or task.run, no executable stage/prove test, and no dedicated Grok/Codex shell-lever execution suite; external/manual callers remain unavailable evidence. No claim that source inventory proves global non-use."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2772719,
+        "out": 13548,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+        "started": "2026-09-06T01:20:16Z",
+        "ended": "2026-09-06T01:26:06Z"
+      },
+      "note": "Independent functional launch inventory completed without edits, implementation design or test authorship. CHANGES identifies existing architectural drift for planner reconciliation, not execution regressions introduced by this documentation/capture-only diff. Reports are embedded as strings because this review cannot write artifact files."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:29:18.280Z"
+    }
+  },
+  "status": "closed"
 }
