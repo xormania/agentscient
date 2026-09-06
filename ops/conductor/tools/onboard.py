@@ -29,6 +29,8 @@ LAW = (
         "the stack: layers, incumbents, open seats",
     ),
     ("ops/conductor/coverage-zones.md", "what gates what"),
+    ("ops/conductor/discovery-lever.md", "profile discovery, source custody, and uncertainty"),
+    ("ops/conductor/conductor-start-plan.md", "the conductor startup sequence and admission boundaries"),
 )
 
 
