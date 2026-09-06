@@ -68,6 +68,21 @@ lists explicitly grant nothing or forbid nothing, respectively. Duplicate JSON
 keys, unknown keys, wrong types or malformed paths refuse `lane-policy`.
 An optional default must be a nonempty existing profile id; this example omits it.
 
+`agentscient.lane-policy/v1` is a fixed policy protocol identity. Following
+[lane-mcp-lever.md's exact declaration precedent](lane-mcp-lever.md#coupling-proof-and-installation)
+for `agentscient.lane/v1` and `agentscient-lane`, the lane literal guard may
+permit, for the `agentscient` token only, the exact stripped line
+`POLICY_SCHEMA = "agentscient.lane-policy/v1"` at `ops/devlane/dispatch/record.py`.
+Existing outer-whitespace normalization remains. Every other line, path and
+token retains detection, including another configured token matching inside
+that declaration; the two existing MCP declarations remain allowed. Changed
+constant names or values and appended comments or statements are not allowed.
+No directory-level exemption or protocol encoding is permitted. Record
+validation and its exact schema error text remain unchanged when comparison
+and diagnostic use that named constant. Structural binding semantics, policy
+data and proposed standing remain unchanged; this declaration neither admits
+nor activates policy. Independent guard tests and review follow.
+
 `shared_read_roots` adds shared-document reads to each profile's permitted reads;
 it never narrows other profile or inspection reads. In particular the application
 inspection grant above permits `src/` and `packages/` even though this list omits
