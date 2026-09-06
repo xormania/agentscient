@@ -35,6 +35,7 @@ import shutil
 import stat
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 _TESTS = Path(__file__).resolve().parent
@@ -117,6 +118,50 @@ HOME_KEYS = (
 )
 CHECKPOINT_KEYS = ("phase", "source_id")
 CHECKPOINT_PHASES = ("before-final-revalidation", "before-file-postcheck")
+
+
+def checkpoint_pair(event: dict) -> tuple[str, str]:
+    return (str(event["phase"]), str(event["source_id"]))
+
+
+def checkpoint_multiset(events: list) -> Counter:
+    return Counter(
+        checkpoint_pair(event) for event in events if isinstance(event, dict)
+    )
+
+
+def source_checkpoint_traces(events: list) -> dict[str, list[str]]:
+    traces: dict[str, list[str]] = {}
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        traces.setdefault(str(event["source_id"]), []).append(str(event["phase"]))
+    return traces
+
+
+def eligible_checkpoint_multiset(
+    source_ids: list[str] | tuple[str, ...],
+    *,
+    retained_enabled: bool = True,
+    repo_reached: bool = True,
+) -> Counter:
+    """Exact eligible (phase, source_id) multiset for one acquisition.
+
+    One before-final-revalidation for repo and for enabled retained when
+    that source reaches final identity revalidation; one
+    before-file-postcheck for each authorized dispatch/ID. Disabled
+    sources and sources that fail before the phase contribute nothing.
+    """
+    pairs: list[tuple[str, str]] = []
+    ids = list(source_ids)
+    if repo_reached and "repo" in ids:
+        pairs.append(("before-final-revalidation", "repo"))
+    if retained_enabled and "retained" in ids:
+        pairs.append(("before-final-revalidation", "retained"))
+    for source_id in ids:
+        if source_id.startswith("dispatch/"):
+            pairs.append(("before-file-postcheck", source_id))
+    return Counter(pairs)
 STATE_NAMES = ("register", "ledger", "prs", "dispatches", "branch")
 UNSUPPORTED = "unsupported-local-reading"
 START_OMISSIONS = (
@@ -697,17 +742,39 @@ def exec_marker_suffix(label: str, module: str) -> bytes:
 
 
 def omitted_check_accepts(events: list, result: object) -> bool:
-    """Faulty D-A31 control: checkpoint reached, result ignored."""
-    return any(
-        isinstance(event, dict) and event.get("phase") in CHECKPOINT_PHASES
+    """Faulty D-A31 control: checkpoint reached, changed-during-read omitted.
+
+    Consumes the observed events and result. A reached declared-phase
+    checkpoint plus any non-null result is accepted, including a success
+    projection and a changed-during-read packet. Empty events or a
+    missing result are rejected. The function does not inspect the
+    planted mutation.
+    """
+    reached = any(
+        isinstance(event, dict)
+        and event.get("phase") in CHECKPOINT_PHASES
+        and isinstance(event.get("source_id"), str)
+        and event.get("source_id")
         for event in events
-    ) or bool(result)
+    )
+    return reached and result is not None
 
 
 def digest_only_bind(boot_bytes: bytes, executed_path: Path | None) -> bool:
-    """Faulty D-A47 control: hashes boot bytes and ignores execution."""
-    del executed_path
-    return sha256_hex(boot_bytes) == sha256_hex(boot_bytes)
+    """Faulty D-A47 control: claimed boot digest plus a readable path.
+
+    Consumes both arguments. Accepts hash-A-execute-B when the claimed
+    bytes hash and the executed path exists; it does not compare
+    executed bytes to boot_bytes. Empty claims or a missing path fail.
+    """
+    if not boot_bytes or executed_path is None:
+        return False
+    try:
+        executed_size = executed_path.stat().st_size
+    except OSError:
+        return False
+    claimed = sha256_hex(boot_bytes)
+    return len(claimed) == 64 and executed_size > 0
 
 
 class _DiscoveryV3Fixture(_LaneMcpFixture):
@@ -834,6 +901,49 @@ class _DiscoveryV3Fixture(_LaneMcpFixture):
             self.assertLessEqual(total, BOOT_TOTAL_CAP, total)
         if dest == self.boot_root:
             self._boot_planted = True
+        return dest
+
+    def plant_unverified_boot_entry(self, artifact: Path) -> Path:
+        """Entry that execs artifact lane_mcp without loader-owned evidence.
+
+        Distinct from A/B binding-mismatch: captured bytes are executed,
+        then loader origin, __file__, __spec__, __loader__ and retained
+        source are dropped so no execution-input evidence remains.
+        """
+        dest = Path(self._tmp.name) / "unverified-entry.py"
+        root = str(artifact.resolve())
+        dest.write_text(
+            "import importlib.abc\n"
+            "import importlib.machinery\n"
+            "import importlib.util\n"
+            "import sys\n"
+            "from pathlib import Path\n"
+            f"ROOT = Path({root!r})\n"
+            "\n"
+            "class NoEvidenceLoader(importlib.abc.Loader):\n"
+            "    def __init__(self, source):\n"
+            "        self._source = source\n"
+            "\n"
+            "    def create_module(self, spec):\n"
+            "        return None\n"
+            "\n"
+            "    def exec_module(self, module):\n"
+            "        source = self._source\n"
+            "        self._source = b''\n"
+            "        exec(compile(source, '<unverified>', 'exec'), module.__dict__)\n"
+            "        module.__file__ = None\n"
+            "        module.__loader__ = None\n"
+            "        module.__spec__ = None\n"
+            "\n"
+            "src = (ROOT / 'ops/conductor/tools/lane_mcp.py').read_bytes()\n"
+            "loader = NoEvidenceLoader(src)\n"
+            "spec = importlib.machinery.ModuleSpec('__main__', loader, origin=None)\n"
+            "mod = importlib.util.module_from_spec(spec)\n"
+            "sys.modules['__main__'] = mod\n"
+            "loader.exec_module(mod)\n",
+            encoding="utf-8",
+        )
+        self.assertTrue(dest.is_file(), dest)
         return dest
 
     def boot_map(self, root: Path | None = None) -> dict[str, bytes]:
@@ -1325,7 +1435,26 @@ class _DiscoveryV3Fixture(_LaneMcpFixture):
         self.assertIsInstance(event["source_id"], str)
         return event
 
-    def assert_changed_during_read(self, result: object) -> None:
+    def assert_checkpoint_closure(self, events: list, eligible: Counter) -> None:
+        observed = checkpoint_multiset(events)
+        self.assertEqual(
+            observed,
+            eligible,
+            f"checkpoint multiset observed={dict(observed)} "
+            f"eligible={dict(eligible)} events={events!r}"[:800],
+        )
+        traces = source_checkpoint_traces(events)
+        for source_id, phases in traces.items():
+            expected = [
+                phase for (phase, sid) in eligible.elements() if sid == source_id
+            ]
+            self.assertEqual(
+                phases,
+                expected,
+                f"source {source_id} trace {phases} != {expected}",
+            )
+
+    def _walk_packets(self, result: object) -> list[dict]:
         packets: list[dict] = []
 
         def walk(value: object) -> None:
@@ -1338,15 +1467,17 @@ class _DiscoveryV3Fixture(_LaneMcpFixture):
                     walk(item)
 
         walk(result)
-        matched = [
+        return packets
+
+    def _changed_during_read_packets(self, result: object) -> list[dict]:
+        return [
             pkt
-            for pkt in packets
+            for pkt in self._walk_packets(result)
             if pkt.get("reason") == "changed-during-read"
-            or (
-                pkt.get("state") == "unavailable"
-                and pkt.get("reason") == "changed-during-read"
-            )
         ]
+
+    def assert_changed_during_read(self, result: object) -> None:
+        matched = self._changed_during_read_packets(result)
         self.assertTrue(
             matched,
             f"acquire result did not carry changed-during-read: {result!r}"[:800],
@@ -1356,6 +1487,13 @@ class _DiscoveryV3Fixture(_LaneMcpFixture):
                 self.assertIsNone(pkt.get("data"), pkt)
             if "snapshot" in pkt:
                 self.assertIsNone(pkt.get("snapshot"), pkt)
+
+    def assert_not_changed_during_read(self, result: object) -> None:
+        matched = self._changed_during_read_packets(result)
+        self.assertFalse(
+            matched,
+            f"stationary result carried nested changed-during-read: {result!r}"[:800],
+        )
 
     def start(self, arguments: dict | None = None, **kwargs) -> dict:
         args = {"profile": "dev"}
@@ -1609,3 +1747,70 @@ class _DiscoveryV3Fixture(_LaneMcpFixture):
             "independent envelope model cannot make five Work cards fit and six exceed 8192",
         )
         return str(chosen)
+
+    def measure_eight_card_headroom(
+        self,
+        jobs: list[str],
+        source_ids: list[str],
+        *,
+        recorded_status: str = "closed",
+        lineage: str = "dev",
+    ) -> dict[str, int]:
+        """Measure that eight unpadded work cards fit under 8192.
+
+        Uses the independent canonical envelope model, not the subject.
+        Nine-card size is recorded as headroom context and is not a
+        page-size oracle.
+        """
+        self.assertGreaterEqual(len(jobs), 9, jobs)
+        snapshot = "a" * 64
+        revision = "c" * 64
+
+        def cards(n: int) -> list[dict]:
+            return [
+                {
+                    "id": jobs[i],
+                    "lineage": lineage,
+                    "reason": None,
+                    "recorded_status": recorded_status,
+                    "relevance": "relevant",
+                    "revision": revision,
+                }
+                for i in range(n)
+            ]
+
+        eight_om = list(START_OMISSIONS) + [
+            "retained source not searched",
+            "work omitted: 12",
+            f"work next cursor: {snapshot}:8",
+        ]
+        nine_om = list(START_OMISSIONS) + [
+            "retained source not searched",
+            "work omitted: 11",
+            f"work next cursor: {snapshot}:9",
+        ]
+        eight = self.estimate_start_size(
+            source_ids=source_ids,
+            work=cards(8),
+            omissions=eight_om,
+            snapshot=snapshot,
+        )
+        nine = self.estimate_start_size(
+            source_ids=source_ids,
+            work=cards(9),
+            omissions=nine_om,
+            snapshot=snapshot,
+        )
+        self.assertLessEqual(
+            eight,
+            START_CAP,
+            f"independent model: eight cards {eight} exceed {START_CAP}",
+        )
+        headroom = START_CAP - eight
+        self.assertGreaterEqual(headroom, 0, headroom)
+        return {
+            "eight": eight,
+            "nine": nine,
+            "cap": START_CAP,
+            "headroom": headroom,
+        }

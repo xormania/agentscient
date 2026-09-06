@@ -277,6 +277,18 @@ class TestDiscoveryV3Startup(_DiscoveryV3Fixture):
             source_ids=["repo", *[f"dispatch/{j}" for j in jobs]],
             work_bindings=bindings,
         )
+        closure_ids = [
+            "adapter",
+            "config",
+            "contract",
+            "repo",
+            "retained",
+            *[f"dispatch/{j}" for j in jobs],
+        ]
+        measured = self.measure_eight_card_headroom(jobs, sorted(closure_ids))
+        self.assertLessEqual(measured["eight"], START_CAP)
+        self.assertEqual(measured["cap"], START_CAP)
+        self.assertGreaterEqual(measured["headroom"], 0)
         check = self.load_query(self.invoke(["check"]))
         self.assertEqual(check, {"valid": True, "tools": 11})
         first = self.start()
