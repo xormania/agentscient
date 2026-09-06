@@ -1,0 +1,108 @@
+{
+  "id": "20260906T001017Z-plan-grok-be3523",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "e94db0a866b73cf4de9a306bea9a9adec53d2f97"
+  },
+  "follows": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T00:10:19Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e94db0a866b73cf4de9a306bea9a9adec53d2f97",
+    "ref_sha": "e94db0a866b73cf4de9a306bea9a9adec53d2f97",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "6f0f4b52-64c8-45ff-adc9-b1e539c91c6e",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "6f0f4b52-64c8-45ff-adc9-b1e539c91c6e",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Owner agreed to the discussed conduct <harness> and conduct <harness> test design, refined in conductor-start-owner-clarification.md. Produce a concise contract/design, no implementation/tests. Central requirements: auto-onboard; no permission prompts; root PRE-TOOL delegation/coordination gate; harness-independent policy/lifecycle/diagnostics and explicit CLI/hook/capability adapters; exact safe argv forwarding; owner-initiated in-session handoff and AAR, with automatic placement/discovery. Exit/crash means recovery checkpoint, never completed closeout. Reuse current lane and measured settings/lifecycle reports supplied as inputs. Discard earlier sandbox-platform/attended-fallback scope. Define boundaries, configurable data vs adapter behavior, supported capabilities/refusals, owner verbs, publication/discovery, diagnostic coverage and acceptance cases. Keep output under 2500 words in the job artifact and return its path/digest in the envelope. No active settings changes, source implementation, or tests.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/in/conductor-start-owner-clarification.md",
+        "sha256": "25853ae7c54d457acb309f5d20a7cbba16eacb570b42a80c876d2e0a312e8a6f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/in/BEHAVIOR.md",
+        "sha256": "e615a2aee16a73775160ca3947be334c11e8f59d02d9368134cedbb113dcbc84"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T001017Z-plan-grok-be3523/in/20260905T235716Z-review-codex-af223c.json",
+        "sha256": "16f4b89a08f899172bc722fff51312db7b9e1d3889ab6833eb4325830bd9a9ea"
+      }
+    ],
+    "sha256": "fee80fc02f4127abec89d67eafa7764ca40b9a9fc3ad49197ffb4d9a39a4e4f3",
+    "bytes": 4821
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
