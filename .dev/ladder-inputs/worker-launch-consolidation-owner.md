@@ -1,5 +1,7 @@
 # Parallel worker launch consolidation
 
+Latest owner correction: "Symfony - no, this is dev-lane right now - we're not using symfony app". Consolidate the existing dev-lane machinery under ops/ without a Symfony application dependency or framework migration. This supersedes the earlier Symfony/AI implementation recommendation in the captured initial job brief. The prod profile describes the application being developed, not the technology implementing dev-lane tools. Preserve valid measured baseline findings from earlier jobs; reconcile their proposed architecture against this correction before admission.
+
 Owner, 2026-09-05: "you said their are mutliple ways to launch worker harness - that's not good - we need to consolidate"; then "start parallel work on it".
 
 Start the consolidation track now, alongside conductor discovery. The first artifacts are a measured contract proposal/migration plan and an independent inventory of execution behavior and conformance. Follow contracts first and independent test/implementation/review producers. Do not wait for the discovery writer to finish to begin this work. Runtime changes follow an admitted contract and independently authored tests; neither of these initial jobs changes the live launcher.
@@ -12,7 +14,7 @@ Separate adapter mechanics (argument construction, hooks, response parsing, resu
 
 Conductor context and worker context remain distinct. Workers receive their job-authorized inputs and tools; they do not inherit conductor-wide discovery or source access. Both MCP surfaces remain read-only; CLI/API actions and host enforcement retain their respective responsibilities. Shared services must not be duplicated into role-specific execution engines.
 
-Use existing homes: docs/ founding contracts, ops/devlane/dispatch, harness and task, conductor levers, ops/process and the measured Symfony mapping. Re-measure claims at the supplied ref. The bounded Python incumbent receives no new kernel responsibility; target the declared Symfony/AI boundary, with existing conformance preserved, pins/probes/mocks and four projections accounted for. Distinguish declared architecture from installed or working capability.
+Use existing homes: docs/ founding contracts, ops/devlane/dispatch, harness and task, conductor levers and ops/process. Re-measure claims at the supplied ref. Consolidate the current dev-lane runtime behind its existing service boundaries, preserve conformance, and avoid unrelated new kernel responsibilities. External capabilities retain their contracts/probes/mocks. Distinguish declared architecture from installed or working capability. Do not introduce a Symfony application dependency or framework migration in this track.
 
 The consolidation is a prerequisite to conduct startup, not a dependency blocking the read-only discovery contract. The current discovery worker owns discovery-lever.md and conductor-start-plan.md: do not edit them or compete for their paths. Propose the consolidation contract in the existing dispatch/task/harness estate, with exact follow-up file ownership and link integration. No new registry, lifecycle store or vendor-owned policy authority without a demonstrated missing contract.
 
