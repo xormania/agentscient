@@ -45,3 +45,9 @@ Owner, 2026-09-05: "have codex chatgpt6 review grok's plan"
 Use the Codex harness with GPT-6 for the independent review of Grok's plan and discovery contract. The installed Codex model catalogue was read and advertises `gpt-6-astra` as GPT-6-Astra with high reasoning supported. Name that model explicitly at dispatch; preserve the actual-model evidence in the resulting record. No review has yet been performed merely because a reviewer was selected.
 
 Owner clarification: Daybreak is for security. Its earlier independent acceptance-design dispatch was scoped too broadly and completed before redirection; preserve that historical record, but do not treat it as functional acceptance or plan approval. GPT-6 owns the independent functional/architecture review. Any further Daybreak dispatch is a security audit, limited to trust boundaries, hostile inputs, bounded access and effects.
+
+## Harness extensibility clarification
+
+Owner: "how we use harnesses needs improvement - its too rigid - its needs to more configurable and extensible - thoughts?"
+
+Document this direction in step 3: separate adapter mechanics (argv, hooks, parsing, resume, MCP integration), measured capabilities, shared policy, and explicit dispatch choices. Role restrictions such as Daybreak/security must be enforceable selection constraints rather than conversational memory. Keep model choice explicit at dispatch and recorded; do not add another fixed producer/model table to job definitions. Build on existing harness machinery and the declared Symfony AI boundary. MCP discovery should expose declared versus measured capabilities and applicable constraints. This clarification does not expand step 1 into execution redesign or implementation.
