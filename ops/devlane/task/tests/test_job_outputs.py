@@ -11,9 +11,11 @@ Each test names the contract rule it pins:
   O1  optional outputs is an array; omission is []; explicit null refuses
   O2  file and scratch are the only kinds; extra members refuse
   O3  paths and artifact keys match the grammar over the whole string
-  O4  duplicate members, paths, artifact keys, overlaps and two scratches refuse
+  O4  duplicate members, paths, artifact keys, overlaps and two scratches refuse;
+      JSON-text duplicates are load_outputs, not validate_outputs
   O5  no case folding or path normalization turns invalid into a grant
   O6  transport leaves last-message.json and COMMIT_MSG are reserved;
+      further adapter transport leaves may join that default;
       declared scratch tmp is not a transport reservation
   O7  a renamed job with the same declarations is the same grant
   O8  prompt prose is never parsed to authorize writes
@@ -21,6 +23,7 @@ Each test names the contract rule it pins:
 
 from __future__ import annotations
 
+import inspect
 import json
 import unittest
 from pathlib import Path
@@ -158,10 +161,6 @@ class OmissionEmptyAndNull(unittest.TestCase):
     def test_explicit_null_is_refused(self):
         with self.assertRaises(osu.outputs_error()):
             osu.validate_outputs(None)
-
-    def test_json_null_text_is_refused(self):
-        with self.assertRaises(osu.outputs_error()):
-            osu.validate_outputs("null")
 
     def test_outputs_from_job_treats_a_missing_key_as_omission(self):
         spec = {"adapter": "harness", "role": "read", "prompt": "review {ref}"}
@@ -423,6 +422,34 @@ class DuplicatesOverlapsAndScratch(unittest.TestCase):
         self.assertEqual(got, value)
         self.assertEqual([row["path"] for row in got], ["PLAN.md", "plan.md"])
 
+
+class LoadOutputsJsonText(unittest.TestCase):
+    """O4 — JSON text is a distinct load_outputs seam, not validate_outputs."""
+
+    def test_load_outputs_is_the_json_text_seam(self):
+        fn = getattr(envelope, "load_outputs", None)
+        self.assertTrue(
+            callable(fn),
+            "missing public seam envelope.load_outputs(text, reserved=...)",
+        )
+        params = inspect.signature(fn).parameters
+        self.assertIn("reserved", params)
+
+    def test_well_formed_json_array_text_loads_to_the_native_list(self):
+        native = osu.copy_native("check-tests")
+        text = json.dumps(native)
+        self.assertIsInstance(text, str, "plant: JSON text, not a list")
+        self.assertEqual(json.loads(text), osu.NATIVE["check-tests"])
+        got = osu.load_outputs(text)
+        self.assertIsInstance(got, list)
+        self.assertEqual(got, osu.NATIVE["check-tests"])
+
+    def test_empty_json_array_text_loads_to_omission(self):
+        text = "[]"
+        self.assertEqual(json.loads(text), [])
+        got = osu.load_outputs(text)
+        self.assertEqual(got, [])
+
     def test_duplicate_json_object_members_are_refused(self):
         raw = DUP_MEMBER.read_text(encoding="utf-8")
         self.assertIn('"path":"A.md"', raw, "plant: first path member")
@@ -431,10 +458,36 @@ class DuplicatesOverlapsAndScratch(unittest.TestCase):
         parsed = json.loads(raw)
         self.assertEqual(
             parsed[0]["path"], "B.md",
-            "json.loads keeps the last member; the validator must still refuse",
+            "json.loads keeps the last member; load_outputs must still refuse",
         )
         with self.assertRaises(osu.outputs_error()):
-            osu.validate_outputs(raw)
+            osu.load_outputs(raw)
+
+    def test_json_null_text_is_refused(self):
+        text = "null"
+        self.assertIsNone(json.loads(text), "plant: JSON null")
+        with self.assertRaises(osu.outputs_error()):
+            osu.load_outputs(text)
+
+    def test_malformed_json_text_is_refused(self):
+        raw = '[{"kind":"file","path":"A.md","artifact":"a"'
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(raw)
+        with self.assertRaises(osu.outputs_error()):
+            osu.load_outputs(raw)
+
+    def test_load_outputs_honours_reserved_after_decode(self):
+        native = [
+            {
+                "kind": "file",
+                "path": "adapter-state.json",
+                "artifact": "state",
+            },
+        ]
+        text = json.dumps(native)
+        self.assertEqual(json.loads(text), native, "plant: well-formed JSON")
+        with self.assertRaises(osu.outputs_error()):
+            osu.load_outputs(text, reserved=("adapter-state.json",))
 
 
 class TransportReservations(unittest.TestCase):
@@ -442,7 +495,12 @@ class TransportReservations(unittest.TestCase):
 
     def test_default_reserved_leaves_are_commit_msg_and_last_message(self):
         reserved = osu.transport_reserved()
-        self.assertEqual(reserved, osu.DEFAULT_RESERVED)
+        self.assertTrue(
+            reserved.issuperset(osu.DEFAULT_RESERVED),
+            "reserved leaves must include COMMIT_MSG and last-message.json; "
+            f"got {reserved!r}",
+        )
+        self.assertNotIn("tmp", reserved)
 
     def test_declared_scratch_tmp_is_not_a_transport_reservation(self):
         reserved = osu.transport_reserved()
