@@ -313,12 +313,79 @@ The descriptor is transport between trusted startup, shared policy and adapters;
 it creates no authority, configuration registry, executor or session store.
 
 `prepare_conductor(trusted_context, selection, forwarded_tokens, operation)`
-is the startup composition interface. It returns the descriptor below and the
-adapter's compiled launch, or a refusal before durable state or child creation.
+is the pure startup preflight interface. Success returns exactly the mapping
+`{descriptor,compiled_launch}`: descriptor is the closed object below and
+compiled_launch is exactly the adapter's five-key compile_launch result.
+No tuple, list, `compiled` alias, extra key or success/refusal wrapper is accepted.
+Failure returns one owning refusal-wire string without a trailing newline;
+the CLI writes it once to stderr with a newline and the applicable exit class.
+Neither result means a client was started or onboarded. Preflight performs only
+trusted reads, validation, in-memory identity reservation and deterministic
+compilation; no MCP calls, hooks, prompts, filesystem reservations, attempts,
+records, session restoration or children. Capability evidence is checked here;
+it is not measured by launching a client here.
 `trusted_context` is supplied by the admitted caller through a direct in-process
 argument or inherited read-only descriptor, never a caller path, environment
 variable, model tool argument or MCP parameter. It contains the policy owner's
 verified binding, declaration sources, custody anchor and discovery boot inputs.
+
+### Inherited CLI bootstrap
+
+The admitted invoking consumer passes a fixed descriptor vector, **FD 3** through
+FD 8, containing read-only sealed anonymous buffers of held caller inputs. These
+slots are private launch plumbing, not a fifth CLI form, option or environment
+lookup. The four public forms above are unchanged. `ops/bin/conduct` preserves
+these six descriptors into
+the pinned conduct entry module; the trusted loader resolves the same context
+that a direct in-process call supplies. No `conduct(ctx, argv)` overload or
+fallback to prepare is a second public entry API. Canonical launch remains the
+only execution service behind the CLI, including test mode and resume.
+
+The vector exposes exactly six read slots. The labels below identify content,
+not filesystem names to open or members of a new JSON wrapper:
+
+| slot | FD | existing owner and contents |
+|---|---|---|
+| custody.json | 3 | previously admitted caller anchor and retained reader/runtime evidence under [policy custody](lane-policy.md#reader-custody-and-exact-register-evidence) |
+| declarations.json | 4 | task's exact [LaunchDeclarations](../devlane/task/CONTRACT.md#unit1a-declaration-transport), including verified source closure |
+| binding.json | 5 | policy's exact ConductorBinding for the in-memory reserved canonical id, verified against those declarations and custody before use |
+| transport.json | 6 | held harness transport for the selected mechanism; Codex uses exactly [codex-relay/1](harness-capabilities.md#trusted-relay-transport), not a generic executable/config fixture |
+| discovery.json | 7 | exact existing v3 configuration bytes, with anchors and discovery runtime artifact resolved through retained custody |
+| parent.json | 8 | null on launch; the retained canonical conductor record on resume, whose existing handles resolve the parent descriptor and session evidence |
+
+These slots project existing evidence and prospective in-memory binding bytes;
+they define no new authority schema or store. The custody slot is
+checked against the **previously held** anchor, never accepted as its own trust
+root. The admitted parent and immutable interpreter/loader own provenance and
+source-handle resolution. FD type, mode, UID, contents or matching hashes alone
+do not authenticate a caller. A candidate-opened matching FD is not this channel.
+Tests supply the trusted parent boundary explicitly; host authentication cannot
+be proved by a self-consistent fixture. An unadmitted direct invocation refuses.
+
+The admitted parent creates the anonymous buffers in memory, seals them against
+write/grow/shrink and further seal changes, and transfers only O_RDONLY handles
+at offset zero; no pathname, disk staging or job-directory claim is involved.
+The admitted platform mechanism must independently prove those properties;
+unavailable anonymous sealing refuses capability, with no tempfile fallback.
+All six must be regular read-only sealed buffers under held custody, at most
+1 MiB each, 4 MiB total and a 10-second total bootstrap deadline. Verify identity,
+access mode, seals and size before and after bounded capture; reject substitution
+and retain verified bytes once. Each slot obeys its owning strict schema and any
+tighter bound (in particular
+the 65536-byte descriptor bound). No adjacent, CWD, HOME, PATH, environment,
+model or MCP fallback, caller filename, pickle or dynamic object import is
+allowed. Missing material refuses; this invocation cannot persist a bootstrap
+artifact to cure failed preflight. Credentials remain in separate server-only
+custody and never in these JSON slots. Restore the opaque in-process context
+only through the admitted loader and existing owner validation.
+
+Mark FD 3 through FD 8 and all acquired handles close-on-exec after bootstrap
+entry; close them on every failure and normal close. Never leak these buffers
+to a vendor, hook, TUI or tool target. Discovery receives only its separately
+held runtime directory through --discovery-boot-fd; relay/server/TUI receive only
+their declared transport handles. Bootstrap cannot broaden those grants.
+
+### Discovery boot and descriptor validation
 
 The held discovery boot inputs cross into the existing discovery process
 through the declared
@@ -422,6 +489,14 @@ handling; startup neither emits a task envelope nor creates a second store.
 
 ### Connection, onboarding and resume binding
 
+After successful prepare, the CLI passes that exact result and held context to
+canonical launch. Launch rechecks held inputs before its first mutation, claims
+and retains canonical transport, registers the real attempt and starts the
+admitted process group. It owns the post-child connection gate and supervision;
+prepare is never called as a substitute for this path. Startup completion is
+observed through the existing conductor record/result and CLI exit, not a second
+prepare return. Diagnostic test mode uses its existing probe/report owner.
+
 Before handing control to a conductor, verify the connection from that actual
 client: fresh MCP initialize/tools/list and a real tools/call `lane_start` with
 `{"profile":"dev"}` for the example. Check catalogue identity, config/anchor
@@ -435,11 +510,47 @@ invent a handoff, select by filename/time or ask for filesystem hints. Supply
 one bounded lane_start packet automatically, then relevant named detail under
 its snapshot/cursor rules. Preserve eleven v3 tools and v1/v2 bytes.
 
+The observation point is the existing lane_mcp server's bound stdio connection,
+under the launcher-owned server transport. Its admitted custodian observes
+validated incoming requests and matching outgoing responses on that connection;
+it does not originate them. Canonical launch holds the actual client process,
+server process, pipe endpoints and connection epoch. For Codex the MCP client is
+the supervised **app-server**, not the downstream TUI or relay, and the observer
+must bind that app-server's lane MCP pipes. No extra upstream app-server client,
+CLI query or host-generated initialize/list/call may satisfy this gate.
+
+The custodian sends observations on a launcher-created anonymous pipe, with only
+its write end in that server and its read end in the canonical supervisor. This
+is diagnostic transport under existing attempt custody, never a named socket,
+MCP query argument, general server log or execution channel. Each observation
+is one strict UTF-8 JSON line, at most 65536 bytes, nesting at most 32, exactly
+`{seq,request,response}`: seq is a nonnegative integer contiguous from zero;
+request and response are the exact matching, validated native MCP objects under
+the pinned lane_mcp protocol, with no universal vendor envelope. Observe only
+initialize, tools/list and tools/call lane_start, in that order. Request ids
+and response ids must match under that protocol. The observer retains the
+actual bytes privately for validation; only admitted non-secret objects cross
+this pipe. Errors/rejected payloads cause the fixed conduct-mcp refusal, never
+a raw error frame in lane evidence. Queue bound is 1048576 bytes; completion
+deadline is 10 seconds after client creation or the shorter remaining canonical
+wall. Duplicate, reordered, truncated, wrong-connection or stale-epoch evidence,
+EOF or deadline expiry fails the gate. A valid gate consumes three observations
+once, binds their canonical digests to held endpoint/process/epoch identities
+in existing attempt evidence, and closes the observation pipe. Resume creates
+a fresh pipe and epoch. No connection identity supplied inside JSON is trusted.
+Process/load provenance and D-A47 remain required; trusting a server's claimed
+hash or an arbitrary in-process FakeMcpClient is insufficient.
+
 An `Invalid params` response requires comparison of actual tools/list and
 request bytes from the connected client; it does not establish server absence.
 Diagnostics report this without rewriting host settings. MCP stays read-only;
 [tool decisions](permission-surface.md#normalized-conductor-tool-interface)
 govern other tools and canonical CLI delegation independently.
+Invalid params is not a valid lane_start envelope and cannot complete onboarding:
+the gate aborts with conduct-mcp even if initialize and tools/list succeeded.
+No retry loop or settings repair is implied. Partial success means a structurally
+valid discovery envelope with explicit unavailable sources, never a protocol
+error being promoted to success.
 
 Resume revalidates custody and stationary policy, selection, source grants,
 v3 config/anchors, adapter, safe tokens and MCP catalogue before restoring
@@ -452,15 +563,36 @@ perform automatic onboarding again. Changed discovery content gets a fresh
 snapshot; it cannot silently change bound roots, permissions or profile.
 Unbound legacy sessions remain readable; continuation requires a fresh admitted
 launch. Existing canonical records carry custody and receipts, no new store.
+Discovery content means newly acquired repository/record readings; changed v3
+configuration bytes, anchor identities or the sealed MCP catalogue are binding
+drift and refuse resume before effects. For the Codex relay, the app-server argv
+may be identical on launch and resume: session restoration is the sealed native
+thread/resume operation, so argv_sha256 equality is valid when exact expected
+vectors agree. Never add a vendor resume flag merely to force unequal digests.
 
 ### Startup refusal and verification boundary
 
 Use the owning lane-profile/lane-policy/lane-resume refusals for those failures.
-`conduct-config` covers malformed/untrusted descriptor transport; `conduct-mcp`
+`conduct-config` covers malformed/untrusted bootstrap or descriptor transport;
+its exact line is `conduct-config: expected trusted conductor configuration;
+found REASON; needed run the independent doctor and restore admitted startup inputs`.
+REASON is exactly one of `bootstrap-missing`, `bootstrap-invalid`,
+`bootstrap-untrusted`, `descriptor-invalid`, `input-mismatch`.
+Any missing slot selects bootstrap-missing; wrong type/access/seals, oversized,
+malformed or unstable bootstrap selects bootstrap-invalid; unavailable trusted
+origin selects bootstrap-untrusted; descriptor schema/encoding/bounds failure
+selects descriptor-invalid; otherwise differing held transport bytes select
+input-mismatch. Check in that order and emit only the first applicable code.
+Never echo a filename, FD value, exception, rejected bytes or their hash.
+Once transport is valid, policy/profile/resume/capability/discovery failures
+retain their owner's refusal rather than being relabelled conduct-config.
+`conduct-mcp`
 covers missing or mismatched actual connection. Both use the wire and
 secret-free fixed reasons, with a remedy naming the independent doctor.
 For example: `conduct-mcp: expected bound client connection; found unavailable;
 needed run the independent doctor and restore verified connection evidence`.
+That conduct-mcp line is fixed for absent, invalid or mismatched connection or
+onboarding evidence; sanitized diagnostics distinguish those causes separately.
 Adapter and tool refusals retain their own classes. No permission prompt,
 attended fallback, self-admission or automatic harness substitution is allowed.
 The [policy timing boundary](lane-policy.md#pre-effect-rejection-and-late-refusal)
@@ -481,6 +613,77 @@ profiles without path hints; and resume mutation before any transport effects.
 Use test_conduct_start.py and test_conduct_enforcement.py under the existing
 conductor test owner, with verified fake counterparties. These are construction
 targets, not assertions that tests or live mechanisms have already passed.
+
+### Startup-test correction instructions
+
+These dispositions close the six findings in supplied test-author record
+`20260906T125326Z-tests-grok-23e1d6`, read with its three complete Python inputs
+and the relay declaration at `8324aa389a467417380683e6cd135efdd818acfa`.
+They are instructions to the independent test owner; no test, runtime, settings,
+state or admission is changed or approved here. Bootstrap, return packaging,
+native input, conduct-config, actual-client observation and opaque role handles
+are declared above and in [permission-surface](permission-surface.md#opaque-role-and-target-handles).
+Fixture-selected alternatives contradicting those owners are withdrawn.
+
+In conduct_test_support.py, make `unpack_prepare` require a dict with exactly
+descriptor/compiled_launch; remove tuple/list and compiled fallbacks. Make
+`assert_prepare_refused` require the exact refusal string and owning class/code,
+not an arbitrary non-null result or wrapped mapping. Keep `prepare` a direct
+call of the unchanged four-argument API. Remove PIN_CONDUCT_ENTRY's TypeError
+retry and fallback to prepare: `invoke_conduct` must exercise the public CLI
+through the trusted parent and canonical launch. `run_cli` and `run_bin` must
+inherit FD 3 through FD 8 explicitly (child descriptor relocation, then an explicit inherited
+FD allowlist); environment fixture paths never inject authority. Bind loaded
+code to the held runtime rather than assuming an isolated copied conduct.py is
+its complete executable closure. `make_context` must use the trusted fixture
+binder and owner-verified evidence, not SimpleNamespace authority switches.
+Separate fault injection at that binder's source/transport boundary from public
+model inputs. The effects log must observe the canonical executor's calls and
+actual temporary record bytes, not just an unrelated FakeDispatch instance.
+
+The synthetic display grammar remains useful for pure adapter tests. Its
+verified synthetic mechanism needs its own declared closure, scoped to fixtures;
+it cannot stand in for Codex relay acceptance, whose real grammar is empty.
+`make_catalogue` must supply the exact eleven owner schemas, not eleven names
+with unrestricted object schemas. FakeMcpClient must act as the client child
+on the bound server pipes; FakeMcpServer.query stays an unrelated parity control.
+
+In the table, names are methods in the supplied test_conduct_start.py unless
+qualified otherwise. Each grouped row applies independently to every named
+method; unaffected descriptor/selection assertions retain their owner.
+
+| test | precise correction and required observation |
+|---|---|
+| CliForms.test_harness_dev_is_an_admitted_form | Use the inherited-bootstrap CLI and assert canonical launch plus bound onboarding; inspect its retained descriptor, not a prepare return. |
+| CliForms.test_harness_prod_is_an_admitted_form; test_double_dash_may_carry_zero_tokens; test_tokens_after_double_dash_are_forwarded_in_order | Exercise those actual CLI forms with the trusted parent; keep separate pure-prepare compilation assertions. Exact tokens belong to the declared synthetic adapter only. |
+| CliForms.test_harness_test_is_an_admitted_form; test_harness_profile_test_is_an_admitted_form | Assert routing to the existing diagnostic owner and its closed report for all profiles or the selected profile; arbitrary nonempty stdout or any of 0/2/3 is not evidence of an admitted form. |
+| CliForms.test_bin_and_tool_share_the_four_forms | Run all four forms through both entry paths with the same trusted bootstrap; compare owner outcome and exact forwarded bytes. Missing bootstrap must deterministically refuse, not count as positive routing. |
+| CliForms.test_no_positional_is_parsed_after_double_dash; test_unprofiled_test_validates_every_profile_before_effects | Supply valid bootstrap/grammar first; assert conduct-argv and zero canonical effects. Plant one profile-specific rejection in unprofiled test and require all-profile preflight before any probe. |
+| SelectionAxes.test_returned_selection_equals_the_caller_bytes | Compare the exact closed member set and canonical selection bytes; remove the insertion-order assertion on tuple(body["selection"]). Canonical JSON sorts object keys. |
+| DescriptorValidation.test_unknown_key_is_conduct_config; test_duplicate_key_in_serialized_descriptor_is_conduct_config; test_missing_null_resume_on_launch_is_conduct_config; test_boolean_is_not_integer_in_anchors; test_control_character_in_string_refuses; test_non_finite_number_refuses; test_serialized_descriptor_over_65536_bytes_refuses; test_nesting_deeper_than_32_refuses | Inject the fault into the actual held descriptor/serialized-parent source consumed by the loader; require descriptor-invalid and zero effects. Test malformed bootstrap slots separately as bootstrap-invalid. Do not rely on invented parent_descriptor_bytes attributes or an unrelated CLI call. |
+| UntrustedDigests.test_matching_digest_from_candidate_is_not_trusted_origin; test_held_anchor_equality_is_required_not_just_the_hex; test_descriptor_digest_does_not_prove_binding_origin | Plant an unissued/replaced custody handle with equal digest at the trusted caller boundary; require bootstrap-untrusted or the owning lane-policy refusal. Also test a missing FD 3, wrong descriptor type, writable/substituted slot and a clean held-origin neighbor. |
+| McpConnection.test_actual_client_must_initialize_list_and_call_lane_start | Run post-child canonical launch; require the three matched observations from the bound client pipes, exact profile/catalogue and retained connection evidence. Separately assert prepare calls none of them. |
+| McpConnection.test_separate_server_query_is_not_connection_proof; test_server_self_reported_digest_is_not_connection_proof; test_configured_server_entry_alone_is_not_connection_proof | Give the canonical child no valid connection observations while each decoy succeeds; require late conduct-mcp Abort 3, stopped/reaped children and actual partial evidence. Add wrong-endpoint and old-epoch decoys at this same observer boundary. |
+| McpConnection.test_missing_connection_is_conduct_mcp | Start the admitted child, then remove its connection; require exactly Abort 3 and the fixed line. Remove the exit-2 alternative and fallback prepare call. |
+| McpConnection.test_invalid_params_does_not_establish_server_absence | Inject -32602 on the real bound lane_start after valid initialize/list; require Abort 3, no successful onboarding, and unchanged settings. Assert the diagnostic compares observed schema/request and does not claim server absence. Remove assert_prepare_ok. |
+| McpConnection.test_catalogue_has_eleven_v3_tools | Pure prepare checks the exact held catalogue digest and zero client calls; the post-child positive independently checks the observed schemas, not only the count. |
+| Onboarding.test_partial_valid_discovery_onboards_without_inventing_a_handoff; test_onboarding_does_not_select_by_filename_or_time; test_dev_prod_and_docs_onboard_without_path_hints | Use canonical child startup for each profile, deliver and validate a complete protocol response containing the partial valid envelope, and inspect the automatically delivered packet. Reading the pre-planted fixture envelope after prepare is no onboarding proof. |
+| Onboarding.test_resume_reverifies_the_actual_client_connection | First complete canonical launch, then canonical resume with a fresh child connection/epoch and three new observations. Assert original id/invariant plus newly retained session evidence. Pure prepare alone cannot witness reconnection. |
+| Onboarding.test_changed_discovery_content_does_not_change_bound_profile | Change acquired discovery content under identical v3 config/anchors; expect a new discovery snapshot and unchanged profile/config digest. The current extra_profile=False configuration replacement must instead refuse lane-resume before mutation. |
+| Onboarding.test_mismatched_record_descriptor_binding_refuses_before_effects; test_unbound_legacy_session_cannot_resume_in_place | Present the conflicting/legacy parent through retained canonical record custody; assert the owning lane-resume refusal and unchanged prior record, markers and attempts. |
+| enforcement.ResumeArgv.test_resume_reproduces_invariant_and_differs_in_argv_digest; test_repeated_resume_with_identical_inputs_is_byte_identical; Onboarding.test_resume_reverifies_the_actual_client_connection | Compare exact mechanism-owned expected vectors and their digests. Require inequality only for a mechanism with a declared changed CLI session segment; Codex may retain identical app-server argv and uses sealed native thread/resume. Never force an artificial flag. |
+| enforcement.FixedArgvRefusals (every method); SecretCanary.test_rejected_secret_is_absent_from_prompt_output_state_and_git; ResumeArgv.test_raw_vendor_resume_flags_are_not_an_alternative_route | Inherit valid bootstrap with the appropriate grammar, assert the entire fixed conduct-argv line/index, empty stdout and no effects or rejected-input retention. Remove the reserved-config assertion that letter x is absent from text containing expected/index; check that the rejected token/value is not interpolated instead. |
+| enforcement.FaultyControls.test_malformed_hook_payload_prevents_admission | Move live malformed payload injection to the admitted mechanism's interceptor after child creation, requiring abort and no tool effects. For pure preflight, inject missing/failed verified interception evidence instead; ctx.hook_payload is not a prepare input. |
+| enforcement.FaultyControls.test_missing_interception_prevents_admission | Remove required mechanism/closure evidence from trusted transport, assert the owning capability refusal before claim. A fixture manifest flag is insufficient provenance. |
+| enforcement.LaunchResumeBeforeEffects.test_prepare_creates_no_attempt_snapshot_record_or_child | Extend the pure-preflight check to zero MCP/client calls, hooks, prompts and transport writes; successful return is compilation only. |
+| enforcement.LaunchResumeBeforeEffects.test_late_mcp_failure_is_abort_3_with_partials | Observe a real canonical claim and child before failure; require exactly 3, retained refused result.policy, conductor result.status invalid, null envelope and honest attempt/receipt availability. Delete the exit-2 early return. |
+| enforcement.LaunchResumeBeforeEffects.test_resume_preflight_precedes_marker_and_attempt_mutations; FaultyControls.test_changed_binding_on_resume_is_lane_resume_before_mutation | Use trusted retained parent handles, require exact lane-resume rejection and unchanged canonical prior state before restoration or attempt increment. |
+
+The enforcement test corrections for native tools, target schemas and decision
+consumption are owned by [permission-surface](permission-surface.md#enforcement-test-corrections).
+Presence tests stay assertion-red while implementation is absent; empty-success
+stand-ins do not admit runtime. Correction acceptance requires independent
+counterpart tests and then integration at one ref, not this document's checks.
 
 ### Correction custody — 2026-09-06 ruling
 
