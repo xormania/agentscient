@@ -5,7 +5,12 @@ import sys
 
 sys.dont_write_bytecode = True
 
+import errno  # noqa: E402
+import fcntl  # noqa: E402
 import json  # noqa: E402
+import os  # noqa: E402
+import stat  # noqa: E402
+import time  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 from lane_read import (  # noqa: E402
@@ -36,26 +41,123 @@ INSTRUCTIONS = (
 )
 
 
-# Both transport projections use this coordinator; the read core accepts data only.
-_ACQUISITIONS = {}
+BOOT_COMPONENTS = tuple(sorted((
+    'ops/conductor/discovery-lever.md',
+    'ops/conductor/tools/lane_read.py',
+    'ops/conductor/tools/lane_mcp.py',
+    'ops/conductor/tools/lane_refs.py',
+)))
+BOOT_REMEDIES = {
+    'descriptor-unreadable': 'supply an inherited readable directory descriptor with --discovery-boot-fd FD',
+    'component-missing': 'supply all four fixed boot components in the retained artifact',
+    'component-unreadable': 'make the fixed boot component readable in the retained artifact',
+    'unsafe-path': 'supply fixed boot components beneath the descriptor without symlinks',
+    'not-regular': 'supply the fixed boot component as a regular file',
+    'component-oversized': 'supply a boot component of at most 1 MiB',
+    'total-oversized': 'supply boot components totaling at most 4 MiB',
+    'changed-during-read': 'supply a stationary retained boot artifact and relaunch',
+    'timeout': 'supply a readable stationary boot artifact within the 10-second bootstrap deadline',
+    'binding-unverified': 'use a trusted loader that binds execution inputs to retained boot bytes and relaunch',
+    'binding-mismatch': 'load the three discovery modules from the same retained boot bytes and relaunch',
+}
+_BOOT_FD = None
+_BOOT_BYTES = None
+
+
+def boot_refusal(subject, code):
+    refuse('config', 'trusted discovery boot descriptor',
+           f'rejected {subject} {code}', BOOT_REMEDIES[code])
+
+
+def capture_boot(descriptor):
+    """Capture the four granted buffers; this does not establish execution."""
+    if descriptor is None:
+        refuse('config', 'trusted discovery boot descriptor', 'missing',
+               'launch with --discovery-boot-fd FD')
+    deadline = time.monotonic() + 10
+    owned, links, captured = [], [], {}
+    total = 0
+
+    def check():
+        if time.monotonic() > deadline:
+            boot_refusal('descriptor', 'timeout')
+
+    def signature(info):
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_size,
+                info.st_mtime_ns, info.st_ctime_ns)
+
+    try:
+        try:
+            root = os.dup(descriptor)
+            owned.append(root)
+            if (not stat.S_ISDIR(os.fstat(root).st_mode)
+                    or fcntl.fcntl(root, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDONLY):
+                boot_refusal('descriptor', 'descriptor-unreadable')
+        except (OSError, OverflowError):
+            boot_refusal('descriptor', 'descriptor-unreadable')
+        for path in BOOT_COMPONENTS:
+            check()
+            parent = root
+            parts = path.split('/')
+            try:
+                for index, part in enumerate(parts):
+                    final = index == len(parts) - 1
+                    flags = os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW | os.O_CLOEXEC
+                    if not final:
+                        flags |= os.O_DIRECTORY
+                    child = os.open(part, flags, dir_fd=parent)
+                    owned.append(child)
+                    info = os.fstat(child)
+                    links.append((parent, part, signature(info), path, final, child))
+                    parent = child
+                if not stat.S_ISREG(info.st_mode):
+                    boot_refusal(path, 'not-regular')
+                if info.st_size > 1024 * 1024:
+                    boot_refusal(path, 'component-oversized')
+                check()
+                raw = os.pread(child, 1024 * 1024 + 1, 0)
+                check()
+                if len(raw) > 1024 * 1024:
+                    boot_refusal(path, 'component-oversized')
+                total += len(raw)
+                if total > 4 * 1024 * 1024:
+                    boot_refusal('descriptor', 'total-oversized')
+                if len(raw) != info.st_size or signature(os.fstat(child)) != signature(info):
+                    boot_refusal(path, 'changed-during-read')
+                captured[path] = raw
+            except OSError as error:
+                code = ('component-missing' if error.errno == errno.ENOENT else
+                        'unsafe-path' if error.errno in (errno.ELOOP, errno.ENOTDIR) else
+                        'component-unreadable')
+                boot_refusal(path, code)
+        for parent, part, before, path, final, child in links:
+            check()
+            try:
+                after = signature(os.stat(part, dir_fd=parent, follow_symlinks=False))
+                current = signature(os.fstat(child))
+            except OSError:
+                boot_refusal(path, 'changed-during-read')
+            if (after != before if final else after[:3] != before[:3]) or current != before:
+                boot_refusal(path, 'changed-during-read')
+        check()
+        return captured
+    finally:
+        for fd in reversed(owned):
+            os.close(fd)
 
 
 def query(config: dict, name: str, arguments: object) -> dict:
+    global _BOOT_BYTES
     if config["version"] != 3 or name not in DISCOVERY_QUERIES:
         return read_query(config, name, arguments)
-    args = discovery_arguments(config, name, arguments)
-    # Import only after schema validation; check/list and all legacy reads do
-    # not open an anchor or load the acquisition adapter.
-    from lane_refs import Acquisition
-
-    key = id(config)
-    try:
-        if key not in _ACQUISITIONS:
-            _ACQUISITIONS[key] = Acquisition(config)
-        reading = _ACQUISITIONS[key].acquire(args["profile"])
-    except OSError:
-        reading = {"state": "unavailable", "reason": "unreadable", "sources": []}
-    return read_query(config, name, args, reading)
+    discovery_arguments(config, name, arguments)
+    if _BOOT_BYTES is None:
+        _BOOT_BYTES = capture_boot(_BOOT_FD)
+    # Native SourceFileLoader retains a mutable pathname, not the bytes the
+    # interpreter executed. Neither reopening that path nor a code-object
+    # comparison proves byte equality. The declared trusted-loader counterparty
+    # supplies no execution-input interface yet; refuse before opening anchors.
+    boot_refusal('ops/conductor/tools/lane_mcp.py', 'binding-unverified')
 
 
 def _schemas(config: dict[str, object]) -> list[dict[str, object]]:
@@ -149,12 +251,19 @@ def _schemas(config: dict[str, object]) -> list[dict[str, object]]:
             fields = {"lane_start": ("cursor",), "lane_homes": ("concept", "cursor"),
                       "lane_handoffs": ("key", "cursor"), "lane_actions": ("name",)}[name]
             patterns = {"concept": "^[a-z][a-z0-9-]{0,63}$", "name": "^[a-z][a-z0-9-]{0,31}$",
-                        "key": "^record/[0-9a-f]{64}$", "cursor": "^[0-9a-f]{64}:(0|[1-9][0-9]{0,2})$"}
+                        "key": "^record/[0-9a-f]{64}$",
+                        "cursor": ("^[0-9a-f]{64}:([0-9]|1[0-9]|20)$" if name == 'lane_start' else
+                                   "^[0-9a-f]{64}:([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$")}
             properties.update({field: {"type": "string", "pattern": patterns[field]} for field in fields})
             tools.append({"name": name, "description": "Read bounded profile discovery; evidence is not authority.",
                           "inputSchema": {"type": "object", "properties": properties,
                                           "required": ["profile"], "additionalProperties": False},
                           "annotations": annotations})
+            if 'cursor' in fields:
+                tools[-1]['inputSchema']['dependentRequired'] = {'cursor': ['snapshot']}
+                named = next((field for field in fields if field != 'cursor'), None)
+                if named is not None:
+                    tools[-1]['inputSchema']['not'] = {'required': [named, 'cursor']}
     return tools
 
 
@@ -370,6 +479,7 @@ def serve(config: dict[str, object]) -> int:
 
 
 def _cli(argv: list[str]) -> tuple[Path, str, list[str]]:
+    global _BOOT_FD
     if len(argv) < 3 or argv[0] != "--config":
         refuse(
             "arguments",
@@ -377,7 +487,16 @@ def _cli(argv: list[str]) -> tuple[Path, str, list[str]]:
             repr(argv),
             "use the declared command shape",
         )
-    return Path(argv[1]), argv[2], argv[3:]
+    rest = argv[2:]
+    if rest[0] == '--discovery-boot-fd':
+        if len(rest) < 3:
+            refuse('arguments', 'a boot descriptor followed by a verb', 'invalid', 'use the declared command shape')
+        try:
+            _BOOT_FD = int(rest[1])
+        except ValueError:
+            _BOOT_FD = -1
+        rest = rest[2:]
+    return Path(argv[1]), rest[0], rest[1:]
 
 
 def main() -> int:
@@ -408,6 +527,12 @@ def main() -> int:
     except Refusal as exc:
         print(exc.line(), file=sys.stderr)
         return 2
+    finally:
+        if _BOOT_FD is not None:
+            try:
+                os.close(_BOOT_FD)
+            except (OSError, OverflowError):
+                pass  # An unusable inherited descriptor owns nothing to close.
 
 
 if __name__ == "__main__":

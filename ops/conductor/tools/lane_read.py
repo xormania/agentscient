@@ -225,10 +225,10 @@ def load_config(path: Path) -> dict[str, object]:
     # Parse v3 under its lexical limits; preserve every legacy parser/refusal.
     status, raw = _bounded_regular(Path(os.path.abspath(path)), CONFIG_BYTES, follow=True)
     if status == "ok" and raw is not None:
-        v3 = re.search(rb'"version"\s*:\s*3\b|"profiles"\s*:|"discovery"\s*:', raw) is not None
+        v3 = re.search(rb'"version"\s*:\s*3\b', raw) is not None
         try:
             parsed = strict_json(raw)
-            v3 = v3 or (isinstance(parsed, dict) and parsed.get('version') == 3)
+            v3 = isinstance(parsed, dict) and type(parsed.get('version')) is int and parsed['version'] == 3
             if v3:
                 return validate_discovery_config(parsed, Path(os.path.abspath(path)).parent)
         except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
@@ -1831,7 +1831,7 @@ def _discovery_candidates(config: dict, profile: dict, reading: dict) -> tuple[l
         if not isinstance(raw, bytes):
             complete = False
             continue
-        revision = hashlib.sha256(raw).hexdigest()
+        revision = occurrence['revision']
         group = grouped.setdefault(revision, dict(raw=raw, occurrences=[], kinds=set(), conflict=False))
         group['conflict'] |= group['raw'] != raw
         group['occurrences'].append(occurrence['provenance'])
@@ -2018,8 +2018,7 @@ def discovery_query(config: dict, name: str, args: dict, reading: dict) -> dict:
         if field in args:
             card = next((dict(c) for c in values if c[key] == args[field]), None)
             if card is not None and not is_home and card['relevance'] == 'relevant' and card['occurrences']:
-                raw = next((r['data'] for r in reading.get('records', []) if isinstance(r.get('data'), bytes)
-                            and hashlib.sha256(r['data']).hexdigest() == card['revision']), None)
+                raw = reading.get('record_bytes', {}).get(card['revision'])
                 if raw is not None:
                     if card['reason'] == 'malformed':
                         card['body'] = None

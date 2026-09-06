@@ -18,11 +18,10 @@ import sys
 import time
 import zlib
 from itertools import pairwise
-from pathlib import Path
 
 sys.dont_write_bytecode = True
 
-from lane_read import (  # noqa: E402
+from .lane_read import (  # noqa: E402
     CONCEPT_INDEX,
     DISCOVERY_LAW,
     SOURCE_BYTES,
@@ -153,7 +152,7 @@ class Files:
         self.handles[cache_key] = fd
         return fd
 
-    def read(self, anchor, path, limit=SOURCE_BYTES):
+    def read(self, anchor, path, limit=SOURCE_BYTES, *, checkpoint=None):
         fd = self.open(anchor, path)
         size = os.fstat(fd).st_size
         if size > limit:
@@ -161,6 +160,9 @@ class Files:
         raw = self.range(fd, 0, size + 1)
         if len(raw) > limit:
             raise Unavailable('oversized')
+        if checkpoint is not None:
+            checkpoint()
+            self.budget.check()
         if len(raw) != size or signature(os.fstat(fd)) != self.before[fd]:
             raise Unavailable('changed-during-read')
         return raw
@@ -270,8 +272,10 @@ class GitObjects:
             if self.optional(self.common, path) is not None:
                 raise Unavailable('unsafe-path')
         try:
-            if self.files.names(self.common, 'refs/replace', 1):
-                raise Unavailable('unsafe-path')
+            fd = self.files.open(self.common, 'refs/replace', True)
+            with os.scandir(fd) as entries:
+                if next(entries, None) is not None:
+                    raise Unavailable('unsafe-path')
         except Unavailable as error:
             if error.reason != 'missing':
                 raise
@@ -563,6 +567,15 @@ class GitObjects:
             fields = line.split(b' ')
             if len(fields) != 2 or not re.fullmatch(rb'[0-9a-f]{40}', fields[0]):
                 raise Unavailable('malformed')
+            name = fields[1]
+            if name.startswith(b'refs/replace/'):
+                raise Unavailable('unsafe-path')
+            if not name.startswith(b'refs/heads/'):
+                continue
+            if prefix is not None and not name.startswith(prefix.encode('ascii')):
+                continue
+            if target is not None and name != target.encode('ascii'):
+                continue
             try:
                 ref = fields[1].decode('ascii')
             except UnicodeError as error:
@@ -760,15 +773,8 @@ class GitObjects:
 
 class Acquisition:
     """Boot definitions and anchor identities persist; source readings do not."""
-    def __init__(self, config, *, contract_bytes=None, implementation_bytes=None):
+    def __init__(self, config, *, contract_bytes, implementation_bytes):
         self.config = config
-        self.anchors = Anchors(config['discovery']['anchors'])
-        tools_home = Path(__file__).absolute().parent
-        if contract_bytes is None:
-            contract_bytes = (tools_home.parent / 'discovery-lever.md').read_bytes()
-        if implementation_bytes is None:
-            implementation_bytes = {f'ops/conductor/tools/{name}': (tools_home / name).read_bytes()
-                                    for name in ('lane_read.py', 'lane_mcp.py', 'lane_refs.py')}
         self.definitions = {
             'config': config,
             'contract': dict(protocol='discovery/3', revision=hashlib.sha256(contract_bytes).hexdigest()),
@@ -776,12 +782,13 @@ class Acquisition:
                             implementation=digest([dict(path=path, revision=hashlib.sha256(raw).hexdigest())
                                                    for path, raw in sorted(implementation_bytes.items())])),
         }
+        self.anchors = Anchors(config['discovery']['anchors'])
         self.binding = dict(configuration=config, anchors=self.anchors.identities)
 
     def close(self):
         self.anchors.close()
 
-    def acquire(self, profile_id):
+    def acquire(self, profile_id, *, checkpoint=None):
         config = self.config
         profile = config['profiles'][profile_id]
         budget = Budget()
@@ -792,7 +799,7 @@ class Acquisition:
                         for ident, data in self.definitions.items()}
         observations.update(repo=[], retained=[])
         acquired = dict(state='ok', reason=None, sources=[], files={}, records=[],
-                        records_complete=True, dispatches={}, head=None)
+                        records_complete=True, record_bytes={}, dispatches={}, head=None)
         cache = {}
         fatal = None
 
@@ -806,7 +813,7 @@ class Acquisition:
             else:
                 result = cache[key]
             observations[source].append(dict(operation=operation, input=arguments, **result))
-            if result['reason'] in ('changed-during-read', 'budget-exceeded'):
+            if result['reason'] in ('changed-during-read', 'budget-exceeded', 'record-overflow'):
                 fatal = result['reason']
                 raise Unavailable(fatal)
             return result
@@ -821,13 +828,17 @@ class Acquisition:
                     observations[source].append(dict(operation='list_tree', input={'commit': commit},
                                                      **outcome(reason='record-overflow')))
                     acquired['records_complete'] = False
-                    # Discard this entire source's records; no partial set may
-                    # establish absence or selection.
+                    # The occurrence bound is aggregate, across all trees.
                     raise Unavailable('record-overflow')
                 blob = observe(source, 'read_blob', {'blob': entry['blob']})
                 if blob['state'] != 'ok':
                     acquired['records_complete'] = False
+                revision = hashlib.sha256(blob['data']).hexdigest() if blob['state'] == 'ok' else None
+                budget.check()
+                if revision is not None:
+                    acquired['record_bytes'][revision] = blob['data']
                 acquired['records'].append(dict(kind='handoff' if '/handoff/' in entry['path'] else 'aar',
+                                                revision=revision,
                                                 data=blob['data'], reason=blob['reason'],
                                                 provenance=dict(ref=ref, commit=commit, path=entry['path'], blob=entry['blob'])))
 
@@ -838,10 +849,8 @@ class Acquisition:
             acquired['head'] = head
             for path in sorted(FIXED_PATHS):
                 if head['state'] != 'ok':
-                    entry = outcome(reason=head['reason'])
-                    observations['repo'].append(dict(operation='tree_entry', input=dict(commit=repository['head'], path=path), **entry))
-                else:
-                    entry = observe('repo', 'tree_entry', dict(commit=repository['head'], path=path))
+                    break
+                entry = observe('repo', 'tree_entry', dict(commit=repository['head'], path=path))
                 if entry['state'] == 'ok' and entry['data'] is None:
                     acquired['files'][path] = outcome(reason='missing')
                 elif entry['state'] != 'ok':
@@ -870,7 +879,12 @@ class Acquisition:
                     continue
                 try:
                     budget.begin()
-                    raw = files.read(dispatch['anchor'], dispatch['path'] + '/' + ident + '/record.json')
+                    def postcheck(source=source):
+                        if checkpoint is not None:
+                            checkpoint(dict(phase='before-file-postcheck', source_id=source))
+
+                    raw = files.read(dispatch['anchor'], dispatch['path'] + '/' + ident + '/record.json',
+                                     checkpoint=postcheck)
                     record = strict_json(raw)
                     if not isinstance(record, dict):
                         raise ValueError('record')
@@ -881,17 +895,24 @@ class Acquisition:
                     result = outcome(reason=error.reason)
                     if error.reason == 'missing':
                         result['state'] = 'unknown'
-                    if error.reason in ('changed-during-read', 'budget-exceeded'):
+                    if error.reason == 'changed-during-read':
+                        fatal = error.reason
+                    if error.reason == 'budget-exceeded':
                         raise
                 except OSError as error:
                     result = outcome(reason=os_reason(error))
                 except (ValueError, UnicodeError, RecursionError):
                     result = outcome(reason='malformed')
                 observations[source] = [dict(operation='read_record', input={'id': ident}, **result)]
-            after = observe('repo', 'anchor_head', head_input, repeat=True)
-            if head != after:
-                raise Unavailable('changed-during-read')
-            if refs is not None:
+            if head['state'] == 'ok':
+                if checkpoint is not None:
+                    checkpoint(dict(phase='before-final-revalidation', source_id='repo'))
+                after = observe('repo', 'anchor_head', head_input, repeat=True)
+                if head != after:
+                    raise Unavailable('changed-during-read')
+            if refs is not None and refs['state'] == 'ok':
+                if checkpoint is not None:
+                    checkpoint(dict(phase='before-final-revalidation', source_id='retained'))
                 after_refs = observe('retained', 'list_refs', refs_input, repeat=True)
                 if refs != after_refs:
                     raise Unavailable('changed-during-read')
@@ -910,5 +931,17 @@ class Acquisition:
         except Unavailable as error:
             fatal = fatal or error.reason
         if fatal is not None:
-            acquired.update(state='unavailable', reason=fatal)
+            acquired.update(state='unavailable', reason=fatal, files={}, records=[], record_bytes={},
+                            records_complete=False, dispatches={}, head=None, data=None, snapshot=None)
         return acquired
+
+
+def acquire(config, boot, *, checkpoint=None):
+    """Refuse an undeclared profile selection at the published seam.
+
+    The contract supplies full multi-profile config but no selection input.
+    Acquiring the union would exceed an individual profile's source grant.
+    """
+    raise ValueError('arguments: expected a declared acquisition profile binding; '
+                     'found multi-profile config without a selection; '
+                     'needed declare profile selection on the canonical acquire seam')
