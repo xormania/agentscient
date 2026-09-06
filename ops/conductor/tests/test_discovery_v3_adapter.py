@@ -10,8 +10,6 @@ import json
 import os
 import stat
 import sys
-import threading
-import time
 from pathlib import Path
 
 _TESTS = Path(__file__).resolve().parent
@@ -26,6 +24,7 @@ from discovery_v3_support import (  # noqa: E402
     WRITER_MODULES,
     _DiscoveryV3Fixture,
     canonical_bytes,
+    omitted_check_accepts,
     record_key,
     sha256_hex,
 )
@@ -112,8 +111,8 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
         self.assertEqual(empty["data"]["handoffs"]["selection"], "none")
         records_dir = self.gitdir / "refs" / "heads" / "records"
         records_dir.mkdir(parents=True, exist_ok=True)
-        mode = records_dir.stat().st_mode
-        os.chmod(records_dir, 0)
+        planted = self.make_inaccessible(records_dir)
+        self.assertIn(planted, ("chmod-0", "fifo-not-dir"), planted)
         try:
             self.plant_v3_config(
                 retained_refs="refs/heads/records/",
@@ -121,7 +120,8 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             )
             unread = self.detail("lane_handoffs", {"profile": "dev"})
         finally:
-            os.chmod(records_dir, mode)
+            if records_dir.exists() and records_dir.is_dir():
+                os.chmod(records_dir, 0o755)
         retained_bad = [src for src in unread["sources"] if src["id"] == "retained"][0]
         self.assertEqual(retained_bad["state"], "unavailable")
         self.assertEqual(retained_bad["reason"], "unreadable")
@@ -214,36 +214,134 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
 
     def test_d_a31_changed_during_read_is_unavailable(self):
         self.plant_tree()
-        fat = {"id": "job01", "status": "closed", "pad": "P" * (512 * 1024)}
+        first = self.head
+        second = self.add_commit({"docs/race.md": b"mutated-ref\n"}, "race")
+        self.git("checkout", "--detach", first)
+        self.head = first
+        self.plant_ref("refs/heads/records/keep", first)
         rec_path = self.store / "job01" / "record.json"
-        self._plant_bytes(rec_path, (json.dumps(fat) + "\n").encode())
+        original = (json.dumps({"id": "job01", "status": "closed"}) + "\n").encode()
+        mutated = (json.dumps({"id": "job01", "status": "closed", "n": 1}) + "\n").encode()
+        self._plant_bytes(rec_path, original)
+        self.assertEqual(rec_path.read_bytes(), original)
         self.plant_v3_config(
             job_ids=["job01"],
-            source_ids=["repo", "dispatch/job01"],
+            source_ids=["repo", "retained", "dispatch/job01"],
+            retained_refs="refs/heads/records/",
         )
-        stop = threading.Event()
+        self.ensure_boot()
 
-        def mutate():
-            n = 0
-            while not stop.is_set():
-                n += 1
-                fat["pad"] = ("P" * (512 * 1024 - 8)) + f"{n:08d}"
-                rec_path.write_bytes((json.dumps(fat) + "\n").encode())
-                time.sleep(0.001)
+        events: list[dict] = []
+        order: list[str] = []
 
-        worker = threading.Thread(target=mutate, daemon=True)
-        worker.start()
-        try:
-            proc = self.query("lane_start", {"profile": "dev"}, cap=15)
-        finally:
-            stop.set()
-            worker.join(timeout=2)
-        payload = self.load_envelope(proc, "lane_start")
-        self.assertEqual(payload["state"], "unavailable", payload)
-        self.assertEqual(payload["reason"], "changed-during-read")
-        self.assertIsNone(payload["snapshot"])
-        self.assertIsNone(payload["data"])
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        def mutate_retained(event):
+            closed = self.assert_checkpoint_event(event)
+            events.append(dict(closed))
+            order.append(f"{closed['phase']}:{closed['source_id']}")
+            if (
+                closed["phase"] == "before-final-revalidation"
+                and closed["source_id"] == "retained"
+            ):
+                self.git("update-ref", "refs/heads/records/keep", second)
+                got = self.git("rev-parse", "refs/heads/records/keep").stdout.strip()
+                self.assertEqual(got, second)
+                order.append("mutated:retained")
+
+        result = self.call_acquire(checkpoint=mutate_retained)
+        self.assertTrue(events, "checkpoint was not reached")
+        pairs = [(e["phase"], e["source_id"]) for e in events]
+        self.assertEqual(len(pairs), len(set(pairs)), pairs)
+        self.assertIn(("before-final-revalidation", "retained"), pairs)
+        self.assertIn("mutated:retained", order)
+        self.assertLess(
+            order.index("before-final-revalidation:retained"),
+            order.index("mutated:retained"),
+        )
+        self.assert_changed_during_read(result)
+        self.assertTrue(omitted_check_accepts(events, {"state": "ok", "data": {}}))
+
+        self.git("update-ref", "refs/heads/records/keep", first)
+        file_events: list[dict] = []
+
+        def mutate_dispatch(event):
+            closed = self.assert_checkpoint_event(event)
+            file_events.append(dict(closed))
+            if (
+                closed["phase"] == "before-file-postcheck"
+                and closed["source_id"] == "dispatch/job01"
+            ):
+                self._plant_bytes(rec_path, mutated)
+                self.assertEqual(rec_path.read_bytes(), mutated)
+                self.assertNotEqual(mutated, original)
+
+        file_result = self.call_acquire(checkpoint=mutate_dispatch)
+        self.assertTrue(
+            any(
+                e["phase"] == "before-file-postcheck"
+                and e["source_id"] == "dispatch/job01"
+                for e in file_events
+            ),
+            file_events,
+        )
+        self.assert_changed_during_read(file_result)
+
+        self._plant_bytes(rec_path, original)
+        self.git("update-ref", "refs/heads/records/keep", first)
+        stationary_events: list[dict] = []
+
+        def stationary(event):
+            stationary_events.append(self.assert_checkpoint_event(event))
+
+        neighbor = self.call_acquire(checkpoint=stationary)
+        self.assertTrue(stationary_events)
+        if isinstance(neighbor, dict) and neighbor.get("state") == "unavailable":
+            self.assertNotEqual(neighbor.get("reason"), "changed-during-read", neighbor)
+        else:
+            self.assertIsNotNone(neighbor)
+
+        disabled = self.plant_v3_config(
+            job_ids=[],
+            source_ids=["repo"],
+            retained_refs=None,
+        )
+        del disabled
+        disabled_events: list[dict] = []
+
+        def capture_disabled(event):
+            disabled_events.append(self.assert_checkpoint_event(event))
+
+        self.call_acquire(checkpoint=capture_disabled)
+        self.assertFalse(
+            any(e["source_id"] == "retained" for e in disabled_events),
+            disabled_events,
+        )
+        self.assertTrue(
+            any(
+                e["phase"] == "before-final-revalidation" and e["source_id"] == "repo"
+                for e in disabled_events
+            ),
+            disabled_events,
+        )
+
+        self.reset_repo()
+        self.plant_tree()
+        self.plant_v3_config(source_ids=["repo"], retained_refs=None)
+        self.destroy_head_object()
+        self.plant_v3_config(source_ids=["repo"], retained_refs=None)
+        failed_events: list[dict] = []
+
+        def capture_failed(event):
+            failed_events.append(self.assert_checkpoint_event(event))
+
+        failed = self.call_acquire(checkpoint=capture_failed)
+        self.assertFalse(
+            any(
+                e["phase"] == "before-final-revalidation" and e["source_id"] == "repo"
+                for e in failed_events
+            ),
+            failed_events,
+        )
+        self.assertIsNotNone(failed)
 
     def test_d_a36_body_and_frame_caps_do_not_truncate(self):
         inner = b"B" * 2049
@@ -356,5 +454,5 @@ class TestDiscoveryV3Adapter(_DiscoveryV3Fixture):
             with self.subTest(arguments=arguments):
                 proc = self.query("lane_start", arguments, config=conductor)
                 self.assert_refusal(proc, "arguments")
-                before = self.git("status", "--porcelain").stdout
-                self.assertEqual(self.git("status", "--porcelain").stdout, before)
+                before = self.owned_surface()
+                self.assertEqual(self.owned_surface(), before)
