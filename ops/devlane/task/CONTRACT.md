@@ -410,6 +410,10 @@ catalogue shape; duplicate members raise `envelope.OutputsError` with
 required. Dispatch retains exact source bytes/digest and maps that exception
 to its existing C2 refusal before filesystem effects. Resume uses retained
 declarations; any catalogue it must read uses the same strict reader.
+Task's `run()` maps `OutputsError` from default `load_jobs()` to its semantic
+invalid envelope with null verdict and an `outputs-schema` note carrying
+expected, found and needed; `main()` prints that envelope and exits 2 without
+a traceback, while direct library calls to `load_jobs()` keep raising.
 
 The following task-owned `envelope.py` signatures extend the existing
 library, with no policy or adapter implementation import:
@@ -613,7 +617,9 @@ job, role, adapter and reservations need available verified sources before
 admission; absent scope or outputs can supply only empty grants. For a conductor,
 the outputs component is explicitly absent, as is job (job_grants is empty);
 this is the sole exception to the available job-source requirement. Its role
-source covers admitted conductor restrictions and startup template; selection,
+source covers admitted conductor restrictions, startup template, caps and
+supervision configuration (including timeout and its source), retaining exact
+source bytes, ref and digest through the existing `role` component; selection,
 role, adapter and reservations still require available verified sources. No
 consumer indexes jobs.json with null or infers a read/write job for this case.
 For a worker, outputs may cite the catalogue whose measured omission yields
@@ -780,6 +786,19 @@ process double that returns precisely launch's existing exit/stdout/stderr.
 Relocate launcher-facing cases into the supplied dispatch adoption test home;
 keep task-only controls in their supplied task homes. No new production API
 is a remedy for test placement or a mock's preferred return value.
+
+Add these four named cases in the dispatch adoption test home, alongside the
+relocated frontend cases. They supplement the 83 supplied dispositions above
+and below; they do not replace selection-identity coverage. Each consumes
+[dispatch profile transport](../dispatch/CONTRACT.md#c1-frontend-inputs-and-results)
+through trusted inputs and the policy selection rule it cites:
+
+| class / method | required case and control |
+|:--|:--|
+| ProfileSelection: explicit_and_structured_profiles_agree | Equal valid explicit and structured ids resolve to that exact profile; either input alone selects that same id, without consulting a default. |
+| ProfileSelection: conflicting_profiles_refuse_before_effects | Different valid ids refuse lane-profile before directory, record, home, prompt or child effects; empty, unknown or malformed supplied ids also refuse without default fallback. |
+| ProfileSelection: absent_selections_use_only_configured_default | With both inputs absent/null, resolve only the admitted explicitly configured valid default; preserve its source and exact profile in TaskSelection. |
+| ProfileSelection: absent_selections_without_default_refuse | With both inputs absent/null and no configured default, refuse lane-profile before effects; no inference from harness, job role, record.lane, environment or scope prose. |
 
 ### Supplied test_execution_adoption.py cases
 
