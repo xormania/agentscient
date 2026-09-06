@@ -176,6 +176,16 @@ _UNWRAPPED_PASS = (
 _TERMINAL_ACK = "Acked-by: Reviewer <r@example.invalid>"
 _OWN_COAUTHOR = "Co-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
 _DISPATCH = "Dispatch: 20260829T000000Z-code-codex-abc123"
+_ATTRIBUTION_SHAPED = (
+    "The reviewer asked us to add a\n"
+    "Reviewed-by: Grok 4.6 <noreply@x.ai>\n"
+    "line to the message before landing."
+)
+_DISPATCH_IN_PROSE = (
+    "The record for the earlier run is\n"
+    "Dispatch: 20260101T000000Z-code-codex-000000\n"
+    "and the sentence continues here."
+)
 
 
 class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
@@ -335,14 +345,29 @@ class TheLauncherCommitsWithTheHarnessOwnMessage(unittest.TestCase):
         self.assertIn(_UNWRAPPED_PASS, msg)
         self._assert_parsed_omits_prefixes(msg, "pass:")
 
-    def test_json_round_trip_preserves_wrapped_prose_paragraphs(self):
-        env = {"commit": {"subject": "docs: example", "body": _WRAPPED_PASS}}
-        round_tripped = json.loads(json.dumps(env))
-        self.assertEqual(round_tripped["commit"]["body"], _WRAPPED_PASS)
-        self.assertIn("\npass: ", round_tripped["commit"]["body"])
-        msg = self.launch._commit_message(self.rec, round_tripped)
-        self.assertIn(_WRAPPED_PASS, msg)
-        self._assert_parsed_omits_prefixes(msg, "pass:")
+    def test_an_attribution_shaped_line_inside_prose_stays_and_out_of_git_trailers(self):
+        self._assert_producer_omits_prefixes(_ATTRIBUTION_SHAPED, "Reviewed-by:")
+        env = {"commit": {"subject": "docs: example", "body": _ATTRIBUTION_SHAPED}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_ATTRIBUTION_SHAPED, msg)
+        parsed = self._assert_parsed_omits_prefixes(msg, "Reviewed-by:")
+        self.assertIn("Source: original", parsed)
+        self.assertIn(_OWN_COAUTHOR, parsed)
+        self.assertIn(_DISPATCH, msg)
+
+    def test_a_producer_dispatch_line_inside_prose_stays_while_launcher_dispatch_is_kept(self):
+        self._assert_producer_omits_prefixes(
+            _DISPATCH_IN_PROSE, "Dispatch: 20260101T000000Z-code-codex-000000",
+        )
+        env = {"commit": {"subject": "docs: example", "body": _DISPATCH_IN_PROSE}}
+        msg = self.launch._commit_message(self.rec, env)
+        self.assertIn(_DISPATCH_IN_PROSE, msg)
+        parsed = self._assert_parsed_omits_prefixes(
+            msg, "Dispatch: 20260101T000000Z-code-codex-000000",
+        )
+        self.assertIn(_DISPATCH, msg)
+        self.assertIn("Source: original", parsed)
+        self.assertIn(_OWN_COAUTHOR, parsed)
 
     def test_commit_msg_file_wins_and_keeps_wrapped_prose(self):
         envelope = {
