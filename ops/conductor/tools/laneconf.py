@@ -365,6 +365,10 @@ def _literal_exempt(rel: str, line: str, needle: str) -> bool:
     if needle == "agentscient":
         return (rel, stripped) in {
             (
+                "ops/devlane/dispatch/record.py",
+                'POLICY_SCHEMA = "agentscient.lane-policy/v1"',
+            ),
+            (
                 "ops/conductor/tools/lane_read.py",
                 'SCHEMA = "agentscient.lane/v1"',
             ),

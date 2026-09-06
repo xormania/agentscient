@@ -8,6 +8,8 @@ import os
 import re
 from pathlib import Path
 
+POLICY_SCHEMA = "agentscient.lane-policy/v1"
+
 FIELDS = (
     "id", "lane", "stage", "unit", "lineage", "follows", "job", "role",
     "dispatched_by", "at", "snapshot", "harness", "model", "session",
@@ -67,8 +69,8 @@ def _validate_policy(brief):
     for key in ("schema", "path", "ref", "sha256", "admission", "profile",
                 "template_sha256", "grants_sha256", "maintenance"):
         _need(key in policy, f"brief.policy.{key}", "is missing")
-    _need(policy["schema"] == "agentscient.lane-policy/v1",
-          "brief.policy.schema", "must be agentscient.lane-policy/v1")
+    _need(policy["schema"] == POLICY_SCHEMA,
+          "brief.policy.schema", f"must be {POLICY_SCHEMA}")
     _need(policy["path"] == "ops/lane-policy.json",
           "brief.policy.path", "must be ops/lane-policy.json")
     _policy_match(policy["ref"], r"(?:[0-9a-f]{40}|[0-9a-f]{64})",
