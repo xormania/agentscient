@@ -70,6 +70,8 @@ Conductor recommendation for discussion: MCP could expose the conductor's operat
 
 Protocol evidence retrieved 2026-09-06 UTC through web search: the official MCP tools specification permits external-system actions and requires access controls; tool annotations are hints, not enforcement. Sources: https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx and https://blog.modelcontextprotocol.io/posts/2026-03-16-tool-annotations/ . No claim of installed host support or protocol-version compatibility follows from those sources. Server policy and host approval behavior both need live diagnostic proof; annotations alone cannot deliver unattended operation.
 
+Owner follow-up: "maybe two mcp servers - conductor and worker? Thoughts?" Conductor recommendation: separate role-specific MCP server entrypoints/instances from one codebase and shared Symfony services. conduct connects the conductor surface; the dispatcher supplies a worker instance bound to the assigned job and trusted identity. Tool discovery and every action authorization respect that boundary; a caller-controlled role argument cannot escalate it. Separate catalogues and job-bound sources keep context focused without duplicating execution or policy. This is a proposed deployment/access boundary for discussion, not approval for writable MCP or two independent service implementations.
+
 ## Worker execution consolidation
 
 Owner: "you said their are mutliple ways to launch worker harness - that's not good - we need to consolidate - thoughts?"
