@@ -88,8 +88,9 @@ source_ids: unique subset of `repo, retained, dispatch/ID` (ID here is an
 existing `job_ids` identifier with v1 grammar); repo is required; retained is
 allowed only with a configured retained prefix; dispatch IDs need a non-null
 dispatch binding. lineage is an ID naming the trusted work lineage, not a
-branch-name heuristic. At most 22 source IDs per profile. No profile-specific
-code branch or index column is allowed.
+branch-name heuristic. At most 22 source IDs per profile: required repo leaves
+room for 21 dispatch IDs when retained is absent from source_ids, or 20 when
+retained is included. No profile-specific code branch or index column is allowed.
 
 Shipped default declarations (all concepts remain reachable via homes):
 
@@ -116,7 +117,7 @@ nor deployment environments.
 | retained_refs | null or exactly `"refs/heads/records/"`; no default/fallback namespace |
 | dispatch | null or `{anchor:ID, path:relative-directory}`; binds the same resolved directory as v1 dispatch_store, but only profile-authorized job_ids are read |
 | record_bindings | 0..256 entries, exact shape below; trusted metadata owned by handoff custody, not parsed from record prose |
-| work_bindings | 0..20 entries `{id:job_id,lineage:ID,work_paths:[relative-file,...]}`; unique configured IDs, 1..64 unique paths |
+| work_bindings | 0..20 metadata entries `{id:job_id,lineage:ID,work_paths:[relative-file,...]}`; unique configured IDs, 1..64 unique paths; bounds bindings, not authorized dispatch IDs or work-list length |
 
 A record binding has exactly
 `{record_id:ID, kind:"handoff"|"aar", revision:SHA256, lineage:ID,
@@ -259,6 +260,10 @@ no authorized dispatch IDs gives four zeros, not a claim about all dispatches.
 
 Work is authorized dispatch summaries only, ordered by configured job_ids,
 filtered by work_bindings as below; title null, no prompts/transcripts/PRs.
+The complete eligible/unknown work list has at most 21 cards (20 when retained
+is in source_ids), bounded by authorized dispatch IDs, not work_bindings.
+An authorized dispatch without a work binding remains in that list as unknown;
+the 0..20 binding limit does not remove it or cap the list at 20.
 Branch state is already shown separately. Profile roots classify trusted
 work_paths: a record is relevant iff lineage equals profile.lineage and at
 least one path has an exact root prefix (directory boundary included).
@@ -536,8 +541,9 @@ turns a multiple/unknown selection into one.
 
 Cursor grammar is `<snapshot>:<offset>`, snapshot 64 lowercase hex, offset
 a canonical decimal integer (no leading zeros). For homes/handoffs offset is
-1..255; for lane_start it is 0..19 (0 permits retrying work omitted for fit
-on the initial read). Page one without cursor has offset 0.
+1..255; for lane_start it is 0..20, covering the at-most-21-card work list
+(0 permits retrying work omitted for fit on the initial read).
+Page one without cursor has offset 0.
 cursor binds the profile snapshot and query/list implicitly through a required
 matching `snapshot` argument plus query-specific offset bounds; it grants no
 access and may be reused as an offset on another list within the same profile
@@ -770,7 +776,7 @@ A counterparty change re-demands its coupled rows.
 | D-A23 | detail with profile and snapshot from start | same source closure and snapshot including actions |
 | D-A24 | retained ref moves to new commit with identical blob bytes | snapshot changes; old continuation refuses cursor |
 | D-A25 | content, profile roots, binding/supersedes, adapter or source failure changes | snapshot changes; old continuation refuses |
-| D-A26 | malformed, wrong-profile, missing/mismatching snapshot or out-of-bounds cursor, including lane_start | cursor wire; lane_start accepts canonical 0..19 below total, homes/handoffs 1..255 below total; no leading zeros, silent restart or skip |
+| D-A26 | malformed, wrong-profile, missing/mismatching snapshot or out-of-bounds cursor, including lane_start | cursor wire; lane_start accepts canonical 0..20 below total, homes/handoffs 1..255 below total; no leading zeros, silent restart or skip |
 | D-A27 | 65 refs, 257 occurrences, 4097 scanned tree entries, byte/op/time budget | declared overflow, incomplete or unavailable; never unique partial selection |
 | D-A28 | namespace unreadable vs empty vs disabled | unavailable/ok/disabled distinguished; disabled omission gives declared scope |
 | D-A29 | anchor symlink/ancestor swap, FIFO, malicious .git/commondir/alternates, ambient CWD/GIT_DIR | unsafe/repository failure, no escape/fallback/read effects |
@@ -784,6 +790,7 @@ A counterparty change re-demands its coupled rows.
 | D-A37 | 17 candidates within complete scan | page size ≤16; global selection unchanged; named lookup works |
 | D-A38 | initial eight-work slice exceeds cap but one card fits; then one oversized card or mandatory frame | initial work dropped with work omitted: N and work next cursor: S:0; continuation greedily advances without losing owners; item-exceeds-cap if no next card fits, page-frame-exceeds-cap if mandatory frame fails; every lane_start ≤8192 |
 | D-A38b | 20 authorized relevant work bindings in job_ids order, eight cards fit per page | initial/continuation counts 8/8/4, cursor offsets 8/16 then no cursor, omissions 12/4 then none; all 20 reachable once via CLI/MCP, same owners/law/state/actions/Selection/snapshot each page; tools remain 11 |
+| D-A38c | source_ids is repo plus 21 configured dispatch IDs in job_ids order, retained absent from source_ids, dispatch non-null, work_bindings empty; all dispatches readable, stationary snapshot S; mandatory frame fits and five work cards fit but six exceed 8192 bytes including final omissions at each nonfinal continuation | config valid at 22 source IDs; closure has 26 Source entries including disabled retained; total 21 unknown cards with lineage null and reason metadata-missing; initial eight-card slice dropped, work omitted: 21 and work next cursor: S:0; CLI/MCP continuations at offsets 0/5/10/15/20 return 5/5/5/5/1, omissions 16/11/6/1 then none, next cursors S:5/S:10/S:15/S:20 then none; S:20 with matching snapshot S returns the 21st card exactly once; S:21 refuses cursor, as does S:20 when total is 20; every successful envelope ≤8192 with the same owners/law/state/actions/Selection/snapshot; tools remain 11 |
 | D-A39 | stationary sources and resource first pages | byte-identical CLI/tool/resource envelopes, no per-call timestamps |
 | D-A40 | read without WF_AGENT, tools/list | success; readOnlyHint true, destructiveHint false |
 | D-A41 | before/after filesystem, DB, refs/index/config/object tree; import graph | unchanged; no writer imports; read core still no subprocess |
