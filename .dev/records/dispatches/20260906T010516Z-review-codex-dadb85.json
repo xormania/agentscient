@@ -1,0 +1,110 @@
+{
+  "id": "20260906T010516Z-review-codex-dadb85",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689"
+  },
+  "follows": [],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:05:17Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689",
+    "ref_sha": "d99c94fe898b9c2aff787d7800fdd3ce4f06a689",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "068800d7-3a27-466b-a188-41d99ad009bb",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Security-only review of Grok's completed discovery contract and plan. Owner reserves Daybreak for security; GPT-6 separately reviews functionality/architecture. Inspect authored docs and necessary owning contracts, not a whole-lane audit. Assess source trust versus authority, hostile record text, path/ref/source allowlists, fixed Git adapter and preserved no-subprocess read core, injection/option/env hazards, symlinks/special files, bounded reads/resource use, races/revision binding, cross-profile source isolation, credential access and proof of no filesystem/DB/ref/network mutation. Find exploitable ambiguity in the declared boundary, not absent future implementation. Scope is docs only: no executable tests, edits, runtime/settings/host changes or broad redesign. Return <=800-word security ruling with concrete expected/found/needed, source locations and contract-level counterexamples; report relevant limits. This is not a functional acceptance authoring job.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/discovery-contract-owner.md",
+        "sha256": "f5efc28034d5813173d37e9078a204c1e1cc0bf9d43c6c3b40f15eb3cc5d51d9"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/20260906T004903Z-code-grok-30509c.json",
+        "sha256": "6579f0a16e7e7db78babaad8e86aafc68ad97422420886a7580747cdaa3423d4"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/conductor-start-plan.md",
+        "sha256": "62f3579679bd14d9e972f0ec1f3b054f611011b2a1a292315199d3da9da4a58e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010516Z-review-codex-dadb85/in/discovery-lever.md",
+        "sha256": "76ee7ac8158dff14c354195acf17af987837cb0cc2ce4d57c85a2df94a3c502e"
+      }
+    ],
+    "sha256": "11061db45f02fa412557520f2f93241c088d90a22ea071342f76a4984cda51ff",
+    "bytes": 4306
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
