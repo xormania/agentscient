@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T03:51:17Z",
-    "closed": null
+    "closed": "2026-09-06T03:53:00Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035117Z-check-tests-codex-b79cb9/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-51-18-01a074d7-8cc4-76a1-8770-56745eccb364.jsonl"
   },
   "session": {
-    "id": "11758641-76d7-470d-8bbe-189834eab2b8",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a074d7-8cc4-76a1-8770-56745eccb364",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035117Z-check-tests-codex-b79cb9/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-51-18-01a074d7-8cc4-76a1-8770-56745eccb364.jsonl",
+    "stream_sha256_at_close": "d3b890f1c2de921a76526023233677b46369d334e2389dfe5d53fe06b7745ca9",
+    "spend": {
+      "input": 385223,
+      "cached": 333184,
+      "output": 2793,
+      "total": 388016,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035117Z-check-tests-codex-b79cb9/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T23-51-18-01a074d7-8cc4-76a1-8770-56745eccb364.jsonl",
+      "messages": 76
+    }
   },
   "brief": {
     "template": {
@@ -99,10 +106,56 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T03:51:17Z",
+      "ended": "2026-09-06T03:52:59Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "bc50b8c013d67a573b1c23ca30e93cecfad6bff8",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260906T035117Z-check-tests-codex-b79cb9/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 388016,
+        "out": 2793,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "bc50b8c013d67a573b1c23ca30e93cecfad6bff8",
+        "started": "2026-09-06T03:51:41Z",
+        "ended": "2026-09-06T03:52:50Z"
+      },
+      "note": "Execution evidence only; no test-design approval. Measured sha1; 96 tests, 65 intended assertion failures across 52 methods, zero errors, 35 old passes and nine positive passes. Unittest exited 1; guard exited 0 with every plant guarded. Neither command was denied. Git status and staged/unstaged diffs remained clean. Claude owns test-design acceptance; implementation remains a separate dispatch."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T03:52:59.161Z"
+    }
+  },
+  "status": "closed"
 }
