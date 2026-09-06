@@ -1710,7 +1710,7 @@ class _DiscoveryV3Fixture(_LaneMcpFixture):
         chosen = None
         for length in range(0, 257):
             status = ("W" * length) if length else "closed"
-            def cards(n: int) -> list[dict]:
+            def cards(n: int, status: str = status) -> list[dict]:
                 return [
                     {
                         "id": jobs[i],
