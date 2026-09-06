@@ -52,6 +52,14 @@ LAW = (
         "the stack: layers, incumbents, open seats",
     ),
     ("ops/conductor/coverage-zones.md", "what gates what"),
+    (
+        "ops/conductor/discovery-lever.md",
+        "profile discovery, source custody, and uncertainty",
+    ),
+    (
+        "ops/conductor/conductor-start-plan.md",
+        "the conductor startup sequence and admission boundaries",
+    ),
 )
 EM = "—"
 
@@ -868,6 +876,25 @@ class _OnboardFixture(unittest.TestCase):
         )
 
 
+class LawContract(unittest.TestCase):
+    """Keep the independent fixture coupled to onboard's owning table."""
+
+    def test_law_fixture_matches_owning_contract(self):
+        contract = (REPO / "ops/conductor/onboard-lever.md").read_text(
+            encoding="utf-8"
+        )
+        law_section = contract.split("**`== law`**", 1)[1].split(
+            "**`== state`**", 1
+        )[0]
+        declared = tuple(re.findall(
+            r"^\| `([^`]+)` \| ([^|\n]+) \|$", law_section, re.MULTILINE
+        ))
+        self.assertEqual(
+            LAW, declared,
+            "LAW must match onboard-lever.md paths, one-liners and order",
+        )
+
+
 class ToolPresence(_OnboardFixture):
     """Missing tool file counts once."""
 
@@ -888,7 +915,7 @@ class HappyPath(_OnboardFixture):
         self.assertLess(law_i, state_i, stdout)
         self.assertLess(state_i, thread_i, stdout)
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
-        self.assertEqual(len(ok_lines), 5, stdout)
+        self.assertEqual(len(ok_lines), 7, stdout)
         for path, one_liner in LAW:
             self.assertIn(ok_line(path, one_liner), stdout)
         register = self.labelled_line(stdout, "register")
