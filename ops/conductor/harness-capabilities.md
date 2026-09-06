@@ -171,6 +171,15 @@ Synthetic grammar and admissible vector (fixture executable only):
 across forms, `--dis`, `-q`, `--display=SECRET`, `@file`, `--config=x`, or trailing
 positional text refuses. These examples grant no real vendor option.
 
+The documentary checker counts two document-present positive vectors and seven
+document-described negative vectors (the repetition and positional descriptions
+are materialized as concrete tokens by the checker). It additionally synthesizes
+one positive empty vector and two negatives, bare `--` and missing display value.
+Thus its three positive and nine negative cases include synthetic additions;
+none is live vendor evidence. A successor receipt must supply the checker, label
+these origins and bind the actual checked bytes and revision/tree with UTC.
+The earlier unstamped receipt remains historical evidence, not a current check.
+
 Reject before prompt assembly, record/attempt creation, subprocess invocation or
 logging raw input. Never interpolate rejected option names/values, raw vendor
 parse errors or a hash of rejected secret material into diagnostics. Return

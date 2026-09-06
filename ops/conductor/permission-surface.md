@@ -92,12 +92,13 @@ binding and admitted tool declarations; the request cannot select it. The
 normalizer is pinned adapter code. Never trust a model-supplied classification,
 claimed effect list, command substring or tool display name as provenance.
 
-Counterpart pending: adoption unit 1a owns the matching declaration of
+Counterpart ownership: adoption unit 1a supplies the matching declaration of
 `evaluate_tool(bound_role, normalized_request)` and its Request/Decision coupling
-in `lane-policy.md`. That document currently names the evaluator module only;
-the bootstrap citation above establishes ownership, not a completed interface
-counterpart. This is a declared unresolved edge until unit 1a binds these exact
-shapes and independent verification closes it. This slice does not activate it.
+in [lane-policy.md](lane-policy.md). At review `20260906T110711Z-review-claude-e4968e`
+that declaration was pending; the bootstrap citation alone established only
+module ownership. Unit 1a closes the documentary edge by binding these exact
+shapes. Executable coupling remains unresolved until independent verification;
+neither the declaration nor this interface activates it.
 
 Use the startup contract's strict JSON and canonical digest rules, with a
 65536-byte request bound and no duplicate/missing/unknown fields. Request is
