@@ -14,9 +14,10 @@ existed. Each test names the contract rule it pins:
   Rec9  schema-complete: lineage, role, snapshot.mode, containment, status
   Rec10 optional brief.policy: absent is legacy; string/null/empty object refuse
   Rec11 required binding fields, types, schema/path, Git-id and digest shapes
+        (Git-id length is this repository's measured sha1 object format)
   Rec12 template_sha256 equals brief.template.sha256
   Rec13 maintenance null or exactly standing/per_job sorted unique rows
-  Rec14 profile syntax [a-z][a-z0-9-]*; no membership lookup
+  Rec14 profile syntax [a-z][a-z0-9-]* including digits; no membership lookup
 """
 
 from __future__ import annotations
@@ -498,10 +499,23 @@ class BriefPolicyBindingShape(_RecordCase):
 
     Structural validation is not permission admission. These cases do not
     look up an authority store, recompute grants_sha256, or exercise a CLI.
+
+    Git-id fixture: this repository's object format was measured as sha1
+    (`git rev-parse --show-object-format` at the authoring tree). The
+    valid `ref` is therefore the full 40-character lowercase hex Git id.
+    That is this repository's measured object format, not a universal
+    SHA-1 policy rule and not a SHA-256 object-id grammar.
+
+    Profile fixture: brief.policy.profile uses the declared profile
+    namespace grammar [a-z][a-z0-9-]* without membership lookup.
     """
 
     _SCHEMA = "agentscient.lane-policy/v1"
     _PATH = "ops/lane-policy.json"
+    # Measured object format of this repository, not a policy-universal length.
+    _OBJECT_FORMAT = "sha1"
+    _FULL_GIT_ID_HEX_LEN = 40
+    _VALID_REF = "c" * 40
     _REQUIRED = (
         "schema",
         "path",
@@ -513,6 +527,25 @@ class BriefPolicyBindingShape(_RecordCase):
         "grants_sha256",
         "maintenance",
     )
+    _REQUIRED_SET = frozenset((
+        "schema",
+        "path",
+        "ref",
+        "sha256",
+        "admission",
+        "profile",
+        "template_sha256",
+        "grants_sha256",
+        "maintenance",
+    ))
+    _INVALID_PROFILES = {
+        "empty": "",
+        "uppercase": "Dev",
+        "leading-digit": "1dev",
+        "underscore": "fixture_only",
+        "leading-hyphen": "-dev",
+        "slash": "dev/prod",
+    }
 
     def recmod(self):
         if getattr(self, "record", None) is None:
@@ -523,7 +556,7 @@ class BriefPolicyBindingShape(_RecordCase):
         policy = {
             "schema": self._SCHEMA,
             "path": self._PATH,
-            "ref": "c" * 40,
+            "ref": self._VALID_REF,
             "sha256": "e" * 64,
             "admission": {"record": "D-LANES-1", "sha256": "f" * 64},
             "profile": "fixture-only",
@@ -533,6 +566,14 @@ class BriefPolicyBindingShape(_RecordCase):
         }
         policy.update(overrides)
         return policy
+
+    def _required_refusal_name(self, field):
+        # Rec6: name the missing field. Unqualified "path" and "sha256"
+        # are substrings of other record fields (template.path,
+        # grants_sha256, template_sha256); "ref" is qualified the same way.
+        if field in ("path", "ref", "sha256"):
+            return "policy." + field
+        return field
 
     def _with_policy(self, policy):
         rec = self.built()
@@ -574,13 +615,15 @@ class BriefPolicyBindingShape(_RecordCase):
         self._raises_naming(rec, "policy")
 
     def test_each_required_binding_field_missing_is_refused(self):
+        self.assertEqual(len(self._REQUIRED), 9)
+        self.assertEqual(set(self._REQUIRED), set(self._REQUIRED_SET))
         for field in self._REQUIRED:
             with self.subTest(field=field):
                 policy = self._binding()
                 del policy[field]
                 rec = self._with_policy(policy)
                 self.assertNotIn(field, rec["brief"]["policy"])
-                self._raises_naming(rec, field if field != "ref" else "policy.ref")
+                self._raises_naming(rec, self._required_refusal_name(field))
 
     def test_wrong_schema_value_is_refused(self):
         policy = self._binding(schema="agentscient.lane-policy/v0")
@@ -615,23 +658,26 @@ class BriefPolicyBindingShape(_RecordCase):
         rec = self._with_policy(policy)
         self.assertEqual(rec["brief"]["policy"]["ref"], "c" * 7)
         self.assertEqual(len(rec["brief"]["policy"]["ref"]), 7)
+        self.assertNotEqual(
+            len(rec["brief"]["policy"]["ref"]), self._FULL_GIT_ID_HEX_LEN,
+        )
         self._raises_naming(rec, "policy.ref")
 
     def test_uppercase_ref_is_refused(self):
-        policy = self._binding(ref="C" * 40)
+        policy = self._binding(ref="C" * self._FULL_GIT_ID_HEX_LEN)
         rec = self._with_policy(policy)
-        self.assertEqual(rec["brief"]["policy"]["ref"], "C" * 40)
-        self.assertEqual(len(rec["brief"]["policy"]["ref"]), 40)
+        self.assertEqual(rec["brief"]["policy"]["ref"], "C" * self._FULL_GIT_ID_HEX_LEN)
+        self.assertEqual(len(rec["brief"]["policy"]["ref"]), self._FULL_GIT_ID_HEX_LEN)
         self.assertNotEqual(
             rec["brief"]["policy"]["ref"], rec["brief"]["policy"]["ref"].lower(),
         )
         self._raises_naming(rec, "policy.ref")
 
     def test_non_hex_ref_is_refused(self):
-        policy = self._binding(ref="g" * 40)
+        policy = self._binding(ref="g" * self._FULL_GIT_ID_HEX_LEN)
         rec = self._with_policy(policy)
-        self.assertEqual(rec["brief"]["policy"]["ref"], "g" * 40)
-        self.assertEqual(len(rec["brief"]["policy"]["ref"]), 40)
+        self.assertEqual(rec["brief"]["policy"]["ref"], "g" * self._FULL_GIT_ID_HEX_LEN)
+        self.assertEqual(len(rec["brief"]["policy"]["ref"]), self._FULL_GIT_ID_HEX_LEN)
         self._raises_naming(rec, "policy.ref")
 
     def test_non_string_ref_is_refused(self):
@@ -694,6 +740,24 @@ class BriefPolicyBindingShape(_RecordCase):
         self.assertEqual(rec["brief"]["policy"]["admission"]["record"], "d-lanes-1")
         self._raises_naming(rec, "admission")
 
+    def test_admission_record_missing_the_D_prefix_is_refused(self):
+        policy = self._binding(admission={"record": "LANES-1", "sha256": "f" * 64})
+        rec = self._with_policy(policy)
+        self.assertEqual(rec["brief"]["policy"]["admission"]["record"], "LANES-1")
+        self._raises_naming(rec, "admission")
+
+    def test_empty_admission_record_is_refused(self):
+        policy = self._binding(admission={"record": "", "sha256": "f" * 64})
+        rec = self._with_policy(policy)
+        self.assertEqual(rec["brief"]["policy"]["admission"]["record"], "")
+        self._raises_naming(rec, "admission")
+
+    def test_non_string_admission_record_is_refused(self):
+        policy = self._binding(admission={"record": ["D-LANES-1"], "sha256": "f" * 64})
+        rec = self._with_policy(policy)
+        self.assertEqual(rec["brief"]["policy"]["admission"]["record"], ["D-LANES-1"])
+        self._raises_naming(rec, "admission")
+
     def test_admission_sha256_uppercase_is_refused(self):
         policy = self._binding(admission={"record": "D-LANES-1", "sha256": "F" * 64})
         rec = self._with_policy(policy)
@@ -711,6 +775,25 @@ class BriefPolicyBindingShape(_RecordCase):
         )
         self._raises_naming(rec, "template_sha256")
 
+    def test_uppercase_template_sha256_is_refused(self):
+        policy = self._binding(template_sha256="C" * 64)
+        rec = self._with_policy(policy)
+        self.assertEqual(rec["brief"]["policy"]["template_sha256"], "C" * 64)
+        self.assertEqual(len(rec["brief"]["policy"]["template_sha256"]), 64)
+        self.assertNotEqual(
+            rec["brief"]["policy"]["template_sha256"],
+            rec["brief"]["policy"]["template_sha256"].lower(),
+        )
+        self.assertEqual(rec["brief"]["template"]["sha256"], "c" * 64)
+        self._raises_naming(rec, "template_sha256")
+
+    def test_short_template_sha256_is_refused(self):
+        policy = self._binding(template_sha256="c" * 40)
+        rec = self._with_policy(policy)
+        self.assertEqual(rec["brief"]["policy"]["template_sha256"], "c" * 40)
+        self.assertEqual(len(rec["brief"]["policy"]["template_sha256"]), 40)
+        self._raises_naming(rec, "template_sha256")
+
     def test_uppercase_grants_sha256_is_refused(self):
         policy = self._binding(grants_sha256="A" * 64)
         rec = self._with_policy(policy)
@@ -724,15 +807,26 @@ class BriefPolicyBindingShape(_RecordCase):
         self.assertEqual(rec["brief"]["policy"]["grants_sha256"], "1" * 40)
         self._raises_naming(rec, "grants_sha256")
 
+    def test_non_string_grants_sha256_is_refused(self):
+        policy = self._binding(grants_sha256=["1" * 64])
+        rec = self._with_policy(policy)
+        self.assertEqual(rec["brief"]["policy"]["grants_sha256"], ["1" * 64])
+        self._raises_naming(rec, "grants_sha256")
+
     def test_profile_outside_the_specified_syntax_is_refused(self):
-        invalid = {
-            "empty": "",
-            "uppercase": "Dev",
-            "leading-digit": "1dev",
-            "underscore": "fixture_only",
-            "leading-hyphen": "-dev",
-            "slash": "dev/prod",
-        }
+        invalid = dict(self._INVALID_PROFILES)
+        self.assertEqual(len(invalid), 6)
+        self.assertEqual(
+            set(invalid),
+            {
+                "empty",
+                "uppercase",
+                "leading-digit",
+                "underscore",
+                "leading-hyphen",
+                "slash",
+            },
+        )
         for label, profile in invalid.items():
             with self.subTest(label=label, profile=profile):
                 rec = self._with_policy(self._binding(profile=profile))
@@ -843,6 +937,48 @@ class BriefPolicyBindingShape(_RecordCase):
         self.assertNotEqual(ids, sorted(set(ids)))
         self._raises_naming(rec, "maintenance")
 
+    def test_per_job_item_missing_record_is_refused(self):
+        rec = self._with_policy(self._binding(maintenance=self._maintenance(
+            per_job=[{"sha256": "4" * 64}],
+        )))
+        self.assertNotIn("record", rec["brief"]["policy"]["maintenance"]["per_job"][0])
+        self._raises_naming(rec, "maintenance")
+
+    def test_per_job_item_missing_sha256_is_refused(self):
+        rec = self._with_policy(self._binding(maintenance=self._maintenance(
+            per_job=[{"record": "D-JOB-1"}],
+        )))
+        self.assertNotIn("sha256", rec["brief"]["policy"]["maintenance"]["per_job"][0])
+        self._raises_naming(rec, "maintenance")
+
+    def test_duplicate_per_job_record_id_is_refused(self):
+        per_job = [self._row("D-JOB-1", "4"), self._row("D-JOB-1", "5")]
+        rec = self._with_policy(self._binding(maintenance=self._maintenance(
+            per_job=per_job,
+        )))
+        ids = [row["record"] for row in rec["brief"]["policy"]["maintenance"]["per_job"]]
+        self.assertEqual(ids, ["D-JOB-1", "D-JOB-1"])
+        self.assertNotEqual(len(ids), len(set(ids)))
+        self._raises_naming(rec, "maintenance")
+
+    def test_per_job_decision_id_outside_the_pattern_is_refused(self):
+        rec = self._with_policy(self._binding(maintenance=self._maintenance(
+            per_job=[self._row("JOB-1", "4")],
+        )))
+        self.assertEqual(
+            rec["brief"]["policy"]["maintenance"]["per_job"][0]["record"], "JOB-1",
+        )
+        self._raises_naming(rec, "maintenance")
+
+    def test_per_job_item_uppercase_digest_is_refused(self):
+        rec = self._with_policy(self._binding(maintenance=self._maintenance(
+            per_job=[{"record": "D-JOB-1", "sha256": "F" * 64}],
+        )))
+        self.assertEqual(
+            rec["brief"]["policy"]["maintenance"]["per_job"][0]["sha256"], "F" * 64,
+        )
+        self._raises_naming(rec, "maintenance")
+
     def test_standing_item_uppercase_digest_is_refused(self):
         rec = self._with_policy(self._binding(maintenance=self._maintenance(
             standing=[{"record": "D-LANES-1", "sha256": "B" * 64}],
@@ -860,20 +996,15 @@ class BriefPolicyBindingShape(_RecordCase):
         self.assertEqual(out["id"], rec["id"])
 
     def test_a_complete_valid_binding_validates(self):
-        rec = self._with_policy(self._binding())
+        binding = self._binding()
+        rec = self._with_policy(binding)
         out = self.recmod().validate(rec)
-        policy = out["brief"]["policy"]
-        self.assertEqual(policy["schema"], self._SCHEMA)
-        self.assertEqual(policy["path"], self._PATH)
-        self.assertEqual(policy["profile"], "fixture-only")
-        self.assertEqual(policy["ref"], "c" * 40)
-        self.assertEqual(len(policy["sha256"]), 64)
-        self.assertEqual(policy["sha256"], policy["sha256"].lower())
-        self.assertEqual(policy["admission"]["record"], "D-LANES-1")
+        self.assertEqual(out["brief"]["policy"], binding)
         self.assertEqual(
-            policy["template_sha256"], out["brief"]["template"]["sha256"],
+            out["brief"]["policy"]["template_sha256"],
+            out["brief"]["template"]["sha256"],
         )
-        self.assertIsNone(policy["maintenance"])
+        self.assertIsNone(out["brief"]["policy"]["maintenance"])
 
     def test_build_then_validate_accepts_a_complete_valid_binding(self):
         payload = self._minimum()
@@ -924,6 +1055,12 @@ class BriefPolicyBindingShape(_RecordCase):
         self.assertEqual(rec["brief"]["policy"]["profile"], "fixture-only")
         out = self.recmod().validate(rec)
         self.assertEqual(out["brief"]["policy"]["profile"], "fixture-only")
+
+    def test_a_digit_bearing_syntactically_valid_synthetic_profile_validates(self):
+        rec = self._with_policy(self._binding(profile="fixture-only2"))
+        self.assertEqual(rec["brief"]["policy"]["profile"], "fixture-only2")
+        out = self.recmod().validate(rec)
+        self.assertEqual(out["brief"]["policy"]["profile"], "fixture-only2")
 
     def test_template_digest_equality_holds_when_both_digests_change_together(self):
         rec = self.built()
