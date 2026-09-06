@@ -1,0 +1,102 @@
+{
+  "id": "20260906T012006Z-review-codex-464dfc",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "e59a52bce37dbd1fed52d358b655bae00267f71f"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:20:07Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+    "ref_sha": "e59a52bce37dbd1fed52d358b655bae00267f71f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "99efa085-f885-45de-8879-2c2b156c3108",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Read worker-launch-consolidation-owner.md and home-map input. Independently inventory worker launch paths, not a general lane audit. Read docs/ and ops/README.md. Trace launch.py, task/run.py, dispatch/go/ladder, levers and any other launch-capable caller. Classify active, manual/dormant, probe, fixture and compatibility paths from evidence; do not claim live use from source alone. Map unique supported behavior and exact existing conformance/tests for snapshots, staging/filesets, argv/policy, isolation, resume, supervision/breakers/watchdog, envelopes and record custody. Report drift and observable convergence/retirement cases for the planner to account for. Do not design implementation or author tests. Safe existing targeted checks only; no vendor launches, network, credentials, source/config/host/DB edits. Return compact behavior matrix, commands/ref, coverage limits and findings; distinguish inspected absence from unavailable evidence. This is functional architecture work, not Daybreak security review.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/in/worker-launch-consolidation-owner.md",
+        "sha256": "199c13d6fd15d1419fc4c5f0438fa0f8817543801db5bfdc7ca4ba231bff2b02"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T012006Z-review-codex-464dfc/in/conductor-start-home-map-20260905.md",
+        "sha256": "d83b5b1321894e69a5928a1c9b6e3c39c087fbb41943376a8697ae27ac20aa7d"
+      }
+    ],
+    "sha256": "7cc037b6e762a3318b02594cc8d876625aaca8f7c166a1673fcbe0bac4d1c900",
+    "bytes": 3329
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
