@@ -197,7 +197,10 @@ class AppendDeclaredOutputsToPrompt(unittest.TestCase):
             got,
             "Write the skeptic report." + "\n\n" + CHECK_TESTS_SECTION,
         )
-        self.assertFalse(got.startswith(prompt))
+        self.assertFalse(
+            got.startswith(prompt + "\n"),
+            "unstripped trailing newlines remain before the two LFs",
+        )
 
     def test_trailing_crlf_is_stripped(self):
         prompt = "Write the skeptic report.\r\n"
