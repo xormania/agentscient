@@ -12,11 +12,7 @@ review. Its [payload examples](discovery-examples.md) and
 do not relax this v1 baseline or the shared read core's subprocess prohibition.
 
 Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
-<<<<<<< lane/conductor-start-20260905
-and handoff. Dev-lane machinery only, not Symfony work. This independent
-=======
-and handoff. Dev-lane machinery only, not Symfony work. This read-only
->>>>>>> lane/lane-boundary-20260905
+and handoff. Dev-lane machinery only, not Symfony work. This independent, read-only
 projection inherits `instrument-conventions.md`; it adds no workflow engine.
 
 The owner correction of 2026-09-05 is governed by
