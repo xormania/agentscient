@@ -16,6 +16,7 @@ crossed, the House's records did not.
 | `*.md` | the instrument contracts and the lane's doctrine — `instrument-conventions.md` first, every instrument inherits it |
 | `conductor-start-plan.md` | the four-step conduct/MCP sequence; step 1 is documentation only |
 | `discovery-lever.md` | shared CLI/MCP discovery contract and acceptance rows; instrument ABSENT until step 2 |
+| [discovery-examples.md](discovery-examples.md) | non-executable v3 payload examples; correction awaits independent review |
 | `ideas/` | the idea records, `I-NNN-<slug>.md` — see `ideas/README.md` |
 | `handoff/` | hand-over records and the probes corpus — see `handoff/README.md` |
 | `AAR-*.md` | after-action reports; the newest one's calibration clause is what `onboard` serves as the thread |

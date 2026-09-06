@@ -6,6 +6,11 @@ The [discovery contract](discovery-lever.md) is the version-3 extension
 (startup, homes, handoffs, actions). v1 and v2 stay unchanged. Sequence:
 [conductor-start-plan.md](conductor-start-plan.md).
 
+The corrected v3 proposal targets conductors only and is awaiting independent
+review. Its [payload examples](discovery-examples.md) and
+[fixed acquisition boundary](discovery-lever.md#fixed-acquisition-boundary)
+do not relax this v1 baseline or the shared read core's subprocess prohibition.
+
 Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
 and handoff. Dev-lane machinery only, not Symfony work. This thin incumbent
 projection inherits `instrument-conventions.md`; it adds no workflow engine.
