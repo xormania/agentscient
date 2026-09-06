@@ -37,3 +37,9 @@ Preserve source allowlisting and bounded local reads. Current lane_read forbids 
 Fresh-session acceptance covers both work profiles: identify authoritative owners and real tools; recover an unambiguous relevant handoff without a supplied path; distinguish no/one/multiple/unreadable/stale candidates; label unavailable actions honestly; preserve stationary CLI/MCP payload parity; treat record text as data; and leave sources, refs, databases and worktrees unchanged. Discovery does not claim host activation, live readiness, role enforcement or lifecycle publication.
 
 Scope: documentation and contract only. Do not write or change executable tests, source implementation, active settings, dependencies, runtime databases, host configuration, or existing captured records. Do not publish a PR or change remote state. Preserve other work, record actual measurements and limitations, and use parsed Source and actual-model Co-Authored-By trailers. Return the artifact paths, commit, documentation checks and unresolved questions in a compact envelope.
+
+## Reviewer selection
+
+Owner, 2026-09-05: "have codex chatgpt6 review grok's plan"
+
+Use the Codex harness with GPT-6 for the independent review of Grok's plan and discovery contract. The installed Codex model catalogue was read and advertises `gpt-6-astra` as GPT-6-Astra with high reasoning supported. Name that model explicitly at dispatch; preserve the actual-model evidence in the resulting record. No review has yet been performed merely because a reviewer was selected.
