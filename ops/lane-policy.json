@@ -5,8 +5,8 @@
   "protected_authority_paths": [
     "AGENTS.md", "CLAUDE.md", "docs/", ".agents/", ".claude/", ".github/", ".mcp.json",
     "ops/README.md", "ops/devlane/AGENTS.md", "ops/lane.conf", "ops/lane-policy.json",
-    "ops/bin/suites.sh", "ops/bin/dispatch.sh", "ops/bin/go.sh",
-    "ops/conductor/tools/laneconf.py",
+    "ops/bin/suites.sh", "ops/bin/dispatch.sh", "ops/bin/go.sh", "ops/bin/ladder.sh",
+    "ops/conductor/tools/dispatch.sh", "ops/conductor/tools/laneconf.py",
     "ops/conductor/lane-policy.md", "ops/conductor/onboard-lever.md",
     "ops/conductor/instrument-conventions.md", "ops/conductor/land-lever.md",
     "ops/devlane/dispatch/CONTRACT.md", "ops/devlane/task/CONTRACT.md",
