@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T04:26:17Z",
-    "closed": null
+    "closed": "2026-09-06T04:32:23Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,22 @@
       "--reasoning-effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok-stream/sessions/<snapshot-encoded>/7d08a49a-c3e0-472f-9ea4-d29a792b2e91/summary.json"
   },
   "session": {
     "id": "7d08a49a-c3e0-472f-9ea4-d29a792b2e91",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok-stream/sessions/<snapshot-encoded>/7d08a49a-c3e0-472f-9ea4-d29a792b2e91/summary.json",
+    "stream_sha256_at_close": "3284fbd07fbedc64d35a1cff032a8d2210937b2ebf24fa1845241c4a3e39a37e",
+    "spend": {
+      "input": 1324353,
+      "cached": 1176576,
+      "output": 20937,
+      "total": 1345290,
+      "cost_usd_ticks": 1716088800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok-stream/sessions/<snapshot-encoded>/7d08a49a-c3e0-472f-9ea4-d29a792b2e91/summary.json",
+      "messages": 169
+    }
   },
   "brief": {
     "template": {
@@ -99,10 +107,63 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T04:26:17Z",
+      "ended": "2026-09-06T04:32:23Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a65dd9c3b55d3864a672e16223931e400071a6e6",
+    "changed_paths": [
+      "ops/conductor/tests/test_laneconf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_laneconf.py",
+        "commit": "a65dd9c3b55d3864a672e16223931e400071a6e6",
+        "blob": "13e486c20ca2ffd22dc10a97a06d1926f70ca5f2",
+        "base": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+        "unittest": "python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py \u2014 52 collected, 6 failed, 0 errors",
+        "test-guard": "python3 ops/devlane/hooks/claude/test-guard.py ops/conductor/tests/test_laneconf.py \u2014 every plant is guarded"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1345290,
+        "out": 20937,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+        "started": null,
+        "ended": null
+      },
+      "note": "Corrected only ops/conductor/tests/test_laneconf.py at 49f2124459f80d1afcdd4d6d07c409daebbbc1ab; committed a65dd9c3b55d3864a672e16223931e400071a6e6 (blob 13e486c20ca2ffd22dc10a97a06d1926f70ca5f2). Did not read laneconf.py or record.py. Frozen command python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py: 52 collected, 6 failed, 0 errors. Intended allowance assertion reds: test_exact_policy_schema_declaration_after_benign_lines_exits_0 failed assertEqual(returncode, 0) with ops/devlane/dispatch/record.py:3: forbidden literal agentscient; test_permitted_declaration_plus_another_agentscient_use_exits_1 failed assertNotIn of record.py:1: forbidden literal agentscient while record.py:2: forbidden literal agentscient remained; test_permitted_declaration_plus_another_forbidden_token_exits_1 failed the same absence assertion while ops/bin/legacy-origin.sh:3: forbidden literal origin/dev remained; existing positives test_exact_policy_schema_declaration_at_record_py_exits_0 and test_outer_whitespace_policy_schema_declaration_at_record_py_exits_0 failed on record.py:1: forbidden literal agentscient. Separate known baseline failure: test_literals_exits_0_on_the_tree (record.py:70 and :71). Passing controls: test_exact_policy_schema_declaration_at_dispatch_sibling_exits_1, test_exact_policy_schema_declaration_at_other_record_py_exits_1, existing other-path/altered-name/value/comment/statement/distinct-token negatives, and test_existing_mcp_declaration_allowances_remain_valid. test-guard: every plant is guarded. No skips, no source/contract edits."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-06T04:32:21.332Z"
+    }
+  },
+  "status": "closed"
 }
