@@ -1,0 +1,100 @@
+{
+  "id": "20260906T013707Z-code-codex-a46459",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "fd1eb4c79d12c9efee7a8b50670c55d826ae7b1f"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:37:08Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "fd1eb4c79d12c9efee7a8b50670c55d826ae7b1f",
+    "ref_sha": "fd1eb4c79d12c9efee7a8b50670c55d826ae7b1f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013707Z-code-codex-a46459/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013707Z-code-codex-a46459/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013707Z-code-codex-a46459/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013707Z-code-codex-a46459/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T013707Z-code-codex-a46459/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T013707Z-code-codex-a46459/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "16e3d89f-56a6-414c-8371-74167b9d9957",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Docs only: apply latest owner rulings in lane-boundary-owner.md, not its planning assignment. Dev tooling and prod application stay independent; no Symfony app dependency or automatic twin/strangler retirement. Read docs/ and ops/README. Correct active AGENTS/CLAUDE seeds, ops/README and necessary owning contracts; make boundary and precedence discoverable. Preserve prod application's Symfony rules, shared wire/provenance and historical records; superseded doctrine cannot govern current operation. Use existing homes. Parallel planner owns enforcement design: no guard implementation, executable tests/source, active settings, stores, dependency or remote changes. Acceptance command: git diff --check. Verify instruction references and report coverage/remaining gaps with commands/ref. Commit actual-model trailers; return compact envelope. No self-approval.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013707Z-code-codex-a46459/in/lane-boundary-owner.md",
+        "sha256": "76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169"
+      }
+    ],
+    "sha256": "bfb960ad211090c73cac002710fa9736f075d55bcd755138fa31efa5229dfd1b",
+    "bytes": 4711
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
