@@ -1,0 +1,106 @@
+{
+  "id": "20260906T013410Z-plan-codex-670fff",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "83ee5c6144d5e7e06bc1c345a9eee6abc412a740"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:34:10Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "83ee5c6144d5e7e06bc1c345a9eee6abc412a740",
+    "ref_sha": "83ee5c6144d5e7e06bc1c345a9eee6abc412a740",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "fc472563-1281-4c8c-a878-7fbf0ac53a82",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Assess and plan enforcement per lane-boundary-owner.md; owner overrides conflicting seeds. Dev/prod remain independent: no Symfony app dependency or future replacement of dev tooling by prod. Read inputs, docs/ and ops/README. Trace active incumbent/strangler/twin doctrine, instruction composition, onboarding, dispatch/config/hooks and acceptance. Define authority corrections and one configurable lane-policy owner, independent of role/harness, with file/dependency boundaries and refusals. Shared contract reads/prod-app references remain allowed; no word ban or semantic-enforcement claim from prompts. First slice protects today's lane without new conduct/workflow/MCP dependencies. Return PLAN as an envelope artifact string; no file output. Include required brief sections, exact contract/test/code ownership, positive/negative/third-profile/resume/doctrine-regression cases and smallest green slices. Read-only: no source/tests/settings/host/DB/network edits, credentials or vendor launches. No self-approval.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/in/lane-boundary-owner.md",
+        "sha256": "76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/in/prior-home-map.md",
+        "sha256": "d83b5b1321894e69a5928a1c9b6e3c39c087fbb41943376a8697ae27ac20aa7d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013410Z-plan-codex-670fff/in/launch-inventory-evidence.json",
+        "sha256": "da32e5c31bf6cfe7a971258c8abc390587e2549e0a518a27d9570734616cabfc"
+      }
+    ],
+    "sha256": "06fa8c39d54e841d533df15434f0c700254dc2ff973dc75105a760e03ba59b08",
+    "bytes": 3325
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
