@@ -92,6 +92,13 @@ binding and admitted tool declarations; the request cannot select it. The
 normalizer is pinned adapter code. Never trust a model-supplied classification,
 claimed effect list, command substring or tool display name as provenance.
 
+Counterpart pending: adoption unit 1a owns the matching declaration of
+`evaluate_tool(bound_role, normalized_request)` and its Request/Decision coupling
+in `lane-policy.md`. That document currently names the evaluator module only;
+the bootstrap citation above establishes ownership, not a completed interface
+counterpart. This is a declared unresolved edge until unit 1a binds these exact
+shapes and independent verification closes it. This slice does not activate it.
+
 Use the startup contract's strict JSON and canonical digest rules, with a
 65536-byte request bound and no duplicate/missing/unknown fields. Request is
 exactly `{schema:"conductor-tool/1",id:ID,binding_sha256:SHA256,kind,target,
@@ -140,10 +147,11 @@ binding_sha256:SHA256,outcome:"allow"|"refuse",refusal:Refusal|null}`.
 The id/binding must match Request and the held current binding. On allow,
 refusal is null. On refuse it is exactly `{class:"conductor-tool",expected,
 found,needed}` with nonempty strings chosen by the evaluator from fixed templates;
-no raw request echo. It serializes to the wire before effects. Example:
+no raw request echo. Fixed field values must contain no semicolon, so the wire's
+`; ` separators remain unambiguous. It serializes to the wire before effects. Example:
 
 ```json
-{"class":"conductor-tool","expected":"declared conductor operation","found":"direct-edit","needed":"use canonical dispatch; run the independent doctor for gate diagnosis"}
+{"class":"conductor-tool","expected":"declared conductor operation","found":"direct-edit","needed":"use canonical dispatch and run the independent doctor for gate diagnosis"}
 ```
 
 The adapter consumes a matching decision once for that intercepted request only,

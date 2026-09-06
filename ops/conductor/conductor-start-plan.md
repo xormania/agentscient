@@ -76,13 +76,18 @@ MCP visibility does not enforce access through other harness tools.
 ## Later interface (documented, not implemented)
 
 ```
-conduct <harness> dev
-conduct <harness> prod
-conduct <harness> test
-conduct <harness> <profile> test
+conduct <harness> dev [-- <adapter-token>...]
+conduct <harness> prod [-- <adapter-token>...]
+conduct <harness> test [-- <adapter-token>...]
+conduct <harness> <profile> test [-- <adapter-token>...]
 ```
 
-Tokens after the first `--` must satisfy the adapter
+The optional `--` follows all conduct positionals, including `test` when present;
+it may have zero following tokens. No conduct positional is parsed after it.
+Forwarding is admitted on all four forms. Unprofiled test validates the same
+vector for every enumerated profile before any diagnostic effects; a rejection
+in any profile refuses the invocation. Tokens after the first `--` must satisfy
+the adapter
 [closed safe grammar](harness-capabilities.md#safe-argv-grammar). Accepted tokens
 are forwarded exactly, in order; rejected tokens never reach launch records. `test` exercises live harness enforcement; a profile
 before `test` narrows that diagnostic. The command stays thin: policy,
@@ -316,7 +321,8 @@ variable, model tool argument or MCP parameter. It contains the policy owner's
 verified binding, declaration sources, custody anchor and discovery boot inputs.
 A digest is only an equality check against these held inputs, never proof of
 trusted origin. Resolve executable/configuration identities and selection first,
-reserve identity in memory, validate policy/grants/capability, then let the
+reserve the canonical dispatch identity in memory on launch (reuse it on resume),
+validate policy/grants/capability, then let the
 canonical dispatch/harness owner prepare transport and invoke the child.
 
 The serialized descriptor is strict UTF-8 JSON, at most 65536 bytes, nesting
@@ -330,16 +336,31 @@ ASCII JSON escaping, compact separators, UTF-8, no trailing newline; arrays
 retain order. Exact file-byte digests and policy `show` digests retain their
 owning recipes. Do not substitute this encoder for them.
 
+`DispatchID` is the canonical execution record's `id` under the
+[dispatch job directory](../devlane/dispatch/CONTRACT.md#the-job-directory):
+`<UTC stamp>-<stage>-<harness>-<6 hex>`, for example
+`20260906T103421Z-code-codex-20aa14`. It is not discovery's `ID`.
+`launch_id` equals that record's id byte-for-byte: launch reserves a fresh id
+through the canonical dispatch owner before admission, and resume retains the
+same id from the trusted record and parent descriptor. Model observations,
+custody and receipts resolve through that record; no second id or correlation
+store is introduced. Refuse a mismatched record/descriptor binding before effects.
+
+`LaunchSelection` is exactly
+`{harness:ID,model:string,effort:string|null,role:"conductor",job_role:null,profile:ID}`.
+Model and non-null effort are nonempty, at most 128 printable ASCII bytes.
+This named launch type is distinct from discovery's handoff `Selection`.
+
 | field | type / obligation |
 |---|---|
 | schema | literal `conductor-launch/1` |
-| launch_id | ID, fresh caller-reserved identity; no filesystem reservation before admission |
+| launch_id | DispatchID, bound to the canonical execution record as above; no filesystem reservation before admission |
 | operation | `launch` or `resume` |
-| selection | `{harness:ID,model:string,effort:string|null,role:"conductor",job_role:null,profile:ID}`; model and non-null effort are nonempty, at most 128 printable ASCII bytes |
+| selection | LaunchSelection |
 | custody_sha256 | digest of the retained trusted caller custody evidence; verified against the previously admitted anchor, never supplied by the candidate |
 | policy_binding_sha256 | digest of the policy owner's verified bound context, retained with its declaration sources; not a fabricated worker brief or a replacement for brief.policy |
 | discovery | `{config_sha256:SHA256,repository:Repository,anchors:[{id:ID,device:int,inode:int},...]}`; config digest is exact v3 file bytes; nonnegative device/inode, unique anchors sorted by id, exactly the config anchor set |
-| adapter | `{revision:SHA256,grammar_sha256:SHA256,executable_sha256:SHA256,config_sha256:SHA256}`; bound effective controlled configuration, not ambient user settings |
+| adapter | `{revision:SHA256,mechanism:string,grammar_sha256:SHA256,normalizer_sha256:SHA256,executable_sha256:SHA256,config_sha256:SHA256}`; mechanism is nonempty printable ASCII, at most 128 bytes; bound effective controlled configuration, not ambient user settings; exact [capability mapping](harness-capabilities.md#conduct-capability-identity-encoding) |
 | forwarded_tokens | admitted array of strings under the safe argv grammar, never raw rejected input |
 | mcp | `{server_sha256:SHA256,config_sha256:SHA256,catalogue_sha256:SHA256}`; server digest covers pinned server/runtime closure; config equals discovery.config_sha256; catalogue hashes canonical tools/list result including schemas |
 | resume | null on launch; otherwise `{parent_descriptor_sha256:SHA256,session_binding_sha256:SHA256}` from trusted retained transport |
