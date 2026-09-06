@@ -6,6 +6,7 @@ Acceptance rows: D-A24, D-A25, D-A26, D-A39, D-A46, D-A47.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -14,11 +15,17 @@ if str(_TESTS) not in sys.path:
     sys.path.insert(0, str(_TESTS))
 
 from discovery_v3_support import (  # noqa: E402
-    CONTRACT_PATH,
+    BOOT_MISSING,
+    BOOT_MODULES,
     CURSOR_INVALID,
     HEX64,
+    RUN_CAP,
+    SOURCE_KEYS,
     _DiscoveryV3Fixture,
+    adapter_implementation_digest,
     canonical_bytes,
+    digest_only_bind,
+    rejected_boot_line,
     rpc,
     sha256_hex,
 )
@@ -215,11 +222,14 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
         ]
         cli = {}
         for tool, arguments, _uri in pairs:
-            payload = self.detail(tool, arguments) if tool != "lane_start" else self.start(arguments)
-            again = self.detail(tool, arguments) if tool != "lane_start" else self.start(arguments)
-            self.assertEqual(payload, again, tool)
+            proc = self.query(tool, arguments)
+            payload = self.load_envelope(proc, tool)
+            self.assert_envelope(payload, tool, profile=arguments["profile"])
+            encoded = self.assert_canonical_stdout(proc, payload)
+            again_proc = self.query(tool, arguments)
+            self.assertEqual(again_proc.stdout.encode("utf-8"), proc.stdout.encode("utf-8"), tool)
             self.assertEqual(payload["snapshot"], snap)
-            cli[(tool, tuple(sorted(arguments.items())))] = payload
+            cli[(tool, tuple(sorted(arguments.items())))] = (payload, encoded)
         requests = []
         rpc_id = 20
         for tool, arguments, uri in pairs:
@@ -227,7 +237,7 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
             rpc_id += 1
             requests.append(rpc("resources/read", rpc_id, {"uri": uri}))
             rpc_id += 1
-        proc = self.serve(self.handshake(requests))
+        proc = self.serve(self.handshake(requests), boot=True)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         objs = self.rpc_objects(proc)
         idx = 0
@@ -235,12 +245,24 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
             call_payload = self.lane_from_rpc(self.rpc_by_id(objs, 20 + idx))
             read_payload = self.lane_from_rpc(self.rpc_by_id(objs, 21 + idx))
             idx += 2
-            expected = cli[(tool, tuple(sorted(arguments.items())))]
+            expected, encoded = cli[(tool, tuple(sorted(arguments.items())))]
+            self.assertEqual(canonical_bytes(call_payload), encoded, tool)
+            self.assertEqual(canonical_bytes(read_payload), encoded, tool)
             self.assertEqual(call_payload, expected, tool)
             self.assertEqual(read_payload, expected, tool)
 
     def test_d_a46_failed_source_fingerprint_is_stable_until_recovery(self):
         self.plant_tree()
+        pinned = self.head
+        moved = self.add_commit({"docs/extra-retained.md": b"x\n"}, "extra")
+        self.plant_ref("refs/heads/records/keep", moved)
+        self.git("checkout", "--detach", pinned)
+        self.head = pinned
+        obj = self.object_path(moved)
+        self.assertTrue(obj.is_file(), obj)
+        saved = obj.read_bytes()
+        obj.unlink()
+        self.assertFalse(obj.exists())
         self.plant_v3_config(
             retained_refs="refs/heads/records/",
             source_ids=["repo", "retained"],
@@ -250,41 +272,266 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
         self.assertEqual(first["snapshot"], second["snapshot"])
         retained = [src for src in first["sources"] if src["id"] == "retained"][0]
         again = [src for src in second["sources"] if src["id"] == "retained"][0]
+        self.assertEqual(retained["state"], "unavailable")
+        self.assertNotEqual(retained["reason"], "disabled")
         self.assertEqual(retained["fingerprint"], again["fingerprint"])
-        self.plant_ref("refs/heads/records/r0", self.head)
+        self._plant_bytes(obj, saved)
+        self.assertEqual(obj.read_bytes(), saved)
         third = self.start()
         self.assertNotEqual(third["snapshot"], first["snapshot"])
         recovered = [src for src in third["sources"] if src["id"] == "retained"][0]
         self.assertNotEqual(recovered["fingerprint"], retained["fingerprint"])
+        self.assertEqual(recovered["state"], "ok")
 
-    def test_d_a47_contract_revision_tracks_launch_supplied_bytes(self):
+    def test_d_a47_trusted_boot_and_executed_byte_binding(self):
         self.plant_tree()
         self.plant_v3_config()
-        self.assertTrue(CONTRACT_PATH.is_file(), CONTRACT_PATH)
-        original = CONTRACT_PATH.read_bytes()
-        planted = (self.repo / "ops/conductor/discovery-lever.md").read_bytes()
-        staged = self.contract_copy.read_bytes()
-        self.assertEqual(planted, original)
-        self.assertEqual(staged, original)
-        first = self.start()
-        contract = [src for src in first["sources"] if src["id"] == "contract"][0]
-        self.assertEqual(contract["state"], "ok")
-        revision = sha256_hex(original)
-        dumped = canonical_bytes(first)
-        self.assertIn(revision.encode(), dumped)
-        mutated = original + b"\n# fixture-byte-change\n"
-        self._plant_bytes(self.contract_copy, mutated)
-        objects = self.gitdir / "objects"
-        mode = objects.stat().st_mode
-        os.chmod(objects, 0)
+        self.destroy_head_object()
+        self.plant_v3_config()
+        check = self.invoke(["check"], boot=False)
+        self.assertEqual(self.load_query(check), {"valid": True, "tools": 11})
+        listed = self.serve(self.handshake([rpc("tools/list", 2)]), boot=False)
+        self.assertEqual(listed.returncode, 0, listed.stderr)
+        missing = self.query("lane_start", {"profile": "dev"}, boot=False)
+        line = self.assert_refusal(missing, "config")
+        self.assertEqual(line, BOOT_MISSING)
+        brief = self.query("lane_brief", {}, boot=False)
+        self.assertEqual(brief.returncode, 0, brief.stderr)
+
+        self.ensure_boot()
+        oversized = self.boot_map()
+        oversized["ops/conductor/tools/lane_refs.py"] = b"Z" * (1024 * 1024 + 1)
+        over_root = Path(self._tmp.name) / "boot-oversize"
+        self.plant_boot(root=over_root, components=oversized, enforce_caps=False)
+        over = self.query(
+            "lane_start",
+            {"profile": "dev"},
+            boot=True,
+            boot_dir=over_root,
+        )
+        over_line = self.assert_refusal(over, "config")
+        self.assertEqual(
+            over_line,
+            rejected_boot_line(
+                "ops/conductor/tools/lane_refs.py", "component-oversized"
+            ),
+        )
+
+        incomplete = self.boot_map()
+        miss_root = Path(self._tmp.name) / "boot-missing-component"
+        miss_root.mkdir()
+        for rel, data in incomplete.items():
+            if rel.endswith("lane_read.py"):
+                continue
+            self._plant_bytes(miss_root / rel, data)
+        miss = self.query(
+            "lane_start", {"profile": "dev"}, boot=True, boot_dir=miss_root
+        )
+        miss_line = self.assert_refusal(miss, "config")
+        self.assertEqual(
+            miss_line,
+            rejected_boot_line("ops/conductor/tools/lane_read.py", "component-missing"),
+        )
+
+        not_reg_root = Path(self._tmp.name) / "boot-not-regular"
+        self.plant_boot(root=not_reg_root)
+        target = not_reg_root / "ops/conductor/tools/lane_mcp.py"
+        target.unlink()
+        target.mkdir()
+        not_reg = self.query(
+            "lane_start", {"profile": "dev"}, boot=True, boot_dir=not_reg_root
+        )
+        not_reg_line = self.assert_refusal(not_reg, "config")
+        self.assertEqual(
+            not_reg_line,
+            rejected_boot_line("ops/conductor/tools/lane_mcp.py", "not-regular"),
+        )
+
+        file_fd = os.open(str(self.config_path), os.O_RDONLY)
         try:
-            second = self.start()
+            entry = self.ensure_boot() / "ops" / "conductor" / "tools" / "lane_mcp.py"
+            argv = [
+                sys.executable,
+                "-B",
+                str(entry),
+                "--config",
+                str(self.config_path),
+                "--discovery-boot-fd",
+                str(file_fd),
+                "query",
+                "lane_start",
+                '{"profile":"dev"}',
+            ]
+            bad_desc = subprocess.run(
+                argv,
+                cwd=str(self.cwd),
+                env=self.env(),
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=RUN_CAP,
+                check=False,
+                pass_fds=[file_fd],
+                close_fds=True,
+            )
         finally:
-            os.chmod(objects, mode)
+            os.close(file_fd)
+        self.assertEqual(
+            self.assert_refusal(bad_desc, "config"),
+            rejected_boot_line("descriptor", "descriptor-unreadable"),
+        )
+
+        artifact_a = Path(self._tmp.name) / "boot-a"
+        artifact_b = Path(self._tmp.name) / "boot-b"
+        base = self.boot_map()
+        contract_a = base["ops/conductor/discovery-lever.md"]
+        contract_b = contract_a + b"\n# discovery-boot-artifact-B\n"
+        self.assertNotEqual(sha256_hex(contract_a), sha256_hex(contract_b))
+        self.plant_boot(
+            root=artifact_a,
+            components=dict(base),
+            markers={rel: "A" for rel in BOOT_MODULES},
+        )
+        bytes_b = dict(base)
+        bytes_b["ops/conductor/discovery-lever.md"] = contract_b
+        self.plant_boot(
+            root=artifact_b,
+            components=bytes_b,
+            markers={rel: "B" for rel in BOOT_MODULES},
+        )
+        self.marker_path.write_bytes(b"")
+        first = self.start(boot=True, boot_dir=artifact_a, entry=artifact_a / "ops/conductor/tools/lane_mcp.py")
+        contract = [src for src in first["sources"] if src["id"] == "contract"][0]
+        adapter = [src for src in first["sources"] if src["id"] == "adapter"][0]
+        repo_src = [src for src in first["sources"] if src["id"] == "repo"][0]
+        self.assertEqual(set(contract), set(SOURCE_KEYS))
+        self.assertEqual(contract["state"], "ok")
+        self.assertEqual(adapter["state"], "ok")
+        self.assertEqual(repo_src["state"], "unavailable")
+        dumped = canonical_bytes(first)
+        self.assertNotIn(sha256_hex(contract_a).encode(), dumped)
+        rev_a = sha256_hex(contract_a)
+        rev_b = sha256_hex(contract_b)
+        self.assertNotEqual(rev_a, rev_b)
+        impl_a = adapter_implementation_digest(
+            {
+                rel: (artifact_a / rel).read_bytes()
+                for rel in BOOT_MODULES
+            }
+        )
+        markers_a = self.marker_path.read_text(encoding="ascii")
+        for rel in BOOT_MODULES:
+            self.assertIn("A:" + Path(rel).name, markers_a, markers_a)
+
+        self.marker_path.write_bytes(b"")
+        second = self.start(boot=True, boot_dir=artifact_b, entry=artifact_b / "ops/conductor/tools/lane_mcp.py")
         contract2 = [src for src in second["sources"] if src["id"] == "contract"][0]
         self.assertEqual(contract2["state"], "ok")
-        repo_src = [src for src in second["sources"] if src["id"] == "repo"][0]
-        self.assertEqual(repo_src["state"], "unavailable")
-        self.assertNotEqual(second["snapshot"], first["snapshot"])
-        self.assertIn(sha256_hex(mutated).encode(), canonical_bytes(second))
         self.assertNotEqual(contract2["fingerprint"], contract["fingerprint"])
+        self.assertNotEqual(second["snapshot"], first["snapshot"])
+        self.assertNotIn(rev_b.encode(), canonical_bytes(second))
+        markers_b = self.marker_path.read_text(encoding="ascii")
+        for rel in BOOT_MODULES:
+            self.assertIn("B:" + Path(rel).name, markers_b, markers_b)
+
+        changed_impl = dict(self.boot_map(artifact_a))
+        changed_impl["ops/conductor/tools/lane_read.py"] = (
+            changed_impl["ops/conductor/tools/lane_read.py"] + b"\n# adapter-byte\n"
+        )
+        impl_root = Path(self._tmp.name) / "boot-impl"
+        self.plant_boot(root=impl_root, components=changed_impl)
+        impl_run = self.start(
+            boot=True,
+            boot_dir=impl_root,
+            entry=impl_root / "ops/conductor/tools/lane_mcp.py",
+        )
+        adapter_changed = [src for src in impl_run["sources"] if src["id"] == "adapter"][0]
+        contract_same = [src for src in impl_run["sources"] if src["id"] == "contract"][0]
+        self.assertNotEqual(adapter_changed["fingerprint"], adapter["fingerprint"])
+        self.assertEqual(contract_same["fingerprint"], contract["fingerprint"])
+        impl_b = adapter_implementation_digest(
+            {rel: (impl_root / rel).read_bytes() for rel in BOOT_MODULES}
+        )
+        self.assertNotEqual(impl_a, impl_b)
+
+        self.marker_path.write_bytes(b"")
+        mixed = self.query(
+            "lane_start",
+            {"profile": "dev"},
+            boot=True,
+            boot_dir=artifact_a,
+            entry=artifact_b / "ops/conductor/tools/lane_mcp.py",
+        )
+        mixed_line = self.assert_refusal(mixed, "config")
+        self.assertEqual(
+            mixed_line,
+            rejected_boot_line(
+                "ops/conductor/tools/lane_mcp.py", "binding-mismatch"
+            ),
+        )
+        self.assertTrue(
+            digest_only_bind(
+                (artifact_a / "ops/conductor/tools/lane_mcp.py").read_bytes(),
+                artifact_b / "ops/conductor/tools/lane_mcp.py",
+            )
+        )
+        self.assertNotEqual(
+            sha256_hex((artifact_a / "ops/conductor/tools/lane_mcp.py").read_bytes()),
+            sha256_hex((artifact_b / "ops/conductor/tools/lane_mcp.py").read_bytes()),
+        )
+
+        live = Path(__file__).resolve().parents[3] / "ops/conductor/tools/lane_mcp.py"
+        self.assertTrue(live.is_file(), live)
+        self.assertNotEqual(
+            live.read_bytes(),
+            (artifact_a / "ops/conductor/tools/lane_mcp.py").read_bytes(),
+        )
+        unverified = self.query(
+            "lane_start",
+            {"profile": "dev"},
+            boot=True,
+            boot_dir=artifact_a,
+            entry=live,
+        )
+        unverified_line = self.assert_refusal(unverified, "config")
+        self.assertIn("binding-", unverified_line)
+        self.assertTrue(
+            unverified_line.startswith(
+                "config: expected trusted discovery boot descriptor; found rejected "
+            ),
+            unverified_line,
+        )
+
+        loaded = self.load_acquire(artifact_a)
+        self.assertEqual(
+            Path(loaded.__file__).resolve(),
+            (artifact_a / "ops/conductor/tools/lane_refs.py").resolve(),
+        )
+        captured = dict(self.boot_map(artifact_a))
+        payload = self._last_config_payload
+        self.assertIsInstance(payload, dict)
+        try:
+            first_reading = loaded.acquire(payload, captured, checkpoint=None)
+        except TypeError as exc:
+            self.fail(f"acquire(config, boot, *, checkpoint=None) refused: {exc}")
+        outside = Path(self._tmp.name) / "mutable-lane_refs.py"
+        self._plant_bytes(outside, b"raise RuntimeError('must-not-reload')\n")
+        (artifact_a / "ops/conductor/tools/lane_refs.py").write_bytes(
+            outside.read_bytes()
+        )
+        self.assertEqual(
+            (artifact_a / "ops/conductor/tools/lane_refs.py").read_bytes(),
+            outside.read_bytes(),
+        )
+        try:
+            second_reading = loaded.acquire(payload, captured, checkpoint=None)
+        except TypeError as exc:
+            self.fail(f"acquire after pathname mutation refused: {exc}")
+        self.assertEqual(
+            canonical_bytes(first_reading)
+            if not isinstance(first_reading, bytes)
+            else first_reading,
+            canonical_bytes(second_reading)
+            if not isinstance(second_reading, bytes)
+            else second_reading,
+        )
