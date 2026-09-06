@@ -17,6 +17,7 @@ from discovery_v3_support import (  # noqa: E402
     DEV_HOMES,
     _DiscoveryV3Fixture,
     constraint_only_lock,
+    empty_lock,
     workflow_lock,
 )
 
@@ -52,9 +53,7 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
             )
             self.assertEqual(page["snapshot"], snap)
         self.assertEqual(seen, list(DEV_HOMES), seen)
-        named = self.detail(
-            "lane_homes", {"profile": "dev", "concept": "watchdog"}
-        )
+        named = self.detail("lane_homes", {"profile": "dev", "concept": "watchdog"})
         self.assertEqual(named["data"]["homes"], [])
         self.assertIsNone(named["data"]["page"])
         self.assertEqual(named["data"]["home"]["concept"], "watchdog")
@@ -116,9 +115,7 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
     def test_d_a33_governing_document_without_implementation(self):
         self.plant_tree()
         self.plant_v3_config()
-        payload = self.detail(
-            "lane_homes", {"profile": "dev", "concept": "wf-runtime"}
-        )
+        payload = self.detail("lane_homes", {"profile": "dev", "concept": "wf-runtime"})
         home = payload["data"]["home"]
         self.assertEqual(home["concept"], "wf-runtime")
         self.assertEqual(home["home"], "docs/workflow.md")
@@ -137,7 +134,17 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
             ("packages", workflow_lock(where="packages"), True),
             ("packages-dev", workflow_lock(where="packages-dev"), True),
             ("constraint-only", constraint_only_lock(), False),
+            ("absent", empty_lock(), False),
         ]
+        canary = json.loads(constraint_only_lock())
+        self.assertIn(b"symfony/workflow", constraint_only_lock())
+        self.assertFalse(
+            any(
+                p["name"] == "symfony/workflow"
+                for section in ("packages", "packages-dev")
+                for p in canary[section]
+            )
+        )
         for name, lock, expected in cases:
             with self.subTest(name=name):
                 self.reset_repo()
@@ -169,15 +176,13 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
     def test_d_a48_home_evidence_contract_and_repo(self):
         self.plant_tree()
         self.plant_v3_config()
-        runtime = self.detail(
-            "lane_homes", {"profile": "dev", "concept": "wf-runtime"}
-        )
+        runtime = self.detail("lane_homes", {"profile": "dev", "concept": "wf-runtime"})
         self.assertEqual(runtime["data"]["home"]["evidence"], ["contract", "repo"])
         genus = self.detail(
             "lane_homes", {"profile": "prod", "concept": "workflow-genus"}
         )
         self.assertEqual(genus["data"]["home"]["evidence"], ["contract", "repo"])
-        self.assertIn(genus["data"]["home"]["locked"], (False, None))
+        self.assertIs(genus["data"]["home"]["locked"], False)
         listed = self.detail("lane_homes", {"profile": "dev"})
         for home in listed["data"]["homes"]:
             self.assertIsInstance(home.get("document_present"), (bool, type(None)))
@@ -185,31 +190,19 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
     def test_d_a49_lane_mcp_registry_lane_read_null_mapping_history(self):
         self.plant_tree()
         self.plant_v3_config()
-        mcp = self.detail(
-            "lane_homes", {"profile": "dev", "concept": "lane-mcp"}
-        )
+        mcp = self.detail("lane_homes", {"profile": "dev", "concept": "lane-mcp"})
         home = mcp["data"]["home"]
-        self.assertEqual(
-            home["registry"], "ops/conductor/registry/lane_mcp.py.json"
-        )
+        self.assertEqual(home["registry"], "ops/conductor/registry/lane_mcp.py.json")
         self.assertEqual(home["entrypoint"], "ops/conductor/tools/lane_mcp.py")
-        read = self.detail(
-            "lane_homes", {"profile": "dev", "concept": "lane-read"}
-        )
+        read = self.detail("lane_homes", {"profile": "dev", "concept": "lane-read"})
         self.assertIsNone(read["data"]["home"]["registry"])
         self.assertEqual(
             read["data"]["home"]["entrypoint"], "ops/conductor/tools/lane_read.py"
         )
-        mapping = self.detail(
-            "lane_homes", {"profile": "prod", "concept": "mapping"}
-        )
+        mapping = self.detail("lane_homes", {"profile": "prod", "concept": "mapping"})
         self.assertEqual(mapping["data"]["home"]["home"], "docs/mapping.md")
         self.assertEqual(mapping["data"]["home"]["contract"], "docs/mapping.md")
         self.assertEqual(mapping["data"]["home"]["intended"], "four projections")
-        registry = Path(
-            "/nonexistent-on-purpose"
-        )
-        del registry
         on_disk = (
             Path(__file__).resolve().parents[3]
             / "ops"
@@ -220,3 +213,55 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
         self.assertTrue(on_disk.is_file(), on_disk)
         body = json.loads(on_disk.read_text(encoding="utf-8"))
         self.assertIn("rows", body)
+
+
+import unittest  # noqa: E402
+
+
+def _lock_projection(case, fault, tool, arguments):
+    from discovery_v3_support import contract_start_frame
+    from test_discovery_v3_startup import _home_fixture
+
+    home = _home_fixture(arguments["concept"])
+    if home["intended"] == "symfony/workflow":
+        raw = (case.repo / "composer.lock").read_bytes()
+        try:
+            lock = json.loads(raw)
+        except ValueError:
+            home["locked"] = None
+        else:
+            home["locked"] = any(
+                p.get("name") == "symfony/workflow"
+                for section in ("packages", "packages-dev")
+                for p in lock[section]
+            )
+            if fault == "substring-lock":
+                home["locked"] = b"symfony/workflow" in raw
+            if fault == "absent-is-unknown" and not home["locked"]:
+                home["locked"] = None
+    reply = contract_start_frame()
+    reply.update(
+        query=tool,
+        profile=arguments["profile"],
+        data={"homes": [], "home": home, "page": None},
+    )
+    return reply
+
+
+class TestDiscoveryV3CatalogueControls(unittest.TestCase):
+    def test_faulty_lock_counterparties(self):
+        from discovery_v3_support import prove_counterparty
+
+        for fault, assertion in (
+            ("substring-lock", "True is not False"),
+            ("absent-is-unknown", "None is not False"),
+        ):
+            with self.subTest(fault=fault):
+                prove_counterparty(
+                    self,
+                    TestDiscoveryV3Catalogues,
+                    "test_d_a34_composer_lock_membership_not_constraints",
+                    {"detail": _lock_projection},
+                    fault=fault,
+                    assertion=assertion,
+                )
