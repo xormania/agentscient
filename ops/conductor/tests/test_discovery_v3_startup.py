@@ -17,16 +17,20 @@ if str(_TESTS) not in sys.path:
 
 from discovery_v3_support import (  # noqa: E402
     ACTIONS,
+    CONTRACT_PATH,
     DEV_STARTUP,
     DOCS_PROFILE,
     HEX64,
     LAW,
+    ONBOARD_LAW,
+    ONBOARD_PATH,
     PROD_STARTUP,
     START_CAP,
     STATE_NAMES,
     UNSUPPORTED,
     _DiscoveryV3Fixture,
     canonical_bytes,
+    extract_path_oneliner_table,
     rpc,
 )
 
@@ -96,7 +100,8 @@ class TestDiscoveryV3Startup(_DiscoveryV3Fixture):
         self.assertIsNone(home["installed"])
         self.assertIsNone(home["activated"])
         self.assertIsNone(home["probed"])
-        self.assertIs(home["locked"], False)
+        self.assertIsNone(home["locked"])
+        self.assertEqual(home["intended"], "four projections")
         genus = self.detail(
             "lane_homes", {"profile": "prod", "concept": "workflow-genus"}
         )
@@ -219,21 +224,19 @@ class TestDiscoveryV3Startup(_DiscoveryV3Fixture):
         omissions = payload["data"]["omissions"]
         work = payload["data"]["work"]
         snap = payload["snapshot"]
-        if work == []:
-            self.assertIn("work omitted: 8", omissions)
-            self.assertIn(f"work next cursor: {snap}:0", omissions)
-            cont = self.start(
-                {"profile": "dev", "snapshot": snap, "cursor": f"{snap}:0"}
-            )
-            self.assert_start_frame(cont)
-            self.assertEqual(cont["snapshot"], snap)
-            self.assertEqual([row["name"] for row in cont["data"]["actions"]], [a[0] for a in ACTIONS])
-            self.assertEqual([row["path"] for row in cont["data"]["law"]], [p for p, _ in LAW])
-            self.assertLessEqual(len(canonical_bytes(cont)), START_CAP)
-            self.assertTrue(cont["data"]["work"], cont["data"]["work"])
-        else:
-            self.assertLessEqual(len(work), 8)
-            self.assertTrue(work)
+        self.assertEqual(work, [])
+        self.assertIn("work omitted: 8", omissions)
+        self.assertIn(f"work next cursor: {snap}:0", omissions)
+        cont = self.start(
+            {"profile": "dev", "snapshot": snap, "cursor": f"{snap}:0"}
+        )
+        self.assert_start_frame(cont)
+        self.assertEqual(cont["snapshot"], snap)
+        self.assertEqual([row["name"] for row in cont["data"]["actions"]], [a[0] for a in ACTIONS])
+        self.assertEqual([row["path"] for row in cont["data"]["law"]], [p for p, _ in LAW])
+        self.assertLessEqual(len(canonical_bytes(cont)), START_CAP)
+        self.assertTrue(cont["data"]["work"], cont["data"]["work"])
+        self.assertLessEqual(len(cont["data"]["work"]), 8)
         huge = self.plant_dispatch(
             "huge01",
             raw=(json.dumps({"id": "huge01", "status": "X" * (START_CAP + 10)}) + "\n").encode(),
@@ -248,13 +251,13 @@ class TestDiscoveryV3Startup(_DiscoveryV3Fixture):
         )
         overflow = self.query("lane_start", {"profile": "dev"})
         payload = self.load_envelope(overflow, "lane_start")
-        if payload["state"] == "unavailable":
-            self.assertIn(
-                payload["reason"],
-                ("item-exceeds-cap", "page-frame-exceeds-cap", "response-exceeds-cap"),
-            )
-            self.assertIsNone(payload["data"])
-        self.assertLessEqual(len(canonical_bytes(payload)), START_CAP + 512)
+        self.assertEqual(payload["state"], "unavailable", payload)
+        self.assertIn(
+            payload["reason"],
+            ("item-exceeds-cap", "page-frame-exceeds-cap", "response-exceeds-cap"),
+        )
+        self.assertIsNone(payload["data"])
+        self.assertLessEqual(len(canonical_bytes(payload)), START_CAP)
 
     def test_d_a38b_twenty_work_cards_page_eight_eight_four(self):
         jobs = [_job(n) for n in range(1, 21)]
@@ -327,7 +330,8 @@ class TestDiscoveryV3Startup(_DiscoveryV3Fixture):
                         },
                     )
                 ]
-            )
+            ),
+            boot=True,
         )
         self.assertEqual(self.lane_from_rpc(self.rpc_by_id(self.rpc_objects(mcp), 2)), second)
 
@@ -335,10 +339,20 @@ class TestDiscoveryV3Startup(_DiscoveryV3Fixture):
         jobs = [f"d{n:02d}" for n in range(1, 22)]
         self.assertEqual(len(jobs), 21)
         self.plant_tree()
-        for rec_id in jobs:
-            self.plant_dispatch(rec_id)
         source_ids = ["repo", *[f"dispatch/{j}" for j in jobs]]
         self.assertEqual(len(source_ids), 22)
+        closure_ids = [
+            "adapter",
+            "config",
+            "contract",
+            "repo",
+            "retained",
+            *[f"dispatch/{j}" for j in jobs],
+        ]
+        status = self.pad_status_for_five_card_pages(jobs, sorted(closure_ids))
+        self.assertEqual(len(status.encode("utf-8")), len(status))
+        for rec_id in jobs:
+            self.plant_dispatch(rec_id, recorded_status=status)
         self.plant_v3_config(
             job_ids=jobs,
             source_ids=source_ids,
@@ -450,13 +464,49 @@ class TestDiscoveryV3Startup(_DiscoveryV3Fixture):
                 self.assertIn(home["ownership"], ("declared", "unresolved"))
         docs = self.detail("lane_handoffs", {"profile": "docs"})
         selection = docs["data"]["handoffs"]
-        self.assertIn(selection["selection"], ("one", "none", "multiple", "unknown"))
-        if selection["selection"] == "one":
-            self.assertEqual(selection["selected_key"], f"record/{digest}")
-            named = self.detail(
-                "lane_handoffs",
-                {"profile": "docs", "key": f"record/{digest}"},
-            )
-            self.assertEqual(named["data"]["candidate"]["key"], f"record/{digest}")
-        else:
-            self.assertFalse(selection["complete"] and selection["selection"] == "one")
+        self.assertEqual(selection["selection"], "one")
+        self.assertEqual(selection["selected_key"], f"record/{digest}")
+        self.assertIs(selection["complete"], True)
+        self.assertEqual(selection["current"], 1)
+        named = self.detail(
+            "lane_handoffs",
+            {"profile": "docs", "key": f"record/{digest}"},
+        )
+        self.assertEqual(named["data"]["candidate"]["key"], f"record/{digest}")
+        self.assertEqual(named["data"]["handoffs"]["selected_key"], f"record/{digest}")
+
+    def test_discovery_five_onboard_seven_law_tables_equal(self):
+        self.assertTrue(CONTRACT_PATH.is_file(), CONTRACT_PATH)
+        self.assertTrue(ONBOARD_PATH.is_file(), ONBOARD_PATH)
+        discovery_rows = extract_path_oneliner_table(
+            CONTRACT_PATH.read_text(encoding="utf-8")
+        )
+        onboard_rows = extract_path_oneliner_table(
+            ONBOARD_PATH.read_text(encoding="utf-8")
+        )
+        self.assertEqual(discovery_rows, LAW)
+        self.assertEqual(len(discovery_rows), 5, discovery_rows)
+        self.assertEqual(onboard_rows, ONBOARD_LAW)
+        self.assertEqual(len(onboard_rows), 7, onboard_rows)
+        self.assertEqual(onboard_rows[:5], discovery_rows)
+        self.assertEqual(onboard_rows[5:], ONBOARD_LAW[5:])
+        self.plant_tree()
+        self.plant_v3_config()
+        start = self.start()
+        self.assertEqual([row["path"] for row in start["data"]["law"]], [p for p, _ in LAW])
+        self.assertEqual(
+            [row["one_liner"] for row in start["data"]["law"]],
+            [one for _, one in LAW],
+        )
+        self.assertEqual(len(start["data"]["law"]), 5)
+        self.git("rm", "-f", "--", "CONTRIB.md")
+        self.git("commit", "-m", "drop contrib for one-absence arithmetic\n")
+        self.head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.plant_v3_config()
+        missing = self.start()
+        law = missing["data"]["law"]
+        self.assertEqual(len(law), 5)
+        by_path = {row["path"]: row for row in law}
+        self.assertEqual(by_path["CONTRIB.md"]["status"], "missing")
+        present = [row for row in law if row["status"] == "present"]
+        self.assertEqual(len(present), 4, law)
