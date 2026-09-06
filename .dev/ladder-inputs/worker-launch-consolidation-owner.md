@@ -1,0 +1,29 @@
+# Parallel worker launch consolidation
+
+Owner, 2026-09-05: "you said their are mutliple ways to launch worker harness - that's not good - we need to consolidate"; then "start parallel work on it".
+
+Start the consolidation track now, alongside conductor discovery. The first artifacts are a measured contract proposal/migration plan and an independent inventory of execution behavior and conformance. Follow contracts first and independent test/implementation/review producers. Do not wait for the discovery writer to finish to begin this work. Runtime changes follow an admitted contract and independently authored tests; neither of these initial jobs changes the live launcher.
+
+## Intended outcome
+
+One authoritative worker execution service. dispatch.sh, go.sh and ladder may remain entrypoints, provided they converge on the same execution contract. Resolve active launch.py versus separate task/run.py ownership without assuming that both have proved live callers. Discover other launch-capable paths, classify production, manual, fixture, probe and compatibility uses, and explicitly account for them. Preserve supported unique behavior before removing or refusing obsolete execution paths.
+
+Separate adapter mechanics (argument construction, hooks, response parsing, resume and MCP integration), measured capabilities, shared policy, and explicit dispatch selection. Harness, work profile and role are separate dimensions. No fixed job-to-model table; the owner currently prefers GPT-6 for planning and substantial work and reserves Daybreak for security. These are configurable selection constraints, not another hardcoded vendor hierarchy.
+
+Conductor context and worker context remain distinct. Workers receive their job-authorized inputs and tools; they do not inherit conductor-wide discovery or source access. Both MCP surfaces remain read-only; CLI/API actions and host enforcement retain their respective responsibilities. Shared services must not be duplicated into role-specific execution engines.
+
+Use existing homes: docs/ founding contracts, ops/devlane/dispatch, harness and task, conductor levers, ops/process and the measured Symfony mapping. Re-measure claims at the supplied ref. The bounded Python incumbent receives no new kernel responsibility; target the declared Symfony/AI boundary, with existing conformance preserved, pins/probes/mocks and four projections accounted for. Distinguish declared architecture from installed or working capability.
+
+The consolidation is a prerequisite to conduct startup, not a dependency blocking the read-only discovery contract. The current discovery worker owns discovery-lever.md and conductor-start-plan.md: do not edit them or compete for their paths. Propose the consolidation contract in the existing dispatch/task/harness estate, with exact follow-up file ownership and link integration. No new registry, lifecycle store or vendor-owned policy authority without a demonstrated missing contract.
+
+Useful prior evidence is in conductor-start-home-map-20260905.md and the captured GPT-6 Loopstrap review. Prior art supplies patterns only; no Loopstrap source or dependency is admitted. No repository code from external sources should be executed.
+
+## Plan job
+
+Produce out/PLAN.md according to the plan job's required sections. Include a concrete worker execution boundary, migration order, supported behavior matrix, refusal behavior, caller convergence, compatibility/retirement criteria, artifact/state ownership, supervision/watchdog integration, and a first independently testable slice. Identify work that can proceed alongside discovery and work that waits for its accepted interface. Name relevant existing conformance and additional independent test cases without authoring tests. Each slice lands green alone; preserve resume, recording, scope isolation, explicit model attribution and accepted-envelope collection. Include dependencies and per-slice ownership so subsequent worker dispatch is mechanical. Label proposals separately from measured facts and cite commands/ref for facts.
+
+## Independent inventory job
+
+Read-only source/contract/caller inventory. Do not design implementation or write executable tests. Report every launch-capable path and its observed callers, unique supported behavior, exact current tests/conformance, contract drift, and the smallest observable cases needed to prove convergence. Separate findings from suggestions, active production paths from dormant/manual/probe/fixture paths, and inspected absence from unavailable evidence. Run only safe existing targeted checks if useful; do not launch real vendor jobs, access credentials, change installed settings, update dependencies or contact remote services. Return a compact behavior matrix and evidence in the accepted envelope for independent reconciliation with the planner.
+
+No source, test, active configuration, host, dependency, runtime database or remote mutation is in these initial jobs. Do not modify captured records. Return concise artifacts, measured revision, checks, limitations and unresolved contract decisions. The conductor rules and dispatches the next distinct producer after comparing these artifacts; workers do not self-approve.
