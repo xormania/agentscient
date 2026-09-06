@@ -974,6 +974,29 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
+    def test_exact_policy_schema_declaration_after_benign_lines_exits_0(self):
+        benign = (
+            "print('ok')\n"
+            "print('still-ok')\n"
+        )
+        body = benign + self.POLICY_LINE + "\n"
+        self.assertNotEqual(body, self.POLICY_LINE + "\n")
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        lines = landed.splitlines()
+        self.assertGreater(len(lines), 1)
+        line_no = 3
+        self.assertNotEqual(line_no, 1)
+        self.assertEqual(lines[0], "print('ok')")
+        self.assertEqual(lines[1], "print('still-ok')")
+        self.assertEqual(lines[line_no - 1], self.POLICY_LINE)
+        self.assertNotIn(self.POLICY_TOKEN, lines[0])
+        self.assertNotIn(self.POLICY_TOKEN, lines[1])
+        self.assertIn(self.POLICY_TOKEN, lines[line_no - 1])
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
     def test_exact_policy_schema_declaration_at_another_path_exits_1(self):
         rel = "ops/conductor/tools/policy_decl.py"
         self.assertNotEqual(rel, self.POLICY_REL)
@@ -987,6 +1010,50 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         self.assertEqual(landed, body)
         self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
         self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, rel, line_no, self.POLICY_TOKEN)
+
+    def test_exact_policy_schema_declaration_at_dispatch_sibling_exits_1(self):
+        rel = "ops/devlane/dispatch/schema.py"
+        self.assertNotEqual(rel, self.POLICY_REL)
+        self.assertEqual(Path(rel).parent, Path(self.POLICY_REL).parent)
+        self.assertNotEqual(Path(rel).name, Path(self.POLICY_REL).name)
+        body = self.POLICY_LINE + "\n"
+        repo, conf = self.plant_policy_repo(
+            "print('ok')\n",
+            extra={rel: body},
+        )
+        other = repo / rel
+        landed = other.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
+        record = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertNotEqual(record, body)
+        self.assertNotIn(self.POLICY_LINE, record.splitlines())
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, rel, line_no, self.POLICY_TOKEN)
+
+    def test_exact_policy_schema_declaration_at_other_record_py_exits_1(self):
+        rel = "ops/conductor/tools/record.py"
+        self.assertNotEqual(rel, self.POLICY_REL)
+        self.assertEqual(Path(rel).name, Path(self.POLICY_REL).name)
+        self.assertNotEqual(Path(rel).parent, Path(self.POLICY_REL).parent)
+        body = self.POLICY_LINE + "\n"
+        repo, conf = self.plant_policy_repo(
+            "print('ok')\n",
+            extra={rel: body},
+        )
+        other = repo / rel
+        landed = other.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
+        record = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertNotEqual(record, body)
+        self.assertNotIn(self.POLICY_LINE, record.splitlines())
         line_no = 1
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
         self.assert_forbidden(proc, rel, line_no, self.POLICY_TOKEN)
@@ -1051,8 +1118,12 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         self.assertNotEqual(lines[1], self.POLICY_LINE)
         line_no = 2
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assert_forbidden(
+        text = self.assert_forbidden(
             proc, self.POLICY_REL, line_no, self.POLICY_TOKEN,
+        )
+        self.assertNotIn(
+            f"{self.POLICY_REL}:1: forbidden literal {self.POLICY_TOKEN}",
+            text,
         )
 
     def test_permitted_declaration_plus_another_forbidden_token_exits_1(self):
@@ -1075,7 +1146,11 @@ class PolicyProtocolLiterals(_LaneconfFixture):
         line_no = 3
         self.assertIn(token, landed.splitlines()[line_no - 1])
         proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
-        self.assert_forbidden(proc, rel, line_no, token)
+        text = self.assert_forbidden(proc, rel, line_no, token)
+        self.assertNotIn(
+            f"{self.POLICY_REL}:1: forbidden literal {self.POLICY_TOKEN}",
+            text,
+        )
 
     def test_distinct_configured_token_inside_the_declaration_is_reported(
             self):
