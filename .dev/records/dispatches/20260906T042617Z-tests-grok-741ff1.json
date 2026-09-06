@@ -1,0 +1,108 @@
+{
+  "id": "20260906T042617Z-tests-grok-741ff1",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T04:26:17Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+    "ref_sha": "49f2124459f80d1afcdd4d6d07c409daebbbc1ab",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "7d08a49a-c3e0-472f-9ea4-d29a792b2e91",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "7d08a49a-c3e0-472f-9ea4-d29a792b2e91",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only ops/conductor/tests/test_laneconf.py for F1/F2 in policy-literal-test-correction.md and Claude b9e985: multiline/non-first-line allowed declaration, absence of allowed-line findings in both composite negatives, wrong sibling basename and wrong directory with record.py basename. Preserve proven plants, intended token/path/line assertions, existing cases and contract. No implementation reads (laneconf.py/record.py), source/contract/host/DB/network edits, skips or vendor launches. Run python3 -B -m unittest discover -s ops/conductor/tests -p test_laneconf.py and the file's test-guard command. Report intended allowance assertion reds, separate known baseline failure, passing controls and zero errors. Commit tests only with actual-model provenance and plain prose. Independent checks follow; no other review expansion.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/in/policy-literal-test-correction.md",
+        "sha256": "3cbac8f49ec57bb62e3aff96bdca7c30095e46ba44a5fa07197d603cdd539510"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/in/policy-literal-repair-ruling.md",
+        "sha256": "04e0c1ebb2b354c678e6b60cfe2285ad12a716708474ff856373797b7ea83983"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T042617Z-tests-grok-741ff1/in/20260906T042008Z-check-tests-claude-b9e985.json",
+        "sha256": "4ff18962431e3def98a5b8edda711178a2f975a815488db70f3bdcb7ca7a443e"
+      }
+    ],
+    "sha256": "ed4a26017a9a4e8f76441df0cfd6dc9a903766c58623d510b63622e1d6c122a9",
+    "bytes": 3180
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
