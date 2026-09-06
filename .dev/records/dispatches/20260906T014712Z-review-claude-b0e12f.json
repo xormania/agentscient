@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T01:47:13Z",
-    "closed": null
+    "closed": "2026-09-06T01:56:26Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -157,14 +157,22 @@
       "--effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/a139222f-d84b-4056-869d-ff7e30f8243a.jsonl"
   },
   "session": {
     "id": "a139222f-d84b-4056-869d-ff7e30f8243a",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/a139222f-d84b-4056-869d-ff7e30f8243a.jsonl",
+    "stream_sha256_at_close": "236867e24dfdde38f76d5337bd2d0da821c5e758e81d36e340be51cb92deb7e2",
+    "spend": {
+      "input": 104,
+      "cached": 4629208,
+      "output": 40874,
+      "total": 4670186,
+      "source": "result.usage",
+      "messages": 52,
+      "cost_usd": 4.3594175
+    }
   },
   "brief": {
     "template": {
@@ -191,10 +199,95 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:47:13Z",
+      "ended": "2026-09-06T01:56:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "0c1ff052796e17890a528d04acd35eac5f778513",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": ".dev/records/dispatches/20260906T013433Z-plan-codex-1d09bc.json:148 (PLAN, Slices rows S04, S10, S16 and the paragraph 'S04 waits for the output portion of the external policy contract')",
+          "claim": "The plan's dependency graph blocks the owner's requirements on a counterparty absent from this tree. S04 \u2014 the fix for the one measured failure (record 20260906T011959Z-plan-codex-976735, out/PLAN.md rejected under the read-only sandbox) \u2014 is declared to wait on 'S00 plus accepted output-policy interface', and S16/S17/S18, the caller convergence the owner asked for, wait on S10, which waits on 'accepted lane-boundary path/revision/configuration handoff'. No lane-policy path exists at this ref: the string appears only in owner inputs and dispatch records. Deriving writable roots from each job's declared out/ files (jobs.json:57,60,72,95) needs no external policy engine, so both the plan's first deliverable and its stated outcome are blocked by an avoidable dependency.",
+          "reproduce": "git ls-files | grep -inE 'lane.policy|lane_policy' ; grep -rl 'lane-policy' . --exclude-dir=.git ; grep -n 'PLAN.md' ops/devlane/task/jobs.json ; grep -n 'check-tests' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260906T013433Z-plan-codex-1d09bc.json:148 (PLAN, Slices rows S13, S14, S15, S16)",
+          "claim": "New capability sits on the critical path with no demonstrated obligation. S16 (wrapper convergence) depends on S15 (task frontend parity), which depends on S14 (fileset), which depends on S13 (staging). Fileset mode has no caller: launch.py refuses it today (launch.py:1095; CONTRACT.md:243), which is exactly the declared-and-tested refusal the owner permits in place of new capability; and no production caller of task.run exists at this ref (only run.py itself, a comment at levers/codex/codex-dispatch.sh:22, and workflow/checks/commit_trailers.py). Caller convergence needs neither. S13-S15 should leave the prerequisite path until a measured obligation exists, and task/run.py's vendor path should receive an explicit tested refusal or owner-admitted retirement rather than a parity migration.",
+          "reproduce": "grep -n 'mode-unavailable' ops/devlane/dispatch/launch.py ops/devlane/dispatch/CONTRACT.md ; grep -rl 'task.run' --include='*.py' --include='*.sh' ops ; grep -n 'run.py' ops/devlane/dispatch/levers/codex/codex-dispatch.sh"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260906T013433Z-plan-codex-1d09bc.json:148 (PLAN, row S01 and machine line 'bucket S01-doctrine S AGENTS.md ops/README.md docs/mapping.md'); AGENTS.md:90; ops/README.md:11",
+          "claim": "S01 grants this track AGENTS.md, ops/README.md and docs/mapping.md to supersede the Symfony-twin retirement doctrine, duplicating ownership the owner placed elsewhere: worker-launch-consolidation-owner.md line 5 says enforcement work 'is separately scoped under lane/lane-boundary-20260905 and will provide the shared policy boundary; do not duplicate it', and the reviewing brief states the doctrine correction already runs there. The doctrine is real and does need correcting \u2014 AGENTS.md:90-91 and ops/README.md:11-14 still say each instrument 'retires only when its twin passes the same conformance row' \u2014 but two producers holding the same three files serializes this roadmap behind an external branch. Consume that correction and record the dependency instead of scheduling the edit.",
+          "reproduce": "grep -n twin AGENTS.md ops/README.md ; grep -c twin docs/mapping.md ; sed -n '5p' .dev/ladder-inputs/worker-launch-consolidation-owner.md"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260906T013433Z-plan-codex-1d09bc.json:148 (PLAN, 'Machine lines': 28 slice/bucket pairs); ops/conductor/tools/ladder.py:1376",
+          "claim": "The machine-line block is the ladder driver's input grammar, and the driver runs one implementation stage per bucket in a single ladder run: parse_plan collects every bucket in the file (ladder.py:324-356) and the run loop iterates all of them, naming stages code, code-2, code-3 and granting each bucket's files (ladder.py:1376-1380, 896). The plan emits 28 buckets and then relies on prose \u2014 'the conductor must select the single dependency-ready slice/bucket pair ... No driver change is proposed here' \u2014 so a plan file handed to the driver as written launches 28 code stages. Emit machine lines one dependency-ready bucket at a time, or carry the driver change that enforces selection.",
+          "reproduce": "sed -n '324,356p' ops/conductor/tools/ladder.py ; sed -n '1370,1382p' ops/conductor/tools/ladder.py"
+        },
+        {
+          "severity": "p2",
+          "where": ".dev/records/dispatches/20260906T013433Z-plan-codex-1d09bc.json:148 (PLAN, row S04: 'Extend test_launch_skeptic_write.py with plan/adjudicate, source-denial, inline and path-alias cases'); ops/devlane/dispatch/launch.py:379",
+          "claim": "S04's acceptance extends only the codex check-tests suite, while the owner's 'retaining source isolation' is unenforced for the other two harnesses today. Containment is 'os' only for codex (launch.py:380-381); claude runs every role at --permission-mode acceptEdits with --add-dir out and Write/Edit absent from CLAUDE_DENIED_TOOLS (launch.py:379, 427-442, 530-536); grok runs always-approve. Granting plan and adjudicate their declared out/ files therefore needs per-harness witnesses that source stays unwritable, or an explicit unsupported-capability refusal per harness; otherwise the fix is proven on one adapter and assumed on two.",
+          "reproduce": "sed -n '376,382p' ops/devlane/dispatch/launch.py ; sed -n '427,446p' ops/devlane/dispatch/launch.py ; sed -n '525,536p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260906T013433Z-plan-codex-1d09bc.json:148 (PLAN, row S02: 'smallest independently testable runtime slice'); ops/devlane/task/envelope.py:25",
+          "claim": "S02 makes the envelope artifact-mode generalization the first runtime slice, ahead of the defect it exists to accommodate. envelope.py declares the opposite invariant \u2014 'Artifacts are handles, not contents ... content belongs in the file the handle names' (envelope.py:25-29, enforced at _handle, lines 125-138) \u2014 and the inline artifact string was authorized only 'for the immediate planning reassignment' (worker-launch-consolidation-owner.md:3). Once output grants land, plan and adjudicate return to file artifacts and the artifact-mode half of S02 has no standing obligation. Keep only its semantic half \u2014 one validator, counts/status agreement, the optional commit key \u2014 and fold it into S03.",
+          "reproduce": "sed -n '25,29p' ops/devlane/task/envelope.py ; sed -n '3p' .dev/ladder-inputs/worker-launch-consolidation-owner.md ; grep -n 'ENVELOPE.ENVELOPE_SCHEMA' ops/devlane/dispatch/launch.py"
+        }
+      ],
+      "artifacts": {
+        "VERDICT": "VERDICT: changes. Independent read-only assessment of the PLAN carried in .dev/records/dispatches/20260906T013433Z-plan-codex-1d09bc.json:148, measured at HEAD 0c1ff052796e17890a528d04acd35eac5f778513, base c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. No implementation is approved and nothing was dispatched.\n\nADMITTED AS CORRECT. The plan applies every owner correction: dev machinery stays under ops/ permanently, no Symfony application dependency, no prod twin or retirement trajectory, no new executor, registry or lifecycle store, Loopstrap as patterns only, models configurable and never tabled in code. launch.py is the right authoritative service. Its two central diagnoses re-measure true here. (a) jobs.json:57,60 requires {out}/PLAN.md, while launch.py:952 and :1213 grant a writable out only when job == 'check-tests' and :1189 hard-codes that job to codex workspace-write; adjudicate (jobs.json:90-95) also declares an out/ file and never gets one, so two jobs are broken by one name-branch. (b) The launcher validates against ENVELOPE.ENVELOPE_SCHEMA alone (launch.py:64,743) while task's authority additionally enforces counts == tally, the exact field tuple and handle limits (envelope.py:253-310), so launcher and task do not accept the same envelope. Its single P2 against the startup document still holds at this head: grep -n consolidat ops/conductor/conductor-start-plan.md returns nothing. Its baseline is current: git diff --name-only e59a52bc HEAD -- ops/devlane ops/bin ops/conductor/tools ops/process docs .claude/skills/cross-review returns no paths, so no re-audit is owed and the supplied inventory stands.\n\nWHERE IT FAILS THE BRIEF. The plan answers 'what would a complete consolidation contain', not 'what is the smallest complete path before conduct'. In its ordering the owner's one measured defect (S04) and every caller-convergence slice (S16-S18) sit behind a counterparty that does not exist in this tree, and behind a fileset capability with no demonstrated obligation (S13 to S14 to S15 to S16) whose absence launch.py already handles with the declared refusal the owner permits (launch.py:1095; CONTRACT.md:243). Thirteen of the 28 buckets grant launch.py and the plan serializes repeated paths, so the roadmap is a near-serial chain of about thirteen four-producer cycles over one 2,146-line file. Findings 1-6 carry the detail.\n\nSMALLEST COMPLETE CRITICAL PATH, recommended for admission in place of S00-S27 as the prerequisite:\n\nC1 execution boundary contract (S00 narrowed): boundary, request fields, one envelope authority, adapter seam, output-grant derivation, refusal table, and the disposition of every non-converged path. Files: ops/devlane/dispatch/CONTRACT.md, ops/devlane/task/CONTRACT.md. No dependency.\n\nC2 output grants (S04 with the external dependency cut): derive writable roots from each job's declared outputs in jobs.json instead of the job-name branch; refuse where the harness cannot hold source read-only while writing out/. Depends on C1 only. This is the one defect with a failed run behind it and belongs first, not tenth.\n\nC3 one acceptance rule (S03 plus only the semantic half of S02): route launcher acceptance through task's validator, keep the optional commit key and the declared transport, drop the duplicate key tuple at launch.py:642. Depends on C1.\n\nC4 supervision parity (S11): replace the inline token predicate with the telemetry breaker, aggregate accounting and the Grok cumulative source. Independent of C2 and C3; runs in parallel.\n\nC5-C7 adapter extraction, codex then claude then grok (S06-S08), with declared and observed capability descriptors (S09). This is what conduct step 3 \u2014 'separate Claude/Codex/Grok adapters, exact argument forwarding' \u2014 actually needs.\n\nC8 selection convergence (S16, S17, S18 with the S15/S14 dependency removed): one normalized request from dispatch.sh, go.sh and ladder. go.sh's claude defaults for plan, tests and implement (go.sh:38,39,41) and ladder's fixed stage-to-harness table (ladder.py:26-35) become configured selection checked in one place against the launcher's admission rule (launch.py:1088).\n\nC9 declared refusals for the non-converged paths, replacing S15 and S19-S23: task/run.py's vendor path, the shell levers and the cross-review recipe each get an explicit tested refusal or an owner-admitted retirement, with historical records preserved.\n\nConduct may start when C1-C9 are green and the lane-policy handoff exists. The policy join (S10) stays with the lane-boundary track and is consumed, not built.\n\nDEFERRED, admitted only on a demonstrated obligation \u2014 a measured caller, a failed run, or an owner ruling: S13/S14 staging and fileset; S15 task frontend; S19-S23 lever and recipe migration; S24 probes; S25/S26 wire gate and adoption (the conformance gate is scoped to ops/conductor/tools/*.py at test_instrument_conventions.py:35,120, so registering launch.py is a real but separable obligation); S27 closure; and S01 doctrine, which belongs to the track already correcting it.\n\nACCEPTANCE CHANGES, prioritized. (1) C2's witnesses must be per-harness, not the codex check-tests suite alone: claude read roles run acceptEdits with --add-dir out and no Write/Edit denial, so 'source isolation retained' is unproven for claude and grok. (2) Every deferred path needs its refusal test in C9 \u2014 exit class and refusal line asserted \u2014 before it is called converged. (3) C3 needs a positive control for the authorized inline-artifact mode and a negative for counts/status inconsistency, since the launcher accepts today what task refuses. (4) Machine lines must be emitted one dependency-ready bucket at a time, or the driver change must be in scope. (5) Each slice names the suites it must not move; ops/bin/suites.sh:21 discovers every test_*.py, so the regression floor is mechanical and the plan's 'relevant files include' list is inventory, not the floor.",
+        "evidence": "Measured 2026-09-06T01:47:30Z-2026-09-06T01:54:13Z at HEAD 0c1ff052796e17890a528d04acd35eac5f778513 in the supplied snapshot. Read all three ../in files whole; read docs/*, AGENTS.md, ops/README.md via the cached prefix.\nSupplied diff verified: git diff c06ed944 0c1ff05 | sha256sum and sha256sum ../context/diff.patch both 467736e48d019ff70e40b63b2c81a1e55590fa797d447e0fe5865d8283a8a3fa; git diff --stat reports 56 files, 7132 insertions, records and documents only.\nSupplied inputs verified identical to their tracked counterparts: b0cbc8cb...e64 (worker-launch-consolidation-owner.md), e163af0f...81e2 (plan record), da32e5c3...abfc (inventory record).\nBaseline: git diff --name-only e59a52bce37dbd1fed52d358b655bae00267f71f HEAD -- ops/devlane ops/bin ops/conductor/tools ops/process docs .claude/skills/cross-review returned no paths; git merge-base --is-ancestor confirms both e59a52bc and 18569a41 are ancestors of HEAD.\nOutput permission: grep -n 'PLAN.md' ops/devlane/task/jobs.json (lines 57, 60); grep -n '^ *\"[a-z-]*\": {' ops/devlane/task/jobs.json shows plan:55, check-tests:66, adjudicate:90 as the three jobs demanding an out/ file; grep -n 'check-tests' ops/devlane/dispatch/launch.py (34, 952, 959, 1189, 1213); sed -n '940,975p' and '1180,1220p' read the chmod hardening and writable_out wiring; sed -n '496,560p' read _argv per harness.\nHarness containment: sed -n '376,382p' ops/devlane/dispatch/launch.py (sandbox map at 379, codex-read at 380, containment at 381); sed -n '427,446p' (CLAUDE_TOOL_RULES, CLAUDE_DENIED_TOOLS = WebFetch, WebSearch, Agent, Task).\nEnvelope split: read ops/devlane/task/envelope.py whole; grep -n '_schema_valid' -A 40 ops/devlane/dispatch/launch.py; grep -n 'ENVELOPE' launch.py (64, 642, 743).\nSelection drift: grep -n 'def_harness=claude' ops/bin/go.sh (38, 39, 41); sed -n '20,40p' ops/conductor/tools/ladder.py (DISPATCH_STAGES); grep -n claude-write refusal at launch.py:1088.\nFileset and callers: grep -n 'fileset' launch.py (1093) and 'mode-unavailable' (launch.py:1095, CONTRACT.md:243); grep -rl 'task.run' --include='*.py' --include='*.sh' ops returns run.py, levers/codex/codex-dispatch.sh (comment at :22), workflow/checks/commit_trailers.py.\nDriver: sed -n '324,356p' and '1370,1382p' ops/conductor/tools/ladder.py; grep -n buckets ladder.py (896 grant, 1376 loop).\nConformance scope: grep -n tools ops/conductor/tests/test_instrument_conventions.py (35, 120); ls ops/conductor/registry (13 instrument JSONs, no launch.py.json); grep -n 'test_\\|discover' ops/bin/suites.sh (21).\nPolicy counterparty: git ls-files | grep -inE 'lane.policy|lane_policy' returned nothing; grep -rl over the tree returns only .dev owner inputs and dispatch records.\nStartup document: grep -n consolidat ops/conductor/conductor-start-plan.md returned nothing at this head; sed -n '80,110p' read steps 2-4.\nInspected absence: vendor/, ops/contracts/ absent; packages/ holds README.md only; .dev/wip has calibration-buckets.md.txt and no .md.\nNo file was written, no record modified, no vendor launched, no network or credential touched. git status --porcelain was clean at start and no write tool was used.",
+        "limits": "Could not look, declared as such: this sandbox refused every Python execution attempt (PYTHONPATH=... python3 -B -m unittest test_envelope and python3 -c were denied), so no suite was run here. The plan's '31 passed' for test_envelope and the inventory's 47 passes are their runs, not reproduced by me; the existing floor is inventoried, not certified green at this head.\nNot examined: session stores, credentials, live process census, network, any runtime database; no vendor process launched; shell lever selftests, CUE vet and behavioural probes not executed.\nUnavailable evidence: the lane/lane-boundary-20260905 track has no content in this tree, so its output-policy and enforcement interface could not be inspected \u2014 the recommendation that C2 needs no external dependency rests on jobs.json and launch.py alone, and if that track intends to own writable-root derivation the ordering claim in finding 1 should be re-ruled by the conductor, not by either worker.\nExternal and manual callers (operator use of go.sh, the levers and the cross-review recipe) remain unmeasured; source inventory does not prove global non-use, and the classification of task/run.py and the levers as dormant is inherited from the supplied inventory plus my own caller search, not from a usage measurement.\nThe plan's calibration minutes are estimates in the source artifact and are not checked here. Word budget honoured for the VERDICT artifact; this assessment approves no implementation and dispatches nothing."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 4670186,
+        "out": 40874,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "0c1ff052796e17890a528d04acd35eac5f778513",
+        "started": "2026-09-06T01:47:30Z",
+        "ended": "2026-09-06T01:54:13Z"
+      },
+      "note": "Independent read-only assessment of the supplied GPT-6 PLAN against the updated owner brief and the supplied inventory; no source, test, setting, host, database or network change, no vendor launch, no file written. CHANGES concerns the plan's dependency ordering and scope, not a runtime regression in the reviewed diff, which is records and documents only. The 28-slice roadmap is not admitted; a nine-step critical path (C1-C9) is proposed for conductor comparison. Suites could not be executed in this sandbox \u2014 declared as could-not-look, not looked-and-found-nothing. No implementation approved; the conductor rules and dispatches the next producer."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
 }
