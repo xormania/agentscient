@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T02:46:19Z",
-    "closed": null
+    "closed": "2026-09-06T02:51:03Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-46-20-01a0749c-127b-7610-91d4-d390e80161f5.jsonl"
   },
   "session": {
-    "id": "7496d7d9-7f98-4c14-8dd4-63a93868490e",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a0749c-127b-7610-91d4-d390e80161f5",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-46-20-01a0749c-127b-7610-91d4-d390e80161f5.jsonl",
+    "stream_sha256_at_close": "94dc6b0b72e925aa6cd9aad660209aa5a277856137ce094858ac1f2318d39948",
+    "spend": {
+      "input": 664594,
+      "cached": 596992,
+      "output": 7935,
+      "total": 672529,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T024619Z-code-codex-f80e4c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-46-20-01a0749c-127b-7610-91d4-d390e80161f5.jsonl",
+      "messages": 104
+    }
   },
   "brief": {
     "template": {
@@ -103,10 +110,151 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:46:19Z",
+      "ended": "2026-09-06T02:51:03Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "957033cbda79b0afda275e7145df6674b6832618",
+    "changed_paths": [
+      "ops/conductor/discovery-lever.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 14,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Initial tree was clean at the requested base.",
+          "reproduce": "pwd; git status --short; git rev-parse HEAD; rg --files ../in docs | sort"
+        },
+        {
+          "severity": "p3",
+          "where": "inputs and contracts",
+          "claim": "Read supplied evidence and founding contracts; oversized output required subsequent focused reads.",
+          "reproduce": "cat ../in/20260906T023500Z-review-claude-950f23.json ../in/discovery-cursor-ruling.md ../in/verification.json ../in/verify_discovery.py docs/*.md; rg --files -g AGENTS.md -g '*discovery*' -g '*CONTRIB*' -g '*README*' ops"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read the complete ruling, producer report and disposable checker.",
+          "reproduce": "cat ../in/discovery-cursor-ruling.md ../in/verification.json ../in/verify_discovery.py"
+        },
+        {
+          "severity": "p3",
+          "where": "repository instructions",
+          "claim": "Read governing documentation; output truncation prompted focused follow-up reads.",
+          "reproduce": "cat docs/concerns.md docs/mapping.md ops/README.md ops/conductor/README.md CONTRIB.md; cat ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/20260906T023500Z-review-claude-950f23.json",
+          "claim": "Read Claude's cursor finding and link-count clarification.",
+          "reproduce": "cat ../in/20260906T023500Z-review-claude-950f23.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/discovery-lever.md",
+          "claim": "Inspected the existing contract and acceptance rows; focused reads recovered truncated portions.",
+          "reproduce": "cat ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "cursor contract and lane conventions",
+          "claim": "Confirmed initial work drops, continuation semantics and documentation-only scope.",
+          "reproduce": "sed -n '300,610p' ops/conductor/discovery-lever.md; cat ops/README.md ops/conductor/README.md CONTRIB.md"
+        },
+        {
+          "severity": "p3",
+          "where": "governing contracts",
+          "claim": "Completed focused reads of mapping, continuation examples and instrument conventions.",
+          "reproduce": "cat docs/mapping.md; sed -n '590,610p' ops/conductor/discovery-lever.md; cat ops/conductor/instrument-conventions.md"
+        },
+        {
+          "severity": "p3",
+          "where": "out/precheck.sh",
+          "claim": "Measured 27 local link occurrences and constructed a legal five-card continuation fit. The saved script reproduces the executed Python heredoc.",
+          "reproduce": "bash ../out/precheck.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "corrected tree",
+          "claim": "Initial verification passed; diff contained only discovery-lever.md, with D-A38b unchanged and D-A38c added.",
+          "reproduce": "git diff --check; python3 ../out/verify_cursor.py; git diff --stat; git diff -- ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Staging failed with exit 128 because .git is read-only; commit was not reached. Launcher message saved.",
+          "reproduce": "git add -- ops/conductor/discovery-lever.md && git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Named acceptance command exited 0.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "out/cursor-verification.json",
+          "claim": "Final documentation verification exited 0: boundary counts 0/5/5/5/5/1 reach offset 20; every page fits 8192 bytes. Existing 8/8/4 case, eleven tools and all eight envelopes remain unchanged. All local targets and fragments resolve.",
+          "reproduce": "python3 ../out/verify_cursor.py"
+        },
+        {
+          "severity": "p3",
+          "where": "final scope and stamp",
+          "claim": "Only discovery-lever.md is modified. Its SHA-256 is 3e2794967b4cdaad6a5079d9215caffa1a1a7100071bbbd71e3f8b6d290edbef; examples and plan retain producer hashes.",
+          "reproduce": "git status --short; git rev-parse HEAD; sha256sum ops/conductor/discovery-lever.md ops/conductor/discovery-examples.md ops/conductor/conductor-start-plan.md; date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "contract": "ops/conductor/discovery-lever.md",
+        "verification": "out/cursor-verification.json",
+        "scratch_checker": "out/verify_cursor.py",
+        "precheck": "out/precheck.sh",
+        "commit_message": "out/COMMIT_MSG",
+        "link_reconciliation": "The supplied producer regex counts every ](destination) occurrence, including repeated targets and multiple links per line; destinations without :// are local. This reproduces 27 local occurrences (15 lever + 2 examples + 10 plan), over 20 resolved targets including fragments. There are 37 total occurrences and 10 remote occurrences, unchecked. Claude's 33 counted lines containing links (14 + 2 + 17); subtracting 10 yielded 23. No history or prior record changed."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 672529,
+        "out": 7935,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "bc5a5785a3974910d5d50380bff8f9f8dbd49e0f",
+        "ended": "2026-09-06T02:50:00Z"
+      },
+      "note": "Applied the ruling only to discovery-lever.md: retain authorization for 21 dispatch sources, distinguish metadata bindings from work-list limits, and accept offset 20 below total. Verification is documentation arithmetic and preservation checking, not runtime acceptance or independent approval. No unrelated fixes. Git's read-only filesystem prevented committing; the launcher can use out/COMMIT_MSG. Independent recheck remains pending.",
+      "commit": {
+        "subject": "conductor: Cover the last authorized discovery work card",
+        "body": "Allow lane_start cursor offsets through 20 for the work list of up to 21 authorized dispatch summaries. Keep the separate 20-entry metadata binding limit and the existing 20-card 8/8/4 case. Add D-A38c for an initial work drop and continuation through offset 20, including the terminal cursor refusals.\n\nAgainst bc5a5785a3974910d5d50380bff8f9f8dbd49e0f plus this correction, git diff --check and python3 ../out/verify_cursor.py pass. Only discovery-lever.md changes; all eight example envelopes and eleven tools are preserved. The disposable checker records the boundary page bytes in out/cursor-verification.json. Independent functional review follows.\n\nThe supplied producer checker counts each regex match of an inline Markdown link destination, including multiple occurrences on one line and repeated targets; a destination without :// is local. This reproduces 27 local occurrences across the lever, examples and plan (15 + 2 + 10), over 20 resolved targets including fragments, with 10 remote occurrences unchecked. The review counted 33 lines containing links; there are 37 occurrences. No prior commit or producer record is rewritten.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T02:51:02.710Z"
+    }
+  },
+  "status": "closed"
 }
