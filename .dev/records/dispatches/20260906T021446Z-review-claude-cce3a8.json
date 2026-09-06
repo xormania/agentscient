@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T02:14:46Z",
-    "closed": null
+    "closed": "2026-09-06T02:20:27Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -157,14 +157,22 @@
       "--effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/f48bfcab-142f-4557-8b9b-5cc8e6f86f5e.jsonl"
   },
   "session": {
     "id": "f48bfcab-142f-4557-8b9b-5cc8e6f86f5e",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/f48bfcab-142f-4557-8b9b-5cc8e6f86f5e.jsonl",
+    "stream_sha256_at_close": "3cba42c1043ba4d2fb72c066c2c75139fa8a898c4095a0ed5a51f73bb1cdb623",
+    "spend": {
+      "input": 76,
+      "cached": 2544834,
+      "output": 25132,
+      "total": 2570042,
+      "source": "result.usage",
+      "messages": 38,
+      "cost_usd": 2.5982924999999994
+    }
   },
   "brief": {
     "template": {
@@ -191,10 +199,63 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:14:46Z",
+      "ended": "2026-09-06T02:20:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1d47e003102dcc095df214082b9c7de876f62825",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "commit a6d97b6ed82ce3af505310ea2d184b242773d329 (message body/trailer block)",
+          "claim": "The landed correction's commit message is reflowed wrong: the `Inputs:` line is truncated mid-sentence inside the trailer block as `Inputs: ../in/lane-boundary-owner.md and`, while its continuation `../in/20260906T015606Z-adjudicate-grok-8b406f.json.` sits orphaned at the end of the verification paragraph, where it reads as a stray sentence. `git log --format='%(trailers:only)'` \u2014 the check CONTRIB.md:90 names \u2014 parses `Inputs: ../in/lane-boundary-owner.md and` as a trailer, so the commit's declared inputs are incomplete as machine-read. The required trailers are present and correct (`Source: original`, `Source: owner 2026-09-05`, `Co-Authored-By: gpt-6-astra <noreply@openai.com>`, the actual model id rather than the envelope's `GPT-6`), so this is a record-legibility defect, not a missing-trailer defect. It does not touch the four corrected documents, all of which are correct. Smallest correction: none required for the documentation slice; if the commit is ever rewritten, join the `Inputs:` line and keep it out of the trailer block.",
+          "reproduce": "git log -1 --format=%B a6d97b6 | cat -A; git log -3 --format='%h %(trailers:only,unfold,separator=%x7C)' 1d47e00"
+        }
+      ],
+      "artifacts": {
+        "RECHECK": "RECHECK at 1d47e003102dcc095df214082b9c7de876f62825 against c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. Correction under test: a6d97b6ed82ce3af505310ea2d184b242773d329 'docs: Supersede remaining lane replacement recommendations' (dispatch 20260906T020434Z-code-codex-fde240), applying Grok ruling 20260906T015606Z-adjudicate-grok-8b406f. Both ../in records and ../in/lane-boundary-owner.md read whole. Working tree clean; git diff --check silent at HEAD.\n\nSCOPE OF THE LANDED COMMIT. git show --stat a6d97b6: exactly four files, 23 insertions, 3 deletions \u2014 .dev/wip/overview.md (10/0), ops/conductor/MCP-RESEARCH-2026-09-05.md (8/0), ops/conductor/mcp-context-scope.md (1/1), ops/conductor/onboard-lever.md (4/2). The two historical files take pure insertions, so both 2026-09-03 and 2026-09-05 bodies are byte-identical to a764710b (git diff --numstat a764710b 1d47e00 shows 10/0 and 8/0). No handoff, AAR, idea or ops/docs file was touched: F4 stays rejected as ruled.\n\nF1 MCP research replacement recommendation \u2014 CLOSED. MCP-RESEARCH-2026-09-05.md:3-9 now carries a dated supersession notice above the 'Measured 2026-09-05' line, naming AGENTS.md \u00a7Lane boundary and precedence as governing, withdrawing the later-Symfony-twin / bounded-incumbent replacement recommendation, and stating dev tooling evolves independently without a Symfony application dependency or replacement mandate, while pinning the measured demand to its original ref/date. The body is untouched: lines 138-139 still read 'the candidate for the later Symfony twin, not a reason to introduce a second server during this bounded incumbent-lane change', as the ruling required. grep -n -i -E 'twin|incumbent|strangler|retire' on that file returns only 5 (the notice) and 138-139 (the preserved passage), so the notice's scope covers every occurrence. The live referrer is qualified: mcp-context-scope.md:3 now reads 'Use [MCP-RESEARCH-2026-09-05.md](MCP-RESEARCH-2026-09-05.md) for measured demand at its original ref/date, subject to its 2026-09-05 supersession notice: the later-Symfony-twin / bounded-incumbent replacement recommendation is withdrawn.' with the remainder of the scope line unchanged. grep -rn 'MCP-RESEARCH-2026-09-05' over tracked non-record files returns three referrers: mcp-context-scope.md:3 (qualified), README.md:344 (a neutral 'connects these reads to the project's logs and lists further candidates' citation, which the ruling permitted once the target is bannered), and ops/conductor/reports/mcp-pipeline-2026-09-05.md:6, which cites it only as the record of that research and asserts no replacement.\n\nF2 WIP overview supremacy and retirement \u2014 CLOSED. .dev/wip/overview.md:3-11 carries a dated notice above the status paragraph, so it precedes both defects. It neutralizes the supremacy clause directly ('This preserved 2026-09-03 body has no precedence over AGENTS.md or docs/; its claim to newer intent does not override them'), which lines 16-18 still state verbatim in the preserved body. It withdraws the \u00a76.3 strangler, twin-replacement and verb-by-verb retirement proposal, including the blocked-session-fixes restriction, and closes with 'Conflicting passages below retain historical provenance only, even when a handoff or AAR points here' \u2014 the reachability path from HANDOFF-2026-09-03-seat.md and AAR-2026-09-03T15-seat.md, which the ruling forbade editing. Coverage measured: grep -n -i -E 'twin|strangler|incumbent|retire|replace' .dev/wip/overview.md returns 7 and 10 (the notice), 500-506 (all of \u00a76.3, verified by reading 490-516), and 466 ('Replaces the plan dispatch'), which is an unrelated process step. So the notice's \u00a76.3 scoping is complete and the general clause catches the rest.\n\nF3 onboard-lever wording \u2014 CLOSED at the ruled p3 remainder. onboard-lever.md:27-32 now reads 'Instruction precedence comes from [AGENTS.md \u00a7Lane boundary and precedence] and [ops/README.md]. AGENTS.md is a direct entry in the existing reading list; it instructs the reader to read ops/README.md as a second hop, not a separate entry in that list.' Both halves are true at this ref: onboard.py LAW (lines 20-30) is the five entries AGENTS.md, CONTRIB.md, instrument-conventions.md, stack.md, coverage-zones.md \u2014 AGENTS.md present, ops/README.md absent \u2014 and AGENTS.md:138 is the second hop ('ops/README.md before dispatching or touching the lane'). The paragraph keeps its disclaimer, 'This correction does not change the tool's reading-list data or claim it enforces work scope'. The rejected part stayed rejected: onboard-lever.md:47 still carries the stack.md one-liner 'layers, incumbents, open seats' unchanged, matching onboard.py's LAW tuple, and no tool or test was edited.\n\nLINKS. Every changed link resolves at this ref. .dev/wip/overview.md and ops/conductor/MCP-RESEARCH-2026-09-05.md both target ../../AGENTS.md, which resolves to the repository root AGENTS.md from .dev/wip/ and ops/conductor/ respectively; onboard-lever.md targets ../README.md, which resolves to ops/README.md; mcp-context-scope.md targets its sibling MCP-RESEARCH-2026-09-05.md. The anchor #lane-boundary-and-precedence exists in both targets: AGENTS.md:42 and ops/README.md:11, each '## Lane boundary and precedence'.\n\nUNCHANGED DUTIES AND ABSENCE OF ENFORCEMENT. The commit touched no seed or contract, so the prod-application framework duties stand as before: AGENTS.md:79-81 still opens Standing rulings with 'These framework, projection and package rulings govern the prod application' followed by 'Symfony is the framework, whole'. Permanent independence is stated, not temporary: the two notices say dev tooling evolves independently 'without a Symfony application dependency or required retirement' / 'or replacement mandate', matching AGENTS.md \u00a7Lane boundary. No runtime enforcement is claimed or added: git diff --name-only c06ed944 1d47e00 over '*.py' '*.sh' '*.conf' '*.toml' '*.yml' '*.json' returns only .dev/records/dispatches/*.json and .dev/ladder-inputs/launch-inventory-evidence.json across the entire range \u2014 no code, test, settings, host or dependency file changed by this commit or any other in it. AGENTS.md:76-77 still carries the truthful disclaimer that mechanical enforcement belongs to the separate planner and this documentation correction establishes no live guard. The banner style matches the existing pattern at ops/conductor/stack.md:3-9.\n\nWHAT I DID NOT DO. No whole-lane audit, no re-litigation of F4, no optional historical rewrite, no test or suite execution, no vendor launch, no network, no edit of any kind to the snapshot. Absence claims here are 'looked and found nothing' by the named commands over the tracked tree at this ref only.\n\nONE UNSCORED OBSERVATION, outside the three findings. The committed record .dev/records/dispatches/20260906T020434Z-code-codex-fde240.json:120 gives result.head 2e2f6f6d2cc473abe21bb24839b8cbf0eb2f30e6, which git cat-file -t cannot resolve in this snapshot; the work landed as a6d97b6. The same holds for the previous code job's record (20260906T013707Z-code-codex-a46459.json head 1476d38b, also unresolvable) while adjudication and review records resolve (80dd63cc does). This is a launcher record-keeping pattern that predates this correction, not a defect of the change under review, and I did not score it."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2570042,
+        "out": 25132,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1d47e003102dcc095df214082b9c7de876f62825",
+        "started": null,
+        "ended": null
+      },
+      "note": "APPROVE. All three upheld/partial findings of ruling 8b406f are closed by a6d97b6 and nothing more. F1: MCP-RESEARCH-2026-09-05.md:3-9 carries a dated supersession notice withdrawing the later-Symfony-twin / bounded-incumbent recommendation with the 2026-09-05 body byte-identical (10 and 8 pure insertions), and mcp-context-scope.md:3 now qualifies the citation and links it. F2: .dev/wip/overview.md:3-11 neutralizes the supremacy clause at lines 16-18 and the \u00a76.3 strangler/retirement passage at 500-506, covering the handoff/AAR reachability path, with the 2026-09-03 body preserved. F3: onboard-lever.md:27-32 now states truthfully that AGENTS.md is a direct LAW entry (onboard.py:20-30) and ops/README.md is a second hop (AGENTS.md:138), with the rejected stack.md one-liner and all tool/test data untouched. Every changed link and both #lane-boundary-and-precedence anchors resolve (AGENTS.md:42, ops/README.md:11). Prod-application framework duties are unchanged (AGENTS.md:79-81), independence is stated as permanent rather than transitional, and no code, test, settings or dependency changed anywhere in c06ed944..1d47e00, so the absence of runtime enforcement is truthful and still disclaimed at AGENTS.md:76-77. One p3 remains and does not block: the landed commit's message reflows its Inputs line into the trailer block truncated as 'Inputs: ../in/lane-boundary-owner.md and', with the second input orphaned in the paragraph above; required Source/Co-Authored-By trailers are present and name the actual model gpt-6-astra. Read-only review by a different harness and model from the producer; no edits, no suites run, no vendor launched."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
 }
