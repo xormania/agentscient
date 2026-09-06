@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T01:01:05Z",
-    "closed": null
+    "closed": "2026-09-06T01:05:42Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -63,14 +63,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-01-06-01a0743b-b9b6-7d22-a0b9-05635054689c.jsonl"
   },
   "session": {
-    "id": "a5f918c9-0231-44fd-be31-75f554adf4ec",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a0743b-b9b6-7d22-a0b9-05635054689c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-01-06-01a0743b-b9b6-7d22-a0b9-05635054689c.jsonl",
+    "stream_sha256_at_close": "31fab4dd0a5a6b6700c487fe1fc72c70de9b32bc3842d964da3c5fe08ab5e610",
+    "spend": {
+      "input": 2322178,
+      "cached": 2208256,
+      "output": 7910,
+      "total": 2330088,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T010105Z-review-codex-dd9825/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T21-01-06-01a0743b-b9b6-7d22-a0b9-05635054689c.jsonl",
+      "messages": 222
+    }
   },
   "brief": {
     "template": {
@@ -93,10 +100,56 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:01:05Z",
+      "ended": "2026-09-06T01:05:42Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "5fa3a23087bbd56e414efdf5c4aa415eb5505c7a",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "loopstrap-reference-research",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "report": "# Loopstrap reference research \u2014 could-not-look\n\n**Provenance:** `xormania/loopstrap@UNREACHABLE`; no immutable revision could be resolved, so no source-level reuse recommendation is supportable.\n\nThe supplied Agentscient brief and home map were read completely and measured as SHA-256 `73986f85edc300740331e98d168d363677b3d3a9ab54ffba3b45957550deae82` and `d83b5b1321894e69a5928a1c9b6e3c39c087fbb41943376a8697ae27ac20aa7d`. The target `5fa3a23087bbd56e414efdf5c4aa415eb5505c7a` was verified to descend from base `c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc`; the supplied patch digest is `0ec761b697950d2d9568a8677c812f970c2783ac33dd190d5e5831e0c00e2be9`.\n\n## Access result\n\nGitHub's [owner profile](https://github.com/xormania) exposed a pinned public repository named `loopstrap` and described it as Python, but direct repository, commit-history, branch, and raw-file reads all returned cache-miss errors. A read-only `git ls-remote https://github.com/xormania/loopstrap.git` also failed because the execution environment could not resolve `github.com`; a local read-only search found no existing clone. Therefore the repository head SHA, tree, docs, code, tests, and line anchors could not be inspected. The profile metadata is not sufficient evidence of any mechanism.\n\n## Implemented versus aspirational; fit and gaps\n\nCould-not-look: no Loopstrap behavior can be classified as implemented or aspirational, and no concrete mechanism can be recommended for reuse or adaptation. In particular, this report makes no inference about harness configuration, adapter extensibility, roles/capabilities, onboarding, discovery, lifecycle, enforcement, or diagnostics.\n\nAgentscient's receiving homes are nevertheless explicit: harness mechanics belong to `ops/devlane/harness/` and existing dispatch adaptation (`../in/conductor-start-home-map-20260905.md:32-35`); onboarding and context to `onboard.py` and its contract (`:38`); lifecycle to `docs/workflow.md` (`:31`, and `docs/workflow.md:3-14`); handoff/AAR custody to existing record paths (`:39`, `:54-61`); diagnostics to `docs/probes.md` and `probes-lever.md` (`:40`, `docs/probes.md:8-46`); shared policy to the conductor contract with vendor translation confined to adapters (`:35`, `:67-73`). The owner additionally requires configurable profiles, explicit adapters, measured capabilities, and enforceable role constraints (`../in/discovery-contract-owner.md:18-23,49-53`). These are ownership constraints, not evidence that Loopstrap fits them.\n\n## Small follow-ups by agreed step\n\n1. **Discovery:** rerun this read-only research when GitHub source access works; record the resolved default-head SHA first, then cite immutable `blob/<sha>/<path>#Lx-Ly` links. Any useful discovery mechanism may only inform the existing discovery/onboard contract.\n2. **Shared read service:** for each candidate mechanism, verify code and tests at that SHA and map it to the existing CLI/MCP read boundary; copy nothing automatically.\n3. **Conduct/enforcement:** compare verified adapter, role, enforcement, and diagnostic mechanics only against the existing harness/hooks/probes owners; reject any second policy engine, registry, or harness abstraction.\n4. **Lifecycle:** compare verified session transitions and recovery behavior against the workflow genus and existing handoff/AAR custody; do not admit a competing store, ref namespace, or automatic completed closeout."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2330088,
+        "out": 7910,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "5fa3a23087bbd56e414efdf5c4aa415eb5505c7a",
+        "started": null,
+        "ended": "2026-09-06T01:04:35Z"
+      },
+      "note": "Could-not-look was reported rather than treating inaccessible Loopstrap source as absence. No files, settings, tests, source, credentials, session store, or remote state were read or changed beyond the authorized read attempts."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T01:05:41.630Z"
+    }
+  },
+  "status": "closed"
 }
