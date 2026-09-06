@@ -469,37 +469,29 @@ class TestDiscoveryV3Snapshots(_DiscoveryV3Fixture):
                 "ops/conductor/tools/lane_mcp.py", "binding-mismatch"
             ),
         )
-        self.assertTrue(
-            digest_only_bind(
-                (artifact_a / "ops/conductor/tools/lane_mcp.py").read_bytes(),
-                artifact_b / "ops/conductor/tools/lane_mcp.py",
-            )
+        a_mcp = (artifact_a / "ops/conductor/tools/lane_mcp.py").read_bytes()
+        b_mcp = artifact_b / "ops/conductor/tools/lane_mcp.py"
+        self.assertTrue(digest_only_bind(a_mcp, b_mcp))
+        self.assertFalse(digest_only_bind(b"", b_mcp))
+        self.assertFalse(
+            digest_only_bind(a_mcp, Path(self._tmp.name) / "missing-exec-bind")
         )
-        self.assertNotEqual(
-            sha256_hex((artifact_a / "ops/conductor/tools/lane_mcp.py").read_bytes()),
-            sha256_hex((artifact_b / "ops/conductor/tools/lane_mcp.py").read_bytes()),
-        )
+        self.assertNotEqual(sha256_hex(a_mcp), sha256_hex(b_mcp.read_bytes()))
 
-        live = Path(__file__).resolve().parents[3] / "ops/conductor/tools/lane_mcp.py"
-        self.assertTrue(live.is_file(), live)
-        self.assertNotEqual(
-            live.read_bytes(),
-            (artifact_a / "ops/conductor/tools/lane_mcp.py").read_bytes(),
-        )
+        unverified_entry = self.plant_unverified_boot_entry(artifact_a)
         unverified = self.query(
             "lane_start",
             {"profile": "dev"},
             boot=True,
             boot_dir=artifact_a,
-            entry=live,
+            entry=unverified_entry,
         )
         unverified_line = self.assert_refusal(unverified, "config")
-        self.assertIn("binding-", unverified_line)
-        self.assertTrue(
-            unverified_line.startswith(
-                "config: expected trusted discovery boot descriptor; found rejected "
-            ),
+        self.assertEqual(
             unverified_line,
+            rejected_boot_line(
+                "ops/conductor/tools/lane_mcp.py", "binding-unverified"
+            ),
         )
 
         loaded = self.load_acquire(artifact_a)
