@@ -92,6 +92,75 @@ binding and admitted tool declarations; the request cannot select it. The
 normalizer is pinned adapter code. Never trust a model-supplied classification,
 claimed effect list, command substring or tool display name as provenance.
 
+### Opaque role and target handles
+
+`bound_role` is an immutable in-process capability minted by the admitted policy
+binder from verified startup inputs. It is neither JSON nor a duck-typed mapping
+with descriptor_sha256/binding/tools members. The consuming evaluator must
+verify issuance and current custody; equal dictionaries, copied digests and
+candidate-supplied validator callables do not produce such a handle. The
+in-process interface exposes only these read operations:
+
+| operation | result and obligation |
+|---|---|
+| descriptor_digest() | SHA256 of the held complete conductor descriptor |
+| policy_binding() | immutable view of its verified ConductorBinding |
+| is_current() | boolean from held binding/custody lifetime; false closes admission |
+| resolve_tool(kind, target) | one opaque verified target handle or null; exact lookup in already admitted owner declarations, no wildcard/default |
+
+The target handle exposes `validate_arguments(arguments)` returning boolean
+without effects, and immutable `schema`, `declaration`, `execution`, `grants`
+and `effects` views of the existing owner's retained evidence. These are opaque
+owner values, not another serialized target schema. `schema` includes the exact
+closed argument definition and all referenced schema bytes; `declaration` binds
+its source/ref/digest; `execution` binds actual executable/import closure, cwd
+and closed environment; grants/effects retain that lever's authorization and
+operation identity/reconciliation duties. Validation performs no resolution from
+candidate paths, remote schema loading or execution. Missing closure is an
+unavailable target, not an object-only `{type:"object"}` validator. The binder
+verifies these views through existing source custody; the evaluator rechecks
+current binding, schema and grants on every request. No constructor accessible
+to a model, serialization round-trip or newly persisted role registry is added.
+
+`bound_context` is the adapter-owned opaque handle containing that bound_role,
+the selected admitted mechanism and live intercepted native call/connection
+handles. Only trusted adapter code allocates request ids and derives native
+execution identity. Verified independent mocks implement these operations
+through their trusted fixture binder; they must reject unissued lookalikes.
+Policy tests consume normalized Requests through a valid role handle; adapter
+tests supply a valid bound_context and mechanism-native bytes. Neither test
+may confer authority by assigning attributes to a namespace.
+
+### Native input belongs to its mechanism
+
+There is no common native_request JSON shape. The admitted adapter mechanism
+selects exactly one pinned native schema and transport, before parsing a call;
+the payload cannot choose a protocol. For `codex-sole-client-relay/1`,
+native_request is the validated **DynamicToolCallParams** object from an
+upstream `item/tool/call` request, exactly
+`{threadId,turnId,callId,namespace,tool,arguments}`, with the constraints in
+[RPC and capability ownership](#rpc-and-capability-ownership). Framing and
+correlation run first in the relay; no jsonrpc wrapper enters normalize_tool.
+The held connection supplies provenance and the exact target row supplies
+kind/target. Native command/file approval requests, TUI command/exec, unknown
+methods and malformed frames receive their declared terminal dispositions at
+the relay gate; they are not invented dynamic calls or shell Requests.
+
+For any other admitted mechanism, its owner must retain a complete closed
+native schema, field-to-Request translation and verified interception provenance
+under the existing adapter revision/normalizer and tools-contract digests.
+No such declaration means unavailable capability; do not synthesize a Claude,
+Grok or hook payload from the common Request. Codex stock PreToolUse remains
+rejected under the current relay declaration. A separately declared synthetic
+adapter may test common compilation/grammar, but cannot certify vendor-native
+mediation or be selected merely because a fixture names it `fixture-cli`.
+The supplied PIN_NATIVE_REQUEST `{surface,argv,cwd,environment,executable}` is
+rejected as a universal protocol: every authority-bearing field is caller
+selected. Shell normalization below is conditional on a mechanism that proves
+that surface; it does not grant the Codex relay a shell execution route.
+
+### Common request and decision
+
 Counterpart ownership: adoption unit 1a supplies the matching declaration of
 `evaluate_tool(bound_role, normalized_request)` and its Request/Decision coupling
 in [lane-policy.md](lane-policy.md). At review `20260906T110711Z-review-claude-e4968e`
@@ -163,7 +232,9 @@ execution. The adapter cannot turn refusal into permission prompts, automatic
 approval, retry under weaker settings or an unrelated allowed request. Transport
 failure is recorded as unavailable decision evidence, while the request is
 blocked. No durable decision store is added; existing attempt transport retains
-admitted non-secret evidence. Unknown/rejected native data never enters records.
+admitted non-secret evidence. Unknown/rejected native data never enters
+lane-owned records; [relay record custody](#relay-record-custody) defines this
+boundary separately from private model-generated vendor history.
 
 ### Acceptance duties and bounded refusals
 
@@ -184,3 +255,270 @@ N1–N10, R1–R5 and I1 remain binding. In particular shared inspection reads s
 permitted; the older unarmed guard's ban on hand investigation supplies no new
 authority. Doctor findings propose bounded remedies; neither a diagnostic run
 nor a passing observation can ratify policy or widen permissions.
+
+### Enforcement-test corrections
+
+These instructions apply to supplied test_conduct_enforcement.py and
+conduct_test_support.py from test-author record `20260906T125326Z-tests-grok-23e1d6`,
+read against the relay at `8324aa389a467417380683e6cd135efdd818acfa`. They resolve
+PIN_NATIVE_REQUEST and the invented bound-role/tools mapping without editing
+tests here. Use the [startup corrections](conductor-start-plan.md#startup-test-correction-instructions)
+for bootstrap, compilation, connection and timing cases.
+
+| test/helper | precise correction and correct owner |
+|---|---|
+| conduct_test_support.native_request | Replace the universal surface/argv helper with mechanism-specific native builders. For Codex emit the six DynamicToolCallParams members, wrapped in the pinned RPC frame only when testing the relay parser. Require a live fixture bound_context; raw executable/cwd/environment never come from the model. |
+| CanonicalDelegation.test_evaluate_tool_allows_dispatch_go_and_ladder | Supply an issued opaque role and a separately verified declaration/schema for each frontend. Replace generic object schemas and `{job:"author-tests"}` with a full owner-valid request per frontend. Assert allow for each, and refusal for a missing declaration, missing required member, extra member and unissued lookalike. These are pure evaluator tests; no worker invocation occurs here. |
+| CanonicalDelegation.test_coordination_read_is_allowed_without_wf_agent | Supply a declared read target with closed arguments and custody-scoped execution identity; verify allow with WF_AGENT absent. A tools mapping with kind alone or an invented git-status/ref argument is not that declaration. |
+| CanonicalDelegation.test_read_containing_apply_is_not_classified_as_mutation | Pass an owner-valid structured read containing literal apply as data through the declared read target. For Codex use item/tool/call for that target, then normalize/evaluate; do not invent a shell native surface. A separate shell-mechanism fixture is valid only after its own protocol and tokenizer/execution proof are declared. |
+| CanonicalDelegation.test_compound_command_naming_dispatch_is_not_an_allowed_request | At the Codex relay gate send a prohibited command/exec RPC or undeclared command argument on a dynamic target. Assert its prescribed terminal error/refusal and zero canonical invocations; do not require a fabricated forbidden/shell-escape Request from an unsupported protocol. |
+| ForbiddenHandwork._evaluate and test_direct_edit_is_refused_before_effects; test_git_mutation_is_refused_before_effects; test_shell_escape_is_refused_before_effects; test_raw_vendor_is_refused_before_effects; test_in_session_agent_is_refused_before_effects | Keep the normalized forbidden-Request tests as pure policy cases, with an issued role and exact Reason/Decision wire. Separately drive each actual forbidden vendor surface through its admitted mechanism's resolution/interception gate and assert zero effects; evaluator purity alone proves no interception. |
+| ForbiddenHandwork.test_every_fixed_reason_code_is_accepted_as_a_reason | Test the closed Reason enum at the common Request/evaluator owner with a valid role. For native coverage use each mechanism's declared mapping; Codex approval denials and disabled/unknown tools need their actual gate outcomes, not a universal surface-to-reason map. Include malformed-request and binding-mismatch at their owning common boundary. |
+| ForbiddenHandwork.test_binding_mismatch_is_refused; test_malformed_request_is_refused | Keep the changed Request digest/argument type, but supply a valid issued current role. Assert the exact fixed binding-mismatch/malformed-request Decision, no execution, and no raw echo. Test invalid role handles separately as unavailable authority, never an allow. |
+| ForbiddenHandwork.test_decision_serializes_to_the_wire_without_raw_echo | Use an issued role, compare all fixed refusal fields and the exact wire, and verify rejected bytes/hashes never enter lane evidence. |
+| ForbiddenHandwork.test_adapter_cannot_turn_refusal_into_a_prompt | Move response handling to the adapter/relay with a real pending fixture call and refused Decision; assert no target invocation, no approval/prompt callback and no weaker retry. An unrelated CLI output without the word permission proves nothing. |
+| FaultyControls.test_replayed_binding_prevents_admission | Move replay consumption to the adapter/canonical execution owner. Obtain a valid allow for a pending request, consume it once, then inject the same Decision again; require zero second invocation. Repeated evaluate_tool calls are not a replay store and need not change a pure decision. For Codex also duplicate completed native call identity and require retained-result replay, and plant uncertain effects to require reconciliation refusal. |
+| LaunchResumeBeforeEffects.test_cond_effect_n1_delegation_does_not_grant_source_writes | Retain the empty conductor output/source-write grants check, then drive one schema-valid canonical delegation through the real execution boundary with a verified worker counterparty. Observe one canonical operation identity/result and only its declared effects; compare source/index/refs and prevent direct conductor writes. A prepared capability object alone proves no delegated effect boundary. |
+
+No test may fabricate a positive target when its owner has not declared a full
+schema, executable closure and required effect reconciliation. Record that edge
+as unavailable and require refusal until an independently verified counterparty
+exists. Fixture protocols can isolate owners; they cannot supply new production
+authority, admission or another executor.
+
+## Codex relay protocol
+
+This is the closed policy projection for
+[codex-sole-client-relay/1](harness-capabilities.md#codex-sole-client-relay--declared-mechanism),
+not a replacement normalizer/evaluator API. Native v2 types and their transitive
+schema definitions are pinned to `3d2ee51ca2d5db578f328aa75e20aa22c0197c9a` under
+[app-server-protocol](https://github.com/openai/codex/tree/3d2ee51ca2d5db578f328aa75e20aa22c0197c9a/codex-rs/app-server-protocol).
+For every admitted method use exactly that named Params/Response schema,
+recursively reject undeclared fields, and apply the narrower rules below.
+Optional native fields retain their pinned absence/null semantics; they are not
+extra fields in the all-required common Request/Decision. No permissive vendor
+deserializer, generic JSON passthrough or future method inheritance is allowed.
+The schema closure must be available and digest-verified before launch; a missing
+type is unavailable capability, not a guessed shape. This is a frozen subset,
+not a claim that every native TUI feature is supported.
+
+### Frames and correlation
+
+Upstream is newline-delimited UTF-8 JSON on private stdio; downstream is one JSON
+object per Unix WebSocket text message (fragmentation reassembled under the same
+bound). No binary messages, compression, JSON batches, BOM, duplicate members,
+trailing values, NaN/Infinity, invalid UTF-8 or nesting above 32. Limit a logical
+frame including its line delimiter to 65536 bytes, total queued bytes to 1048576
+and pending requests to 64 across both directions. Partial frames expire after
+5000ms from their first byte. WebSocket ping/pong/close are transport controls,
+bounded by the same queue/deadline; they carry no policy authority. JSON escaping
+may represent LF/tab in conversational text only; identifiers/methods reject
+controls. Raw control bytes are invalid JSON; no control-containing path or
+executable is admitted. Oversize conversation/output is a finite refusal/abort,
+never truncation into an apparently valid frame.
+
+The native envelope has no `jsonrpc` member. Closed variants are request
+`{id,method,params}`, notification `{method,params}` (params omitted only where
+the pinned notification type has no payload), success `{id,result}`, and error
+`{id,error:{code,message}}`. Request/response id is a string of 1..128 printable
+ASCII bytes or an integer in 0..2147483647; never bool, float or null. The relay
+emits negative fixed integer error codes and fixed non-secret messages only;
+never error.data or trace/telemetry extensions. Uncorrelatable malformed frames
+close the channel without inventing an id. Method is a literal admitted below.
+Params/result must pass the method's pinned closed schema and binding rules.
+
+Maintain disjoint upstream-server-request, host-client-request and downstream
+TUI id spaces, keyed by connection epoch plus typed id (integer 1 differs from
+string "1"). Allocate fresh host ids and map responses back only to the pending
+downstream request that originated them; never forward a TUI response upstream.
+Server requests are answered only by the relay and never forwarded to the TUI.
+An unknown, reused, duplicate or unsolicited response cannot consume a pending
+callback. Consume each matching Decision once, before invoking its target; keep
+retired-id tombstones for the epoch under the canonical session limits. Exhausted
+id/event budgets abort rather than evicting replay protection. A downstream
+reconnect requires a new supervised resume/epoch, not transparent replay.
+
+### RPC and capability ownership
+
+| direction / native method | admitted handling |
+|---|---|
+| TUI initialize, initialized | validate pinned InitializeParams/notification; relay terminates downstream handshake locally, uses its own identity and experimentalApi=true upstream; no caller capability negotiation changes the binding |
+| TUI thread/start, thread/resume | accept only the single canonical launch/resume intent matching operation; relay constructs sealed native params from transport, checks every supplied security/selection field for equality and returns the one bound thread; arbitrary creation, path/history resume, fork or another thread refuses |
+| TUI turn/start, turn/steer | native TurnStartParams/TurnSteerParams restricted to the held thread and current turn; only bounded text UserInput items, no attachments, file/image paths, skill mentions or capability locators; every model/effort/cwd/environment/approval/sandbox/config field is absent or exactly the sealed value; relay compiles effective settings, never silently drops a conflicting field |
+| TUI turn/interrupt | native TurnInterruptParams for the bound active thread/turn only; interruption cancels pending work but cannot roll back a completed effect or delete its receipt |
+| TUI thread/read, thread/loaded/list, model/list | pinned respective Params/Response types; only the bound thread and selected model are visible, no foreign history or filesystem locator; sanitize output before native display; model/list conveys no selection authority |
+| other TUI requests | fixed error -32601; includes command/exec and stdin/resize, filesystem/process APIs, config read/write/reload, auth/login/logout/token refresh, approval responses, apps/plugins/skills installation, MCP/OAuth mutation, thread fork/rollback/archive, legacy turn APIs and unknown future RPCs |
+| server notifications/responses | only pinned response matching a pending admitted host request, or thread/started, thread/status/changed, turn/started, turn/completed, item/started, item/completed, item/agentMessage/delta, turn/plan/updated, turn/diff/updated and error notifications for the held thread/turn; schema/binding validation and redaction precede display; no approval request masquerading as notification; other methods abort as protocol drift |
+
+This list is exact, not a prefix allowlist. Optional TUI features outside it
+receive a refusal; if the pinned TUI cannot converse and resume under this
+subset, native-TUI acceptance is unresolved/failed and the mechanism is not
+admitted. No direct app-server fallback is allowed. Locally synthesized display
+responses must use the pinned response type; absent information is explicitly
+unavailable, never a fabricated account or thread. Bootstrap lane MCP verification
+uses the actual app-server connection and automatic lane_start, not a second
+server/client substituted to make onboarding green.
+
+All server request variants from the pinned ServerRequest union have a terminal
+disposition. The names below also identify their Params/Response types in
+protocol/common.rs; schema validation precedes handling. Approval field payloads
+can be decoded privately but cannot confer authority or be echoed.
+
+| server method | fixed relay response / ownership |
+|---|---|
+| item/commandExecution/requestApproval | CommandExecutionRequestApproval: `{decision:"decline"}`; no execution/session allow or amend-rules choice |
+| item/fileChange/requestApproval | FileChangeRequestApproval: `{decision:"decline"}` |
+| item/permissions/requestApproval | PermissionsRequestApproval: empty GrantedPermissionProfile, scope `turn`, strictAutoReview true; no filesystem/network grant |
+| item/tool/requestUserInput | ToolRequestUserInput: `{answers:{}}`; never wait for a person |
+| mcpServer/elicitation/request | McpServerElicitationRequest: action `decline`, content and `_meta` null under its pinned response type; no auth URL visit |
+| item/tool/call | DynamicToolCall: strict capability path below, response exactly `{contentItems,success}` |
+| currentTime/read | CurrentTimeRead: bound thread only, host clock encoded as pinned CurrentTimeReadResponse; unavailable clock gives -32000 then abort, never model time |
+| account/chatgptAuthTokens/refresh | ChatgptAuthTokensRefresh: -32000, fixed `server authentication required`, abort; this mechanism uses server-owned auth, never externally supplied tokens |
+| attestation/generate | AttestationGenerate: -32000, fixed `attestation unavailable`, abort; never fabricate attestation |
+| applyPatchApproval, execCommandApproval | legacy ApplyPatchApproval/ExecCommandApproval: pinned legacy denied decision, then abort for unexpected legacy surface |
+| unknown method | -32601, fixed `method unavailable`, then abort; cannot remain pending |
+
+Malformed known params with a trustworthy correlatable id receive -32602 and
+fixed `invalid request`, then abort; untrustworthy id/frame closes the channel.
+Typed denials above must complete within request_ms=5000 (attestation failure
+within 50ms, external-auth failure within 1000ms, both below reported native
+timeouts). A stalled write, evaluator exception, missing/late/malformed decision,
+disconnect, queue overflow or supervisor wall closes capability intake and
+aborts the session; native disconnect behavior is not assumed to cancel pending
+receivers. Launcher kills/reaps the group within shutdown_ms=2000 even when a
+terminal response cannot be delivered. No retries with weaker settings or human
+approval. Before the canonical first mutation, an unavailable mechanism uses
+the owning capability/conduct-config refusal, exit 2; after claim/child creation,
+loss is Abort 3 with sanitized partial evidence, as startup requires. An ordinary
+refused tool call may complete with success=false while the session continues;
+it is not an allowed effect or a successful diagnostic by itself.
+
+DynamicToolCallParams is exactly `{threadId,turnId,callId,namespace,tool,arguments}`.
+Native ids are nonempty printable ASCII strings at most 128 bytes, bound to the
+held server thread/turn and observed call; namespace must equal `conductor` and
+tool must resolve one exact trusted target row. Although native namespace is
+nullable, null is refused by this projection. arguments must be one object
+matching that target owner's closed schema, not arbitrary native JsonValue.
+No model-supplied binding, request id, kind, executable, shell text, credentials,
+cwd or environment override is accepted. Owner-declared anchored read parameters
+are still permitted. Missing lever schema/closure/effect evidence refuses before
+execution; no new generic dispatch argument schema is invented here.
+
+The relay derives kind/target from that row and actual held execution handles,
+allocates common Request.id, inserts the descriptor digest, then calls
+normalize_tool and evaluate_tool with the existing bound context. Only a fresh
+allow for that exact Request, unchanged target bytes/cwd/environment and live
+binding invokes the canonical frontend or existing lever. MCP tools remain the
+separate pinned read-only catalogue; dynamic delegation is not an MCP action.
+Return only text content items `{type:"inputText",text:string}` in contentItems,
+with boolean success. On refusal text is the fixed conductor-tool wire, success
+false; on success text is the admitted target result, bounded and secret-free.
+No raw exception, subprocess stderr or rejected argument is a result. Native
+handler aliases and nested code-mode calls cannot select a different target.
+
+Synthetic negative frame and terminal reply (not a live witness):
+
+```json
+{"id":7,"method":"item/tool/call","params":{"threadId":"thread-fixture","turnId":"turn-fixture","callId":"call-fixture","namespace":"conductor","tool":"unknown","arguments":{}}}
+```
+
+```json
+{"id":7,"result":{"contentItems":[{"type":"inputText","text":"conductor-tool: expected declared conductor operation; found unknown-tool; needed use canonical dispatch and run the independent doctor for gate diagnosis"}],"success":false}}
+```
+
+The bound fixture thread/turn makes framing valid; the absent target makes the
+call refuse with zero invocations. A positive fixture supplies an independently
+owned exact target/schema and matching Decision; the empty arguments above do
+not declare a usable real delegation capability.
+
+### Replay and effect reconciliation
+
+Relay-to-launch control uses the same strict frame bounds over the inherited
+socketpair, with newline framing. Its closed variants are
+`{kind:"invoke",native:{thread_id:string,turn_id:string,call_id:string},request:Request,decision:Decision}`,
+`{kind:"result",request_id:ID,receipt:{path,sha256}}`,
+`{kind:"health",seq:int}` and `{kind:"stop",reason:"protocol"|"timeout"|"disconnect"}`.
+Health seq is contiguous from zero, sent every 1000ms; absence for 5000ms aborts.
+Only invoke may cause a target operation. Launch verifies current binding,
+the held native thread/turn and once-only decision/call association, and pinned
+target handles itself, reserves
+and durably records the owner operation identity, then invokes its one canonical
+frontend/lever. No raw argv, generic spawn verb or supplied output path crosses
+this channel. Launch resolves receipt paths under held transport custody; relay
+gets only the admitted sanitized result. Invalid controls abort, not a fallback
+to execution inside the relay. Both sides' executable closure and inherited FD
+custody belong to the same admitted launcher/harness mechanism.
+
+Every effectful admitted call has one stable association in **existing attempt
+transport**: original descriptor/session binding, threadId/turnId/callId, adapter
+Request.id, canonical admitted request digest, target declaration digest and
+canonical dispatch/lever operation identity. Native ids are retained only after
+their provenance and non-secret admission; rejected frames retain fixed codes
+and a host-allocated numeric event index only. Correlation in memory may inspect
+raw rejected input but never persists or hashes it into lane records.
+
+Use closed receipt `{schema:"conductor-effect/1",binding_sha256:SHA256,
+request_id:ID,request_sha256:SHA256,target_sha256:SHA256,
+native:{thread_id:string,turn_id:string,call_id:string},operation_id:string,
+state:"prepared"|"started"|"completed"|"uncertain",result:null|{path,sha256}}`.
+Receipt is custody evidence, not authority or a separate decision database.
+Write prepared durably before invocation using a canonical reserved operation
+identity; started means that same operation was handed to its owner; completed
+requires an independently verifiable owner result and retained sanitized reply
+handle. result is non-null only on completed. Receipt writes are atomic and
+durable before acknowledging their transition; no model can edit them. A failure
+to retain preparation permits no invocation; a failure after possible invocation
+is uncertain even if the vendor never received a response.
+
+Serialize effect admission per session. An exact duplicate completed call gets
+the retained reply under the new RPC id after binding/result verification; it
+does not reevaluate or re-execute the consumed decision. A pending duplicate
+shares no new decision, timer or effect. Reuse of call identity with changed
+admitted arguments/target/binding aborts. After a crash (including effect success
+before response, or before completion receipt), query the canonical owner's
+operation identity/result. Completed means replay that result; active means
+observe that same operation under the remaining bounded deadline; proven
+not-started permits invoking **the same reserved identity** only through the
+owner's atomic claim/idempotency guarantee. Mere record absence is not proof
+that effects never happened. Unknown/conflicting state blocks further effects
+and resume with fixed `reconciliation unavailable`; never mint another dispatch
+or blindly repeat a coordination write. A lever without such identity and
+reconciliation support is unavailable as an effectful target. Read retries need
+fresh decisions and may not be substituted for missing write evidence.
+
+Resume verifies the original invariant and fresh resume capability, sealed
+config/registry, source/custody grants, policy, MCP and all effect receipts before
+restoring vendor state or registering an attempt. Original native thread only;
+no supplied history/path, fork, retained terminal or permission override. Restore
+private vendor history only through trusted server custody, recheck effective
+registry before a turn, and repeat actual-client onboarding. Vendor pending-call
+replay does not restore authority: completed/uncertain states reconcile as above;
+a newly admitted request needs a new current Decision. Missing receipt coverage,
+unbound legacy history or config drift refuses continuation, leaving history
+readable under its existing custody. No store migration or receipt backfill is
+authorized by this contract.
+
+### Relay record custody
+
+The accepted supplied recording-scope ruling, confirmed by security disposition
+`20260906T124459Z-review-codex-ed048d`, governs the earlier unqualified word
+records. Rejected **launcher input** is stopped before prompt assembly, vendor
+launch, output, diagnostics or attempt creation. Raw rejected/unknown native
+payloads never enter lane-authored prompts, command output, relay logs, policy
+receipts, attempt records or Git; only fixed non-secret refusal evidence survives.
+Do not persist their hashes as a workaround. Forwarded native lifecycle/history
+items containing rejected tool arguments must be suppressed or projected to fixed
+refusal display before downstream output. The private server stream cannot be
+used as a lane logging tee; telemetry consumes sanitized typed facts only.
+
+Model-generated native call history already exists as vendor model output before
+host validation. Its private persistence may support native resume and is not a
+lane decision store. It grants no execution authority, is never published into
+Git, and is not retroactively rewritten by the relay. The contract does not
+promise censorship of arbitrary future model prose. This narrow distinction
+does not permit forwarding rejected CLI input to that history, exposing credentials
+to any capability, or copying raw vendor history into lane evidence. Thus a
+mandatory vendor pre-persistence censorship patch is withdrawn for this mechanism;
+only a newly declared broader privacy duty could require one. The concrete
+remaining blockers are custody, registry/transport closure and effect
+reconciliation, each with [independent acceptance](probes-lever.md#codex-relay-acceptance).

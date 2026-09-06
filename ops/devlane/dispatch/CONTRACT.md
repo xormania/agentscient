@@ -372,6 +372,111 @@ this bucket. Existing runtime continues as documented below; future output
 admission must refuse each unsupported capability until independently
 proved. A witness for one harness cannot admit another.
 
+### Worker capability identity encoding
+
+Construction completion under the 2026-09-06 adapter-test ruling. C2 owns the
+worker counterpart to the [conduct identity](../../conductor/harness-capabilities.md#conduct-capability-identity-encoding).
+Worker compile_launch returns exactly this nine-field capability object; every
+object is closed and every member required. Strict JSON, SHA256, canonical
+encoding, absolute paths, sorted lists and Output use that adapter contract's
+types. This declaration does not rename record.role (read/write).
+
+| field | exact worker shape |
+|---|---|
+| harness | `{name:ID,version:text,executable:{path:absolute-path,sha256:SHA256}}` |
+| adapter | `{revision:SHA256,mechanism:text,config_sha256:SHA256,grammar_sha256:SHA256}` |
+| platform | `{os:text,sandbox:{name:text,version:text},filesystem:{name:text,alias_semantics:text}}` |
+| role | literal `worker`; TaskSelection.job_role remains independently read/write |
+| operation | launch or resume, equal to the compile input and witness |
+| scope | `{source_reads:[absolute-path,...],source_write_denials:[absolute-path,...],outputs:[Output,...],limits:[text,...]}` |
+| contracts | `{outputs_sha256:SHA256}` |
+| probe | `{revision:SHA256}` |
+| mock | `{revision:SHA256,verification:{path:relative-file,sha256:SHA256}}` |
+
+Text is nonempty printable ASCII, at most 128 bytes. The worker manifest's
+adapter projection has exactly `{revision,mechanism,config_sha256,
+grammar_sha256,executable_sha256}`: first four equal capability.adapter, last
+equals capability.harness.executable.sha256. Conduct retains its six-field
+startup adapter and eleven-field identity, including policy, tool normalizer,
+tools contract and MCP. Workers have no invented conductor policy/normalizer/MCP
+fields; their compilation invariant uses mcp null. Requested profile policy is
+still verified by its existing policy owner, not omitted because this capability
+tuple has no policy member. Neither encoding can admit the other actor role.
+
+All six selection axes remain in the retained TaskSelection/LaunchSelection
+and compilation invariant. Matching capability.role alone cannot admit a changed
+job_role, model, effort or profile; launch rechecks that selection and its grants.
+Valid axis-change tests need independently rebound selection, grants and evidence;
+a stale role witness must refuse. Source reading and protection of every source
+outside the admitted role/custody ceiling are mandatory even when D=G=A=[] and
+for conduct with no worker outputs. An empty denial list cannot discharge source
+protection. Write-role snapshot rights remain under R; they do not remove the
+protection of inputs, control/Git custody and other forbidden sources. Scope
+lists must describe the actual role boundary, not grant universal source denial
+or an exemption based on output emptiness. Existing direct/subprocess, alias,
+race and write-then-restore controls apply to both encodings.
+
+### Compilation evidence custody
+
+Launch alone resolves C2 evidence and performs admission before compile_launch.
+It supplies a read-only opaque evidence handle through the
+[trusted compilation transport](../../conductor/harness-capabilities.md#trusted-compilation-transport).
+That handle exposes exactly `{root,admission_at,checked_at,max_age_seconds,age_source,
+selection,identity,witness,verification}`. root is the canonical absolute retained
+evidence directory held by the existing launcher, outside candidate-writable
+snapshot, outputs and scratch. admission_at and checked_at are UTC in C2's format;
+checked_at equals the verified witness stamp, never an independent override;
+max_age_seconds is null or a nonnegative integer, with age_source null iff no
+limit, otherwise an independently held `{path,sha256}` configuration handle.
+selection is the current verified TaskSelection or LaunchSelection; identity is
+the independently held currently admitted capability tuple above or the conduct
+tuple. witness and verification are exact `{path:relative-file,sha256:SHA256}`
+handles. verification must equal identity.mock.verification. No evidence root,
+clock, expected identity or age policy is obtained from the candidate report.
+
+Relative files have no empty, dot, dot-dot or absolute components. Resolve every
+handle, including nested witness evidence and resume receipts, beneath held root
+without following symlinks; require regular singly linked files, verified ancestor
+custody and race-safe held bytes. Unreadable/unsafe/missing evidence is unresolved.
+Retain exact bytes and compare hashes against independently held handles; a path
+or recomputed candidate hash proves neither origin nor acceptance. Existing
+record/attempt transport retains this material, not a new registry or store.
+
+The evidence owner verifies the full witness against the independently measured
+selection/identity, required control inventory and observed effects, and verifies
+the mock revision plus its passing verification before handing the bundle over.
+Conduct witnesses use [conduct-observations/1](../../conductor/probes-lever.md#live-observation-format)
+and its exact PASS/FAIL/UNREACHABLE, counts, event coverage and cleanup predicate.
+Worker witnesses retain the C2 probe's own encoding and required controls; this
+seam does not invent a worker diagnostic-report parser in compile_launch.
+Verification bytes are opaque to the compiler: only the evidence owner grades
+their owning schema and independently established acceptance properties.
+Mock verification must cover the same pinned mechanism and relevant control
+inventory; a PASS label, clean diff or mock name is never sufficient.
+
+Compile checks selection/operation equality, identity-to-manifest/configuration
+bindings, exact held evidence bytes/digests, declared scope/grant consistency and
+C2 timestamps/age against the supplied admission_at. It returns the required
+identity, without reloading policy, selecting grants, executing probes or grading
+mock fixture labels. Launch must refuse unresolved, stale or failed evidence
+before invoking it; a later consistency failure also prevents launch through
+output-capability (conduct retains its owning capability/config refusal).
+Recheck custody at the existing claim/resume boundary; the read-only compilation
+step cannot protect against a later replacement by itself.
+
+Independent controls hold the admitted bundle fixed and replace candidate bytes:
+a changed mock receipt with a recomputed candidate digest still differs from the
+held verification handle. If its held bytes are replaced too, hash/custody checks
+fail. A new self-consistent candidate tuple/receipt is not thereby faulty: test
+it at launch's evidence/admission counterparty against independently held identity
+and required control outcomes. To prove an observed fault, plant an attempted
+forbidden write that succeeds (including chmod/write/restore), or an allowed
+operation that fails, and retain independent observation. Changing only a control
+label while leaving all declared acceptance properties satisfied cannot require
+refusal. A mock revision change invalidates prior verification; changing expected
+identity in a test is a new admission setup, never proof the old one detected it.
+Synthetic evidence proves logic only; no flag promotes it to live authority.
+
 ### C2 refusals
 
 These are target refusals for later executable adoption, all non-overridable.
