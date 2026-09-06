@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T02:24:14Z",
-    "closed": null
+    "closed": "2026-09-06T02:33:31Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -65,14 +65,21 @@
       "-c",
       "model_reasoning_effort=\"high\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022414Z-code-codex-18fe5c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-24-15-01a07487-da47-7e60-b229-696acbc1abae.jsonl"
   },
   "session": {
-    "id": "e0123c43-2d89-4efa-aaae-6613d53112e5",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a07487-da47-7e60-b229-696acbc1abae",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022414Z-code-codex-18fe5c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-24-15-01a07487-da47-7e60-b229-696acbc1abae.jsonl",
+    "stream_sha256_at_close": "469a9339116c76ddff59ac5932bdf44fe5887431c96bf3438148c6d7bd14b606",
+    "spend": {
+      "input": 1232334,
+      "cached": 1133440,
+      "output": 16268,
+      "total": 1248602,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022414Z-code-codex-18fe5c/home/codex-stream/sessions/2026/09/05/rollout-2026-09-05T22-24-15-01a07487-da47-7e60-b229-696acbc1abae.jsonl",
+      "messages": 145
+    }
   },
   "brief": {
     "template": {
@@ -95,10 +102,179 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T02:24:14Z",
+      "ended": "2026-09-06T02:33:31Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "8ad7570799f1471dc5edb9882d204d471afc2ac8",
+    "changed_paths": [
+      "ops/conductor/conductor-start-plan.md",
+      "ops/conductor/discovery-examples.md",
+      "ops/conductor/discovery-lever.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 18,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Requested base confirmed; clean initial tree.",
+          "reproduce": "../out/commands.json command 1"
+        },
+        {
+          "severity": "p3",
+          "where": "in",
+          "claim": "Supplied inputs read; capped output recovered below.",
+          "reproduce": "../out/commands.json command 2"
+        },
+        {
+          "severity": "p3",
+          "where": "repository instructions",
+          "claim": "Law and lane instructions read.",
+          "reproduce": "../out/commands.json command 3"
+        },
+        {
+          "severity": "p3",
+          "where": "owner brief",
+          "claim": "Complete owner scope read.",
+          "reproduce": "../out/commands.json command 4"
+        },
+        {
+          "severity": "p3",
+          "where": "Grok ruling",
+          "claim": "Seven correction groups read.",
+          "reproduce": "../out/commands.json command 5"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Founding contracts read.",
+          "reproduce": "../out/commands.json command 6"
+        },
+        {
+          "severity": "p3",
+          "where": "mapping and seed",
+          "claim": "Historical mapping and instructions read.",
+          "reproduce": "../out/commands.json command 7"
+        },
+        {
+          "severity": "p3",
+          "where": "discovery-lever.md",
+          "claim": "Baseline contract read.",
+          "reproduce": "../out/commands.json command 8"
+        },
+        {
+          "severity": "p3",
+          "where": "discovery-lever.md",
+          "claim": "Correction targets inspected without display truncation.",
+          "reproduce": "../out/commands.json command 9"
+        },
+        {
+          "severity": "p3",
+          "where": "plan and examples",
+          "claim": "Complete plan and eight baseline envelopes read.",
+          "reproduce": "../out/commands.json command 10"
+        },
+        {
+          "severity": "p3",
+          "where": "owning passages",
+          "claim": "Registry and four handoff/four AAR paths confirmed.",
+          "reproduce": "../out/commands.json command 11"
+        },
+        {
+          "severity": "p3",
+          "where": "payload and lock",
+          "claim": "Computed 64 inner bytes, 259 wrapped bytes, 1819 envelope bytes; workflow name membership zero.",
+          "reproduce": "../out/commands.json command 12"
+        },
+        {
+          "severity": "p3",
+          "where": "input remainder",
+          "claim": "Remaining instruction and ruling metadata inspected.",
+          "reproduce": "../out/commands.json command 13"
+        },
+        {
+          "severity": "p3",
+          "where": "three-document diff",
+          "claim": "Corrections and changed acceptance rows inspected.",
+          "reproduce": "../out/commands.json command 14"
+        },
+        {
+          "severity": "p3",
+          "where": "documentation verification",
+          "claim": "Eight envelopes, digests, 27 local links, counts and paging checks passed; seven envelopes unchanged.",
+          "reproduce": "python3 ../out/verify_discovery.py"
+        },
+        {
+          "severity": "p3",
+          "where": "acceptance",
+          "claim": "Named command exited 0.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "commit",
+          "claim": "Read-only .git blocked staging; launcher commit message saved.",
+          "reproduce": "../out/commands.json command 17"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Acceptance exited 0; only authorized documents changed; hashes match verification.",
+          "reproduce": "../out/commands.json command 18"
+        }
+      ],
+      "artifacts": {
+        "contract": "ops/conductor/discovery-lever.md",
+        "examples": "ops/conductor/discovery-examples.md",
+        "plan": "ops/conductor/conductor-start-plan.md",
+        "commands": "../out/commands.json",
+        "verification": "../out/verification.json",
+        "scratch_check": "../out/verify_discovery.py",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1248602,
+        "out": 16268,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "38edb5de5410e9881332ae6cfdd8788991d96f02",
+        "started": null,
+        "ended": "2026-09-06T02:32:41Z"
+      },
+      "note": "All seven groups applied. Assumptions made explicit: continuation metadata uses omission strings; wrapper matching splits on LF and preserves CR bytes. Trusted launch is assumed, semantic immunity is not claimed, and dev tooling remains permanently independent. Findings record commands, not unresolved defects. Checks are documentation checks; independent runtime acceptance remains future work. Sandbox prevented committing.",
+      "commit": {
+        "subject": "conductor: Apply the seven discovery ruling corrections",
+        "body": "Apply Grok ruling 20260906T021446Z-adjudicate-grok-2d0f7a to the three discovery documents under the owner's 2026-09-05 brief. Correct selection, Composer membership, work continuation, definition/evidence recipes, launch/query boundaries, literal body wrapping, and registry/history labels. Preserve independent dev tooling.\n\nVerified against 38edb5de5410e9881332ae6cfdd8788991d96f02: git diff --check exits 0; python3 ../out/verify_discovery.py checks eight envelopes, seven unchanged payloads, digests, 27 local links, 52 acceptance rows with 12 changed, and 20-work paging. Independent recheck follows; no runtime admission claimed.\n\nSource: original\nSource: owner 2026-09-05\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-06T02:33:30.939Z"
+    }
+  },
+  "status": "closed"
 }
