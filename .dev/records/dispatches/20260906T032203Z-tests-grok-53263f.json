@@ -1,0 +1,104 @@
+{
+  "id": "20260906T032203Z-tests-grok-53263f",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "4141f0abc797fbe77a5c50adf79938adb796b715"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T03:22:03Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4141f0abc797fbe77a5c50adf79938adb796b715",
+    "ref_sha": "4141f0abc797fbe77a5c50adf79938adb796b715",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "dfab5db8-d1a3-452f-ab6b-4ae98c62d3f6",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "dfab5db8-d1a3-452f-ab6b-4ae98c62d3f6",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Author only ops/devlane/dispatch/tests/test_record.py for policy-record-first-bucket.md and the published lane-policy.md binding shape. Use real record.build/validate through existing _RecordCase._minimum and support.load('record'); do not read record.py/implementation. Cover malformed optional brief.policy, required structural fields, template digest equality, specified maintenance shape, synthetic profile syntax and valid/absent legacy neighbors. No authority lookup or proposed CLI work; report any genuinely unspecified field instead of inventing it. Prove intended assertion reds with zero import/collection errors using python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py. Existing tests/positive neighbors pass. No stand-ins, skips, source/config/host/DB/network changes or vendor launches. Commit actual-model provenance and report exact red cases/command. Claude skeptic and GPT-6 implementation follow.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/in/policy-record-first-bucket.md",
+        "sha256": "d5ce6b65470be3bf7f0df5e3e86e6bec24386984536090faa302ceaf34bbf5e7"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T032203Z-tests-grok-53263f/in/lane-policy.md",
+        "sha256": "bce429d5f6fb43fcf09b67894f1e9ab71f734ad19cefae820b6cacd1637c6304"
+      }
+    ],
+    "sha256": "2ef8b47fdabb42b200bd073e4e9851302b008d14cf26b32a39d36fd1a1fd753f",
+    "bytes": 3288
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
