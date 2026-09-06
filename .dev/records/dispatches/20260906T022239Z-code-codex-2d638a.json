@@ -1,0 +1,108 @@
+{
+  "id": "20260906T022239Z-code-codex-2d638a",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "2b0491203cb9b37459fb2af6ac703940051374d2"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:22:40Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2b0491203cb9b37459fb2af6ac703940051374d2",
+    "ref_sha": "2b0491203cb9b37459fb2af6ac703940051374d2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "265c1c14-e238-487a-b20f-5065dfbfd39c",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Implement docs-only C1-contract exactly as Grok ruling 518ab8: change only dispatch/CONTRACT.md and task/CONTRACT.md. Read ruling, owner brief and inventory. Define the target single worker execution authority and frontend roles, declared job outputs, task envelope semantics, capability evidence and independent configurable harness/model/role/profile. Clearly distinguish proposed behavior from measured current multiple paths and transport defects. Preserve truthful per-harness containment and existing fileset refusal; inline planning remains a named temporary exception. Lane policy is a consume-only coupling owned by the parallel boundary track: no duplicate policy or authority-doc edits. Dev tooling is permanent and independent of the Symfony application. No runtime/tests/settings/host/DB/network changes. Acceptance command: git diff --check; verify changed links and ownership consistency. Actual-model provenance; compact envelope. Independent review follows. No broad roadmap or added file.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/in/worker-launch-consolidation-owner.md",
+        "sha256": "b0cbc8cb97eeb81c263b1f7427c852b43831050cff53e9cbf1faa8d1e7ec7e64"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/in/20260906T021502Z-adjudicate-grok-518ab8.json",
+        "sha256": "c877984b6eac6f9d860b63788089ce9c7eb784e6d9d7990063a945e1eabf906f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T022239Z-code-codex-2d638a/in/20260906T012006Z-review-codex-464dfc.json",
+        "sha256": "da32e5c31bf6cfe7a971258c8abc390587e2549e0a518a27d9570734616cabfc"
+      }
+    ],
+    "sha256": "f26c94b9726506e031521297521b0a966ca4448532ec186e15e29779d8eee01f",
+    "bytes": 4853
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
