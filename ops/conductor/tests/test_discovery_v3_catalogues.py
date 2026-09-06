@@ -15,8 +15,11 @@ if str(_TESTS) not in sys.path:
 
 from discovery_v3_support import (  # noqa: E402
     DEV_HOMES,
+    HOME_KEYS,
     _DiscoveryV3Fixture,
+    canonical_bytes,
     constraint_only_lock,
+    rpc,
     workflow_lock,
 )
 
@@ -173,14 +176,69 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
             "lane_homes", {"profile": "dev", "concept": "wf-runtime"}
         )
         self.assertEqual(runtime["data"]["home"]["evidence"], ["contract", "repo"])
+        self.assertEqual(set(runtime["data"]["home"]), set(HOME_KEYS))
         genus = self.detail(
             "lane_homes", {"profile": "prod", "concept": "workflow-genus"}
         )
         self.assertEqual(genus["data"]["home"]["evidence"], ["contract", "repo"])
-        self.assertIn(genus["data"]["home"]["locked"], (False, None))
+        self.assertIs(genus["data"]["home"]["locked"], False)
         listed = self.detail("lane_homes", {"profile": "dev"})
         for home in listed["data"]["homes"]:
             self.assertIsInstance(home.get("document_present"), (bool, type(None)))
+
+        self.reset_repo()
+        self.plant_tree()
+        self.plant_v3_config(retained_refs=None)
+        self.destroy_head_object()
+        self.plant_v3_config(retained_refs=None)
+        arguments = {"profile": "prod", "concept": "mapping"}
+        missing_head = self.detail("lane_homes", arguments)
+        home = missing_head["data"]["home"]
+        self.assertEqual(set(home), set(HOME_KEYS), home)
+        self.assertEqual(home["concept"], "mapping")
+        self.assertEqual(home["home"], "docs/mapping.md")
+        self.assertEqual(home["contract"], "docs/mapping.md")
+        self.assertEqual(home["intended"], "four projections")
+        self.assertEqual(home["ownership"], "unresolved")
+        self.assertIsNone(home["document_present"])
+        self.assertIsNone(home["entrypoint"])
+        self.assertIsNone(home["implementation_present"])
+        self.assertIsNone(home["locked"])
+        self.assertEqual(home["evidence"], ["contract"])
+        repo_src = [src for src in missing_head["sources"] if src["id"] == "repo"][0]
+        self.assertEqual(repo_src["state"], "unavailable")
+        self.assertNotIn("repo", home["evidence"])
+
+        mcp = self.serve(
+            self.handshake(
+                [
+                    rpc(
+                        "tools/call",
+                        2,
+                        {"name": "lane_homes", "arguments": arguments},
+                    ),
+                    rpc("resources/read", 3, {"uri": "lane://homes/prod/mapping"}),
+                ]
+            ),
+            boot=True,
+        )
+        self.assertEqual(mcp.returncode, 0, mcp.stderr)
+        objs = self.rpc_objects(mcp)
+        for rpc_id in (2, 3):
+            payload = self.lane_from_rpc(self.rpc_by_id(objs, rpc_id))
+            self.assertEqual(canonical_bytes(payload), canonical_bytes(missing_head))
+
+        self.reset_repo()
+        self.plant_tree()
+        self.plant_v3_config()
+        self.corrupt_blob("docs/mapping.md")
+        failed_doc = self.detail("lane_homes", arguments)
+        failed = failed_doc["data"]["home"]
+        self.assertEqual(failed["ownership"], "unresolved")
+        self.assertIsNone(failed["document_present"])
+        self.assertEqual(failed["evidence"], ["contract", "repo"])
+        self.assertEqual(failed["home"], "docs/mapping.md")
+        self.assertEqual(failed["intended"], "four projections")
 
     def test_d_a49_lane_mcp_registry_lane_read_null_mapping_history(self):
         self.plant_tree()
@@ -206,10 +264,6 @@ class TestDiscoveryV3Catalogues(_DiscoveryV3Fixture):
         self.assertEqual(mapping["data"]["home"]["home"], "docs/mapping.md")
         self.assertEqual(mapping["data"]["home"]["contract"], "docs/mapping.md")
         self.assertEqual(mapping["data"]["home"]["intended"], "four projections")
-        registry = Path(
-            "/nonexistent-on-purpose"
-        )
-        del registry
         on_disk = (
             Path(__file__).resolve().parents[3]
             / "ops"
