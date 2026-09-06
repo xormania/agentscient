@@ -37,5 +37,17 @@ evidence cannot establish a unique handoff. AARs are reports governed here,
 never their own contract or authority. Onboard's existing newest-filename
 thread behavior stays unchanged; discovery's selection is a separate read.
 
+Supersedes remains same-kind, same-lineage and acyclic. Discovery restricts
+handoff reachability to readable relevant IDs; irrelevant superseders cannot
+make a handoff stale, and missing relevant evidence makes selection unknown.
+A complete nonempty set has an unsuperseded ID and therefore a current handoff.
+[D-A16](../discovery-lever.md#non-executable-acceptance-rows) covers a stale-only
+presentation page whose terminal current handoff is elsewhere in the complete
+set: global selection still names that terminal key, and named stale detail
+stays readable without becoming selected. A nonempty complete stale-only
+acquisition is impossible, not a skip or permission to add retirement metadata,
+cycles, hidden superseders or fabricated preclassified mocks. Complete-empty
+none and missing-evidence unknown retain their separate acceptance rows.
+
 The House's hand-over records do not cross. This directory begins with
 the substrate work of 2026-09-02, which was this project's own session.
