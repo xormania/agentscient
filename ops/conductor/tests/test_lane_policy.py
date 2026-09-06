@@ -20,6 +20,14 @@ Every other case loads the file when present, or a no-op stand-in that
 returns None, so a missing file is not an import/collection error.
 This run does not claim a later green.
 
+Terminal pass evidence uses a registered OutputAttempt and declared
+file receipts. A launch pass may use the null-attempt preflight
+value; that value cannot substitute at settle/collect/land/ladder.
+Request.binding_sha256 is the canonical ConductorBinding digest, not
+grants_sha256. Decision is closed and must repeat Request id/digest.
+checked_at is UTC YYYY-MM-DDTHH:MM:SSZ. Environment restores in
+finally; the live-store guard follows pinned ops/lane.conf.
+
 Verified synthetic providers only: planted policy bytes, planted
 `decisions.py show` stdout, planted LaunchDeclarations, planted
 ArtifactManifest/DependencyEvidence/OutputAttempt. No live register,
@@ -61,7 +69,26 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 LIBRARY = REPO / "ops" / "conductor" / "tools" / "lane_policy.py"
 TRACKED_POLICY = REPO / "ops" / "lane-policy.json"
-LIVE_STORE = Path.home() / ".local" / "state" / "agentscient" / "decisions.db"
+PINNED_LANE_CONF = REPO / "ops" / "lane.conf"
+
+
+def _lane_name(conf: Path) -> str:
+    text = conf.read_text(encoding="utf-8")
+    match = re.search(r"(?m)^LANE_NAME='([^']+)'$", text)
+    if match is None:
+        raise AssertionError(f"pinned lane.conf has no LANE_NAME: {conf}")
+    name = match.group(1).strip()
+    if not name:
+        raise AssertionError(f"pinned LANE_NAME is empty: {conf}")
+    return name
+
+
+def _store_path(home: Path, lane: str) -> Path:
+    return Path(home) / ".local" / "state" / lane / "decisions.db"
+
+
+PINNED_LANE_NAME = _lane_name(PINNED_LANE_CONF)
+LIVE_STORE = _store_path(Path.home(), PINNED_LANE_NAME)
 
 SCHEMA = "agentscient.lane-policy/v1"
 POLICY_PATH = "ops/lane-policy.json"
@@ -85,6 +112,17 @@ OWNER_WORDS = "Admit this synthetic fixture policy for independent tests."
 REFUSAL_LINE = re.compile(
     r"^(lane-profile|lane-policy|lane-write|lane-dependency|"
     r"lane-artifact|lane-resume): expected .+; found .+; needed .+$"
+)
+CHECKED_AT_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+REASON_CODES = (
+    "direct-edit",
+    "git-mutation",
+    "shell-escape",
+    "raw-vendor",
+    "in-session-agent",
+    "unknown-tool",
+    "malformed-request",
+    "binding-mismatch",
 )
 TRANSITIONS = (
     "launch",
@@ -138,6 +176,22 @@ POLICY_RESULT_KEYS = (
     "outcome",
     "refusal",
 )
+DECISION_KEYS = (
+    "schema",
+    "id",
+    "binding_sha256",
+    "outcome",
+    "refusal",
+)
+FILE_RECEIPT_KEYS = (
+    "artifact",
+    "path",
+    "sha256",
+    "bytes",
+    "production",
+    "reuse",
+    "evidence",
+)
 GRANT_KEYS = ("scope", "job", "role", "adapter", "outputs", "maintenance")
 LANE_ENV = (
     "LANE_CONF",
@@ -177,12 +231,16 @@ def _grant(repository: list[str] | tuple[str, ...], outputs: list[str] | None = 
     }
 
 
-def _live_snapshot() -> tuple[str, bytes | None]:
-    if LIVE_STORE.is_file():
-        return ("file", LIVE_STORE.read_bytes())
-    if LIVE_STORE.exists():
+def _live_snapshot_at(path: Path) -> tuple[str, bytes | None]:
+    if path.is_file():
+        return ("file", path.read_bytes())
+    if path.exists():
         return ("other", None)
     return ("absent", None)
+
+
+def _live_snapshot() -> tuple[str, bytes | None]:
+    return _live_snapshot_at(LIVE_STORE)
 
 
 def _as_object(value: object) -> dict | None:
@@ -194,7 +252,12 @@ def _as_object(value: object) -> dict | None:
     if isinstance(mapping, dict) and mapping:
         return mapping
     out = {}
-    for key in (*POLICY_RESULT_KEYS, *POLICY_BINDING_KEYS, *CONDUCTOR_BINDING_KEYS):
+    for key in (
+        *POLICY_RESULT_KEYS,
+        *POLICY_BINDING_KEYS,
+        *CONDUCTOR_BINDING_KEYS,
+        *DECISION_KEYS,
+    ):
         if hasattr(value, key):
             out[key] = getattr(value, key)
     return out or None
@@ -322,6 +385,11 @@ class _LanePolicyCase(unittest.TestCase):
         self.snapshot_ref = self._git_init(self.canonical_repo)
         self.consumer_ref = self.snapshot_ref
         self.reader_ref = self._install_reader()
+        self.reader_lane_name = _lane_name(self.reader_checkout / "ops" / "lane.conf")
+        self.assertEqual(self.reader_lane_name, "agentscient-fixture")
+        self.assertNotEqual(self.reader_lane_name, PINNED_LANE_NAME)
+        self.host_store = _store_path(self.host_home, self.reader_lane_name)
+        self._host_store_before = _live_snapshot_at(self.host_store)
         self.runtime_manifest = self._runtime_manifest()
         self.runtime_sha256 = _sha256(_canonical(self.runtime_manifest))
         self.admission_id = ADMISSION
@@ -349,12 +417,19 @@ class _LanePolicyCase(unittest.TestCase):
             )
             if self._live_before[0] == "absent":
                 self.assertFalse(LIVE_STORE.exists(), "tests created the live store")
+            host_store = getattr(self, "host_store", None)
+            if host_store is not None:
+                self.assertEqual(
+                    _live_snapshot_at(host_store),
+                    self._host_store_before,
+                    f"pinned-lane store mutated: {host_store}",
+                )
+        finally:
             for key, value in self._env_before.items():
                 if value is None:
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = value
-        finally:
             self._tmp.cleanup()
 
     def plant_bytes(self, path: Path, data: bytes) -> None:
@@ -422,7 +497,9 @@ class _LanePolicyCase(unittest.TestCase):
             self.reader_checkout / "ops" / "conductor" / "tools" / "laneconf.py",
             b'"""Pinned reader laneconf stand-in."""\nLANE = "fixture"\n',
         )
-        show_map = self.reader_checkout / "ops" / "conductor" / "tools" / "show-map.json"
+        show_map = (
+            self.reader_checkout / "ops" / "conductor" / "tools" / "show-map.json"
+        )
         self.plant_bytes(show_map, b"{}\n")
         provider = (
             "import json, pathlib, sys\n"
@@ -451,8 +528,12 @@ class _LanePolicyCase(unittest.TestCase):
         files = [
             Path(self.admitted_python).resolve(),
             (self.reader_checkout / "ops" / "lane.conf").resolve(),
-            (self.reader_checkout / "ops" / "conductor" / "tools" / "decisions.py").resolve(),
-            (self.reader_checkout / "ops" / "conductor" / "tools" / "laneconf.py").resolve(),
+            (
+                self.reader_checkout / "ops" / "conductor" / "tools" / "decisions.py"
+            ).resolve(),
+            (
+                self.reader_checkout / "ops" / "conductor" / "tools" / "laneconf.py"
+            ).resolve(),
         ]
         mapping = {}
         for path in files:
@@ -527,13 +608,7 @@ class _LanePolicyCase(unittest.TestCase):
         return data
 
     def _write_show_map(self, mapping: dict[str, str]) -> None:
-        path = (
-            self.reader_checkout
-            / "ops"
-            / "conductor"
-            / "tools"
-            / "show-map.json"
-        )
+        path = self.reader_checkout / "ops" / "conductor" / "tools" / "show-map.json"
         payload = json.dumps(mapping, sort_keys=True, indent=2).encode("utf-8")
         self.plant_bytes(path, payload)
 
@@ -553,9 +628,7 @@ class _LanePolicyCase(unittest.TestCase):
                 "ref": self.reader_ref,
                 "runtime_sha256": self.runtime_sha256,
             },
-            "standing_grants": list(
-                [] if standing_ids is None else standing_ids
-            ),
+            "standing_grants": list([] if standing_ids is None else standing_ids),
         }
         self.admission_stdout, self.admission_digest = self._install_show(
             self.admission_id,
@@ -579,7 +652,9 @@ class _LanePolicyCase(unittest.TestCase):
             "sha256": _sha256(stdout),
             "paths": sorted(paths),
         }
-        self.standing_rows = [item for item in self.standing_rows if item["record"] != record_id]
+        self.standing_rows = [
+            item for item in self.standing_rows if item["record"] != record_id
+        ]
         self.standing_rows.append(row)
         self.standing_rows.sort(key=lambda item: item["record"])
         self.refresh_admission([item["record"] for item in self.standing_rows])
@@ -599,8 +674,7 @@ class _LanePolicyCase(unittest.TestCase):
             "purpose": "per-job coverage for uncovered protected paths",
             "job": job,
             "dispatch": dispatch,
-            "lineage": lineage
-            or {"branch": BRANCH, "base_sha": self.snapshot_ref},
+            "lineage": lineage or {"branch": BRANCH, "base_sha": self.snapshot_ref},
         }
         stdout = self._show_bytes(record_id, kind="lane-policy-job/v1", extra=extra)
         row = {
@@ -609,7 +683,9 @@ class _LanePolicyCase(unittest.TestCase):
             "sha256": _sha256(stdout),
             "paths": sorted(paths),
         }
-        self.per_job_rows = [item for item in self.per_job_rows if item["record"] != record_id]
+        self.per_job_rows = [
+            item for item in self.per_job_rows if item["record"] != record_id
+        ]
         self.per_job_rows.append(row)
         self.per_job_rows.sort(key=lambda item: item["record"])
         table = {self.admission_id: self.admission_stdout.decode("utf-8")}
@@ -713,7 +789,11 @@ class _LanePolicyCase(unittest.TestCase):
             "requested_scope": _grant(repo, out_paths),
             "job_grants": _grant(repo if job is None else job, out_paths),
             "role_grants": _grant(
-                ([] if job_role == "read" else (repo if role_paths is None else role_paths)),
+                (
+                    []
+                    if job_role == "read"
+                    else (repo if role_paths is None else role_paths)
+                ),
                 out_paths,
             ),
             "adapter_grants": _grant(repo if adapter is None else adapter, out_paths),
@@ -925,7 +1005,9 @@ class _LanePolicyCase(unittest.TestCase):
             return {key: handle[key] for key in POLICY_BINDING_KEYS}
         self.fail(f"bound context has no policy binding: {result!r}")
 
-    def assert_worker_binding(self, result, *, profile: str, declarations: dict) -> dict:
+    def assert_worker_binding(
+        self, result, *, profile: str, declarations: dict
+    ) -> dict:
         self.assert_not_refusal(result)
         policy = self.extract_policy(result)
         self.assertEqual(sorted(policy), sorted(POLICY_BINDING_KEYS))
@@ -947,11 +1029,77 @@ class _LanePolicyCase(unittest.TestCase):
         self.assertRegex(policy["grants_sha256"], r"^[0-9a-f]{64}$")
         return policy
 
+    def conductor_binding_digest(self, binding: dict) -> str:
+        closed = {key: binding[key] for key in CONDUCTOR_BINDING_KEYS}
+        raw = _canonical(closed)
+        self.assertFalse(raw.endswith(b"\n"))
+        digest = _sha256(raw)
+        self.assertRegex(digest, r"^[0-9a-f]{64}$")
+        return digest
+
+    def assert_conductor_binding(
+        self,
+        result,
+        *,
+        declarations: dict,
+        dispatch_id: str,
+    ) -> tuple[dict, str]:
+        self.assert_not_refusal(result)
+        mapping = _as_object(result)
+        self.assertIsInstance(mapping, dict, result)
+        self.assertEqual(sorted(mapping), sorted(CONDUCTOR_BINDING_KEYS), mapping)
+        policy = mapping["policy"]
+        self.assertIsInstance(policy, dict, policy)
+        self.assertEqual(sorted(policy), sorted(POLICY_BINDING_KEYS), policy)
+        self.assertIsNone(mapping["job"])
+        self.assertEqual(mapping["stage"], "conduct")
+        self.assertEqual(mapping["dispatch"], dispatch_id)
+        selection = mapping["selection"]
+        self.assertIsInstance(selection, dict, selection)
+        self.assertEqual(
+            sorted(selection),
+            ["effort", "harness", "job_role", "model", "profile", "role"],
+        )
+        self.assertEqual(selection["role"], "conductor")
+        self.assertIsNone(selection["job_role"])
+        self.assertEqual(selection["profile"], declarations["selection"]["profile"])
+        self.assertEqual(mapping["snapshot_ref"], self.snapshot_ref)
+        self.assertEqual(
+            mapping["lineage"],
+            {"branch": BRANCH, "base_sha": self.snapshot_ref},
+        )
+        self.assertEqual(
+            mapping["template"],
+            {
+                "path": CONDUCTOR_TEMPLATE_REL,
+                "sha256": self.conductor_template_digest,
+            },
+        )
+        self.assertEqual(policy["template_sha256"], mapping["template"]["sha256"])
+        self.assertEqual(
+            mapping["declarations_sha256"],
+            _sha256(_canonical(declarations)),
+        )
+        self.assertIsInstance(mapping["custody_sha256"], str)
+        self.assertEqual(len(mapping["custody_sha256"]), 64)
+        self.assertRegex(mapping["custody_sha256"], r"^[0-9a-f]{64}$")
+        digest = self.conductor_binding_digest(mapping)
+        self.assertNotEqual(digest, policy["grants_sha256"])
+        self.assertNotEqual(digest, mapping["declarations_sha256"])
+        self.assertNotEqual(digest, mapping["custody_sha256"])
+        self.assertNotEqual(digest, policy["sha256"])
+        return mapping, digest
+
     def assert_policy_result(self, result, *, outcome: str) -> dict:
         mapping = _as_object(result)
         self.assertIsInstance(mapping, dict, result)
         self.assertEqual(sorted(mapping), sorted(POLICY_RESULT_KEYS), mapping)
         self.assertEqual(mapping["outcome"], outcome)
+        self.assertIsInstance(mapping["checked_at"], str, mapping)
+        self.assertRegex(mapping["checked_at"], CHECKED_AT_UTC)
+        self.assertTrue(mapping["checked_at"].endswith("Z"))
+        self.assertNotIn("+", mapping["checked_at"][:-1])
+        self.assertNotIn(".", mapping["checked_at"])
         if outcome == "pass":
             self.assertIsNone(mapping["refusal"])
             for key in ("artifacts", "dependencies", "outputs"):
@@ -1031,12 +1179,59 @@ class _LanePolicyCase(unittest.TestCase):
             "unavailable": unavailable,
         }
 
-    def output_attempt(self, *, attempt: int | None = None, files: list | None = None) -> dict:
+    def output_attempt(
+        self,
+        *,
+        attempt: int | None = None,
+        files: list | None = None,
+        dispatch: str | None = None,
+    ) -> dict:
         return {
-            "dispatch": self.dispatch_id,
+            "dispatch": self.dispatch_id if dispatch is None else dispatch,
             "attempt": attempt,
             "files": list([] if files is None else files),
         }
+
+    def retained_handle(self, rel: str, content: bytes) -> dict:
+        self.plant_bytes(self.job_root / rel, content)
+        return {"path": rel, "sha256": _sha256(content)}
+
+    def file_receipt(
+        self,
+        content: bytes,
+        *,
+        artifact: str,
+        path: str,
+        production: str = "fresh",
+        reuse: dict | None = None,
+        evidence: list | None = None,
+    ) -> dict:
+        digest = _sha256(content)
+        handles = (
+            list(evidence)
+            if evidence is not None
+            else [self.retained_handle(f"evidence/{path}", content)]
+        )
+        receipt = {
+            "artifact": artifact,
+            "path": path,
+            "sha256": digest,
+            "bytes": len(content),
+            "production": production,
+            "reuse": reuse,
+            "evidence": handles,
+        }
+        self.assertEqual(sorted(receipt), sorted(FILE_RECEIPT_KEYS), receipt)
+        self.assertGreater(receipt["bytes"], 0)
+        self.assertRegex(receipt["sha256"], r"^[0-9a-f]{64}$")
+        self.assertTrue(receipt["evidence"], "file receipt evidence must be nonempty")
+        if production == "fresh":
+            self.assertIsNone(receipt["reuse"])
+        else:
+            self.assertEqual(production, "reuse")
+            self.assertIsInstance(receipt["reuse"], dict)
+            self.assertEqual(sorted(receipt["reuse"]), ["attempt", "receipt"])
+        return receipt
 
     def evidence(
         self,
@@ -1051,6 +1246,10 @@ class _LanePolicyCase(unittest.TestCase):
         artifacts=None,
         dependencies=None,
         allow_null: bool = False,
+        completed: bool = True,
+        files: list | None = None,
+        attempt: int | None = None,
+        dispatch: str | None = None,
     ) -> dict:
         if allow_null:
             return {
@@ -1076,12 +1275,25 @@ class _LanePolicyCase(unittest.TestCase):
             unresolved=unresolved,
             unavailable=unavailable,
         )
+        if outputs is None:
+            if completed:
+                outputs = self.output_attempt(
+                    attempt=1 if attempt is None else attempt,
+                    files=[] if files is None else files,
+                    dispatch=dispatch,
+                )
+            else:
+                outputs = self.output_attempt(
+                    attempt=None,
+                    files=[],
+                    dispatch=dispatch,
+                )
         return {
             "snapshot_ref": self.snapshot_ref,
             "head": manifest["head"],
             "artifacts": manifest,
             "dependencies": deps,
-            "outputs": self.output_attempt() if outputs is None else outputs,
+            "outputs": outputs,
         }
 
     def _decode_path(self, endpoint: dict) -> str:
@@ -1105,7 +1317,9 @@ class _LanePolicyCase(unittest.TestCase):
             for path, content in paths_and_bytes
         ]
         coverage = [path for path, _content in paths_and_bytes]
-        return self.check(binding, self.evidence(entries=entries, coverage=coverage), "settle")
+        return self.check(
+            binding, self.evidence(entries=entries, coverage=coverage), "settle"
+        )
 
 
 def _tree_listing(root: Path) -> tuple[str, ...]:
@@ -1150,7 +1364,11 @@ class CasesP1(_LanePolicyCase):
         decls = self.declarations(profile="dev", job_role="read", repository=())
         binding = self.bind(self.trusted_context(profile="dev"), decls)
         self.assert_worker_binding(binding, profile="dev", declarations=decls)
-        evidence = self.evidence(entries=[], coverage=["docs/wire.md", "src/Example.php"])
+        evidence = self.evidence(
+            entries=[],
+            coverage=["docs/wire.md", "src/Example.php"],
+            completed=False,
+        )
         mapping = self.assert_policy_result(
             self.check(binding, evidence, "launch"),
             outcome="pass",
@@ -1228,7 +1446,9 @@ class CasesP3(_LanePolicyCase):
         ok = self.check_writes(binding, [("unittest/example.txt", b"fixture-only\n")])
         self.assert_policy_result(ok, outcome="pass")
         src = self.check_writes(binding, [("src/Example.php", self.example_php)])
-        self.assert_refusal(self.assert_policy_result(src, outcome="refused"), "lane-write")
+        self.assert_refusal(
+            self.assert_policy_result(src, outcome="refused"), "lane-write"
+        )
         out_decls = self.declarations(
             profile="fixture-only",
             repository=("unittest/",),
@@ -1362,7 +1582,7 @@ class CasesP5(_LanePolicyCase):
             self.candidate_tree / "ops" / "conductor" / "tools" / "decisions.py",
             candidate,
         )
-        forged_home = self.worker_home / ".local" / "state" / "agentscient"
+        forged_home = self.worker_home / ".local" / "state" / self.reader_lane_name
         forged_home.mkdir(parents=True)
         self.plant_bytes(forged_home / "decisions.db", b"forged-store")
         admitted = (
@@ -1503,7 +1723,7 @@ class CasesN3(_LanePolicyCase):
                     "head": self.snapshot_ref,
                     "artifacts": manifest,
                     "dependencies": deps,
-                    "outputs": self.output_attempt(),
+                    "outputs": self.output_attempt(attempt=1, files=[]),
                 }
                 mapping = self.assert_policy_result(
                     self.check(binding, evidence, "settle"),
@@ -1544,7 +1764,7 @@ class CasesN3(_LanePolicyCase):
                     "head": self.snapshot_ref,
                     "artifacts": manifest,
                     "dependencies": unresolved,
-                    "outputs": self.output_attempt(),
+                    "outputs": self.output_attempt(attempt=1, files=[]),
                 },
                 "settle",
             ),
@@ -1564,7 +1784,7 @@ class CasesN3(_LanePolicyCase):
                     "head": self.snapshot_ref,
                     "artifacts": manifest,
                     "dependencies": unavailable,
-                    "outputs": self.output_attempt(),
+                    "outputs": self.output_attempt(attempt=1, files=[]),
                 },
                 "settle",
             ),
@@ -1586,7 +1806,7 @@ class CasesN3(_LanePolicyCase):
                     "head": self.snapshot_ref,
                     "artifacts": manifest,
                     "dependencies": empty_incomplete,
-                    "outputs": self.output_attempt(),
+                    "outputs": self.output_attempt(attempt=1, files=[]),
                 },
                 "settle",
             ),
@@ -1599,30 +1819,44 @@ class CasesN4(_LanePolicyCase):
     def test_n4_committed_untracked_ignored_rename_symlink_and_cache_refuse(self):
         binding, _decls, _policy = self.bind_ok(profile="dev")
         cases = (
-            ("committed", self.artifact_entry(
-                "src/Example.php", self.example_php, layer="committed"
-            )),
-            ("untracked", self.artifact_entry(
-                "src/sneak.php", self.example_php, status="?"
-            )),
-            ("ignored", self.artifact_entry(
-                "src/ignored.php", self.example_php, status="!"
-            )),
-            ("rename", self.artifact_entry(
-                "src/Renamed.php",
-                self.example_php,
-                status="R",
-                before_path="ops/bin/example.sh",
-            )),
-            ("symlink", self.artifact_entry(
-                "ops/escape",
-                b"src/Example.php",
-                mode="120000",
-            )),
-            ("cache-source", self.artifact_entry(
-                "ops/devlane/dispatch/.cache/Example.php",
-                self.example_php,
-            )),
+            (
+                "committed",
+                self.artifact_entry(
+                    "src/Example.php", self.example_php, layer="committed"
+                ),
+            ),
+            (
+                "untracked",
+                self.artifact_entry("src/sneak.php", self.example_php, status="?"),
+            ),
+            (
+                "ignored",
+                self.artifact_entry("src/ignored.php", self.example_php, status="!"),
+            ),
+            (
+                "rename",
+                self.artifact_entry(
+                    "src/Renamed.php",
+                    self.example_php,
+                    status="R",
+                    before_path="ops/bin/example.sh",
+                ),
+            ),
+            (
+                "symlink",
+                self.artifact_entry(
+                    "ops/escape",
+                    b"src/Example.php",
+                    mode="120000",
+                ),
+            ),
+            (
+                "cache-source",
+                self.artifact_entry(
+                    "ops/devlane/dispatch/.cache/Example.php",
+                    self.example_php,
+                ),
+            ),
         )
         for label, entry in cases:
             with self.subTest(label=label):
@@ -1654,7 +1888,13 @@ class CasesN5(_LanePolicyCase):
                 mapping = self.assert_policy_result(
                     self.check(
                         None,
-                        self.evidence(allow_null=True, artifacts=None, dependencies=None, outputs=None, head=None),
+                        self.evidence(
+                            allow_null=True,
+                            artifacts=None,
+                            dependencies=None,
+                            outputs=None,
+                            head=None,
+                        ),
                         transition,
                     ),
                     outcome="refused",
@@ -1675,7 +1915,9 @@ class CasesN6(_LanePolicyCase):
         decls = self.declarations(profile="dev", outputs=[])
         binding = self.bind(self.trusted_context(profile="dev"), decls)
         policy = self.assert_worker_binding(binding, profile="dev", declarations=decls)
-        self.assertEqual(json.loads(self._grants_json(decls, None))["outputs"]["outputs"], [])
+        self.assertEqual(
+            json.loads(self._grants_json(decls, None))["outputs"]["outputs"], []
+        )
         self.assertIsNone(policy["maintenance"])
         result = self.check(
             binding,
@@ -1748,7 +1990,9 @@ class CasesN7(_LanePolicyCase):
         )
         self.assert_refusal(mapping, "lane-write")
 
-    def test_n7_true_maintenance_without_coverage_refuses_and_ordinary_tooling_passes(self):
+    def test_n7_true_maintenance_without_coverage_refuses_and_ordinary_tooling_passes(
+        self,
+    ):
         binding, _decls, policy = self.bind_ok(
             profile="authority-maintenance",
             repository=("ops/", "docs/"),
@@ -1813,7 +2057,11 @@ class CasesN8(_LanePolicyCase):
 class CasesN9(_LanePolicyCase):
     def test_n9_forged_reader_config_seed_and_worker_home_cannot_admit(self):
         self.plant_bytes(
-            self.worker_home / ".local" / "state" / "agentscient" / "decisions.db",
+            self.worker_home
+            / ".local"
+            / "state"
+            / self.reader_lane_name
+            / "decisions.db",
             b"forged",
         )
         self.plant_bytes(
@@ -1960,7 +2208,9 @@ class CasesN10(_LanePolicyCase):
                 binding,
                 self.evidence(
                     entries=[
-                        self.artifact_entry(str(secret), b"credential-must-not-be-read\n")
+                        self.artifact_entry(
+                            str(secret), b"credential-must-not-be-read\n"
+                        )
                     ],
                     coverage=[str(secret)],
                 ),
@@ -1983,11 +2233,20 @@ class CasesR1(_LanePolicyCase):
         evidence = self.evidence(
             entries=[self.artifact_entry("ops/bin/example.sh", self.example_sh)],
             coverage=["ops/bin/example.sh"],
+            completed=True,
         )
+        self.assertEqual(evidence["outputs"]["attempt"], 1)
+        self.assertEqual(evidence["outputs"]["files"], [])
         for transition in TRANSITIONS:
             with self.subTest(transition=transition):
                 if transition == "launch":
-                    payload = self.evidence(entries=[], coverage=["ops/bin/example.sh"])
+                    payload = self.evidence(
+                        entries=[],
+                        coverage=["ops/bin/example.sh"],
+                        completed=False,
+                    )
+                    self.assertIsNone(payload["outputs"]["attempt"])
+                    self.assertEqual(payload["outputs"]["files"], [])
                 else:
                     payload = evidence
                 mapping = self.assert_policy_result(
@@ -1999,7 +2258,9 @@ class CasesR1(_LanePolicyCase):
 
 
 class CasesR2(_LanePolicyCase):
-    def test_r2_changed_policy_profile_template_or_declarations_refuse_before_mutation(self):
+    def test_r2_changed_policy_profile_template_or_declarations_refuse_before_mutation(
+        self,
+    ):
         binding, _decls, policy = self.bind_ok(profile="dev")
         listing = _tree_listing(self.job_root)
         changed = dict(policy)
@@ -2034,7 +2295,13 @@ class CasesR2(_LanePolicyCase):
         mapping = self.assert_policy_result(
             self.check(
                 None,
-                self.evidence(allow_null=True, artifacts=None, dependencies=None, outputs=None, head=self.snapshot_ref),
+                self.evidence(
+                    allow_null=True,
+                    artifacts=None,
+                    dependencies=None,
+                    outputs=None,
+                    head=self.snapshot_ref,
+                ),
                 "resume",
             ),
             outcome="refused",
@@ -2088,7 +2355,9 @@ class CasesR3(_LanePolicyCase):
 
 
 class CasesR4(_LanePolicyCase):
-    def test_r4_superseded_standing_refuses_until_replacement_admission_and_anchor(self):
+    def test_r4_superseded_standing_refuses_until_replacement_admission_and_anchor(
+        self,
+    ):
         self.add_standing(["docs/", "ops/lane-policy.json"])
         self.add_per_job(["ops/README.md"])
         superseded = self._show_bytes(
@@ -2129,7 +2398,9 @@ class CasesR4(_LanePolicyCase):
         # replacement listed but anchor still names stale reader tuple after map rewrite
         self.assertIsNotNone(replacement)
         fresh_ids = [REPLACEMENT]
-        self.standing_rows = [row for row in self.standing_rows if row["record"] == REPLACEMENT]
+        self.standing_rows = [
+            row for row in self.standing_rows if row["record"] == REPLACEMENT
+        ]
         self.refresh_admission(fresh_ids)
         old_anchor = dict(context["custody_anchor"])
         old_anchor["reader"] = {
@@ -2256,7 +2527,9 @@ class CasesI1(_LanePolicyCase):
             "lane-write",
         )
 
-    def test_i1_app_runtime_dependency_refuses_and_product_contracts_remain_allowed(self):
+    def test_i1_app_runtime_dependency_refuses_and_product_contracts_remain_allowed(
+        self,
+    ):
         binding, _decls, _policy = self.bind_ok(profile="dev")
         manifest = self.manifest(
             [self.artifact_entry("ops/bin/example.sh", self.example_sh)]
@@ -2276,10 +2549,13 @@ class CasesI1(_LanePolicyCase):
                     "artifacts": manifest,
                     "dependencies": self.dependencies(
                         manifest,
-                        coverage=["ops/bin/example.sh", "ops/conductor/tools/example.py"],
+                        coverage=[
+                            "ops/bin/example.sh",
+                            "ops/conductor/tools/example.py",
+                        ],
                         edges=[edge],
                     ),
-                    "outputs": self.output_attempt(),
+                    "outputs": self.output_attempt(attempt=1, files=[]),
                 },
                 "settle",
             ),
@@ -2309,9 +2585,7 @@ class ClosedDeclarations(_LanePolicyCase):
         decls = self.declarations(profile="dev", repository=())
         binding = self.bind(self.trusted_context(profile="dev"), decls)
         policy = self.assert_worker_binding(binding, profile="dev", declarations=decls)
-        grants = json.loads(
-            _canonical(self.grants_object(decls, None)).decode()
-        )
+        grants = json.loads(_canonical(self.grants_object(decls, None)).decode())
         self.assertEqual(grants["scope"]["repository"], [])
         self.assertEqual(policy["grants_sha256"], _sha256(_canonical(grants)))
         mapping = self.assert_policy_result(
@@ -2331,7 +2605,9 @@ class ClosedDeclarations(_LanePolicyCase):
         binding = self.bind(self.trusted_context(profile="dev"), decls)
         policy = self.assert_worker_binding(binding, profile="dev", declarations=decls)
         grants = self.grants_object(decls, None)
-        self.assertEqual(grants["outputs"], {"outputs": ["SKEPTIC.md", "tmp"], "repository": []})
+        self.assertEqual(
+            grants["outputs"], {"outputs": ["SKEPTIC.md", "tmp"], "repository": []}
+        )
         self.assertEqual(grants["maintenance"], [])
         self.assertEqual(policy["grants_sha256"], _sha256(_canonical(grants)))
         self.assertEqual(sorted(policy), sorted(POLICY_BINDING_KEYS))
@@ -2347,11 +2623,12 @@ class ClosedDeclarations(_LanePolicyCase):
             ),
             decls,
         )
-        self.assert_not_refusal(result)
-        mapping = _as_object(result)
-        self.assertIsInstance(mapping, dict, result)
-        body = mapping
-        policy = self.extract_policy(result)
+        closed, digest = self.assert_conductor_binding(
+            result,
+            declarations=decls,
+            dispatch_id=CONDUCT_ID,
+        )
+        policy = closed["policy"]
         self.assertIsNone(policy["maintenance"])
         grants = self.grants_object(decls, None)
         self.assertEqual(grants["job"]["repository"], [])
@@ -2359,10 +2636,10 @@ class ClosedDeclarations(_LanePolicyCase):
         self.assertEqual(grants["outputs"]["outputs"], [])
         self.assertEqual(policy["grants_sha256"], _sha256(_canonical(grants)))
         self.assertEqual(policy["template_sha256"], self.conductor_template_digest)
-        if set(CONDUCTOR_BINDING_KEYS) <= set(body):
-            self.assertIsNone(body["job"])
-            self.assertEqual(body["stage"], "conduct")
-            self.assertEqual(body["dispatch"], CONDUCT_ID)
+        self.assertEqual(closed["declarations_sha256"], _sha256(_canonical(decls)))
+        self.assertRegex(closed["custody_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(digest, self.conductor_binding_digest(closed))
+        self.assertNotEqual(digest, policy["grants_sha256"])
 
 
 class PreEffectAndLate(_LanePolicyCase):
@@ -2375,7 +2652,11 @@ class PreEffectAndLate(_LanePolicyCase):
         self.assert_refusal(result, "lane-profile")
         self.assertEqual(_tree_listing(self.job_root), ())
         self.assertFalse(marker.exists())
-        self.assertFalse(isinstance(_as_object(result), dict) and _as_object(result) and _as_object(result).get("outcome") == "pass")
+        self.assertFalse(
+            isinstance(_as_object(result), dict)
+            and _as_object(result)
+            and _as_object(result).get("outcome") == "pass"
+        )
 
     def test_late_missing_evidence_is_null_not_empty_success(self):
         binding, _decls, policy = self.bind_ok(profile="dev")
@@ -2407,9 +2688,17 @@ class PreEffectAndLate(_LanePolicyCase):
                 binding,
                 self.evidence(
                     allow_null=True,
-                    artifacts={"snapshot_ref": self.snapshot_ref, "head": self.snapshot_ref, "entries": []},
+                    artifacts={
+                        "snapshot_ref": self.snapshot_ref,
+                        "head": self.snapshot_ref,
+                        "entries": [],
+                    },
                     dependencies=None,
-                    outputs={"dispatch": self.dispatch_id, "attempt": None, "files": []},
+                    outputs={
+                        "dispatch": self.dispatch_id,
+                        "attempt": None,
+                        "files": [],
+                    },
                     head=self.snapshot_ref,
                 ),
                 "settle",
@@ -2431,10 +2720,17 @@ class ConductorTools(_LanePolicyCase):
             ),
             decls,
         )
-        policy = self.extract_policy(bound) if bound is not None else {
-            "grants_sha256": "0" * 64
-        }
-        digest = policy.get("grants_sha256") or ("0" * 64)
+        mapping = _as_object(bound)
+        if mapping is not None:
+            closed, digest = self.assert_conductor_binding(
+                bound,
+                declarations=decls,
+                dispatch_id=CONDUCT_ID,
+            )
+            role_binding = closed
+        else:
+            digest = "0" * 64
+            role_binding = bound
         request = {
             "schema": "conductor-tool/1",
             "id": f"req-{kind}-1",
@@ -2444,7 +2740,7 @@ class ConductorTools(_LanePolicyCase):
             "arguments": arguments if reason is None else {"reason": reason},
         }
         role = {
-            "binding": bound,
+            "binding": role_binding,
             "tools": {
                 "delegate": ["dispatch", "go", "ladder"],
                 "read": ["git-status", "inspect"],
@@ -2454,12 +2750,27 @@ class ConductorTools(_LanePolicyCase):
         }
         return role, request
 
-    def _decision(self, result) -> dict:
+    def _decision(self, result, request) -> dict:
         mapping = _as_object(result)
         self.assertIsInstance(mapping, dict, result)
-        self.assertEqual(mapping.get("schema"), "conductor-decision/1")
-        self.assertIn(mapping.get("outcome"), ("allow", "refuse"))
-        self.assertRegex(str(mapping.get("binding_sha256") or ""), r"^[0-9a-f]{64}$")
+        self.assertEqual(sorted(mapping), sorted(DECISION_KEYS), mapping)
+        self.assertEqual(mapping["schema"], "conductor-decision/1")
+        self.assertEqual(mapping["id"], request["id"])
+        self.assertEqual(mapping["binding_sha256"], request["binding_sha256"])
+        self.assertRegex(mapping["binding_sha256"], r"^[0-9a-f]{64}$")
+        self.assertIn(mapping["outcome"], ("allow", "refuse"))
+        if mapping["outcome"] == "allow":
+            self.assertIsNone(mapping["refusal"])
+        else:
+            refusal = mapping["refusal"]
+            self.assertIsInstance(refusal, dict, refusal)
+            self.assertEqual(sorted(refusal), ["class", "expected", "found", "needed"])
+            self.assertEqual(refusal["class"], "conductor-tool")
+            self.assertIn(refusal["found"], REASON_CODES)
+            for field in ("expected", "found", "needed"):
+                self.assertIsInstance(refusal[field], str)
+                self.assertTrue(refusal[field])
+                self.assertNotIn(";", refusal[field])
         return mapping
 
     def test_evaluate_tool_allows_canonical_delegation_and_coordination_reads(self):
@@ -2468,7 +2779,7 @@ class ConductorTools(_LanePolicyCase):
             "dispatch",
             {"frontend": "ops/bin/dispatch.sh", "job": JOB},
         )
-        allowed = self._decision(self.evaluate(role, request))
+        allowed = self._decision(self.evaluate(role, request), request)
         self.assertEqual(allowed["outcome"], "allow")
         self.assertIsNone(allowed["refusal"])
         role, request = self._role_and_request(
@@ -2476,14 +2787,14 @@ class ConductorTools(_LanePolicyCase):
             "inspect",
             {"path": "docs/wire.md"},
         )
-        allowed = self._decision(self.evaluate(role, request))
+        allowed = self._decision(self.evaluate(role, request), request)
         self.assertEqual(allowed["outcome"], "allow")
         role, request = self._role_and_request(
             "read",
             "git-status",
             {"argv": ["git", "status", "--short"]},
         )
-        allowed = self._decision(self.evaluate(role, request))
+        allowed = self._decision(self.evaluate(role, request), request)
         self.assertEqual(allowed["outcome"], "allow")
 
     def test_evaluate_tool_refuses_handwork_before_effects(self):
@@ -2498,25 +2809,73 @@ class ConductorTools(_LanePolicyCase):
         for label, kind, target, reason in cases:
             with self.subTest(label=label):
                 role, request = self._role_and_request(kind, target, {}, reason=reason)
-                decision = self._decision(self.evaluate(role, request))
+                decision = self._decision(self.evaluate(role, request), request)
                 self.assertEqual(decision["outcome"], "refuse")
-                refusal = decision["refusal"]
-                self.assertEqual(refusal["class"], "conductor-tool")
-                self.assertEqual(refusal["found"], reason)
-                self.assertNotIn(";", refusal["expected"])
-                self.assertNotIn(";", refusal["found"])
-                self.assertNotIn(";", refusal["needed"])
+                self.assertEqual(decision["refusal"]["found"], reason)
         self.assertEqual(_tree_listing(self.canonical_repo), listing)
+        self.assertEqual(
+            sorted(REASON_CODES),
+            sorted(
+                (
+                    "binding-mismatch",
+                    "direct-edit",
+                    "git-mutation",
+                    "in-session-agent",
+                    "malformed-request",
+                    "raw-vendor",
+                    "shell-escape",
+                    "unknown-tool",
+                )
+            ),
+        )
 
-    def test_evaluate_tool_substring_naming_a_lever_is_not_an_allowed_request(self):
+    def test_evaluate_tool_substring_naming_a_lever_is_malformed_coordinate(self):
         role, request = self._role_and_request(
             "coordinate",
             "board",
             {"command": "python3 -c 'import os; os.system(\"ops/bin/dispatch.sh\")'"},
         )
-        decision = self._decision(self.evaluate(role, request))
+        decision = self._decision(self.evaluate(role, request), request)
+        self.assertEqual(decision["outcome"], "refuse")
+        self.assertEqual(decision["refusal"]["found"], "malformed-request")
+        self.assertNotEqual(decision["refusal"]["found"], "shell-escape")
+
+    def test_evaluate_tool_normalized_shell_escape_is_not_a_coordinate(self):
+        role, request = self._role_and_request(
+            "forbidden",
+            "implementation",
+            {},
+            reason="shell-escape",
+        )
+        decision = self._decision(self.evaluate(role, request), request)
         self.assertEqual(decision["outcome"], "refuse")
         self.assertEqual(decision["refusal"]["found"], "shell-escape")
+        self.assertNotEqual(decision["refusal"]["found"], "malformed-request")
+
+    def test_evaluate_tool_unknown_tool_refuses(self):
+        role, request = self._role_and_request(
+            "mcp-read",
+            "not-a-declared-tool",
+            {"uri": "lane://undeclared"},
+        )
+        decision = self._decision(self.evaluate(role, request), request)
+        self.assertEqual(decision["outcome"], "refuse")
+        self.assertEqual(decision["refusal"]["found"], "unknown-tool")
+
+    def test_evaluate_tool_binding_mismatch_refuses(self):
+        role, request = self._role_and_request(
+            "read",
+            "inspect",
+            {"path": "docs/wire.md"},
+        )
+        held = request["binding_sha256"]
+        request["binding_sha256"] = "a" * 64
+        self.assertNotEqual(request["binding_sha256"], held)
+        decision = self._decision(self.evaluate(role, request), request)
+        self.assertEqual(decision["outcome"], "refuse")
+        self.assertEqual(decision["refusal"]["found"], "binding-mismatch")
+        self.assertEqual(decision["id"], request["id"])
+        self.assertEqual(decision["binding_sha256"], request["binding_sha256"])
 
     def test_evaluate_tool_read_containing_apply_is_not_a_mutation(self):
         role, request = self._role_and_request(
@@ -2524,32 +2883,329 @@ class ConductorTools(_LanePolicyCase):
             "inspect",
             {"query": "how does git apply work in this contract"},
         )
-        decision = self._decision(self.evaluate(role, request))
+        decision = self._decision(self.evaluate(role, request), request)
         self.assertEqual(decision["outcome"], "allow")
         self.assertIsNone(decision["refusal"])
 
 
 class ExactShowDigest(_LanePolicyCase):
     def test_show_digest_is_exact_stdout_bytes_including_newline_and_events(self):
-        stdout = self.admission_stdout
-        self.assertTrue(stdout.endswith(b"\n"))
-        parsed = json.loads(stdout)
+        canonical = self.admission_stdout
+        self.assertTrue(canonical.endswith(b"\n"))
+        parsed = json.loads(canonical)
         self.assertEqual(sorted(parsed), ["decision", "events"])
         self.assertEqual(parsed["decision"]["id"], ADMISSION)
         self.assertEqual(parsed["decision"]["home"], POLICY_PATH)
         self.assertEqual(parsed["decision"]["standing"], "ratified")
         self.assertIsNone(parsed["decision"]["superseded_by"])
         self.assertEqual(parsed["decision"]["decided_by"], OWNER)
-        self.assertNotEqual(parsed["decision"]["recorded_by"], parsed["decision"]["decided_by"])
+        self.assertNotEqual(
+            parsed["decision"]["recorded_by"], parsed["decision"]["decided_by"]
+        )
         self.assertTrue(parsed["events"])
-        reserialized = json.dumps(parsed, sort_keys=True, separators=(",", ":")).encode()
-        self.assertNotEqual(reserialized, stdout)
-        self.assertEqual(self.admission_digest, _sha256(stdout))
-        self.assertNotEqual(self.admission_digest, _sha256(reserialized))
-        self.assertNotEqual(self.admission_digest, _sha256(stdout.rstrip(b"\n")))
+        compact = json.dumps(
+            parsed,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("utf-8")
+        shuffled = {"events": parsed["events"], "decision": parsed["decision"]}
+        planted = (json.dumps(shuffled, indent=2, ensure_ascii=True) + "\n").encode(
+            "utf-8"
+        )
+        self.assertTrue(planted.endswith(b"\n"))
+        self.assertGreater(planted.count(b"\n"), 1)
+        self.assertNotEqual(planted, canonical)
+        self.assertEqual(json.loads(planted), parsed)
+        reserialized = json.dumps(
+            json.loads(planted),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("utf-8")
+        self.assertEqual(reserialized, compact)
+        self.assertNotEqual(reserialized, planted[:-1])
+        self.assertNotEqual(planted, planted.rstrip(b"\n"))
+        self.assertNotEqual(_sha256(planted), _sha256(reserialized))
+        self.assertNotEqual(_sha256(planted), _sha256(planted.rstrip(b"\n")))
+        self.assertNotEqual(_sha256(reserialized), _sha256(planted.rstrip(b"\n")))
+        self.admission_stdout = planted
+        self.admission_digest = _sha256(planted)
+        self._write_show_map({ADMISSION: planted.decode("utf-8")})
+        reread = (
+            self.reader_checkout / "ops" / "conductor" / "tools" / "show-map.json"
+        ).read_bytes()
+        self.assertIn(b'"D-POLICY-1"', reread)
         _binding, _decls, policy = self.bind_ok(profile="dev")
-        self.assertEqual(policy["admission"]["sha256"], _sha256(stdout))
+        self.assertEqual(policy["admission"]["sha256"], _sha256(planted))
         self.assertNotEqual(policy["admission"]["sha256"], _sha256(reserialized))
+        self.assertNotEqual(
+            policy["admission"]["sha256"],
+            _sha256(planted.rstrip(b"\n")),
+        )
+
+
+class OutputAttemptReceipts(_LanePolicyCase):
+    def _declared_note(self):
+        content = b"declared note bytes\n"
+        decls = self.declarations(
+            profile="dev",
+            outputs=[
+                {"kind": "file", "path": "NOTE.md", "artifact": "note"},
+                {"kind": "scratch", "path": "tmp"},
+            ],
+        )
+        self.assertEqual(decls["outputs"][0]["artifact"], "note")
+        self.assertEqual(decls["outputs"][1]["kind"], "scratch")
+        return decls, content
+
+    def _bind_declared(self):
+        decls, content = self._declared_note()
+        binding = self.bind(self.trusted_context(profile="dev"), decls)
+        policy = self.assert_worker_binding(binding, profile="dev", declarations=decls)
+        return binding, decls, policy, content
+
+    def test_launch_preflight_with_null_attempt_passes(self):
+        binding, _decls, policy, _content = self._bind_declared()
+        payload = self.evidence(
+            entries=[],
+            coverage=["ops/bin/example.sh"],
+            completed=False,
+        )
+        self.assertIsNone(payload["outputs"]["attempt"])
+        self.assertEqual(payload["outputs"]["files"], [])
+        mapping = self.assert_policy_result(
+            self.check(binding, payload, "launch"),
+            outcome="pass",
+        )
+        self.assertEqual(mapping["binding"], policy)
+
+    def test_null_preflight_cannot_substitute_for_terminal_pass(self):
+        binding, _decls, _policy, content = self._bind_declared()
+        payload = self.evidence(
+            entries=[self.artifact_entry("NOTE.md", content, layer="output")],
+            coverage=["NOTE.md"],
+            completed=False,
+        )
+        self.assertIsNone(payload["outputs"]["attempt"])
+        self.assertEqual(payload["outputs"]["files"], [])
+        for transition in (
+            "settle",
+            "collect-before",
+            "collect-after",
+            "land",
+            "ladder",
+        ):
+            with self.subTest(transition=transition):
+                mapping = self.assert_policy_result(
+                    self.check(binding, payload, transition),
+                    outcome="refused",
+                )
+                self.assert_refusal(mapping, "lane-artifact")
+
+    def test_fresh_production_receipt_passes_settlement(self):
+        binding, _decls, policy, content = self._bind_declared()
+        handle = self.retained_handle("evidence/NOTE.md", content)
+        receipt = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="fresh",
+            evidence=[handle],
+        )
+        self.assertIsNone(receipt["reuse"])
+        self.plant_bytes(self.job_root / "out" / "NOTE.md", content)
+        mapping = self.assert_policy_result(
+            self.check(
+                binding,
+                self.evidence(
+                    entries=[self.artifact_entry("NOTE.md", content, layer="output")],
+                    coverage=["NOTE.md"],
+                    completed=True,
+                    attempt=1,
+                    files=[receipt],
+                ),
+                "settle",
+            ),
+            outcome="pass",
+        )
+        self.assertEqual(mapping["binding"], policy)
+
+    def test_verified_reuse_from_earlier_attempt_passes(self):
+        binding, _decls, policy, content = self._bind_declared()
+        first = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="fresh",
+        )
+        prior_bytes = _canonical(
+            {
+                "dispatch": self.dispatch_id,
+                "attempt": 1,
+                "files": [first],
+            }
+        )
+        prior_handle = self.retained_handle("receipts/attempt-1.json", prior_bytes)
+        reuse = {"attempt": 1, "receipt": prior_handle}
+        second = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="reuse",
+            reuse=reuse,
+            evidence=[prior_handle],
+        )
+        self.assertEqual(second["reuse"]["attempt"], 1)
+        self.assertLess(second["reuse"]["attempt"], 2)
+        mapping = self.assert_policy_result(
+            self.check(
+                binding,
+                self.evidence(
+                    entries=[self.artifact_entry("NOTE.md", content, layer="output")],
+                    coverage=["NOTE.md"],
+                    completed=True,
+                    attempt=2,
+                    files=[second],
+                ),
+                "settle",
+            ),
+            outcome="pass",
+        )
+        self.assertEqual(mapping["binding"], policy)
+
+    def test_reuse_naming_foreign_dispatch_refuses(self):
+        binding, _decls, _policy, content = self._bind_declared()
+        first = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="fresh",
+        )
+        foreign_bytes = _canonical(
+            {
+                "dispatch": DISPATCH_B,
+                "attempt": 1,
+                "files": [first],
+            }
+        )
+        self.assertIn(DISPATCH_B.encode("utf-8"), foreign_bytes)
+        self.assertNotEqual(DISPATCH_B, self.dispatch_id)
+        prior_handle = self.retained_handle("receipts/foreign.json", foreign_bytes)
+        second = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="reuse",
+            reuse={"attempt": 1, "receipt": prior_handle},
+            evidence=[prior_handle],
+        )
+        mapping = self.assert_policy_result(
+            self.check(
+                binding,
+                self.evidence(
+                    entries=[self.artifact_entry("NOTE.md", content, layer="output")],
+                    coverage=["NOTE.md"],
+                    completed=True,
+                    attempt=2,
+                    files=[second],
+                ),
+                "settle",
+            ),
+            outcome="refused",
+        )
+        self.assert_refusal(mapping, "lane-artifact")
+
+    def test_reuse_future_attempt_refuses(self):
+        binding, _decls, _policy, content = self._bind_declared()
+        first = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="fresh",
+        )
+        prior_handle = self.retained_handle(
+            "receipts/attempt-1.json",
+            _canonical(
+                {
+                    "dispatch": self.dispatch_id,
+                    "attempt": 1,
+                    "files": [first],
+                }
+            ),
+        )
+        second = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="reuse",
+            reuse={"attempt": 3, "receipt": prior_handle},
+            evidence=[prior_handle],
+        )
+        self.assertGreaterEqual(second["reuse"]["attempt"], 2)
+        mapping = self.assert_policy_result(
+            self.check(
+                binding,
+                self.evidence(
+                    entries=[self.artifact_entry("NOTE.md", content, layer="output")],
+                    coverage=["NOTE.md"],
+                    completed=True,
+                    attempt=2,
+                    files=[second],
+                ),
+                "settle",
+            ),
+            outcome="refused",
+        )
+        self.assert_refusal(mapping, "lane-artifact")
+
+    def test_reuse_stale_digest_refuses(self):
+        binding, _decls, _policy, content = self._bind_declared()
+        stale = b"stale leftover note\n"
+        self.assertNotEqual(stale, content)
+        self.assertIn(b"note", stale)
+        first = self.file_receipt(
+            stale,
+            artifact="note",
+            path="NOTE.md",
+            production="fresh",
+        )
+        self.assertEqual(first["sha256"], _sha256(stale))
+        self.assertNotEqual(first["sha256"], _sha256(content))
+        prior_handle = self.retained_handle(
+            "receipts/attempt-1.json",
+            _canonical(
+                {
+                    "dispatch": self.dispatch_id,
+                    "attempt": 1,
+                    "files": [first],
+                }
+            ),
+        )
+        current = self.file_receipt(
+            content,
+            artifact="note",
+            path="NOTE.md",
+            production="reuse",
+            reuse={"attempt": 1, "receipt": prior_handle},
+            evidence=[prior_handle],
+        )
+        self.assertNotEqual(current["sha256"], first["sha256"])
+        mapping = self.assert_policy_result(
+            self.check(
+                binding,
+                self.evidence(
+                    entries=[self.artifact_entry("NOTE.md", content, layer="output")],
+                    coverage=["NOTE.md"],
+                    completed=True,
+                    attempt=2,
+                    files=[current],
+                ),
+                "settle",
+            ),
+            outcome="refused",
+        )
+        self.assert_refusal(mapping, "lane-artifact")
 
 
 if __name__ == "__main__":
