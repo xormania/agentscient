@@ -40,6 +40,9 @@ REPO_EMAIL = "repo-config@example.invalid"
 RUN_CAP = 30
 
 # Contract table, verbatim one-liners, em dash as written there.
+# onboard-lever.md §The brief: seven declared rows in table order.
+# Planting still uses LAW; DECLARED_LAW is the exact gate until the
+# fixture correction points LAW at the same seven rows.
 LAW = (
     ("AGENTS.md", "the operating contract"),
     ("CONTRIB.md", "naming, PR bodies, fix commits, the review wire"),
@@ -52,6 +55,16 @@ LAW = (
         "the stack: layers, incumbents, open seats",
     ),
     ("ops/conductor/coverage-zones.md", "what gates what"),
+)
+DECLARED_LAW = LAW + (
+    (
+        "ops/conductor/discovery-lever.md",
+        "profile discovery, source custody, and uncertainty",
+    ),
+    (
+        "ops/conductor/conductor-start-plan.md",
+        "the conductor startup sequence and admission boundaries",
+    ),
 )
 EM = "—"
 
@@ -818,6 +831,62 @@ class _OnboardFixture(unittest.TestCase):
         )
         return matches[0]
 
+    def law_body_lines(self, stdout: str) -> list[str]:
+        lines = stdout.splitlines()
+        start = self.heading_index(stdout, "== law")
+        end = self.heading_index(stdout, "== state")
+        self.assertLess(start, end, stdout)
+        return [ln for ln in lines[start + 1 : end] if ln.strip()]
+
+    def expected_law_lines(
+        self,
+        table: tuple[tuple[str, str], ...] | None = None,
+        *,
+        absent: tuple[str, ...] = (),
+        empty: tuple[str, ...] = (),
+    ) -> list[str]:
+        rows = DECLARED_LAW if table is None else table
+        missing = set(absent) | set(empty)
+        out: list[str] = []
+        for path, one_liner in rows:
+            if path in missing:
+                out.append(absent_line(path, one_liner))
+            else:
+                out.append(ok_line(path, one_liner))
+        return out
+
+    def assert_exact_law_table(
+        self,
+        stdout: str,
+        table: tuple[tuple[str, str], ...] | None = None,
+        *,
+        absent: tuple[str, ...] = (),
+        empty: tuple[str, ...] = (),
+    ) -> None:
+        rows = DECLARED_LAW if table is None else table
+        found = self.law_body_lines(stdout)
+        expected = self.expected_law_lines(
+            rows, absent=absent, empty=empty
+        )
+        self.assertEqual(len(rows), 7, "declared law table is seven rows")
+        self.assertEqual(len(found), 7, stdout)
+        self.assertEqual(found, expected, stdout)
+        missing = set(absent) | set(empty)
+        for (path, one_liner), line in zip(rows, found, strict=True):
+            if path in missing:
+                self.assertEqual(line, absent_line(path, one_liner), stdout)
+            else:
+                self.assertEqual(line, ok_line(path, one_liner), stdout)
+                self.assertTrue(
+                    line.endswith(f"{EM} {one_liner}"),
+                    f"one-liner drift on {path}: {line!r}",
+                )
+            self.assertNotEqual(
+                found,
+                list(expected[1:]) + expected[:1],
+                "order pin would accept a rotation of the same rows",
+            )
+
     def labelled_line(self, stdout: str, label: str) -> str:
         prefix = label if label.endswith(":") else f"{label}:"
         found = [ln for ln in stdout.splitlines() if ln.startswith(prefix)]
@@ -875,6 +944,39 @@ class ToolPresence(_OnboardFixture):
         self.assertTrue(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
 
 
+class ExactLawTable(_OnboardFixture):
+    """Exact seven-row table, order, and one-liners from onboard-lever.md."""
+
+    def test_law_prints_exactly_the_seven_declared_rows_in_table_order(self):
+        self.assertEqual(len(DECLARED_LAW), 7)
+        self.assertEqual(
+            [path for path, _one in DECLARED_LAW],
+            [
+                "AGENTS.md",
+                "CONTRIB.md",
+                "ops/conductor/instrument-conventions.md",
+                "ops/conductor/stack.md",
+                "ops/conductor/coverage-zones.md",
+                "ops/conductor/discovery-lever.md",
+                "ops/conductor/conductor-start-plan.md",
+            ],
+        )
+        self.ready()
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        expected = tuple(ok_line(path, one) for path, one in DECLARED_LAW)
+        found = self.law_body_lines(stdout)
+        self.assertEqual(len(found), 7, stdout)
+        self.assertEqual(found, list(expected), stdout)
+        self.assertNotEqual(found, list(expected[1:]) + [expected[0]])
+        for (_path, one_liner), line in zip(DECLARED_LAW, found, strict=True):
+            self.assertTrue(line.endswith(f"{EM} {one_liner}"), line)
+        ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
+        self.assertEqual(len(ok_lines), 7, stdout)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+
 class HappyPath(_OnboardFixture):
     """1. Three sections in order; exit 0 with `brief complete`."""
 
@@ -888,9 +990,9 @@ class HappyPath(_OnboardFixture):
         self.assertLess(law_i, state_i, stdout)
         self.assertLess(state_i, thread_i, stdout)
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
-        self.assertEqual(len(ok_lines), 5, stdout)
-        for path, one_liner in LAW:
-            self.assertIn(ok_line(path, one_liner), stdout)
+        self.assertEqual(len(ok_lines), 7, stdout)
+        self.assertEqual(len(DECLARED_LAW), 7)
+        self.assert_exact_law_table(stdout)
         register = self.labelled_line(stdout, "register")
         self.assertIn("proposed=3", register)
         self.assertIn("ratified=8", register)
