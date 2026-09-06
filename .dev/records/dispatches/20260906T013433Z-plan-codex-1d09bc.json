@@ -1,0 +1,110 @@
+{
+  "id": "20260906T013433Z-plan-codex-1d09bc",
+  "lane": "dev",
+  "stage": "plan",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "18569a41192405663b4af01109e4d91c4bddd527"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:34:33Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "18569a41192405663b4af01109e4d91c4bddd527",
+    "ref_sha": "18569a41192405663b4af01109e4d91c4bddd527",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "cc3ea8c0-9eae-46f0-ad46-18ebcc6c98b3",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Assess and plan single worker execution per updated worker-launch-consolidation-owner.md. Read inputs, docs/ and ops/README. Owner overrides seeds: dev tooling stays independent, no Symfony app dependency or prod replacement. Reconcile supplied launch inventory, unique behaviors and contract drift; no repeat broad audit. Separate execution/policy from configurable adapters/capabilities and explicit models. Cover wrappers, manual recipes/levers, isolation, supervision, resume, semantic envelopes and custody. Preserve conformance and declared job output permissions, including observed PLAN.md sandbox mismatch. Reuse forthcoming lane-policy ownership; no competing executor/registry. Return PLAN in an envelope artifact string, no file output. Include plan sections, couplings/refusals, independent acceptance, exact files, dependencies, machine lines and smallest green slices. Discovery stays independent; consolidation precedes conduct. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/in/worker-launch-consolidation-owner.md",
+        "sha256": "b0cbc8cb97eeb81c263b1f7427c852b43831050cff53e9cbf1faa8d1e7ec7e64"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/in/20260906T012006Z-review-codex-464dfc.json",
+        "sha256": "da32e5c31bf6cfe7a971258c8abc390587e2549e0a518a27d9570734616cabfc"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/in/20260906T011959Z-plan-codex-976735.json",
+        "sha256": "0d0be5741d2d30f9bd769cc852e56f3783afd29d070064872c8808f8b0d72566"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T013433Z-plan-codex-1d09bc/in/20260906T010702Z-review-codex-1d530c.json",
+        "sha256": "2966437a0dc304fabc5913623470aa93f3e33d5e32c03540dad292613209c742"
+      }
+    ],
+    "sha256": "a38c29e82e53ccb7b21d7e4281b70e637e9d55cf25af716cc0e6fb4055db6e07",
+    "bytes": 3329
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
