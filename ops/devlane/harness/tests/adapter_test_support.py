@@ -2,18 +2,17 @@
 
 Declared seam: ops/devlane/harness/adapters.py::compile_launch
 (harness-capabilities.md Conduct adapter interface; dispatch CONTRACT.md
-C2; adoption review unit 4). On this ref adapters.py is absent. A missing
-file or attribute must not become a collection ERROR; wrappers return a
-value that cannot satisfy the contracted assertion, so each test fails on
-its own equality or refusal check.
+C2 worker encoding and compilation evidence custody; adoption review
+unit 4). On this ref adapters.py is absent. A missing file or attribute
+must not become a collection ERROR; wrappers return a value that cannot
+satisfy the contracted assertion, so each test fails on its own equality
+or refusal check.
 
-Transport fixture keys map contents named by that interface (executable,
-configuration, adapter manifest, canonical paths, resume session binding)
-plus the C2 capability witness required for admission. The contract lists
-those contents and does not freeze a JSON schema of transport key names;
-these names are the test mapping for the listed contents, not a second
-public function. In-process wire refusals have no declared exception type;
-the wrapper accepts a raised or returned expected-found-needed line.
+Transport and evidence are synthetic in-process handles exposing the
+closed member sets declared for compile. They are a test counterparty,
+not a public dictionary constructor, candidate path, or trusted flag.
+In-process wire refusals have no declared exception type; the wrapper
+accepts a raised or returned expected-found-needed line.
 """
 
 from __future__ import annotations
@@ -24,15 +23,70 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 import types
 from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 HARNESS = Path(__file__).resolve().parents[1]
 ADAPTERS_PATH = HARNESS / "adapters.py"
 MISSING_LAUNCH = {"_missing_seam": "adapters.compile_launch"}
 SUCCESS_KEYS = ("argv", "environment", "reservations", "capability", "binding")
+BINDING_KEYS = ("invariant_sha256", "argv_sha256", "operation")
+CONDUCT_CAPABILITY_KEYS = (
+    "harness",
+    "adapter",
+    "platform",
+    "role",
+    "operation",
+    "policy",
+    "scope",
+    "contracts",
+    "mcp",
+    "probe",
+    "mock",
+)
+WORKER_CAPABILITY_KEYS = (
+    "harness",
+    "adapter",
+    "platform",
+    "role",
+    "operation",
+    "scope",
+    "contracts",
+    "probe",
+    "mock",
+)
+CONDUCT_ADAPTER_KEYS = (
+    "revision",
+    "mechanism",
+    "config_sha256",
+    "grammar_sha256",
+    "normalizer_sha256",
+)
+WORKER_ADAPTER_KEYS = (
+    "revision",
+    "mechanism",
+    "config_sha256",
+    "grammar_sha256",
+)
+CONDUCT_MANIFEST_ADAPTER_KEYS = (
+    "revision",
+    "mechanism",
+    "grammar_sha256",
+    "normalizer_sha256",
+    "executable_sha256",
+    "config_sha256",
+)
+WORKER_MANIFEST_ADAPTER_KEYS = (
+    "revision",
+    "mechanism",
+    "config_sha256",
+    "grammar_sha256",
+    "executable_sha256",
+)
 WIRE_LINE = re.compile(
     r"^[a-z0-9-]+: expected .+; found .+; needed .+$",
     re.DOTALL,
@@ -41,6 +95,15 @@ ARGV_REFUSAL_PREFIX = "conduct-argv:"
 CAPABILITY_REFUSAL_PREFIX = "output-capability:"
 CANARY_VALUE = "SECRET"
 CANARY_LONG = "CANARY_TOKEN_VALUE_9f3a"
+TRUSTED_ENV = {
+    "FIXTURE_MARK": "admitted-nonsecret",
+    "LANG": "C",
+}
+ENV_CANARIES = {
+    "PATH": "/opt/vendor/bin",
+    "HOME": "/opt/vendor/home",
+    "TMPDIR": "/opt/vendor/tmp",
+}
 SYNTHETIC_GRAMMAR = {
     "schema": "adapter-argv/1",
     "options": [
@@ -104,6 +167,7 @@ RESERVED_TOKENS = (
 TRANSPORT_RESERVED = ("last-message.json", "COMMIT_MSG")
 CHECKED_AT = "2026-09-06T12:00:00Z"
 ADMISSION_AT = "2026-09-06T12:00:30Z"
+SESSION_ID = "sess-fixture-01"
 
 
 def canonical_json(value) -> str:
@@ -130,6 +194,32 @@ def sha256_json(value) -> str:
 
 GRAMMAR_SHA256 = sha256_json(SYNTHETIC_GRAMMAR)
 EMPTY_GRAMMAR_SHA256 = sha256_json(EMPTY_GRAMMAR)
+
+
+def flag_token(length: int) -> str:
+    """Declared-shape flag whose UTF-8 length is exactly ``length``."""
+    if length < 3:
+        raise AssertionError(f"flag token shorter than --x: {length}")
+    token = "--b" + ("n" * (length - 3))
+    encoded = token.encode("utf-8")
+    if len(encoded) != length:
+        raise AssertionError(f"flag_token({length}) produced {len(encoded)} bytes")
+    return token
+
+
+FLAG_128 = flag_token(128)
+FLAG_129 = flag_token(129)
+FLAG_256 = flag_token(256)
+BYTE_BOUND_GRAMMAR = {
+    "schema": "adapter-argv/1",
+    "options": [
+        {"name": FLAG_128, "forms": ["flag"], "values": None, "repeatable": True},
+        {"name": FLAG_129, "forms": ["flag"], "values": None, "repeatable": True},
+        {"name": FLAG_256, "forms": ["flag"], "values": None, "repeatable": True},
+    ],
+}
+VECTOR_8192 = [FLAG_256] * 32
+VECTOR_8193 = [FLAG_128] * 63 + [FLAG_129]
 
 
 def plant_bytes(path: Path, data: bytes, *, recognisable: bytes | None = None) -> bytes:
@@ -217,7 +307,7 @@ def is_success(result) -> bool:
         isinstance(result, dict)
         and "_missing_seam" not in result
         and "_refusal" not in result
-        and all(key in result for key in SUCCESS_KEYS)
+        and set(result) == set(SUCCESS_KEYS)
     )
 
 
@@ -348,16 +438,25 @@ def grants_for(
     }
 
 
-def adapter_descriptor(*, grammar=None, mechanism="fixture-argv", extra=None):
+def adapter_descriptor(*, grammar=None, mechanism="fixture-argv", role="conductor", extra=None):
     grammar = SYNTHETIC_GRAMMAR if grammar is None else grammar
-    value = {
-        "revision": digest_name("adapter-revision"),
-        "mechanism": mechanism,
-        "grammar_sha256": sha256_json(grammar),
-        "normalizer_sha256": digest_name("normalizer"),
-        "executable_sha256": digest_name("executable-placeholder"),
-        "config_sha256": digest_name("config"),
-    }
+    if role == "worker":
+        value = {
+            "revision": digest_name("adapter-revision"),
+            "mechanism": mechanism,
+            "config_sha256": digest_name("config"),
+            "grammar_sha256": sha256_json(grammar),
+            "executable_sha256": digest_name("executable-placeholder"),
+        }
+    else:
+        value = {
+            "revision": digest_name("adapter-revision"),
+            "mechanism": mechanism,
+            "grammar_sha256": sha256_json(grammar),
+            "normalizer_sha256": digest_name("normalizer"),
+            "executable_sha256": digest_name("executable-placeholder"),
+            "config_sha256": digest_name("config"),
+        }
     if extra:
         value.update(extra)
     return value
@@ -371,6 +470,14 @@ def mcp_object():
     }
 
 
+def default_platform():
+    return {
+        "os": "linux",
+        "sandbox": {"name": "fixture-sandbox", "version": "1"},
+        "filesystem": {"name": "posix", "alias_semantics": "no-follow"},
+    }
+
+
 def identity_for(
     selection,
     operation,
@@ -379,31 +486,63 @@ def identity_for(
     executable_sha256,
     adapter,
     outputs=None,
-    source_reads=None,
-    source_write_denials=None,
+    source_reads,
+    source_write_denials,
     limits=None,
     platform=None,
     role=None,
 ):
+    """Closed C2 identity. Isolation lists are required; empty is explicit."""
     outputs = list(outputs or [])
-    source_reads = sorted(source_reads or [])
-    source_write_denials = sorted(source_write_denials or [])
+    source_reads = sorted(source_reads)
+    source_write_denials = sorted(source_write_denials)
     limits = sorted(set(limits or []))
     outputs_sorted = sorted(outputs, key=lambda item: item["path"])
-    platform = platform or {
-        "os": "linux",
-        "sandbox": {"name": "fixture-sandbox", "version": "1"},
-        "filesystem": {"name": "posix", "alias_semantics": "no-follow"},
-    }
-    return {
-        "harness": {
-            "name": selection["harness"],
-            "version": "fixture-1",
-            "executable": {
-                "path": executable_path,
-                "sha256": executable_sha256,
-            },
+    platform = platform or default_platform()
+    role_value = role if role is not None else selection["role"]
+    harness = {
+        "name": selection["harness"],
+        "version": "fixture-1",
+        "executable": {
+            "path": executable_path,
+            "sha256": executable_sha256,
         },
+    }
+    scope = {
+        "source_reads": source_reads,
+        "source_write_denials": source_write_denials,
+        "outputs": outputs_sorted,
+        "limits": limits,
+    }
+    mock = {
+        "revision": digest_name("mock"),
+        "verification": {
+            "path": "evidence/mock-verification.json",
+            "sha256": digest_name("mock-verification"),
+        },
+    }
+    probe = {"revision": digest_name("probe")}
+    if role_value == "worker":
+        return {
+            "harness": harness,
+            "adapter": {
+                "revision": adapter["revision"],
+                "mechanism": adapter["mechanism"],
+                "config_sha256": adapter["config_sha256"],
+                "grammar_sha256": adapter["grammar_sha256"],
+            },
+            "platform": platform,
+            "role": "worker",
+            "operation": operation,
+            "scope": scope,
+            "contracts": {
+                "outputs_sha256": digest_name("outputs-contract"),
+            },
+            "probe": probe,
+            "mock": mock,
+        }
+    return {
+        "harness": harness,
         "adapter": {
             "revision": adapter["revision"],
             "mechanism": adapter["mechanism"],
@@ -412,37 +551,169 @@ def identity_for(
             "normalizer_sha256": adapter["normalizer_sha256"],
         },
         "platform": platform,
-        "role": role if role is not None else selection["role"],
+        "role": "conductor",
         "operation": operation,
         "policy": {
             "blob_sha256": digest_name("policy-blob"),
             "evaluator_sha256": digest_name("policy-evaluator"),
         },
-        "scope": {
-            "source_reads": source_reads,
-            "source_write_denials": source_write_denials,
-            "outputs": outputs_sorted,
-            "limits": limits,
-        },
+        "scope": scope,
         "contracts": {
             "outputs_sha256": digest_name("outputs-contract"),
             "tools_sha256": digest_name("tools-contract"),
         },
         "mcp": mcp_object(),
-        "probe": {"revision": digest_name("probe")},
-        "mock": {
-            "revision": digest_name("mock"),
-            "verification": {
-                "path": "evidence/mock-verification.json",
-                "sha256": digest_name("mock-verification"),
-            },
-        },
+        "probe": probe,
+        "mock": mock,
     }
 
 
 def capability_output(kind, path, operations):
     ops = sorted(set(operations))
     return {"kind": kind, "path": path, "operations": ops}
+
+
+def capability_keys_for(selection) -> tuple[str, ...]:
+    if selection.get("role") == "worker":
+        return WORKER_CAPABILITY_KEYS
+    return CONDUCT_CAPABILITY_KEYS
+
+
+def config_digest(configuration, insertion, relay):
+    relay_for_digest = None
+    if relay is not None:
+        relay_for_digest = deepcopy(relay)
+        relay_for_digest["resume"] = None
+    return sha256_json({
+        "configuration": configuration,
+        "insertion": insertion,
+        "relay": relay_for_digest,
+    })
+
+
+def launch_id_for(selection) -> str:
+    harness = selection["harness"]
+    if selection.get("role") == "conductor":
+        return f"20260906T120000Z-conduct-{harness}-a1b2c3"
+    return f"20260906T120000Z-tests-{harness}-a1b2c3"
+
+
+def session_object(
+    selection,
+    *,
+    launch_id,
+    session_id,
+    invariant_sha256,
+    connection,
+    receipts=None,
+):
+    return {
+        "launch_id": launch_id,
+        "harness": selection["harness"],
+        "id": session_id,
+        "invariant_sha256": invariant_sha256,
+        "connection": connection,
+        "receipts": sorted(list(receipts or []), key=lambda row: row["path"]),
+    }
+
+
+def session_binding_sha256(session) -> str:
+    return sha256_json(session)
+
+
+class ClosedHandle:
+    """Copyable closed member set. Test counterparty, not a production constructor."""
+
+    __slots__ = ()
+
+    def __init__(self, **members):
+        names = self.__slots__
+        missing = [name for name in names if name not in members]
+        extra = [name for name in members if name not in names]
+        if missing or extra:
+            raise AssertionError(
+                f"{type(self).__name__} members missing={missing} extra={extra}"
+            )
+        for name in names:
+            setattr(self, name, members[name])
+
+    def __deepcopy__(self, memo):
+        existing = memo.get(id(self))
+        if existing is not None:
+            return existing
+        kwargs = {
+            name: deepcopy(getattr(self, name), memo) for name in self.__slots__
+        }
+        copied = type(self)(**kwargs)
+        memo[id(self)] = copied
+        return copied
+
+
+class EvidenceHandle(ClosedHandle):
+    __slots__ = (
+        "admission_at",
+        "age_source",
+        "checked_at",
+        "identity",
+        "max_age_seconds",
+        "root",
+        "selection",
+        "verification",
+        "witness",
+    )
+
+
+class TransportHandle(ClosedHandle):
+    __slots__ = (
+        "canonical_paths",
+        "configuration",
+        "evidence",
+        "executable",
+        "launch_session",
+        "manifest",
+        "relay",
+        "resume",
+    )
+
+
+class SubprocessSpy:
+    """Records subprocess-module invocations without launching a child."""
+
+    def __init__(self):
+        self.calls = []
+
+    def _record(self, kind, args, kwargs):
+        self.calls.append((kind, args, kwargs))
+
+    def run(self, *args, **kwargs):
+        self._record("run", args, kwargs)
+        argv = args[0] if args else kwargs.get("args", [])
+        return subprocess.CompletedProcess(argv, 0, b"", b"")
+
+    def Popen(self, *args, **kwargs):
+        self._record("Popen", args, kwargs)
+        raise AssertionError("subprocess.Popen invoked during compile_launch")
+
+    def call(self, *args, **kwargs):
+        self._record("call", args, kwargs)
+        return 0
+
+    def check_call(self, *args, **kwargs):
+        self._record("check_call", args, kwargs)
+        return 0
+
+    def check_output(self, *args, **kwargs):
+        self._record("check_output", args, kwargs)
+        return b""
+
+
+def attach_subprocess_spy(test_case) -> SubprocessSpy:
+    spy = SubprocessSpy()
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        started = patch(f"subprocess.{name}", getattr(spy, name))
+        started.start()
+        test_case.addCleanup(started.stop)
+    return spy
 
 
 class FixtureRoot:
@@ -453,9 +724,23 @@ class FixtureRoot:
         self.bin = self.root / "bin"
         self.out = self.root / "out"
         self.evidence = self.root / "evidence"
+        self.snapshot = self.root / "snapshot"
+        self.run = self.root / "run"
         self.bin.mkdir()
         self.out.mkdir()
         self.evidence.mkdir()
+        self.snapshot.mkdir()
+        self.run.mkdir()
+        plant_bytes(
+            self.snapshot / "held-source.txt",
+            b"synthetic-source\n",
+            recognisable=b"synthetic-source",
+        )
+        self.source_reads = [str(self.snapshot.resolve())]
+        self.source_write_denials = [
+            str(self.snapshot.resolve()),
+            str((self.snapshot / ".git").resolve()),
+        ]
         self.executables = {}
         for name in ("claude", "codex", "grok"):
             path = self.bin / f"fixture-{name}"
@@ -466,6 +751,14 @@ class FixtureRoot:
                 "path": str(path.resolve()),
                 "sha256": sha256_bytes(body),
             }
+        settings_body = b'{"fixture":true}\n'
+        self.settings_path = str((self.root / "settings.json").resolve())
+        plant_bytes(
+            self.root / "settings.json",
+            settings_body,
+            recognisable=b'"fixture":true',
+        )
+        self.settings_sha256 = sha256_bytes(settings_body)
         self.verification_rel = "evidence/mock-verification.json"
         self.passing_verification = canonical_json({
             "kind": "receipt",
@@ -480,9 +773,123 @@ class FixtureRoot:
             recognisable=b"leaf-write-and-source-deny",
         )
         self.verification_sha256 = sha256_bytes(self.passing_verification)
+        self.witness_rel = "evidence/witness.json"
+        self.passing_witness = canonical_json({
+            "kind": "witness",
+            "claim": "synthetic capability witness",
+            "control": "source-isolation-and-leaf",
+            "result": "PASS",
+        }).encode("utf-8")
+        self.witness_path = self.root / self.witness_rel
+        plant_bytes(
+            self.witness_path,
+            self.passing_witness,
+            recognisable=b"source-isolation-and-leaf",
+        )
+        self.witness_sha256 = sha256_bytes(self.passing_witness)
+        age_body = b'{"max_age_seconds":60}\n'
+        self.age_policy_rel = "evidence/age-policy.json"
+        plant_bytes(
+            self.root / self.age_policy_rel,
+            age_body,
+            recognisable=b"max_age_seconds",
+        )
+        self.age_policy_sha256 = sha256_bytes(age_body)
+        self.reserved_abs = [
+            str((self.out / "last-message.json").resolve()),
+            str((self.out / "COMMIT_MSG").resolve()),
+        ]
 
     def close(self):
         shutil.rmtree(self.root, ignore_errors=True)
+
+    def isolation(self):
+        return list(self.source_reads), list(self.source_write_denials)
+
+    def verification_handle(self):
+        return {
+            "path": self.verification_rel,
+            "sha256": self.verification_sha256,
+        }
+
+    def witness_handle(self):
+        return {
+            "path": self.witness_rel,
+            "sha256": self.witness_sha256,
+        }
+
+    def default_configuration(self, role, extra_env=None):
+        environment = dict(TRUSTED_ENV)
+        if extra_env:
+            environment.update(extra_env)
+        return {
+            "environment": environment,
+            "settings": [
+                {"path": self.settings_path, "sha256": self.settings_sha256},
+            ],
+            "mcp": mcp_object() if role == "conductor" else None,
+        }
+
+    def synthetic_relay(self, *, thread_id=None, session_binding=None, receipts=None):
+        exe = self.executables["codex"]
+        cwd = str(self.root.resolve())
+        env = dict(TRUSTED_ENV)
+
+        def process(argv):
+            return {
+                "executable": dict(exe),
+                "argv": list(argv),
+                "environment": dict(env),
+                "cwd": cwd,
+            }
+
+        server_argv = [exe["path"], "app-server", "--listen", "stdio://"]
+        relay_argv = [exe["path"], "relay"]
+        tui_argv = [exe["path"], "--remote", "unix://" + str(self.run / "conduct.sock")]
+        config_leaf = {
+            "path": self.settings_path,
+            "sha256": self.settings_sha256,
+        }
+        resume = None
+        if thread_id is not None:
+            resume = {
+                "thread_id": thread_id,
+                "session_binding_sha256": session_binding or digest_name("session-binding"),
+                "receipts": sorted(list(receipts or []), key=lambda row: row["path"]),
+            }
+        return {
+            "schema": "codex-relay/1",
+            "processes": {
+                "server": process(server_argv),
+                "relay": process(relay_argv),
+                "tui": process(tui_argv),
+            },
+            "endpoint": {
+                "path": str((self.run / "conduct.sock").resolve()),
+                "transport": "unix-websocket",
+                "clients": 1,
+                "control": "inherited-unix-socketpair",
+            },
+            "configuration": {
+                "server": dict(config_leaf),
+                "tui": dict(config_leaf),
+                "registry_sha256": digest_name("relay-registry"),
+            },
+            "rpc": {
+                "source_revision": "fixture-relay-rpc",
+                "schema_sha256": digest_name("relay-schema"),
+            },
+            "targets": [],
+            "deadlines": {
+                "frame_ms": 5000,
+                "request_ms": 5000,
+                "effect_ms": 60000,
+                "shutdown_ms": 2000,
+                "pending": 64,
+                "queue_bytes": 1048576,
+            },
+            "resume": resume,
+        }
 
     def transport(
         self,
@@ -497,12 +904,40 @@ class FixtureRoot:
         resume=None,
         configuration=None,
         witness_identity="present",
+        insertion=None,
+        launch_session=None,
+        relay=None,
+        invariant_sha256=None,
+        source_reads=None,
+        source_write_denials=None,
+        outputs=None,
+        session_id=SESSION_ID,
+        verification=None,
+        witness=None,
     ):
         harness = selection["harness"]
+        role = selection["role"]
         exe = self.executables[harness]
         grammar = SYNTHETIC_GRAMMAR if grammar is None else grammar
-        adapter = adapter_descriptor(grammar=grammar, mechanism=mechanism)
+        adapter = adapter_descriptor(
+            grammar=grammar, mechanism=mechanism, role=role,
+        )
         adapter["executable_sha256"] = exe["sha256"]
+        insertion = insertion or {"launch": 1, "resume": 1}
+        configuration = deepcopy(
+            configuration
+            if configuration is not None
+            else self.default_configuration(role),
+        )
+        adapter["config_sha256"] = config_digest(
+            configuration, insertion, relay,
+        )
+        reads = self.source_reads if source_reads is None else source_reads
+        denials = (
+            self.source_write_denials
+            if source_write_denials is None
+            else source_write_denials
+        )
         if identity is None and witness_identity == "present":
             identity = identity_for(
                 selection,
@@ -510,52 +945,117 @@ class FixtureRoot:
                 executable_path=exe["path"],
                 executable_sha256=exe["sha256"],
                 adapter=adapter,
+                outputs=outputs,
+                source_reads=reads,
+                source_write_denials=denials,
             )
-            identity["mock"]["verification"] = {
-                "path": self.verification_rel,
-                "sha256": self.verification_sha256,
-            }
-            identity["mcp"] = mcp_object()
+            identity["mock"]["verification"] = self.verification_handle()
         if witness_identity == "null":
             identity = None
-        witness = {
-            "checked_at": checked_at,
-            "identity": identity,
-            "max_age_seconds": max_age_seconds,
-            "admission_at": ADMISSION_AT,
-        }
+        if identity is not None:
+            identity = deepcopy(identity)
+        verification = (
+            deepcopy(verification)
+            if verification is not None
+            else self.verification_handle()
+        )
+        witness = deepcopy(witness) if witness is not None else self.witness_handle()
+        if identity is not None:
+            identity["mock"]["verification"] = deepcopy(verification)
+        age_source = None
+        if max_age_seconds is not None:
+            age_source = {
+                "path": self.age_policy_rel,
+                "sha256": self.age_policy_sha256,
+            }
+        launch_id = launch_id_for(selection)
+        if launch_session is None:
+            launch_session = {"launch_id": launch_id, "id": session_id}
         if operation == "launch":
             resume_obj = None
         else:
+            connection = None
+            if role == "conductor":
+                connection = {
+                    "client_sha256": digest_name("client"),
+                    "server_sha256": digest_name("server"),
+                }
+            session = session_object(
+                selection,
+                launch_id=launch_id,
+                session_id=session_id,
+                invariant_sha256=invariant_sha256 or digest_name("resume-invariant"),
+                connection=connection,
+            )
             resume_obj = resume or {
-                "parent_descriptor_sha256": digest_name("parent-descriptor"),
-                "session_binding_sha256": digest_name("session-binding"),
+                "parent_descriptor_sha256": (
+                    None if role == "worker" else digest_name("parent-descriptor")
+                ),
+                "session_binding_sha256": session_binding_sha256(session),
+                "session": session,
             }
-        return {
-            "executable": {"path": exe["path"], "sha256": exe["sha256"]},
-            "configuration": dict(configuration or {}),
-            "adapter": adapter,
-            "manifest": deepcopy(grammar),
-            "canonical_paths": {"out": str(self.out.resolve())},
-            "mcp": mcp_object(),
-            "resume": resume_obj,
-            "witness": witness,
-        }
+        evidence = EvidenceHandle(
+            root=str(self.evidence.resolve()),
+            admission_at=ADMISSION_AT,
+            checked_at=checked_at,
+            max_age_seconds=max_age_seconds,
+            age_source=age_source,
+            selection=deepcopy(selection),
+            identity=identity,
+            witness=witness,
+            verification=verification,
+        )
+        return TransportHandle(
+            executable={"path": exe["path"], "sha256": exe["sha256"]},
+            configuration=configuration,
+            manifest={
+                "adapter": adapter,
+                "grammar": deepcopy(grammar),
+                "insertion": dict(insertion),
+            },
+            canonical_paths={
+                "cwd": str(self.root.resolve()),
+                "out": str(self.out.resolve()),
+                "reservations": list(self.reserved_abs),
+            },
+            evidence=evidence,
+            launch_session=launch_session,
+            resume=resume_obj,
+            relay=deepcopy(relay),
+        )
+
+    def resume_transport(self, selection, grants, forwarded_tokens, **kwargs):
+        """Resume handle whose session.invariant_sha256 matches the compile inputs."""
+        launch = self.transport(selection, "launch", **kwargs)
+        inv = expected_invariant(selection, grants, launch, forwarded_tokens)
+        return self.transport(
+            selection, "resume", invariant_sha256=inv, **kwargs,
+        )
 
 
 def expected_invariant(selection, grants, transport, forwarded_tokens):
+    role = selection.get("role")
+    adapter = transport.manifest["adapter"]
+    mcp = None if role == "worker" else transport.configuration["mcp"]
     payload = {
         "selection": selection,
         "grants": grants,
-        "adapter": transport["adapter"],
+        "adapter": adapter,
         "forwarded_tokens": forwarded_tokens,
-        "mcp": transport["mcp"],
+        "mcp": mcp,
     }
     return sha256_json(payload)
 
 
 def expected_argv_sha256(argv):
     return sha256_json(argv)
+
+
+def expected_environment(transport, *, tmpdir=None):
+    env = dict(transport.configuration["environment"])
+    if tmpdir is not None:
+        env["TMPDIR"] = tmpdir
+    return env
 
 
 def contiguous_segment(argv, tokens):
@@ -574,3 +1074,14 @@ def secret_leaked(text, *secrets) -> list[str]:
         if secret and secret in text:
             found.append(secret)
     return found
+
+
+def observation_sinks(result) -> str:
+    """Serialize declared observation material: result object and refusal line."""
+    parts = [refusal_text(result), explain(result), repr(result)]
+    if isinstance(result, dict):
+        try:
+            parts.append(canonical_json(result))
+        except TypeError:
+            parts.append(str(result))
+    return "\n".join(parts)

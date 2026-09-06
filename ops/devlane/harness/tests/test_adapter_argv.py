@@ -1,23 +1,28 @@
 """Independent tests for compile_launch safe argv and selection axes.
 
 Written from ops/conductor/harness-capabilities.md (Conduct adapter
-interface, Safe argv grammar), conductor-start-plan.md LaunchSelection,
-permission-surface.md COND-AXIS-N1 / COND-ARGV / COND-SECRET, and
-adoption review unit 4. Implementation was not read.
+interface, Safe argv grammar, trusted compilation transport),
+conductor-start-plan.md LaunchSelection, dispatch CONTRACT.md C2
+worker encoding and evidence custody, permission-surface.md
+COND-AXIS-N1 / COND-ARGV / COND-SECRET, and adoption review unit 4.
+Corrected from d3ea314b against review 20260906T125857Z-review-claude-10edd9.
+Implementation was not read.
 
 Each test names the contract rule it pins:
 
   A1  compile_launch is the declared in-process seam; missing name fails
-      the assertion, not collection
+      the assertion, not collection; subprocess spy never fires
   A2  Claude, Codex and Grok are separate configurable mechanics behind
       that one interface
-  A3  harness, model, effort, conductor/worker role, job_role and profile
-      are distinct axes; no substitution
-  A4  closed grammar: every form, empty grammar, byte/order preservation
+  A3  harness, model, effort, role, job_role and profile are distinct
+      axes; valid rebounds are separate from required refusals
+  A4  closed grammar: every form, empty grammar, byte/order preservation,
+      measured insertion
   A5  aliases, repetitions, indirect/response-file and reserved channels
-      refuse at the offending index
-  A6  rejected secret values never enter the refusal line
-  A7  launch and resume bindings: invariant, argv digest, operation
+      refuse at the offending index; 64/65 and 8192/8193 are independent
+  A6  rejected secret values never enter declared observation sinks
+  A7  launch and resume bindings: invariant, argv digest, retained
+      session identity, independently compiled expected resume vector
   A8  unknown syntax is unmeasured; a closed-grammar reject is not
       UNREACHABLE
 """
@@ -25,6 +30,7 @@ Each test names the contract rule it pins:
 from __future__ import annotations
 
 import os
+import subprocess
 import unittest
 from copy import deepcopy
 
@@ -37,6 +43,7 @@ class CompileLaunchIsTheDeclaredSeam(unittest.TestCase):
     def setUp(self):
         self.fx = ats.FixtureRoot()
         self.addCleanup(self.fx.close)
+        self.spy = ats.attach_subprocess_spy(self)
         self.selection = ats.selection_conductor()
         self.grants = ats.grants_for(self.selection)
         self.transport = self.fx.transport(self.selection)
@@ -55,20 +62,23 @@ class CompileLaunchIsTheDeclaredSeam(unittest.TestCase):
             ats.explain(result),
         )
 
-    def test_compile_launch_does_not_invoke_the_fixture_executable(self):
-        exe = self.transport["executable"]["path"]
-        marker = exe + ".ran"
-        self.assertFalse(os.path.exists(marker))
-        self.assertTrue(os.path.isfile(exe))
+    def test_subprocess_spy_fires_on_a_direct_call_and_not_on_compile(self):
+        self.assertEqual(self.spy.calls, [])
+        subprocess.run(["fixture-spy-probe"], check=False)
+        self.assertEqual(len(self.spy.calls), 1, self.spy.calls)
+        self.assertEqual(self.spy.calls[0][0], "run")
+        self.spy.calls.clear()
+        exe = self.transport.executable["path"]
         before = os.stat(exe)
         self.assertEqual(before.st_mode & 0o111, 0, "fixture executable must stay unarmed")
         result = ats.compile_launch(
             self.selection, self.grants, self.transport, [], "launch",
         )
         self.assertNotEqual(result, ats.MISSING_LAUNCH, ats.explain(result))
-        self.assertFalse(
-            os.path.exists(marker),
-            "compile_launch must not launch, write or spawn the fixture",
+        self.assertEqual(
+            self.spy.calls,
+            [],
+            "compile_launch must not reach the subprocess seam",
         )
         after = os.stat(exe)
         self.assertEqual(after.st_mtime_ns, before.st_mtime_ns)
@@ -79,24 +89,24 @@ class CompileLaunchIsTheDeclaredSeam(unittest.TestCase):
             self.selection, self.grants, self.transport, [], "launch",
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
-        for key in ats.SUCCESS_KEYS:
-            self.assertIn(key, result)
+        self.assertEqual(set(result), set(ats.SUCCESS_KEYS))
         argv = result["argv"]
         self.assertIsInstance(argv, list)
         self.assertGreaterEqual(len(argv), 1)
-        self.assertEqual(argv[0], self.transport["executable"]["path"])
+        self.assertEqual(argv[0], self.transport.executable["path"])
         self.assertTrue(os.path.isabs(argv[0]))
         env = result["environment"]
-        self.assertIsInstance(env, dict)
-        for name, value in env.items():
-            self.assertIsInstance(name, str)
-            self.assertIsInstance(value, str)
+        self.assertEqual(env, ats.expected_environment(self.transport))
+        self.assertIn("FIXTURE_MARK", env)
+        self.assertEqual(env["FIXTURE_MARK"], "admitted-nonsecret")
+        for canary_name, canary_value in ats.ENV_CANARIES.items():
+            self.assertNotEqual(env.get(canary_name), canary_value)
         binding = result["binding"]
-        self.assertEqual(
-            set(binding),
-            {"invariant_sha256", "argv_sha256", "operation"},
-        )
+        self.assertEqual(set(binding), set(ats.BINDING_KEYS))
         self.assertEqual(binding["operation"], "launch")
+        cap = result["capability"]
+        self.assertEqual(set(cap), set(ats.CONDUCT_CAPABILITY_KEYS))
+        self.assertEqual(cap["role"], "conductor")
 
 
 class ConfigurableAdaptersShareOneInterface(unittest.TestCase):
@@ -120,17 +130,17 @@ class ConfigurableAdaptersShareOneInterface(unittest.TestCase):
             result, transport = self._compile(harness)
             self.assertTrue(ats.is_success(result), ats.explain(result))
             argv0 = result["argv"][0]
-            self.assertEqual(argv0, transport["executable"]["path"])
+            self.assertEqual(argv0, transport.executable["path"])
             self.assertIn(f"fixture-{harness}", argv0)
             cap = result["capability"]
             self.assertEqual(cap["harness"]["name"], harness)
             self.assertEqual(
                 cap["harness"]["executable"]["sha256"],
-                transport["executable"]["sha256"],
+                transport.executable["sha256"],
             )
             seen[harness] = (
                 argv0,
-                transport["executable"]["sha256"],
+                transport.executable["sha256"],
                 result["binding"]["invariant_sha256"],
             )
         paths = {row[0] for row in seen.values()}
@@ -145,8 +155,8 @@ class ConfigurableAdaptersShareOneInterface(unittest.TestCase):
         grants = ats.grants_for(selection)
         transport = self.fx.transport(selection)
         grok = self.fx.executables["grok"]
-        transport["executable"] = dict(grok)
-        transport["adapter"]["executable_sha256"] = grok["sha256"]
+        transport.executable = dict(grok)
+        transport.manifest["adapter"]["executable_sha256"] = grok["sha256"]
         result = ats.compile_launch(
             selection, grants, transport, [], "launch",
         )
@@ -160,16 +170,7 @@ class ConfigurableAdaptersShareOneInterface(unittest.TestCase):
 
 
 class DistinctSelectionAxes(unittest.TestCase):
-    """A3 — COND-AXIS-N1: change each axis independently, never substitute."""
-
-    AXES = (
-        ("harness", "grok"),
-        ("model", "other-fixture-model"),
-        ("effort", "high"),
-        ("role", "worker"),
-        ("job_role", "write"),
-        ("profile", "prod"),
-    )
+    """A3 — COND-AXIS-N1: rebound each axis independently; refuse stale witnesses."""
 
     def setUp(self):
         self.fx = ats.FixtureRoot()
@@ -180,6 +181,7 @@ class DistinctSelectionAxes(unittest.TestCase):
         self.base_result = ats.compile_launch(
             self.base, self.grants, self.transport, [], "launch",
         )
+        self.spy = ats.attach_subprocess_spy(self)
 
     def test_base_conductor_selection_compiles(self):
         self.assertTrue(
@@ -188,74 +190,125 @@ class DistinctSelectionAxes(unittest.TestCase):
         )
         self.assertEqual(self.base["role"], "conductor")
         self.assertIsNone(self.base["job_role"])
+        self.assertEqual(
+            set(self.base_result["capability"]),
+            set(ats.CONDUCT_CAPABILITY_KEYS),
+        )
 
-    def test_each_axis_change_alters_the_invariant_and_does_not_rewrite_selection(self):
+    def test_valid_axis_rebounds_change_the_invariant(self):
         self.assertTrue(
             ats.is_success(self.base_result),
             ats.explain(self.base_result),
         )
         base_inv = self.base_result["binding"]["invariant_sha256"]
         measured = {}
-        for axis, value in self.AXES:
-            with self.subTest(axis=axis, value=value):
-                selection = deepcopy(self.base)
-                selection[axis] = value
-                if axis == "role" and value == "worker":
-                    selection["job_role"] = "read"
-                if axis == "job_role":
-                    # conductor requires null job_role; this is a conflict.
-                    pass
-                grants = ats.grants_for(selection)
-                if axis == "harness":
-                    transport = self.fx.transport(selection)
-                else:
-                    transport = deepcopy(self.transport)
-                held = deepcopy(selection)
-                result = ats.compile_launch(
-                    selection, grants, transport, [], "launch",
-                )
-                self.assertEqual(selection, held, "selection must not be rewritten")
-                if axis == "job_role":
-                    self.assertTrue(ats.is_refusal(result), ats.explain(result))
-                    measured[axis] = "refused"
-                    continue
-                if axis == "role":
-                    # worker uses TaskSelection; conductor interface role is
-                    # literal conductor with no inherited worker grants.
-                    self.assertTrue(
-                        ats.is_success(result) or ats.is_refusal(result),
-                        ats.explain(result),
-                    )
-                    if ats.is_success(result):
-                        self.assertEqual(result["capability"]["role"], "worker")
-                        self.assertNotEqual(
-                            result["binding"]["invariant_sha256"], base_inv,
-                        )
-                    measured[axis] = result["binding"]["invariant_sha256"] if ats.is_success(result) else "refused"
-                    continue
-                self.assertTrue(ats.is_success(result), ats.explain(result))
-                inv = result["binding"]["invariant_sha256"]
-                self.assertNotEqual(inv, base_inv, axis)
-                expected = ats.expected_invariant(
-                    selection, grants, transport, [],
-                )
-                self.assertEqual(inv, expected)
-                measured[axis] = inv
-        self.assertEqual(len(set(measured.values())), len(self.AXES), measured)
 
-    def test_conflicting_job_role_on_conductor_refuses_without_substitution(self):
-        selection = ats.selection_conductor(job_role="write")
+        def rebound(selection, grants, transport, axis):
+            held = deepcopy(selection)
+            result = ats.compile_launch(
+                selection, grants, transport, [], "launch",
+            )
+            self.assertEqual(selection, held, "selection must not be rewritten")
+            self.assertTrue(ats.is_success(result), ats.explain(result))
+            inv = result["binding"]["invariant_sha256"]
+            self.assertNotEqual(inv, base_inv, axis)
+            expected = ats.expected_invariant(
+                selection, grants, transport, [],
+            )
+            self.assertEqual(inv, expected)
+            self.assertEqual(
+                set(result["capability"]),
+                set(ats.capability_keys_for(selection)),
+            )
+            self.assertEqual(result["capability"]["role"], selection["role"])
+            measured[axis] = inv
+
+        with self.subTest(axis="harness"):
+            selection = ats.selection_conductor("grok")
+            grants = ats.grants_for(selection)
+            rebound(selection, grants, self.fx.transport(selection), "harness")
+
+        with self.subTest(axis="model"):
+            selection = ats.selection_conductor(model="other-fixture-model")
+            grants = ats.grants_for(selection)
+            rebound(selection, grants, self.fx.transport(selection), "model")
+
+        with self.subTest(axis="effort"):
+            selection = ats.selection_conductor(effort="high")
+            grants = ats.grants_for(selection)
+            rebound(selection, grants, self.fx.transport(selection), "effort")
+
+        with self.subTest(axis="role"):
+            selection = ats.selection_worker()
+            grants = ats.grants_for(selection)
+            transport = self.fx.transport(selection)
+            rebound(selection, grants, transport, "role")
+            result = ats.compile_launch(
+                selection, grants, transport, [], "launch",
+            )
+            self.assertEqual(result["capability"]["role"], "worker")
+            self.assertEqual(
+                set(result["capability"]),
+                set(ats.WORKER_CAPABILITY_KEYS),
+            )
+            self.assertNotIn("mcp", result["capability"])
+            self.assertNotIn("policy", result["capability"])
+            self.assertEqual(
+                set(result["capability"]["adapter"]),
+                set(ats.WORKER_ADAPTER_KEYS),
+            )
+
+        with self.subTest(axis="job_role"):
+            selection = ats.selection_worker(job_role="write")
+            grants = ats.grants_for(selection)
+            rebound(
+                selection, grants, self.fx.transport(selection), "job_role",
+            )
+
+        with self.subTest(axis="profile"):
+            selection = ats.selection_conductor(profile="prod")
+            grants = ats.grants_for(selection)
+            rebound(selection, grants, self.fx.transport(selection), "profile")
+
+        self.assertEqual(set(measured), {
+            "harness", "model", "effort", "role", "job_role", "profile",
+        })
+        self.assertEqual(len(set(measured.values())), 6, measured)
+        self.assertNotIn("refused", measured.values())
+
+    def test_stale_worker_selection_with_conductor_witness_refuses(self):
+        selection = ats.selection_worker()
         held = deepcopy(selection)
-        grants = ats.grants_for(ats.selection_conductor())
+        grants = ats.grants_for(selection)
         result = ats.compile_launch(
-            selection, grants, self.transport, [], "launch",
+            selection, grants, deepcopy(self.transport), [], "launch",
         )
         self.assertEqual(selection, held)
         self.assertTrue(ats.is_refusal(result), ats.explain(result))
-        self.assertNotIn("write", selection["model"])
+        line = ats.refusal_text(result)
+        self.assertTrue(line.startswith(ats.CAPABILITY_REFUSAL_PREFIX), line)
+        self.assertIn("stale", line)
 
-    def test_model_is_never_substituted(self):
-        selection = ats.selection_conductor(model="fixture-model")
+    def test_conflicting_job_role_on_conductor_refuses_without_substitution(self):
+        selection = ats.selection_conductor(
+            job_role="write",
+            model="fixture-write-model",
+        )
+        self.assertIn("write", selection["model"])
+        held = deepcopy(selection)
+        grants = ats.grants_for(selection)
+        transport = self.fx.transport(selection)
+        result = ats.compile_launch(
+            selection, grants, transport, [], "launch",
+        )
+        self.assertEqual(selection, held)
+        self.assertEqual(selection["model"], "fixture-write-model")
+        self.assertTrue(ats.is_refusal(result), ats.explain(result))
+        self.assertEqual(self.spy.calls, [])
+
+    def test_model_containing_write_is_never_substituted(self):
+        selection = ats.selection_conductor(model="fixture-write-model")
+        self.assertIn("write", selection["model"])
         grants = ats.grants_for(selection)
         transport = self.fx.transport(selection)
         result = ats.compile_launch(
@@ -269,6 +322,7 @@ class DistinctSelectionAxes(unittest.TestCase):
         other["model"] = "silently-defaulted-model"
         other_inv = ats.expected_invariant(other, grants, transport, [])
         self.assertNotEqual(inv, other_inv)
+        self.assertEqual(selection["model"], "fixture-write-model")
 
 
 class SafeArgvGrammarPositive(unittest.TestCase):
@@ -283,7 +337,7 @@ class SafeArgvGrammarPositive(unittest.TestCase):
 
     def test_grammar_sha256_binds_the_synthetic_declaration(self):
         self.assertEqual(
-            self.transport["adapter"]["grammar_sha256"],
+            self.transport.manifest["adapter"]["grammar_sha256"],
             ats.GRAMMAR_SHA256,
         )
         self.assertEqual(ats.sha256_json(ats.SYNTHETIC_GRAMMAR), ats.GRAMMAR_SHA256)
@@ -307,7 +361,7 @@ class SafeArgvGrammarPositive(unittest.TestCase):
                 self.assertTrue(ats.is_success(result), ats.explain(result))
                 self.assertEqual(tokens, held)
                 argv = result["argv"]
-                self.assertEqual(argv[0], self.transport["executable"]["path"])
+                self.assertEqual(argv[0], self.transport.executable["path"])
                 if tokens:
                     segment = ats.contiguous_segment(argv, tokens)
                     self.assertEqual(
@@ -325,6 +379,31 @@ class SafeArgvGrammarPositive(unittest.TestCase):
                 hashes.append(argv_digest)
         self.assertEqual(len(hashes), 3)
         self.assertEqual(len(set(hashes)), 3, hashes)
+
+    def test_forwarded_tokens_insert_at_the_measured_index(self):
+        tokens = ["--display=compact", "--quiet"]
+        base = ats.compile_launch(
+            self.selection, self.grants, self.transport, [], "launch",
+        )
+        self.assertTrue(ats.is_success(base), ats.explain(base))
+        index = self.transport.manifest["insertion"]["launch"]
+        self.assertGreaterEqual(index, 1)
+        self.assertLessEqual(index, len(base["argv"]))
+        result = ats.compile_launch(
+            self.selection, self.grants, self.transport, tokens, "launch",
+        )
+        self.assertTrue(ats.is_success(result), ats.explain(result))
+        expected = base["argv"][:index] + tokens + base["argv"][index:]
+        self.assertEqual(result["argv"], expected)
+        self.assertEqual(ats.contiguous_segment(result["argv"], tokens), tokens)
+
+    def test_changed_insertion_index_without_renewed_evidence_refuses(self):
+        original = self.transport.manifest["insertion"]["resume"]
+        self.transport.manifest["insertion"]["resume"] = original + 1
+        result = ats.compile_launch(
+            self.selection, self.grants, self.transport, ["--quiet"], "launch",
+        )
+        self.assertTrue(ats.is_refusal(result), ats.explain(result))
 
     def test_equals_form_is_not_rewritten_to_split(self):
         tokens = ["--display=compact"]
@@ -354,7 +433,7 @@ class SafeArgvGrammarPositive(unittest.TestCase):
             self.selection, grammar=ats.EMPTY_GRAMMAR,
         )
         self.assertEqual(
-            transport["adapter"]["grammar_sha256"],
+            transport.manifest["adapter"]["grammar_sha256"],
             ats.EMPTY_GRAMMAR_SHA256,
         )
         ok = ats.compile_launch(
@@ -394,9 +473,10 @@ class SafeArgvGrammarNegative(unittest.TestCase):
         self.grants = ats.grants_for(self.selection)
         self.transport = self.fx.transport(self.selection)
 
-    def _refuse(self, tokens, *, index=None):
+    def _refuse(self, tokens, *, index=None, transport=None):
+        transport = self.transport if transport is None else transport
         result = ats.compile_launch(
-            self.selection, self.grants, self.transport, list(tokens), "launch",
+            self.selection, self.grants, transport, list(tokens), "launch",
         )
         self.assertTrue(ats.is_refusal(result), ats.explain(result))
         line = ats.refusal_text(result)
@@ -438,13 +518,68 @@ class SafeArgvGrammarNegative(unittest.TestCase):
         self._refuse(["--quiet\x00"], index=0)
         self._refuse(["--quiet\n"], index=0)
 
-    def test_more_than_sixty_four_tokens_is_a_vector_level_refusal(self):
-        tokens = ["--quiet"] * 65
-        line = self._refuse(tokens, index=0)
+    def test_sixty_four_repeatable_tokens_admit(self):
+        tokens = ["--tag=alpha"] * 64
+        self.assertEqual(len(tokens), 64)
+        transport = self.fx.transport(
+            self.selection, grammar=ats.REPEATABLE_GRAMMAR,
+        )
+        result = ats.compile_launch(
+            self.selection, self.grants, transport, tokens, "launch",
+        )
+        self.assertTrue(ats.is_success(result), ats.explain(result))
+        self.assertEqual(ats.contiguous_segment(result["argv"], tokens), tokens)
+
+    def test_sixty_five_repeatable_tokens_refuse_at_index_zero(self):
+        tokens = ["--tag=alpha"] * 65
+        self.assertEqual(len(tokens), 65)
+        transport = self.fx.transport(
+            self.selection, grammar=ats.REPEATABLE_GRAMMAR,
+        )
+        line = self._refuse(tokens, index=0, transport=transport)
         self.assertIn("invalid token at index 0", line)
+
+    def test_total_byte_bound_admits_at_eight_thousand_one_hundred_ninety_two(self):
+        tokens = list(ats.VECTOR_8192)
+        total = sum(len(token.encode("utf-8")) for token in tokens)
+        self.assertEqual(total, 8192)
+        self.assertEqual(len(tokens), 32)
+        self.assertTrue(all(len(token.encode("utf-8")) <= 256 for token in tokens))
+        transport = self.fx.transport(
+            self.selection, grammar=ats.BYTE_BOUND_GRAMMAR,
+        )
+        result = ats.compile_launch(
+            self.selection, self.grants, transport, tokens, "launch",
+        )
+        self.assertTrue(ats.is_success(result), ats.explain(result))
+        self.assertEqual(ats.contiguous_segment(result["argv"], tokens), tokens)
+
+    def test_total_byte_bound_refuses_at_eight_thousand_one_hundred_ninety_three(self):
+        tokens = list(ats.VECTOR_8193)
+        total = sum(len(token.encode("utf-8")) for token in tokens)
+        self.assertEqual(total, 8193)
+        self.assertEqual(len(tokens), 64)
+        self.assertTrue(all(len(token.encode("utf-8")) <= 256 for token in tokens))
+        transport = self.fx.transport(
+            self.selection, grammar=ats.BYTE_BOUND_GRAMMAR,
+        )
+        line = self._refuse(tokens, index=0, transport=transport)
+        self.assertIn("invalid token at index 0", line)
+
+    def test_a_token_of_two_hundred_fifty_six_bytes_admits(self):
+        tokens = [ats.FLAG_256]
+        self.assertEqual(len(tokens[0].encode("utf-8")), 256)
+        transport = self.fx.transport(
+            self.selection, grammar=ats.BYTE_BOUND_GRAMMAR,
+        )
+        result = ats.compile_launch(
+            self.selection, self.grants, transport, tokens, "launch",
+        )
+        self.assertTrue(ats.is_success(result), ats.explain(result))
 
     def test_a_token_longer_than_two_hundred_fifty_six_bytes_refuses(self):
         token = "x" * 257
+        self.assertEqual(len(token.encode("utf-8")), 257)
         self._refuse([token], index=0)
 
     def test_invalid_manifest_flag_with_values_does_not_admit(self):
@@ -467,8 +602,8 @@ class SafeArgvGrammarNegative(unittest.TestCase):
 
     def test_unknown_installation_syntax_is_unmeasured_not_a_guess(self):
         transport = self.fx.transport(self.selection)
-        transport["manifest"] = None
-        transport["adapter"]["grammar_sha256"] = ats.digest_name("unmeasured")
+        transport.manifest["grammar"] = None
+        transport.manifest["adapter"]["grammar_sha256"] = ats.digest_name("unmeasured")
         result = ats.compile_launch(
             self.selection, self.grants, transport, ["--quiet"], "launch",
         )
@@ -484,7 +619,7 @@ class SafeArgvGrammarNegative(unittest.TestCase):
 
 
 class SecretFreeRefusals(unittest.TestCase):
-    """A6 — COND-SECRET-N1: rejected values never enter the refusal line."""
+    """A6 — COND-SECRET-N1: rejected values never enter observation sinks."""
 
     def setUp(self):
         self.fx = ats.FixtureRoot()
@@ -500,8 +635,9 @@ class SecretFreeRefusals(unittest.TestCase):
         )
         self.assertTrue(ats.is_refusal(result), ats.explain(result))
         line = ats.refusal_text(result)
-        leaked = ats.secret_leaked(line, ats.CANARY_VALUE, ats.CANARY_LONG)
-        self.assertEqual(leaked, [], line)
+        sinks = ats.observation_sinks(result)
+        leaked = ats.secret_leaked(sinks, ats.CANARY_VALUE, ats.CANARY_LONG)
+        self.assertEqual(leaked, [], sinks)
         self.assertIn("invalid token at index 0", line)
         self.assertNotIn(ats.CANARY_VALUE.lower(), line.lower())
 
@@ -517,16 +653,16 @@ class SecretFreeRefusals(unittest.TestCase):
                     self.selection, self.grants, self.transport, tokens, "launch",
                 )
                 self.assertTrue(ats.is_refusal(result), ats.explain(result))
-                line = ats.refusal_text(result)
+                sinks = ats.observation_sinks(result)
                 self.assertEqual(
-                    ats.secret_leaked(line, ats.CANARY_LONG, ats.CANARY_VALUE),
+                    ats.secret_leaked(sinks, ats.CANARY_LONG, ats.CANARY_VALUE),
                     [],
-                    line,
+                    sinks,
                 )
 
 
 class LaunchResumeBinding(unittest.TestCase):
-    """A7 — invariant vs argv digest; resume recompile; no vendor resume flag."""
+    """A7 — invariant vs argv digest; retained session; expected resume vector."""
 
     def setUp(self):
         self.fx = ats.FixtureRoot()
@@ -542,6 +678,7 @@ class LaunchResumeBinding(unittest.TestCase):
         )
         self.assertTrue(ats.is_success(result), ats.explain(result))
         binding = result["binding"]
+        self.assertEqual(set(binding), set(ats.BINDING_KEYS))
         self.assertEqual(binding["operation"], "launch")
         self.assertEqual(
             binding["invariant_sha256"],
@@ -556,13 +693,21 @@ class LaunchResumeBinding(unittest.TestCase):
         self.assertRegex(binding["invariant_sha256"], r"^[0-9a-f]{64}$")
         self.assertRegex(binding["argv_sha256"], r"^[0-9a-f]{64}$")
 
-    def test_resume_keeps_the_launch_invariant_and_differs_in_argv_digest(self):
+    def test_ordinary_cli_resume_equals_independently_compiled_expected_vector(self):
         launch_transport = self.fx.transport(self.selection, "launch")
         launched = ats.compile_launch(
             self.selection, self.grants, launch_transport, self.tokens, "launch",
         )
         self.assertTrue(ats.is_success(launched), ats.explain(launched))
-        resume_transport = self.fx.transport(self.selection, "resume")
+        resume_transport = self.fx.resume_transport(
+            self.selection, self.grants, self.tokens,
+        )
+        session_id = resume_transport.resume["session"]["id"]
+        self.assertEqual(session_id, ats.SESSION_ID)
+        self.assertEqual(
+            resume_transport.resume["session"]["launch_id"],
+            resume_transport.launch_session["launch_id"],
+        )
         resumed = ats.compile_launch(
             self.selection, self.grants, resume_transport, self.tokens, "resume",
         )
@@ -578,18 +723,33 @@ class LaunchResumeBinding(unittest.TestCase):
                 self.selection, self.grants, resume_transport, self.tokens,
             ),
         )
-        self.assertNotEqual(
-            launched["binding"]["argv_sha256"],
-            resumed["binding"]["argv_sha256"],
-            "resume argv digest normally differs from launch",
+        again = ats.compile_launch(
+            self.selection,
+            self.grants,
+            deepcopy(resume_transport),
+            list(self.tokens),
+            "resume",
         )
+        self.assertTrue(ats.is_success(again), ats.explain(again))
+        self.assertEqual(resumed["argv"], again["argv"])
         self.assertEqual(
             resumed["binding"]["argv_sha256"],
             ats.expected_argv_sha256(resumed["argv"]),
         )
+        self.assertTrue(
+            any(session_id in token for token in resumed["argv"]),
+            resumed["argv"],
+        )
+        self.assertNotEqual(
+            launched["binding"]["argv_sha256"],
+            resumed["binding"]["argv_sha256"],
+            "ordinary CLI resume renders the retained session segment",
+        )
 
     def test_repeated_resume_with_identical_inputs_is_byte_identical(self):
-        transport = self.fx.transport(self.selection, "resume")
+        transport = self.fx.resume_transport(
+            self.selection, self.grants, self.tokens,
+        )
         first = ats.compile_launch(
             self.selection, self.grants, transport, self.tokens, "resume",
         )
@@ -605,6 +765,61 @@ class LaunchResumeBinding(unittest.TestCase):
         )
         self.assertEqual(first["environment"], second["environment"])
 
+    def test_relay_resume_keeps_launch_argv_and_uses_thread_id(self):
+        selection = ats.selection_conductor()
+        grants = ats.grants_for(selection)
+        relay = self.fx.synthetic_relay()
+        kwargs = {
+            "grammar": ats.EMPTY_GRAMMAR,
+            "mechanism": "codex-sole-client-relay/1",
+            "relay": relay,
+        }
+        launch_transport = self.fx.transport(selection, "launch", **kwargs)
+        launched = ats.compile_launch(
+            selection, grants, launch_transport, [], "launch",
+        )
+        self.assertTrue(ats.is_success(launched), ats.explain(launched))
+        inv = ats.expected_invariant(selection, grants, launch_transport, [])
+        resume_relay = self.fx.synthetic_relay(
+            thread_id=ats.SESSION_ID,
+            session_binding=ats.session_binding_sha256(
+                ats.session_object(
+                    selection,
+                    launch_id=ats.launch_id_for(selection),
+                    session_id=ats.SESSION_ID,
+                    invariant_sha256=inv,
+                    connection={
+                        "client_sha256": ats.digest_name("client"),
+                        "server_sha256": ats.digest_name("server"),
+                    },
+                ),
+            ),
+        )
+        resume_transport = self.fx.transport(
+            selection, "resume", invariant_sha256=inv, **{
+                **kwargs,
+                "relay": resume_relay,
+            },
+        )
+        self.assertEqual(
+            resume_transport.relay["resume"]["thread_id"],
+            ats.SESSION_ID,
+        )
+        resumed = ats.compile_launch(
+            selection, grants, resume_transport, [], "resume",
+        )
+        self.assertTrue(ats.is_success(resumed), ats.explain(resumed))
+        self.assertEqual(resumed["binding"]["operation"], "resume")
+        self.assertEqual(resumed["argv"], launched["argv"])
+        self.assertEqual(
+            resumed["binding"]["argv_sha256"],
+            launched["binding"]["argv_sha256"],
+        )
+        again = ats.compile_launch(
+            selection, grants, deepcopy(resume_transport), [], "resume",
+        )
+        self.assertEqual(again["argv"], resumed["argv"])
+
     def test_operation_must_agree_with_the_binding(self):
         transport = self.fx.transport(self.selection, "launch")
         result = ats.compile_launch(
@@ -613,7 +828,9 @@ class LaunchResumeBinding(unittest.TestCase):
         self.assertTrue(ats.is_refusal(result), ats.explain(result))
 
     def test_raw_vendor_resume_flag_in_forwarded_tokens_refuses(self):
-        transport = self.fx.transport(self.selection, "resume")
+        transport = self.fx.resume_transport(
+            self.selection, self.grants, ["--resume", "sess_fixture"],
+        )
         result = ats.compile_launch(
             self.selection,
             self.grants,
@@ -641,3 +858,40 @@ class LaunchResumeBinding(unittest.TestCase):
             b["binding"]["invariant_sha256"],
         )
         self.assertNotEqual(a["argv"], b["argv"])
+
+
+class TrustedEnvironmentAndCanaries(unittest.TestCase):
+    """Closed environment equals trusted declarations; process canaries stay out."""
+
+    def setUp(self):
+        self.fx = ats.FixtureRoot()
+        self.addCleanup(self.fx.close)
+        self.selection = ats.selection_conductor()
+        self.grants = ats.grants_for(self.selection)
+        self._previous = {
+            name: os.environ.get(name) for name in ats.ENV_CANARIES
+        }
+        os.environ.update(ats.ENV_CANARIES)
+        self.addCleanup(self._restore_env)
+
+    def _restore_env(self):
+        for name, value in self._previous.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+    def test_compiled_environment_equals_trusted_map_not_an_empty_or_canary_map(self):
+        transport = self.fx.transport(self.selection)
+        result = ats.compile_launch(
+            self.selection, self.grants, transport, [], "launch",
+        )
+        self.assertTrue(ats.is_success(result), ats.explain(result))
+        env = result["environment"]
+        self.assertEqual(env, ats.expected_environment(transport))
+        self.assertEqual(env["FIXTURE_MARK"], "admitted-nonsecret")
+        self.assertEqual(set(env), set(ats.TRUSTED_ENV))
+        self.assertNotEqual(env.get("PATH"), ats.ENV_CANARIES["PATH"])
+        self.assertNotEqual(env.get("HOME"), ats.ENV_CANARIES["HOME"])
+        self.assertNotEqual(env.get("TMPDIR"), ats.ENV_CANARIES["TMPDIR"])
+        self.assertNotEqual(env, {})
