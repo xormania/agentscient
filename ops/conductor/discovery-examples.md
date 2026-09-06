@@ -21,6 +21,13 @@ matching resource first page omits snapshot; under stationary readings it
 returns the same payload. Pretty printing below is for reading; byte caps
 measure canonical compact encoding. All nulls shown are required.
 
+Process fixtures supply the separate
+[trusted boot descriptor](discovery-lever.md#trusted-discovery-boot-transport)
+with `--discovery-boot-fd FD`; it is never part of these JSON arguments.
+The startup law array preserves exactly the frozen five shared pairs from
+onboard's seven-row list. Neither its shape nor its planted fingerprints
+expand when onboard includes discovery and the startup sequence.
+
 ## Startup
 `lane_start {"profile":"dev"}`
 
@@ -483,6 +490,15 @@ Canonical envelope: 1053 bytes.
 Canonical envelope: 1058 bytes.
 
 ## Acquisition race
+
+This packet illustrates projection only. D-A31 detection additionally requires
+the real `acquire(config, boot, *, checkpoint=None)` seam and acknowledged
+synchronous mutation at `before-final-revalidation` or `before-file-postcheck`,
+under the [checkpoint contract](discovery-lever.md#deterministic-acquisition-checkpoints).
+The independent fixture records ordering, fails if its checkpoint is not
+reached, keeps the ordinary budgets/checks, passes a stationary neighbor and
+rejects an omitted-check counterparty. Thread scheduling is not that witness.
+
 `lane_actions {"name":"onboard","profile":"dev"}`
 
 ```json
@@ -676,6 +692,21 @@ does not prove semantic injection immunity or authorize its directive.
 
 ## Refusals and continuations
 
+Valid v3 config and discovery arguments, but absent/invalid trusted boot:
+
+```text
+config: expected trusted discovery boot descriptor; found invalid; needed launch with --discovery-boot-fd FD
+```
+
+This refusal precedes repository acquisition. Check/list and all old queries
+do not read boot files. D-A47's independent process fixtures supply two bounded
+boot artifacts with different exact contract bytes against the same failing
+repo/config and compute the complete definition/source hashes; a separate
+implementation-byte change exercises the sorted three-file adapter manifest.
+An external pathname change after load cannot replace retained definitions.
+These fixtures prove transport and hashing, not admission or implementation
+of arbitrary altered prose. Fixture A's opaque contract fingerprint stays fixed.
+
 Unknown configured-profile key `other`, after valid argument parsing:
 
 ```text
@@ -700,3 +731,29 @@ total=17,more=false,next_cursor=null. SNAPSHOT here denotes the measured
 cards, use the actual returned count; never assume pages always contain 16.
 Named home/action/key misses retain their exact list/item fields as above;
 unknown-action and unknown-key are the corresponding fixed reasons.
+
+## Reachable selection and Home evidence fixtures
+
+D-A16 uses a complete readable relevant chain of 17 handoff IDs, one revision
+each, with each successor superseding its predecessor. Plant body bytes so
+the terminal current key sorts last and the first 16 stale cards fit a page.
+Every page and named stale detail has global Selection
+`{"selection":"one","selected_key":"record/TERMINAL_SHA256","current":1,"stale":16,"unknown":0,"complete":true}`.
+TERMINAL_SHA256 is a placeholder for the planted body's full digest, not a
+literal accepted key. Named stale detail returns its wrapped body and stale
+freshness while selection still names the terminal key. The chain remains
+globally acquired when its first page shows only stale cards. There is no
+complete nonempty stale-only acquisition fixture or accepted D-A16 skip.
+
+D-A48 uses valid config and trusted boot, retained disabled, and a stable
+missing HEAD object. Through ordinary CLI/tool/resource reads, request prod's
+document-only `mapping` Home. The actual `anchor_head` failure prevents any
+Home-property `tree_entry`/`read_blob`; its repo source still records the
+upstream failure. The Home has ownership unresolved, document_present null,
+entrypoint null and evidence `["contract"]`; its other nullable measured
+fields remain null and its compiled home/contract/intended fields remain.
+A verified HEAD followed by a failed governing-document attempt instead gives
+evidence `["contract","repo"]` despite the same unresolved ownership and null
+document_present. Evidence follows actual property operations, never invented
+per-path failures or mere repo closure membership. The measured wf-runtime
+envelope above is unchanged. Both arms need independent executable coverage.
