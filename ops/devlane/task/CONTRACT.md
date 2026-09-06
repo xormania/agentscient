@@ -1,5 +1,13 @@
 # The task app — a calling convention for delegated work
 
+This is dev tooling under
+[AGENTS.md §Lane boundary and precedence](../../../AGENTS.md#lane-boundary-and-precedence).
+Work profile is independent of job role, harness and conductor/worker role.
+Shared output contracts do not import the prod application's Symfony
+runtime into the runner or imply its replacement. A brief's older framework
+recommendation cannot override that boundary. This scope clarification
+changes neither the job schema nor executable acceptance behavior.
+
 A **task** is one delegated unit of work that returns one deliverable
 in one round. It is not a conversation and not a workflow stage: the
 Conductor invokes it with parameters, the task does its own iteration

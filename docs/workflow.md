@@ -24,6 +24,12 @@ one actor may lift — never a stage an engine can traverse.
 
 ## Markings
 
+The following terminology is shared. The prod application uses Symfony
+Workflow under its application rules; the dev lane implements the genus
+independently under [the lane boundary](../AGENTS.md#lane-boundary-and-precedence).
+This contract requires neither a Symfony app dependency nor replacement
+of dev-lane workflow machinery by an application implementation.
+
 Following the Symfony Workflow model: a **state machine** holds one
 place at a time (a sequential ladder); a **workflow proper** may
 hold multiple places simultaneously (a parallel fan-out). Both are

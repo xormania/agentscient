@@ -24,6 +24,18 @@ store is created, no ref is touched.
 
 ## The brief, three sections in order
 
+Instruction precedence comes from
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
+and [ops/README.md](../README.md#lane-boundary-and-precedence). `AGENTS.md` is
+a direct entry in the existing reading list; it instructs the reader to read
+`ops/README.md` as a second hop, not a separate entry in that list.
+A listed file's presence establishes availability,
+not current authority for every passage. In particular, `stack.md` is dated
+origin material: its replacement/convergence doctrine cannot override the
+owner's 2026-09-05 separation. AARs, handoffs and register observations also
+retain their provenance without reviving superseded policy. This correction
+does not change the tool's reading-list data or claim it enforces work scope.
+
 **`== law`** — the reading list, data in the tool, amended by commit
 (the lever-registry pattern):
 
