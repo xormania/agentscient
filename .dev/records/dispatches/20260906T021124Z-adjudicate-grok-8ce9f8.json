@@ -1,0 +1,112 @@
+{
+  "id": "20260906T021124Z-adjudicate-grok-8ce9f8",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/lane-boundary-20260905",
+  "lineage": {
+    "branch": "lane/lane-boundary-20260905",
+    "base_sha": "23c5324b40a84366cf5bb68a1132e262ca9b21cc"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T02:11:25Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "23c5324b40a84366cf5bb68a1132e262ca9b21cc",
+    "ref_sha": "23c5324b40a84366cf5bb68a1132e262ca9b21cc",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "dc37a685-5291-4a7f-ba0f-bc61bd67eb8f",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "dc37a685-5291-4a7f-ba0f-bc61bd67eb8f",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-lane-boundary-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Adjudicate the seven Claude findings on GPT-6's lane-enforcement PLAN; you produced neither. Read plan, owner brief and both review inputs. Rule each UPHELD/PARTIAL/REJECTED with current-source evidence, then identify a bounded first contract. Verify especially policy authority versus environment overrides, job-output ownership/cycles, stale doctrine buckets and existing laneconf/conformance gates. Assess proposed shortcuts: missing declarations must not widen grants; deferring land/ladder cannot create an acceptance bypass; verify the claim that git status -uall observes ignored files rather than assume it. Preserve configurable profiles, distinct infrastructure lane, truthful containment limits and permanent dev/prod independence. No broad audit or implementation design. Return concise RULING as an envelope artifact string, including essential corrections and first contract scope. Read-only: no source/tests/settings/host/DB/network edits or vendor launches.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/in/lane-boundary-owner.md",
+        "sha256": "76fa657c90e8da882b53819277276fc9e16e8bf7bdc403771f234ecb87e0b169"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/in/20260906T013410Z-plan-codex-670fff.json",
+        "sha256": "01e9fa57f71ec5f071005ceb9fbe2a2d121f4016f27605618ef0a20178010d76"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/in/20260906T015848Z-review-claude-9e9fa3.json",
+        "sha256": "9874d5e5f4c7c5f04327c991b9cf486ddbbf9917fba1d452081651cae1736ae3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T021124Z-adjudicate-grok-8ce9f8/in/20260906T014712Z-review-claude-b0e12f.json",
+        "sha256": "0a31044e6d25ae23d8e1a8682e6b602dac90cf115d4316a0c3f7c36a3bb0a5ac"
+      }
+    ],
+    "sha256": "2ed9e7a6ea3d69f52ab12f6e793db195c46516b20b9cf5b1d929832b4aa0508a",
+    "bytes": 3285
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
