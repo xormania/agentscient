@@ -152,8 +152,15 @@ class TestDiscoveryV3Handoffs(_DiscoveryV3Fixture):
         self.assertEqual(dup["occurrences"], 2)
         self.assertEqual(dup["revision"], sha256_hex(same))
         self.assertEqual(cards[record_key(other)]["occurrences"], 1)
-        stems = [row.get("provenance", {}) for row in payload["data"]["candidates"]]
-        self.assertTrue(stems)
+        provenances = [
+            row["provenance"]["path"]
+            for row in payload["data"]["candidates"]
+            if row.get("provenance")
+        ]
+        self.assertEqual(len(provenances), 2)
+        names = [Path(path).name for path in provenances]
+        self.assertEqual(len(names), len(set(names)), names)
+        self.assertEqual(dup["occurrences"], 2)
 
     def test_d_a15_supersedes_marks_stale_and_aar_never_selected(self):
         old = b"old handoff body"
@@ -183,34 +190,70 @@ class TestDiscoveryV3Handoffs(_DiscoveryV3Fixture):
         self.assertEqual(by_key[record_key(aar)]["kind"], "aar")
         self.assertNotEqual(sel["selected_key"], record_key(aar))
 
-    def test_d_a16_stale_only_handoffs_select_none(self):
-        old = b"stale only handoff"
-        newer = b"superseding handoff that is itself unread"
-        extra = {"ops/conductor/handoff/HANDOFF-old.md": old}
+    def test_d_a16_stale_page_keeps_terminal_current_selection(self):
+        bodies: list[bytes] = []
+        extra: dict[str, bytes] = {}
+        bindings = []
+        for i in range(16):
+            inner = f"stale-handoff-{i:02d}-body".encode()
+            bodies.append(inner)
+            extra[f"ops/conductor/handoff/HANDOFF-{i:02d}.md"] = inner
+            prev = [f"h{i - 1:02d}"] if i else []
+            bindings.append(
+                _bind(f"h{i:02d}", inner, "dev", ["ops/a.md"], supersedes=prev)
+            )
+        terminal = b"terminal-current-handoff-body"
+        n = 0
+        while record_key(terminal) <= max(record_key(b) for b in bodies):
+            n += 1
+            terminal = f"terminal-current-handoff-body-{n}".encode()
+        extra["ops/conductor/handoff/HANDOFF-terminal.md"] = terminal
+        bindings.append(
+            _bind("h16", terminal, "dev", ["ops/a.md"], supersedes=["h15"])
+        )
         self.plant_tree(extra=extra)
-        bindings = [
-            _bind("old-id", old, "dev", ["ops/a.md"]),
-            _bind(
-                "new-id",
-                newer,
-                "dev",
-                ["ops/a.md"],
-                supersedes=["old-id"],
-            ),
-        ]
         self.plant_v3_config(record_bindings=bindings)
-        payload = self.detail("lane_handoffs", {"profile": "dev"})
-        sel = payload["data"]["handoffs"]
-        cards = payload["data"]["candidates"]
-        stale = [row for row in cards if row["freshness"] == "stale"]
-        self.assertTrue(stale, cards)
-        if sel["complete"]:
-            self.assertEqual(sel["selection"], "none")
-            self.assertIsNone(sel["selected_key"])
-            self.assertGreaterEqual(sel["stale"], 1)
-        else:
-            self.assertEqual(sel["selection"], "unknown")
-            self.assertIsNone(sel["selected_key"])
+        first = self.detail("lane_handoffs", {"profile": "dev"})
+        sel = first["data"]["handoffs"]
+        expected_key = record_key(terminal)
+        expected_sel = {
+            "selection": "one",
+            "selected_key": expected_key,
+            "current": 1,
+            "stale": 16,
+            "unknown": 0,
+            "complete": True,
+        }
+        self.assertEqual(sel, expected_sel)
+        page = self.assert_page(first["data"]["page"])
+        self.assertEqual(page["count"], 16)
+        self.assertEqual(page["total"], 17)
+        self.assertTrue(page["more"])
+        keys0 = [row["key"] for row in first["data"]["candidates"]]
+        self.assertEqual(len(keys0), 16)
+        self.assertNotIn(expected_key, keys0)
+        for row in first["data"]["candidates"]:
+            self.assertEqual(row["freshness"], "stale", row)
+            self.assertNotEqual(row["key"], expected_key)
+        snap = first["snapshot"]
+        second = self.detail(
+            "lane_handoffs",
+            {"profile": "dev", "snapshot": snap, "cursor": page["next_cursor"]},
+        )
+        self.assertEqual(second["data"]["handoffs"], expected_sel)
+        keys1 = [row["key"] for row in second["data"]["candidates"]]
+        self.assertEqual(keys1, [expected_key])
+        self.assertEqual(second["data"]["candidates"][0]["freshness"], "current")
+        stale_key = record_key(bodies[0])
+        named = self.detail(
+            "lane_handoffs", {"profile": "dev", "key": stale_key}
+        )
+        self.assertEqual(named["data"]["handoffs"], expected_sel)
+        cand = named["data"]["candidate"]
+        self.assertEqual(cand["key"], stale_key)
+        self.assertEqual(cand["freshness"], "stale")
+        self.assertIsNotNone(cand["body"])
+        self.assertNotEqual(named["data"]["handoffs"]["selected_key"], stale_key)
 
     def test_d_a17_unbound_unreadable_or_missing_blocks_selection(self):
         good = b"good bound current handoff"
@@ -405,7 +448,8 @@ class TestDiscoveryV3Handoffs(_DiscoveryV3Fixture):
                             {"uri": f"lane://handoffs/dev/record/{sha256_hex(inner)}"},
                         ),
                     ]
-                )
+                ),
+                boot=True,
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             objs = self.rpc_objects(proc)
