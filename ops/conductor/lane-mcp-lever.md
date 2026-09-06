@@ -69,6 +69,33 @@ CLI refusal: config/arguments, inherited wire, exit2, empty stdout. Successful
 queries exit0, including explicit unknown/unavailable readings. Reads need
 no identity. Config is loaded once per process; restart to apply changes.
 
+The v3-only [trusted discovery boot transport](discovery-lever.md#trusted-discovery-boot-transport)
+adds `--discovery-boot-fd FD` at process launch, before `query` or `serve`.
+The inherited read-only directory descriptor grants exactly the contract and
+three fixed implementation files, with the owning contract's bounds, identity
+checks and [executed-byte binding gate](discovery-lever.md#executed-byte-binding-gate).
+The lane_mcp boot custodian checks execution-input evidence for all three
+modules, including itself; trusted launch owns the bound loader inputs.
+D-A47's independent mismatch and clean controls verify that coupling without
+claiming launcher authentication. It adds no configuration key or query/URI
+selector. Check/list operations and the old seven queries read no boot files
+or discovery anchors. A discovery read with no supplied boot descriptor refuses
+before repository acquisition with exactly:
+
+```text
+config: expected trusted discovery boot descriptor; found missing; needed launch with --discovery-boot-fd FD
+```
+
+CLI exit 2, empty stdout, one stderr line; MCP isError=true carries that line.
+Supplied but rejected boot uses the owning
+[closed condition/remedy table](discovery-lever.md#refusals-and-exits), with
+`found rejected SUBJECT CODE`; it never reports a missing launch option.
+No adjacent-file or ambient fallback. Independent v3 conformance must witness
+missing and rejected cases separately with valid v3 config; the registry change belongs to the runtime
+counterparty. The parallel interface track owns the pending reciprocal
+transport link in [conductor-start-plan.md](conductor-start-plan.md). This
+declaration preserves the v1/v2 wire and does not authorize host activation.
+
 ## Four tools and matching resources
 
 All results are JSON objects with schema=agentscient.lane/v1 and query naming

@@ -351,3 +351,62 @@ resume, other configured profiles and unprofiled aggregation checked separately.
 Executable delivery still requires `bash ops/bin/suites.sh` and independent
 review; documentary `git diff --check` and schema/link inspection prove only
 contract consistency. This extension does not schedule those live commands.
+
+### Codex relay acceptance
+
+The [sole-client mechanism](harness-capabilities.md#codex-sole-client-relay--declared-mechanism)
+and [closed protocol](permission-surface.md#codex-relay-protocol) are declared,
+not measured or admitted. Supplied research pins Codex 0.153.4/source
+`3d2ee51ca2d5db578f328aa75e20aa22c0197c9a`; supplied security disposition
+`20260906T124459Z-review-codex-ed048d` accepts the recording scope, not lane code.
+No test, live command, global config/state change or admission is delivered by
+this documentation. The following are required independent acceptance cases,
+added to the existing observation report without adding schema fields or doctor
+probe ids. Each matrix row expands to separately named arms; never combine a
+passing positive with an unattempted negative into one PASS.
+
+| case family | independent mock AND live acceptance duty |
+|---|---|
+| COND-RELAY-P1 | canonical launch owns app-server, relay and pinned native remote TUI; actual conversation, interruption, graceful close and resume work; approved dynamic delegation reaches dispatch.sh and creates exactly one canonical worker identity, admitted read/coordination succeeds, actual app-server lane MCP initialize/tools/list/lane_start establishes onboarding |
+| COND-RELAY-TRANSPORT-N1 | second upstream/downstream client, TUI forged approval/result, typed-id collision, guessed socket, symlink replacement, inherited-FD/procfs access and same-UID competitor cannot answer server callbacks or reach launcher control; kill each child separately and prove bounded group reaping |
+| COND-RELAY-FRAME-N1 | each direction: duplicate/unknown/missing fields, bad UTF-8, BOM, batch, oversized/partial/binary/compressed frame, deep nesting, bool/null/floating id, unsolicited response, reused id, wrong thread/turn and unknown RPC; exact bounded refusal/abort, zero effects and no raw echo; fill queues and pending/id budgets to prove fail-closed overflow |
+| COND-RELAY-RPC-N1 | exercise every server request union variant, including legacy approvals, permissions, user input, MCP elicitation, auth refresh, attestation and host clock; check pinned response schemas, deadline, no prompt, no grant and no TUI response race; force downstream config/auth/process/fs/thread/attachment overrides, not only advertised tools |
+| COND-RELAY-REGISTRY-N1 | on fresh launch, each later turn and resume inventory direct AND nested tools; force exec_command, nonempty write_stdin, apply_patch, view_image, request_permissions, in-session agents and each disabled extension/hosted tool; force model-selected code mode and nested forbidden names; no retained terminal, hidden skill/app/plugin/MCP or alternate effect channel |
+| COND-RELAY-DECISION-N1 | malformed, missing, stale, duplicate or late shared Decision, changed executable/cwd/environment, missing target declaration, evaluator exception and control-channel substitution all prevent target invocation; legitimate owner schemas and bound read parameters still work |
+| COND-RELAY-REPLAY-N1 | disconnect or kill before invocation, during canonical claim, after effect but before receipt, and after receipt before response; duplicates under same/new RPC id return one retained result; changed arguments abort; uncertain/missing owner evidence blocks, never launches a second operation; test target without idempotency support refuses admission |
+| COND-RELAY-RESUME-N1 | mutate each selection axis, descriptor/session binding, protocol/registry/config/target/receipt/runtime digest, source anchor and MCP connection; reject before restoration or attempts change; arbitrary history/fork/path and unbound legacy resume refuse; stationary native private history resumes after reconciliation and fresh onboarding |
+| COND-RELAY-CUSTODY-N1 | synthetic authentication canaries in server-only files, aliases, env and inherited handles remain unreadable to TUI, model tools, relay capabilities, hook/MCP/helper descendants, including direct/nested requests; server plumbing can use synthetic auth without handing bytes to those actors |
+| COND-RELAY-RECORD-N1 | rejected CLI canary never reaches server input or any retained output; rejected model-generated dynamic arguments may exist only in private vendor history, absent from lane prompt/relay logs/display/diagnostics/receipts/attempts/Git; resume uses that private history without treating it as a decision store |
+| COND-RELAY-WALL-N1 | stalled frame/decision/effect/response, vanished relay heartbeat, full pipe, observer overflow and failed cleanup terminate within the frozen bounds and canonical wall; finite typed reply when possible, otherwise session abort/reaping, complete partial evidence retained |
+
+Fixtures are synthetic peers and target owners, not copied vendor transcripts.
+An independent producer must construct/verify the mock, response-schema closure,
+positive target declarations and fault corpus; the implementation producer neither
+authors nor approves its tests. Mock runs prove the declared decoder, mapping,
+deadline, receipt/replay and grading semantics. Live runs separately prove the
+exact installed binary/TUI/config registry and active host containment against
+that mock, through prepare_diagnostic/observe_conduct and canonical supervision.
+Neither CLI help, source inspection, a mocked argv, a model declining to try nor
+absence from tool advertisements is a passing live denial. Force a real request
+to the relevant pre-effect resolution gate; missing attempt is UNREACHABLE.
+
+Exercise filesystem/Git/network/process effects, including write-then-restore,
+with independent observers outside candidate writes. Record prompt absence,
+complete effect coverage and cleanup for every arm. A broken observer or blocked
+outer apparatus cannot make a negative PASS; it is UNREACHABLE unless an actual
+contrary effect/decision/prompt was observed, in which case FAIL wins. Full live
+negative/positive/resume witnesses and verified mocks must bind executable and
+reported source/version correspondence (state absent build attestation), relay,
+runtime, schema/registry/target/config, policy/normalizer/grammar, platform/custody,
+probe and mock revisions through the existing capability tuple. No invented
+digest/version or source-only MEASURED label fills an unavailable member.
+
+Document acceptance checks exact schemas and examples, local links/anchors,
+source locators/pins and diff scope only. A synthetic negative frame/reply in
+permission-surface.md is a schema example, not the independent mock. Later
+executable delivery still runs `bash ops/bin/suites.sh`; live diagnostic exit 0
+requires every expanded arm PASS with verified identity and complete cleanup
+under the existing report predicate. All remaining missing runtime/evaluator,
+trusted transport, registry closure, custody and idempotency evidence prevents
+admission; no additional broad planning phase or vendor censorship patch is
+substituted for these concrete obligations.
