@@ -1,0 +1,116 @@
+{
+  "id": "20260906T011424Z-code-codex-2a2af6",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/conductor-start-20260905",
+  "lineage": {
+    "branch": "lane/conductor-start-20260905",
+    "base_sha": "3682a8c58e304e7025036f1b3ec4edb63424832e"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-06T01:14:25Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3682a8c58e304e7025036f1b3ec4edb63424832e",
+    "ref_sha": "3682a8c58e304e7025036f1b3ec4edb63424832e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "2818fe44-4150-4e1f-84b4-3cdb4f4047dc",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conductor-start-20260905/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Documentation-only correction of step-1 plan/contract under supplied ruling and latest owner brief. Address every finding: usable bounded default/extra-profile coverage; fixed anchored Git/tree acquisition; complete local source composition; candidate relevance/identity/ties/incomplete scans; exact envelopes/refusal/snapshot dependencies; trust and availability distinctions; harness extensibility and conductor/worker separation. Incorporate only bounded source-linked Loopstrap recommendations into future steps. Preserve current read-core subprocess restriction, v1/v2 behavior and existing ownership; no copied authority/store/kernel or broader runtime cleanup. Make the contract testable, internally consistent and discoverable; update non-executable acceptance rows/examples and doc links. No source/settings/dependency/DB/host changes or executable tests. Commit docs with actual-model trailers. Return compact paths, checks, correction disposition and limitations; do not self-approve the revision.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/in/discovery-contract-owner.md",
+        "sha256": "daff6a81545c727ebd026aadaa1148ae5e1e20ba73a16303413e80b2e3bf90e1"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/in/discovery-contract-review-20260905.md",
+        "sha256": "95fb39e2e7294d218c058ab9fac9014144a70df1c33a9e47d0c19e1c2cccb272"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/in/20260906T010515Z-review-codex-a0b114.json",
+        "sha256": "de986bffca562cf824781d2dfc27bb2ebe2f484f9935b0e21ad0a98d1a5ad8d5"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/in/20260906T010516Z-review-codex-dadb85.json",
+        "sha256": "e850f0f1eb5e09163729ca03909e12d1a6f4d589fad45d8da0903e8a2c31e1d9"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T011424Z-code-codex-2a2af6/in/20260906T010702Z-review-codex-1d530c.json",
+        "sha256": "2966437a0dc304fabc5913623470aa93f3e33d5e32c03540dad292613209c742"
+      }
+    ],
+    "sha256": "37f30237eeec2f56c2e372a1d9d1890d20816bb83a56d7d3f19b197f5239292f",
+    "bytes": 4855
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
