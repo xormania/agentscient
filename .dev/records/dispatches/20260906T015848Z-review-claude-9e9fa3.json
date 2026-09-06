@@ -13,7 +13,7 @@
   "dispatched_by": "GPT-6 <noreply@openai.com>",
   "at": {
     "launched": "2026-09-06T01:58:49Z",
-    "closed": null
+    "closed": "2026-09-06T02:07:22Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -157,14 +157,22 @@
       "--effort",
       "high"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/b77ec0d8-ed1b-42f7-a1bf-7b9b736776a8.jsonl"
   },
   "session": {
     "id": "b77ec0d8-ed1b-42f7-a1bf-7b9b736776a8",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/b77ec0d8-ed1b-42f7-a1bf-7b9b736776a8.jsonl",
+    "stream_sha256_at_close": "e11d6bff54c12f484945f7d98510f37ae73f485d55d2331267b112f1e901c7d4",
+    "spend": {
+      "input": 58,
+      "cached": 2580471,
+      "output": 38697,
+      "total": 2619226,
+      "source": "result.usage",
+      "messages": 29,
+      "cost_usd": 3.321762
+    }
   },
   "brief": {
     "template": {
@@ -195,10 +203,101 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T01:58:49Z",
+      "ended": "2026-09-06T02:07:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "29f050971ee30a640ff5c367a6af2bb892e6bc81",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "20260906T013410Z-plan-codex-670fff.json artifacts.PLAN, \"One declarative owner\" (LANE_POLICY_PATH in ops/lane.conf resolved through laneconf.py) and \"Policy identity and source membership are protected configuration\"; ops/conductor/tools/laneconf.py:138-140,170-189,193-197",
+          "claim": "The chosen owning home defeats the plan's own protection requirement. laneconf.conf_path() takes the whole configuration file from the environment (Path(os.environ.get(\"LANE_CONF\", DEFAULT_CONF)), :140); values() overrides every declared key from the environment (:186-189); get() returns the environment value ahead of the file (:193-197). The only protection that exists, NAME_KEYS, guards the gitignored local file, not the environment, and does not cover a new key. So a policy path declared as LANE_POLICY_PATH is silently repointable by LANE_POLICY_PATH=... or LANE_CONF=... in the launcher's environment, which is exactly the 'ambient environment may not silently replace the policy authority' the plan promises. An enforcement boundary an environment variable can move is not enforcement.",
+          "reproduce": "sed -n '136,141p;168,197p' ops/conductor/tools/laneconf.py; grep -n 'NAME_KEYS' ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p2",
+          "where": "20260906T013410Z-plan-codex-670fff.json artifacts.PLAN, slice E5 (\"Job requirements: add structured capability and deliverable requirements to jobs.json\") and machine line \"bucket E5 S ops/devlane/task/jobs.json ...\"; ops/devlane/task/jobs.json:56-64,88-96; ops/devlane/dispatch/launch.py:952,959,1189,1213",
+          "claim": "E5 takes ownership of the job output/capability schema that the supplied consolidation review (20260906T014712Z-review-claude-b0e12f, C1/C2) places in the launch/task contract, and whose absence it already recorded as a P1 blocked on a non-existent lane-policy counterparty. Two tracks holding jobs.json and the writable-out grant is either a duplicate schema or a deadlock: this plan waits for the launch contract while the launch plan waits for lane policy. The launch track must own declared job outputs and per-harness adapter grants (replacing the job-name branch at launch.py:952,959,1189,1213); lane policy must consume them as one term of the permitted-write intersection and degrade to profile roots when the declaration is absent, so neither track is a prerequisite of the other.",
+          "reproduce": "grep -n 'check-tests\\|writable_out' ops/devlane/dispatch/launch.py; grep -n 'PLAN.md\\|RULING.md' ops/devlane/task/jobs.json; jq -r '.result.envelope.findings[0].claim' .dev/records/dispatches/20260906T014712Z-review-claude-b0e12f.json"
+        },
+        {
+          "severity": "p2",
+          "where": "20260906T013410Z-plan-codex-670fff.json artifacts.PLAN, buckets D1, D2, D3 (AGENTS.md CLAUDE.md ops/README.md; README.md docs/mapping.md docs/workflow.md; stack.md census-package-map.md lane-mcp-lever.md); AGENTS.md:44-60; docs/mapping.md:238-243",
+          "claim": "D1-D3 were measured at 83ee5c6144d5e7e06bc1c345a9eee6abc412a740, before the corrections landed in this range (7e07a13, 1552699, 29f0509). At the review ref the retirement mandate is gone from AGENTS.md and ops/README.md, AGENTS.md:44-60 carries the boundary section, docs/mapping.md fences the strangler order as superseded, and stack.md carries a supersession banner. Dispatching D1-D3 as written re-edits corrected homes with a producer working from a pre-correction measurement. The doctrine residue that remains is elsewhere (ops/conductor/MCP-RESEARCH-2026-09-05.md:130, .dev/wip/overview.md:490-496) and is under separate adjudication; the plan must be re-based onto that residue rather than re-dispatched at its own file list.",
+          "reproduce": "git log --oneline c06ed944..29f0509; rg -n 'retires only when its twin|strangler' AGENTS.md ops/README.md docs/mapping.md; sed -n '44,60p' AGENTS.md; rg -n 'twin' ops/conductor/MCP-RESEARCH-2026-09-05.md .dev/wip/overview.md"
+        },
+        {
+          "severity": "p2",
+          "where": "20260906T013410Z-plan-codex-670fff.json artifacts.PLAN, \"Smallest green slices\" (D1-D6, E1-E15) and \"Its total size is L\"",
+          "claim": "The owner asked for the smallest enforcement slice that protects today's dispatcher; the plan answers with 21 buckets, each carrying up to five independent producers, and its own ordering places every enforcement effect behind the last bucket (E15 activates mandatory binding after E1-E13; E8 is where the launcher first admits anything). Under that chain no lane violation is refused until roughly twenty producer cycles have landed, and the preparation buckets are declared to convey no enforcement claim. Nine of the twenty-one buckets (E3, E4, E5, E11, E12, E13, E14, plus D1-D3 as written) are either owned elsewhere, already landed, or deferrable behind a demonstrated obligation. The critical path should be the five buckets A1-A5 in the verdict, with the remainder admitted on a measured obligation.",
+          "reproduce": "python3 -c \"import json;p=json.load(open('.dev/records/dispatches/20260906T013410Z-plan-codex-670fff.json'))['result']['envelope']['artifacts']['PLAN'];print(sum(1 for l in p.splitlines() if l.startswith('bucket\\t')))\""
+        },
+        {
+          "severity": "p2",
+          "where": "20260906T013410Z-plan-codex-670fff.json artifacts.PLAN, buckets E1 and E2 and the claim \"Profile IDs have no hard-coded dev/prod enumeration in consumers\"; ops/conductor/tools/laneconf.py:302-359,364-412; ops/conductor/tests/test_laneconf.py:576-577,766-767",
+          "claim": "The plan does not compute its blast radius onto the two laneconf gates that the floor pins against the real tree. closure() fails on a declared key with no reader and on a read of an undeclared key, so E1 (lane_policy.py reading the policy path) landing before E2 (declaring it in lane.conf) turns test_laneconf.test_closure_exits_0_on_the_tree red; and literals() forbids the token \"dev\" in any ops .py/.sh outside tests/fixtures/archive/infra with only per-line exemptions for record.py and launch.py, so any profile name written into a consumer fails test_literals_exits_0_on_the_tree. That second gate is the existing mechanical form of the owner's 'profile names must be configuration data', which the plan re-proposes as new tests without naming or extending the instrument that already implements it.",
+          "reproduce": "sed -n '302,318p;364,384p' ops/conductor/tools/laneconf.py; sed -n '574,580p;760,770p' ops/conductor/tests/test_laneconf.py; grep -n 'suites=' ops/bin/suites.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "20260906T013410Z-plan-codex-670fff.json artifacts.PLAN, machine lines \"bucket E2 ... ops/conductor/tools/laneconf.py\" and \"bucket E4 ... ops/conductor/registry/laneconf.py.json\", and bucket E1 (ops/conductor/tools/lane_policy.py with no registry file); docs/wire.md \u00a7Conformance; ops/conductor/tests/test_instrument_conventions.py:1-19,117-127",
+          "claim": "The wire says a component joins the registry in the change that lands it, and the conformance gate closes both ways over ops/conductor/tools/. E2 changes laneconf's refusal surface but its registry row is scheduled two buckets later in E4, so the landing change does not carry its own row. E1 adds ops/conductor/tools/lane_policy.py with no registry file and the plan never states whether its module docstring names instrument-conventions.md, which is exactly the condition declaring_tools() keys on: if it does, E1 lands red; if it does not, the plan should say so, since a policy evaluator with a refusal wire is the sort of thing the registry exists for.",
+          "reproduce": "sed -n '1,19p;117,127p' ops/conductor/tests/test_instrument_conventions.py; ls ops/conductor/registry; sed -n '/## Conformance/,+6p' docs/wire.md"
+        },
+        {
+          "severity": "p3",
+          "where": "20260906T013410Z-plan-codex-670fff.json artifacts.PLAN, \"Files:\" paragraph (\"Check additions, modifications, deletions, both sides of renames, mode/symlink changes and residual files ... A worker cannot hide a product change merely by ignoring it in Git or calling it a cache\"); ops/devlane/dispatch/launch.py:1585-1653,1674-1690",
+          "claim": "The plan specifies a second path enumeration beside the one the launcher already runs, and states as a risk a hole the current code does not have. _residual_entries() reads git status --porcelain=v1 -z -uall (so ignored and untracked files are already seen) and _is_cache_residual() exempts only narrowly enumerated __pycache__/.ruff_cache/.pytest_cache/.mypy_cache shapes, none of which can carry vendor/, src/ or packages/ paths. The check should consume the existing entries and the existing changed_paths diff rather than introduce a parallel measurement that can drift from what settlement records.",
+          "reproduce": "sed -n '1585,1612p' ops/devlane/dispatch/launch.py; sed -n '1614,1622p' ops/devlane/dispatch/launch.py; sed -n '1674,1690p' ops/devlane/dispatch/launch.py"
+        }
+      ],
+      "artifacts": {
+        "VERDICT": "VERDICT: changes. Independent read-only assessment of the PLAN carried inline at .dev/records/dispatches/20260906T013410Z-plan-codex-670fff.json (result.envelope.artifacts.PLAN), measured at HEAD 29f050971ee30a640ff5c367a6af2bb892e6bc81 against base c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. No implementation approved, nothing dispatched, no file written.\n\nADMITTED AS CORRECT. The plan obeys every owner constraint I can check. No word ban: it enforces through files, dependencies and declared sources, and says outright that no prompt or classifier proves semantic meaning. No enforcement overclaim: it separates prescribed, implemented and live behaviour, refuses to certify cross-harness interception, and leaves conductor-enforce.py unarmed. Forbidden operations refuse rather than ask for owner approval. The immutable-binding design is right and compatible: record.py forces the top-level lane marker (record.py:25,79) as infrastructure identity, and the plan keeps it while nesting the work-profile binding under brief.policy \u2014 which validate() tolerates today, so legacy records still validate and acquire no guessed profile. It refuses on flag/spec disagreement instead of picking a winner, keeps role, stage and harness as separate dimensions, and names the acceptance holes correctly: write resume bypasses settlement (launch.py:1855-1857) and collect exports its own dispatch ref (launch.py:1943), so both need the check. Its refusal classes are on the docs/wire.md wire.\n\nWHERE IT FAILS. Five corrections are essential; the findings carry the evidence.\n\n1. The owning home defeats the protection (p1). LANE_POLICY_PATH resolved through laneconf is environment-overridable at both levels (laneconf.py:140 LANE_CONF, :186-189 per-key, :193-197 get), and NAME_KEYS guards only the local file. Put the policy at a fixed tracked path resolved from the repository root, as DEFAULT_CONF already does, and drop the configuration key. That also removes the closure obligation in correction 5.\n\n2. Ownership with the launch track (p2). Declared job outputs and per-harness adapter grants belong to the launch/task contract, replacing the job-name branch at launch.py:952,959,1189,1213. Lane policy consumes them as one term of the permitted-write intersection and falls back to profile roots when a job declares none. Drop E5. Neither track becomes the other's prerequisite; the interface is one field in jobs.json, read if present.\n\n3. D1-D3 are stale (p2). They were measured at 83ee5c6, before 7e07a13 and 1552699 landed. Re-base onto the residue, which is separately adjudicated; do not re-dispatch the same file list.\n\n4. Size and effect (p2). Twenty-one buckets, and under the plan's own ordering nothing is refused until E15. Cut to the five below.\n\n5. Floor blast radius (p2). laneconf closure and literals are pinned against the real tree by test_laneconf and run by suites.sh. literals already forbids the \"dev\" token in lane code \u2014 it is the existing mechanical form of 'profile names are configuration data'. Extend that instrument's exemption table deliberately rather than re-proving the rule in new tests only.\n\nSMALLEST COMPLETE ENFORCEMENT OF TODAY'S DISPATCHER. Five buckets, each one to three files, in this order.\n\nA1 contract and data. C writes ops/conductor/lane-policy.md and ops/lane-policy.json: profile ids as mapping keys, permitted write roots, forbidden dependency roots, protected authority paths, and the refusal table (lane-profile, lane-policy, lane-write, lane-dependency, lane-resume). It states plainly that for claude and grok this is detection at acceptance, not prevention in the harness, because containment is policy-only there (launch.py:379-381; CLAUDE_DENIED_TOOLS is WebFetch, WebSearch, Agent, Task).\n\nA2 evaluator. I writes ops/conductor/tools/lane_policy.py: pure, stdlib, repo-root resolution, no CLI, no conventions docstring, decide(profile, paths) and depends(entrypoints). launch.py already loads a conductor tool this way (launch.py:62), so the edge exists.\n\nA3 binding. --profile on launch.py, passed through dispatch.sh and go.sh, captured with the policy digest under brief.policy; record.py validates its shape when present. Unknown, missing or conflicting selection refuses exit 2 with one expected-found-needed line before the snapshot is minted. Scope text, inputs, envelope and environment cannot reclassify.\n\nA4 acceptance at the seams that exist. One _lane_check() called from three sites: in _settle before the write-role fetch at launch.py:1687, in the write-resume branch at :1857, and in _collect before its export at :1943. It consumes the entries settlement already measures (_residual_entries, changed) rather than a second enumeration. A violation invalidates the envelope through _invalidate_envelope, no dispatch ref is exported, and the evidence is preserved.\n\nA5 dependency closure. A floor test asserting the dev entrypoint closure imports nothing under vendor/, src/, packages/ or bin/console, run with no application tree present. Documentation references and fixture apparatus (ops/devlane/fixtures/tests/test_symfony_app_app.py) stay clean.\n\nDeferred until a measured obligation: instruction-source digest pinning at onboarding, jobs.json capability rows, hook projection, doctor, ladder and land consumers, MCP projection. For doctrine regression prefer the structural assertion e5ec77 performed by hand \u2014 the boundary section exists at its anchor, its links resolve, the onboarding reading list reaches it \u2014 over digests on frequently edited prose, which will be re-stamped as routine and prove change, never meaning.\n\nPOSITIVE ACCEPTANCE. P1 a dev change under ops/ that reads shared contracts and describes Symfony passes. P2 the same writes under a prod profile pass, including a Composer manifest change, and refuse under dev. P3 a third synthetic profile with its own roots behaves identically after adding configuration data only, consumers unchanged. P4 a legacy record with no brief.policy still validates, reads and reports unbound.\n\nNEGATIVE ACCEPTANCE. N1 missing, unknown, duplicate or conflicting profile refuses before any fake child starts. N2 scope prose, quoted history, environment and a resume prompt cannot move the captured profile; with the fixed policy path, LANE_CONF and a stray environment key cannot move the policy. N3 a dev write to vendor/, src/, packages/ or composer.json refuses at settlement and no refs/dispatch ref appears. N4 renames across roots, symlink escape, prefix neighbours and untracked or ignored product writes are caught, while the enumerated cache shapes still pass. N5 status ok, verdict approve, exit 0 and a successful collection verification do not override a violation. N6 a dev entrypoint importing vendor/autoload.php or booting bin/console fails A5 while a prose reference passes. R1 a stationary binding resumes and revalidates. R2 changed policy bytes, profile or template refuse before attempt markers move and prior terminal evidence stays byte-identical. R3 resumed write and collected work meet the same check as fresh work.",
+        "evidence": "Measured 2026-09-06T01:59Z-02:04Z at HEAD 29f050971ee30a640ff5c367a6af2bb892e6bc81 in the supplied snapshot; base c06ed9442ba51c9e96aa8de9f9bde93d0843a6cc. All four ../in files read whole. git diff --stat base head: 31 files, 1722 insertions, 33 deletions \u2014 documents and .dev records only; git diff --name-only base head -- ops/devlane ops/conductor/tools ops/bin returns three CONTRACT/AGENTS Markdown files and no code, so every launch.py, record.py, laneconf.py and jobs.json line cited is unchanged since the plan's own ref.\nOrdering: git log --oneline c06ed944..29f0509 shows 7836638 ... 83ee5c6 (the plan's ref) ... 7e07a13 'docs: apply owner ruling on independent dev tooling' ... 1552699 ... 29f0509, so the plan predates the correction it proposes as D1-D3.\nDoctrine at head: rg -n 'retires only when its twin|strangler' AGENTS.md ops/README.md docs/mapping.md returns only AGENTS.md:52 (the negation) and docs/mapping.md:241 under its superseded fence; rg -n twin ops/conductor/MCP-RESEARCH-2026-09-05.md .dev/wip/overview.md returns :130 and :490,:496 (the residue, separately adjudicated).\nConfiguration: read ops/lane.conf whole and ops/conductor/tools/laneconf.py whole \u2014 conf_path :140, values env override :186-189, get :193-197, NAME_KEYS guards the local file only, closure :302-359 (unread declaration and undeclared read are both findings), literals :364-412 with per-line exemptions for record.py and launch.py at :364-383. test_laneconf.py:576-577 and :766-767 assert both exit 0 on the tree; ops/bin/suites.sh:18 discovers ops/conductor/tests.\nLauncher: wc -l 2146; grep -n writable_out and check-tests gives 34,496,504,543,952,959,1189,1213; sandbox and containment map at :379-381; CLAUDE_TOOL_RULES and CLAUDE_DENIED_TOOLS at :427-442; _settle :1658-1700 with the refs/dispatch export at :1687; write resume calling _write_record without _settle at :1855-1857; _collect export at :1943; _is_cache_residual :1585-1611 and _residual_entries :1614; conductor tool load at :62.\nRecord: record.py FIELDS :11-15, source['lane']='dev' :25, validate :75-90 carries no brief-shape check, so nesting brief.policy is compatible and legacy records validate.\nJobs: ops/devlane/task/jobs.json plan row :55-64 (out/PLAN.md), check-tests :66, adjudicate :88-96 (out/RULING.md).\nOnboarding: onboard.py LAW :20-30 is five entries (AGENTS.md, CONTRIB.md, instrument-conventions.md, stack.md, coverage-zones.md); ops/README.md and docs/ are not on it.\nConformance: test_instrument_conventions.py docstring :1-19 and declaring_tools :117-127 key on the module docstring naming instrument-conventions.md; ls ops/conductor/registry shows 13 rows, no lane_policy.py.json, and co_doc.py, skills.py, dispatch.sh, gate.sh and lane_read.py carry no row.\nCallers of the launcher in code: dispatch.sh, ladder.py, land.py, co_doc.py, hand.py, watchdog.py, matrix.py, no-subagents.py, laneconf.py (grep -rln over ops and .claude, excluding tests).\nNo file was written, no test executed, no vendor launched, and no network, credential, session store, host setting or database was touched.",
+        "limits": "Read-only review of a plan, not of an implementation: every claim about the proposed design is read from the PLAN string in the supplied record, and every claim about current behaviour is read from source at this ref. I ran no suite \u2014 the floor is inventoried, not certified green here \u2014 and executed neither onboard.py, laneconf closure/literals, nor the launcher, so the closure and literals consequences are derived from reading the checker and its pinned tests, not from a red run I produced. Absence claims are 'looked and found nothing' by the named commands over the tracked tree; they say nothing about untracked files, live sessions or operator homes. The doctrine residue at MCP-RESEARCH-2026-09-05.md:130 and .dev/wip/overview.md:490-496 is reported only as context for re-basing D1-D3; it is under separate adjudication and I did not re-litigate it. I did not review the sibling consolidation PLAN itself, only the reconciliation obligations its supplied review (b0e12f) creates for this one. The five-bucket path A1-A5 is a recommendation for conductor comparison, not an admitted contract; no producer identity is bound and no implementation is approved."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2619226,
+        "out": 38697,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "29f050971ee30a640ff5c367a6af2bb892e6bc81",
+        "started": "2026-09-06T01:59:00Z",
+        "ended": "2026-09-06T02:03:53Z"
+      },
+      "note": "Independent read-only assessment of GPT-6's inline lane-enforcement PLAN (record 20260906T013410Z-plan-codex-670fff) against lane-boundary-owner.md and the corrected authority documents at 29f0509. CHANGES concerns the plan's owning home, its ownership overlap with the launch-consolidation track, the staleness of its doctrine buckets, its size, and its floor blast radius; the reviewed diff is documents and records only and introduces no runtime regression. The plan's honest limits (no word ban, no prompt-enforcement claim, no cross-harness containment claim, forbidden operations refused rather than escalated) and its immutable brief.policy binding beside the existing infrastructure lane marker are admitted as correct and verified compatible with record.py. A five-bucket critical path (A1-A5) is proposed in place of the twenty-one buckets. No implementation approved, nothing dispatched, no file written, no test executed."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
 }
