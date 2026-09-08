@@ -4,8 +4,8 @@ Authored from ops/devlane/dispatch/CONTRACT.md (raw.out owns
 init.model/cwd; brain rows need source/type and a supported payload;
 MODEL/PLANNER_RESPONSE thinking+tool_calls without content is accepted)
 plus the producer explanation of that planner payload and the cold F1
-ruling: a torn or blank transcript tail degrades to a stated mismatch
-and must not void a binding raw.out already supplied.
+ruling: an unfinished final JSON row without a newline, and trailing
+blank lines, must not void a binding raw.out already supplied.
 
 launch.py was not read. Synthetic payloads only. The public 4-tuple
 (path, ran, stream_id, mismatch) and raw.out ownership stay as they are.
@@ -196,16 +196,22 @@ class AgyNativeTranscriptSeam(ls._TempLaunch):
             lines = data.decode("utf-8").splitlines(keepends=True)
             last = lines[-1].rstrip("\n")
             keep = last[: max(18, len(last) // 2)]
-            return ("".join(lines[:-1]) + keep + "\n").encode("utf-8")
+            return ("".join(lines[:-1]) + keep).encode("utf-8")
 
         ls.plant_bytes(
             self.transcript, cut_final, expect="shrink",
             recognisable=lambda after: (
                 SYNTHETIC_CONTENT.encode("utf-8") in after
                 and after.startswith(before.splitlines(True)[0])
+                and not after.endswith(b"\n")
             ),
         )
-        torn = self.transcript.read_bytes().decode("utf-8").splitlines()[-1]
+        planted = self.transcript.read_bytes()
+        self.assertFalse(
+            planted.endswith(b"\n"),
+            "plant: unfinished final row has no newline",
+        )
+        torn = planted.decode("utf-8").splitlines()[-1]
         with self.assertRaises(json.JSONDecodeError):
             json.loads(torn)
         self.assertIn("source", torn, "plant: torn line still the fixture")
@@ -213,10 +219,10 @@ class AgyNativeTranscriptSeam(ls._TempLaunch):
         got = self.read_agy()
         self.assert_raw_binding(got, ran=control_ran)
         _path, _ran, _sid, mismatch = got
-        self.assertIsInstance(mismatch, str, got)
         self.assertTrue(
-            mismatch.strip(),
-            f"a torn final line degrades to a stated mismatch: {got!r}",
+            mismatch is None or mismatch == "",
+            f"unfinished final row without a newline is not a mismatch: "
+            f"{got!r}",
         )
 
     def test_blank_transcript_tail_retains_raw_out_binding(self):
@@ -241,6 +247,11 @@ class AgyNativeTranscriptSeam(ls._TempLaunch):
 
         got = self.read_agy()
         self.assert_raw_binding(got, ran=control_ran)
+        _path, _ran, _sid, mismatch = got
+        self.assertTrue(
+            mismatch is None or mismatch == "",
+            f"trailing blank lines are ignored: {got!r}",
+        )
 
     def test_malformed_completed_row_is_refused(self):
         self.plant_auth()
