@@ -12,6 +12,10 @@ event=init|step_update|result. Changelog 1.1.20: benign tool
 errors/permission denials do not fail the overall run. Changelog 1.1.27:
 JSON gained denied_actions.
 
+Vendor status-only failure coverage (a non-SUCCESS status with no
+error string) is unresolved pending a measured enum. Fixtures must
+not invent that enum.
+
 PROVISIONAL: the candidate _envelope contract is pending review.
 """
 
@@ -126,6 +130,26 @@ def step_update_frame(*, state="ACTIVE", step_type="agent_response",
 
 def result_frame(result):
     return {"event": "result", "result": result}
+
+
+def drop_fields(payload, *keys):
+    """Copy payload with named keys removed.
+
+    Plants a missing required published field. Callers pass the
+    published name (e.g. status); this does not invent enum values.
+    """
+    out = dict(payload)
+    for key in keys:
+        del out[key]
+    return out
+
+
+def valid_terminal_stream(nested, **published_kw):
+    """One init frame and one result frame; no scan-shaped decoys."""
+    return ndjson_bytes(
+        init_frame(),
+        result_frame(published_result(nested, **published_kw)),
+    )
 
 
 def decoy_envelope(note):
