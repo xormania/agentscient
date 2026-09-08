@@ -621,6 +621,20 @@ def _child_env(base, additions, job_id):
     return env
 
 
+def _attempt_state(job_dir, *, required=False):
+    """Read the attempt boundary; old states without an offset start at zero."""
+    path = job_dir / "state.json"
+    state = json.loads(path.read_text()) if required or path.exists() else {}
+    if not isinstance(state, dict):
+        raise ValueError("state.json must be an object")
+    offset = state.get("raw_offset", 0)
+    raw = job_dir / "raw.out"
+    size = raw.stat().st_size if raw.exists() else 0
+    if type(offset) is not int or not 0 <= offset <= size:
+        raise ValueError("raw_offset must be a nonnegative integer within raw.out")
+    return state
+
+
 def _agy_stream(job_dir, session, snapshot):
     """Bind native stdout init to this attempt; never choose newest brain."""
     raw = job_dir / "raw.out"
@@ -631,10 +645,11 @@ def _agy_stream(job_dir, session, snapshot):
             if path.is_file() and _inside(path.resolve(), job_dir.resolve()):
                 return path, None, session, "agy init.cwd unavailable"
         return None, None, None, "agy native stdout unavailable"
-    offset = 0
-    state_path = job_dir / "state.json"
-    if state_path.is_file():
-        offset = json.loads(state_path.read_text()).get("raw_offset", 0)
+    try:
+        offset = _attempt_state(job_dir).get("raw_offset", 0)
+    except (OSError, ValueError, TypeError) as exc:
+        return raw, None, None, (f"agy state: expected valid attempt state; found {exc}; "
+                                 "needed repair state.json from retained attempt evidence")
     try:
         usage = _module("agy_usage", TELEMETRY_APP / "usage.py")
         observed = usage.agy_read(raw, offset)
@@ -1244,7 +1259,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                     if harness == "agy":
                         usage = _module("agy_live_usage", TELEMETRY_APP / "usage.py")
                         reading = usage.agy_read(stream, raw_offset)
-                        output = (reading["tokens"] or {}).get("output")
+                        output = reading["live_output"]
                         over = output is not None and output > int(rec["caps"]["cap-out"])
                         if output is None and elapsed >= grace:
                             runtime_note = "unsupervised: agy output usage unavailable within grace"
@@ -1265,7 +1280,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
             sleep(min(0.05, max(0.0, min(timeout, grace) - elapsed)))
         if harness == "agy" and not runtime_note and rec["caps"].get("cap-out") is not None:
             usage = _module("agy_final_usage", TELEMETRY_APP / "usage.py")
-            output = (usage.agy_read(job_dir / "raw.out", raw_offset)["tokens"] or {}).get("output")
+            output = usage.agy_read(job_dir / "raw.out", raw_offset)["live_output"]
             if output is not None and output > int(rec["caps"]["cap-out"]):
                 runtime_note = "trip: output cap exceeded"
         if runtime_note:
@@ -2304,15 +2319,25 @@ def _close(args):
         _effort_argv(rec["harness"]["name"], rec["model"].get("effort_requested")),
     )
     job_dir, _snapshot_path = _bound_snapshot(rec)
-    state = json.loads((job_dir / "state.json").read_text())
+    try:
+        state = _attempt_state(job_dir, required=True)
+        if type(state.get("pid")) is not int or state["pid"] <= 0:
+            raise ValueError("pid must be a positive integer")
+    except (OSError, ValueError, TypeError) as exc:
+        _refuse("state", "valid attempt state with pid and raw_offset", str(exc),
+                "repair state.json from retained attempt evidence")
+    raw_offset = state.get("raw_offset", 0)
     try:
         os.kill(int(state["pid"]), 0)
         died = False
+    except OverflowError as exc:
+        _refuse("state", "a representable process id", str(exc),
+                "repair state.json from retained attempt evidence")
     except (OSError, TypeError, ValueError):
         died = not (job_dir / "exit").exists()
     if died:
         raw_path = job_dir / "raw.out"
-        raw = raw_path.read_bytes() if raw_path.is_file() else b""
+        raw = raw_path.read_bytes()[raw_offset:] if raw_path.is_file() else b""
         env = _envelope(raw, rec["job"], rec["snapshot"]["ref_sha"],
                         "DIED: process vanished without exit",
                         harness=rec["harness"]["name"], job_dir=job_dir,
@@ -2329,7 +2354,7 @@ def _close(args):
         # to collect (it crashed on 2026-08-28 parsing a string stamp). The
         # output is still in raw.out, so collect it now rather than lose it.
         code = int((job_dir / "exit").read_text().strip() or 0)
-        raw = (job_dir / "raw.out").read_bytes()
+        raw = (job_dir / "raw.out").read_bytes()[raw_offset:]
         note = f"harness-cli: exited {code}" if code else None
         if (job_dir / "TRIPPED.md").exists():
             note = "trip: battery tripped"
