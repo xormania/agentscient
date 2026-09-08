@@ -657,14 +657,25 @@ def _agy_stream(job_dir, session, snapshot):
             issues.append(f"session mismatch: expected {session}, found {sid}")
         if observed["cwd"] != str(snapshot.resolve()):
             issues.append(f"cwd mismatch: expected {snapshot.resolve()}, found {observed['cwd']}")
+    except (OSError, ValueError, TypeError) as exc:
+        return None, None, None, f"agy stream parse: {exc}"
+    try:
         transcript = (job_dir / "home/agy/.gemini/antigravity-cli/brain" /
                       sid / ".system_generated/logs/transcript.jsonl")
         if transcript.exists():
             if not _inside(transcript.resolve(), job_dir.resolve()):
                 issues.append("native transcript outside job")
             else:
-                for line in transcript.read_text().splitlines():
-                    row = json.loads(line)
+                lines = transcript.read_bytes().splitlines(keepends=True)
+                while lines and not lines[-1].strip():
+                    lines.pop()
+                for index, line in enumerate(lines):
+                    try:
+                        row = json.loads(line)
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        if index == len(lines) - 1 and not line.endswith(b"\n"):
+                            break  # The native writer has not finished this row.
+                        raise
                     if not isinstance(row, dict) or not {"source", "type"} <= row.keys():
                         issues.append("malformed native transcript")
                         break
@@ -677,10 +688,24 @@ def _agy_stream(job_dir, session, snapshot):
                     if "content" not in row and not planner:
                         issues.append("malformed native transcript")
                         break
-        # stdout carries native init.model/cwd and usage; brain lacks them.
-        return raw, observed["model"], sid, "; ".join(issues) or None
     except (OSError, ValueError, TypeError) as exc:
-        return None, None, None, f"agy stream parse: {exc}"
+        issues.append(f"malformed native transcript: {exc}")
+    # stdout carries native init.model/cwd and usage; brain lacks them.
+    return raw, observed["model"], sid, "; ".join(issues) or None
+
+
+def _record_stream_model(rec, ran, stream):
+    """Keep agy's historical measurement distinct from this attempt's reading."""
+    if rec["harness"]["name"] == "agy":
+        rec["model"]["current_attempt"] = {
+            "ran": ran, "read_from": str(stream) if ran is not None else None,
+            "unresolved": None if ran is not None else "native model unavailable in current attempt",
+        }
+        if ran is None:
+            return
+    if stream:
+        rec["model"].update(ran=ran, read_from=str(stream))
+        rec["model"].pop("note", None)
 
 
 def _stream(job_dir, harness, session, snapshot, ref_sha, role="read"):
@@ -2068,8 +2093,8 @@ def _resume(args):
             rec["session"].update(
                 stream=str(stream), stream_sha256_at_close=_sha(stream),
             )
-            rec["model"].update(ran=ran, read_from=str(stream))
-            rec["model"].pop("note", None)
+            if rec["harness"]["name"] != "agy":
+                _record_stream_model(rec, ran, stream)
             if rec["harness"]["name"] in {"codex", "agy"} and found_id:
                 rec["session"]["id"] = found_id
         last_message = job_dir / "out" / "last-message.json"
@@ -2103,6 +2128,8 @@ def _resume(args):
                 if env.get("note") != note:
                     _invalidate_envelope(env, note)
                 rec.setdefault("result", {})["envelope"] = env
+    if rec["harness"]["name"] == "agy":
+        _record_stream_model(rec, ran, stream)
     attempt = rec["attempts"][-1]["n"]
     if rec["role"] == "read":
         envelope = (rec.get("result") or {}).get("envelope") or _invalid(
@@ -2314,10 +2341,9 @@ def _close(args):
             rec["session"].update(
                 stream=str(stream), stream_sha256_at_close=_sha(stream),
             )
-            rec["model"].update(ran=ran, read_from=str(stream))
-            rec["model"].pop("note", None)
             if rec["harness"]["name"] in {"codex", "agy"} and found_id:
                 rec["session"]["id"] = found_id
+        _record_stream_model(rec, ran, stream)
         if rec["harness"]["name"] == "agy":
             rec["session"]["spend"] = _spend(rec, stream, job_dir)
         if mismatch:
