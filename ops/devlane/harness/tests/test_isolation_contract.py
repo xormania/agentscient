@@ -302,6 +302,7 @@ class IsolationContractTests(unittest.TestCase):
         rendered = isolation.report()
         self.assertIsInstance(rendered, str)
         self._assert_authorized_registry(json.loads(rendered))
+        self.assertEqual(isolation.HARNESSES, json.loads(rendered))
 
     def test_shell_entry_point_refuses_unknown_harness_with_exit_78_and_reason(self):
         with tempfile.TemporaryDirectory() as temporary:
