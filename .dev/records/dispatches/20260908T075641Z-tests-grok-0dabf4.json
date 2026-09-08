@@ -1,0 +1,164 @@
+{
+  "id": "20260908T075641Z-tests-grok-0dabf4",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-config-final-correction-20260908",
+  "lineage": {
+    "branch": "lane/agy-config-final-correction-20260908",
+    "base_sha": "15961b3da733d067fcbb079c8011730c1ada0978"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:56:42Z",
+    "closed": "2026-09-08T08:09:21Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "15961b3da733d067fcbb079c8011730c1ada0978",
+    "ref_sha": "15961b3da733d067fcbb079c8011730c1ada0978",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "062ea767-d760-43ec-985c-a3f8100a4c38",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/home/grok-stream/sessions/<snapshot-encoded>/062ea767-d760-43ec-985c-a3f8100a4c38/summary.json"
+  },
+  "session": {
+    "id": "062ea767-d760-43ec-985c-a3f8100a4c38",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/home/grok-stream/sessions/<snapshot-encoded>/062ea767-d760-43ec-985c-a3f8100a4c38/summary.json",
+    "stream_sha256_at_close": "7807495d88ce1130ff1cb968de99ab62805bdfd9c9ccc3e2d987ac00f2b27ae4",
+    "spend": {
+      "input": 1156534,
+      "cached": 951168,
+      "output": 21650,
+      "total": 1178184,
+      "cost_usd_ticks": 1727567200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/home/grok-stream/sessions/<snapshot-encoded>/062ea767-d760-43ec-985c-a3f8100a4c38/summary.json",
+      "messages": 143
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-config-final-correction-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply only the supplied final configuration-test ruling: remove the two misleading duplicate wrapper tests and their unsupported class coverage claim, remove the one added EOF newline from each of test_dispatch_wrapper.py and test_laneconf.py, preserve all actual loader/child-env behavior assertions. Do not add the nonblocking symlink case or any matrix. Own only those two files; no helper or production-body reads/edits. Acceptance: focused discovery of both files with honest red counts and zero errors on this original tree; registered lint; git diff --check 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 HEAD over tests after commit must pass. Report exact test hashes and removed methods. No vendor calls, credentials or full floor. Grok 4.6 trailers.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075641Z-tests-grok-0dabf4/in/agy-config-remaining-ruling.json",
+        "sha256": "11490133b8899e1a3d9981f595807754456631e63b25840cde0beececd8988e9"
+      }
+    ],
+    "sha256": "9010025ff93dc5276a183c842c58f2541289879411859bcd9d30e9116db7972f",
+    "bytes": 3097
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:56:42Z",
+      "ended": "2026-09-08T08:09:21Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "54558a72f8f7344d96733f73e6e64793e745dca6",
+    "changed_paths": [
+      "ops/conductor/tests/test_dispatch_wrapper.py",
+      "ops/conductor/tests/test_laneconf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "wrapper": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "laneconf": "ops/conductor/tests/test_laneconf.py",
+        "head": "54558a72f8f7344d96733f73e6e64793e745dca6",
+        "wrapper_commit": "8414cebef326346b8944921ac0bdbee9541f04bb",
+        "laneconf_commit": "54558a72f8f7344d96733f73e6e64793e745dca6",
+        "wrapper_sha256": "6ef87de0168dda604d3a9a82aa8b1660e5d9e46146071e4e8866635c9b3117a4",
+        "laneconf_sha256": "c4fdb8acbf842b4f32c96e975c2f5da9db4e37b1d66a58c60effd5c3d80379db",
+        "validation": "At 54558a72f8f7344d96733f73e6e64793e745dca6: python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py -> Ran 86, FAILED (failures=20), 0 errors; python3 -m unittest discover -s ops/conductor/tests -p test_laneconf.py -> Ran 83, FAILED (failures=33), 0 errors; ruff check --no-cache ops/conductor/tests/test_dispatch_wrapper.py ops/conductor/tests/test_laneconf.py exit 0; git diff --check 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 HEAD -- ops/conductor/tests/ exit 0; python3 ops/devlane/workflow/checks/commit_trailers.py --range 15961b3da733d067fcbb079c8011730c1ada0978..HEAD clean 2 messages; git status --porcelain empty; changed paths only the two owned files."
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1178184,
+        "out": 21650,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "15961b3da733d067fcbb079c8011730c1ada0978",
+        "started": "2026-09-08T07:56:42Z",
+        "ended": "2026-09-08T08:07:39Z"
+      },
+      "note": "Base 15961b3da733d067fcbb079c8011730c1ada0978. Removed methods: test_spaced_executable_agy_is_one_worker_token sha256 dcc907aa5d29d35cd51d457707067a29b17b950f2a16a7ee1244ee9a27b8b33f (15961b3 lines 1797-1814) and test_env_executable_agy_reports_env_source sha256 2b41adc49f92e5db86388791d8e127ae53738ef3e07f73927e33e9284927fdb6 (15961b3 lines 1816-1839); class coverage claim \"Spaces remain one token\" withdrawn. File SHA256 at 54558a72f8f7344d96733f73e6e64793e745dca6: ops/conductor/tests/test_dispatch_wrapper.py 6ef87de0168dda604d3a9a82aa8b1660e5d9e46146071e4e8866635c9b3117a4 (85546 bytes, 2 trailing LF); ops/conductor/tests/test_laneconf.py c4fdb8acbf842b4f32c96e975c2f5da9db4e37b1d66a58c60effd5c3d80379db (74194 bytes, 2 trailing LF). Remaining wrapper class methods unchanged from 15961b3: test_file_executable_agy_is_not_relabelled_as_env fb5f11015a05827430f4d290fe7676902b71b5908458e1773729c3c4d6d4b340; test_exported_executable_reaches_the_child_not_the_file_value 302109e9f8b0dc41f48fde69130d86e0f6214c679ddd91ab3d63a9175e784bd1; test_relative_executable_agy_refuses_executable_without_launch f2ebcb76deb1993689eff2b9717d83bae3b63e2bd6ddf2d814a27c427bf1b802; test_empty_executable_agy_refuses_executable_without_launch 35327d01ada1d030b26bab299351acb209665ec0054f2f3ac3022f3e2ce16e07. Laneconf method hashes unchanged, including test_path_with_spaces_stays_one_token fa424996e4ba709d0b9683bb2b172a4fc95dd40d7e4df0725e02c9219e9b2a82, test_env_executable_beats_file b84c54e38cd8b4c7ec7079cb52403812b9a32b5f8deb657e2f325c8b2e8681bc, test_env_executable_beats_local_and_file 9f6f937097427d0308ccb35fcb777cb5f1f7b471f205af0936dcb61030c2fd15. No symlink case or matrix added; no helper or production-body reads/edits. Commits 8414cebef326346b8944921ac0bdbee9541f04bb and 54558a72f8f7344d96733f73e6e64793e745dca6."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T08:09:20.358Z"
+    }
+  },
+  "status": "closed"
+}
