@@ -40,6 +40,118 @@ from urllib.parse import quote
 GROK_GAP = "grok usage not yet parsed: updates.jsonl turn_completed"
 
 
+def agy_read(path: Path, offset=0):
+    """Read captured native stdout, without inventing transcript fields.
+
+    20260908T071244Z-code-grok-220fb8: result.usage is cumulative across
+    explicit-ID resumes; thinking/cache are separate, overlapping figures.
+    Only complete NDJSON lines count while a process is still writing.
+    A decreasing counter is unresolved, never a guessed new billing run.
+    """
+    raw = path.read_bytes()[offset:]
+    rows, issues, identity, cwd, model = [], [], None, None, None
+    tokens = None
+    prior = None
+    messages = None
+    terminal = False
+    for line in raw.splitlines(keepends=True):
+        if not line.strip():
+            continue
+        if not line.endswith(b'\n'):
+            issues.append("truncated native frame")
+            break
+        try:
+            frame = json.loads(line)
+            if not isinstance(frame, dict):
+                raise ValueError("frame is not an object")
+            event = frame.get("event")
+            body = frame.get(event) if event in {"init", "result"} else None
+            if event not in {"init", "result", "step_update"}:
+                raise ValueError("unknown native frame")
+            if event in {"init", "result"}:
+                if not isinstance(body, dict):
+                    raise ValueError("native carrier is not an object")
+                sid = frame.get("conversation_id") if event == "init" else body.get("conversation_id")
+                if not isinstance(sid, str) or not sid or Path(sid).name != sid or sid in {".", ".."}:
+                    raise ValueError("invalid conversation identity")
+                if identity is not None and identity != sid:
+                    raise ValueError("contradictory conversation identity")
+                identity = sid
+            if event == "init":
+                terminal = False
+                found_cwd = body.get("cwd")
+                if not isinstance(found_cwd, str) or not Path(found_cwd).is_absolute():
+                    raise ValueError("missing absolute init.cwd")
+                # Captured attempts can relocate together with their job.
+                # Launch checks each attempt against its rebound snapshot.
+                cwd = found_cwd
+                observed = body.get("model")
+                if observed is not None:
+                    if not isinstance(observed, str) or not observed.strip():
+                        raise ValueError("malformed init.model")
+                    if model and observed != model:
+                        raise ValueError("contradictory init.model")
+                    model = observed
+            elif event == "result":
+                if terminal:
+                    raise ValueError("duplicate terminal result")
+                terminal = True
+                native = body.get("usage")
+                if not isinstance(native, dict):
+                    tokens = None
+                    raise ValueError("missing terminal usage")
+                tokens = {}
+                for key, source in (("input", "input_tokens"), ("cached", "cache_read_tokens"),
+                                    ("output", "output_tokens"), ("total", "total_tokens")):
+                    value = native.get(source)
+                    tokens[key] = value if type(value) is int and value >= 0 else None
+                if any(value is None for value in tokens.values()):
+                    issues.append("incomplete terminal usage")
+                if prior and any(tokens[k] is not None and prior[k] is not None
+                                 and tokens[k] < prior[k] for k in tokens):
+                    issues.append("cumulative usage decreased; reset semantics unresolved")
+                prior = tokens.copy()
+                messages = body.get("num_turns")
+                if type(messages) is not int or messages < 0:
+                    messages = None
+            rows.append(frame)
+        except (ValueError, TypeError, UnicodeError) as exc:
+            issues.append(str(exc))
+    if not terminal:
+        issues.append("terminal usage unavailable")
+    if not identity or not cwd:
+        issues.append("session/cwd binding unavailable")
+    if issues and tokens:
+        tokens["total"] = None
+    return {"harness": "agy", "session": identity, "model": model, "cwd": cwd,
+            "started": None, "ended": None, "messages": messages, "tokens": tokens,
+            "incomplete": bool(issues), "issues": issues, "frames": rows,
+            "source": str(path),
+            "note": "; ".join(issues + ["native timestamps and provider unavailable"]
+                              + ([] if model else ["native model unavailable"]))}
+
+
+def agy_sessions(root: Path, repo: str | None):
+    """Captured job roots (raw.out), or their isolated home/agy directory.
+
+    Native brain transcripts do not carry usage/model/provider. The existing
+    launch capture supplies those observations; no sidecar transcript format.
+    Callers select a root explicitly; there is no personal-store default.
+    """
+    if root.name == "agy" and root.parent.name == "home":
+        root = root.parent.parent
+    paths = [root / "raw.out"] if (root / "raw.out").is_file() else sorted(root.rglob("raw.out"))
+    readings = [agy_read(path) for path in paths]
+    for row in readings:
+        if repo and row["cwd"] != repo:
+            continue
+        key = row["session"]
+        if sum(other["session"] == key for other in readings) > 1:
+            row.update(tokens=None, incomplete=True,
+                       note="duplicate conversation across captures; usage unresolved")
+        yield {k: v for k, v in row.items() if k not in {"frames", "issues", "cwd"}}
+
+
 def _read_jsonl(path: Path):
     for raw in path.read_text(errors="replace").splitlines():
         raw = raw.strip()
@@ -256,6 +368,8 @@ def collect(args):
     rows += list(claude_sessions(Path(args.claude_dir), args.repo))
     rows += list(codex_sessions(Path(args.codex_dir), args.repo))
     rows += list(grok_sessions(Path(args.grok_dir), args.repo))
+    if getattr(args, "agy_dir", None):
+        rows += list(agy_sessions(Path(args.agy_dir), args.repo))
     rows.sort(key=lambda r: (r.get("started") or "", r["harness"]))
     return rows
 
@@ -294,7 +408,11 @@ def cmd_report(args) -> int:
         if r.get("tokens"):
             agg["counted"] += 1
             for k in agg["tokens"]:
-                agg["tokens"][k] += r["tokens"].get(k, 0)
+                value = r["tokens"].get(k, 0)
+                if value is None or agg["tokens"][k] is None:
+                    agg["tokens"][k] = None
+                else:
+                    agg["tokens"][k] += value
             if r["harness"] == "grok":
                 if r.get("incomplete"):
                     agg["incomplete_sessions"] = agg.get(
@@ -349,6 +467,7 @@ def main(argv=None) -> int:
     parser.add_argument("--claude-dir", default=str(home / ".claude" / "projects"))
     parser.add_argument("--codex-dir", default=str(home / ".codex"))
     parser.add_argument("--grok-dir", default=str(home / ".grok"))
+    parser.add_argument("--agy-dir", help="explicit dispatch capture root")
     args = parser.parse_args(argv)
     return cmd_sessions(args) if args.verb == "sessions" else cmd_report(args)
 
