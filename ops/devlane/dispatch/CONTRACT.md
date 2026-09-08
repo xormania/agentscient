@@ -108,6 +108,18 @@ isolation record and independent source/tests retain their provenance.
 `raw.out` is the native evidence stream for init.model/cwd and result.usage;
 brain transcript rows do not supply those fields. Each attempt records its
 raw byte offset so a resumed result is extracted from that attempt alone.
+Transcript validation cannot discard an established stdout session/cwd binding.
+Ignore trailing blank lines and an unfinished final JSON row without a newline,
+including a partial UTF-8 character. Complete rows still require valid JSON and
+the supported source/type/payload shape; malformed complete evidence or a failed
+transcript read supplies a refusing mismatch while retaining the stdout binding.
+On same-session resume/close, an omitted native model preserves historical
+`model.ran` and `model.read_from`. Record the current reading separately as
+agy-only `model.current_attempt = {ran, read_from, unresolved}`: measured model
+and source with null unresolved, or null model/source with an explicit current
+attempt unresolved reason. A later measured model replaces that historical
+measurement and clears the current unresolved reason; requested identity is
+never substituted for missing native evidence.
 Only terminal `result.status == 'SUCCESS'` certifies native completion;
 every other status (including unknown nonempty values) is refused even beside
 a valid envelope. SUCCESS still requires the carrier and canonical envelope
