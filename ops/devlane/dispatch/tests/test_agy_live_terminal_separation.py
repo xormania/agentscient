@@ -10,17 +10,14 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-if str(HERE) not in sys.path:
-    sys.path.insert(0, str(HERE))
-
 import agy_envelope_support as frames
 import launch_support as ls
+
+HERE = Path(__file__).resolve().parent
 
 USAGE_PATH = HERE.parents[1] / "telemetry" / "usage.py"
 SID = frames.CONVERSATION_ID
