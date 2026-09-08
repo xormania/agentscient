@@ -1,0 +1,179 @@
+{
+  "id": "20260908T085946Z-adjudicate-codex-24c834",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/agy-lifecycle-cwd-ruling-20260908",
+  "lineage": {
+    "branch": "lane/agy-lifecycle-cwd-ruling-20260908",
+    "base_sha": "18af30b32047265e86d6a486e1bfea2e06b54a64"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:59:46Z",
+    "closed": "2026-09-08T09:02:48Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+    "ref_sha": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-cwd-ruling-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-59-47-01a0803e-b17e-70a1-9da9-3256d344c388.jsonl"
+  },
+  "session": {
+    "id": "01a0803e-b17e-70a1-9da9-3256d344c388",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-59-47-01a0803e-b17e-70a1-9da9-3256d344c388.jsonl",
+    "stream_sha256_at_close": "c3db51991d853932a2856a896c6cdfae2ac6731fe2619673827c0b087b024be5",
+    "spend": {
+      "input": 507184,
+      "cached": 444672,
+      "output": 4497,
+      "total": 511681,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-59-47-01a0803e-b17e-70a1-9da9-3256d344c388.jsonl",
+      "messages": 80
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-cwd-ruling-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Cold-adjudicate ONLY residual fixture cwd contradiction and incorrect absence claim in supplied lifecycle acceptance review at exact 18af30b. Prior nine fixes accepted in substance. Reviewer could not execute tests; verify via bounded in-memory test-fixture correction if possible, without writing tests. Rule each finding and minimal two-call correction, no new matrix/source duties. No production/test edits, vendors or full floor. Return inline ruling with actual check limits.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/in/agy-lifecycle-final-review.json",
+        "sha256": "3396033f5d296f6217238d8a69f906690480d6c53754a151833bd83524885ef3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085946Z-adjudicate-codex-24c834/in/agy-lifecycle-fix-producer.json",
+        "sha256": "3cfa469776f8e66ce0d1e02b03ce26ff6da11f56f909533a2e7028221a4c32f7"
+      }
+    ],
+    "sha256": "b1f17614bee0154117b94b1da061208c4e7fd1e3db2caa6048d216f03e88875b",
+    "bytes": 2792
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:59:46Z",
+      "ended": "2026-09-08T09:02:48Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:554,604",
+          "claim": "UPHELD. CONTRACT.md requires matching session and repo before counting. The fixture declares snapshot_root=self.repo but both framed_stdout calls omit cwd, emitting '/synthetic'. The unchanged accounting code filters that capture out. Minimal correction: add cwd=str(self.repo) to the framed_stdout call inside _spend_from and to the resume_raw call. Applying exactly these two additions in memory changed the existing three tests from three failures to three passes, preserving totals 120/120/295 and the exclusions of 415 and the prior 120.",
+          "reproduce": "At exact 18af30b, execute the existing AgyTerminalUsage methods with fixture setup and Path I/O backed by memory. Original: 3 FAIL, 0 ERROR; each spend returned 'not in the store (0 sessions read)'. Compile an in-memory copy with only the two cwd keyword additions and repeat: 3 PASS, 0 ERROR, 0 SKIP. Production _spend and usage readers remain unchanged."
+        },
+        {
+          "severity": "p3",
+          "where": "18af30b commit message; ../in/agy-lifecycle-fix-producer.json:result.envelope.artifacts.true_failures and result.envelope.note",
+          "claim": "UPHELD. The statement 'Three assertion reds remain until stdout usage accounting exists' incorrectly declares absence. At this head, launch.py:1657 invokes agy_sessions with the snapshot root, and the bounded corrected-fixture execution returns the contracted totals through that existing implementation. Record the reds as fixture cwd contradictions and supersede the incorrect attribution in a follow-up record, preserving historical provenance. No production accounting change is justified by these failures.",
+          "reproduce": "git log -1 --format=%B 18af30b32047265e86d6a486e1bfea2e06b54a64; compare the quoted absence claim with the original/corrected in-memory execution described above."
+        }
+      ],
+      "artifacts": {
+        "inputs": "Read both supplied in/ files whole: agy-lifecycle-fix-producer.json and agy-lifecycle-final-review.json.",
+        "scope": "Exact HEAD 18af30b32047265e86d6a486e1bfea2e06b54a64 against 3432b5cb8b9e171ecc981efa8409d299a85ec4c0; checked the relevant supplied diff. Both fixture files and the executed launch.py/usage.py matched their exact-head Git blobs.",
+        "verification": "Unittest loader collected 24 cases. Executed only the three existing AgyTerminalUsage cases twice: original 3 failures; corrected in memory 3 passes. Ruff passed for both fixture files; scoped git diff --check exited 0. Final git status was empty.",
+        "limits": "Read-only environment: replaced fixture setUp/tearDown and relevant Path I/O with memory operations; retained existing assertions and unmodified production accounting. No ordinary filesystem-backed test run, remaining 21 cases, live lifecycle checks, vendors, session-store access or full floor. No files or tests authored or edited."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 511681,
+        "out": 4497,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+        "started": "2026-09-08T08:59:59Z",
+        "ended": "2026-09-08T09:02:15Z"
+      },
+      "note": "Both residual findings upheld. Prior nine fixes remain accepted in substance; F5/F11 rejections stand. Correction is limited to the two cwd arguments and the inaccurate attribution. No new matrix or source duties."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T09:02:47.840Z"
+    }
+  },
+  "status": "closed"
+}
