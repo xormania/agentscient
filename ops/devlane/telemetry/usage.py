@@ -55,6 +55,7 @@ def agy_read(path: Path, offset=0):
     messages = None
     terminal = False
     steps = {}
+    live_incomplete = False
     live_output = None
     for line in raw.splitlines(keepends=True):
         if not line.strip():
@@ -83,6 +84,7 @@ def agy_read(path: Path, offset=0):
                 terminal = False
                 tokens = None
                 steps = {}
+                live_incomplete = False
                 live_output = None
                 found_cwd = body.get("cwd")
                 if not isinstance(found_cwd, str) or not Path(found_cwd).is_absolute():
@@ -108,16 +110,19 @@ def agy_read(path: Path, offset=0):
                         raise ValueError("contradictory step conversation identity")
                     index = step.get("step_index")
                     native = step.get("usage")
-                    if native is not None:
-                        if type(index) is not int or index < 0:
-                            raise ValueError("invalid native step_index")
-                        output = native.get("output_tokens") if isinstance(native, dict) else None
-                        if type(output) is not int or output < 0:
-                            raise ValueError("malformed step output usage")
+                    output = native.get("output_tokens") if isinstance(native, dict) else None
+                    if (type(index) is not int or index < 0
+                            or type(output) is not int or output < 0):
+                        # An unknown step cannot license a partial live sum,
+                        # nor contradict independently measured terminal usage.
+                        live_incomplete = True
+                        if not terminal:
+                            live_output = None
+                    else:
                         if index in steps and steps[index] != output:
                             raise ValueError("contradictory step output usage")
                         steps[index] = output
-                        if not terminal:
+                        if not terminal and not live_incomplete:
                             live_output = sum(steps.values())
             elif event == "result":
                 if terminal:
