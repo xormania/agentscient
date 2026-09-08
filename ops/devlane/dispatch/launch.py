@@ -784,6 +784,61 @@ def _merge_spend(prior, wrapper):
     return merged
 
 
+def _agy_envelope(raw):
+    """Read one published stream-json result, never scan nested objects.
+
+    Carrier fields follow the supplied agy wire evidence
+    20260908T064029Z-plan-codex-161211. Status-only failure vocabulary
+    remains unresolved; explicit result errors are authoritative, while
+    step/tool errors and denied_actions do not imply terminal failure.
+    """
+    results = []
+    for line in raw.decode("utf-8").splitlines():
+        if not line.strip():
+            continue
+        frame = json.loads(line)
+        if not isinstance(frame, dict):
+            raise ValueError("malformed stream frame: expected an object")
+        if frame.get("event") == "result":
+            results.append(frame.get("result"))
+    if not results:
+        raise ValueError("missing terminal result event")
+    if len(results) != 1:
+        raise ValueError("ambiguous terminal result: multiple result events")
+    result = results[0]
+    if not isinstance(result, dict):
+        raise ValueError("malformed terminal result: expected an object")
+    for field, kinds in (
+        ("conversation_id", (str,)), ("status", (str,)),
+        ("response", (str,)), ("duration_seconds", (int, float)),
+        ("num_turns", (int, float)), ("usage", (dict,)),
+    ):
+        if field not in result:
+            raise ValueError(f"terminal result missing {field}")
+        if (not isinstance(result[field], kinds)
+                or isinstance(result[field], bool)):
+            raise ValueError(f"malformed terminal result {field}")
+    if not result["status"].strip():
+        raise ValueError("malformed terminal result status: empty string")
+    if "error" in result:
+        if not isinstance(result["error"], str):
+            raise ValueError("malformed terminal result error")
+        if result["error"]:
+            raise ValueError(f"vendor error: {result['error']}")
+    if "structured_output" in result:
+        data = result["structured_output"]
+        if not isinstance(data, dict):
+            raise ValueError("malformed terminal result structured_output")
+    else:
+        data = json.loads(result["response"])
+    # Keep semantic checks in their canonical owner, including diagnostic
+    # field names; schema validation also enforces exact scalar types.
+    ENVELOPE.validate(data)
+    if not _schema_valid(data):
+        raise ValueError("schema-invalid: object does not match ENVELOPE_SCHEMA")
+    return data
+
+
 def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
               rec=None):
     """The last JSON object on stdout, or an invalid envelope that says why.
@@ -794,10 +849,15 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
     (codex once returned the SHA as a string).
     """
     text = raw.decode("utf-8", "replace")
-    objects = _json_objects(text)
+    objects = [] if harness == "agy" else _json_objects(text)
     data = None
     cause = None
-    if harness == "claude" and objects:
+    if harness == "agy":
+        try:
+            data = _agy_envelope(raw)
+        except ValueError as exc:
+            cause = f"agy-result: {exc}"
+    elif harness == "claude" and objects:
         wrapper = next((item for item in objects if item.get("type") == "result"), None)
         if wrapper is not None:
             if rec is not None:
