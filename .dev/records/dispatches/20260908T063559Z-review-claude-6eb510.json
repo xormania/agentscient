@@ -1,0 +1,309 @@
+{
+  "id": "20260908T063559Z-review-claude-6eb510",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-contract-review-20260908",
+  "lineage": {
+    "branch": "lane/agy-contract-review-20260908",
+    "base_sha": "fc9ad2c015d47c85b405018521b57fa57e212d90"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T06:35:59Z",
+    "closed": "2026-09-08T06:46:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+    "ref_sha": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "2b60ed80-6025-440e-8e07-1c99fdebade2",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/2b60ed80-6025-440e-8e07-1c99fdebade2.jsonl"
+  },
+  "session": {
+    "id": "2b60ed80-6025-440e-8e07-1c99fdebade2",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/2b60ed80-6025-440e-8e07-1c99fdebade2.jsonl",
+    "stream_sha256_at_close": "bc4140d2902157439e48a154dc6dfee70ed6c51e67ddaac6e0b550071369c696",
+    "spend": {
+      "input": 90,
+      "cached": 4978463,
+      "output": 44171,
+      "total": 5022724,
+      "source": "result.usage",
+      "messages": 45,
+      "cost_usd": 5.145552500000001
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-contract-review-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review only the compact agy worker/configuration contract amendment against the owner's installation objective and current runtime boundaries. Check exact config selection/precedence, executable-as-path semantics, advertised-vs-observed capabilities, canonical worker transport/session/usage ownership, and enough precision for independent tests. Preserve current harness behavior; do not require role calibration, a new admission protocol, broad C1/C2 work, conductor support or stronger host containment than the existing trust model. Test any concrete defect claim against the exact amended text and existing owner contract. No edits, implementation design by guessed fixture, settings/credentials, inference or full floor. Return a concise original review envelope with measurable blockers and explicit nonblocking limits. Report anything outside the scope that changes the verdict.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/in/agy-worker-owner.md",
+        "sha256": "8abd7ac8e69a9610dbe58f5e0f5dc7e074c818bbc4b70387e49f01fe43d4c27c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/in/agy-installation-contract-brief.md",
+        "sha256": "e1c973d83ba859d81e53cde0201e106fa59905426468424e74a011af3ee7f3fc"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/in/agy-contract-original-invalid-record.json",
+        "sha256": "b391a48b28ebb6a458cd2f8309c3f3b1240f700b21bccebe9686b289a2b4455e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T063559Z-review-claude-6eb510/in/record.json",
+        "sha256": "0adfde3996e9044a6630bff63bb3cb480a76b790d2cc6a35a9ccc2569761cda6"
+      }
+    ],
+    "sha256": "149cb540bcbed798ddcda10f4ea585de9f73d9f3bb60f3c2362f443fe6dd88e4",
+    "bytes": 1664
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T06:35:59Z",
+      "ended": "2026-09-08T06:46:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 5,
+        "p3": 3,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/laneconf.py:8-16 (docstring) and ops/devlane/dispatch/CONTRACT.md:266-276",
+          "claim": "Both new key families break the lane's own closure gate as declared. WORKER_HARNESSES is declared optional (absence means 'claude codex grok'), but any literal get(\"WORKER_HARNESSES\")/os.environ.get(\"WORKER_HARNESSES\") in laneconf.py is picked up by _reads (laneconf.py:273-308) and, with the key absent from the tracked conf, closure() prints 'undeclared read' and exits 1 (laneconf.py:366-370). EXECUTABLE_<NAME> fails the other way: a key name built per worker matches no reader pattern and is not covered by the MODEL_/EFFORT_ dispatch.sh provision (laneconf.py:357-363), so declaring EXECUTABLE_AGY in ops/lane.conf yields 'unread declaration' and exit 1. ops/conductor/tests/test_laneconf.py:581 asserts closure exits 0 on this tree and .github/workflows/ci.yml:43 runs it, so an implementer following the amendment literally lands the conductor suite and the lane CI check red. The amendment names neither closure, EXTERNAL_ENV_KEYS (laneconf.py:74-118), nor a new reader provision.",
+          "reproduce": "sed -n '265,308p;355,372p' ops/conductor/tools/laneconf.py; sed -n '576,584p' ops/conductor/tests/test_laneconf.py; sed -n '40,44p' .github/workflows/ci.yml"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:281-283 and ops/conductor/tools/laneconf.py:18-21 (docstring), against ops/conductor/tools/dispatch.sh:55-88",
+          "claim": "The declared precedence 'environment > lane.local.conf > that file > default' and the instruction 'a file value must not be relabelled as an operator environment override' cannot hold at the one seam the amendment names. dispatch.sh sources both conf files and saves/restores only the fixed `keys` list plus ${!MODEL_@} and ${!EFFORT_@} (lines 55-57, 82-88). WORKER_HARNESSES and EXECUTABLE_<NAME> are in neither set, so sourcing a conf that declares them overwrites an exported operator value in place \u2014 the assignment keeps the export attribute \u2014 and every child, including the loader the wrapper is told to consult, sees the file value while laneconf.get() reports it as source 'env:KEY'. Precedence is inverted and the provenance string is wrong in exactly the case the amendment forbids. Extending the wrapper's saved-key list is an obligation the amendment does not state.",
+          "reproduce": "sed -n '55,98p' ops/conductor/tools/dispatch.sh; sed -n '218,237p' ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:288-297, against ops/conductor/tools/dispatch.sh:2 and 210-231",
+          "claim": "The model/effort rungs the amendment says are preserved do not exist for a fourth worker name in the wrapper it names. Model: dispatch.sh:217-223 is a three-arm `case $harness` with no generic MODEL_<NAME> rung, so 'nonempty --model wins over MODEL_<NAME>_<JOB>, then MODEL_<NAME>' is true only for grok/codex, and the amendment's 'optional MODEL_AGY ... in these existing families' names a family that is not there. Effort: the final rung is `effort=${!effort_harness}` with no `:-` default (line 229) under `set -uo pipefail` (line 2); for a worker whose EFFORT_<NAME> the amendment declares optional, that indirect expansion of an unset variable is a nounset abort of the wrapper, not the declared 'absent/empty effort means no effort argv'. Today the hardcoded harness case at line 177 refuses before this code runs; replacing it with the loader check, as the amendment requires, exposes both rungs.",
+          "reproduce": "sed -n '1,2p;171,178p;210,231p' ops/conductor/tools/dispatch.sh   # nounset abort not executed here: script execution was denied in this session"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:340-355 against CONTRACT.md:805-834",
+          "claim": "The new refusal ids bypass the document's own refusal home. CONTRACT.md \u00a7Refusals (805-834) is the declared table of every dispatch refusal id with its expected/found/satisfy text; the amendment adds `worker`, `executable` and `unsupported-capability`, and re-scopes existing rows, in a separate prose section instead. The reused rows now contradict it: row 829 still defines `resume-store` as 'a codex or grok resume', and row 825 defines `write-role-unadmitted` as claude-only, while the amendment applies both to agy. Its 'existing regression homes' list (CONTRACT.md:357-362) also omits ops/devlane/dispatch/tests/test_launch_refusals.py, the existing home of the refusal cases and the natural place for the new classes, so a test author is pointed away from the surface with the most new behavior.",
+          "reproduce": "sed -n '805,834p;340,365p' ops/devlane/dispatch/CONTRACT.md; grep -n 'class \\|def test' ops/devlane/dispatch/tests/test_launch_refusals.py | head -40"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/CONTRACT.md:308-315 (adapter table) against ops/devlane/dispatch/launch.py:371-391 and ops/devlane/dispatch/record.py:151",
+          "claim": "The record's permission claim for agy is left undeclared while being mandatory. _harness_meta derives `sandbox` from the hardcoded three-key dict at launch.py:379 (a KeyError for a fourth name), `containment` from `\"os\" if name == \"codex\" else \"policy\"` at line 382, and the non-minimal store base from `Path(env[\"HOME\"]) / \".claude\"` at line 384; record.validate then requires harness.containment in {os, policy} (record.py:151). The adapter table never names _harness_meta and the bounded transport carries no permission or mode token, so what an agy record asserts as harness.sandbox, harness.containment and isolation.store \u2014 the security-relevant fields an independent test must pin, and the fields the contract elsewhere insists a label must not overstate \u2014 is unstated. The choice is left to the implementer, who by this contract is also barred from claiming measured permission behavior.",
+          "reproduce": "sed -n '371,392p' ops/devlane/dispatch/launch.py; sed -n '149,152p' ops/devlane/dispatch/record.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:284-286 and 310 against ops/devlane/dispatch/launch.py:495-497",
+          "claim": "Executable-as-path has no named seam and quietly changes the three existing adapters. _argv derives argv[0] itself (`executable = shutil.which(name) or name`, launch.py:497) while the amendment says launch 'uses its `executable` as the single argv[0]' and, in the same row, 'Keep the existing signatures' \u2014 it never says how the resolved path reaches _argv, whose `name` parameter also drives the per-harness branching, so the seam a test would target does not exist. Two consequences for claude/codex/grok are also unflagged against 'all three fresh/resume argv persist': a name that fails PATH lookup is today not refused (argv[0] falls back to the bare name), and 'resolve to an absolute path, including symlink targets' changes recorded argv[0] from the which() path to the link target.",
+          "reproduce": "sed -n '495,500p' ops/devlane/dispatch/launch.py; sed -n '12,16p' ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:310-312 against ops/devlane/dispatch/launch.py:492, 588-590, 637",
+          "claim": "Three launcher rungs default to another harness rather than refusing, and the amendment does not name them where it names the functions. _effort_argv's final return is grok's `--reasoning-effort` (launch.py:492), _stream's `else` is claude's and globs the operator's real $HOME/.claude/projects (588-590), and the session-mismatch guard exempts codex by name (637), which an agy adapter that mints no session flag would also need. A partially implemented agy adapter therefore misroutes silently instead of refusing; the contract's 'launch owns the implemented-adapter check' covers an absent adapter but not these fallthroughs inside the functions it tells the implementer to extend.",
+          "reproduce": "sed -n '484,493p;583,592p;635,640p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md:310",
+          "claim": "The bounded transport pins exact flag spellings that the evidence reachable from this job does not carry. `--input-format text` and `--output-format stream-json` appear only in the amendment; the measured help evidence available here (the plan record at .dev/records/dispatches/20260908T060530Z-plan-codex-099ecc.json, E3) records 'text/json/stream-json output, text/stream-json input' without those spellings, and the integration inventory the amendment cites was not supplied to this review. The amendment's own rule \u2014 advertised syntax is to verify, never to assert \u2014 applies to its own transcription; the row should name the source reading for each token or mark the spelling unresolved. Reported as an unverified transcription, not a demonstrated wrong flag: agy --help was not run here.",
+          "reproduce": "env -i PATH=/usr/bin:/bin /home/scientdb/.local/bin/agy --help   # not executed in this session: command approval was denied"
+        }
+      ],
+      "artifacts": {
+        "measured": "Read at HEAD fc9ad2c015d47c85b405018521b57fa57e212d90 (git rev-parse HEAD) on 2026-09-08T06:45:08Z, against base 3432b5cb8b9e171ecc981efa8409d299a85ec4c0. The supplied diff adds .dev/ladder-inputs/agy-worker-owner.md and .dev/records/dispatches/20260908T060530Z-plan-codex-099ecc.json (both from earlier commits in the range) and, for this amendment, docstring blocks in ops/conductor/tools/laneconf.py (lines 4-32) and ops/devlane/harness/isolation.py (lines 56-79) plus a new first section in ops/devlane/dispatch/CONTRACT.md (lines 3-131). No executable code changed; both docstrings sit above `from __future__`. Verified accurate against the tree: the isolation entry field list (mechanism, flags, home_env, also_env, auth_files, sessions{under,path}, probe_phrase, measured) matches HARNESSES at isolation.py:95-164; build_home(harness, root, env=None), dispatch_env(harness, home=None, env=None), isolated(harness, root, env=None) match isolation.py:222/292/329; _effort_argv(harness, effort), _stream(job_dir, harness, session, snapshot, ref_sha, role='read') and _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None, rec=None) match launch.py:484/583/787; laneconf ConfigError(kind, expected, found, needed) and its exit-2 CLI wire match laneconf.py:146-166 and 452-470; launch.main(argv=None) -> int matches launch.py:2127; _spend's {unresolved, looked_in} shape matches launch.py:1429-1431; *_sessions(root, repo) row shape matches usage.py:54/106/217; 'usage/pulse have three readers' matches usage.py and pulse.py:117/171/210; the claude MODEL_CLAUDE_PLAN/READ stage fallback matches dispatch.sh:221; refusal exit 3 matches dispatch.sh:6 and launch.py:33 and is the deviation already documented at CONTRACT.md:807-812; record.validate imposes no closed key set, so harness.worker and model.provider additions are compatible (record.py:131-200); every named regression home exists (ls of the eight paths); the section's own reproduce command matches present symbols. The amendment correctly declines to guess auth filenames, session paths, event selectors and provider identity.",
+        "limits": "Could not look, declared: this session's command policy denied running python3, bash scripts and local binaries, so ops/devlane/workflow/checks/doc_commands.py and doc_covers.py were not re-run here (the code job's receipts C19/C26 claim they passed at 1ba6708; note doc_covers skips any file without `---` frontmatter, which CONTRACT.md has none of, so that receipt exercises none of the amended text), `agy --help`/`--version` were not measured, and the nounset abort in finding 3 was reasoned from dispatch.sh's `set -u` and the missing `:-` default rather than executed. The integration inventory and configuration decision that the amendment cites were not supplied to this job, so its transcription of measured agy syntax could only be checked against the plan record carried in the diff. No credentials, settings, session store, inference call or suite run was involved; out/ holds no residue.",
+        "outside_scope": "Nothing outside the amendment changes the verdict. Two boundary readings, both nonblocking: exit 3 for pre-effect refusals conflicts with docs/wire.md (Rejection 2) but is a pre-existing, explicitly deferred deviation the amendment merely restates, not a new defect; and 'unavailable live output evidence blocks the affected capped operation' means agy cannot run any capped job until its stream carries live output-token evidence readable by the regex at launch.py:1023-1024, which the amendment already accepts as a narrow installation dependency. Role calibration, an admission protocol, C1/C2 work, conductor support and stronger host containment were not required or assumed anywhere in this review."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 5022724,
+        "out": 44171,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+        "started": "2026-09-08T06:36:00Z",
+        "ended": "2026-09-08T06:45:08Z"
+      },
+      "note": "Verdict changes on the documentation artifact, not on absent agy code. The amendment is accurate where it maps existing owners \u2014 signatures, isolation fields, record compatibility, usage/pulse readers, effort precedence inside launch \u2014 and honest about what is unresolved. The five p2 findings are all of one kind: configuration and refusal obligations declared against seams that, as they stand, cannot deliver them (the closure gate, the wrapper's env save/restore list and its three-arm model/effort fallback, the refusal table, _harness_meta's sandbox/containment/store). Each is fixable inside this artifact by naming the seam and the value; none requires role calibration, a new admission protocol, broad C1/C2 work, conductor support or stronger host containment. Findings 6-8 are precision gaps for the next producer's tests. Measurement limits are declared in artifacts.limits: doc checks and binary help were not re-run because command execution was denied in this session, and one shell-semantics consequence is reasoned rather than executed."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
