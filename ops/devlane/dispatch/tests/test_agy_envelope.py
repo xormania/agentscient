@@ -5,10 +5,13 @@ Authored from ops/devlane/dispatch/CONTRACT.md §Configured workers
 launch.py was not read. Contract review is pending.
 
 Pins: terminal result extraction from published stream-json frames,
-exact canonical envelope semantics, vendor failure, missing / ambiguous
-/ malformed / truncated terminal results, unrelated intermediate JSON,
+exact canonical envelope semantics, vendor failure, missing required
+vendor status, missing / ambiguous / malformed / truncated terminal
+results, mixed bare JSON rejected under stream-json, unrelated
+intermediate JSON, decoy-free reject variants with valid controls,
 legacy extraction unchanged, and SUCCESS plus a tool-level denial not
-turned into an undeclared blanket failure.
+turned into an undeclared blanket failure. Vendor status-only failure
+coverage is unresolved pending a measured enum.
 """
 
 from __future__ import annotations
@@ -37,11 +40,11 @@ class _AgyEnvelopeCase(unittest.TestCase):
         if harness is not _OMIT:
             kwargs["harness"] = harness
         got = fn(*args, **kwargs)
-        if isinstance(got, dict):
-            return got
-        if isinstance(got, tuple) and got and isinstance(got[0], dict):
-            return got[0]
-        self.fail(f"_envelope returned {type(got).__name__}: {got!r}")
+        self.assertIsInstance(
+            got, dict,
+            f"_envelope returned {type(got).__name__}: {got!r}",
+        )
+        return got
 
     def assert_planted_decoys(self, raw):
         text = raw.decode("utf-8")
@@ -81,6 +84,24 @@ class _AgyEnvelopeCase(unittest.TestCase):
             )
         self.assert_not_a_decoy(env)
 
+    def assert_no_scan_decoys(self, raw):
+        text = raw.decode("utf-8")
+        self.assertNotIn(agy.DECOY_LEAD_NOTE, text, "plant: no leading decoy")
+        self.assertNotIn(agy.DECOY_TRAIL_NOTE, text, "plant: no trailing decoy")
+
+    def assert_carrier_reject(self, env, *, nested_note=None):
+        """Invalid carrier: cause, no nested success, not a schema scan."""
+        self.assert_invalid_cause(env)
+        if nested_note is not None:
+            self.assertNotEqual(env.get("note"), nested_note, env)
+        note = str(env.get("note") or "")
+        self.assertNotIn(
+            "ENVELOPE_SCHEMA",
+            note,
+            "reject the result carrier; do not schema-judge an "
+            f"intermediate stream event: {env!r}",
+        )
+
 
 class AgyStreamJsonTerminalResultIsTheCarrier(_AgyEnvelopeCase):
     """Decode only the measured terminal result carrier for this attempt."""
@@ -113,7 +134,7 @@ class AgyStreamJsonTerminalResultIsTheCarrier(_AgyEnvelopeCase):
         )
         self.assertNotEqual(stamp.get("ref"), agy.PLACEHOLDER_REF)
 
-    def test_a_published_print_json_result_extracts_the_nested_envelope(self):
+    def test_a_mixed_bare_published_result_is_rejected_under_stream_json(self):
         nested = agy.canonical_envelope(note="agy-print-terminal")
         result = agy.published_result(nested)
         raw = agy.ndjson_bytes(
@@ -125,12 +146,13 @@ class AgyStreamJsonTerminalResultIsTheCarrier(_AgyEnvelopeCase):
         self.assertIn(b'"conversation_id"', raw)
         self.assertNotIn(b'"event": "result"', raw)
         env = self.parse(raw)
-        self.assertEqual(
+        self.assert_invalid_cause(env)
+        self.assertNotEqual(
             env.get("note"), "agy-print-terminal",
-            "published print JSON is a terminal result carrier: "
-            f"{env!r}",
+            "a mixed bare published result is not the stream-json "
+            f"terminal carrier: {env!r}",
         )
-        self.assertEqual(env.get("status"), "ok", env)
+        self.assertNotEqual(env.get("status"), "ok", env)
 
     def test_step_update_json_is_not_the_terminal_result(self):
         nested = agy.canonical_envelope(note="agy-from-result")
@@ -172,7 +194,11 @@ class AgyStreamJsonTerminalResultIsTheCarrier(_AgyEnvelopeCase):
 
 
 class AgyVendorFailureDoesNotCertifyWork(_AgyEnvelopeCase):
-    """Vendor errors even beside a plausible envelope; SUCCESS is not enough."""
+    """Vendor errors even beside a plausible envelope; SUCCESS is not enough.
+
+    A status-only vendor-failure case is unresolved pending a measured
+    enum; these tests do not invent one.
+    """
 
     def test_a_vendor_error_is_invalid_even_beside_a_plausible_envelope(self):
         nested = agy.canonical_envelope(note="agy-beside-vendor-error")
@@ -192,6 +218,30 @@ class AgyVendorFailureDoesNotCertifyWork(_AgyEnvelopeCase):
             env.get("note"), "agy-beside-vendor-error",
             "a vendor error must not close as the nested envelope: "
             f"{env!r}",
+        )
+
+    def test_a_result_missing_required_vendor_status_is_invalid(self):
+        nested = agy.canonical_envelope(note="agy-missing-vendor-status")
+        result = agy.drop_fields(agy.published_result(nested), "status")
+        self.assertNotIn("status", result)
+        self.assertIn("conversation_id", result)
+        self.assertIn("response", result)
+        raw = agy.stream_with_decoys(
+            agy.init_frame(),
+            agy.result_frame(result),
+        )
+        self.assert_planted_decoys(raw)
+        planted = json.loads(
+            [ln for ln in raw.decode("utf-8").splitlines()
+             if '"event": "result"' in ln][0],
+        )
+        self.assertNotIn("status", planted["result"], "plant: status omitted")
+        env = self.parse(raw)
+        self.assert_invalid_cause(env)
+        self.assertNotEqual(
+            env.get("note"), "agy-missing-vendor-status",
+            "a result missing required vendor status is not a "
+            f"terminal carrier: {env!r}",
         )
 
     def test_vendor_success_with_plain_response_does_not_certify_work(self):
@@ -315,7 +365,7 @@ class AgyMissingAmbiguousMalformedTruncatedResultsAreInvalid(_AgyEnvelopeCase):
         self.assert_planted_decoys(raw)
         self.assertIn(truncated.encode("utf-8"), raw)
         env = self.parse(raw)
-        self.assert_invalid_cause(env, "truncated")
+        self.assert_invalid_cause(env)
 
     def test_a_result_payload_that_is_not_an_object_is_malformed(self):
         raw = agy.stream_with_decoys(
@@ -329,7 +379,7 @@ class AgyMissingAmbiguousMalformedTruncatedResultsAreInvalid(_AgyEnvelopeCase):
         )
         self.assertEqual(planted.get("result"), "not-an-object")
         env = self.parse(raw)
-        self.assert_invalid_cause(env, "malformed")
+        self.assert_invalid_cause(env)
 
     def test_a_truncated_response_string_is_invalid(self):
         nested = agy.canonical_envelope(note="agy-truncated-response")
@@ -344,7 +394,7 @@ class AgyMissingAmbiguousMalformedTruncatedResultsAreInvalid(_AgyEnvelopeCase):
         self.assert_planted_decoys(raw)
         self.assertIn(cut.encode("utf-8"), raw)
         env = self.parse(raw)
-        self.assert_invalid_cause(env, "truncated")
+        self.assert_invalid_cause(env)
 
 
 class AgyCanonicalEnvelopeSemantics(_AgyEnvelopeCase):
@@ -454,6 +504,178 @@ class AgyCanonicalEnvelopeSemantics(_AgyEnvelopeCase):
         self.assert_planted_decoys(raw)
         env = self.parse(raw)
         self.assert_invalid_cause(env, "counts")
+
+
+class AgyRejectRulesWithoutScanDecoys(_AgyEnvelopeCase):
+    """Bounded decoy-free reject variants with valid terminal controls.
+
+    Original decoy extraction controls stay on the cases above. These
+    variants let each reject rule be assessed without a leading decoy.
+    """
+
+    def valid_control(self, note):
+        nested = agy.canonical_envelope(note=note)
+        raw = agy.valid_terminal_stream(nested)
+        self.assert_no_scan_decoys(raw)
+        self.assertIn(b'"event": "result"', raw)
+        self.assertIn(note.encode("utf-8"), raw)
+        return nested, raw
+
+    def test_a_decoy_free_success_stream_extracts_the_nested_envelope(self):
+        nested, raw = self.valid_control("agy-decoy-free-ok")
+        env = self.parse(raw)
+        self.assertEqual(env.get("note"), nested["note"], env)
+        self.assertEqual(env.get("status"), "ok", env)
+        self.assertEqual(env.get("verdict"), "approve", env)
+        stamp = env.get("stamp") or {}
+        self.assertEqual(stamp.get("ref"), self.ref, stamp)
+        self.assertNotEqual(stamp.get("ref"), agy.PLACEHOLDER_REF)
+
+    def test_a_missing_result_event_is_invalid_without_decoys(self):
+        _nested, control = self.valid_control("agy-missing-nodecoy")
+        raw = agy.ndjson_bytes(
+            agy.init_frame(),
+            agy.step_update_frame(state="DONE", text_delta="k"),
+        )
+        self.assert_no_scan_decoys(raw)
+        self.assertNotIn(b'"event": "result"', raw, "plant: no result")
+        self.assertIn(b'"event": "result"', control)
+        env = self.parse(raw)
+        self.assert_invalid_cause(env, "missing")
+
+    def test_two_result_events_are_ambiguous_without_decoys(self):
+        first = agy.canonical_envelope(note="agy-first-nodecoy")
+        second = agy.canonical_envelope(note="agy-second-nodecoy")
+        _nested, control = self.valid_control("agy-first-nodecoy")
+        raw = agy.ndjson_bytes(
+            agy.init_frame(),
+            agy.result_frame(agy.published_result(first)),
+            agy.result_frame(agy.published_result(second)),
+        )
+        self.assert_no_scan_decoys(raw)
+        self.assertEqual(raw.count(b'"event": "result"'), 2, "plant: two")
+        self.assertEqual(control.count(b'"event": "result"'), 1)
+        env = self.parse(raw)
+        self.assert_invalid_cause(env, "ambiguous")
+        self.assertNotEqual(env.get("note"), "agy-first-nodecoy", env)
+        self.assertNotEqual(env.get("note"), "agy-second-nodecoy", env)
+
+    def test_a_truncated_result_line_is_invalid_without_decoys(self):
+        nested, control = self.valid_control("agy-truncated-line-nodecoy")
+        complete = agy.dumps(agy.result_frame(agy.published_result(nested)))
+        self.assertGreater(len(complete), 40, "plant: line is long enough")
+        truncated = complete[:40]
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(truncated)
+        raw = (
+            agy.ndjson_bytes(agy.init_frame())
+            + truncated.encode("utf-8")
+            + b"\n"
+        )
+        self.assert_no_scan_decoys(raw)
+        self.assertIn(truncated.encode("utf-8"), raw)
+        self.assertNotEqual(raw, control)
+        env = self.parse(raw)
+        self.assert_carrier_reject(env, nested_note=nested["note"])
+
+    def test_a_result_payload_that_is_not_an_object_is_malformed_without_decoys(
+            self):
+        _nested, control = self.valid_control("agy-malformed-nodecoy")
+        raw = agy.ndjson_bytes(
+            agy.init_frame(),
+            {"event": "result", "result": "not-an-object"},
+        )
+        self.assert_no_scan_decoys(raw)
+        planted = json.loads(
+            [ln for ln in raw.decode("utf-8").splitlines()
+             if '"event": "result"' in ln][0],
+        )
+        self.assertEqual(planted.get("result"), "not-an-object")
+        self.assertIn(b'"event": "result"', control)
+        env = self.parse(raw)
+        self.assert_carrier_reject(env, nested_note="agy-malformed-nodecoy")
+
+    def test_a_truncated_response_string_is_invalid_without_decoys(self):
+        nested, control = self.valid_control("agy-truncated-response-nodecoy")
+        cut = agy.dumps(nested)[:24]
+        self.assertTrue(cut.startswith("{"), "plant: response starts as JSON")
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(cut)
+        raw = agy.valid_terminal_stream(cut)
+        self.assert_no_scan_decoys(raw)
+        planted = json.loads(
+            [ln for ln in raw.decode("utf-8").splitlines()
+             if '"event": "result"' in ln][0],
+        )
+        self.assertEqual(
+            planted["result"]["response"], cut,
+            "plant: response is the truncated JSON string",
+        )
+        with self.assertRaises(json.JSONDecodeError):
+            json.loads(planted["result"]["response"])
+        self.assertNotEqual(raw, control)
+        env = self.parse(raw)
+        self.assert_carrier_reject(env, nested_note=nested["note"])
+
+    def test_an_extra_top_level_key_is_invalid_without_decoys(self):
+        nested = agy.canonical_envelope(note="agy-extra-key-nodecoy")
+        nested["transcript"] = "not a field"
+        self.assertIn("transcript", nested)
+        _control_nested, control = self.valid_control("agy-extra-key-nodecoy")
+        raw = agy.valid_terminal_stream(nested)
+        self.assert_no_scan_decoys(raw)
+        self.assertIn(b"transcript", raw, "plant: extra key")
+        self.assertNotIn(b"transcript", control)
+        env = self.parse(raw)
+        self.assert_invalid_cause(env, "transcript")
+
+    def test_counts_that_disagree_with_findings_are_invalid_without_decoys(self):
+        nested = agy.canonical_envelope(
+            verdict="changes",
+            findings=[agy.finding("p1")],
+            counts={"p1": 4, "p2": 0, "p3": 0, "opinions": 0},
+            note="agy-counts-mismatch-nodecoy",
+        )
+        self.assertEqual(nested["counts"]["p1"], 4)
+        self.assertEqual(len(nested["findings"]), 1)
+        _control_nested, control = self.valid_control(
+            "agy-counts-mismatch-nodecoy",
+        )
+        raw = agy.valid_terminal_stream(nested)
+        self.assert_no_scan_decoys(raw)
+        self.assertNotEqual(raw, control)
+        env = self.parse(raw)
+        self.assert_invalid_cause(env, "counts")
+
+    def test_a_vendor_error_is_invalid_without_decoys(self):
+        nested, control = self.valid_control("agy-vendor-error-nodecoy")
+        raw = agy.valid_terminal_stream(nested, error="vendor boom")
+        self.assert_no_scan_decoys(raw)
+        self.assertIn(b'"error": "vendor boom"', raw, "plant: vendor error")
+        self.assertNotIn(b'"error"', control)
+        env = self.parse(raw)
+        self.assert_invalid_cause(env, "error")
+        self.assertNotEqual(env.get("note"), nested["note"], env)
+
+    def test_a_result_missing_required_vendor_status_is_invalid_without_decoys(
+            self):
+        nested, control = self.valid_control("agy-missing-status-nodecoy")
+        result = agy.drop_fields(agy.published_result(nested), "status")
+        self.assertNotIn("status", result)
+        raw = agy.ndjson_bytes(agy.init_frame(), agy.result_frame(result))
+        self.assert_no_scan_decoys(raw)
+        planted = json.loads(
+            [ln for ln in raw.decode("utf-8").splitlines()
+             if '"event": "result"' in ln][0],
+        )
+        self.assertNotIn("status", planted["result"], "plant: status omitted")
+        self.assertIn("status", json.loads(
+            [ln for ln in control.decode("utf-8").splitlines()
+             if '"event": "result"' in ln][0],
+        )["result"])
+        env = self.parse(raw)
+        self.assert_invalid_cause(env, "status")
+        self.assertNotEqual(env.get("note"), nested["note"], env)
 
 
 class LegacyEnvelopeExtractionIsUnchanged(_AgyEnvelopeCase):
