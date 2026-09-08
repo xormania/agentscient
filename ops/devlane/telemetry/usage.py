@@ -54,6 +54,8 @@ def agy_read(path: Path, offset=0):
     prior = None
     messages = None
     terminal = False
+    steps = {}
+    live_output = None
     for line in raw.splitlines(keepends=True):
         if not line.strip():
             continue
@@ -79,6 +81,9 @@ def agy_read(path: Path, offset=0):
                 identity = sid
             if event == "init":
                 terminal = False
+                tokens = None
+                steps = {}
+                live_output = None
                 found_cwd = body.get("cwd")
                 if not isinstance(found_cwd, str) or not Path(found_cwd).is_absolute():
                     raise ValueError("missing absolute init.cwd")
@@ -92,10 +97,33 @@ def agy_read(path: Path, offset=0):
                     if model and observed != model:
                         raise ValueError("contradictory init.model")
                     model = observed
+            elif event == "step_update":
+                step = frame.get("step_update")
+                if not isinstance(step, dict):
+                    raise ValueError("native step_update is not an object")
+                if step.get("state") == "DONE" and step.get("step_type") == "agent_response":
+                    # Canonical stdout: 1314 + 5136 == result output 6450.
+                    # Only this output currency is established by the steps.
+                    if step.get("conversation_id") != identity or identity is None:
+                        raise ValueError("contradictory step conversation identity")
+                    index = step.get("step_index")
+                    native = step.get("usage")
+                    if native is not None:
+                        if type(index) is not int or index < 0:
+                            raise ValueError("invalid native step_index")
+                        output = native.get("output_tokens") if isinstance(native, dict) else None
+                        if type(output) is not int or output < 0:
+                            raise ValueError("malformed step output usage")
+                        if index in steps and steps[index] != output:
+                            raise ValueError("contradictory step output usage")
+                        steps[index] = output
+                        if not terminal:
+                            live_output = sum(steps.values())
             elif event == "result":
                 if terminal:
                     raise ValueError("duplicate terminal result")
                 terminal = True
+                live_output = None
                 native = body.get("usage")
                 if not isinstance(native, dict):
                     tokens = None
@@ -111,6 +139,9 @@ def agy_read(path: Path, offset=0):
                                  and tokens[k] < prior[k] for k in tokens):
                     issues.append("cumulative usage decreased; reset semantics unresolved")
                 prior = tokens.copy()
+                # Native result counters include resumed history: never add
+                # the step sum or the preceding result to this counter.
+                live_output = tokens["output"]
                 messages = body.get("num_turns")
                 if type(messages) is not int or messages < 0:
                     messages = None
@@ -126,6 +157,7 @@ def agy_read(path: Path, offset=0):
     return {"harness": "agy", "session": identity, "model": model, "cwd": cwd,
             "started": None, "ended": None, "messages": messages, "tokens": tokens,
             "incomplete": bool(issues), "issues": issues, "frames": rows,
+            "live_output": live_output,
             "source": str(path),
             "note": "; ".join(issues + ["native timestamps and provider unavailable"]
                               + ([] if model else ["native model unavailable"]))}
@@ -149,7 +181,8 @@ def agy_sessions(root: Path, repo: str | None):
         if sum(other["session"] == key for other in readings) > 1:
             row.update(tokens=None, incomplete=True,
                        note="duplicate conversation across captures; usage unresolved")
-        yield {k: v for k, v in row.items() if k not in {"frames", "issues", "cwd"}}
+        yield {k: v for k, v in row.items()
+               if k not in {"frames", "issues", "cwd", "live_output"}}
 
 
 def _read_jsonl(path: Path):
