@@ -1,20 +1,44 @@
 # Lane MCP — a bounded read plane
 
+The [version-2 extension](lane-mcp-v2.md) declares additional conductor reads
+and request metadata compatibility; this document remains the v1 baseline.
+The [discovery contract](discovery-lever.md) is the version-3 extension
+(startup, homes, handoffs, actions). v1 and v2 stay unchanged. Sequence:
+[conductor-start-plan.md](conductor-start-plan.md).
+
+The corrected v3 proposal targets conductors only and is awaiting independent
+review. Its [payload examples](discovery-examples.md) and
+[fixed acquisition boundary](discovery-lever.md#fixed-acquisition-boundary)
+do not relax this v1 baseline or the shared read core's subprocess prohibition.
+
 Owner authorization, 2026-09-04: finish setting up MCP before the system AAR
-and handoff. Dev-lane machinery only, not Symfony work. This thin incumbent
+and handoff. Dev-lane machinery only, not Symfony work. This independent, read-only
 projection inherits `instrument-conventions.md`; it adds no workflow engine.
+
+The owner correction of 2026-09-05 is governed by
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence).
+The lane MCP service evolves independently of prod projections and must
+operate without the Symfony app or its vendor directory. The shared-Symfony
+recommendation for lane MCP and launcher work is withdrawn. Earlier discovery
+and launch designs must be reconciled with this boundary before acceptance.
+Separate conductor/worker servers and action tools remain proposals; this
+contract continues to permit only its declared read-only surface.
 
 ## Existing capability and boundary
 
 Measured at dev c0ce300 on 2026-09-05: the tracked MCP files are .mcp.json
 (Serena), the historical tool wishlist, and the workflow MCP CUE contract.
 composer.lock includes ai-mate, not mcp/sdk or mcp-bundle. docs/mapping.md
-names the later Symfony MCP projection; no PHP dependency is changed here.
+names Symfony application projections. The latest owner scope supersedes its
+dev-tool replacement direction: this read plane has no Symfony application
+dependency or eventual prod replacement. Separate conductor/worker MCP
+entrypoints and writable conductor tools remain proposals; the read-only
+contract here stands. See the [reconciliation](reports/discovery-reconciliation-20260906.md).
 The precursor workflow server at commit 99334f71ae9af9fa324a1a27241e60af62f8f340
 demonstrates one query layer behind tools/resources/CLI. Reuse that pattern,
 not its retired engine or cache-rebuilding launcher. No vendor is required.
 
-Production files: tools/lane_read.py (read queries) and tools/lane_mcp.py
+Implementation files: tools/lane_read.py (read queries) and tools/lane_mcp.py
 (stdio/CLI projection). They must not import launcher, monitor, watchdog or
 other writing lane modules, spawn subprocesses, use a network, or originate
 files/databases. Disable Python bytecode writes at the entry point before
@@ -44,6 +68,33 @@ query invokes the same query function and canonical JSON encoder as MCP.
 CLI refusal: config/arguments, inherited wire, exit2, empty stdout. Successful
 queries exit0, including explicit unknown/unavailable readings. Reads need
 no identity. Config is loaded once per process; restart to apply changes.
+
+The v3-only [trusted discovery boot transport](discovery-lever.md#trusted-discovery-boot-transport)
+adds `--discovery-boot-fd FD` at process launch, before `query` or `serve`.
+The inherited read-only directory descriptor grants exactly the contract and
+three fixed implementation files, with the owning contract's bounds, identity
+checks and [executed-byte binding gate](discovery-lever.md#executed-byte-binding-gate).
+The lane_mcp boot custodian checks execution-input evidence for all three
+modules, including itself; trusted launch owns the bound loader inputs.
+D-A47's independent mismatch and clean controls verify that coupling without
+claiming launcher authentication. It adds no configuration key or query/URI
+selector. Check/list operations and the old seven queries read no boot files
+or discovery anchors. A discovery read with no supplied boot descriptor refuses
+before repository acquisition with exactly:
+
+```text
+config: expected trusted discovery boot descriptor; found missing; needed launch with --discovery-boot-fd FD
+```
+
+CLI exit 2, empty stdout, one stderr line; MCP isError=true carries that line.
+Supplied but rejected boot uses the owning
+[closed condition/remedy table](discovery-lever.md#refusals-and-exits), with
+`found rejected SUBJECT CODE`; it never reports a missing launch option.
+No adjacent-file or ambient fallback. Independent v3 conformance must witness
+missing and rejected cases separately with valid v3 config; the registry change belongs to the runtime
+counterparty. The parallel interface track owns the pending reciprocal
+transport link in [conductor-start-plan.md](conductor-start-plan.md). This
+declaration preserves the v1/v2 wire and does not authorize host activation.
 
 ## Four tools and matching resources
 
@@ -168,3 +219,12 @@ adapters emit evidence as paths/strings or a path/timestamp object rather than
 arbitrary numeric objects. Reassess before exposing untrusted sources or a
 remote transport. Do not weaken these facts into a blanket malformed-input
 survival claim.
+
+
+Integration measurement, 2026-09-05 at
+`572a901a503e71ea3b255a8292e30515d5096529`: inherited dev commit `56b26b5`
+now rejects a 5000-digit request integer and `NaN` with `-32700`; a following
+ping succeeds in the same stdio process. It also checks record nesting before
+JSON decoding. This supersedes the earlier transport-integer limitation only.
+The usage-reader integer, SQLite cursor and non-finite alert-evidence limits
+above remain outside this extension's fixes.

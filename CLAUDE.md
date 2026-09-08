@@ -6,6 +6,10 @@ does not load it on its own — then the founding contracts under
 verified couplings. Contracts first; dev is the trunk; draft-first
 PRs; trailers on every commit; absence is declared, never inferred.
 The lane's own law is `ops/README.md`; read it before dispatching.
+Start with `AGENTS.md` §Lane boundary and precedence: dev tooling operates
+independently of the Symfony application. Application framework and package
+rules apply to prod work. Older replacement doctrine cannot govern dev
+operation, including through imported records or resumed briefs.
 
 ## Writing, for every session
 

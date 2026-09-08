@@ -1,5 +1,13 @@
 # The Agentscient stack
 
+Current scope notice, owner 2026-09-05:
+[AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
+governs current operation. The dated record below is retained as origin;
+its bounded-Python and product-convergence doctrine is superseded, not an
+instruction to replace dev tooling. Application framework choices remain
+scoped to the prod application. Being listed by onboarding does not give
+this historical proposal precedence over that correction.
+
 Standing: PROPOSED (D-STACK-1). Source: owner, 2026-09-01 — "I'd
 rather focus on a Stack" — closing the kernel-language exchange
 (I-009) by reframing it: not one ruling but a composed set of layers,

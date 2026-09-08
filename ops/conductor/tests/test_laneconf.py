@@ -44,6 +44,11 @@ LOCAL_NAME = "lane.local.conf"
 # is a read. The finding names the key and the file.
 # PIN_EXEMPTION: `ops/devlane/dispatch/record.py` may carry the lane
 # kind `lane = "dev"`; a second `"dev"` in that file is a hit.
+# PIN_POLICY_PROTOCOL: for the agentscient token only, the exact
+# stripped line POLICY_SCHEMA = "agentscient.lane-policy/v1" at
+# ops/devlane/dispatch/record.py is permitted. Outer-whitespace
+# normalization remains. Every other line, path and token is a hit.
+# The two MCP protocol declarations remain allowed.
 # PIN_INFRA_SKIP: `ops/devlane/infra/` is skipped and the skip is
 # printed, naming that path.
 
@@ -883,6 +888,309 @@ class LiteralsVerb(_LaneconfFixture):
         text = self.combined(proc)
         self.assertEqual(proc.returncode, 0, text)
         self.assertIn("ops/devlane/infra", text)
+
+
+class PolicyProtocolLiterals(_LaneconfFixture):
+    """Exact policy protocol identity at record.py, from the bounded
+    repair ruling. LANE_NAME is agentscient. The real literals CLI
+    is the subject. Plants are proven; hits name token, path and line.
+    """
+
+    POLICY_REL = "ops/devlane/dispatch/record.py"
+    POLICY_LINE = 'POLICY_SCHEMA = "agentscient.lane-policy/v1"'
+    POLICY_TOKEN = "agentscient"
+    MCP_SCHEMA_REL = "ops/conductor/tools/lane_read.py"
+    MCP_SCHEMA_LINE = 'SCHEMA = "agentscient.lane/v1"'
+    MCP_SERVER_REL = "ops/conductor/tools/lane_mcp.py"
+    MCP_SERVER_LINE = (
+        '"serverInfo": {"name": "agentscient-lane", "version": "1"},'
+    )
+
+    def agentscient_conf(self, **overrides: object) -> dict[str, object]:
+        conf: dict[str, object] = {
+            "LANE_NAME": "agentscient",
+            "TRUNK_BRANCH": "trunkx",
+            "RELEASE_BRANCH": "relx",
+            "REPO_SLUG": "org/projx",
+            "CHECK_NAMES": "checkx",
+        }
+        conf.update(overrides)
+        return conf
+
+    def plant_policy_repo(
+        self,
+        record_body: str,
+        extra: dict[str, str] | None = None,
+        **conf_overrides: object,
+    ) -> tuple[Path, Path]:
+        files = {
+            "ops/conductor/tools/reads.py": reader_source(),
+            self.POLICY_REL: record_body,
+        }
+        if extra:
+            files.update(extra)
+        repo = self.plant_scratch_repo(
+            files,
+            conf_overrides=self.agentscient_conf(**conf_overrides),
+        )
+        conf = repo / "ops" / "lane.conf"
+        planted = declared_keys(conf.read_text(encoding="utf-8"))
+        self.assertEqual(planted["LANE_NAME"], "agentscient")
+        return repo, conf
+
+    def assert_forbidden(
+        self,
+        proc: subprocess.CompletedProcess,
+        rel: str,
+        line_no: int,
+        token: str,
+    ) -> str:
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 1, text)
+        hit = f"{rel}:{line_no}: forbidden literal {token}"
+        self.assertIn(hit, text)
+        return text
+
+    def test_exact_policy_schema_declaration_at_record_py_exits_0(self):
+        body = self.POLICY_LINE + "\n"
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_outer_whitespace_policy_schema_declaration_at_record_py_exits_0(
+            self):
+        body = f"  {self.POLICY_LINE}  \n"
+        self.assertNotEqual(body, self.POLICY_LINE + "\n")
+        self.assertEqual(body.strip(), self.POLICY_LINE)
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertEqual(landed.splitlines()[0].strip(), self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, landed)
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_exact_policy_schema_declaration_after_benign_lines_exits_0(self):
+        benign = (
+            "print('ok')\n"
+            "print('still-ok')\n"
+        )
+        body = benign + self.POLICY_LINE + "\n"
+        self.assertNotEqual(body, self.POLICY_LINE + "\n")
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        lines = landed.splitlines()
+        self.assertGreater(len(lines), 1)
+        line_no = 3
+        self.assertNotEqual(line_no, 1)
+        self.assertEqual(lines[0], "print('ok')")
+        self.assertEqual(lines[1], "print('still-ok')")
+        self.assertEqual(lines[line_no - 1], self.POLICY_LINE)
+        self.assertNotIn(self.POLICY_TOKEN, lines[0])
+        self.assertNotIn(self.POLICY_TOKEN, lines[1])
+        self.assertIn(self.POLICY_TOKEN, lines[line_no - 1])
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_exact_policy_schema_declaration_at_another_path_exits_1(self):
+        rel = "ops/conductor/tools/policy_decl.py"
+        self.assertNotEqual(rel, self.POLICY_REL)
+        body = self.POLICY_LINE + "\n"
+        repo, conf = self.plant_policy_repo(
+            "print('ok')\n",
+            extra={rel: body},
+        )
+        other = repo / rel
+        landed = other.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, rel, line_no, self.POLICY_TOKEN)
+
+    def test_exact_policy_schema_declaration_at_dispatch_sibling_exits_1(self):
+        rel = "ops/devlane/dispatch/schema.py"
+        self.assertNotEqual(rel, self.POLICY_REL)
+        self.assertEqual(Path(rel).parent, Path(self.POLICY_REL).parent)
+        self.assertNotEqual(Path(rel).name, Path(self.POLICY_REL).name)
+        body = self.POLICY_LINE + "\n"
+        repo, conf = self.plant_policy_repo(
+            "print('ok')\n",
+            extra={rel: body},
+        )
+        other = repo / rel
+        landed = other.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
+        record = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertNotEqual(record, body)
+        self.assertNotIn(self.POLICY_LINE, record.splitlines())
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, rel, line_no, self.POLICY_TOKEN)
+
+    def test_exact_policy_schema_declaration_at_other_record_py_exits_1(self):
+        rel = "ops/conductor/tools/record.py"
+        self.assertNotEqual(rel, self.POLICY_REL)
+        self.assertEqual(Path(rel).name, Path(self.POLICY_REL).name)
+        self.assertNotEqual(Path(rel).parent, Path(self.POLICY_REL).parent)
+        body = self.POLICY_LINE + "\n"
+        repo, conf = self.plant_policy_repo(
+            "print('ok')\n",
+            extra={rel: body},
+        )
+        other = repo / rel
+        landed = other.read_text(encoding="utf-8")
+        self.assertEqual(landed, body)
+        self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, landed.splitlines()[0])
+        record = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertNotEqual(record, body)
+        self.assertNotIn(self.POLICY_LINE, record.splitlines())
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, rel, line_no, self.POLICY_TOKEN)
+
+    def test_altered_policy_schema_name_exits_1(self):
+        line = 'POLICY_SCHEMA_NAME = "agentscient.lane-policy/v1"'
+        self.assertNotEqual(line, self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, line)
+        body = line + "\n"
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed.splitlines()[0], line)
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, self.POLICY_REL, line_no, self.POLICY_TOKEN)
+
+    def test_altered_policy_schema_value_exits_1(self):
+        line = 'POLICY_SCHEMA = "agentscient.lane-policy/v2"'
+        self.assertNotEqual(line, self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, line)
+        body = line + "\n"
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed.splitlines()[0], line)
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, self.POLICY_REL, line_no, self.POLICY_TOKEN)
+
+    def test_policy_schema_declaration_with_appended_comment_exits_1(self):
+        line = self.POLICY_LINE + "  # protocol identity"
+        self.assertNotEqual(line.strip(), self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, line)
+        body = line + "\n"
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed.splitlines()[0], line)
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, self.POLICY_REL, line_no, self.POLICY_TOKEN)
+
+    def test_policy_schema_declaration_with_appended_statement_exits_1(self):
+        line = self.POLICY_LINE + "; unused = 1"
+        self.assertNotEqual(line.strip(), self.POLICY_LINE)
+        self.assertIn(self.POLICY_TOKEN, line)
+        body = line + "\n"
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed.splitlines()[0], line)
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, self.POLICY_REL, line_no, self.POLICY_TOKEN)
+
+    def test_permitted_declaration_plus_another_agentscient_use_exits_1(self):
+        extra_line = 'marker = "agentscient"'
+        body = self.POLICY_LINE + "\n" + extra_line + "\n"
+        repo, conf = self.plant_policy_repo(body)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        lines = landed.splitlines()
+        self.assertEqual(lines[0], self.POLICY_LINE)
+        self.assertEqual(lines[1], extra_line)
+        self.assertIn(self.POLICY_TOKEN, lines[1])
+        self.assertNotEqual(lines[1], self.POLICY_LINE)
+        line_no = 2
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        text = self.assert_forbidden(
+            proc, self.POLICY_REL, line_no, self.POLICY_TOKEN,
+        )
+        self.assertNotIn(
+            f"{self.POLICY_REL}:1: forbidden literal {self.POLICY_TOKEN}",
+            text,
+        )
+
+    def test_permitted_declaration_plus_another_forbidden_token_exits_1(self):
+        rel = "ops/bin/legacy-origin.sh"
+        token = "origin/dev"
+        extra = (
+            "echo ok\n"
+            "echo still-ok\n"
+            f"echo {token}\n"
+        )
+        repo, conf = self.plant_policy_repo(
+            self.POLICY_LINE + "\n",
+            extra={rel: extra},
+        )
+        record = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(record.splitlines()[0], self.POLICY_LINE)
+        spread = repo / rel
+        landed = spread.read_text(encoding="utf-8")
+        self.assertEqual(landed, extra)
+        line_no = 3
+        self.assertIn(token, landed.splitlines()[line_no - 1])
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        text = self.assert_forbidden(proc, rel, line_no, token)
+        self.assertNotIn(
+            f"{self.POLICY_REL}:1: forbidden literal {self.POLICY_TOKEN}",
+            text,
+        )
+
+    def test_distinct_configured_token_inside_the_declaration_is_reported(
+            self):
+        token = "lane-policy"
+        self.assertIn(token, self.POLICY_LINE)
+        self.assertNotEqual(token, self.POLICY_TOKEN)
+        body = self.POLICY_LINE + "\n"
+        repo, conf = self.plant_policy_repo(
+            body, TRUNK_BRANCH=token,
+        )
+        planted = declared_keys(conf.read_text(encoding="utf-8"))
+        self.assertEqual(planted["TRUNK_BRANCH"], token)
+        landed = (repo / self.POLICY_REL).read_text(encoding="utf-8")
+        self.assertEqual(landed.splitlines()[0], self.POLICY_LINE)
+        self.assertIn(token, landed.splitlines()[0])
+        line_no = 1
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assert_forbidden(proc, self.POLICY_REL, line_no, token)
+
+    def test_existing_mcp_declaration_allowances_remain_valid(self):
+        files = {
+            "ops/conductor/tools/reads.py": reader_source(),
+            self.MCP_SCHEMA_REL: self.MCP_SCHEMA_LINE + "\n",
+            self.MCP_SERVER_REL: self.MCP_SERVER_LINE + "\n",
+        }
+        repo = self.plant_scratch_repo(
+            files,
+            conf_overrides=self.agentscient_conf(),
+        )
+        conf = repo / "ops" / "lane.conf"
+        planted = declared_keys(conf.read_text(encoding="utf-8"))
+        self.assertEqual(planted["LANE_NAME"], "agentscient")
+        schema = (repo / self.MCP_SCHEMA_REL).read_text(encoding="utf-8")
+        server = (repo / self.MCP_SERVER_REL).read_text(encoding="utf-8")
+        self.assertEqual(schema.splitlines()[0], self.MCP_SCHEMA_LINE)
+        self.assertEqual(server.splitlines()[0], self.MCP_SERVER_LINE)
+        self.assertIn(self.POLICY_TOKEN, schema)
+        self.assertIn(self.POLICY_TOKEN, server)
+        proc = self.invoke(["literals"], lane_conf=conf, cwd=repo)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
 
 
 class GetWithoutLaneConfUsesTrackedFile(_LaneconfFixture):

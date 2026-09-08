@@ -6,12 +6,32 @@ the wire, and everything binds to the law in `AGENTS.md` and `docs/`.
 
 This lane is carried over from the House dev lane, through the scrubbed
 copy in the `minspec/workbench` repository (provenance only; MinSpec is
-not used here), de-instanced, and lands here as the **bounded Python
-incumbent**: every instrument under `ops/devlane/` is the functional
-specification for a Symfony Console twin, and retires only when its
-twin passes the same conformance row (the strangler, per the migration
-doctrine). It is not rewritten for sport and it earns no new kernel
-responsibilities; it is the thing the twins are measured against.
+not used here), de-instanced, and maintained as independent dev tooling.
+
+## Lane boundary and precedence
+
+[AGENTS.md §Lane boundary and precedence](../AGENTS.md#lane-boundary-and-precedence)
+owns the 2026-09-05 owner correction. The dev lane must operate without
+the Symfony application or its vendor directory. Its evolution does not
+depend on application twins, and application delivery does not trigger its
+retirement. Prod work retains the application's Symfony rules. Work profile
+is independent of harness, model and conductor/worker role.
+
+Shared wire, provenance, custody, independent producers and declared
+couplings remain binding. Reading shared contracts or inspecting the
+application does not make its framework a dev-tooling dependency. MCP
+remains a read-only context and diagnostics surface; separate servers and
+action tools are proposals, not authorization here.
+
+Follow this boundary through the [instrument conventions](conductor/instrument-conventions.md),
+[onboarding contract](conductor/onboard-lever.md),
+[dispatch contract](devlane/dispatch/CONTRACT.md) and
+[task contract](devlane/task/CONTRACT.md). Historical stack, census,
+migration, idea, AAR, handoff and captured planning records remain evidence;
+their conflicting instructions cannot govern current operation. In
+particular, `docs/mapping.md` is application research, not a dev-lane
+replacement schedule. These documentation rules do not claim live
+enforcement; the parallel planner owns that design and its verification.
 
 ## Layout
 
@@ -31,7 +51,7 @@ responsibilities; it is the thing the twins are measured against.
 | `ops/docs/` | the shelf: the four lesson pages the process law cites, carried from the House; records, not law |
 | `ops/design/features/` | the BDD feature shelf: Given/When/Then scenarios per area |
 | `ops/capabilities/contracts/` | the seed's four CUE contracts — the anatomy of a capability, the refusal shape, the read/write tags — input to the module maker; the seed's vets, plans and tests did not cross |
-| `ops/archive/` | House-era records about this framework, behind a standing banner: reference for the twins' authors, never authority |
+| `ops/archive/` | House-era records about this framework, behind a standing banner: historical reference, never authority |
 | `ops/bin/` | the levers a session pulls by hand |
 
 ## The levers
@@ -92,16 +112,17 @@ Named so nobody infers them from silence:
   stays on `lane/workflow` (PR #10,
   closed unmerged at the owner's word, 2026-09-03; I-008, D-PORT-2
   proposed). What crossed is its specification: `PLAN.md`, the twelve
-  CUE contracts and their notes under `contracts/`. The runtime arrives
-  only as the Symfony twin, behind the genus contract in
-  `docs/workflow.md`.
+  CUE contracts and their notes under `contracts/`. This absence does
+  not prescribe a Symfony replacement: future dev-lane runtime work
+  follows its own contracts and `docs/workflow.md` independently.
 - `ops/devlane/workflow/tests/` beyond `test_term_wall.py`, and the
   engine's fault corpora, observations, packets and verdicts — on
-  `lane/workflow`, not crossing: they pin the Python CLI's shape, which
-  the twin does not keep. The CUE contracts are the transferable oracle.
+  `lane/workflow`, not crossing in the recorded extraction. That history
+  imposes no current prohibition on independently contracted lane work.
 - `ops/contracts/imports.json` — the cross-app import declaration the
   dispatch and task contracts cite. On `lane/workflow`, not crossing;
-  deptrac holds that boundary for the PHP modules.
+  application deptrac rules do not discharge the dev lane's dependency
+  obligations. The lane's missing declaration remains a named gap.
 - `ops/capabilities/` beyond `contracts/*.cue`, and `ops/guide/` — the
   seed's vets, plans and tests, and the House's per-app guide pages: on
   `lane/workflow`, not crossing.

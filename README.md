@@ -10,14 +10,18 @@ evidence supports accepting the result.
 This repository contains a Symfony application shell and a working development
 lane built in Python and Bash. The lane dispatches harness workers, records
 their results, supports independent testing and review, and serves operational
-observations. The product architecture brings these capabilities into Symfony
-packages, preserving their contracts as each implementation moves.
+observations. The production application develops Symfony packages; the dev
+tooling evolves independently. [The lane boundary and precedence ruling](AGENTS.md#lane-boundary-and-precedence)
+preserves shared contracts without making the app a dependency or replacement
+of dev tooling.
 
 ## Current status
 
 The implementation inventory below was checked on **2026-09-05** against
 `dev` at `fbdbacfe0ed956fc7f8e65b222d0a7df41886f8f`. It describes that tree;
 it does not assert the health of a running service or a current CI result.
+The MCP v2 extension below was separately verified on the same date at
+`572a901a503e71ea3b255a8292e30515d5096529`.
 The [verification notes](#verification-notes) name the commands and sources.
 
 | Area | Available in this tree |
@@ -26,7 +30,7 @@ The [verification notes](#verification-notes) name the commands and sources.
 | Product packages | No package manifests under `packages/` yet. The refusal wire is the proposed first bundle. |
 | Development lane | Harness dispatch, snapshot preparation, job envelopes and records, usage and budget tooling, hooks, guards, and synthetic fixtures under `ops/devlane/`. |
 | Conductor instruments | Onboarding, decisions and handwork records, PR checks, branch census, landing and ladder tools, watchdog, and configurable condition monitor under `ops/conductor/`. |
-| Lane MCP | A Python stdio server with four read-only tools and matching resources, backed by explicitly selected local sources. It also exposes the same queries through a CLI. |
+| Lane MCP | A Python stdio server with four read-only tools in configuration v1, or seven in v2, with matching resources and CLI queries over explicitly selected local sources. |
 | Application diagnostics | Symfony AI Mate and its Symfony extension, installed as development dependencies and invoked through `vendor/bin/mate`. |
 | Tests and CI | Python lane suites and a two-job GitHub Actions workflow (`lane` and `app`). PHPUnit is configured for the application and future packages; the current tree has no PHP test cases. |
 
@@ -83,9 +87,9 @@ Packages begin under `packages/<name>/` with their own `composer.json` of type
 Composer. A package graduates to its own repository and Flex recipe when its
 boundary is proven. See [the package conventions](packages/README.md).
 
-The Python lane is the existing functional reference for these future Symfony
-implementations. A replacement must pass the inherited conformance requirements
-before the incumbent is retired. External capabilities are intended to remain
+Dev tooling must operate without the Symfony application or its vendor
+directory. Application capabilities do not trigger retirement or graduation
+of lane instruments. External capabilities are intended to remain
 replaceable through a declared contract, a live probe, and a verified mock.
 
 | Path | Purpose |
@@ -272,7 +276,8 @@ owned configuration with explicit sources, validate it, and use the documented
 digest reads acknowledge events only when `--ack` is supplied. A running loop
 reloads its configuration. Boot-time service management is not supplied.
 
-The lane MCP server exposes:
+The lane MCP server exposes the first four tools with configuration v1.
+Configuration v2 adds the last three and a job-card resource template:
 
 | Tool | Resource | Reading |
 | --- | --- | --- |
@@ -280,6 +285,9 @@ The lane MCP server exposes:
 | `lane_record` | `lane://record/ID` | One explicitly configured dispatch record summary. |
 | `lane_alerts` | `lane://alerts` | A bounded alert page for the configured consumer. |
 | `lane_usage` | `lane://usage` | Aggregate token and context measurements from the selected rollout tail. |
+| `lane_findings` (v2) | `lane://findings/ID` | A bounded page of findings and a first-page note, with the record revision and explicit omissions. |
+| `lane_changes` (v2) | `lane://changes` | Changed selected records since a caller-held checkpoint, plus unchanged, unknown and unavailable IDs. |
+| `lane_jobs` (v2) | `lane://jobs`, `lane://jobs/NAME` | Compact registry entries or one job card with input slots, constraints and prompt size; no prompt text. |
 
 Try the same read service without registering an MCP client:
 
@@ -294,15 +302,54 @@ The example selects no jobs and disables all source paths. Its brief therefore
 contains no records and reports the monitor database as unarmed. Successful
 query execution does not imply that a live source was available.
 
+To inspect the opt-in v2 surface:
+
+```sh
+python3 -B ops/conductor/tools/lane_mcp.py \
+  --config ops/conductor/lane-mcp-v2.example.json check
+python3 -B ops/conductor/tools/lane_mcp.py \
+  --config ops/conductor/lane-mcp-v2.example.json query lane_jobs
+```
+
+The v2 check reports seven tools. This example also disables every source, so
+its job query reports `unknown`. In an owned v2 configuration, explicitly set
+`job_registry` to the desired registry file (this tree's registry is
+`ops/devlane/task/jobs.json`), and select dispatch sources and IDs as needed.
+The server does not discover other jobs or configuration from the environment.
+
+Findings use 8 KiB canonical JSON pages. Follow a returned `next_cursor` with
+the same ID through the tool; the resource serves only the first page. A
+changed source invalidates an old cursor. Notes and finding fields have
+individual limits, and omitted content is marked explicitly. Keep a
+`lane_changes` response's `checkpoint` and pass it to the next call to avoid
+receiving unchanged summaries. This is a stateless comparison of source
+bytes; it does not subscribe, wake a model, or judge a run successful.
+
+A job's `dispatchable` flag is a limited structural assessment of its registry
+entry. Actual launching has additional preconditions. The card's `slots` help
+spot input mismatches; the flag is not a launcher dry run. Findings can contain
+command diary entries, so recorded severity counts are not defect counts.
+
 For a stdio MCP client, use the same program with `--config FILE serve`, with
 explicit paths to the program and an owned configuration. Source paths resolve
 relative to that configuration file. Restart the server after changing it.
-Use the brief first, individual records when needed, and usage on demand.
+Use the brief first, individual records and findings when needed, and usage
+on demand. Both config versions accept object-valued request `_meta`; it is
+ignored and produces no progress notifications.
 MCP reads do not acknowledge queued events, execute jobs, or determine PR
 readiness; the server has no HTTP listener.
 
+The [v2 contract](ops/conductor/lane-mcp-v2.md) specifies configuration,
+pagination, checkpoints, normalization and refusals. The
+[research report](ops/conductor/MCP-RESEARCH-2026-09-05.md) connects these reads
+to the project's logs and lists further candidates, including handoff packets,
+CI evidence and an interactive conductor board. The
+[fixed-task evaluation](ops/conductor/reports/mcp-context-evaluation-2026-09-05.md)
+reports answer checks, payload sizes and full MCP response overhead.
+
 The [MCP contract](ops/conductor/lane-mcp-lever.md#explicitly-deferred-malformed-input-limits)
-records known numeric-input and cursor-overflow limits. Its current scope is
+records dated numeric-input and cursor-overflow limits, including the
+subsequent request-parsing improvement inherited from `dev`. Its current scope is
 operator-selected local data; it does not establish safety for arbitrary
 untrusted sources or remote exposure.
 

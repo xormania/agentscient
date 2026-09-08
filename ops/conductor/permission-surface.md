@@ -70,3 +70,117 @@ and `co_doc.py --list-probes` must agree; their drift is itself a finding.
 Source: owner doctrine 2026-08-31 (lockout fear, skill bypass, CDD) +
 conductor design, this session. Ratified-by: pending owner for the
 remedies-application clause; the diagnostic contract is design (conductor).
+
+
+## Normalized conductor tool interface
+
+Adoption unit 1b defines a future refusal surface; it does not arm the old
+conductor guard, modify settings or add current doctor probe ids. Policy lives
+once in [lane-policy.md](lane-policy.md#bootstrap-and-minimum-complete-activation).
+Adapters translate requests and decisions; the independent doctor above remains
+stdlib/read-only and does not depend on startup, policy loading or a vendor
+session. A later gate implementation must register its diagnostic and remedy
+with the existing doctor before arming; its read scan must work even when that
+gate cannot start. Live checks belong to the
+[separate diagnostic mode](probes-lever.md#conduct-live-diagnostics).
+
+`normalize_tool(bound_context, native_request)` returns the closed Request
+below or refuses. `evaluate_tool(bound_role, normalized_request)` returns the
+closed Decision below. These are in-process interfaces, not MCP actions or
+another CLI. bound_role is a verified handle to the launch descriptor, policy
+binding and admitted tool declarations; the request cannot select it. The
+normalizer is pinned adapter code. Never trust a model-supplied classification,
+claimed effect list, command substring or tool display name as provenance.
+
+Counterpart ownership: adoption unit 1a supplies the matching declaration of
+`evaluate_tool(bound_role, normalized_request)` and its Request/Decision coupling
+in [lane-policy.md](lane-policy.md). At review `20260906T110711Z-review-claude-e4968e`
+that declaration was pending; the bootstrap citation alone established only
+module ownership. Unit 1a closes the documentary edge by binding these exact
+shapes. Executable coupling remains unresolved until independent verification;
+neither the declaration nor this interface activates it.
+
+Use the startup contract's strict JSON and canonical digest rules, with a
+65536-byte request bound and no duplicate/missing/unknown fields. Request is
+exactly `{schema:"conductor-tool/1",id:ID,binding_sha256:SHA256,kind,target,
+arguments}`. id is allocated by the trusted intercepting adapter; binding_sha256
+must equal the held conductor descriptor digest. kind is one of the following;
+target and arguments are closed tagged variants, never arbitrary passthrough:
+
+| kind | target | arguments and admitted interpretation |
+|---|---|---|
+| read | admitted read-operation ID | the target owner's closed read schema; anchored paths/refs only within source/custody grants |
+| delegate | canonical frontend ID for dispatch/go/ladder | the frontend owner's validated structured request, transferred to the single worker service; no raw vendor execution |
+| coordinate | admitted coordination lever ID | the lever owner's closed verb schema and grants; no implementation editing hidden in coordination |
+| mcp-read | bound read-only tool name or resource ID | exactly its existing query schema or resource URI; same descriptor/config/session binding |
+| forbidden | literal `implementation` | exactly `{reason:Reason}` |
+
+Read/coordinate/delegate target declarations come from the trusted owner of
+that existing lever, including its executable/import closure, allowed verbs,
+argument schema, read scope and permitted effect contract. Missing declaration
+refuses; this interface creates no registry and no wildcard shell allowance.
+The `arguments` value is one strict JSON object verified by that target's schema
+before evaluation; its bytes are retained only if admitted as non-secret input.
+A model-supplied target label never bypasses resolving the actual executable or
+native tool identity. Reads include canonical Git state/diff, contract/application
+inspection within custody, board/status/record and handoff discovery. They require
+no WF_AGENT, fresh permission grant or new owner prompt. A read outside custody
+is not a permitted read. An unavailable read source stays an unavailable reading,
+not an implementation-handwork violation. Coordination writes require the lever's
+existing authorization; handoff/AAR publication remains owner-requested only.
+
+Reason is exactly one of `direct-edit,git-mutation,shell-escape,raw-vendor,
+in-session-agent,unknown-tool,malformed-request,binding-mismatch`. These are
+fixed codes, never the original command, path or rejected value. Normalize
+native edits/apply_patch, Git mutations such as apply/checkout/reset, direct
+vendor or task vendor-launch paths and in-session agents to forbidden. Arbitrary
+shell/interpreter programs cannot be represented as a trusted lever invocation.
+A shell wrapper may normalize a single exact declared invocation only if the
+adapter proves tokenization and the executed program/arguments/environment are
+identical: no separators, pipes, redirections, command substitutions, eval,
+wrappers, environment assignments or interpreter escape. Anything not provable
+refuses shell-escape. The presence of dispatch.sh anywhere in text grants nothing.
+Canonical dispatch may itself execute workers under its admitted effect contract;
+the conductor cannot launch those vendor processes directly.
+
+Decision is exactly `{schema:"conductor-decision/1",id:ID,
+binding_sha256:SHA256,outcome:"allow"|"refuse",refusal:Refusal|null}`.
+The id/binding must match Request and the held current binding. On allow,
+refusal is null. On refuse it is exactly `{class:"conductor-tool",expected,
+found,needed}` with nonempty strings chosen by the evaluator from fixed templates;
+no raw request echo. Fixed field values must contain no semicolon, so the wire's
+`; ` separators remain unambiguous. It serializes to the wire before effects. Example:
+
+```json
+{"class":"conductor-tool","expected":"declared conductor operation","found":"direct-edit","needed":"use canonical dispatch and run the independent doctor for gate diagnosis"}
+```
+
+The adapter consumes a matching decision once for that intercepted request only,
+checks that native request/executable/cwd/environment and held binding have not
+changed, then either executes that exact allowed invocation or blocks it. A
+missing, late, malformed, duplicate or mismatched response fails closed before
+execution. The adapter cannot turn refusal into permission prompts, automatic
+approval, retry under weaker settings or an unrelated allowed request. Transport
+failure is recorded as unavailable decision evidence, while the request is
+blocked. No durable decision store is added; existing attempt transport retains
+admitted non-secret evidence. Unknown/rejected native data never enters records.
+
+### Acceptance duties and bounded refusals
+
+Independent cases COND-HAND-P1/N1/L1 prove canonical delegation and necessary
+coordination reads work, and forbidden direct-tool/Git/shell/vendor/sub-agent
+attempts block before tree/index/ref effects. Include read commands containing
+words such as apply without executing a mutation, and compound commands naming
+an allowed lever; classify actual operations, not prose. COND-AXIS-N1 changes
+harness, model, role, job role and profile separately. COND-EFFECT-N1 compares
+only the declared effects of canonical coordination/delegation. Malformed hook
+payloads and decisions, changed/replayed bindings, prompt attempts and missing
+interception each prevent conduct admission. Repeat on resume and every supported
+harness using the shared policy, with verified mocks and live observations.
+
+These are adoption acceptance duties from the Daybreak input, not claims of an
+introduced exploit in this documentary change. Existing lane-policy P1–P5,
+N1–N10, R1–R5 and I1 remain binding. In particular shared inspection reads stay
+permitted; the older unarmed guard's ban on hand investigation supplies no new
+authority. Doctor findings propose bounded remedies; neither a diagnostic run
+nor a passing observation can ratify policy or widen permissions.

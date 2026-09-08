@@ -18,5 +18,47 @@ the newest one's calibration clause is what `onboard` serves as the
 thread. A holding with neither a probe row nor an explicit left-behind
 declaration is the hand-over failing, named.
 
+Candidate discovery across tracked files and the retained-ref namespace
+`refs/heads/records/` is specified in
+[`../discovery-lever.md`](../discovery-lever.md). Publication remains
+manual; discovery does not write these records.
+
+## Discovery metadata extension
+
+The corrected [discovery contract](../discovery-lever.md#record-identity-trust-and-selection)
+specifies the smallest missing custody metadata: record ID, kind, exact byte
+digest, work paths, lineage and explicit supersedes edges. Until a separately
+authorized publication step produces this metadata through the existing record
+lineage, trusted launch configuration may bind it to existing bytes. No new
+store or ref namespace, and no rewrite of older records, is required. A record
+cannot authenticate itself by declaring these values in its body, title, date
+or branch name. Unbound records remain visible as unknown relevance; incomplete
+evidence cannot establish a unique handoff. AARs are reports governed here,
+never their own contract or authority. Onboard's existing newest-filename
+thread behavior stays unchanged; discovery's selection is a separate read.
+
+Supersedes remains same-kind, same-lineage and acyclic. Discovery restricts
+handoff reachability to readable relevant IDs; irrelevant superseders cannot
+make a handoff stale, and missing relevant evidence makes selection unknown.
+A complete nonempty set has an unsuperseded ID and therefore a current handoff.
+[D-A16](../discovery-lever.md#non-executable-acceptance-rows) covers a stale-only
+presentation page whose terminal current handoff is elsewhere in the complete
+set: global selection still names that terminal key, and named stale detail
+stays readable without becoming selected. A nonempty complete stale-only
+acquisition is impossible, not a skip or permission to add retirement metadata,
+cycles, hidden superseders or fabricated preclassified mocks. Complete-empty
+none and missing-evidence unknown retain their separate acceptance rows.
+
+Producer receipts and commit messages keep their original history. An object
+that cannot be resolved in a dispatch snapshot is inaccessible there, not
+therefore absent from the canonical repository. The conductor retains the
+original records and owns canonical producer-pointer verification; measure
+that pointer where accessible, otherwise declare the limit and reproduce the
+five discovery-document blob hashes at the available ref. A content-tree
+pointer describes its own stamped bytes, not necessarily the later commit's
+whole tree. Neither a snapshot limitation nor a new correction authorizes
+rewriting provenance. Discovery metadata and selection still require the
+readable relevant evidence above, regardless of historical pointer custody.
+
 The House's hand-over records do not cross. This directory begins with
 the substrate work of 2026-09-02, which was this project's own session.
