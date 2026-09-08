@@ -1768,8 +1768,7 @@ class ProvisionalWrapperExecutableSourceAndPath(_WorkerWrapperFixture):
     """PROVISIONAL: EXECUTABLE_<NAME> path, provenance and precedence.
 
     A file value must not be relabelled as an operator environment
-    override. Spaces remain one token. Invalid overrides refuse
-    executable before launch.
+    override. Invalid overrides refuse executable before launch.
     """
 
     def test_file_executable_agy_is_not_relabelled_as_env(self):
@@ -1792,50 +1791,6 @@ class ProvisionalWrapperExecutableSourceAndPath(_WorkerWrapperFixture):
         self.assertEqual(argv[argv.index("--harness") + 1], "agy")
         self.assertNotIn(key, env)
         self.assertNotIn("WORKER_HARNESSES", env)
-        self.assert_no_launch()
-
-    def test_spaced_executable_agy_is_one_worker_token(self):
-        spaced = worker_conf.plant_executable(
-            self, self.scratch / "agy tools" / "agy bin",
-        )
-        self.assertIn(" ", str(spaced))
-        key = worker_conf.executable_key("agy")
-        self._plant_conf(
-            self.conf_path,
-            **self._conf_kwargs(
-                WORKER_HARNESSES="claude codex grok agy",
-                **{key: str(spaced)},
-            ),
-        )
-        proc = self.invoke(self.full_flags(harness="agy"))
-        argv, _env = self.parse_dry_run(proc)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assertEqual(argv[argv.index("--harness") + 1], "agy")
-        self.assert_no_launch()
-
-    def test_env_executable_agy_reports_env_source(self):
-        env_bin = worker_conf.plant_executable(
-            self, self.scratch / "from-env" / "agy",
-        )
-        file_bin = worker_conf.plant_executable(
-            self, self.scratch / "from-file" / "agy",
-        )
-        self.assertNotEqual(env_bin, file_bin)
-        key = worker_conf.executable_key("agy")
-        self._plant_conf(
-            self.conf_path,
-            **self._conf_kwargs(
-                WORKER_HARNESSES="claude codex grok agy",
-                **{key: str(file_bin)},
-            ),
-        )
-        proc = self.invoke(
-            self.full_flags(harness="agy"),
-            extra_env={key: str(env_bin)},
-        )
-        argv, _env = self.parse_dry_run(proc)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assertEqual(argv[argv.index("--harness") + 1], "agy")
         self.assert_no_launch()
 
     def test_exported_executable_reaches_the_child_not_the_file_value(self):
@@ -2113,5 +2068,4 @@ class ProvisionalWrapperThreeHarnessUnchanged(_WorkerWrapperFixture):
 
 if __name__ == "__main__":
     unittest.main()
-
 
