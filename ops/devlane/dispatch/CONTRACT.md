@@ -4,7 +4,7 @@
 
 Standing: worker implementation candidate, owner brief of 2026-09-08.
 The configured-worker mechanism enables agy; independent combined review
-and an operational discovery probe remain outstanding.
+remains outstanding. Bounded native discovery evidence is recorded below.
 GPT-6 correction follows independent Grok ruling
 `20260908T065000Z-adjudicate-grok-c2ae09` on `fc9ad2c`: F1–F4 UPHELD,
 F5/F6/F8 PARTIAL, F7 REJECTED. Later wire evidence
@@ -135,10 +135,48 @@ existing stream grace, then stops the affected capped operation. No total-token
 or price wire is introduced. Read-role settlement guards remain authoritative.
 
 The existing probe accepts explicit agy `--model`, `--phrase` and `--cwd`
-inputs for a later host job's planted synthetic discovery controls. Both arms
+inputs for a host job's planted synthetic discovery controls. It resolves
+`laneconf.worker('agy').executable` once from the probe process configuration,
+exactly as dispatch does, before building a credential home. The optional
+Python `env` argument supplies the control arms' environment, not a separate
+worker configuration. Both arms execute that resolved path; result details
+stamp the selected executable and its observed SHA-256, with the existing
+post-probe digest comparison. Loader refusals become INVALID with their
+expected–found–needed detail. Trusted operator overrides and fake CLIs remain
+valid selections. A digest is observation, never a binary allowlist or new
+launch/resume admission gate. Claude/codex/grok retain their existing PATH
+behavior. This is the upheld slice of cold ruling
+`20260908T083902Z-adjudicate-grok-b6cf99` at
+`a7611ba44a68655d13f0273606193483df358741`; its broader gate was rejected.
+Both arms
 must initialize and answer; CANCELED, failed initialization and an invisible
 positive control are INVALID. A CLEAN result covers only the named canary;
 other discovery remains unresolved. No live probe was run in the Codex sandbox.
+
+Native discovery receipt, 2026-09-08: supplied
+`agy-discovery-live-result.json` (SHA-256
+`98bcbda5fc42ebe3e395f3d07916f3daf9a6717b0dc1924f14977d7b24819aea`),
+run `20260908T082720Z-code-grok-dd5294`, measured against
+`2e4583256eeb624be0c9a5468d269cd54a395bdc`, reports agy 1.1.27 and
+the `93eb2118…` binary above, with explicit `gemini-3.8-flash-high`.
+The visible and isolated commands and receipt validation each exited 0.
+Both arms initialized and answered; native init.cwd matched the disposable
+git fixture. The visible arm returned both global and project markers; the
+isolated arm returned the project marker without the global marker. Markers
+were absent from stdin, and neither arm used tools. The CLEAN observation
+covers only the combined HOME/XDG_CONFIG_HOME/XDG_CACHE_HOME/XDG_DATA_HOME/
+XDG_STATE_HOME/XDG_RUNTIME_DIR/TMPDIR redirection with
+`AGY_CLI_DISABLE_AUTO_UPDATE=true`, `--disable-slash-commands` and
+`--dangerously-skip-permissions`; containment remains policy.
+At that receipt's revision, `isolated()` supplied HOME only and the observer
+added XDG/TMPDIR redirection. It did not measure HOME-only sufficiency.
+Settings.json discovery/exclusion, MCP config discovery/exclusion,
+project AGENTS.md and skill suppression remain unresolved. The receipt
+reports removal of the copied 0600 auth leaf and unchanged operator auth
+and named settings receipts. This is supplied dated evidence, not a new
+native run or exhaustive isolation certification. Reproduce the receipt
+reading with `cat ../in/agy-discovery-live-result.json` in the supplied
+snapshot; verify its identity with `sha256sum ../in/agy-discovery-live-result.json`.
 
 Independent tests can
 already pin the interfaces above using synthetic environments and fake CLIs;
