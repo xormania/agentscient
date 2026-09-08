@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read and check the lane's shared, literal-only configuration.
 
-Worker configuration amendment (2026-09-08, contract only; not implemented):
+Worker configuration amendment (2026-09-08):
 ops/devlane/dispatch/CONTRACT.md owns execution and capability restrictions.
 This loader owns two additional settings in the existing literal grammar:
 
@@ -44,8 +44,10 @@ from __future__ import annotations
 
 import ast
 import contextlib
+import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -206,10 +208,11 @@ def parse_file(path: Path) -> dict[str, str]:
     return values
 
 
-def values() -> dict[str, str]:
-    """Resolve environment, local file, then tracked-file precedence."""
+def _configuration() -> tuple[dict[str, str], dict[str, str]]:
+    """Resolve literal files and retain each winning declaration's source."""
     path = conf_path()
     resolved = parse_file(path)
+    sources = {key: f"file:{path}#{key}" for key in resolved}
     local = path.with_name(LOCAL_NAME)
     if local.is_file():
         overrides = parse_file(local)
@@ -223,10 +226,68 @@ def values() -> dict[str, str]:
                 f"remove {key} from {local}",
             )
         resolved.update(overrides)
+        sources.update({key: f"file:{local.resolve()}#{key}" for key in overrides})
     for key in tuple(resolved):
         if key in os.environ:
             resolved[key] = os.environ[key]
-    return resolved
+            sources[key] = f"env:{key}"
+    return resolved, sources
+
+
+def values() -> dict[str, str]:
+    """Resolve environment, local file, then tracked-file precedence."""
+    return _configuration()[0]
+
+
+def worker(name: str) -> dict:
+    """Resolve configured membership and one literal executable, before launch."""
+    resolved, sources = _configuration()
+    executable_key = f"EXECUTABLE_{name.upper()}"
+    for key in ("WORKER_HARNESSES", executable_key):
+        if key in os.environ:
+            resolved[key] = os.environ[key]
+            sources[key] = f"env:{key}"
+    names = resolved.get("WORKER_HARNESSES", "claude codex grok").split()
+    malformed = [item for item in names if not re.fullmatch(r"[a-z][a-z0-9]*", item)]
+    if malformed or len(names) != len(set(names)):
+        raise ConfigError(
+            "worker", "unique worker names matching [a-z][a-z0-9]*",
+            repr(names), "correct WORKER_HARNESSES",
+        )
+    if not re.fullmatch(r"[a-z][a-z0-9]*", name) or name not in names:
+        raise ConfigError(
+            "worker", "a worker selected by WORKER_HARNESSES",
+            f"{name!r} with workers {names!r}",
+            "select a listed worker or correct WORKER_HARNESSES",
+        )
+    override = executable_key in resolved
+    lookup = None if override else shutil.which(name)
+    executable = resolved[executable_key] if override else lookup or name
+    if override or name not in {"claude", "codex", "grok"}:
+        try:
+            path = Path(executable)
+            if not executable or (override and not path.is_absolute()):
+                raise ValueError("empty or relative executable override")
+            if not override and lookup is None:
+                raise ValueError("worker not found on PATH")
+            path = path.resolve(strict=True)
+            if not path.is_file() or not os.access(path, os.X_OK):
+                raise ValueError("not a regular executable file")
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise ConfigError(
+                "executable", "one absolute path to a regular executable file",
+                f"{executable!r}: {exc}",
+                f"correct {executable_key} or install {name} on PATH",
+            ) from exc
+        executable = str(path)
+    return {
+        "name": name,
+        "executable": executable,
+        "sources": {
+            "workers": sources.get("WORKER_HARNESSES", "default"),
+            "executable": sources[executable_key] if override else "PATH",
+        },
+    }
 
 
 def get(name: str) -> str:
@@ -358,6 +419,9 @@ def closure() -> int:
             readers.setdefault(key, set()).add(
                 "ops/conductor/tools/laneconf.py"
             )
+        for key in declared:
+            if key.startswith("EXECUTABLE_"):
+                readers.setdefault(key, set()).add("ops/conductor/tools/laneconf.py")
     for rel, source in _source_files(root):
         text = source.read_text(encoding="utf-8", errors="replace")
         for key in _reads(text):
@@ -463,13 +527,16 @@ def main(argv: list[str] | None = None) -> int:
         if len(args) == 2 and args[0] == "get":
             print(get(args[1]))
             return 0
+        if len(args) == 2 and args[0] == "worker":
+            print(json.dumps(worker(args[1])))
+            return 0
         if args == ["closure"]:
             return closure()
         if args == ["literals"]:
             return literals()
         raise ConfigError(
             "arguments",
-            "get KEY, closure, or literals",
+            "get KEY, worker NAME, closure, or literals",
             " ".join(args) or "no arguments",
             "choose one documented verb",
         )

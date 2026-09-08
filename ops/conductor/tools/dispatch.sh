@@ -53,8 +53,8 @@ fi
 # machines, and no home path leaks into a public conf). An operator who wants
 # the hard supply-chain lock may still set an absolute LAUNCHER_PIN in the conf.
 keys=(LANE_NAME TRUNK_BRANCH RELEASE_BRANCH REPO_SLUG CHECK_NAMES WF_AGENT_DEFAULT LANE_AUTHOR MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE SCOPE_CAP)
-env_keys=("${!MODEL_@}" "${!EFFORT_@}")
-saved_keys=("${keys[@]}" "${env_keys[@]}")
+env_keys=("${!MODEL_@}" "${!EFFORT_@}" "${!EXECUTABLE_@}")
+saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES)
 for key in "${saved_keys[@]}"; do
     if [[ -v $key ]]; then
         printf -v "saved_$key" '%s' "${!key}"
@@ -86,6 +86,13 @@ for key in "${saved_keys[@]}"; do
         printf -v "$key" '%s' "${!saved}"
     fi
 done
+# Only original operator overrides reach the loader as environment keys.
+# File declarations are read there, with their original file provenance.
+for key in WORKER_HARNESSES "${!EXECUTABLE_@}"; do
+    had="had_$key"
+    [[ ${!had:-0} == 1 ]] || unset "$key"
+done
+export LANE_CONF=$conf_path
 if ((had_timeout)); then
     DISPATCH_TIMEOUT=$env_timeout
 else
@@ -174,7 +181,8 @@ fi
 [[ -n $branch || -n $worktree ]] || refuse "expected one of --branch or --worktree; found neither; select a lineage worktree"
 [[ -z $branch || -z $worktree ]] || refuse "expected one of --branch or --worktree; found both; pass exactly one"
 [[ $job =~ ^[a-z][a-z0-9-]*$ ]] || refuse "expected --job matching ^[a-z][a-z0-9-]*$; found $job; needed a catalogue-shaped job name"
-case $harness in grok|codex|claude) ;; *) refuse "expected --harness grok, codex, or claude; found $harness; choose a supported harness" ;; esac
+worker_error=$(python3 "$script_dir/laneconf.py" worker "$harness" 2>&1 >/dev/null) \
+    || refuse "$worker_error"
 [[ -f $scope_file ]] || refuse "expected --scope-file to name a file; found $scope_file; create the file or correct the path"
 
 scope_bytes=$(wc -c < "$scope_file") || refuse "expected a readable --scope-file; found unreadable $scope_file; correct its permissions"
@@ -215,18 +223,19 @@ if [[ -z $model && -n ${!model_job:-} ]]; then
     model=${!model_job}
 fi
 if [[ -z $model ]]; then
-    case $harness in
-        grok) model=$MODEL_GROK ;;
-        codex) model=$MODEL_CODEX ;;
-        claude) if [[ $stage == plan ]]; then model=$MODEL_CLAUDE_PLAN; else model=$MODEL_CLAUDE_READ; fi ;;
-    esac
+    model_harness="MODEL_${harness^^}"
+    model=${!model_harness:-}
 fi
+if [[ -z $model && $harness == claude ]]; then
+    if [[ $stage == plan ]]; then model=$MODEL_CLAUDE_PLAN; else model=$MODEL_CLAUDE_READ; fi
+fi
+[[ -n $model ]] || refuse "model: expected a model; found none for $harness; needed pass --model or configure MODEL_${harness^^}"
 if [[ -z $effort ]]; then
     if [[ -n ${!effort_job:-} ]]; then
         effort=${!effort_job}
     else
         effort_harness="EFFORT_${harness^^}"
-        effort=${!effort_harness}
+        effort=${!effort_harness:-}
     fi
 fi
 

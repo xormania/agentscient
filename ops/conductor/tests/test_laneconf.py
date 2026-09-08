@@ -25,6 +25,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import worker_conf
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
 TRACKED_CONF = REPO / "ops" / "lane.conf"
@@ -1334,6 +1336,541 @@ class Unit2DriverKeys(_LaneconfFixture):
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
 
+class _WorkerLaneconfFixture(_LaneconfFixture):
+    """Scratch PATH bins for the provisional worker CLI."""
+
+    def setUp(self):
+        super().setUp()
+        self.bindir, self.bins = worker_conf.plant_named_bins(
+            self,
+            self.scratch,
+            worker_conf.DEFAULT_WORKERS + ("agy",),
+        )
+        self.path_only = str(self.bindir)
+        self.path_with_host = worker_conf.path_with(self.bindir)
+
+    def invoke_worker(self, name: str, **kwargs):
+        extra = dict(kwargs.pop("extra", None) or {})
+        extra.setdefault("PATH", self.path_only)
+        return self.invoke(["worker", name], extra=extra, **kwargs)
+
+    def assert_kind_refusal(
+        self,
+        proc,
+        class_name: str,
+        *,
+        named: tuple[str, ...] = (),
+    ) -> str:
+        line = self.assert_refusal(proc, class_name, named=named)
+        token = class_name.lower().replace("_", "-")
+        self.assertTrue(
+            line.lower().startswith(token + ":"),
+            f"class {token} must be the leading token: {line!r}",
+        )
+        return line
+
+    def assert_worker(
+        self,
+        proc,
+        *,
+        name: str,
+        executable: Path | str,
+        workers_source: str,
+        executable_source: str,
+        expect_absolute: bool | None = None,
+    ) -> dict:
+        expected = str(executable)
+        if expect_absolute is None:
+            expect_absolute = Path(expected).is_absolute()
+        payload = worker_conf.parse_worker_object(
+            self, proc, expect_absolute=expect_absolute,
+        )
+        self.assertEqual(payload["name"], name)
+        self.assertEqual(payload["executable"], expected)
+        self.assertEqual(payload["sources"]["workers"], workers_source)
+        self.assertEqual(payload["sources"]["executable"], executable_source)
+        return payload
+
+
+class ProvisionalWorkerDefaultMembership(_WorkerLaneconfFixture):
+    """PROVISIONAL: omitted WORKER_HARNESSES means claude codex grok.
+
+    Candidate contract: absence is the three legacy names; listing a
+    name never implements an adapter; worker NAME prints the object.
+    """
+
+    def test_omitted_list_resolves_each_legacy_name_from_path(self):
+        names = worker_conf.DEFAULT_WORKERS
+        self.assertEqual(len(names), 3, names)
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertNotIn("WORKER_HARNESSES", planted)
+        for name in names:
+            with self.subTest(name=name):
+                proc = self.invoke_worker(name)
+                self.assert_worker(
+                    proc,
+                    name=name,
+                    executable=self.bins[name],
+                    workers_source="default",
+                    executable_source="PATH",
+                )
+
+    def test_omitted_list_refuses_agy_as_unknown_worker(self):
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertNotIn("WORKER_HARNESSES", planted)
+        self.assertTrue(self.bins["agy"].is_file())
+        proc = self.invoke_worker("agy")
+        self.assert_kind_refusal(proc, "worker", named=("agy",))
+
+    def test_listed_agy_resolves_from_path(self):
+        self.plant_conf(WORKER_HARNESSES="claude codex grok agy")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            planted["WORKER_HARNESSES"].split(),
+            ["claude", "codex", "grok", "agy"],
+        )
+        proc = self.invoke_worker("agy")
+        self.assert_worker(
+            proc,
+            name="agy",
+            executable=self.bins["agy"].resolve(),
+            workers_source=worker_conf.file_source(
+                self.conf_path, "WORKER_HARNESSES",
+            ),
+            executable_source="PATH",
+        )
+
+
+class ProvisionalWorkerHarnessesEmptyAndMalformed(_WorkerLaneconfFixture):
+    """PROVISIONAL: empty list disables all workers; duplicates and
+    names outside [a-z][a-z0-9]* refuse class worker.
+    """
+
+    def test_explicit_empty_list_disables_grok(self):
+        self.plant_conf(WORKER_HARNESSES="")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["WORKER_HARNESSES"], "")
+        proc = self.invoke_worker("grok")
+        self.assert_kind_refusal(proc, "worker", named=("grok",))
+
+    def test_whitespace_only_list_disables_grok(self):
+        self.plant_conf(WORKER_HARNESSES=" \t ")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["WORKER_HARNESSES"].strip(), "")
+        proc = self.invoke_worker("grok")
+        self.assert_kind_refusal(proc, "worker", named=("grok",))
+
+    def test_agy_only_list_refuses_grok(self):
+        self.plant_conf(WORKER_HARNESSES="agy")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["WORKER_HARNESSES"], "agy")
+        proc = self.invoke_worker("grok")
+        self.assert_kind_refusal(proc, "worker", named=("grok",))
+
+    def test_duplicate_names_refuse_worker(self):
+        self.plant_conf(WORKER_HARNESSES="claude grok grok")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            planted["WORKER_HARNESSES"].split(),
+            ["claude", "grok", "grok"],
+        )
+        proc = self.invoke_worker("claude")
+        self.assert_kind_refusal(proc, "worker")
+
+    def test_malformed_list_name_refuses_worker(self):
+        bad = "agy-cli"
+        self.assertNotRegex(bad, worker_conf.WORKER_NAME_RE)
+        self.plant_conf(WORKER_HARNESSES=f"claude {bad}")
+        proc = self.invoke_worker("claude")
+        self.assert_kind_refusal(proc, "worker", named=(bad,))
+
+    def test_malformed_requested_name_refuses_worker(self):
+        bad = "Grok"
+        self.assertNotRegex(bad, worker_conf.WORKER_NAME_RE)
+        proc = self.invoke_worker(bad)
+        self.assert_kind_refusal(proc, "worker", named=(bad,))
+
+    def test_double_space_unique_names_are_not_duplicates(self):
+        self.plant_conf(WORKER_HARNESSES="claude  grok")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["WORKER_HARNESSES"], "claude  grok")
+        self.assertEqual(planted["WORKER_HARNESSES"].split(), ["claude", "grok"])
+        proc = self.invoke_worker("grok")
+        self.assert_worker(
+            proc,
+            name="grok",
+            executable=self.bins["grok"],
+            workers_source=worker_conf.file_source(
+                self.conf_path, "WORKER_HARNESSES",
+            ),
+            executable_source="PATH",
+        )
+
+
+class ProvisionalWorkerExecutableResolution(_WorkerLaneconfFixture):
+    """PROVISIONAL: EXECUTABLE_<NAME> is one nonempty absolute regular
+    executable; absence uses PATH; failure refuses executable and does
+    not fall through.
+    """
+
+    def test_absolute_override_is_one_token_and_not_the_path_bin(self):
+        override = worker_conf.plant_executable(
+            self, self.scratch / "override" / "grok",
+        )
+        self.assertNotEqual(override, self.bins["grok"])
+        key = worker_conf.executable_key("grok")
+        self.plant_conf(**{key: str(override)})
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted[key], str(override))
+        proc = self.invoke_worker("grok")
+        payload = self.assert_worker(
+            proc,
+            name="grok",
+            executable=override,
+            workers_source="default",
+            executable_source=worker_conf.file_source(self.conf_path, key),
+        )
+        self.assertNotEqual(payload["executable"], str(self.bins["grok"]))
+
+    def test_path_with_spaces_stays_one_token(self):
+        spaced = worker_conf.plant_executable(
+            self, self.scratch / "agy tools" / "agy bin",
+        )
+        self.assertIn(" ", str(spaced))
+        key = worker_conf.executable_key("agy")
+        self.plant_conf(
+            WORKER_HARNESSES="claude codex grok agy",
+            **{key: str(spaced)},
+        )
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted[key], str(spaced))
+        proc = self.invoke_worker("agy")
+        payload = self.assert_worker(
+            proc,
+            name="agy",
+            executable=spaced,
+            workers_source=worker_conf.file_source(
+                self.conf_path, "WORKER_HARNESSES",
+            ),
+            executable_source=worker_conf.file_source(self.conf_path, key),
+        )
+        self.assertEqual(payload["executable"].count(str(spaced)), 1)
+        self.assertNotEqual(payload["executable"].split()[0], payload["executable"])
+
+    def test_symlink_override_resolves_to_the_target(self):
+        target = worker_conf.plant_executable(
+            self, self.scratch / "real" / "agy",
+        )
+        link = self.scratch / "link" / "agy"
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(target)
+        self.assertTrue(link.is_symlink())
+        self.assertEqual(link.resolve(), target)
+        key = worker_conf.executable_key("agy")
+        self.plant_conf(
+            WORKER_HARNESSES="agy",
+            **{key: str(link)},
+        )
+        proc = self.invoke_worker("agy")
+        payload = self.assert_worker(
+            proc,
+            name="agy",
+            executable=target,
+            workers_source=worker_conf.file_source(
+                self.conf_path, "WORKER_HARNESSES",
+            ),
+            executable_source=worker_conf.file_source(self.conf_path, key),
+        )
+        self.assertEqual(payload["executable"], str(target))
+        self.assertNotEqual(payload["executable"], str(link))
+
+    def test_relative_override_refuses_executable(self):
+        relative = "./agy"
+        self.assertFalse(Path(relative).is_absolute())
+        key = worker_conf.executable_key("agy")
+        self.plant_conf(WORKER_HARNESSES="agy", **{key: relative})
+        proc = self.invoke_worker("agy")
+        self.assert_kind_refusal(proc, "executable", named=(relative,))
+
+    def test_empty_override_refuses_and_does_not_use_path(self):
+        key = worker_conf.executable_key("grok")
+        self.plant_conf(**{key: ""})
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted[key], "")
+        proc = self.invoke_worker("grok")
+        self.assert_kind_refusal(proc, "executable")
+        self.assertNotEqual(proc.returncode, 0)
+
+    def test_missing_override_refuses_executable(self):
+        missing = self.scratch / "missing" / "agy"
+        self.assertFalse(missing.exists(), "plant: override must not exist")
+        key = worker_conf.executable_key("agy")
+        self.plant_conf(WORKER_HARNESSES="agy", **{key: str(missing)})
+        proc = self.invoke_worker("agy")
+        self.assert_kind_refusal(proc, "executable", named=(str(missing),))
+
+    def test_non_executable_override_refuses_executable(self):
+        path = self.scratch / "not-x" / "agy"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        data = b"#!/bin/sh\nexit 0\n"
+        self._plant_bytes(path, data)
+        self.assertFalse(os.access(path, os.X_OK), "plant: must not be +x")
+        key = worker_conf.executable_key("agy")
+        self.plant_conf(WORKER_HARNESSES="agy", **{key: str(path)})
+        proc = self.invoke_worker("agy")
+        self.assert_kind_refusal(proc, "executable", named=(str(path),))
+
+    def test_directory_override_refuses_executable(self):
+        directory = self.scratch / "agy-dir"
+        directory.mkdir()
+        self.assertTrue(directory.is_dir())
+        key = worker_conf.executable_key("agy")
+        self.plant_conf(WORKER_HARNESSES="agy", **{key: str(directory)})
+        proc = self.invoke_worker("agy")
+        self.assert_kind_refusal(proc, "executable", named=(str(directory),))
+
+    def test_failed_path_lookup_falls_back_to_legacy_name(self):
+        empty = self.scratch / "empty-bin"
+        empty.mkdir()
+        self.assertIsNone(shutil.which("grok", path=str(empty)))
+        proc = self.invoke_worker("grok", extra={"PATH": str(empty)})
+        self.assert_worker(
+            proc,
+            name="grok",
+            executable="grok",
+            workers_source="default",
+            executable_source="PATH",
+            expect_absolute=False,
+        )
+
+    def test_failed_agy_path_lookup_refuses_executable(self):
+        empty = self.scratch / "empty-bin"
+        empty.mkdir()
+        self.assertIsNone(shutil.which("agy", path=str(empty)))
+        self.plant_conf(WORKER_HARNESSES="claude codex grok agy")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(
+            planted["WORKER_HARNESSES"].split(),
+            ["claude", "codex", "grok", "agy"],
+        )
+        proc = self.invoke_worker("agy", extra={"PATH": str(empty)})
+        self.assert_kind_refusal(proc, "executable", named=("agy",))
+
+    def test_flag_like_override_does_not_split(self):
+        key = worker_conf.executable_key("agy")
+        value = f"{self.bins['agy']} --print"
+        self.assertIn(" --print", value)
+        self.plant_conf(WORKER_HARNESSES="agy", **{key: value})
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted[key], value)
+        proc = self.invoke_worker("agy")
+        self.assert_kind_refusal(proc, "executable", named=(value,))
+
+    def test_command_substitution_in_override_does_not_run(self):
+        witness = self.scratch / "pwned-executable"
+        self.assertFalse(witness.exists(), "plant: witness must start absent")
+        key = worker_conf.executable_key("agy")
+        value = f"/no/such/agy-$(printf PWNED > {witness})"
+        self.plant_conf(WORKER_HARNESSES="agy", **{key: value})
+        proc = self.invoke_worker("agy")
+        self.assert_kind_refusal(proc, "executable")
+        self.assertFalse(
+            witness.exists(),
+            "command substitution must not execute; "
+            f"witness="
+            f"{witness.read_text(encoding='utf-8') if witness.exists() else ''!r}",
+        )
+
+
+class ProvisionalWorkerProvenanceAndPrecedence(_WorkerLaneconfFixture):
+    """PROVISIONAL: env > local file > tracked file > default.
+    Environment keys work when absent from both files. Blank overrides
+    do not fall through. File sources are not labelled env.
+    """
+
+    def test_env_list_beats_local_and_file(self):
+        self.plant_conf(WORKER_HARNESSES="agy")
+        local = self.plant_local("WORKER_HARNESSES='claude'\n")
+        self.assertTrue(local.is_file())
+        proc = self.invoke_worker(
+            "grok",
+            extra={"PATH": self.path_only, "WORKER_HARNESSES": "grok"},
+        )
+        self.assert_worker(
+            proc,
+            name="grok",
+            executable=self.bins["grok"],
+            workers_source=worker_conf.env_source("WORKER_HARNESSES"),
+            executable_source="PATH",
+        )
+
+    def test_local_list_beats_file(self):
+        self.plant_conf(WORKER_HARNESSES="agy")
+        local = self.plant_local("WORKER_HARNESSES='claude'\n")
+        self.assertIn("claude", local.read_text(encoding="utf-8"))
+        proc = self.invoke_worker("claude")
+        self.assert_worker(
+            proc,
+            name="claude",
+            executable=self.bins["claude"],
+            workers_source=worker_conf.file_source(local, "WORKER_HARNESSES"),
+            executable_source="PATH",
+        )
+        refused = self.invoke_worker("agy")
+        self.assert_kind_refusal(refused, "worker", named=("agy",))
+
+    def test_env_list_works_when_absent_from_files(self):
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertNotIn("WORKER_HARNESSES", planted)
+        proc = self.invoke_worker(
+            "agy",
+            extra={"PATH": self.path_only, "WORKER_HARNESSES": "agy"},
+        )
+        self.assert_worker(
+            proc,
+            name="agy",
+            executable=self.bins["agy"].resolve(),
+            workers_source=worker_conf.env_source("WORKER_HARNESSES"),
+            executable_source="PATH",
+        )
+
+    def test_blank_env_list_does_not_fall_through_to_file(self):
+        self.plant_conf(WORKER_HARNESSES="claude grok")
+        planted = declared_keys(self.conf_path.read_text(encoding="utf-8"))
+        self.assertEqual(planted["WORKER_HARNESSES"], "claude grok")
+        proc = self.invoke_worker(
+            "grok",
+            extra={"PATH": self.path_only, "WORKER_HARNESSES": ""},
+        )
+        self.assert_kind_refusal(proc, "worker", named=("grok",))
+
+    def test_env_executable_beats_file(self):
+        file_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-file" / "grok",
+        )
+        env_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-env" / "grok",
+        )
+        self.assertNotEqual(file_bin, env_bin)
+        key = worker_conf.executable_key("grok")
+        self.plant_conf(**{key: str(file_bin)})
+        proc = self.invoke_worker(
+            "grok",
+            extra={"PATH": self.path_only, key: str(env_bin)},
+        )
+        payload = self.assert_worker(
+            proc,
+            name="grok",
+            executable=env_bin,
+            workers_source="default",
+            executable_source=worker_conf.env_source(key),
+        )
+        self.assertNotEqual(payload["executable"], str(file_bin))
+        self.assertNotEqual(
+            payload["sources"]["executable"],
+            worker_conf.file_source(self.conf_path, key),
+        )
+
+    def test_local_executable_beats_file(self):
+        file_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-file" / "grok",
+        )
+        local_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-local" / "grok",
+        )
+        self.assertNotEqual(file_bin, local_bin)
+        key = worker_conf.executable_key("grok")
+        self.plant_conf(**{key: str(file_bin)})
+        local = self.plant_local(f"{key}='{local_bin}'\n")
+        planted = declared_keys(local.read_text(encoding="utf-8"))
+        self.assertEqual(planted[key], str(local_bin))
+        proc = self.invoke_worker("grok")
+        payload = self.assert_worker(
+            proc,
+            name="grok",
+            executable=local_bin,
+            workers_source="default",
+            executable_source=worker_conf.file_source(local, key),
+        )
+        self.assertNotEqual(payload["executable"], str(file_bin))
+        self.assertNotEqual(
+            payload["sources"]["executable"],
+            worker_conf.file_source(self.conf_path, key),
+        )
+
+    def test_env_executable_beats_local_and_file(self):
+        file_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-file" / "grok",
+        )
+        local_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-local" / "grok",
+        )
+        env_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-env" / "grok",
+        )
+        self.assertNotEqual(file_bin, local_bin)
+        self.assertNotEqual(local_bin, env_bin)
+        self.assertNotEqual(file_bin, env_bin)
+        key = worker_conf.executable_key("grok")
+        self.plant_conf(**{key: str(file_bin)})
+        local = self.plant_local(f"{key}='{local_bin}'\n")
+        planted = declared_keys(local.read_text(encoding="utf-8"))
+        self.assertEqual(planted[key], str(local_bin))
+        proc = self.invoke_worker(
+            "grok",
+            extra={"PATH": self.path_only, key: str(env_bin)},
+        )
+        payload = self.assert_worker(
+            proc,
+            name="grok",
+            executable=env_bin,
+            workers_source="default",
+            executable_source=worker_conf.env_source(key),
+        )
+        self.assertNotEqual(payload["executable"], str(file_bin))
+        self.assertNotEqual(payload["executable"], str(local_bin))
+        self.assertNotEqual(
+            payload["sources"]["executable"],
+            worker_conf.file_source(local, key),
+        )
+
+    def test_file_source_string_uses_absolute_path_and_key(self):
+        key = worker_conf.executable_key("agy")
+        override = worker_conf.plant_executable(
+            self, self.scratch / "abs" / "agy",
+        )
+        self.plant_conf(WORKER_HARNESSES="agy", **{key: str(override)})
+        proc = self.invoke_worker("agy")
+        payload = self.assert_worker(
+            proc,
+            name="agy",
+            executable=override,
+            workers_source=worker_conf.file_source(
+                self.conf_path, "WORKER_HARNESSES",
+            ),
+            executable_source=worker_conf.file_source(self.conf_path, key),
+        )
+        self.assertTrue(payload["sources"]["workers"].startswith("file:"))
+        self.assertNotIn("env:", payload["sources"]["workers"])
+        self.assertTrue(payload["sources"]["executable"].startswith("file:"))
+        self.assertNotIn("env:", payload["sources"]["executable"])
+        self.assertIn(str(self.conf_path.resolve()), payload["sources"]["workers"])
+        self.assertIn(key, payload["sources"]["executable"])
+
+    def test_worker_cli_does_not_need_identity(self):
+        env = self.env(extra={"PATH": self.path_only})
+        self.assertNotIn("WF_AGENT", env)
+        proc = self.invoke_worker("grok")
+        self.assert_worker(
+            proc,
+            name="grok",
+            executable=self.bins["grok"],
+            workers_source="default",
+            executable_source="PATH",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
+
 

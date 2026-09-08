@@ -29,6 +29,8 @@ import time
 import unittest
 from pathlib import Path
 
+import worker_conf
+
 REPO = Path(__file__).resolve().parents[3]
 WRAPPER = REPO / "ops" / "conductor" / "tools" / "dispatch.sh"
 REAL_CONF = REPO / "ops" / "lane.conf"
@@ -1642,6 +1644,474 @@ class RowAgentIdentity(_WrapperFixture):
         self.assert_no_launch()
 
 
+class _WorkerWrapperFixture(_WrapperFixture):
+    """Scratch PATH bins for the provisional worker-selection tests."""
+
+    def setUp(self):
+        super().setUp()
+        self.bindir, self.bins = worker_conf.plant_named_bins(
+            self,
+            self.scratch,
+            worker_conf.DEFAULT_WORKERS + ("agy",),
+        )
+        self.worker_path = worker_conf.path_with(self.bindir)
+
+    def env(self, extra: dict[str, str | None] | None = None) -> dict[str, str]:
+        extra = dict(extra or {})
+        extra.setdefault("PATH", self.worker_path)
+        return super().env(extra)
+
+    def assert_class_abort(
+        self,
+        proc,
+        class_name: str,
+        *,
+        named: tuple[str, ...] = (),
+    ) -> str:
+        line = self.assert_wire_abort(proc, class_name, named=named)
+        token = class_name.lower().replace("_", "-")
+        self.assertTrue(
+            line.lower().startswith(token + ":")
+            or f" {token}:" in line.lower()
+            or line.lower().startswith(f"{token} "),
+            f"class {token} must name the refusal, not a later word: {line!r}",
+        )
+        return line
+
+    def record_child_env(self, log: Path, keys: tuple[str, ...]) -> None:
+        """Plant the existing python sentinel to dump selected child env keys."""
+        self.assertGreater(len(keys), 0, keys)
+        self._plant_python_sentinel(
+            self.pin,
+            "import json, os, pathlib\n"
+            f"pathlib.Path({str(log)!r}).write_text("
+            "json.dumps({k: os.environ.get(k) for k in "
+            f"{list(keys)!r}"
+            "}))\n"
+            f"pathlib.Path({str(self.marker)!r}).write_text('launched')\n",
+        )
+
+
+class ProvisionalWrapperWorkerSelection(_WorkerWrapperFixture):
+    """PROVISIONAL: wrapper checks WORKER_HARNESSES through the loader.
+
+    Omitted list keeps the three names and refuses agy. An explicit empty
+    list disables every worker. Listing agy makes --harness agy selectable.
+    Worker-object sources are pinned on the laneconf CLI. Wrapper
+    provenance of exported keys is observed in the child environment
+    through the existing python sentinel.
+    """
+
+    def test_omitted_list_refuses_agy_as_worker_without_launch(self):
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("WORKER_HARNESSES", landed)
+        proc = self.invoke(self.full_flags(harness="agy", dry_run=False))
+        self.assert_class_abort(proc, "worker", named=("agy",))
+
+    def test_listed_agy_reaches_harness_argv(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(WORKER_HARNESSES="claude codex grok agy"),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("WORKER_HARNESSES='claude codex grok agy'", landed)
+        proc = self.invoke(self.full_flags(harness="agy"))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--harness") + 1], "agy")
+        self.assert_no_launch()
+
+    def test_empty_list_refuses_grok_as_worker_without_launch(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(WORKER_HARNESSES=""),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("WORKER_HARNESSES=''", landed)
+        proc = self.invoke(self.full_flags(harness="grok", dry_run=False))
+        self.assert_class_abort(proc, "worker", named=("grok",))
+
+    def test_malformed_harness_name_refuses_worker(self):
+        bad = "agy-cli"
+        self.assertNotRegex(bad, worker_conf.WORKER_NAME_RE)
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(WORKER_HARNESSES="claude codex grok agy"),
+        )
+        proc = self.invoke(self.full_flags(harness=bad, dry_run=False))
+        self.assert_class_abort(proc, "worker", named=(bad,))
+
+    def test_duplicate_list_refuses_worker_without_launch(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(WORKER_HARNESSES="claude grok grok"),
+        )
+        proc = self.invoke(self.full_flags(harness="claude", dry_run=False))
+        self.assert_class_abort(proc, "worker")
+
+    def test_exported_worker_harnesses_beats_conf(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(WORKER_HARNESSES="claude codex grok"),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn("WORKER_HARNESSES='claude codex grok'", landed)
+        self.assertNotIn("WORKER_HARNESSES='agy'", landed)
+        proc = self.invoke(
+            self.full_flags(harness="grok", dry_run=False),
+            extra_env={"WORKER_HARNESSES": "agy"},
+        )
+        self.assert_class_abort(proc, "worker", named=("grok",))
+
+
+class ProvisionalWrapperExecutableSourceAndPath(_WorkerWrapperFixture):
+    """PROVISIONAL: EXECUTABLE_<NAME> path, provenance and precedence.
+
+    A file value must not be relabelled as an operator environment
+    override. Spaces remain one token. Invalid overrides refuse
+    executable before launch.
+    """
+
+    def test_file_executable_agy_is_not_relabelled_as_env(self):
+        override = worker_conf.plant_executable(
+            self, self.scratch / "override" / "agy",
+        )
+        key = worker_conf.executable_key("agy")
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(
+                WORKER_HARNESSES="claude codex grok agy",
+                **{key: str(override)},
+            ),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn(str(override), landed)
+        proc = self.invoke(self.full_flags(harness="agy"))
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--harness") + 1], "agy")
+        self.assertNotIn(key, env)
+        self.assertNotIn("WORKER_HARNESSES", env)
+        self.assert_no_launch()
+
+    def test_spaced_executable_agy_is_one_worker_token(self):
+        spaced = worker_conf.plant_executable(
+            self, self.scratch / "agy tools" / "agy bin",
+        )
+        self.assertIn(" ", str(spaced))
+        key = worker_conf.executable_key("agy")
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(
+                WORKER_HARNESSES="claude codex grok agy",
+                **{key: str(spaced)},
+            ),
+        )
+        proc = self.invoke(self.full_flags(harness="agy"))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--harness") + 1], "agy")
+        self.assert_no_launch()
+
+    def test_env_executable_agy_reports_env_source(self):
+        env_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-env" / "agy",
+        )
+        file_bin = worker_conf.plant_executable(
+            self, self.scratch / "from-file" / "agy",
+        )
+        self.assertNotEqual(env_bin, file_bin)
+        key = worker_conf.executable_key("agy")
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(
+                WORKER_HARNESSES="claude codex grok agy",
+                **{key: str(file_bin)},
+            ),
+        )
+        proc = self.invoke(
+            self.full_flags(harness="agy"),
+            extra_env={key: str(env_bin)},
+        )
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--harness") + 1], "agy")
+        self.assert_no_launch()
+
+    def test_exported_executable_reaches_the_child_not_the_file_value(self):
+        grok_key = worker_conf.executable_key("grok")
+        grok_file = worker_conf.plant_executable(
+            self, self.scratch / "grok-from-file" / "grok",
+        )
+        grok_env = worker_conf.plant_executable(
+            self, self.scratch / "grok-from-env" / "grok",
+        )
+        self.assertNotEqual(grok_file, grok_env)
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(**{grok_key: str(grok_file)}),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn(str(grok_file), landed)
+        self.assertNotIn(str(grok_env), landed)
+        env_log = self.scratch / "launcher-env.json"
+        self.record_child_env(env_log, (grok_key,))
+        launched = self.invoke(
+            self.full_flags(harness="grok", dry_run=False),
+            extra_env={grok_key: str(grok_env)},
+            timeout=8,
+        )
+        self.assertEqual(launched.returncode, 0, self.combined(launched))
+        self.assertTrue(self.marker.exists(), "foreground path must launch")
+        self.assertTrue(env_log.is_file(), "sentinel recorded env")
+        child = json.loads(env_log.read_text(encoding="utf-8"))
+        self.assertEqual(child.get(grok_key), str(grok_env))
+        self.assertNotEqual(child.get(grok_key), str(grok_file))
+
+    def test_relative_executable_agy_refuses_executable_without_launch(self):
+        relative = "./agy"
+        self.assertFalse(Path(relative).is_absolute())
+        key = worker_conf.executable_key("agy")
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(
+                WORKER_HARNESSES="claude codex grok agy",
+                **{key: relative},
+            ),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", dry_run=False))
+        self.assert_class_abort(proc, "executable", named=(relative,))
+
+    def test_empty_executable_agy_refuses_executable_without_launch(self):
+        key = worker_conf.executable_key("agy")
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(
+                WORKER_HARNESSES="claude codex grok agy",
+                **{key: ""},
+            ),
+        )
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertIn(f"{key}=''", landed)
+        proc = self.invoke(self.full_flags(harness="agy", dry_run=False))
+        self.assert_class_abort(proc, "executable")
+
+
+class ProvisionalWrapperAgyModelEffort(_WorkerWrapperFixture):
+    """PROVISIONAL: agy model/effort use the existing families.
+
+    Nonempty --model wins over MODEL_AGY_<JOB> then MODEL_AGY. Effort
+    likewise. agy has no coded model default; absent/empty effort omits
+    the token. No supported effort is translated to another level.
+    """
+
+    def _agy_conf(self, **overrides: str) -> dict[str, str]:
+        keys = self._conf_kwargs(
+            WORKER_HARNESSES="claude codex grok agy",
+            **overrides,
+        )
+        return keys
+
+    def test_model_flag_for_agy_beats_conf(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(MODEL_AGY="wrap-model-conf-agy"),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", model="flag-agy"))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--harness") + 1], "agy")
+        self.assertEqual(argv[argv.index("--model") + 1], "flag-agy")
+        self.assertNotEqual(argv[argv.index("--model") + 1], "wrap-model-conf-agy")
+        self.assert_no_launch()
+
+    def test_omitted_model_uses_model_agy(self):
+        conf_model = "wrap-model-conf-agy"
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(MODEL_AGY=conf_model),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", omit=("model",)))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--model") + 1], conf_model)
+        self.assertNotEqual(argv[argv.index("--model") + 1], self.conf_model_grok)
+        self.assert_no_launch()
+
+    def test_model_agy_job_suffix_beats_harness_model(self):
+        job_model = "wrap-model-job-agy"
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(
+                MODEL_AGY="wrap-model-conf-agy",
+                MODEL_AGY_WRAP_JOB=job_model,
+            ),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", omit=("model",)))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--model") + 1], job_model)
+        self.assertNotEqual(argv[argv.index("--model") + 1], "wrap-model-conf-agy")
+        self.assert_no_launch()
+
+    def test_effort_agy_job_suffix_beats_harness_effort(self):
+        job_effort = "wrap-effort-job-agy"
+        generic = "medium"
+        self.assertNotEqual(job_effort, generic)
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(
+                EFFORT_AGY=generic,
+                EFFORT_AGY_WRAP_JOB=job_effort,
+            ),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", effort=None))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--effort") + 1], job_effort)
+        self.assertNotEqual(argv[argv.index("--effort") + 1], generic)
+        self.assert_no_launch()
+
+    def test_env_model_agy_beats_conf(self):
+        env_model = "wrap-model-env-agy"
+        conf_model = "wrap-model-conf-agy"
+        self.assertNotEqual(env_model, conf_model)
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(MODEL_AGY=conf_model),
+        )
+        proc = self.invoke(
+            self.full_flags(harness="agy", omit=("model",)),
+            extra_env={"MODEL_AGY": env_model},
+        )
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--model") + 1], env_model)
+        self.assertNotEqual(argv[argv.index("--model") + 1], conf_model)
+        self.assert_no_launch()
+
+    def test_absent_model_agy_without_flag_refuses_model(self):
+        keys = self._agy_conf()
+        self.assertNotIn("MODEL_AGY", keys)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("MODEL_AGY", landed)
+        proc = self.invoke(
+            self.full_flags(harness="agy", omit=("model",), dry_run=False),
+        )
+        self.assert_class_abort(proc, "model")
+
+    def test_effort_agy_from_conf_follows_model(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(EFFORT_AGY="high"),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", effort=None))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertIn("--effort", argv)
+        model_at = argv.index("--model")
+        self.assertEqual(
+            argv[model_at:model_at + 4],
+            ["--model", self.model_flag, "--effort", "high"],
+        )
+        self.assert_no_launch()
+
+    def test_empty_effort_agy_omits_effort_token(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(EFFORT_AGY=""),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", effort=None))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertNotIn("--effort", argv)
+        self.assert_no_launch()
+
+    def test_absent_effort_agy_omits_effort_token(self):
+        keys = self._agy_conf()
+        self.assertNotIn("EFFORT_AGY", keys)
+        self._plant_conf(self.conf_path, **keys)
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("EFFORT_AGY", landed)
+        proc = self.invoke(self.full_flags(harness="agy", effort=None))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertNotIn("--effort", argv)
+        self.assert_no_launch()
+
+    def test_effort_flag_for_agy_is_not_translated(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._agy_conf(EFFORT_AGY="medium"),
+        )
+        proc = self.invoke(self.full_flags(harness="agy", effort="high"))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(argv[argv.index("--effort") + 1], "high")
+        self.assertNotEqual(argv[argv.index("--effort") + 1], "medium")
+        self.assertNotEqual(argv[argv.index("--effort") + 1], "xhigh")
+        self.assert_no_launch()
+
+
+class ProvisionalWrapperThreeHarnessUnchanged(_WorkerWrapperFixture):
+    """PROVISIONAL: listing agy must not change grok, codex or Claude
+    model/effort resolution. Omitted WORKER_HARNESSES keeps the default
+    three. Worker-object sources stay on the laneconf CLI.
+    """
+
+    CASES = RowHarnessModelEffortTable.CASES
+
+    def test_agy_listed_leaves_grok_codex_claude_model_effort_unchanged(self):
+        self.assertEqual(len(self.CASES), 4, self.CASES)
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(WORKER_HARNESSES="claude codex grok agy"),
+        )
+        for harness, job, _model_key, _effort_key, model, effort in self.CASES:
+            with self.subTest(harness=harness, job=job):
+                proc = self.invoke(self.full_flags(
+                    harness=harness, job=job, omit=("model", "effort"),
+                ))
+                argv, _env = self.parse_dry_run(proc)
+                self.assertEqual(proc.returncode, 0, self.combined(proc))
+                self.assertEqual(argv[argv.index("--harness") + 1], harness)
+                self.assertEqual(argv[argv.index("--model") + 1], model)
+                self.assertEqual(argv[argv.index("--effort") + 1], effort)
+                self.assert_no_launch()
+
+    def test_omitted_list_grok_keeps_argv_and_default_worker_source(self):
+        landed = self.conf_path.read_text(encoding="utf-8")
+        self.assertNotIn("WORKER_HARNESSES", landed)
+        proc = self.invoke(self.full_flags())
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(argv, self.expected_argv())
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(env.get("WF_AGENT"), FLAG_AGENT)
+        self.assert_no_launch()
+
+    def test_claude_plan_fallback_still_uses_model_claude_plan(self):
+        self._plant_conf(
+            self.conf_path,
+            **self._conf_kwargs(WORKER_HARNESSES="claude codex grok agy"),
+        )
+        proc = self.invoke(self.full_flags(
+            harness="claude", job="plan", omit=("model", "effort"),
+        ))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(
+            argv[argv.index("--model") + 1],
+            "wrap-model-conf-claude-plan",
+        )
+        self.assertNotEqual(
+            argv[argv.index("--model") + 1],
+            "wrap-model-conf-claude-read",
+        )
+        self.assert_no_launch()
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
