@@ -274,10 +274,15 @@ class AgyLiveStepUpdateOutputCap(_AgyStepCapLaunch):
             envelope.get("status"), ("tripped", "invalid"),
             f"over-budget live output must not certify: {rec!r}",
         )
-        blob = self.trip_text(rec, out, err).lower()
+        tripped = self.the_job_dir() / "TRIPPED.md"
         self.assertTrue(
-            "cap" in blob or "output" in blob,
-            f"trip must name the output cap: {blob!r}",
+            tripped.is_file(),
+            f"inline supervisor stop must write TRIPPED.md: {rec!r}",
+        )
+        reason = tripped.read_text(encoding="utf-8").lower()
+        self.assertTrue(
+            "output cap" in reason or "cap-out" in reason,
+            f"TRIPPED.md reason must identify the output cap: {reason!r}",
         )
 
     def test_absent_usage_still_fail_closes_after_stream_grace(self):
