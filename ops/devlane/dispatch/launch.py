@@ -76,6 +76,17 @@ def _lane_values(*names):
     return resolved
 
 
+def _worker(name):
+    try:
+        worker = LANECONF.worker(name)
+    except LANECONF.ConfigError as exc:
+        raise Refused(exc.line()) from exc
+    if name not in {"claude", "codex", "grok"}:
+        _refuse("worker", "an implemented worker adapter", name,
+                "select claude, codex or grok until this adapter is implemented")
+    return worker
+
+
 def _git(repo, *args, check=True, env=None, input=None, text=True):
     e = dict(os.environ if env is None else env)
     e.update({"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull,
@@ -493,8 +504,9 @@ def _effort_argv(harness, effort):
 
 
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
-          project_allow=(), project_deny=(), writable_out=False):
-    executable = shutil.which(name) or name
+          project_allow=(), project_deny=(), writable_out=False, executable=None):
+    if executable is None:
+        executable = shutil.which(name) or name
     out = str((Path(prompt).parent / "out").resolve())
     last_message = str((Path(out) / "last-message.json").resolve())
     if resume:
@@ -1009,7 +1021,8 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     argv = _argv(harness, rec["model"]["requested"], rec["model"]["effort_requested"],
                  rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"],
                  resume, project_allow, project_deny,
-                 writable_out=rec["job"] == "check-tests")
+                 writable_out=rec["job"] == "check-tests",
+                 executable=rec["harness"].get("worker", {}).get("executable"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
@@ -1111,6 +1124,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
 
 
 def _launch(args):
+    worker = _worker(args.harness)
     lane = _lane_values(
         "WALL_DEFAULT",
         "SCOPE_CAP",
@@ -1264,13 +1278,15 @@ def _launch(args):
                      "behind_tip": (lambda n: n + 1 if n else 0)(int(
                          _git(repo, "rev-list", "--count", f"{ref_sha}..{lineage}").stdout)),
                      "root": str(snapshot.resolve())},
-        "harness": {"name": args.harness, "version": "unknown", "isolation": isolation_data,
+        "harness": {"name": args.harness, "worker": worker,
+                    "version": "unknown", "isolation": isolation_data,
                     "sandbox": sandbox, "containment": containment,
                     **({"permissions": permissions} if permissions is not None else {}),
                     "argv": _argv(args.harness, args.model, args.effort, session,
                                   prompt, _flags, sandbox, False,
                                   project_allow, project_deny,
-                                  writable_out=args.job == "check-tests")},
+                                  writable_out=args.job == "check-tests",
+                                  executable=worker["executable"])},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
@@ -1802,6 +1818,14 @@ def _find_record(repo, job_id):
 def _resume(args):
     repo = _repo()
     path, rec = _find_record(repo, args.id)
+    worker = _worker(rec["harness"]["name"])
+    recorded_worker = rec["harness"].get("worker")
+    if recorded_worker is not None:
+        for key, kind in (("name", "worker"), ("executable", "executable")):
+            if recorded_worker.get(key) != worker[key]:
+                _refuse(kind, f"recorded {key} {recorded_worker.get(key)!r}",
+                        f"current {key} {worker[key]!r}", "launch afresh")
+    rec["harness"]["worker"] = worker
     job_dir, _snapshot_path = _bound_snapshot(rec)
     prior_session = copy.deepcopy(rec.get("session") or {})
     prior_model = copy.deepcopy(rec.get("model") or {})
