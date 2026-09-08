@@ -1,0 +1,293 @@
+{
+  "id": "20260906T135745Z-adjudicate-claude-9b169d",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/conduct-custody-adjudication-20260906",
+  "lineage": {
+    "branch": "lane/conduct-custody-adjudication-20260906",
+    "base_sha": "7741a1ac75d5c40755fba342acc935bb0b745596"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Opus 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-06T13:57:46Z",
+    "closed": "2026-09-06T14:08:07Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "7741a1ac75d5c40755fba342acc935bb0b745596",
+    "ref_sha": "7741a1ac75d5c40755fba342acc935bb0b745596",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135745Z-adjudicate-claude-9b169d/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "99c6a487-5306-4c75-a435-23e57aac4e23",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T135745Z-adjudicate-claude-9b169d/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T135745Z-adjudicate-claude-9b169d/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260906T135745Z-adjudicate-claude-9b169d/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/99c6a487-5306-4c75-a435-23e57aac4e23.jsonl"
+  },
+  "session": {
+    "id": "99c6a487-5306-4c75-a435-23e57aac4e23",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/99c6a487-5306-4c75-a435-23e57aac4e23.jsonl",
+    "stream_sha256_at_close": "f5e3db4c04ed3f37d3a71364919f40cbd090c579b2dec7be3047af1fb96df756",
+    "spend": {
+      "input": 82,
+      "cached": 2934128,
+      "output": 43021,
+      "total": 2977231,
+      "source": "result.usage",
+      "messages": 41,
+      "cost_usd": 3.4310685
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-conduct-custody-adjudication-20260906/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Third-harness ruling on the supplied Grok audit of root Codex documentary correction custody at 7741a1a. Use only this original artifact/history and the original report. Check all six findings, including whether absence of a named adjudicate job actually establishes absent third-harness adjudication, and distinguish missing snapshot evidence from canonical absence. Rule UPHELD/PARTIAL/REJECTED and give a bounded prospective repair without history rewrite, retrospective compliance claims or permission waiver. No edits or substantive re-adjudication of the underlying documentary findings. Write out/RULING.md and report it in the envelope. Cold original-SHA re-adjudications, if upheld, must receive only their own original report. No runtime, full floor or live-state calls.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260906T135745Z-adjudicate-claude-9b169d/in/ag-conduct-document-custody-audit.json",
+        "sha256": "dabc2aacaaed2862b97daa6926b2c4d5eb09aa998008ba550b5faea17c7561f6"
+      }
+    ],
+    "sha256": "723fd8310f9b2db49dd0b5012b387a9809a917166c269a20ba7dc6885d93e5ff",
+    "bytes": 1562
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-06T13:57:46Z",
+      "ended": "2026-09-06T14:08:06Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7741a1ac75d5c40755fba342acc935bb0b745596",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "in/ag-conduct-document-custody-audit.json result.envelope.findings[1..3] (P1 sequences B, C, D)",
+          "claim": "PARTIAL. The custody-evidence gap is upheld for B, C and D, but the characterization overreaches. Each of the three fix jobs cites a *-ruling.md input whose bytes are absent from the snapshot (dce07d -> d193abd3, b30b94 -> 896b9b8a, 18ec12 -> bc48f513); who authored those bytes cannot be determined from this snapshot. The audit calls them producer self-adjudication and states 'is not Grok' as fact. Measurement rules out a Grok origin (no same-day Grok dispatch on any of these units in any window) but does not rule out an owner origin, and 48277e7's own commit body calls the sequence-D ruling an 'owner correction ruling'. The supportable finding is that no adjudication of e4968e, fa4a72 or eb9a02 is evidenced in the record and the only artifacts claiming to be rulings are unrecoverable -- still a P1-severity custody failure under docs/wire.md absence discipline, but a different claim from the one written. Sequence A (P1 #1) is UPHELD outright and needs no trim: 20b3d6 has no ruling input at all and its scope closes 'The conductor accepts these bounded corrections; no new planning or permission request is needed.'",
+          "reproduce": "grep -rlE \"d193abd3257eac|1d17da95032687|896b9b8acc5cfa|bc48f513950993\" --exclude-dir=.git .   # six dispatch records cite the blobs, none contains them; sha256sum .dev/ladder-inputs/*.md matches none; find . -name '*ruling*' finds none of the four names; git show -s 48277e799ec2a2a748fa2f828c25093ddb3ef6b9  # 'Apply the supplied Claude Opus 5 review and owner correction ruling.'"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-document-custody-audit.json findings[0].claim, [2].claim, [3].claim, [4].claim, [5].claim -- the phrase 'job=adjudicate'",
+          "claim": "Wrong predicate named. There is no job=adjudicate in this lane's practice. ops/devlane/task/jobs.json defines an 'adjudicate' template, but the one record the audit nominates as the pattern, 20260906T023832Z-adjudicate-grok-8cdf11, carries job='adversarial-review' and stage='adjudicate'. The 'adjudicate' token in a record filename is the stage. The audit's listdir/grep filter therefore tests the right axis while its prose names the wrong one; a reader who applied the stated predicate to .result.envelope.job would find zero adjudicate jobs in the entire corpus and draw a false conclusion. Does not change any verdict.",
+          "reproduce": "jq -c '{job, stage}' .dev/records/dispatches/20260906T023832Z-adjudicate-grok-8cdf11.json; jq '.adjudicate' ops/devlane/task/jobs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-document-custody-audit.json findings[0..3].reproduce -- the os.listdir('.dev/records/dispatches') 'adjudicate' filter",
+          "claim": "The stage scan is necessary but not sufficient to establish absent third-harness adjudication, and the audit offers no other measurement. This lane records rulings that were never dispatched: .dev/ladder-inputs/ retains twelve *-ruling.md files, including conduct-task-test-ruling.md which 20260906T105326Z-tests-grok-d27ce8 was scoped against, and no adjudicate-stage record exists for any of them after 20260906T023832Z. cross-review.md:212-213 also names 'the session' as a permitted adjudicator for two of three rows. What actually forecloses a dispatched third-harness ruling for A-D is reading unit and brief.scope on every same-day Grok record -- four records on four different units (conduct-task-outputs, conduct-onboard-independent, conduct-task-semantics), none adjudicative, and 123029Z-review-grok-3cfa27 launched at 12:30:30Z, not before 18ec12. That is two jq invocations the audit did not run.",
+          "reproduce": "jq -c '{f: input_filename, unit, stage, at, scope: .brief.scope}' .dev/records/dispatches/20260906T105326Z-tests-grok-d27ce8.json .dev/records/dispatches/20260906T112240Z-tests-grok-6e070c.json .dev/records/dispatches/20260906T121039Z-tests-grok-6781c3.json .dev/records/dispatches/20260906T123029Z-review-grok-3cfa27.json; ls .dev/ladder-inputs/ | grep ruling"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-document-custody-audit.json findings[3] (P1 sequence D) vs commit 48277e799ec2a2a748fa2f828c25093ddb3ef6b9",
+          "claim": "Missed. The audit rules on sequence D citing commit 48277e7 without reading that commit's own body, which states 'Apply the supplied Claude Opus 5 review and owner correction ruling.' An owner ruling would be the backstop cross-review.md:60 names and a transition class of its own under docs/workflow.md, not a missing third harness -- it would move D from a custody breach to a custody-evidence breach. The bytes of bc48f513 are gone, so the reading cannot be closed either way from this snapshot, but the line had to be weighed before asserting producer self-adjudication.",
+          "reproduce": "git show -s --format=%B 48277e799ec2a2a748fa2f828c25093ddb3ef6b9 | grep -i 'owner correction ruling'"
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches/20260906T113433Z-review-claude-fa4a72.json brief.inputs[0]",
+          "claim": "Missed. Sequence C's independent finder was itself pre-loaded with a ruling: fa4a72 lists ag-conduct-unit1a-review-ruling.md (sha256 1d17da95032687afe25eeee98acd72ab768471f0fe691e4022a79a6cefa4f81c, also unrecoverable) as its first brief input. The audit records this in a subordinate clause of its P1 #3 and raises no finding on it. cross-review.md:44-48 rests the whole protection on the reviewer arriving cold; handing a reviewer a ruling before it reviews is a distinct custody question, at least as serious as the one audited, and it was in scope for an audit of documentary correction custody.",
+          "reproduce": "jq -c '[.brief.inputs[] | {p: (.path|split(\"/\")|last), s: .sha256}]' .dev/records/dispatches/20260906T113433Z-review-claude-fa4a72.json"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ag-conduct-document-custody-audit.json findings[2].claim and findings[3].claim -- 'Conducting session supplied ...'",
+          "claim": "Missed. The audit treats 'the conducting session' as a single actor across all four sequences. The records do not support that: dispatched_by is 'GPT-6 <noreply@openai.com>' for e076d5 and e4968e, 'Claude Opus 5 <noreply@anthropic.com>' for fa4a72, eb9a02, 0e4580, aa0cb7 and 02a617, and GPT-6 for every fix job (20b3d6, dce07d, b30b94, 18ec12, 6c74e4). The conclusion survives -- under either reading the 'or the session' escape at cross-review.md:212-214 stays shut, because a GPT-6-conducted ruling is the producer harness and a Claude-conducted one is the finder harness -- but the audit's stated reasoning never addresses the shift.",
+          "reproduce": "jq -r '[input_filename, .dispatched_by] | @tsv' .dev/records/dispatches/20260906T104703Z-review-claude-e076d5.json .dev/records/dispatches/20260906T110711Z-review-claude-e4968e.json .dev/records/dispatches/20260906T113433Z-review-claude-fa4a72.json .dev/records/dispatches/20260906T120239Z-review-claude-eb9a02.json .dev/records/dispatches/20260906T114654Z-code-codex-b30b94.json .dev/records/dispatches/20260906T123030Z-code-codex-18ec12.json"
+        }
+      ],
+      "artifacts": {
+        "ruling": "out/RULING.md (22108 bytes) \u2014 per-finding UPHELD/PARTIAL/REJECTED, what the auditor missed, and the bounded prospective repair",
+        "ruled_artifact": "in/ag-conduct-document-custody-audit.json \u2014 dispatch 20260906T134542Z-review-grok-0ada88, job adversarial-review, harness grok, model grok-4.6, verdict changes, counts p1=4 p2=1 p3=1",
+        "range": "7741a1ac75d5c40755fba342acc935bb0b745596 against 710dbac38c3b187eb4b3302308430c0a6dec4d76 (base resolves: git cat-file -t = commit)",
+        "law_read": "ops/process/cross-review.md:44-48, :60, :107-109, :176-178, :198-231, :206-208, :212-214, :223-224, :240-241; AGENTS.md Ground rules; docs/wire.md Absence discipline; docs/workflow.md Instances; ops/devlane/task/jobs.json .adjudicate",
+        "stage_scan": "ls .dev/records/dispatches/ | grep adjudicate -> 7 records, latest 20260906T023832Z-adjudicate-grok-8cdf11; none at or after 20260906T104703. Audit's empty-set claim reproduces.",
+        "grok_window_scan": "every same-day Grok record read whole: 105326Z-tests-grok-d27ce8 (lane/conduct-task-outputs-20260906), 112240Z-tests-grok-6e070c (same unit), 121039Z-tests-grok-6781c3 (lane/conduct-onboard-independent-20260906), 123029Z-review-grok-3cfa27 (lane/conduct-task-semantics-20260906, launched 12:30:30Z). No adjudicative scope on any of the four reports, on any unit.",
+        "original_reports_hash_match": "sha256sum .dev/records/dispatches/{20260906T104703Z-review-claude-e076d5,20260906T113433Z-review-claude-fa4a72,20260906T120239Z-review-claude-eb9a02}.json = 555ff695\u2026, 5eb6f9df\u2026, 42d14d8a\u2026 \u2014 all three equal the sha256 values the audit records for its own in/ copies.",
+        "missing_ruling_blobs": "d193abd3 interface-final-ruling; 1d17da95 unit1a-review-ruling; 896b9b8a unit1a-fix-ruling; bc48f513 discovery-contract-fix-ruling. Cited by six dispatch records (dce07d, fa4a72, b30b94, 0e4580, 18ec12, aa0cb7), retained by none. find -name '*ruling*' -> 12 files, no match; sha256sum .dev/ladder-inputs/*.md -> no match; content grep -> record citations only.",
+        "preservation_confirmed": "3ee48f0 'conductor: retain original invalid unit1a dispatch record'; .dev/ladder-inputs/conduct-unit1a-20260906/ holds 01-interface-fix.patch.b64, 01-COMMIT_MSG, 02-unit1a.patch.b64, 02-COMMIT_MSG, README.md naming c35ed64 as raw-capture predecessor; dce07d envelope.status=invalid intact.",
+        "repair": "6 bounded prospective steps in out/RULING.md: step 0 recover-or-declare the four ruling blobs by sha256 as evidence (not a ruling); steps 1-4 four cold stage=adjudicate Grok dispatches, snapshot mode whole, one sole input each \u2014 8d5d256+e076d5, 8fd333e+e4968e, f15ca22+fa4a72, 51ff07e+eb9a02, out/RULING.md with UPHELD/PARTIAL/REJECTED per original finding; step 5 act only after, new commits on top of tip, REJECTED over-fixes stay in history; step 6 name the gap in the PR body. No amend, squash, revert, relabel or waiver.",
+        "not_done": "no documentary finding adjudicated (8+5+5+6 = 24 across the four reports); no runtime, no suite, no full floor, no live-state read; snapshot left clean (git status --porcelain empty)"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2977231,
+        "out": 43021,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7741a1ac75d5c40755fba342acc935bb0b745596",
+        "started": "2026-09-06T13:57:45Z",
+        "ended": "2026-09-06T14:06:48Z"
+      },
+      "note": "Third-harness ruling on the Grok custody audit at in/ag-conduct-document-custody-audit.json. Overall PARTIAL. Full ruling at out/RULING.md.\n\nPer finding: P1 sequence A (e076d5 CHANGES at 8d5d256 -> 20b3d6/8fd333e) UPHELD, and upheld beyond the audit's own argument \u2014 20b3d6 carries no ruling input of any kind, its scope closes \"The conductor accepts these bounded corrections; no new planning or permission request is needed,\" and 8fd333e's trailers name Finder Claude Opus 5 and Fixer GPT-6 with no adjudicator. That is cross-review.md:223-224 exactly. P1 sequences B, C, D PARTIAL: the custody-evidence gap holds at P1 severity, but \"producer self-adjudication\" and \"is not Grok\" are asserted, not shown \u2014 the three ruling blobs are unrecoverable and 48277e7's own body calls D's ruling an \"owner correction ruling,\" which would be the backstop rather than a harness gap. P2 (four blobs unrecoverable) UPHELD; its absence discipline is the strongest part of the report, declaring \"looked and found nothing\" for the snapshot and \"could not look\" for the live trees. P3 (later APPROVE is not sequencing compliance) UPHELD: 0e4580 reads b0dfb69, aa0cb7 reads 48277e7, 02a617 reads 3f84832 \u2014 each a later SHA than the CHANGES it is offered against, each stage=review not adjudicate, each given the fix record and ruling blob alongside the original, none given the reviewed SHA plus the report and nothing else as jobs.json .adjudicate prescribes.\n\nOn the brief's first question: absence of a named adjudicate job does NOT by itself establish absent third-harness adjudication. Three grounds. The predicate is misnamed \u2014 the filename token is the stage, not the job; the audit's own pattern record 20260906T023832Z-adjudicate-grok-8cdf11 is job=adversarial-review, stage=adjudicate. The scan is under-powered \u2014 this lane records in-session rulings that leave no dispatch at all (twelve *-ruling.md files retained in .dev/ladder-inputs/, none with a matching adjudicate-stage record after 02:38), and cross-review.md:212-213 permits \"the session\" for two of three rows. What does carry the conclusion is a measurement the audit did not run: every same-day Grok record read whole shows four dispatches on four different units with no adjudicative scope, so no dispatched third-harness ruling exists in any of the four windows. That still does not exclude an owner ruling.\n\nMissing snapshot evidence distinguished from canonical absence: the four ruling blobs are absent from this snapshot (measured three ways) but were live at dispatch time with recorded sha256 and byte counts, and their canonical location is the original jobs' in/ directories, which this job could not look at and did not. Non-retention is nonetheless a departure from the lane's own habit, since twelve comparable rulings are retained.\n\nBounded prospective repair, six steps: recover-or-declare the four blobs as evidence; four cold stage=adjudicate Grok runs, each on the original reviewed SHA with its own original report and nothing else (8d5d256+e076d5, 8fd333e+e4968e, f15ca22+fa4a72, 51ff07e+eb9a02); act only after; name the gap in the PR body. Grok is eligible \u2014 it produced neither the documentary artifacts nor the documentary findings, and this custody audit rules on none of them. No amend, squash, revert, relabel or waiver; dce07d's invalid envelope, 3ee48f0, c35ed64 and .dev/ladder-inputs/conduct-unit1a-20260906/ stay as they are; no past sequence is claimed compliant.\n\nAdjudicator custody declared: I am Claude Opus 5 and Claude is the finder harness in all four audited sequences. I am a third harness for the artifact under ruling here (Grok-produced audit of Codex-produced records) and eligible on it; I am not independent of the underlying documentary findings, which is why none of the 24 is touched. This ruling is not itself the adjudication steps 1-4 prescribe, does not certify the tree, approves nothing, and does not self-approve its own six findings. No runtime, suite, full floor or live-state call was made; snapshot left clean (git status --porcelain empty)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}

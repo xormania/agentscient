@@ -33,8 +33,8 @@ A listed file's presence establishes availability,
 not current authority for every passage. In particular, `stack.md` is dated
 origin material: its replacement/convergence doctrine cannot override the
 owner's 2026-09-05 separation. AARs, handoffs and register observations also
-retain their provenance without reviving superseded policy. This correction
-does not change the tool's reading-list data or claim it enforces work scope.
+retain their provenance without reviving superseded policy. The reading list includes the accepted discovery contract and startup sequence;
+its presence checks do not enforce work scope.
 
 **`== law`** — the reading list, data in the tool, amended by commit
 (the lever-registry pattern):
@@ -46,10 +46,25 @@ does not change the tool's reading-list data or claim it enforces work scope.
 | `ops/conductor/instrument-conventions.md` | the lane's base contract: wire, identity, exits |
 | `ops/conductor/stack.md` | the stack: layers, incumbents, open seats |
 | `ops/conductor/coverage-zones.md` | what gates what |
+| `ops/conductor/discovery-lever.md` | profile discovery, source custody, and uncertainty |
+| `ops/conductor/conductor-start-plan.md` | the conductor startup sequence and admission boundaries |
 
 One line per entry: `OK <path> — <one-liner>` when the file exists and
 is non-empty, `ABSENT <path> — <one-liner>` otherwise. An absence is
 reported, never skipped — an unlisted gap is how law goes missing.
+
+This seven-row table owns the full onboard reading list. Discovery freezes
+the first five path/one-liner pairs, in this order, as its
+[compact law subset](discovery-lever.md#local-source-composition); the two
+additional rows remain onboard-only. An independent equality gate must check
+both tables and projections for exact paths, order and one-liners. With all
+other readings successful, onboard's complete fixture requires seven OK rows,
+no ABSENT rows, `brief complete` and exit 0. One missing or empty declared
+law file requires six OK rows, one ABSENT row, `brief complete, 1 absence(s)`
+and exit 1. Discovery independently requires five present rows, or four
+present and one missing for a missing shared entry, within its existing cap.
+The independent test producer owns fixture and exact-count updates; preserving
+a five-OK assertion is not acceptance of this seven-row table.
 
 **`== state`** — measured at run time, one labelled line per source;
 a source that cannot be measured prints its failure verbatim on that
@@ -147,9 +162,40 @@ it earns its THIS-FILE-ONLY row (S603), stated in the PR.
 
 Discovery of homes, retained-ref handoffs, and owner action interfaces
 is specified in [`discovery-lever.md`](discovery-lever.md). This
-instrument's brief, law table, and CLI are unchanged. Adding those
-contract paths to the law table is a declared smallest extension, not
-applied here.
+instrument's CLI and state acquisition remain unchanged. Its law table now
+includes discovery and the startup sequence. Discovery/3 deliberately retains
+the five-row compact law projection specified by its accepted envelopes.
+
+The v3 runtime is projected by `tools/lane_mcp.py` through the shared
+`tools/lane_read.py` core and `tools/lane_refs.py` acquisition coordinator.
+The declared callable is `ops.conductor.tools.lane_refs.acquire(config, boot,
+*, checkpoint=None)`; that module also owns the fixed Git read operations.
+Both projections pass its immutable readings to lane_read. Independent race
+fixtures import this symbol under the
+[checkpoint contract](discovery-lever.md#deterministic-acquisition-checkpoints),
+including exact event multiplicity and per-source partial order.
+Trusted launch supplies a complete v3 descriptor; `check` validates it without
+acquiring sources. `lane_start` requires a configured profile, then targeted
+homes, handoffs and actions use the same source snapshot. Work continuations
+use the returned cursor and snapshot through the CLI or MCP tools.
+
+The adapter reads local SHA-1 loose objects and indexed Git packs directly,
+with descriptor-relative access, byte verification and acquisition budgets.
+Unsupported storage formats and unsafe bindings produce explicit unavailable
+readings. It neither invokes Git nor interprets local Git configuration.
+Definition bytes must arrive through the
+[trusted --discovery-boot-fd transport](discovery-lever.md#trusted-discovery-boot-transport),
+bound to the executed artifact rather than adjacent mutable paths. This is a
+contract obligation pending independent runtime/fixture verification under
+the [D-A47 executed-byte gate](discovery-lever.md#executed-byte-binding-gate).
+The lane_mcp boot custodian checks all three modules' actual load evidence;
+the trusted launch owner supplies bound execution inputs. Independent mismatch
+and clean controls must verify both duties; digest equality alone does not
+establish execution identity or authenticate the launcher.
+Anchor identities are pinned at boot; each query reads
+its profile's complete bounded source closure and checks it for change.
+These interfaces enable later automatic onboarding; they do not start conduct,
+activate host settings, enforce harness permissions or publish lifecycle records.
 
 The v3 [local composition table](discovery-lever.md#local-source-composition)
 explicitly leaves register/ledger/PR readings unavailable and projects only
