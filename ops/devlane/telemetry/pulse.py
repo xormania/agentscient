@@ -274,8 +274,29 @@ def collect(args, now):
                             args.live_window, args.tail))
     rows += list(grok_rows(Path(args.grok_dir), args.repo, now,
                            args.live_window, args.tail))
+    if getattr(args, "agy_dir", None):
+        rows += list(agy_rows(Path(args.agy_dir), args.repo, now,
+                             args.live_window, args.tail))
     rows.sort(key=lambda row: (row["harness"], str(row["session"])))
     return rows
+
+
+def agy_rows(root: Path, repo, now, window, tail):
+    """Use the same native currency as close and the inline watchdog."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("agy_pulse_usage", Path(__file__).with_name("usage.py"))
+    usage = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(usage)
+    for row in usage.agy_sessions(root, repo):
+        source = Path(row["source"])
+        idle = _idle(source, now)
+        if idle > window:
+            continue
+        yield {"harness": "agy", "session": row["session"], "model": row["model"],
+               "age_seconds": None, "idle_seconds": int(idle), "tokens": row["tokens"],
+               "recent": _tail([frame["event"] for frame in usage.agy_read(source)["frames"]], tail),
+               "incomplete": row["incomplete"], "note": row["note"]}
 
 
 def main(argv=None) -> int:
@@ -294,6 +315,7 @@ def main(argv=None) -> int:
                         help="default: $CODEX_HOME if set, else ~/.codex —"
                              " resolved per invocation, never at import")
     parser.add_argument("--grok-dir", default=str(home / ".grok"))
+    parser.add_argument("--agy-dir", help="explicit dispatch capture root")
     args = parser.parse_args(argv)
     if args.codex_dir is None:
         args.codex_dir = os.environ.get("CODEX_HOME") or str(home / ".codex")

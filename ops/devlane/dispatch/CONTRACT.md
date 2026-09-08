@@ -2,8 +2,9 @@
 
 ## Configured workers and agy installation
 
-Standing: contract amendment, owner scope and installation brief of
-2026-09-08; no runtime or configuration activation in this artifact.
+Standing: worker implementation candidate, owner brief of 2026-09-08.
+The configured-worker mechanism enables agy; independent combined review
+remains outstanding. Bounded native discovery evidence is recorded below.
 GPT-6 correction follows independent Grok ruling
 `20260908T065000Z-adjudicate-grok-c2ae09` on `fc9ad2c`: F1–F4 UPHELD,
 F5/F6/F8 PARTIAL, F7 REJECTED. Later wire evidence
@@ -83,19 +84,101 @@ framework is needed. These are implementation obligations, not live passes.
 | owner / seam | agy input, output and acceptance obligation |
 |:--|:--|
 | `harness/isolation.py`: `HARNESSES`, `build_home(harness, root, env=None)`, `dispatch_env(harness, home=None, env=None)`, `isolated(harness, root, env=None)` | Use the exact isolation data and refusal rules in its module contract. Return the existing home Path, environment dict and `(env, flags)` respectively. No auth filename, discovery variable or store path may be guessed from the name agy. |
-| `launch.py`: `_harness_meta(name, role, job_dir, env)` | For agy, record `harness.containment='policy'` under the trusted-host boundary. The sandbox record label remains unresolved; it supplies no permission/mode argv until measured. `isolation.store` follows measured `sessions.{under,path}`; until available, refuse `unsupported-capability` before minting a store, never use the Claude `$HOME/.claude` else-branch. |
-| `launch.py`: `_effort_argv(harness, effort)`, `_argv(...)`, `_child_env(...)` | Preserve existing callers; add the resolved executable input to `_argv` separately from its harness-name discriminator. The bounded candidate transport is `[executable, *isolation_flags, '--print', '--model', model, '--input-format', 'text', '--output-format', 'stream-json', '--disable-slash-commands']`, plus `['--effort', effort]` only for low/medium/high. Feed exact prompt.txt bytes on stdin, close it, use snapshot cwd and the existing noninteractive environment. The `--input-format` and `--output-format` spellings remain unresolved against inventory E3, which records only 'text/json/stream-json output, text/stream-json input'; require a precise help-line citation before treating those tokens as established. The remaining advertised syntax is to verify, including Unicode/newlines and a completed tool action, not an assertion that stdin or the agent loop works. Retain the canonical schema in the brief; use `--json-schema` only after a bounded probe proves both work and final transport with that unchanged schema. Permission/mode and session tokens require the evidence below before a real operation uses them. |
+| `launch.py`: `_harness_meta(name, role, job_dir, env)` | For agy, record `harness.containment='policy'` under the trusted-host boundary. The sandbox label is `always-proceed`; argv uses the measured `--dangerously-skip-permissions`, with policy containment. `isolation.store` follows measured `sessions.{under,path}`; until available, refuse `unsupported-capability` before minting a store, never use the Claude `$HOME/.claude` else-branch. |
+| `launch.py`: `_effort_argv(harness, effort)`, `_argv(...)`, `_child_env(...)` | Preserve existing callers; add the resolved executable input to `_argv` separately from its harness-name discriminator. The measured transport is `[executable, *isolation_flags, '--print=', '--model', model, '--input-format', 'stream-json', '--output-format', 'stream-json', '--disable-slash-commands', '--dangerously-skip-permissions', '--add-dir', snapshot]`, plus `['--effort', effort]` only for low/medium/high. Feed exactly one UTF-8 NDJSON `{"event":"user","message":{"content":prompt_text}}` line through stdin and close it. Preserve prompt Unicode/newlines as JSON string content; no prompt on argv. The bare `--print` consumes the following flag; text stdin with empty print is not a prompt; `--mode plan` is ineffective with slash commands disabled. Keep the canonical schema in the brief and preserve the existing result parser. No vendor schema flag is admitted. |
 | `launch.py`: `_envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None, rec=None)` | Preserve raw stdout/stderr; decode only the measured terminal result carrier for this attempt, not arbitrary intermediate JSON. The agy branch must reject missing, ambiguous, truncated or malformed terminal results and vendor errors even beside a plausible envelope. Apply task.ENVELOPE_SCHEMA and `task/envelope.py:validate` to the extracted canonical object, including nullable verdict/reproduce, counts, invalid/tripped verdicts and optional commit. Return the existing invalid/null-verdict result with a cause on failure. Vendor schema acceptance or exit 0 alone never certifies work. Do not rewrite legacy extraction or adopt generic C2 output grants here. |
-| `launch.py`: `_stream(job_dir, harness, session, snapshot, ref_sha, role='read')`, `_resume`, `_close` | Preserve `(path, ran, stream_id, mismatch)`; missing observations are None, mismatch is a reason string. Fresh launch must obtain a unique native session id, bind it to this job/attempt and snapshot, and discover only its measured isolated store. Never pick the newest unrelated stream. Check explicit conversation identity and cwd/ref evidence, two concurrent sessions, foreign/malformed streams and relocation. `--conversation` and `--continue` advertise possibilities, not proven resume semantics. Resume uses the recorded id only, rechecks isolation/permissions and the recorded executable against current worker selection, preserves model/effort/lineage and prior findings, and refuses changed selection or an unavailable store before attempt/marker mutation. No implicit latest-session continuation; unsupported resume blocks resume alone. |
+| `launch.py`: `_stream(job_dir, harness, session, snapshot, ref_sha, role='read')`, `_resume`, `_close` | Preserve `(path, ran, stream_id, mismatch)`; missing observations are None, mismatch is a reason string. Fresh launch must obtain a unique native session id, bind it to this job/attempt and snapshot, and discover only its measured isolated store. Never pick the newest unrelated stream. Check explicit conversation identity and cwd/ref evidence, two concurrent sessions, foreign/malformed streams and relocation. `--conversation <recorded-id>` succeeded in the host observation; implicit `--continue` is not used. Resume uses the recorded id only, rechecks isolation/permissions and the recorded executable against current worker selection, preserves model/effort/lineage and prior findings, and refuses changed selection or an unavailable store before attempt/marker mutation. No implicit latest-session continuation; unsupported resume blocks resume alone. |
 | `launch.py` / `record.py`: model and attribution | Retain `model.requested`, `model.ran`, `model.read_from`; add agy-only `model.provider = {id, read_from, unresolved}` with nonempty strings for measured id/source and null unresolved, or null id/source and a nonempty unresolved reason. Source is launcher-read native session evidence, never worker prose, harness name or a model prefix. A requested alias may differ from ran; record both. Foreign session or contradictory native identity invalidates the result. Missing model/provider remains explicit and prevents attributed write settlement, not an unrelated read operation. Provider evidence selects a verified vendor address at commit time; no fallback to requested identity or guessed address for agy. Old record fields/validation and legacy attribution remain compatible. |
 | `telemetry/usage.py`: `agy_sessions(root: Path, repo: str or None)`; launch `_spend` and pulse reader | Add the existing reader-shaped iterator over the measured isolated root; each row has `harness='agy'`, `session`, `model`, `started`, `ended`, `messages`, `tokens`, `incomplete`, `note`. Nullable observations need a reason in note; tokens is null or `{input, cached, output, total}` with nonnegative integer or null values. Match session and repo before counting. Prove native event selectors, delta/cumulative/reset rules, duplicate identity, cache/thinking overlap and resumed totals with known synthetic totals. A total is known only when its currency is measured and complete; never add an overlapping cache/thinking count. Missing/malformed/truncated evidence stays incomplete/unresolved, not zero. `_spend` returns measured fields/source or its existing `{unresolved, looked_in}`; pulse consumes the same currency without exposing transcript content. No guessed price or cost-unit conversion. |
 | `launch.py`: `_run_attempt`, status/wait/close; existing watchdog | Retain inline wall, output-cap and missing-stream grace enforcement, process-group kill, raw/partial evidence, state.json PID/PGID, exit marker and attempts on fresh/resume/detached paths. Normalize agy output usage into that live cap check; a parser used only at close or in breaker.py cannot provide live protection. Incomplete accounting must not disable a known output cap; unavailable live output evidence blocks the affected capped operation. Preserve DISPATCH_TIMEOUT > job timeout > WALL_DEFAULT and existing cap sources. Do not enable disabled total-token wires or claim the unwired richer breaker battery. |
 
-Auth/discovery filenames, native result/event selectors, native session
-creation/resume, permission enforcement, actual model/provider and usage
-currency are **unresolved** at this ref. The adapter implementation must
-name their exact measured values in its existing data/docstrings and
-synthetic fixtures before claiming those behaviors. Independent tests can
+Native observations bind this candidate to agy 1.1.27, binary SHA-256
+`93eb2118b778a4005700b54cdd7e08b896fbe665d5ff338e38e9e53da9a091ea`:
+`20260908T071244Z-code-grok-220fb8` establishes auth/session paths and
+cumulative explicit-ID resume usage; `20260908T073056Z-code-grok-0e4417`
+establishes the stdin event and CANCELED; `20260908T074530Z-code-grok-5395b3`
+establishes permissions, fixture-bound init.cwd and a real view_file read.
+The exact auth leaf is `HOME/.gemini/antigravity-cli/antigravity-oauth-token`;
+transcripts are `HOME/.gemini/antigravity-cli/brain/<conversation_id>/.system_generated/logs/transcript.jsonl`.
+The adapter reproduces the combined redirected HOME, XDG directories and
+TMPDIR, with auto-update disabled. HOME-only sufficiency, native discovery
+coverage and provider identity remain unresolved. The original INVALID
+isolation record and independent source/tests retain their provenance.
+
+`raw.out` is the native evidence stream for init.model/cwd and result.usage;
+brain transcript rows do not supply those fields. Each attempt records its
+raw byte offset so a resumed result is extracted from that attempt alone.
+Only terminal `result.status == 'SUCCESS'` certifies native completion;
+every other status (including unknown nonempty values) is refused even beside
+a valid envelope. SUCCESS still requires the carrier and canonical envelope
+checks and no explicit result error; step/tool denials alone are not terminal
+failure.
+
+The owned canonical smoke `20260908T083944Z-review-agy-e49b81`, measured
+against `408d2eff029c4b4dad12354c3d872efd9509832b`, establishes a native
+`MODEL` / `PLANNER_RESPONSE` transcript row with string `thinking` and list
+`tool_calls`, without `content`. The reader accepts that payload alongside
+the existing content-bearing rows; source/type and a supported payload remain
+required. Transcript text, thinking and tool calls never certify completion
+or supply usage. The original failed receipt remains failed; this observation
+does not establish a successful live rerun.
+
+The reader checks the conversation ID and snapshot cwd, never newest-file
+selection. Resume requires the exact transcript in the live or archived home
+before clearing markers, and retains the recorded configured executable.
+The last native cumulative result wins; decreases mark accounting incomplete
+instead of guessing a reset. Cache/thinking are never added to native total.
+Missing native timestamps/model/provider stay explicit. Usage and pulse accept
+`--agy-dir` as an explicit dispatch capture root (or its isolated home/agy).
+The watchdog uses this same currency; missing usage is allowed only for the
+existing stream grace, then stops the affected capped operation. No total-token
+or price wire is introduced. Read-role settlement guards remain authoritative.
+
+The existing probe accepts explicit agy `--model`, `--phrase` and `--cwd`
+inputs for a host job's planted synthetic discovery controls. It resolves
+`laneconf.worker('agy').executable` once from the probe process configuration,
+exactly as dispatch does, before building a credential home. The optional
+Python `env` argument supplies the control arms' environment, not a separate
+worker configuration. Both arms execute that resolved path; result details
+stamp the selected executable and its observed SHA-256, with the existing
+post-probe digest comparison. Loader refusals become INVALID with their
+expected–found–needed detail. Trusted operator overrides and fake CLIs remain
+valid selections. A digest is observation, never a binary allowlist or new
+launch/resume admission gate. Claude/codex/grok retain their existing PATH
+behavior. This is the upheld slice of cold ruling
+`20260908T083902Z-adjudicate-grok-b6cf99` at
+`a7611ba44a68655d13f0273606193483df358741`; its broader gate was rejected.
+Both arms
+must initialize and answer; CANCELED, failed initialization and an invisible
+positive control are INVALID. A CLEAN result covers only the named canary;
+other discovery remains unresolved. No live probe was run in the Codex sandbox.
+
+Native discovery receipt, 2026-09-08: supplied
+`agy-discovery-live-result.json` (SHA-256
+`98bcbda5fc42ebe3e395f3d07916f3daf9a6717b0dc1924f14977d7b24819aea`),
+run `20260908T082720Z-code-grok-dd5294`, measured against
+`2e4583256eeb624be0c9a5468d269cd54a395bdc`, reports agy 1.1.27 and
+the `93eb2118…` binary above, with explicit `gemini-3.8-flash-high`.
+The visible and isolated commands and receipt validation each exited 0.
+Both arms initialized and answered; native init.cwd matched the disposable
+git fixture. The visible arm returned both global and project markers; the
+isolated arm returned the project marker without the global marker. Markers
+were absent from stdin, and neither arm used tools. The CLEAN observation
+covers only the combined HOME/XDG_CONFIG_HOME/XDG_CACHE_HOME/XDG_DATA_HOME/
+XDG_STATE_HOME/XDG_RUNTIME_DIR/TMPDIR redirection with
+`AGY_CLI_DISABLE_AUTO_UPDATE=true`, `--disable-slash-commands` and
+`--dangerously-skip-permissions`; containment remains policy.
+At that receipt's revision, `isolated()` supplied HOME only and the observer
+added XDG/TMPDIR redirection. It did not measure HOME-only sufficiency.
+Settings.json discovery/exclusion, MCP config discovery/exclusion,
+project AGENTS.md and skill suppression remain unresolved. The receipt
+reports removal of the copied 0600 auth leaf and unchanged operator auth
+and named settings receipts. This is supplied dated evidence, not a new
+native run or exhaustive isolation certification. Reproduce the receipt
+reading with `cat ../in/agy-discovery-live-result.json` in the supplied
+snapshot; verify its identity with `sha256sum ../in/agy-discovery-live-result.json`.
+
+Independent tests can
 already pin the interfaces above using synthetic environments and fake CLIs;
 they must not treat guessed vendor JSON as verified real behavior.
 Missing authentication/isolation or fresh prompt/result/session supervision

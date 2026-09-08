@@ -73,10 +73,34 @@ EXPECTED_HARNESSES = {
     },
 }
 
+# The three legacy profiles remain an exact equality. Agy is recognized
+# from measured fields already pinned by test_agy_isolation.py, not by
+# copying an implementation registry.
+AUTHORIZED_HARNESSES = {"agy", "claude", "codex", "grok"}
+AGY_AUTH_FILES = [".gemini/antigravity-cli/antigravity-oauth-token"]
+AGY_SESSIONS = {"under": "minimal", "path": ".gemini/antigravity-cli/brain"}
+
 
 class IsolationContractTests(unittest.TestCase):
+    def _assert_authorized_registry(self, registry):
+        self.assertEqual(AUTHORIZED_HARNESSES, set(registry))
+        self.assertEqual(
+            EXPECTED_HARNESSES,
+            {name: registry[name] for name in EXPECTED_HARNESSES},
+        )
+        agy = registry["agy"]
+        self.assertEqual("home", agy["mechanism"])
+        # agy flags are not pinned: an empty isolation flag set was not
+        # established by native evidence (independent ruling F2).
+        self.assertEqual("HOME", agy["home_env"])
+        self.assertEqual(AGY_AUTH_FILES, agy["auth_files"])
+        self.assertEqual(AGY_SESSIONS, agy["sessions"])
+        measured = agy["measured"]
+        self.assertEqual("2026-09-08", measured["on"])
+        self.assertEqual("1.1.27", measured["version"])
+
     def test_registry_is_exactly_the_measured_contract(self):
-        self.assertEqual(EXPECTED_HARNESSES, isolation.HARNESSES)
+        self._assert_authorized_registry(isolation.HARNESSES)
 
     def test_real_home_uses_each_home_mechanism_harness_environment(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -277,7 +301,8 @@ class IsolationContractTests(unittest.TestCase):
     def test_report_is_json_containing_exactly_the_registry(self):
         rendered = isolation.report()
         self.assertIsInstance(rendered, str)
-        self.assertEqual(EXPECTED_HARNESSES, json.loads(rendered))
+        self._assert_authorized_registry(json.loads(rendered))
+        self.assertEqual(isolation.HARNESSES, json.loads(rendered))
 
     def test_shell_entry_point_refuses_unknown_harness_with_exit_78_and_reason(self):
         with tempfile.TemporaryDirectory() as temporary:
