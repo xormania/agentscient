@@ -1,0 +1,222 @@
+{
+  "id": "20260908T075326Z-tests-grok-72e30b",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-isolation-legacy-tests-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-legacy-tests-20260908",
+    "base_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:53:26Z",
+    "closed": "2026-09-08T07:59:31Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "ref_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "8e838a71-5663-4131-bd2b-3603abd38b98",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/home/grok-stream/sessions/<snapshot-encoded>/8e838a71-5663-4131-bd2b-3603abd38b98/summary.json"
+  },
+  "session": {
+    "id": "8e838a71-5663-4131-bd2b-3603abd38b98",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/home/grok-stream/sessions/<snapshot-encoded>/8e838a71-5663-4131-bd2b-3603abd38b98/summary.json",
+    "stream_sha256_at_close": "1787de74f8f7757ea88c2fe5f87e5ff76a5eb621cfe61895e246e55a3c8cb96b",
+    "spend": {
+      "input": 1646578,
+      "cached": 1534336,
+      "output": 21112,
+      "total": 1667690,
+      "cost_usd_ticks": 1901150800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/home/grok-stream/sessions/<snapshot-encoded>/8e838a71-5663-4131-bd2b-3603abd38b98/summary.json",
+      "messages": 174
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-legacy-tests-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Update only the two legacy exact-three registry/report assertions in ops/devlane/harness/tests/test_isolation_contract.py for the authorized agy addition. Use public contract, independent test_agy_isolation.py and measured host evidence; no implementation bodies or candidate patch. Preserve exact expectations for all three legacy profiles and their behavior; recognize the additional agy profile using measured fields already pinned by independent tests. Do not copy an implementation registry or weaken legacy equality. Producer reports named two failures because registry now has agy; original INVALID record must remain. Acceptance: focused test_isolation_contract.py discovery with honest red on this pre-implementation tree, zero errors; lint; full-range git diff --check. No other test/code edits, credentials, vendors or full floor. Grok 4.6 attribution; report precise changed assertions and hashes.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/in/agy-isolation-candidate-invalid.json",
+        "sha256": "c8edf2e96586e9d834ad93b0df496bb45bc5c19bc017e8bbeadc0a210692139a"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T075326Z-tests-grok-72e30b/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "0ebf00cbdcda15d984f92053d0f5ba48be9db039e61176183b1f1bcbccd7d088",
+    "bytes": 3252
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:53:26Z",
+      "ended": "2026-09-08T07:59:31Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3417be5275153367a098266bdf737f7043cd8454",
+    "changed_paths": [
+      "ops/devlane/harness/tests/test_isolation_contract.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 10,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Requested ref 3e8713bac5b394886daae176e8a904dfe72b1dc4 was HEAD and the working tree was clean before the edit.",
+          "reproduce": "pwd; git rev-parse HEAD; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py",
+          "claim": "Baseline focused discovery at 3e8713bac5b394886daae176e8a904dfe72b1dc4: 12 tests, 0 failures, 0 errors. File SHA256 9289da94f6fb89e8184e608a248219e801037ee23f192155ed32e6779d5e15dc (14715 bytes).",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p \"test_isolation_contract.py\" -v; python3 -c 'import hashlib,pathlib; p=pathlib.Path(\"ops/devlane/harness/tests/test_isolation_contract.py\"); print(hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_size)'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py:test_registry_is_exactly_the_measured_contract",
+          "claim": "Honest red for its own assertion: FAIL, not ERROR. AssertionError: Items in the first set but not the second: 'agy'.",
+          "reproduce": "cd ops/devlane/harness/tests && python3 -m unittest test_isolation_contract.IsolationContractTests.test_registry_is_exactly_the_measured_contract -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py:test_report_is_json_containing_exactly_the_registry",
+          "claim": "Honest red for its own assertion: FAIL, not ERROR. AssertionError: Items in the first set but not the second: 'agy'.",
+          "reproduce": "cd ops/devlane/harness/tests && python3 -m unittest test_isolation_contract.IsolationContractTests.test_report_is_json_containing_exactly_the_registry -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py",
+          "claim": "Focused discovery after the two assertion updates: Ran 12 tests, FAILED (failures=2), 0 errors. The ten untouched tests passed; EXPECTED_HARNESSES three-profile equality is unchanged.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p \"test_isolation_contract.py\" -v"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py",
+          "claim": "Registered lint clean: 1 file, ruff 0.16.5, exit 0.",
+          "reproduce": "python3 ops/devlane/workflow/checks/lint.py ops/devlane/harness/tests/test_isolation_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py",
+          "claim": "Full-range whitespace check exit 0 for the working tree and for 3e8713bac5b394886daae176e8a904dfe72b1dc4..HEAD.",
+          "reproduce": "git diff --check; git diff --check 3e8713bac5b394886daae176e8a904dfe72b1dc4 HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py",
+          "claim": "Committed 3417be5275153367a098266bdf737f7043cd8454; only this test file changed. After SHA256 03eb302c8fa2cabd1d8f8be5d592fa5232e9cd8df0d7a2cfc332495e11fdcb06 (15780 bytes).",
+          "reproduce": "git add -- ops/devlane/harness/tests/test_isolation_contract.py && git -c user.name='Grok 4.6' -c user.email=noreply@x.ai commit -F ../out/COMMIT_MSG --only -- ops/devlane/harness/tests/test_isolation_contract.py; git diff --name-only 3e8713bac5b394886daae176e8a904dfe72b1dc4 HEAD; python3 -c 'import hashlib,pathlib,subprocess; p=pathlib.Path(\"ops/devlane/harness/tests/test_isolation_contract.py\"); print(hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_size); print(hashlib.sha256(subprocess.check_output([\"git\",\"show\",\"3e8713bac5b394886daae176e8a904dfe72b1dc4:ops/devlane/harness/tests/test_isolation_contract.py\"])).hexdigest())'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_isolation_contract.py",
+          "claim": "Re-measured on committed tree 3417be5275153367a098266bdf737f7043cd8454: 12 tests, 2 failures, 0 errors; lint exit 0; git status empty.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p \"test_isolation_contract.py\" -v; python3 ops/devlane/workflow/checks/lint.py ops/devlane/harness/tests/test_isolation_contract.py; git status --short; git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/agy-isolation-candidate-invalid.json",
+          "claim": "Original INVALID producer record remains, SHA256 c8edf2e96586e9d834ad93b0df496bb45bc5c19bc017e8bbeadc0a210692139a, 14401 bytes.",
+          "reproduce": "python3 -c 'import hashlib,pathlib; p=pathlib.Path(\"../in/agy-isolation-candidate-invalid.json\"); print(hashlib.sha256(p.read_bytes()).hexdigest(), p.stat().st_size)'"
+        }
+      ],
+      "artifacts": {
+        "tests": "ops/devlane/harness/tests/test_isolation_contract.py",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1667690,
+        "out": 21112,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+        "started": "2026-09-08T07:56:35.355891291Z",
+        "ended": "2026-09-08T07:58:41.809159054Z"
+      },
+      "note": "Changed assertions in ops/devlane/harness/tests/test_isolation_contract.py: test_registry_is_exactly_the_measured_contract from assertEqual(EXPECTED_HARNESSES, isolation.HARNESSES) to _assert_authorized_registry(isolation.HARNESSES); test_report_is_json_containing_exactly_the_registry from assertEqual(EXPECTED_HARNESSES, json.loads(rendered)) to _assert_authorized_registry(json.loads(rendered)). Helper requires set(registry)=={agy,claude,codex,grok}, exact dict equality of the unchanged three-profile EXPECTED_HARNESSES, and agy fields already pinned by test_agy_isolation.py (mechanism home, flags [], home_env HOME, auth_files [.gemini/antigravity-cli/antigravity-oauth-token], sessions {under:minimal, path:.gemini/antigravity-cli/brain}, measured.on 2026-09-08, measured.version 1.1.27). File SHA256 9289da94f6fb89e8184e608a248219e801037ee23f192155ed32e6779d5e15dc -> 03eb302c8fa2cabd1d8f8be5d592fa5232e9cd8df0d7a2cfc332495e11fdcb06. Commit 3417be5275153367a098266bdf737f7043cd8454. Focused discovery at that commit: 12 tests, 2 failures, 0 errors; lint ruff 0.16.5 exit 0; git diff --check 3e8713bac5b394886daae176e8a904dfe72b1dc4 HEAD exit 0. Original INVALID record remains at ../in/agy-isolation-candidate-invalid.json SHA256 c8edf2e96586e9d834ad93b0df496bb45bc5c19bc017e8bbeadc0a210692139a."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T07:59:30.730Z"
+    }
+  },
+  "status": "closed"
+}
