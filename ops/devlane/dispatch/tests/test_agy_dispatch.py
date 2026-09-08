@@ -552,6 +552,7 @@ class AgyTerminalUsage(_AgyLaunch):
         if raw is None:
             raw = agy.framed_stdout(
                 usage=usage, status=status, conversation_id=conversation_id,
+                cwd=str(self.repo),
             )
         (job_dir / "raw.out").write_bytes(raw)
         self.assertIn(b'"event": "result"', raw)
@@ -601,7 +602,7 @@ class AgyTerminalUsage(_AgyLaunch):
         first_tokens = agy.spend_tokens(first)
         self.assertIsInstance(first_tokens, dict, first)
         self.assertEqual(first_tokens.get("total"), agy.FRESH_TOKENS["total"], first)
-        resume_raw = agy.framed_stdout(usage=agy.RESUME_USAGE)
+        resume_raw = agy.framed_stdout(usage=agy.RESUME_USAGE, cwd=str(self.repo))
         combined = fresh_raw + resume_raw
         self.assertIn(b'"total_tokens": 120', combined, "plant: fresh total")
         self.assertIn(b'"total_tokens": 295', combined, "plant: resume cumulative")

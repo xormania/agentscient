@@ -108,6 +108,21 @@ isolation record and independent source/tests retain their provenance.
 `raw.out` is the native evidence stream for init.model/cwd and result.usage;
 brain transcript rows do not supply those fields. Each attempt records its
 raw byte offset so a resumed result is extracted from that attempt alone.
+Both crash-recovery close paths use that offset. Missing offsets in legacy
+state mean zero; malformed state or a noninteger, negative or out-of-range
+offset refuses with a controlled diagnostic, never an uncaught parse error.
+Transcript validation cannot discard an established stdout session/cwd binding.
+Ignore trailing blank lines and an unfinished final JSON row without a newline,
+including a partial UTF-8 character. Complete rows still require valid JSON and
+the supported source/type/payload shape; malformed complete evidence or a failed
+transcript read supplies a refusing mismatch while retaining the stdout binding.
+On same-session resume/close, an omitted native model preserves historical
+`model.ran` and `model.read_from`. Record the current reading separately as
+agy-only `model.current_attempt = {ran, read_from, unresolved}`: measured model
+and source with null unresolved, or null model/source with an explicit current
+attempt unresolved reason. A later measured model replaces that historical
+measurement and clears the current unresolved reason; requested identity is
+never substituted for missing native evidence.
 Only terminal `result.status == 'SUCCESS'` certifies native completion;
 every other status (including unknown nonempty values) is refused even beside
 a valid envelope. SUCCESS still requires the carrier and canonical envelope
@@ -122,6 +137,23 @@ the existing content-bearing rows; source/type and a supported payload remain
 required. Transcript text, thinking and tool calls never certify completion
 or supply usage. The original failed receipt remains failed; this observation
 does not establish a successful live rerun.
+
+The supplied failed smoke stdout and successful canonical stdout
+`20260908T085213Z-review-agy-0ed3b1` were read at base
+`9eaee120fa69aeafb7b76dc742a9ce5f51c6f104` on 2026-09-08. They establish
+`step_update.state == 'DONE'`, `step_type == 'agent_response'`, and
+`usage.output_tokens` as live output evidence, bound by conversation_id and
+step_index. The failed capture has 1585 output tokens; the successful one
+has 1314 and 5136, whose sum is its terminal output counter, 6450.
+For live caps, sum distinct completed response steps within the current
+attempt; identical repeats count once and conflicting repeats refuse.
+Other step states/types supply no output currency. A terminal counter
+replaces the step sum, never adds to it or to a prior resumed total.
+Step replay/reset semantics across resumes remain unmeasured: reset the
+step accumulator at each init/attempt offset and never synthesize lifetime
+spend from it. Live step output is separate from terminal accounting;
+missing terminal totals remain unresolved even when live output is known.
+Cache/thinking overlap and incomplete live frames do not add tokens.
 
 The reader checks the conversation ID and snapshot cwd, never newest-file
 selection. Resume requires the exact transcript in the live or archived home
