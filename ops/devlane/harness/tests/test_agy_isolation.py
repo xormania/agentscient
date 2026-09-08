@@ -8,7 +8,7 @@ settings/history copy, no real-HOME fallback. Auth-file symlink is
 allowed; necessary parent directories must be real directories.
 Discovery isolation remains unresolved in existing measured metadata.
 HOME-only sufficiency and empty dispatch_flags are not pinned.
-Synthetic fixtures only. Expected red at this tree is lawful.
+Synthetic fixtures only. These tests were authored before implementation.
 """
 
 from __future__ import annotations
@@ -126,7 +126,9 @@ class AgyIsolationTests(unittest.TestCase):
         note = measured.get("note")
         self.assertIsInstance(note, str)
         self.assertTrue(note.strip())
-        self.assertIn("unresolved", note.lower())
+        unresolved = measured.get("unresolved")
+        self.assertIsInstance(unresolved, str)
+        self.assertTrue(unresolved.strip())
 
     def test_build_home_links_only_the_oauth_token_and_excludes_canaries(self):
         with tempfile.TemporaryDirectory() as temporary:
