@@ -107,10 +107,16 @@ class _AgyLaunch(ls._TempLaunch):
 
     def install_live_child(self):
         dest = self.bin / "agy"
-        dest.write_text(agy.LIVE_CHILD, encoding="utf-8")
+        script = agy.LIVE_CHILD.replace(
+            "@@START_WITNESS@@", json.dumps(str(self.start_witness)),
+        )
+        dest.write_text(script, encoding="utf-8")
         dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP
                    | stat.S_IXOTH)
-        self.assertIn("AGY_FAKE_SLEEP", dest.read_text(encoding="utf-8"))
+        landed = dest.read_text(encoding="utf-8")
+        self.assertIn("AGY_FAKE_SLEEP", landed)
+        self.assertIn(str(self.start_witness), landed)
+        self.assertNotIn("@@START_WITNESS@@", landed)
         return dest
 
 
@@ -259,25 +265,28 @@ class AgySessionSnapshotAssociation(_AgyLaunch):
         self.plant_auth()
         job_dir = self.home / "job"
         job_dir.mkdir()
-        try:
-            meta = agy.call_harness_meta(
-                self.launch, agy.HARNESS, "read", job_dir, os.environ,
-            )
-        except Exception as exc:
-            self.fail(
-                f"launch._harness_meta raised {type(exc).__name__}: {exc}"
-            )
-        self.assertIsInstance(meta, dict, "launch._harness_meta for agy")
-        isolation = meta.get("isolation") or {}
-        store = isolation.get("store") or meta.get("store")
-        self.assertTrue(store, f"agy store must be measured: {meta!r}")
+        fn = getattr(self.launch, "_harness_meta", None)
+        self.assertTrue(
+            callable(fn),
+            "launch._harness_meta must exist for the measured store",
+        )
+        got = agy.call_harness_meta(
+            self.launch, agy.HARNESS, "read", job_dir, os.environ,
+        )
+        self.assertIsNotNone(
+            got, "launch._harness_meta is absent (lawful red)",
+        )
+        self.assertIsInstance(got, (tuple, list), got)
+        self.assertEqual(len(got), 5, got)
+        _iso_env, _flags, _sandbox, containment, data = got
+        self.assertEqual(containment, "policy", got)
+        self.assertIsInstance(data, dict, got)
+        self.assertIn("store", data, got)
+        store = data["store"]
+        self.assertTrue(store, f"agy store must be measured: {got!r}")
         store_s = str(store)
         self.assertIn("antigravity-cli", store_s)
         self.assertNotIn(agy.CLAUDE_FALLBACK, store_s)
-        containment = meta.get("containment") or (
-            (meta.get("harness") or {}).get("containment")
-        )
-        self.assertEqual(containment, "policy", meta)
 
     def test_stream_discovery_binds_the_named_conversation_not_a_newer_foreign_one(
             self):
@@ -298,23 +307,56 @@ class AgySessionSnapshotAssociation(_AgyLaunch):
         os.utime(claude_decoy, (2_100_000_000, 2_100_000_000))
         self.assertIn("claude-fallback-decoy", claude_decoy.read_text())
 
+        matching = agy.framed_stdout(
+            cwd=str(snap.resolve()), permission_mode="always-proceed",
+        )
+        (job_dir / "raw.out").write_bytes(matching)
+        self.assertIn(str(snap.resolve()).encode("utf-8"), matching)
+        self.assertIn(b"always-proceed", matching)
+        self.assertNotIn(b'"cwd"', own.read_bytes())
+        self.assertNotIn(b'"ref"', own.read_bytes())
+
         got = agy.call_stream(
             self.launch, job_dir, agy.HARNESS, agy.CONVERSATION_ID,
             snap, self.ref, "read",
         )
         self.assertIsInstance(got, (tuple, list), got)
-        self.assertGreaterEqual(len(got), 3, got)
-        path, ran, stream_id = got[0], got[1], got[2]
+        self.assertEqual(len(got), 4, got)
+        path, ran, stream_id, mismatch = got
         self.assertEqual(stream_id, agy.CONVERSATION_ID, got)
         self.assertNotEqual(stream_id, agy.FOREIGN_CONVERSATION_ID, got)
         path_s = str(path or "")
         self.assertTrue(path_s, got)
-        self.assertIn(agy.CONVERSATION_ID, path_s)
         self.assertNotIn(agy.FOREIGN_CONVERSATION_ID, path_s)
         self.assertNotIn(agy.CLAUDE_FALLBACK, path_s)
-        self.assertIn("OWN-SESSION", Path(path_s).read_text(encoding="utf-8"))
-        self.assertNotIn("FOREIGN-NEWER", Path(path_s).read_text(encoding="utf-8"))
+        self.assertNotEqual(Path(path_s).resolve(), foreign.resolve(), got)
+        self.assertIn("OWN-SESSION", own.read_text(encoding="utf-8"))
+        self.assertNotIn("FOREIGN-NEWER", own.read_text(encoding="utf-8"))
         self.assertNotEqual(ran, "decoy-claude-model")
+        self.assertTrue(
+            mismatch is None or mismatch == "",
+            f"matching init.cwd must not mismatch: {got!r}",
+        )
+
+        (job_dir / "raw.out").write_bytes(
+            agy.framed_stdout(
+                cwd="/not-this-snapshot",
+                permission_mode="always-proceed",
+            ),
+        )
+        rejected = agy.call_stream(
+            self.launch, job_dir, agy.HARNESS, agy.CONVERSATION_ID,
+            snap, self.ref, "read",
+        )
+        self.assertIsInstance(rejected, (tuple, list), rejected)
+        self.assertEqual(len(rejected), 4, rejected)
+        _path, _ran, rejected_id, mismatch = rejected
+        self.assertEqual(rejected_id, agy.CONVERSATION_ID, rejected)
+        self.assertIsInstance(mismatch, str, rejected)
+        self.assertTrue(
+            mismatch.strip(),
+            f"altered init.cwd must be a mismatch reason: {rejected!r}",
+        )
 
 
 class AgyMissingAuthRefuses(_AgyLaunch):
@@ -374,6 +416,11 @@ class AgyWriteRoleUnadmitted(_AgyLaunch):
         code, out, err = self.dispatch_agy(
             job="plan", harness=agy.HARNESS, stage="plan",
         )
+        self.assertTrue(
+            self.start_witness.is_file() or self.witness.is_file(),
+            "fake-child witness must exist before judging write-role: "
+            f"exit={code} {self.combined(out, err)!r}",
+        )
         text = self.combined(out, err).lower()
         self.assertNotIn(
             "write-role-unadmitted", text,
@@ -406,8 +453,25 @@ class AgyExplicitIdResume(_AgyLaunch):
         self.plant_auth()
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         planted = self.read_record()
+        job_dir = self.the_job_dir()
+        executable = str(self.bin / "agy")
+        agy_home = str(job_dir / "home" / "agy")
+        agy_store = str(Path(agy_home) / agy.BRAIN_REL)
         planted["harness"] = dict(planted.get("harness") or {})
         planted["harness"]["name"] = agy.HARNESS
+        worker = dict(planted["harness"].get("worker") or {})
+        worker["name"] = agy.HARNESS
+        worker["executable"] = executable
+        planted["harness"]["worker"] = worker
+        planted["model"] = dict(planted.get("model") or {})
+        planted["model"]["requested"] = agy.MODEL
+        isolation = dict(planted["harness"].get("isolation") or {})
+        isolation["mechanism"] = "home"
+        isolation["env"] = {"HOME": agy_home}
+        isolation["home"] = agy_home
+        isolation["store"] = agy_store
+        isolation["auth_files"] = [agy.AUTH_REL]
+        planted["harness"]["isolation"] = isolation
         planted["session"] = {
             "id": agy.CONVERSATION_ID,
             "stream": None,
@@ -420,22 +484,52 @@ class AgyExplicitIdResume(_AgyLaunch):
         self.assertNotEqual(after, before, "plant: record harness is agy")
         self.assertIn(b'"agy"', after)
         self.assertIn(agy.CONVERSATION_ID.encode("utf-8"), after)
-        job_dir = self.the_job_dir()
-        brain = agy.brain_dir(job_dir / "home" / "agy", agy.CONVERSATION_ID)
-        self.assertFalse(brain.exists(), "plant: agy store is absent")
+        self.assertIn(executable.encode("utf-8"), after)
+        self.assertIn(agy.MODEL.encode("utf-8"), after)
+        live = agy.brain_dir(job_dir / "home" / "agy", agy.CONVERSATION_ID)
+        archived = agy.brain_dir(
+            job_dir / "home" / "agy-stream", agy.CONVERSATION_ID,
+        )
+        self.assertFalse(live.exists(), "plant: live agy store is absent")
+        self.assertFalse(
+            archived.exists(), "plant: archived agy store is absent",
+        )
+        self.assertFalse(
+            agy.transcript_path(
+                job_dir / "home" / "agy", agy.CONVERSATION_ID,
+            ).exists(),
+        )
+        self.assertFalse(
+            agy.transcript_path(
+                job_dir / "home" / "agy-stream", agy.CONVERSATION_ID,
+            ).exists(),
+        )
+        before_attempts = list(planted.get("attempts") or [])
+        exit_marker = job_dir / "exit"
+        tripped = job_dir / "TRIPPED.md"
+        exit_before = (
+            exit_marker.read_bytes() if exit_marker.is_file() else None
+        )
+        tripped_before = tripped.is_file()
         self.witness.unlink(missing_ok=True)
         self.start_witness.unlink(missing_ok=True)
-        try:
-            code, out, err = self.run_main(["resume", rec["id"]])
-        except Exception as exc:
-            self.fail(f"agy resume raised {type(exc).__name__}: {exc}")
-        text = self.combined(out, err).lower()
-        self.assertEqual(code, ls.REFUSAL_EXIT, text)
-        self.assertTrue(
-            "resume-store" in text or "unsupported-capability" in text,
-            f"missing agy resume store must be a declared refusal: {text!r}",
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assert_refusal(
+            code, out, err, ident="resume-store",
+            phrases=["resume-store"],
         )
         self.assert_not_started()
+        self.assertEqual(path.read_bytes(), after)
+        rec2 = self.read_record()
+        self.assertEqual(
+            len(rec2.get("attempts") or []), len(before_attempts),
+            "a refused resume does not append an attempt",
+        )
+        exit_after = (
+            exit_marker.read_bytes() if exit_marker.is_file() else None
+        )
+        self.assertEqual(exit_after, exit_before)
+        self.assertEqual(tripped.is_file(), tripped_before)
 
     def test_missing_resume_does_not_block_a_fresh_read_argv(self):
         argv = agy.call_argv(
@@ -451,28 +545,29 @@ class AgyTerminalUsage(_AgyLaunch):
     """Terminal result.usage is the spend; resume does not add it twice."""
 
     def _spend_from(self, usage, *, conversation_id=agy.CONVERSATION_ID,
-                    status="SUCCESS"):
-        raw = agy.framed_stdout(
-            usage=usage, status=status, conversation_id=conversation_id,
-        )
-        job_dir = self.home / "spend-job"
+                    status="SUCCESS", rec=None, raw=None, job_dir=None):
+        if job_dir is None:
+            job_dir = self.home / "spend-job"
         job_dir.mkdir(parents=True, exist_ok=True)
+        if raw is None:
+            raw = agy.framed_stdout(
+                usage=usage, status=status, conversation_id=conversation_id,
+            )
         (job_dir / "raw.out").write_bytes(raw)
         self.assertIn(b'"event": "result"', raw)
         self.assertIn(
             str(usage["total_tokens"]).encode("utf-8"), raw, "plant: total",
         )
-        session = {
-            "id": conversation_id,
-            "stream": str(agy.transcript_path(job_dir, conversation_id)),
-        }
-        payload = agy.call_spend(
-            self.launch, job_dir, agy.HARNESS, session,
+        stream = str(agy.transcript_path(job_dir, conversation_id))
+        self.assertFalse(
+            Path(stream).exists(),
+            "plant: usage is on raw.out, not the transcript",
         )
-        if payload is None:
-            payload = agy.call_spend(
-                self.launch, job_dir, harness=agy.HARNESS, session=session,
+        if rec is None:
+            rec = agy.spend_record(
+                conversation_id, snapshot_root=self.repo,
             )
+        payload = agy.call_spend(self.launch, rec, stream, job_dir)
         return payload, raw
 
     def test_fresh_terminal_usage_does_not_fold_thinking_or_cache_into_total(self):
@@ -500,13 +595,53 @@ class AgyTerminalUsage(_AgyLaunch):
         self.assertEqual(tokens.get("output"), agy.FRESH_TOKENS["output"], payload)
 
     def test_resume_terminal_usage_is_not_the_sum_of_both_process_totals(self):
-        first, _ = self._spend_from(agy.FRESH_USAGE)
+        job_dir = self.home / "spend-job"
+        first, fresh_raw = self._spend_from(agy.FRESH_USAGE, job_dir=job_dir)
         self.assertIsInstance(first, dict, first)
         first_tokens = agy.spend_tokens(first)
         self.assertIsInstance(first_tokens, dict, first)
         self.assertEqual(first_tokens.get("total"), agy.FRESH_TOKENS["total"], first)
-        payload, raw = self._spend_from(agy.RESUME_USAGE)
-        self.assertIn(b'"total_tokens": 295', raw, "plant: resume cumulative")
+        resume_raw = agy.framed_stdout(usage=agy.RESUME_USAGE)
+        combined = fresh_raw + resume_raw
+        self.assertIn(b'"total_tokens": 120', combined, "plant: fresh total")
+        self.assertIn(b'"total_tokens": 295', combined, "plant: resume cumulative")
+        rec = agy.spend_record(
+            agy.CONVERSATION_ID,
+            snapshot_root=self.repo,
+            spend=dict(first),
+            attempts=(
+                {
+                    "n": 1,
+                    "launched": "2026-09-08T00:00:00Z",
+                    "ended": "2026-09-08T00:00:01Z",
+                    "exit": 0,
+                    "tripped": False,
+                },
+                {
+                    "n": 2,
+                    "launched": "2026-09-08T00:00:02Z",
+                    "ended": None,
+                    "exit": None,
+                    "tripped": False,
+                },
+            ),
+        )
+        (job_dir / "state.json").write_text(
+            json.dumps({
+                "pid": None,
+                "pgid": None,
+                "session": agy.CONVERSATION_ID,
+                "attempt": 2,
+            }) + "\n",
+            encoding="utf-8",
+        )
+        payload, planted_raw = self._spend_from(
+            agy.RESUME_USAGE, rec=rec, raw=combined, job_dir=job_dir,
+        )
+        self.assertEqual(planted_raw, combined)
+        self.assertEqual(rec["session"]["id"], agy.CONVERSATION_ID)
+        self.assertEqual(len(rec["attempts"]), 2, rec)
+        self.assertEqual(rec["attempts"][-1]["n"], 2, rec)
         tokens = agy.spend_tokens(payload)
         self.assertIsInstance(tokens, dict, payload)
         self.assertEqual(tokens.get("total"), agy.RESUME_TOKENS["total"], payload)
@@ -516,6 +651,9 @@ class AgyTerminalUsage(_AgyLaunch):
             tokens.get("total"),
             (first_tokens.get("total") or 0) + agy.RESUME_TOKENS["total"],
             payload,
+        )
+        self.assertNotEqual(
+            tokens.get("total"), first_tokens.get("total"), payload,
         )
 
 
@@ -549,45 +687,29 @@ class AgyUnknownProviderIsExplicit(_AgyLaunch):
         raw = agy.framed_stdout(usage=agy.FRESH_USAGE, status=agy.CANCELED)
         self.assertIn(b'"status": "CANCELED"', raw, "plant: CANCELED")
         self.assertNotIn(b'"provider"', raw, "plant: no provider field")
-        job_dir = self.home / "provider-job"
-        job_dir.mkdir()
-        (job_dir / "raw.out").write_bytes(raw)
-        session = {"id": agy.CONVERSATION_ID, "stream": None}
-        payload = agy.call_spend(
-            self.launch, job_dir, agy.HARNESS, session,
+        self.plant_auth()
+        self.install_live_child()
+        os.environ["AGY_FAKE_STATUS"] = agy.CANCELED
+        os.environ["AGY_FAKE_SLEEP"] = "0"
+        code, out, err = self.dispatch_agy(
+            job="plan", harness=agy.HARNESS, stage="plan",
         )
-        meta = agy.call_harness_meta(
-            self.launch, agy.HARNESS, "read", job_dir, os.environ,
+        self.assertNotEqual(
+            self.record_files(), [],
+            f"agy CANCELED read must mint a record: "
+            f"{self.combined(out, err)!r} exit={code}",
         )
-        blobs = [payload, meta]
-        fn = getattr(self.launch, "_envelope", None)
-        self.assertTrue(callable(fn), "launch._envelope parses stdout")
-        env = fn(raw, "plan", self.ref, harness=agy.HARNESS)
-        blobs.append(env)
-        found_id = None
-        found_unresolved = None
-        for blob in blobs:
-            if not isinstance(blob, dict):
-                continue
-            provider = blob.get("provider")
-            if isinstance(provider, dict):
-                found_id = provider.get("id")
-                found_unresolved = provider.get("unresolved")
-                break
-            model = blob.get("model")
-            if isinstance(model, dict) and isinstance(model.get("provider"), dict):
-                provider = model["provider"]
-                found_id = provider.get("id")
-                found_unresolved = provider.get("unresolved")
-                break
-        self.assertIsNone(
-            found_id,
-            f"agy must not invent a provider id from CANCELED stdout: {blobs!r}",
-        )
-        self.assertTrue(
-            isinstance(found_unresolved, str) and found_unresolved.strip(),
-            f"agy provider must stay an explicit unresolved reason: {blobs!r}",
-        )
+        rec = self.read_record()
+        model = rec.get("model") or {}
+        provider = model.get("provider")
+        self.assertIsInstance(provider, dict, rec)
+        self.assertIsNone(provider.get("id"), provider)
+        self.assertIsNone(provider.get("read_from"), provider)
+        unresolved = provider.get("unresolved")
+        self.assertIsInstance(unresolved, str, provider)
+        self.assertTrue(unresolved.strip(), provider)
+        self.assertNotEqual(unresolved.strip(), agy.HARNESS)
+        self.assertNotEqual(unresolved.strip(), agy.MODEL)
 
 
 class AgyLiveStdoutSupervision(_AgyLaunch):
@@ -596,19 +718,23 @@ class AgyLiveStdoutSupervision(_AgyLaunch):
     def test_stdout_usage_over_cap_out_kills_the_child_before_it_finishes(self):
         self.plant_auth()
         self.install_live_child()
+        wires = ls.load_path(self, ls.WIRES_PATH, "agy_dispatch_wires")
+        budget = wires.budget("read")
+        self.assertIsInstance(budget, int)
+        self.assertGreater(budget, 0)
+        over = budget + 1
         done = self.home / "agy-live-done.marker"
         start = self.home / "agy-live-start.marker"
         os.environ["AGY_FAKE_DONE"] = str(done)
         os.environ["AGY_FAKE_START"] = str(start)
         os.environ["AGY_FAKE_SLEEP"] = "8"
-        os.environ["AGY_FAKE_OUTPUT"] = str(agy.LIVE_OUTPUT_OVER)
+        os.environ["AGY_FAKE_OUTPUT"] = str(over)
         os.environ["AGY_FAKE_STATUS"] = "SUCCESS"
         os.environ["DISPATCH_TIMEOUT"] = "30"
-        self.assertGreater(agy.LIVE_OUTPUT_OVER, agy.LIVE_CAP_OUT)
+        self.assertGreater(over, budget)
         started = time.monotonic()
         self.dispatch_agy(self.argv_for(
             job="plan", harness=agy.HARNESS, stage="plan",
-            extra=["--cap-out", str(agy.LIVE_CAP_OUT)],
         ))
         elapsed = time.monotonic() - started
         self.assertTrue(
@@ -623,14 +749,17 @@ class AgyLiveStdoutSupervision(_AgyLaunch):
             elapsed, 4,
             f"live cap-out must not wait out the 8s child: elapsed={elapsed}",
         )
-        if self.start_witness.is_file():
-            pid = self.read_start_witness().get("pid")
-            if pid:
-                self.assertFalse(ls.pid_is_alive(pid))
+        self.assertTrue(self.start_witness.is_file())
+        pid = self.read_start_witness()["pid"]
+        self.assertFalse(ls.pid_is_alive(pid))
 
     def test_unavailable_live_output_does_not_let_a_capped_child_finish(self):
         self.plant_auth()
         self.install_live_child()
+        wires = ls.load_path(self, ls.WIRES_PATH, "agy_dispatch_wires")
+        budget = wires.budget("read")
+        self.assertIsInstance(budget, int)
+        self.assertGreater(budget, 0)
         done = self.home / "agy-nousage-done.marker"
         start = self.home / "agy-nousage-start.marker"
         os.environ["AGY_FAKE_DONE"] = str(done)
@@ -641,7 +770,6 @@ class AgyLiveStdoutSupervision(_AgyLaunch):
         started = time.monotonic()
         code, out, err = self.dispatch_agy(self.argv_for(
             job="plan", harness=agy.HARNESS, stage="plan",
-            extra=["--cap-out", str(agy.LIVE_CAP_OUT)],
         ))
         elapsed = time.monotonic() - started
         if start.is_file():
