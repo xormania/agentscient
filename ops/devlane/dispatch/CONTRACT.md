@@ -108,6 +108,21 @@ isolation record and independent source/tests retain their provenance.
 `raw.out` is the native evidence stream for init.model/cwd and result.usage;
 brain transcript rows do not supply those fields. Each attempt records its
 raw byte offset so a resumed result is extracted from that attempt alone.
+Only terminal `result.status == 'SUCCESS'` certifies native completion;
+every other status (including unknown nonempty values) is refused even beside
+a valid envelope. SUCCESS still requires the carrier and canonical envelope
+checks and no explicit result error; step/tool denials alone are not terminal
+failure.
+
+The owned canonical smoke `20260908T083944Z-review-agy-e49b81`, measured
+against `408d2eff029c4b4dad12354c3d872efd9509832b`, establishes a native
+`MODEL` / `PLANNER_RESPONSE` transcript row with string `thinking` and list
+`tool_calls`, without `content`. The reader accepts that payload alongside
+the existing content-bearing rows; source/type and a supported payload remain
+required. Transcript text, thinking and tool calls never certify completion
+or supply usage. The original failed receipt remains failed; this observation
+does not establish a successful live rerun.
+
 The reader checks the conversation ID and snapshot cwd, never newest-file
 selection. Resume requires the exact transcript in the live or archived home
 before clearing markers, and retains the recorded configured executable.
