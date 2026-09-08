@@ -40,8 +40,10 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "conductor" / "tools"))
 
 import isolation
+import laneconf
 
 
 def _discard(path):
@@ -282,19 +284,23 @@ def behavioural_agy(model=None, phrase=None, env=None, cwd=None):
     No native discovery filename is assumed: the caller plants the canary
     in a disposable source HOME/XDG or fixture before running this probe.
     CLEAN describes this canary only, not exhaustive discovery isolation.
+    Worker selection uses the process configuration, as dispatch does;
+    env supplies the control arms only. Hashes are observations, not admission.
     """
     if not model or not phrase or not cwd:
         return Result("agy", "behavioural", INVALID,
                       "expected explicit model, synthetic canary phrase and disposable "
                       "git cwd; found missing probe inputs; needed a host canary control")
     env = dict(os.environ if env is None else env)
-    executable = shutil.which("agy", path=env.get("PATH"))
-    if not executable:
-        return Result("agy", "behavioural", INVALID, "agy executable unavailable")
+    try:
+        executable = laneconf.worker("agy")["executable"]
+    except laneconf.ConfigError as exc:
+        return Result("agy", "behavioural", INVALID, exc.line())
     cwd = str(Path(cwd).resolve())
     root = tempfile.mkdtemp(prefix="probe-agy-home-")
     try:
         digest = hashlib.sha256(Path(executable).read_bytes()).hexdigest()
+        identity = f"executable={executable}; binary_sha256={digest}"
         try:
             over, flags = isolation.isolated("agy", root, env)
         except isolation.NotIsolated as exc:
@@ -326,16 +332,17 @@ def behavioural_agy(model=None, phrase=None, env=None, cwd=None):
                 word = None
             if word not in {"YES", "NO"}:
                 return Result("agy", "behavioural", INVALID,
-                              f"{label} arm failed initialization/answer; binary_sha256={digest}")
+                              f"{label} arm failed initialization/answer; {identity}")
             answers.append(word)
         if hashlib.sha256(Path(executable).read_bytes()).hexdigest() != digest:
-            return Result("agy", "behavioural", INVALID, "binary changed during probe")
+            return Result("agy", "behavioural", INVALID,
+                          f"binary changed during probe; {identity}")
         if answers[0] != "YES":
             verdict = INVALID
         else:
             verdict = LEAKING if answers[1] == "YES" else CLEAN
         return Result("agy", "behavioural", verdict,
-                      f"visible={answers[0]}, isolated={answers[1]}; binary_sha256={digest}; "
+                      f"visible={answers[0]}, isolated={answers[1]}; {identity}; "
                       "scope=caller-planted canary only; other discovery unresolved; containment=policy")
     finally:
         _discard(root)
