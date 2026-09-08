@@ -1,0 +1,172 @@
+{
+  "id": "20260908T074907Z-tests-grok-afdc3b",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-dispatch-tests-20260908",
+  "lineage": {
+    "branch": "lane/agy-dispatch-tests-20260908",
+    "base_sha": "2c41dca4b436bfcff55232dfaa9d1400776e5176"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:49:08Z",
+    "closed": "2026-09-08T08:03:04Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "2c41dca4b436bfcff55232dfaa9d1400776e5176",
+    "ref_sha": "2c41dca4b436bfcff55232dfaa9d1400776e5176",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "09a466c5-3b4a-4d58-9318-cf0870603fc1",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/home/grok-stream/sessions/<snapshot-encoded>/09a466c5-3b4a-4d58-9318-cf0870603fc1/summary.json"
+  },
+  "session": {
+    "id": "09a466c5-3b4a-4d58-9318-cf0870603fc1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/home/grok-stream/sessions/<snapshot-encoded>/09a466c5-3b4a-4d58-9318-cf0870603fc1/summary.json",
+    "stream_sha256_at_close": "e801e7ebf67dcef338b715a76cd8bbf64b1d9ce950ed93b572cda019274fdc0a",
+    "spend": {
+      "input": 4013459,
+      "cached": 3827584,
+      "output": 46919,
+      "total": 4060378,
+      "cost_usd_ticks": 4363995200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/home/grok-stream/sessions/<snapshot-encoded>/09a466c5-3b4a-4d58-9318-cf0870603fc1/summary.json",
+      "messages": 312
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-dispatch-tests-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently author agy dispatch tests in new ops/devlane/dispatch/tests/test_agy_dispatch.py, plus one helper. Use existing synthetic launcher fixtures and declared contract; no production bodies. Supplied native evidence establishes stdin as one user NDJSON with --print=, stdout framed result, auth/session path and CANCELED. Pin fresh read dispatch prompt/model/effort transport, correct session/snapshot association, missing-auth and existing write-role refusal, explicit-ID resume or declared refusal, accurate terminal usage without counting a resumed total twice, and live wall/output supervision through observed stdout usage. Keep unknown provider explicit; do not invent native fields or permission flags. Reuse fixtures; no new runner. Acceptance: focused discovery, zero errors with honest assertions, registered lint and diff check, exact test hashes. Synthetic only; no vendors/full floor/code edits. Grok 4.6 trailers.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/in/agy-stdin-observation-record.json",
+        "sha256": "7105bc23be42fbad53780a0e0ed2a360b7d5778076241963af09f3e84f4691eb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074907Z-tests-grok-afdc3b/in/agy-wire-evidence.json",
+        "sha256": "3e2235e90cb7ecbc9c38a076e87de10e112404bae6b4bb8df0f52b0925a49dac"
+      }
+    ],
+    "sha256": "ac01eb65c69b4c1802f7a77b51c918f054b9c61fd8f131fd080142fbf3b0fded",
+    "bytes": 3279
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:49:08Z",
+      "ended": "2026-09-08T08:03:04Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "563a36484c6f7ff748ca44e88b6ab71dc4d9a3fc",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/agy_dispatch_support.py",
+      "ops/devlane/dispatch/tests/test_agy_dispatch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/dispatch/tests/test_agy_dispatch.py",
+        "helper": "ops/devlane/dispatch/tests/agy_dispatch_support.py",
+        "tests_sha256": "fea1b8d4334bbf312833bc0e9f749c2491090c65c3be13303f0d74a7063332ed",
+        "helper_sha256": "4a04b2ebe194677cc3484723e417e5f24fb61631c1faa91a8033b4193cab8dd4",
+        "head": "563a36484c6f7ff748ca44e88b6ab71dc4d9a3fc",
+        "red": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_dispatch.py at 563a36484c6f7ff748ca44e88b6ab71dc4d9a3fc: 24 collected, 23 FAIL, 1 ok, 0 ERROR",
+        "ruff": "/home/scientdb/.local/bin/ruff check ops/devlane/dispatch/tests/test_agy_dispatch.py ops/devlane/dispatch/tests/agy_dispatch_support.py at 563a36484c6f7ff748ca44e88b6ab71dc4d9a3fc: All checks passed",
+        "diff_check": "git diff --check at 563a36484c6f7ff748ca44e88b6ab71dc4d9a3fc: exit 0"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4060378,
+        "out": 46919,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2c41dca4b436bfcff55232dfaa9d1400776e5176",
+        "started": null,
+        "ended": "2026-09-08T08:02:28Z"
+      },
+      "note": "Independently authored agy dispatch tests from CONTRACT.md and the three supplied native evidence files. Helper then test file committed on lane/agy-dispatch-tests-20260908 with Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. Pins: --print= plus one user NDJSON stdin, stream-json in/out, model/effort, measured auth/brain paths, missing-auth isolation, write-role-unadmitted, --conversation resume or declared refusal, terminal usage without double-counting a resumed total or folding thinking/cache, live stdout cap-out, explicit unresolved provider. No production bodies, no new runner, no invented native fields or permission flags. launch.py was not read. Neighbour test_an_agy_read_job_is_not_the_write_role_refusal is the one green."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T08:03:03.252Z"
+    }
+  },
+  "status": "closed"
+}
