@@ -12,9 +12,9 @@ event=init|step_update|result. Changelog 1.1.20: benign tool
 errors/permission denials do not fail the overall run. Changelog 1.1.27:
 JSON gained denied_actions.
 
-Vendor status-only failure coverage (a non-SUCCESS status with no
-error string) is unresolved pending a measured enum. Fixtures must
-not invent that enum.
+Measured native result.status=CANCELED (status-only: no error string)
+with denied_actions present and an empty response. Fixtures may use
+that measured status; they must not invent further enums.
 
 PROVISIONAL: the candidate _envelope contract is pending review.
 """
@@ -27,6 +27,8 @@ import json
 LAUNCHER_REF = "fc9ad2c015d47c85b405018521b57fa57e212d90"
 CONVERSATION_ID = "00000000-0000-4000-8000-000000000001"
 PLACEHOLDER_REF = "harness-placeholder"
+# Measured native vendor status; not an invented enum.
+MEASURED_CANCELED = "CANCELED"
 
 NINE = (
     "job",
