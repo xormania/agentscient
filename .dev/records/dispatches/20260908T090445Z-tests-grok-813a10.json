@@ -1,0 +1,174 @@
+{
+  "id": "20260908T090445Z-tests-grok-813a10",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-lifecycle-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-lifecycle-fix-20260908",
+    "base_sha": "cd4137ec3e38447ba2cf775efd2106aa89ee36e1"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:04:45Z",
+    "closed": "2026-09-08T09:06:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cd4137ec3e38447ba2cf775efd2106aa89ee36e1",
+    "ref_sha": "cd4137ec3e38447ba2cf775efd2106aa89ee36e1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "a538699e-91e0-4903-83e8-1269514657df",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "low",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "low",
+    "effort_argv": [
+      "--reasoning-effort",
+      "low"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/home/grok-stream/sessions/<snapshot-encoded>/a538699e-91e0-4903-83e8-1269514657df/summary.json"
+  },
+  "session": {
+    "id": "a538699e-91e0-4903-83e8-1269514657df",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/home/grok-stream/sessions/<snapshot-encoded>/a538699e-91e0-4903-83e8-1269514657df/summary.json",
+    "stream_sha256_at_close": "fc17bd43bfe8b4e92a73025710e4bedf7221aae74460ab3ffbdbcc36b3fec0b8",
+    "spend": {
+      "input": 629779,
+      "cached": 542720,
+      "output": 5113,
+      "total": 634892,
+      "cost_usd_ticks": 809465200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/home/grok-stream/sessions/<snapshot-encoded>/a538699e-91e0-4903-83e8-1269514657df/summary.json",
+      "messages": 116
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply exactly the two cwd=str(self.repo) keyword additions to framed_stdout in test_agy_dispatch.py prescribed by supplied final cold ruling. No other file/assertion/case/source change. Run all 24 test_agy_dispatch.py cases plus lint and full-range whitespace; record actual results/hash. Correct the prior producer absence claim in commit/envelope: accounting existed; reds were fixture cwd disagreement. Preserve original history, no amend. Only Grok-4.6 coauthor; adjudicator is not coauthor. No vendors/full floor/matrix. Use COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/in/agy-lifecycle-cwd-ruling.json",
+        "sha256": "b07b4baedc5cf4e2b974d3d741eb90aca86f4f03b033c93ec245e6cb7845d938"
+      }
+    ],
+    "sha256": "d76e097717a4c860c667d98c191e266fe9748e25b810bb3f719c49ff6b46b2b5",
+    "bytes": 2893
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:04:45Z",
+      "ended": "2026-09-08T09:06:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "37cdc1b20515d9bc731485e3aa1fffdb8ddcce27",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_dispatch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "file": "ops/devlane/dispatch/tests/test_agy_dispatch.py",
+        "sha256": "6cdfbecceec649017c435e238312c09ee5537736f93bef1459a868d7d1b9797f",
+        "diff": "exactly two cwd=str(self.repo) additions on framed_stdout in _spend_from and resume_raw",
+        "tests_before": "AgyTerminalUsage 3 FAIL 0 ERROR at cd4137e: unresolved 'not in the store (0 sessions read)'",
+        "tests_after": "python3 -m unittest test_agy_dispatch: Ran 24 tests in 3.279s OK",
+        "ruff": "/home/scientdb/.local/bin/ruff check ops/devlane/dispatch/tests/test_agy_dispatch.py: All checks passed! exit 0",
+        "whitespace": "git diff --check exit 0; full-file trailing-ws none; file ends with newline",
+        "head": "37cdc1b20515d9bc731485e3aa1fffdb8ddcce27",
+        "parent": "cd4137ec3e38447ba2cf775efd2106aa89ee36e1",
+        "commit_msg": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090445Z-tests-grok-813a10/out/COMMIT_MSG",
+        "coauthor": "Co-Authored-By: Grok 4.6 <noreply@x.ai> only; adjudicator not coauthor"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 634892,
+        "out": 5113,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cd4137ec3e38447ba2cf775efd2106aa89ee36e1",
+        "started": "2026-09-08T09:04:45Z",
+        "ended": "2026-09-08T09:06:12Z"
+      },
+      "note": "Applied only the two cwd=str(self.repo) keyword additions prescribed by the cold ruling. Did not read the implementation. Before the edit, the three AgyTerminalUsage cases were assertion-red (store 0 sessions) because framed_stdout omitted cwd while spend_record used snapshot_root=self.repo. After the two additions, all 24 cases passed; ruff and full-range whitespace were clean. Prior producer claim that accounting was absent is superseded: accounting existed; those reds were fixture cwd disagreement. History preserved (new commit on parent cd4137e, no amend)."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T09:06:25.968Z"
+    }
+  },
+  "status": "closed"
+}
