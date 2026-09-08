@@ -7,11 +7,22 @@ launch.py was not read. Contract review is pending.
 Pins: terminal result extraction from published stream-json frames,
 exact canonical envelope semantics, vendor failure, missing required
 vendor status, missing / ambiguous / malformed / truncated terminal
-results, mixed bare JSON rejected under stream-json, unrelated
-intermediate JSON, decoy-free reject variants with valid controls,
-legacy extraction unchanged, and SUCCESS plus a tool-level denial not
-turned into an undeclared blanket failure. Vendor status-only failure
-coverage is unresolved pending a measured enum.
+results, mixed bare JSON rejected under stream-json (including one
+decoy-free init-plus-bare-result fixture), unrelated intermediate JSON,
+decoy-free reject variants with a shared success control, legacy
+extraction unchanged, SUCCESS plus a tool-level denial not turned into
+an undeclared blanket failure, and a measured status-only CANCELED
+carrier beside a plausible envelope. Cause vocabulary is not a second
+schema: ENVELOPE_SCHEMA is not prohibited in notes, and missing-status
+does not require a status substring.
+
+Preserved reported receipts at e25e35d (not a fresh execution): 32
+tests, 30 assertion failures, 2 legacy passes, zero errors, clean
+registered lint. Original file SHA256 at that ref:
+test_agy_envelope.py
+0aa36d7cd000c7b5a91f519a24b17def1f8e93825f69a360e1d37d6ba88fb91d;
+agy_envelope_support.py
+d3bb7333ad761666f87a4d56ddba6cc73af8abfd7cc7dae7ec0419872a477e64.
 """
 
 from __future__ import annotations
@@ -90,17 +101,10 @@ class _AgyEnvelopeCase(unittest.TestCase):
         self.assertNotIn(agy.DECOY_TRAIL_NOTE, text, "plant: no trailing decoy")
 
     def assert_carrier_reject(self, env, *, nested_note=None):
-        """Invalid carrier: cause, no nested success, not a schema scan."""
+        """Invalid carrier: nonempty cause, no nested success."""
         self.assert_invalid_cause(env)
         if nested_note is not None:
             self.assertNotEqual(env.get("note"), nested_note, env)
-        note = str(env.get("note") or "")
-        self.assertNotIn(
-            "ENVELOPE_SCHEMA",
-            note,
-            "reject the result carrier; do not schema-judge an "
-            f"intermediate stream event: {env!r}",
-        )
 
 
 class AgyStreamJsonTerminalResultIsTheCarrier(_AgyEnvelopeCase):
@@ -196,8 +200,8 @@ class AgyStreamJsonTerminalResultIsTheCarrier(_AgyEnvelopeCase):
 class AgyVendorFailureDoesNotCertifyWork(_AgyEnvelopeCase):
     """Vendor errors even beside a plausible envelope; SUCCESS is not enough.
 
-    A status-only vendor-failure case is unresolved pending a measured
-    enum; these tests do not invent one.
+    Status-only CANCELED is the measured native non-SUCCESS status.
+    Fixtures do not invent further enums.
     """
 
     def test_a_vendor_error_is_invalid_even_beside_a_plausible_envelope(self):
@@ -218,6 +222,38 @@ class AgyVendorFailureDoesNotCertifyWork(_AgyEnvelopeCase):
             env.get("note"), "agy-beside-vendor-error",
             "a vendor error must not close as the nested envelope: "
             f"{env!r}",
+        )
+
+    def test_a_canceled_status_only_result_is_invalid_beside_a_plausible_envelope(
+            self):
+        nested = agy.canonical_envelope(note="agy-beside-canceled")
+        result = agy.published_result(
+            nested,
+            status=agy.MEASURED_CANCELED,
+            extra={"denied_actions": []},
+        )
+        self.assertEqual(result["status"], agy.MEASURED_CANCELED)
+        self.assertNotIn("error", result)
+        self.assertEqual(result["denied_actions"], [])
+        self.assertNotEqual(result["response"], "")
+        raw = agy.stream_with_decoys(
+            agy.init_frame(),
+            agy.result_frame(result),
+        )
+        self.assert_planted_decoys(raw)
+        self.assertIn(b'"status": "CANCELED"', raw, "plant: measured status")
+        self.assertIn(b'"denied_actions": []', raw, "plant: denied_actions")
+        self.assertNotIn(b'"error"', raw.split(
+            b'"event": "result"',
+        )[-1], "plant: status-only, no error string")
+        self.assertIn(b"agy-beside-canceled", raw)
+        env = self.parse(raw)
+        self.assert_invalid_cause(env)
+        self.assertNotEqual(env.get("status"), "ok", env)
+        self.assertNotEqual(
+            env.get("note"), "agy-beside-canceled",
+            "a status-only CANCELED result must not close as the "
+            f"nested envelope: {env!r}",
         )
 
     def test_a_result_missing_required_vendor_status_is_invalid(self):
@@ -507,10 +543,11 @@ class AgyCanonicalEnvelopeSemantics(_AgyEnvelopeCase):
 
 
 class AgyRejectRulesWithoutScanDecoys(_AgyEnvelopeCase):
-    """Bounded decoy-free reject variants with valid terminal controls.
+    """Bounded decoy-free reject variants with one shared success control.
 
-    Original decoy extraction controls stay on the cases above. These
-    variants let each reject rule be assessed without a leading decoy.
+    Original decoy extraction controls stay on the cases above. Reject
+    methods do not re-parse that success stream. One mixed-bare fixture
+    plants init plus an unframed published result, with no scan decoys.
     """
 
     def valid_control(self, note):
@@ -530,6 +567,30 @@ class AgyRejectRulesWithoutScanDecoys(_AgyEnvelopeCase):
         stamp = env.get("stamp") or {}
         self.assertEqual(stamp.get("ref"), self.ref, stamp)
         self.assertNotEqual(stamp.get("ref"), agy.PLACEHOLDER_REF)
+
+    def test_a_mixed_bare_published_result_is_rejected_without_decoys(self):
+        nested = agy.canonical_envelope(note="agy-print-terminal-nodecoy")
+        result = agy.published_result(nested)
+        raw = agy.ndjson_bytes(agy.init_frame(), result)
+        self.assert_no_scan_decoys(raw)
+        self.assertIn(b'"event": "init"', raw, "plant: init frame")
+        self.assertIn(b'"conversation_id"', raw)
+        self.assertNotIn(b'"event": "result"', raw, "plant: no result frame")
+        self.assertIn(b"agy-print-terminal-nodecoy", raw)
+        parsed_lines = [
+            json.loads(ln) for ln in raw.decode("utf-8").splitlines() if ln
+        ]
+        self.assertEqual(parsed_lines[0].get("event"), "init")
+        self.assertEqual(parsed_lines[1].get("status"), "SUCCESS")
+        self.assertNotIn("event", parsed_lines[1])
+        env = self.parse(raw)
+        self.assert_invalid_cause(env)
+        self.assertNotEqual(
+            env.get("note"), "agy-print-terminal-nodecoy",
+            "a mixed bare published result is not the stream-json "
+            f"terminal carrier: {env!r}",
+        )
+        self.assertNotEqual(env.get("status"), "ok", env)
 
     def test_a_missing_result_event_is_invalid_without_decoys(self):
         _nested, control = self.valid_control("agy-missing-nodecoy")
@@ -674,7 +735,7 @@ class AgyRejectRulesWithoutScanDecoys(_AgyEnvelopeCase):
              if '"event": "result"' in ln][0],
         )["result"])
         env = self.parse(raw)
-        self.assert_invalid_cause(env, "status")
+        self.assert_invalid_cause(env)
         self.assertNotEqual(env.get("note"), nested["note"], env)
 
 

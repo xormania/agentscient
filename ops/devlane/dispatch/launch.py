@@ -800,8 +800,9 @@ def _agy_envelope(raw):
     """Read one published stream-json result, never scan nested objects.
 
     Carrier fields follow the supplied agy wire evidence
-    20260908T064029Z-plan-codex-161211. Status-only failure vocabulary
-    remains unresolved; explicit result errors are authoritative, while
+    20260908T064029Z-plan-codex-161211. Native observation
+    20260908T073056Z-code-grok-0e4417 also establishes status CANCELED.
+    That status and explicit result errors are authoritative, while
     step/tool errors and denied_actions do not imply terminal failure.
     """
     results = []
@@ -837,6 +838,8 @@ def _agy_envelope(raw):
             raise ValueError("malformed terminal result error")
         if result["error"]:
             raise ValueError(f"vendor error: {result['error']}")
+    if result["status"] == "CANCELED":
+        raise ValueError("vendor status: CANCELED")
     if "structured_output" in result:
         data = result["structured_output"]
         if not isinstance(data, dict):
