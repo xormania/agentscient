@@ -154,6 +154,12 @@ step accumulator at each init/attempt offset and never synthesize lifetime
 spend from it. Live step output is separate from terminal accounting;
 missing terminal totals remain unresolved even when live output is known.
 Cache/thinking overlap and incomplete live frames do not add tokens.
+Incomplete or unrecognized DONE response usage (including an unusable
+step index) makes live output unavailable for that attempt, never a safe
+prefix sum. This uncertainty is not a stream mismatch or terminal result
+failure and does not invalidate complete terminal accounting. A complete
+terminal reading may replace it; contradictory repeated counters still
+refuse. Existing output caps and missing-usage grace remain unchanged.
 
 The reader checks the conversation ID and snapshot cwd, never newest-file
 selection. Resume requires the exact transcript in the live or archived home
