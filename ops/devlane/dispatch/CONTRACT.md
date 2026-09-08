@@ -1,5 +1,131 @@
 # The dispatch app — the dev-lane launcher
 
+## Configured workers and agy installation
+
+Standing: contract amendment, owner scope and installation brief of
+2026-09-08; no runtime or configuration activation in this artifact.
+The owner requests installed, dispatchable **agy workers** and has already
+selected Flash 3.8 uses. The integration inventory's role calibration,
+eight-PR rollout and qualification-only/candidate-admission protocol are
+superseded. Its binary/help evidence and both inventories' source maps
+remain dated evidence. Candidate code and independent fake-CLI tests may
+be developed on the owner-created branch and exercised through the existing
+dispatch/probe path under the trusted-maintainer host boundary. No second
+executor, task.run vendor extension, conduct adapter, Symfony dependency,
+global settings change or broad C1/C2 adoption is required by this amendment.
+Existing custody, job restrictions and independent producers still bind.
+
+Source homes re-read on 2026-09-08 at
+`1ba670842ea287f369a76c53a3e7455bf4ecf3d6`: `laneconf.py` parses literal
+configuration; the worker wrapper hardcodes three names; `launch.py`
+branches for their invocation, identity and supervision; `isolation.py`
+has three entries; usage/pulse have three readers. Reproduce with
+`rg -n 'def worker|def values|case \$harness|def _argv|def _stream|def _run_attempt|def .*_sessions|HARNESSES' ops/conductor/tools/laneconf.py ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py ops/devlane/harness/isolation.py ops/devlane/telemetry/usage.py ops/devlane/telemetry/pulse.py`.
+The supplied integration inventory measured agy 1.1.27 and help syntax;
+its `models` failure with HOME removed says nothing about model support.
+No authenticated behavior or agy format is established by those readings.
+
+### Small configuration interface
+
+[laneconf.py's module contract](../../conductor/tools/laneconf.py) owns
+the exact keys, validation, provenance and `worker(name)`/`worker NAME`
+projection. `WORKER_HARNESSES` selects implemented worker names;
+`EXECUTABLE_<NAME>` optionally names one absolute executable file. Omitted
+keys preserve the three legacy names and PATH resolution. An explicit
+empty worker list disables all workers; an empty executable refuses.
+These keys never supply flags, permissions, provider, model/role mappings
+or capability evidence. Remove agy from the list to disable new agy
+launches/resumes without changing the other adapters.
+
+The [existing wrapper](../../conductor/tools/dispatch.sh) checks selection
+through that loader, then calls `launch.main(argv=None) -> int` through its
+existing CLI. Direct launch checks the same selection before minting state.
+No executable flag or alternate loader is introduced. Preserve original
+configuration sources when forwarding; a file value must not be relabelled
+as an operator environment override. Launch records the returned worker
+object as `harness.worker` and uses its `executable` as the single argv[0],
+with shell execution disabled; paths containing spaces remain one token.
+Configuration membership alone cannot implement an absent adapter.
+
+Selection stays explicit `--harness`; go's existing intent defaults and
+HARNESS override stay unchanged. Nonempty explicit `--model` wins over
+`MODEL_<NAME>_<JOB>`, then `MODEL_<NAME>`; JOB uppercases and replaces `-`
+with `_`. Preserve Claude's final fallback to `MODEL_CLAUDE_PLAN` when
+stage is plan, otherwise `MODEL_CLAUDE_READ`. Effort likewise uses nonempty
+`--effort`, `EFFORT_<NAME>_<JOB>`, then `EFFORT_<NAME>`; absent/empty effort
+means no effort argv. Each configuration key retains environment over local
+over tracked precedence. The `agy` worker gets no model
+default in code: optional MODEL_AGY/EFFORT_AGY are operator choices in
+these existing families, not a roster. Direct launch still requires
+`--model`; no supported effort may be silently dropped or translated to
+another level. Existing Claude write refusal, Codex read/check-tests
+exception, Grok policy permissions and all three fresh/resume argv persist.
+
+### Adapter interfaces and evidence
+
+All rows extend existing owners; no plugin registry or generic adapter
+framework is needed. These are implementation obligations, not live passes.
+
+| owner / seam | agy input, output and acceptance obligation |
+|:--|:--|
+| `harness/isolation.py`: `HARNESSES`, `build_home(harness, root, env=None)`, `dispatch_env(harness, home=None, env=None)`, `isolated(harness, root, env=None)` | Use the exact isolation data and refusal rules in its module contract. Return the existing home Path, environment dict and `(env, flags)` respectively. No auth filename, discovery variable or store path may be guessed from the name agy. |
+| `launch.py`: `_effort_argv(harness, effort)`, `_argv(...)`, `_child_env(...)` | Keep the existing signatures. The bounded candidate transport is `[executable, *isolation_flags, '--print', '--model', model, '--input-format', 'text', '--output-format', 'stream-json', '--disable-slash-commands']`, plus `['--effort', effort]` only for low/medium/high. Feed exact prompt.txt bytes on stdin, close it, use snapshot cwd and the existing noninteractive environment. This is advertised syntax to verify, including Unicode/newlines and a completed tool action, not an assertion that stdin or the agent loop works. Retain the canonical schema in the brief; use `--json-schema` only after a bounded probe proves both work and final transport with that unchanged schema. Permission/mode and session tokens require the evidence below before a real operation uses them. |
+| `launch.py`: `_envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None, rec=None)` | Preserve raw stdout/stderr; decode only the measured terminal result carrier for this attempt, not arbitrary intermediate JSON. The agy branch must reject missing, ambiguous, truncated or malformed terminal results and vendor errors even beside a plausible envelope. Apply task.ENVELOPE_SCHEMA and `task/envelope.py:validate` to the extracted canonical object, including nullable verdict/reproduce, counts, invalid/tripped verdicts and optional commit. Return the existing invalid/null-verdict result with a cause on failure. Vendor schema acceptance or exit 0 alone never certifies work. Do not rewrite legacy extraction or adopt generic C2 output grants here. |
+| `launch.py`: `_stream(job_dir, harness, session, snapshot, ref_sha, role='read')`, `_resume`, `_close` | Preserve `(path, ran, stream_id, mismatch)`; missing observations are None, mismatch is a reason string. Fresh launch must obtain a unique native session id, bind it to this job/attempt and snapshot, and discover only its measured isolated store. Never pick the newest unrelated stream. Check explicit conversation identity and cwd/ref evidence, two concurrent sessions, foreign/malformed streams and relocation. `--conversation` and `--continue` advertise possibilities, not proven resume semantics. Resume uses the recorded id only, rechecks isolation/permissions and the recorded executable against current worker selection, preserves model/effort/lineage and prior findings, and refuses changed selection or an unavailable store before attempt/marker mutation. No implicit latest-session continuation; unsupported resume blocks resume alone. |
+| `launch.py` / `record.py`: model and attribution | Retain `model.requested`, `model.ran`, `model.read_from`; add agy-only `model.provider = {id, read_from, unresolved}` with nonempty strings for measured id/source and null unresolved, or null id/source and a nonempty unresolved reason. Source is launcher-read native session evidence, never worker prose, harness name or a model prefix. A requested alias may differ from ran; record both. Foreign session or contradictory native identity invalidates the result. Missing model/provider remains explicit and prevents attributed write settlement, not an unrelated read operation. Provider evidence selects a verified vendor address at commit time; no fallback to requested identity or guessed address for agy. Old record fields/validation and legacy attribution remain compatible. |
+| `telemetry/usage.py`: `agy_sessions(root: Path, repo: str or None)`; launch `_spend` and pulse reader | Add the existing reader-shaped iterator over the measured isolated root; each row has `harness='agy'`, `session`, `model`, `started`, `ended`, `messages`, `tokens`, `incomplete`, `note`. Nullable observations need a reason in note; tokens is null or `{input, cached, output, total}` with nonnegative integer or null values. Match session and repo before counting. Prove native event selectors, delta/cumulative/reset rules, duplicate identity, cache/thinking overlap and resumed totals with known synthetic totals. A total is known only when its currency is measured and complete; never add an overlapping cache/thinking count. Missing/malformed/truncated evidence stays incomplete/unresolved, not zero. `_spend` returns measured fields/source or its existing `{unresolved, looked_in}`; pulse consumes the same currency without exposing transcript content. No guessed price or cost-unit conversion. |
+| `launch.py`: `_run_attempt`, status/wait/close; existing watchdog | Retain inline wall, output-cap and missing-stream grace enforcement, process-group kill, raw/partial evidence, state.json PID/PGID, exit marker and attempts on fresh/resume/detached paths. Normalize agy output usage into that live cap check; a parser used only at close or in breaker.py cannot provide live protection. Incomplete accounting must not disable a known output cap; unavailable live output evidence blocks the affected capped operation. Preserve DISPATCH_TIMEOUT > job timeout > WALL_DEFAULT and existing cap sources. Do not enable disabled total-token wires or claim the unwired richer breaker battery. |
+
+Auth/discovery filenames, native result/event selectors, native session
+creation/resume, permission enforcement, actual model/provider and usage
+currency are **unresolved** at this ref. The adapter implementation must
+name their exact measured values in its existing data/docstrings and
+synthetic fixtures before claiming those behaviors. Independent tests can
+already pin the interfaces above using synthetic environments and fake CLIs;
+they must not treat guessed vendor JSON as verified real behavior.
+Missing authentication/isolation or fresh prompt/result/session supervision
+prevents a real agy launch; missing resume prevents only resume; missing
+provider prevents attributed writes; missing cost prevents cost reporting.
+These are narrow functional dependencies, not a new rollout state machine.
+
+Use bounded functional probes through the existing dispatch/probe authority
+on a disposable trusted fixture, with explicit model/effort and wall/output
+limits. Record executable hash/version, adapter/probe/mock revisions,
+platform, operation/role, UTC time and evidence handle. Isolation has visible
+and isolated synthetic discovery-canary arms; both must initialize and
+answer. A label such as plan/sandbox, a model declining a write, or a clean
+final diff does not prove prevention. Preserve the trusted-host boundary;
+configuration isolation is not OS containment and no universal container
+mandate is added. Live probes and independent reviews are later work, not
+performed or approved by this contract producer.
+
+### Refusal projection and bounded verification
+
+Loader errors use `ConfigError(kind, expected, found, needed)`; its CLI
+uses the existing exit 2 wire. Wrapper/launch project the detail through
+their existing dispatch refusal exit 3. New worker/executable errors are
+non-overridable and occur before snapshot/home/prompt/record/child creation.
+Use `worker` for malformed, disabled, unknown or unimplemented names;
+`executable` for empty/relative/missing/non-executable overrides or failed
+PATH resolution; `model` for absent model/unsupported effort; existing
+`isolation`, `write-role-unadmitted` and `resume-store` for those boundaries.
+Unavailable measured transport/permission/supervision uses
+`unsupported-capability`, naming the requested operation, missing evidence
+and bounded probe needed. Resume selection drift uses `worker` or
+`executable` and names the recorded versus current value and a fresh launch
+as remedy. After child effects retain the existing invalid/tripped result,
+null verdict and named cause; no pre-effect rejection or success is invented.
+
+The next producer independently authors focused tests, GPT-6 implements,
+and independent reviews are PR comments. Existing regression homes are
+`ops/conductor/tests/test_laneconf.py`, `test_dispatch_wrapper.py`, dispatch
+`test_launch_isolation.py`, `test_launch_harness_fixes.py`,
+`test_launch_record_identity.py`, `test_launch_watch.py`, harness
+`test_isolation_contract.py`, and telemetry `test_usage.py`. Synthetic agy
+cases belong beside those tests. This documentation artifact runs only
+documentation and existing focused contract/schema checks; no future-test
+command, full floor, credential access or live inference is its receipt.
+
 ## C1 — execution authority (target, not runtime completion)
 
 Standing: docs-only C1-contract, Grok ruling `518ab8`

@@ -1,5 +1,36 @@
 #!/usr/bin/env python3
-"""Read and check the lane's shared, literal-only configuration."""
+"""Read and check the lane's shared, literal-only configuration.
+
+Worker configuration amendment (2026-09-08, contract only; not implemented):
+ops/devlane/dispatch/CONTRACT.md owns execution and capability restrictions.
+This loader owns two additional settings in the existing literal grammar:
+
+* WORKER_HARNESSES is whitespace-separated unique names matching
+  [a-z][a-z0-9]*. Absence means 'claude codex grok' for compatibility;
+  an explicitly empty/whitespace-only value means no workers. Duplicate or
+  malformed names refuse worker. Listing a name never implements its adapter.
+* EXECUTABLE_<UPPERCASE_NAME>, when present, is one nonempty absolute path
+  to a regular executable file. Spaces are literal; no shell splitting,
+  expansion, flags or relative-path interpretation. Absence resolves the
+  selected name on PATH. Failure refuses executable, never falls back from
+  an invalid override. Resolve to an absolute path, including symlink targets.
+
+For each key, presence resolves environment > lane.local.conf beside the
+LANE_CONF/default file > that file > the compatibility default. Environment
+keys work even when absent from both files. Blank overrides do not fall
+through. Existing lane identity restrictions and model/effort keys remain.
+
+The small new seam is worker(name: str) -> dict, raising ConfigError; it
+validates list membership and executable resolution, not adapter capability.
+Its exact result is {name: str, executable: str, sources: {workers: str,
+executable: str}}. Source strings are 'env:KEY', 'file:ABSOLUTE_PATH#KEY',
+'default' for the absent worker list, or 'PATH' for executable lookup.
+CLI `laneconf.py worker NAME` prints that object as JSON plus one newline,
+empty stderr, exit 0; ConfigError prints its refusal line on stderr, empty
+stdout, exit 2. Wrapper and direct launch consume this same resolution;
+launch owns the implemented-adapter check and records this object. No new
+loader, executor, arbitrary argv settings or provider/model-role roster.
+"""
 
 from __future__ import annotations
 

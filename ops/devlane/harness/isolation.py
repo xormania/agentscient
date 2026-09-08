@@ -53,6 +53,30 @@ to discover, whatever the harness decides to look for next. That is
 the backstop if a leak is found with no environment variable behind
 it, or if a harness stops honouring one. This module is the cheap
 version and it is honest about being the cheap version.
+
+Worker installation amendment (2026-09-08, contract only): dispatch/CONTRACT.md
+owns the agy worker boundary. Keep the existing HARNESSES data and public
+build_home/dispatch_env/isolated signatures. A measured agy entry must declare
+mechanism ('home' or 'flags'), flags (argv strings), home_env (name or None),
+also_env (additional names, if needed), auth_files (exact relative file leaves),
+sessions {under: 'minimal' or 'real', path: relative path}, probe_phrase
+(synthetic canary or None), and measured (dated version and probe evidence).
+Auth filenames, discovery controls and session path are unresolved here;
+do not insert guessed values or an empty auth list to mean 'not measured'.
+
+For home isolation, name the exact credential source base and environment
+override in _real_home's adapter before linking. Only declared credential
+leaves cross; no settings, hooks, instructions, skills or MCP configuration.
+Leaves exclude absolute paths, parent traversal and whole-directory links.
+Structural verification must compare recursive leaves and their necessary
+parent directories, so nested auth does not admit neighboring configuration.
+A populated destination or missing required credential raises NotIsolated;
+an explicit environment never falls back to the operator's home. Return the
+existing Path/dict/(env, flags) shapes. Probe synthetic discovery through both
+a visible control and an isolated control, including inherited HOME/XDG and
+native project discovery where applicable. A control that cannot initialize
+is INVALID, never CLEAN. Record discovery and permission limits separately;
+this amendment adds no host containment promise and changes no legacy entry.
 """
 
 from __future__ import annotations
