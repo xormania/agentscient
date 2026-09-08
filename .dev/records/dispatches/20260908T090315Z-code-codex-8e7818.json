@@ -1,0 +1,188 @@
+{
+  "id": "20260908T090315Z-code-codex-8e7818",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-portable-fixture-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-portable-fixture-fix-20260908",
+    "base_sha": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:03:16Z",
+    "closed": "2026-09-08T09:07:33Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+    "ref_sha": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-portable-fixture-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T05-03-16-01a08041-e38d-72f1-8706-ad312ead3def.jsonl"
+  },
+  "session": {
+    "id": "01a08041-e38d-72f1-8706-ad312ead3def",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T05-03-16-01a08041-e38d-72f1-8706-ad312ead3def.jsonl",
+    "stream_sha256_at_close": "60da8900a4b8a79bf01e187dfcd58d5622ea5d936ddce7b9118fba08da38315a",
+    "spend": {
+      "input": 673599,
+      "cached": 602752,
+      "output": 6587,
+      "total": 680186,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T05-03-16-01a08041-e38d-72f1-8706-ad312ead3def.jsonl",
+      "messages": 112
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-portable-fixture-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Fix CI portability regression introduced by shared laneconf dependency, observed at 9eaee12/run34207316517 in supplied log: four scratch fixture dry-runs omit ops/conductor/tools/laneconf.py. Inspect declared export/portable fixture boundary, preserve one loader/resolver and canonical wrapper; no duplicated fallback logic. Own apparatus packaging/source/contracts only, no test edits or Symfony product work. Acceptance: existing test_python_service_app.py, test_python_tooling_app.py, test_rust_crate_app.py, test_symfony_app_app.py focused scratch methods (or file suites), configuration/wrapper checks, lint/diff. Report exact exits and unchanged tests. If defect is tests-only fixture assembly, stop with precise evidence and correction, do not edit tests. No vendors/full floor/new framework. GPT-6 attribution/COMMIT_MSG.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T090315Z-code-codex-8e7818/in/agy-ci-failure-34207316517.txt",
+        "sha256": "bcd74ee5b326e706ff58584ddba189a9a45d297362b178bf2c32db6d66dc846e"
+      }
+    ],
+    "sha256": "54006f1a357fbd22a4a1205b1e766fa437c88366d0decd95fa6aeef8981f1ac8",
+    "bytes": 4675
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:03:16Z",
+      "ended": "2026-09-08T09:07:33Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/fixtures/tests/test_{python_service,python_tooling,rust_crate,symfony_app}_app.py",
+          "claim": "Tests-only fixture assembly defect: all four LANE_COPY_PATHS lists omit ops/conductor/tools/laneconf.py. Focused unittest command exited 1; each dry-run exited 3. Correction: an independent test producer adds that path to all four lists. Exact-copy boundary, shared resolver, and canonical wrapper must remain intact.",
+          "reproduce": "PYTHONPATH=ops/devlane/fixtures/tests python3 -m unittest -v test_python_service_app.PythonServiceMakeProve.test_scratch_runs_suites_and_dispatch_dry_run test_python_tooling_app.PythonToolingMakeProve.test_scratch_runs_suites_and_dispatch_dry_run test_rust_crate_app.RustCrateMakeProve.test_scratch_runs_suites_and_dispatch_dry_run test_symfony_app_app.SymfonyAppMakeProve.test_scratch_runs_suites_and_dispatch_dry_run"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/laneconf.py:468",
+          "claim": "Unrelated existing literals check exits 1 on self-matches at lines 468\u2013499. Left unchanged.",
+          "reproduce": "python3 ops/conductor/tools/laneconf.py literals"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/commands.json",
+          "claim": "Recorded every shell invocation with reproduction and exit evidence. Configuration/wrapper tests: 169 passed, exit 0. Exact-copy test, closure, shell syntax, Ruff, diff check, and unchanged-tests comparison: exit 0. Supplied log also contains three unrelated AgyTerminalUsage failures; not rerun.",
+          "reproduce": "cat ../out/commands.json"
+        }
+      ],
+      "artifacts": {
+        "report": "../out/REPORT.md",
+        "command_findings": "../out/commands.json",
+        "scratch_failures": "../out/check-0.log",
+        "configuration_wrapper_tests": "../out/check-1.log",
+        "closure": "../out/check-2.log",
+        "literals": "../out/check-3.log",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 680186,
+        "out": 6587,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104"
+      },
+      "note": "Stopped under the explicit tests-only instruction. test_scratch_runs_suites_and_dispatch_dry_run fails in all four named files. Repository and tests unchanged; no commit attempted. Assumption: the declared export boundary copies exactly the supplied list. No full floor, vendors, or Symfony product work.",
+      "commit": {
+        "subject": "chore: record blocked fixture portability diagnosis",
+        "body": "No source change: the explicit tests-only stop condition applies. An independent test producer must add laneconf.py to the four fixture copy lists.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T09:07:32.903Z"
+    }
+  },
+  "status": "closed"
+}
