@@ -1,0 +1,315 @@
+{
+  "id": "20260908T084848Z-code-codex-91f59c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-probe-selection-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-probe-selection-fix-20260908",
+    "base_sha": "6614be14e42d7855aaa8be0906f679d0c82ce336"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:48:48Z",
+    "closed": "2026-09-08T08:55:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6614be14e42d7855aaa8be0906f679d0c82ce336",
+    "ref_sha": "6614be14e42d7855aaa8be0906f679d0c82ce336",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-probe-selection-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-48-49-01a08034-a5d1-7d62-b192-f7bae5011eed.jsonl"
+  },
+  "session": {
+    "id": "01a08034-a5d1-7d62-b192-f7bae5011eed",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-48-49-01a08034-a5d1-7d62-b192-f7bae5011eed.jsonl",
+    "stream_sha256_at_close": "ecb3a44d7b1b0306ad591b97b63a53a3ac59c2fbdfce3ef25e53282ebe00d73c",
+    "spend": {
+      "input": 1100229,
+      "cached": 1027968,
+      "output": 10392,
+      "total": 1110621,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-48-49-01a08034-a5d1-7d62-b192-f7bae5011eed.jsonl",
+      "messages": 140
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-probe-selection-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply only upheld probe/executable selection mismatch from supplied cold security ruling. Make existing agy behavioural probe use the same configured worker executable as dispatch and stamp the actually probed binary; preserve legacy harness PATH behavior and trusted operator overrides/mocks. No binary allowlist, new admission gate, framework or tests edits. Existing probe.py plus focused contract/docs only. Incorporate bounded native discovery receipt as dated evidence, preserving unresolved settings/MCP/HOME-only limits. Acceptance: existing harness test_probe*.py, config loader tests, registered lint, docs check and diff whitespace; show override resolves consistently without executing vendor/auth. Record exact exits and unchanged tests; GPT-6 attribution/COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/in/agy-security-ruling.json",
+        "sha256": "4a089a0e5af66c6c485427c89e2e20a0e77e28b3fa233292377a16c070fd8116"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/in/agy-discovery-live-result.json",
+        "sha256": "98bcbda5fc42ebe3e395f3d07916f3daf9a6717b0dc1924f14977d7b24819aea"
+      }
+    ],
+    "sha256": "2bdd102a35f645a1b95e87d6eeac1316ff4dd6b19b62a6a3fd296625ba2f6310",
+    "bytes": 4635
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:48:48Z",
+      "ended": "2026-09-08T08:55:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cf7f5b020be245c584f57dec0299714dd63823b3",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/harness/probe.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 23,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command-1",
+          "claim": "Exit 0. Snapshot initially clean at 6614be14e42d7855aaa8be0906f679d0c82ce336.",
+          "reproduce": "pwd\nrg --files -g AGENTS.md -g '!vendor' . /home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/in\nrg --files /home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/in\n git status --short\n git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "command-2",
+          "claim": "Exit 0. Read supplied inputs, repository instructions and file inventory.",
+          "reproduce": "cat /home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/in/agy-security-ruling.json /home/scientdb/.local/state/agentscient/dispatch/20260908T084848Z-code-codex-91f59c/in/agy-discovery-live-result.json\ncat AGENTS.md ops/devlane/AGENTS.md ops/README.md\nrg --files docs\nrg --files ops | rg '(probe|config|suites|lint|docs)'"
+        },
+        {
+          "severity": "p3",
+          "where": "command-3",
+          "claim": "Exit 0. Read native receipt whole; CLEAN covers combined HOME/XDG/TMPDIR only.",
+          "reproduce": "cat ../in/agy-discovery-live-result.json"
+        },
+        {
+          "severity": "p3",
+          "where": "command-4",
+          "claim": "Exit 0. Read founding contracts and existing probe against the supplied base.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md\ncat ops/devlane/harness/probe.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command-5",
+          "claim": "Exit 0. Read loader and registered check implementations.",
+          "reproduce": "cat ops/conductor/tools/laneconf.py ops/bin/suites.sh ops/devlane/workflow/checks/lint.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command-6",
+          "claim": "Shell block exit 2. Inspection encountered absent harness/CONTRACT.md and ops/suites* paths.",
+          "reproduce": "cat ops/devlane/harness/CONTRACT.md ops/devlane/harness/tests/test_probe.py ops/devlane/harness/tests/test_probe_contract.py\nrg -n 'agy|configured-workers|laneconf|lint|docs' ops/devlane/dispatch/CONTRACT.md ops/devlane/harness/isolation.py ops/devlane/dispatch/launch.py ops/suites* ops/conductor/tests/test_laneconf*"
+        },
+        {
+          "severity": "p3",
+          "where": "command-7",
+          "claim": "Exit 0. Read existing probe tests without editing them.",
+          "reproduce": "cat ops/devlane/harness/tests/test_probe.py ops/devlane/harness/tests/test_probe_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command-8",
+          "claim": "Shell block exit 2. Guessed contract and suite-registry paths were absent.",
+          "reproduce": "cat ops/devlane/harness/CONTRACT.md\nsed -n '1,175p' ops/devlane/dispatch/CONTRACT.md\ncat ops/bin/suites.sh ops/devlane/workflow/checks/lint.py\nrg -n 'docs|lint|harness|laneconf' ops/devlane/task/suites.json ops/conductor/suites.json ops/lane.conf"
+        },
+        {
+          "severity": "p3",
+          "where": "command-9",
+          "claim": "Shell block exit 0. Read implementation boundaries and input hashes. CONTRACT-probe.py.md, cited by existing tests, was absent.",
+          "reproduce": "cat ops/devlane/harness/CONTRACT-probe.py.md\nsed -n '1,100p' ops/devlane/dispatch/launch.py\nsed -n '365,405p' ops/devlane/harness/isolation.py\nrg -n 'docs|doc-check|check-doc' .github/workflows/ci.yml ops/devlane/workflow/checks ops/conductor/tools/co_doc.py\ncat ruff.toml\nsha256sum ../in/*.json\n git diff --name-only"
+        },
+        {
+          "severity": "p3",
+          "where": "command-10",
+          "claim": "Exit 0. Located docs checker; whitespace check passed.",
+          "reproduce": "rg -n 'co_doc|doc_commands|doc-covers|docs' .github/workflows/ci.yml ops/conductor/tools/co_doc.py ops/devlane/workflow/gate-kinds\n git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "command-11",
+          "claim": "Exit 0 on final implementation. Registered lint clean: 191 files, ruff 0.16.5.",
+          "reproduce": "python3 ops/devlane/workflow/checks/lint.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command-12",
+          "claim": "Exit 0 on final implementation. All 10 existing probe tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p 'test_probe*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command-13",
+          "claim": "Exit 0 on final implementation. All 83 existing loader tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_laneconf.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command-14",
+          "claim": "Exit 0. Inspected checker/CI source and measured the focused diff.",
+          "reproduce": "sed -n '300,395p' ops/conductor/tools/co_doc.py\nsed -n '1,85p' ops/conductor/tools/co_doc.py\nsed -n '1,100p' .github/workflows/ci.yml\n git diff --stat"
+        },
+        {
+          "severity": "p3",
+          "where": "command-15",
+          "claim": "Exit 0. Documentation check clean for the changed contract.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_commands.py ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command-16",
+          "claim": "Exit 0. Tests unchanged against supplied base; whitespace clean; implementation diff inspected.",
+          "reproduce": "git diff --exit-code 6614be14e42d7855aaa8be0906f679d0c82ce336 -- ':(glob)**/tests/**'\ngit diff --check\n git diff -- ops/devlane/harness/probe.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command-17",
+          "claim": "Exit 0. Environment override with symlink/spaced path, local override and PATH resolve consistently between dispatch and both probe arms; stamped digests match. No vendor execution or credential access.",
+          "reproduce": "python3 ../out/check_selection.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command-18",
+          "claim": "Exit 128. Sandbox refused staging because .git/index.lock is on a read-only filesystem.",
+          "reproduce": "git add ops/devlane/harness/probe.py ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command-19",
+          "claim": "Exit 128. Sandbox refused commit for the same read-only filesystem restriction; COMMIT_MSG fallback saved.",
+          "reproduce": "git commit -F ../out/COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "command-20",
+          "claim": "Exit 0. Saved final focused diff against supplied base.",
+          "reproduce": "git diff 6614be14e42d7855aaa8be0906f679d0c82ce336 -- ops/devlane/harness/probe.py ops/devlane/dispatch/CONTRACT.md > ../out/diff.patch"
+        },
+        {
+          "severity": "p3",
+          "where": "command-21",
+          "claim": "Exit 0. All test files unchanged against supplied base.",
+          "reproduce": "git diff --exit-code 6614be14e42d7855aaa8be0906f679d0c82ce336 -- ':(glob)**/tests/**'"
+        },
+        {
+          "severity": "p3",
+          "where": "command-22",
+          "claim": "Exit 0. Final diff whitespace check passed.",
+          "reproduce": "git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "command-23",
+          "claim": "Exit 0. HEAD remains supplied base; only probe.py and dispatch/CONTRACT.md modified. End stamp measured.",
+          "reproduce": "git status --short\ngit rev-parse HEAD\ndate -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "diff": "../out/diff.patch",
+        "command_findings": "../out/command-findings.json",
+        "selection_observer": "../out/check_selection.py",
+        "selection_receipt": "../out/selection-receipt.json",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1110621,
+        "out": 10392,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6614be14e42d7855aaa8be0906f679d0c82ce336",
+        "started": null,
+        "ended": "2026-09-08T08:53:35Z"
+      },
+      "note": "Implemented only configured agy probe selection and observed executable stamping, plus focused contract/evidence documentation. Assumption: the named acceptance command means the listed existing checks; all exited 0. Worker selection uses process configuration, matching dispatch; Python env supplies control arms. Legacy behavior and trusted overrides/mocks preserved. Native evidence remains bounded; settings/MCP/HOME-only limits unresolved. Follow-up: existing test_probe_contract.py references absent CONTRACT-probe.py.md; left unchanged. Git commit blocked by read-only .git; launcher fallback supplied.",
+      "commit": {
+        "subject": "fix(harness): probe the configured agy worker executable",
+        "body": "Resolve the agy behavioural probe through laneconf.worker, matching dispatch, and stamp the selected path and observed digest. Preserve legacy PATH behavior and trusted executable overrides/mocks without a new admission gate.\n\nRecord the supplied 2026-09-08 native discovery receipt with its combined HOME/XDG/TMPDIR scope and unresolved HOME-only, settings and MCP limits.\n\nValidation at 6614be14e42d7855aaa8be0906f679d0c82ce336 plus this change: existing test_probe*.py (10 tests), test_laneconf.py (83 tests), registered lint (191 files, ruff 0.16.5), focused doc-commands, whitespace and unchanged-test checks all exit 0. Disposable mocked observation confirms environment/local/PATH selection and digest consistency without vendor execution or credential access. No test files changed.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T08:55:36.193Z"
+    }
+  },
+  "status": "closed"
+}
