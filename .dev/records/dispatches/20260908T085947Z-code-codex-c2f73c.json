@@ -1,0 +1,382 @@
+{
+  "id": "20260908T085947Z-code-codex-c2f73c",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-live-usage-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-live-usage-fix-20260908",
+    "base_sha": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:59:47Z",
+    "closed": "2026-09-08T09:10:43Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+    "ref_sha": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-live-usage-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-59-48-01a0803e-b46f-79f2-bf42-2037ffe5a80a.jsonl"
+  },
+  "session": {
+    "id": "01a0803e-b46f-79f2-bf42-2037ffe5a80a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-59-48-01a0803e-b46f-79f2-bf42-2037ffe5a80a.jsonl",
+    "stream_sha256_at_close": "b3d3d796d0b2af3c13d628f274623445c1da17a7eecbd71e5b3e3e832a7e7196",
+    "spend": {
+      "input": 2255366,
+      "cached": 2159872,
+      "output": 15463,
+      "total": 2270829,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-59-48-01a0803e-b46f-79f2-bf42-2037ffe5a80a.jsonl",
+      "messages": 235
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-live-usage-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply remaining upheld Claude-code/Grok-adjudicated duties: measured step_update output usage must feed existing live cap; keep fail-closed absence/grace and avoid invented aggregation or double-counted resumed totals. Derive selectors/currency from supplied failed and successful native stdout, state uncertainty explicitly. Also honor raw_offset in both _close paths and refuse malformed state as a controlled result, not exception. Own launch.py, usage.py and focused contract; no tests edits. Concurrent worker handles transcript-tail and resume-model fidelity; keep your patch focused. Acceptance: all telemetry tests, test_agy_envelope.py, all test_launch*.py, lint/docs/diff; record exits and unchanged tests. No vendors/full floor/new framework. GPT-6 attribution/COMMIT_MSG.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/in/agy-claude-code-ruling.json",
+        "sha256": "fa6aea95e8141b24c0de79183bac73f70eea96200c0b99438d3dc14a5fd44e20"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/in/agy-canonical-smoke-stdout.ndjson",
+        "sha256": "5daf9ba0a10316fbd1870eb4cb4292e79abf93157a9255aba9b4af27bedd4bef"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085947Z-code-codex-c2f73c/in/agy-canonical-success-stdout.ndjson",
+        "sha256": "550232785798998c615a0dde885fd27dc3d51385bddeadb58c8b3fdc04ab6dcc"
+      }
+    ],
+    "sha256": "320cb2c1d90dd6975359b93d70fe461384f6994294ec692a75a8879bfcb814b5",
+    "bytes": 4629
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:59:47Z",
+      "ended": "2026-09-08T09:10:43Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "06c74ef4ace59c26bfc39d698332eb5ce82053a4",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/dispatch/launch.py",
+      "ops/devlane/telemetry/usage.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 33,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command 01",
+          "claim": "Exit 0: starting tree clean at requested base.",
+          "reproduce": "bash ../out/commands/01.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 02",
+          "claim": "Exit 0: supplied inputs and repository contracts read.",
+          "reproduce": "bash ../out/commands/02.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 03",
+          "claim": "Exit 0: adjudication and scoped instructions read.",
+          "reproduce": "bash ../out/commands/03.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 04",
+          "claim": "Exit 0: remaining founding documentation read.",
+          "reproduce": "bash ../out/commands/04.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 05",
+          "claim": "Exit 0: usage reader inspected.",
+          "reproduce": "bash ../out/commands/05.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 06",
+          "claim": "Exit 0: launcher paths inspected.",
+          "reproduce": "bash ../out/commands/06.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 07",
+          "claim": "Exit 0: contract and suite runner inspected; full floor not run.",
+          "reproduce": "bash ../out/commands/07.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 08",
+          "claim": "Exit 0: usage and state readers inspected.",
+          "reproduce": "bash ../out/commands/08.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 09",
+          "claim": "Exit 0 overall: callers inspected; search reported absent telemetry CONTRACT.md and pyproject.toml.",
+          "reproduce": "bash ../out/commands/09.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Exit 2: those two files absent; dispatch contract used.",
+          "reproduce": "bash ../out/commands/10.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Exit 0: existing SUCCESS gate and verification commands inspected.",
+          "reproduce": "bash ../out/commands/11.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Exit 0: initial required suites passed; edits overlapped execution, so final runs followed.",
+          "reproduce": "bash ../out/commands/12.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Exit 0: focused lint and diff checks passed.",
+          "reproduce": "bash ../out/commands/13.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Exit 0: patch and documentation checker inspected.",
+          "reproduce": "bash ../out/commands/14.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Exit 0: native live output measured as 1585/6450; duplicate-step and malformed-state checks passed.",
+          "reproduce": "bash ../out/commands/15.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Exit 0: initial logs and existing fixtures inspected.",
+          "reproduce": "bash ../out/commands/16.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "Exit 0 on final patch: 34 agy envelope tests passed.",
+          "reproduce": "bash ../out/commands/17.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 18",
+          "claim": "Exit 0 on final patch: 227 telemetry tests passed.",
+          "reproduce": "bash ../out/commands/18.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 19",
+          "claim": "Exit 0 on final patch: 284 launch tests passed.",
+          "reproduce": "bash ../out/commands/19.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 20",
+          "claim": "Exit 0: recovery fixtures inspected; only three owned paths modified.",
+          "reproduce": "bash ../out/commands/20.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 21",
+          "claim": "Exit 0: supervisor and synthetic child inspected.",
+          "reproduce": "bash ../out/commands/21.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 22",
+          "claim": "Exit 1 in additional test_agy_dispatch.py: AgyTerminalUsage.test_canceled_result_usage_is_still_the_terminal_figure, test_fresh_terminal_usage_does_not_fold_thinking_or_cache_into_total, and test_resume_terminal_usage_is_not_the_sum_of_both_process_totals failed. All reproduce against base; left unchanged.",
+          "reproduce": "bash ../out/commands/22.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 23",
+          "claim": "Exit 1: scratch invocation used unsupported fresh-launch --cap-out; subsequently corrected.",
+          "reproduce": "bash ../out/commands/23.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 24",
+          "claim": "Exit 0: confirmed cap flag belongs to resume.",
+          "reproduce": "bash ../out/commands/24.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 25",
+          "claim": "Exit 0: additional failures traced to fixture cwd differing from record snapshot root.",
+          "reproduce": "bash ../out/commands/25.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 26",
+          "claim": "Exit 1: same three additional failures reproduced using launch.py and usage.py from exact base.",
+          "reproduce": "bash ../out/commands/26.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 27",
+          "claim": "Exit 1: scratch child retained request-review permission mode; subsequently corrected.",
+          "reproduce": "bash ../out/commands/27.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 28",
+          "claim": "Exit 0: corrected step-only child survived grace below cap and was killed above cap.",
+          "reproduce": "bash ../out/commands/28.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 29",
+          "claim": "Exit 0: required results confirmed; tests unchanged.",
+          "reproduce": "bash ../out/commands/29.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 30",
+          "claim": "Exit 0: both close offsets, controlled state refusals and resumed cumulative replacement verified.",
+          "reproduce": "bash ../out/commands/30.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 31",
+          "claim": "Exit 0: final lint, focused documentation, diff and unchanged-test checks passed.",
+          "reproduce": "bash ../out/commands/31.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 32",
+          "claim": "Exit 128: read-only .git prevented staging and commit; COMMIT_MSG retained.",
+          "reproduce": "bash ../out/commands/32.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 33",
+          "claim": "Exit 0: final patch contains only launch.py, usage.py and dispatch CONTRACT.md; tests unchanged.",
+          "reproduce": "bash ../out/commands/33.sh"
+        }
+      ],
+      "artifacts": {
+        "patch": "../out/change.patch",
+        "patch_sha256": "044100e98fd67e8648c0fe465f25797cad6bf5e9d8ed5f6ae28559b2591221aa",
+        "commands": "../out/FINDINGS.json",
+        "telemetry": "../out/telemetry.log",
+        "envelope": "../out/envelope.log",
+        "launch": "../out/launch.log",
+        "followup": "../out/agy-dispatch.log",
+        "followup_base": "../out/agy-dispatch-base.log",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2270829,
+        "out": 15463,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9eaee120fa69aeafb7b76dc742a9ce5f51c6f104"
+      },
+      "note": "Implemented measured step output for live caps, both close offsets, and controlled malformed-state refusals. All 545 required tests passed; tests unchanged. Assumption: distinct completed response outputs sum within an attempt, supported by supplied successful stdout; cross-resume replay/reset semantics remain explicitly unresolved. Terminal totals replace rather than accumulate. Three additional pre-existing fixture failures remain follow-ups. Git commit blocked by read-only .git; launcher message retained.",
+      "commit": {
+        "subject": "fix(dispatch): enforce agy live output and recovery boundaries",
+        "body": "Feed measured completed response-step output into existing live caps, preserve terminal accounting and resume uncertainty, honor both recovery offsets, and refuse malformed state. All 545 required tests and lint/docs/diff checks passed; tests unchanged. Additional agy dispatch fixture failures reproduce against base and remain untouched.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T09:10:42.642Z"
+    }
+  },
+  "status": "closed"
+}
