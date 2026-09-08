@@ -1,0 +1,171 @@
+{
+  "id": "20260908T100151Z-tests-grok-c7d886",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-terminal-test-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-terminal-test-fix-20260908",
+    "base_sha": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T10:01:51Z",
+    "closed": "2026-09-08T10:03:04Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47",
+    "ref_sha": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-terminal-test-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "71d986b4-8191-4339-8965-01de2f94d2cf",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "low",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "low",
+    "effort_argv": [
+      "--reasoning-effort",
+      "low"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/home/grok-stream/sessions/<snapshot-encoded>/71d986b4-8191-4339-8965-01de2f94d2cf/summary.json"
+  },
+  "session": {
+    "id": "71d986b4-8191-4339-8965-01de2f94d2cf",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/home/grok-stream/sessions/<snapshot-encoded>/71d986b4-8191-4339-8965-01de2f94d2cf/summary.json",
+    "stream_sha256_at_close": "7696462d1adfc544e0ab82a42d56469c4ce1bee7db83f2005d6f26c7431dfd74",
+    "spend": {
+      "input": 474984,
+      "cached": 433920,
+      "output": 3707,
+      "total": 478691,
+      "cost_usd_ticks": 546261000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/home/grok-stream/sessions/<snapshot-encoded>/71d986b4-8191-4339-8965-01de2f94d2cf/summary.json",
+      "messages": 89
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-terminal-test-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply only the supplied GPT-6 cold ruling: replace the complete-terminal live_output assertIsNone in test_agy_live_terminal_separation.py with assertEqual to TERMINAL_USAGE[\"output_tokens\"], diagnostic reading. Preserve the terminal-absent assertIsNone and every other assertion/file. No P3 cleanup, source edits, new cases or matrix. Run the two focused cases, lint this file and git diff --check; stamp file hash and base/head. Commit the test-only correction with Source: original and specific actual Grok model Co-Authored-By trailer. Return measured results. Previous source/tests are accepted; no vendors or full floor.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T100151Z-tests-grok-c7d886/in/agy-terminal-test-ruling.json",
+        "sha256": "c63e8b4190a9656452235a0da6476d1d20cf0a98eeeae657f9d6c929b5943228"
+      }
+    ],
+    "sha256": "8177c2d8995a9fe5713b27ed57d6c5428aa72f5ad1b7ab66ebcb24e6f7411fce",
+    "bytes": 2968
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T10:01:51Z",
+      "ended": "2026-09-08T10:03:04Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "4d94e5705bccbc79e61edc549b1f8538019bc210",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_live_terminal_separation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "file": "ops/devlane/dispatch/tests/test_agy_live_terminal_separation.py",
+        "file_sha256": "aa0cb071f57605019e6977b04e7b013e9ff1b53abd3c41be277949ff3b8ad5d4",
+        "base": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47",
+        "head": "4d94e5705bccbc79e61edc549b1f8538019bc210",
+        "red": "cd ops/devlane/dispatch/tests && python3 -m unittest test_agy_live_terminal_separation.AgyLiveTerminalSeparation.test_incomplete_done_usage_after_valid_prefix_hides_live_output_without_mismatch test_agy_live_terminal_separation.AgyLiveTerminalSeparation.test_complete_terminal_restores_output_total_and_accepts_envelope -v; incomplete ok; complete FAIL line 163 assertIsNone: 6450 is not None",
+        "green": "same argv after correction; Ran 2 tests in 0.006s OK",
+        "lint": "ruff check ops/devlane/dispatch/tests/test_agy_live_terminal_separation.py: All checks passed; git diff --check: exit 0",
+        "commit": "4d94e5705bccbc79e61edc549b1f8538019bc210"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 478691,
+        "out": 3707,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f096cbf08dd01f74d9980ce3d8c9c9ddbe2eda47",
+        "started": "2026-09-08T10:02:19Z",
+        "ended": "2026-09-08T10:02:51Z"
+      },
+      "note": "Applied only the GPT-6 correction: complete-terminal live_output now assertEqual(TERMINAL_USAGE[\"output_tokens\"], diagnostic reading). Terminal-absent assertIsNone and all other assertions/files untouched. Implementation not read. No P3 cleanup, new cases, matrix, vendors, or full floor. Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T10:03:03.816Z"
+    }
+  },
+  "status": "closed"
+}
