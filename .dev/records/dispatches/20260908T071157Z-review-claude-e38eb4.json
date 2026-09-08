@@ -1,0 +1,284 @@
+{
+  "id": "20260908T071157Z-review-claude-e38eb4",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-config-test-review-20260908",
+  "lineage": {
+    "branch": "lane/agy-config-test-review-20260908",
+    "base_sha": "6d1b1a45f11484a92be84400cca18e4572f3e693"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:11:57Z",
+    "closed": "2026-09-08T07:20:11Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "ref_sha": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071157Z-review-claude-e38eb4/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "9731d015-643b-460c-9efc-4ae09d99ae31",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T071157Z-review-claude-e38eb4/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T071157Z-review-claude-e38eb4/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T071157Z-review-claude-e38eb4/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/9731d015-643b-460c-9efc-4ae09d99ae31.jsonl"
+  },
+  "session": {
+    "id": "9731d015-643b-460c-9efc-4ae09d99ae31",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/9731d015-643b-460c-9efc-4ae09d99ae31.jsonl",
+    "stream_sha256_at_close": "942c29c49f19450bfa9426284051ade8bd4115faa3ed0af7c5173bff1b2ca5d8",
+    "spend": {
+      "input": 72,
+      "cached": 3155930,
+      "output": 35829,
+      "total": 3191831,
+      "source": "result.usage",
+      "messages": 36,
+      "cost_usd": 3.5083335
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-config-test-review-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently review the three added/changed configuration test files against corrected worker contract b4b8b5e and its original Grok ruling. Tests are provisional from earlier fc9ad2c; identify actual contract drift, especially legacy executable fallback versus agy/override path validation, not unimplemented runtime. Inspect tests and declared docstrings only, no production bodies. Check black-box meaningful red assertions, env/file provenance, worker()/CLI agreement, dry-run transport, model/optional effort precedence and untouched legacy controls. Do not invent new contracts or tests mirroring code. Run focused commands where permitted, state access limits. No edits, vendor calls, credentials or full floor. Return verdict and evidence inline; bounded corrections only.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071157Z-review-claude-e38eb4/in/agy-configuration-test-producer.json",
+        "sha256": "e21910c50848de2f062faf82ca666b7a9590b03d70366086e82bc22136b3f68d"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T071157Z-review-claude-e38eb4/in/agy-contract-adjudication.json",
+        "sha256": "4326b784c45e955b20489b3646fef20a5ec0689122bf5aa8e081837700caa824"
+      }
+    ],
+    "sha256": "2d8a03db495fef0e6156f10684daf7ce6c8e88323e84e517e8ed43aa2a118ef5",
+    "bytes": 1559
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:11:57Z",
+      "ended": "2026-09-08T07:20:11Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_laneconf.py:1626-1631 against ops/devlane/dispatch/CONTRACT.md:57-59,839 and ops/conductor/tools/laneconf.py:15-18",
+          "claim": "Contract drift, legacy executable fallback. Declared, CONTRACT.md:57-59: 'Without an override, claude/codex/grok retain `shutil.which(name) or name`. Absolute realpath and PATH-miss refusal apply to overrides and agy, preserving the three defaults.' Declared again in the refusal table, CONTRACT.md:839: '... agy PATH lookup fails ...; legacy defaults retain their PATH fallback'. Declared a third time in the loader docstring, laneconf.py:16-17: 'For claude/codex/grok without an override, preserve shutil.which(name) or name, including its existing PATH-miss behavior.' Practiced, test_laneconf.py:1626-1631, test_failed_path_lookup_refuses_executable: 'empty = self.scratch / \"empty-bin\"; empty.mkdir(); self.assertIsNone(shutil.which(\"grok\", path=str(empty))); proc = self.invoke_worker(\"grok\", extra={\"PATH\": str(empty)}); self.assert_kind_refusal(proc, \"executable\", named=(\"grok\",))'. The name is grok, a legacy default, with no EXECUTABLE_GROK planted, so the case the test refuses is exactly the case all three documents preserve. This is the one arm that inverts the corrected contract; the neighbouring empty-override arm at test_laneconf.py:1608-1616 (EXECUTABLE_GROK='') is correct, since CONTRACT.md:40 refuses an empty executable for any name. Smallest correction: invert this method to the documented fallback (worker grok on an empty PATH exits 0 with executable 'grok' and the contract's PATH-lookup source label), and move the PATH-miss refusal arm onto agy, which CONTRACT.md:839 does cover. Do not weaken the override arms.",
+          "reproduce": "sed -n '1626,1631p' ops/conductor/tests/test_laneconf.py; sed -n '57,59p;839p' ops/devlane/dispatch/CONTRACT.md; sed -n '15,18p' ops/conductor/tools/laneconf.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:1681-1694 (worker_from_dry_run), invoked at 1725,1793,1810,1840,2044,2059,2079",
+          "claim": "Invented obligation on an undeclared surface, and it disables the untouched-legacy guard. Declared: the contract has no dry-run surface at all \u2014 `grep -c dry ops/devlane/dispatch/CONTRACT.md` prints 0 (looked and found nothing) \u2014 and the single worker-object obligation is CONTRACT.md:54, 'Launch records the returned worker object as `harness.worker`', i.e. a launch record field, not wrapper stdout. Practiced: the class docstring at test_dispatch_wrapper.py:1702-1703 states 'PIN_WORKER_DRY_RUN: dry-run JSON carries the worker object so sources stay visible', and worker_from_dry_run asserts 'self.assertIn(\"worker\", payload, payload)' (line 1683) plus an exact key set on the wrapper's --dry-run object. Nothing in b4b8b5e or the Grok ruling asks the wrapper to emit that object; F2's named pin is provenance, satisfiable through laneconf worker NAME plus the child argv/env already parsed. Measured consequence at 6d1b1a4: test_omitted_list_grok_keeps_argv_and_default_worker_source passes 'assertEqual(argv, self.expected_argv())' and then fails at line 2059 with \"AssertionError: 'worker' not found in {'argv': [...], 'env': {...}, 'exec': True, 'detach': False, 'launcher': {...}}\"; all four subtests of test_agy_listed_leaves_grok_codex_claude_model_effort_unchanged pass their --harness/--model/--effort assertions and fail the same way at line 2044. So the two arms whose whole purpose is proving grok/codex/claude resolution unchanged carry no signal today and stay red until an undeclared wrapper field is built. Smallest correction: drop the worker assertions from the dry-run helper and its callers, keeping the argv/env pins; pin the worker object and its sources in test_laneconf.py where the CLI is declared. If the wrapper is genuinely meant to expose it, the contract owes that field first.",
+          "reproduce": "grep -c dry ops/devlane/dispatch/CONTRACT.md; sed -n '54p' ops/devlane/dispatch/CONTRACT.md; sed -n '1681,1694p;1700,1704p' ops/conductor/tests/test_dispatch_wrapper.py; python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py -k test_omitted_list_grok_keeps_argv_and_default_worker_source"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/worker_conf.py:88-92 and ops/conductor/tests/test_dispatch_wrapper.py:1690-1692",
+          "claim": "The shared helper forecloses the documented legacy result shape. Declared, laneconf.py:15-17: absence of an override 'resolves the selected name on PATH. For claude/codex/grok without an override, preserve shutil.which(name) or name' \u2014 so a legacy PATH miss yields the bare string 'grok', which is not an absolute path, and CONTRACT.md:38-39 constrains only EXECUTABLE_<NAME> to 'one absolute executable file'. Practiced, worker_conf.py:88-92: 'test.assertTrue(Path(payload[\"executable\"]).is_absolute(), f\"executable must be absolute: {payload[\\'executable\\']!r}\")', applied unconditionally to every worker object, and repeated on the wrapper side at test_dispatch_wrapper.py:1690-1692. parse_worker_object is the only gate every laneconf worker test passes through (test_laneconf.py:1381), so the conforming legacy-fallback case that the p1 correction needs cannot be written with the supplied helper. Same root as the p1 but a separate artifact and a separate fix. Smallest correction: scope the absolute guard to the override and agy cases the contract restricts it to \u2014 an expect_absolute argument defaulting True, asserted False for a legacy PATH miss.",
+          "reproduce": "sed -n '88,92p' ops/conductor/tests/worker_conf.py; sed -n '1690,1692p' ops/conductor/tests/test_dispatch_wrapper.py; sed -n '14,17p' ops/conductor/tools/laneconf.py; sed -n '38,40p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_laneconf.py:1383 (assert_worker) with ops/conductor/tests/worker_conf.py:32-34,41-49",
+          "claim": "Realpath demanded of the legacy PATH rung the contract exempts. Declared, CONTRACT.md:58-59: 'Absolute realpath and PATH-miss refusal apply to overrides and agy, preserving the three defaults', and laneconf.py:17-18 confines symlink resolution to 'Overrides and agy'. Practiced, test_laneconf.py:1383: 'self.assertEqual(payload[\"executable\"], str(Path(executable).resolve()))', applied to every success case including the three legacy PATH lookups in test_omitted_list_resolves_each_legacy_name_from_path. The helper deepens it: plant_executable returns path.resolve() (worker_conf.py:49) while path_with/path_only hand the loader the unresolved bindir (worker_conf.py:32-34), and shutil.which returns the PATH entry joined with the name, unresolved. A conforming implementation that does not realpath legacy names therefore agrees with the assertion only while the process temporary directory has no symlink component. Smallest correction: compare legacy PATH successes against the which() spelling (bindir/name, unresolved) and keep resolve() for the override and agy arms.",
+          "reproduce": "sed -n '1383p' ops/conductor/tests/test_laneconf.py; sed -n '32,34p;41,49p' ops/conductor/tests/worker_conf.py; sed -n '57,59p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:1768-1880 and 1882-2016",
+          "claim": "Three obligations the corrected contract names by hand are left without an arm. (a) CONTRACT.md:50-53: 'The wrapper`s `saved_keys` save/restore must include `WORKER_HARNESSES` and `EXECUTABLE_*` before sourcing either file ... Pin exported operator values versus file values in `test_dispatch_wrapper.py`.' Practiced: EXECUTABLE_AGY gets that pin (test_env_executable_agy_reports_env_source, exported env_bin against a conf-declared file_bin, lines 1820-1855), but WORKER_HARNESSES never appears in extra_env anywhere in the file \u2014 all 21 occurrences are conf plants or landed-text assertions \u2014 so the half of the named seam most likely to be clobbered by sourcing has no case. (b) CONTRACT.md:67-68: 'Effort likewise uses nonempty `--effort`, `EFFORT_<NAME>_<JOB>`, then `EFFORT_<NAME>`'; the model job rung is pinned (MODEL_AGY_WRAP_JOB, line 1928) but no EFFORT_AGY_<JOB> key occurs anywhere, so the middle effort rung is unpinned. (c) CONTRACT.md:70-71: 'Each configuration key retains environment over local over tracked precedence'; the lane.local.conf rung is exercised only for WORKER_HARNESSES (test_laneconf.py test_local_list_beats_file / test_env_list_beats_local_and_file) and never for EXECUTABLE_<NAME>. These are declared obligations with no arm, not new contracts. Smallest correction: one wrapper case exporting WORKER_HARNESSES against a contradicting conf value, one EFFORT_AGY_WRAP_JOB rung beside the model one, and one lane.local.conf case for EXECUTABLE_<NAME>.",
+          "reproduce": "sed -n '50,53p;67,68p;70,71p' ops/devlane/dispatch/CONTRACT.md; grep -n WORKER_HARNESSES ops/conductor/tests/test_dispatch_wrapper.py; grep -c EFFORT_AGY_ ops/conductor/tests/test_dispatch_wrapper.py; grep -n plant_local ops/conductor/tests/test_laneconf.py"
+        }
+      ],
+      "artifacts": {
+        "measured": "Read at HEAD 6d1b1a45f11484a92be84400cca18e4572f3e693 (git rev-parse HEAD) on 2026-09-08T07:17:48Z (date -u), against base 3432b5cb8b9e171ecc981efa8409d299a85ec4c0. Reviewed surface: the three files changed since b4b8b5e (git diff --stat b4b8b5e 6d1b1a4 = test_dispatch_wrapper.py +446, test_laneconf.py +448, worker_conf.py +93, 987 insertions, no deletions). Contract read: ops/devlane/dispatch/CONTRACT.md sections at lines 3-134 and the refusal table rows at 838-840, plus the module docstrings at ops/conductor/tools/laneconf.py:1-44 and ops/devlane/harness/isolation.py:56-84. No production function body was read. Inputs read whole: in/agy-configuration-test-producer.json, in/agy-contract-adjudication.json. Commands run: git log/diff/show for the range and for b4b8b5e; grep -c dry ops/devlane/dispatch/CONTRACT.md -> 0; python3 -m unittest discover -s ops/conductor/tests -p test_laneconf.py -> exit 1, Ran 80 tests in 3.118s, FAILED (failures=30), 0 errors; python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py -> exit 1, Ran 85 tests in 1.778s, FAILED (failures=25), 0 errors; ruff check on the three changed test files -> All checks passed!. Failure-name listing shows every failure belongs to a new Provisional* class; no pre-existing test in either file regressed. The producer record's counts (80/30 and 85/25, zero collection errors) reproduce exactly at this HEAD.",
+        "ruling_alignment": "F1 closure: the laneconf docstring now carries the closure instruction (laneconf.py:36-40) but the tests add no closure arm for WORKER_HARNESSES/EXECUTABLE_*; the existing ClosureVerb class is untouched and still exits 0 on the docstring-only tree, so no defect yet, only the gap the ruling anticipated. F2 saved_keys: half pinned, see p3(a). F3 model/effort rungs: --model flag over MODEL_AGY_<JOB> over MODEL_AGY, env over conf, absent model refusing class model, absent/empty effort omitting the token, and no level translation are all pinned; only the EFFORT_<NAME>_<JOB> rung is missing. F4 refusal table: worker/executable/unsupported-capability rows landed at CONTRACT.md:838-840; the wrapper tests exercise worker, executable and model through assert_wire_abort (exit 3, one stderr line, expected/found/needed ordered, empty stdout), which matches docs/wire.md. F6 argv[0] and legacy defaults: this is where the tests diverge from the corrected wording, see p1, p2 (helper) and p3 (realpath). F5/F7/F8 concern launch/isolation adapters and are out of these files' scope; nothing here contradicts them.",
+        "checked_and_sound": "Meaningful red: sampled failure text confirms the reds are contract-shaped, not import or collection artifacts (e.g. \"AssertionError: 2 != 0 : arguments: expected get KEY, closure, or literals; found worker agy; needed choose one documented verb\" and \"'executable' not found in 'arguments: expected get key, closure, or literals; ...'\"). The absent-wrapper and absent-tool guards (test_dispatch_wrapper.py:362-365, parse_dry_run_object early return) keep a missing artifact from turning into bash 127 for every case. Provenance planting is verified at the point of writing (worker_conf.plant_executable re-reads and re-checks os.access; _plant_bytes re-reads; declared_keys re-parses the landed conf), so no arm assumes its own fixture. Injection arms are real: test_command_substitution_in_override_does_not_run plants an absent witness and asserts it stays absent; test_flag_like_override_does_not_split and test_path_with_spaces_stays_one_token pin the one-token rule at CONTRACT.md:55. Empty and whitespace-only lists, duplicates, the malformed list name agy-cli and the malformed request Grok all match the laneconf docstring at lines 8-12. worker()/CLI agreement: only the CLI is exercised, through subprocess, which matches the existing house practice in both files and is sufficient because laneconf.py:41-43 declares the CLI prints that same object; no separate in-process call is owed. import worker_conf resolves under the floor because ops/bin/suites.sh:17-22 discovers with -s ops/conductor/tests, which unittest puts on sys.path, as its own header notes for import support.",
+        "limits": "fc9ad2c015d47c85b405018521b57fa57e212d90, the tests' authoring base, is not present in this snapshot (git cat-file -t reports 'could not get object info'), so I could not diff what the test producer was told against what b4b8b5e settled; every drift above is stated against the corrected contract at this HEAD only. The two dispatches ran concurrently (tests 06:45:50-07:11:02, adjudication 06:50:00-06:59:44), which explains the divergence without excusing it. The sandbox refused writing scratch files under /tmp and refused listing or probing the host temporary directory, so I could not measure whether it contains a symlink component; the p3 realpath finding is therefore argued from the documents and the helper code, not from an observed divergence. Production function bodies were not read, per the brief, so nothing is claimed about the loader's literal grammar beyond its docstring. No edits, no vendor calls, no credentials, no full floor."
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 3191831,
+        "out": 35829,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6d1b1a45f11484a92be84400cca18e4572f3e693",
+        "started": "2026-09-08T07:11:57Z",
+        "ended": "2026-09-08T07:17:48Z"
+      },
+      "note": "Verdict changes on the three provisional test files. The suite is substantially sound: 55 new methods and subtests, all red for contract-shaped reasons, zero collection errors, no pre-existing test in either file disturbed, ruff clean, and the fixtures verify their own plants before asserting. One arm inverts the corrected contract. test_failed_path_lookup_refuses_executable demands class executable for a legacy name on an empty PATH, which CONTRACT.md:57-59, CONTRACT.md:839 and laneconf.py:16-17 each preserve as shutil.which(name) or name; greening it would delete the PATH-miss fallback for claude, codex and grok, the three harnesses the lane actually dispatches. Two p2s follow from that and from an added surface: the shared helper's unconditional absolute-path guard makes the conforming legacy case unwritable, and the dry-run worker key is an obligation no contract text carries (zero occurrences of dry in CONTRACT.md), which today leaves both untouched-legacy guards red after their argv, model and effort assertions have already passed. The two p3s are a realpath overreach on the legacy rung and three declared obligations without an arm, including the WORKER_HARNESSES half of the exported-versus-file pin the contract names in test_dispatch_wrapper.py by file. One smaller observation, below finding weight: test_file_executable_agy_is_not_relabelled_as_env asserts the new keys are absent from the dry-run child env, but that env is a fixed three-key object, so those two lines can never go red and add nothing to the relabelling pin the sources check already carries. All corrections above stay inside the three changed files; none asks for a new contract, a new fixture framework or a test that mirrors implementation."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
