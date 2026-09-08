@@ -665,7 +665,16 @@ def _agy_stream(job_dir, session, snapshot):
             else:
                 for line in transcript.read_text().splitlines():
                     row = json.loads(line)
-                    if not isinstance(row, dict) or not {"source", "type", "content"} <= row.keys():
+                    if not isinstance(row, dict) or not {"source", "type"} <= row.keys():
+                        issues.append("malformed native transcript")
+                        break
+                    # Native smoke 20260908T083944Z-review-agy-e49b81:
+                    # planner thinking/tool_calls can omit content entirely.
+                    planner = (row["source"] == "MODEL"
+                               and row["type"] == "PLANNER_RESPONSE"
+                               and isinstance(row.get("thinking"), str)
+                               and isinstance(row.get("tool_calls"), list))
+                    if "content" not in row and not planner:
                         issues.append("malformed native transcript")
                         break
         # stdout carries native init.model/cwd and usage; brain lacks them.
@@ -886,7 +895,7 @@ def _agy_envelope(raw):
     Carrier fields follow the supplied agy wire evidence
     20260908T064029Z-plan-codex-161211. Native observation
     20260908T073056Z-code-grok-0e4417 also establishes status CANCELED.
-    That status and explicit result errors are authoritative, while
+    Only SUCCESS certifies completion; explicit result errors refuse, while
     step/tool errors and denied_actions do not imply terminal failure.
     """
     results = []
@@ -922,8 +931,8 @@ def _agy_envelope(raw):
             raise ValueError("malformed terminal result error")
         if result["error"]:
             raise ValueError(f"vendor error: {result['error']}")
-    if result["status"] == "CANCELED":
-        raise ValueError("vendor status: CANCELED")
+    if result["status"] != "SUCCESS":
+        raise ValueError(f"vendor status: {result['status']}")
     if "structured_output" in result:
         data = result["structured_output"]
         if not isinstance(data, dict):
