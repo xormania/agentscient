@@ -1,0 +1,172 @@
+{
+  "id": "20260908T064550Z-tests-grok-fd0973",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-configuration-tests-20260908",
+  "lineage": {
+    "branch": "lane/agy-configuration-tests-20260908",
+    "base_sha": "fc9ad2c015d47c85b405018521b57fa57e212d90"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T06:45:50Z",
+    "closed": "2026-09-08T07:11:02Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+    "ref_sha": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "2c6232ee-b011-495e-8fe3-f66e41cac783",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/home/grok-stream/sessions/<snapshot-encoded>/2c6232ee-b011-495e-8fe3-f66e41cac783/summary.json"
+  },
+  "session": {
+    "id": "2c6232ee-b011-495e-8fe3-f66e41cac783",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/home/grok-stream/sessions/<snapshot-encoded>/2c6232ee-b011-495e-8fe3-f66e41cac783/summary.json",
+    "stream_sha256_at_close": "3607e0539c4edc8d56a3f7f566c032243c2df37a400c68200e8525ca49f0d0f7",
+    "spend": {
+      "input": 4356766,
+      "cached": 3809920,
+      "output": 52534,
+      "total": 4409300,
+      "cost_usd_ticks": 5633555200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/home/grok-stream/sessions/<snapshot-encoded>/2c6232ee-b011-495e-8fe3-f66e41cac783/summary.json",
+      "messages": 285
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-configuration-tests-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently author configuration tests against the candidate worker contract, limited to test_laneconf.py and test_dispatch_wrapper.py under ops/conductor/tests, plus at most one new test helper there. Pin worker(name)/worker NAME, WORKER_HARNESSES membership/default/empty behavior, EXECUTABLE_<NAME> path resolution/provenance/precedence, model/effort forwarding and unchanged three-harness behavior. Use existing synthetic helpers and black-box entrypoints; do not inspect production source, edit implementation/contracts, invoke vendors or invent capability evidence. Contract review is running: label tests provisional until it settles. No role studies, broad launcher/conductor work or full floor. Acceptance commands are focused unittest discovery for both files and registered lint on changed tests. Return exact patch/hashes, meaningful red assertion causes, zero collection errors and actual command exits. Grok 4.6 attribution; avoid colon-started COMMIT_MSG prose.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T064550Z-tests-grok-fd0973/in/agy-worker-owner.md",
+        "sha256": "8abd7ac8e69a9610dbe58f5e0f5dc7e074c818bbc4b70387e49f01fe43d4c27c"
+      }
+    ],
+    "sha256": "b51aebc64848d6915cac11c5118cb999f9d76609bead7a8a16b816ed204b16b8",
+    "bytes": 3322
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T06:45:50Z",
+      "ended": "2026-09-08T07:11:02Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "297a3fca25d5df0f84282288c1a905c636ea1e1c",
+    "changed_paths": [
+      "ops/conductor/tests/test_dispatch_wrapper.py",
+      "ops/conductor/tests/test_laneconf.py",
+      "ops/conductor/tests/worker_conf.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_laneconf.py": "ops/conductor/tests/test_laneconf.py",
+        "test_dispatch_wrapper.py": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "worker_conf.py": "ops/conductor/tests/worker_conf.py",
+        "head": "297a3fca25d5df0f84282288c1a905c636ea1e1c",
+        "tree": "82bc7824dd505df30484b2d51fa975b27e4486d3",
+        "laneconf_commit": "491d5a19c207cc061086124cb9644e72f49dbe41",
+        "wrapper_commit": "297a3fca25d5df0f84282288c1a905c636ea1e1c",
+        "base": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+        "patch_sha256": "ffb7c8bf8b9bd98f0b26c2b402e7281fead2dfbc90cf5937d59a5548c963a800",
+        "test_laneconf.py_sha256": "8869d3ff256433f6291d8e91776b745c4afbdccac3af6e20a9bc582310937a69",
+        "test_dispatch_wrapper.py_sha256": "ba666df21eff8736fe88b28a54b557710c6e2ec95ffb0485a6665033fdd1456a",
+        "worker_conf.py_sha256": "4952b19adeb02f5862d02ae4f682cbe12dae8689458c1a27c5cd769db81867d1",
+        "test_laneconf.py_blob": "68f773d4fae847a2d76ed4629dd9259947efadf5",
+        "test_dispatch_wrapper.py_blob": "9280cc91ddd63a075865e1d3b4b538bc5d5bf56f",
+        "worker_conf.py_blob": "3b3a1d07bec0770c33ba948e4e84057c5b123f71"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4409300,
+        "out": 52534,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fc9ad2c015d47c85b405018521b57fa57e212d90",
+        "started": "2026-09-08T06:45:50Z",
+        "ended": "2026-09-08T07:09:46Z"
+      },
+      "note": "Provisional configuration tests against the candidate worker contract (dispatch CONTRACT.md Configured workers plus the laneconf module-contract worker amendment). Contract review is still running. Did not read production source, edit implementation or contracts, invoke vendors, or invent capability evidence. Helper ops/conductor/tests/worker_conf.py is the one new test helper.\n\nCommits on detached HEAD, Source original, Co-Authored-By Grok 4.6 <noreply@x.ai>: 491d5a19c207cc061086124cb9644e72f49dbe41 (test_laneconf.py + worker_conf.py), 297a3fca25d5df0f84282288c1a905c636ea1e1c (test_dispatch_wrapper.py). Patch vs fc9ad2c015d47c85b405018521b57fa57e212d90 is 3 files, 987 insertions, sha256 ffb7c8bf8b9bd98f0b26c2b402e7281fead2dfbc90cf5937d59a5548c963a800.\n\nEach new method was run alone before commit. 28 laneconf methods FAIL, 0 ERROR, 0 PASS. 22 wrapper methods FAIL, 0 ERROR, 0 PASS. Collection/import errors 0.\n\nLaneconf red causes: success cases AssertionError 2 != 0 with arguments: expected get KEY, closure, or literals; found worker NAME; needed choose one documented verb. Worker-refusal cases class worker must be the leading token, found that arguments line. Executable-refusal cases 'executable' not found in that arguments line. Malformed list also names agy-cli missing from the arguments line.\n\nWrapper red causes: listed agy still prints dispatch: refusal: expected --harness grok, codex, or claude; found agy; choose a supported harness (no dry-run JSON; parse_dry_run -1 not greater than or equal to 0, or returncode 3 != 0). Omitted-agy / malformed-name refusals fail because class worker is absent from that hardcoded line. Empty and duplicate WORKER_HARNESSES still launch (returncode 0 != 3). Invalid EXECUTABLE_AGY fails because class executable is absent (still the hardcoded harness refusal). Absent MODEL_AGY fails because class model is absent. Three-harness argv still matches, then 'worker' not found in the dry-run object.\n\nAcceptance at 297a3fca25d5df0f84282288c1a905c636ea1e1c: python3 -m unittest discover -s ops/conductor/tests -p test_laneconf.py exit 1, Ran 80 tests in 3.062s FAILED (failures=30), ERROR_count 0. python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper.py exit 1, Ran 85 tests in 1.762s FAILED (failures=25), ERROR_count 0. Extra failure counts are subtests (legacy names x3, grok/codex/claude-read/claude-plan x4). Existing tests in both files still pass. ruff check on the three changed test files exit 0, All checks passed."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T07:11:01.862Z"
+    }
+  },
+  "status": "closed"
+}
