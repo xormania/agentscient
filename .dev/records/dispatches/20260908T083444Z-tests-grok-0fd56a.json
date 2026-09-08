@@ -1,0 +1,184 @@
+{
+  "id": "20260908T083444Z-tests-grok-0fd56a",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-lifecycle-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-lifecycle-fix-20260908",
+    "base_sha": "408d2eff029c4b4dad12354c3d872efd9509832b"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:34:44Z",
+    "closed": "2026-09-08T08:48:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "408d2eff029c4b4dad12354c3d872efd9509832b",
+    "ref_sha": "408d2eff029c4b4dad12354c3d872efd9509832b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "9b50d0c6-1ae0-4cda-a995-0a5ab7ce99b8",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/home/grok-stream/sessions/<snapshot-encoded>/9b50d0c6-1ae0-4cda-a995-0a5ab7ce99b8/summary.json"
+  },
+  "session": {
+    "id": "9b50d0c6-1ae0-4cda-a995-0a5ab7ce99b8",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/home/grok-stream/sessions/<snapshot-encoded>/9b50d0c6-1ae0-4cda-a995-0a5ab7ce99b8/summary.json",
+    "stream_sha256_at_close": "91f4d9fe4fc580ff4ad57d9160f0d485c5aaa88569f9bf1ba81745238a23603d",
+    "spend": {
+      "input": 5916643,
+      "cached": 5646976,
+      "output": 51449,
+      "total": 5968092,
+      "cost_usd_ticks": 6425010600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/home/grok-stream/sessions/<snapshot-encoded>/9b50d0c6-1ae0-4cda-a995-0a5ab7ce99b8/summary.json",
+      "messages": 366
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct only test_agy_dispatch.py and agy_dispatch_support.py per supplied cold ruling, all nine actionable findings. Preserve 24 bounded cases and rejected F5/F11 duties: no matrix expansion, invented CLI/seam/native fields or production edits. Source candidate is present for meaningful verification; test oracle is declared contracts and original evidence, not implementation bodies. Use existing signatures, actual read budget, result.usage, native cwd, proper record metadata and real child witnesses; retain numeric totals and unknown-provider assertion via declared record. Run exact bounded recheck in ruling, record true failures separately from fixture/interface errors, hashes and unchanged production. No vendors/full floor. Grok-4.6 attribution and COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/in/agy-lifecycle-ruling.json",
+        "sha256": "1aca6d7548a37c5567926acedafde3e68380c11c74759fe08081b7016e01dc37"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/in/agy-dispatch-test-producer.json",
+        "sha256": "b6281aa1cfecd1d4fe5894f9ee27cd834b5f739d98ead8e16cf388e55786330e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T083444Z-tests-grok-0fd56a/in/agy-permissions-observation-record.json",
+        "sha256": "ecc2fdc761cf937c4b4c7191184b00cc065dced81be680e0f5d2df30c2f98990"
+      }
+    ],
+    "sha256": "51ad801061bb1a4852bed2c23371889e03b12fe85d99d537c96dffb962163e5b",
+    "bytes": 3125
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:34:44Z",
+      "ended": "2026-09-08T08:48:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/agy_dispatch_support.py",
+      "ops/devlane/dispatch/tests/test_agy_dispatch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/devlane/dispatch/tests/test_agy_dispatch.py",
+        "helper": "ops/devlane/dispatch/tests/agy_dispatch_support.py",
+        "tests_sha256": "37944907cfec4dfc6d01024ad7e960cd9cf0fc59e1f4e466e257c3fb23675d09",
+        "helper_sha256": "5e77228ce52329daa8fe2dfd9f321a319c59ef54128854cdefbe9b24fb356308",
+        "head": "18af30b32047265e86d6a486e1bfea2e06b54a64",
+        "helper_commit": "1265008c44adcec6e3ba69e3b597157cbc5c5238",
+        "red": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_dispatch.py -v at 18af30b32047265e86d6a486e1bfea2e06b54a64: 24 collected, 21 ok, 3 FAIL, 0 ERROR",
+        "true_failures": "AgyTerminalUsage.test_fresh_terminal_usage_does_not_fold_thinking_or_cache_into_total; test_canceled_result_usage_is_still_the_terminal_figure; test_resume_terminal_usage_is_not_the_sum_of_both_process_totals: _spend(rec, stream, job_dir) returns unresolved UNREACHABLE session not in the store (0 sessions read); contracted carrier is result.usage on raw.out, totals 120/295 not 415",
+        "fixture_interface_errors": "0",
+        "ruff": "ruff check --no-cache ops/devlane/dispatch/tests/test_agy_dispatch.py ops/devlane/dispatch/tests/agy_dispatch_support.py: All checks passed",
+        "diff_check": "git diff --check 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 -- ops/devlane/dispatch/tests/test_agy_dispatch.py ops/devlane/dispatch/tests/agy_dispatch_support.py: exit 0",
+        "production": "git diff --name-only 408d2eff029c4b4dad12354c3d872efd9509832b HEAD names only the two test files"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5968092,
+        "out": 51449,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "408d2eff029c4b4dad12354c3d872efd9509832b",
+        "started": "2026-09-08T08:35:55Z",
+        "ended": "2026-09-08T08:47:45Z"
+      },
+      "note": "Corrected only test_agy_dispatch.py and agy_dispatch_support.py for the nine actionable cold-ruling findings. Preserved 24 cases and rejected F5/F11 duties. Helper committed 1265008 then tests 18af30b with Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>. Oracle was CONTRACT.md and supplied evidence. Existing signatures, wires.budget(read), result.usage, native init.cwd, record metadata, and start-witness PID/PGID. Unknown provider asserted on the declared record. Three assertion reds remain until agy stdout usage accounting exists; zero fixture/interface errors. Production unchanged. launch.py was not read as the test oracle."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T08:48:36.100Z"
+    }
+  },
+  "status": "closed"
+}
