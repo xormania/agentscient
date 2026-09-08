@@ -1,0 +1,174 @@
+{
+  "id": "20260908T093147Z-tests-grok-0add96",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-regression-final-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-regression-final-fix-20260908",
+    "base_sha": "213946ee4b52cc09759f314a7f404a040659414f"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T09:31:48Z",
+    "closed": "2026-09-08T09:34:52Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "213946ee4b52cc09759f314a7f404a040659414f",
+    "ref_sha": "213946ee4b52cc09759f314a7f404a040659414f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-regression-final-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "431dc453-65ea-45eb-93c4-773b8e2b8699",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "low",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "low",
+    "effort_argv": [
+      "--reasoning-effort",
+      "low"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/home/grok-stream/sessions/<snapshot-encoded>/431dc453-65ea-45eb-93c4-773b8e2b8699/summary.json"
+  },
+  "session": {
+    "id": "431dc453-65ea-45eb-93c4-773b8e2b8699",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/home/grok-stream/sessions/<snapshot-encoded>/431dc453-65ea-45eb-93c4-773b8e2b8699/summary.json",
+    "stream_sha256_at_close": "9d9a1f6be81494a8b49cd65bb19f0f97a5d7a730da9b6d3bdb2f2390b63a7438",
+    "spend": {
+      "input": 901863,
+      "cached": 732032,
+      "output": 8990,
+      "total": 910853,
+      "cost_usd_ticks": 1291350600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/home/grok-stream/sessions/<snapshot-encoded>/431dc453-65ea-45eb-93c4-773b8e2b8699/summary.json",
+      "messages": 162
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-regression-final-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply only the three test repairs in supplied final ruling to test_agy_native_transcript.py and test_agy_live_step_update_cap.py: true no-newline unfinished fixture plus empty mismatch, empty mismatch after blank-tail plant, output-cap reason from TRIPPED.md not contaminated blob. Keep existing malformed-row rejection and all six cases, timing/PID/envelope assertions. No exact whole-note pin, new case, source edit or matrix. Run both discoveries, 24 lifecycle cases, lint/full-range whitespace and hashes; record true exits. No vendors/full floor. Only Grok-4.6 coauthor; COMMIT_MSG fallback.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T093147Z-tests-grok-0add96/in/agy-regression-final-ruling.json",
+        "sha256": "6a1b7001ec5dc8e1b7c72d91dadb01efcd8b5e7ffb1d01ab49a25569758f4641"
+      }
+    ],
+    "sha256": "fe076299139211b2bc02fa9cae29a69be6408c97804959e1fa27c8eee4c1f6b4",
+    "bytes": 2939
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T09:31:48Z",
+      "ended": "2026-09-08T09:34:51Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "f3e70e524550fe62932e1e971c1611242af4de99",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_agy_live_step_update_cap.py",
+      "ops/devlane/dispatch/tests/test_agy_native_transcript.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "inputs": "Read in/agy-regression-final-ruling.json whole (sha256 6a1b7001ec5dc8e1b7c72d91dadb01efcd8b5e7ffb1d01ab49a25569758f4641).",
+        "commits": "e5f323a63ddfa8fe52b2df26d54878d2771cb80b test_agy_native_transcript.py; f3e70e524550fe62932e1e971c1611242af4de99 test_agy_live_step_update_cap.py; HEAD f3e70e524550fe62932e1e971c1611242af4de99 from 213946ee4b52cc09759f314a7f404a040659414f.",
+        "red": "Unfinished fixture without appended newline: unittest -k test_unfinished_final_transcript_line_retains_raw_out_binding exit 1, AssertionError None is not an instance of str. Over-budget cap: first TRIPPED.md substring required cap-out/cap_out exit 1, reason was trip: output cap exceeded; then bounded output cap or cap-out.",
+        "discovery_transcript": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_native_transcript.py' exit 0, Ran 4 tests OK.",
+        "discovery_live_cap": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_live_step_update_cap.py' exit 0, Ran 2 tests OK.",
+        "lifecycle": "python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p 'test_agy_dispatch.py' exit 0, Ran 24 tests OK.",
+        "lint": "python3 -m ruff check ... exit 1 (No module named ruff). /home/scientdb/.local/bin/ruff check on both repaired files exit 0 All checks passed.",
+        "whitespace": "git diff --check 213946ee4b52cc09759f314a7f404a040659414f HEAD exit 0.",
+        "hashes": "sha256sum test_agy_native_transcript.py 9bda7663763086db4bea6c5c0f496e63aaade0d87c24fc176df6a6936aa816e2; test_agy_live_step_update_cap.py 23a357b7be058f56bf63db3991bc2b1989f19fce72ff7c69aba5bacd4911dcc5.",
+        "porcelain": "git status --porcelain --untracked-files=all empty after both commits."
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 910853,
+        "out": 8990,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "213946ee4b52cc09759f314a7f404a040659414f",
+        "started": "2026-09-08T09:32:51Z",
+        "ended": "2026-09-08T09:34:28Z"
+      },
+      "note": "Three ruling repairs only: true no-newline unfinished fixture plus mismatch in (None, ''); same empty mismatch after blank-tail plant; output-cap reason from TRIPPED.md not trip_text blob. Existing malformed-row case and six methods kept. No new case, matrix, source edit, exact whole-note pin, vendors or full floor. Launch.py not read as implementation. Commits carried Source: original and Co-Authored-By: Grok 4.6 <noreply@x.ai>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T09:34:51.145Z"
+    }
+  },
+  "status": "closed"
+}
