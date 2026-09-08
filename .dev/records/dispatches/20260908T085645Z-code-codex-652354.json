@@ -1,0 +1,198 @@
+{
+  "id": "20260908T085645Z-code-codex-652354",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/agy-runtime-ruling-fix-20260908",
+  "lineage": {
+    "branch": "lane/agy-runtime-ruling-fix-20260908",
+    "base_sha": "d484045e4841a6034a1d61988265e3d6324cca2e"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:56:45Z",
+    "closed": "2026-09-08T09:05:20Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d484045e4841a6034a1d61988265e3d6324cca2e",
+    "ref_sha": "d484045e4841a6034a1d61988265e3d6324cca2e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-runtime-ruling-fix-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-56-46-01a0803b-ee8f-7000-b465-c85f47293509.jsonl"
+  },
+  "session": {
+    "id": "01a0803b-ee8f-7000-b465-c85f47293509",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-56-46-01a0803b-ee8f-7000-b465-c85f47293509.jsonl",
+    "stream_sha256_at_close": "cca1561bdeabd16d51de2ee329f403f5190dfd21a52c84b00997781a9b35b7e1",
+    "spend": {
+      "input": 1797873,
+      "cached": 1706112,
+      "output": 10902,
+      "total": 1808775,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-56-46-01a0803b-ee8f-7000-b465-c85f47293509.jsonl",
+      "messages": 207
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-runtime-ruling-fix-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Apply remaining upheld Grok-code/Claude-adjudicated source duties from supplied ruling: tolerate unfinished/blank trailing native transcript data while retaining valid raw.out session/cwd binding; confirmed malformed complete evidence still refuses. Preserve historical model measurement on same-session resume/close when native init omits model, while explicitly recording current-attempt unresolved identity. Only-SUCCESS and actual planner payload fixes already landed; preserve them. Own launch.py and focused contract only; no test edits or vendors. Acceptance: test_agy_envelope.py, all test_launch*.py, telemetry test_*.py, lint/docs/diff; record exact exits and unchanged tests. Existing lifecycle usage assertions remain independently reviewed; do not reshape code to unaccepted fixtures. No full floor/new framework. GPT-6 attribution/COMMIT_MSG.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/in/agy-grok-code-ruling.json",
+        "sha256": "99122a409949c690d483812565212e7c3647f5c6a2258e93fa0899c383749301"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/in/agy-native-reader-fix-producer.json",
+        "sha256": "5864ab8384faf8a49c4e7b9d611a1cfda1507aef3864f1ff7b5216c46a11c259"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T085645Z-code-codex-652354/in/agy-canonical-smoke-success.json",
+        "sha256": "0352b76beb9f46d00060b0411596278bf8f02223083c2f3deda5fa7b850fa9c1"
+      }
+    ],
+    "sha256": "897e640d41ae30f9807b6cdec255360662972070f4dbad0a1f6c774e8f3a52d5",
+    "bytes": 4702
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:56:45Z",
+      "ended": "2026-09-08T09:05:19Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "59aad0355e4bb85e141fb2358cbfef24fe6b0de6",
+    "changed_paths": [
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/dispatch/launch.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py",
+          "claim": "Trailing unfinished/blank transcript data retains valid stdout binding; complete malformed evidence refuses. Resume/close preserve historical model/source and explicitly record current-attempt unresolved identity.",
+          "reproduce": "python3 ../out/observe.py"
+        },
+        {
+          "severity": "p3",
+          "where": "../out/evidence.json",
+          "claim": "Acceptance exits 0: 34 envelope tests, 284 launch tests, 227 telemetry tests, lint, focused contract docs and diff checks. All 146 test/support files unchanged. All 35 shell invocations have findings and reproduce entries.",
+          "reproduce": "cat ../out/evidence.json ../out/final-validation.json ../out/command-findings.json"
+        },
+        {
+          "severity": "p2",
+          "where": "../out/docs.log",
+          "claim": "Additional repository-wide docs inspection exited 1: three pre-existing missing command references outside the owned files. Left unchanged for follow-up.",
+          "reproduce": "python3 ops/devlane/workflow/checks/doc_commands.py"
+        }
+      ],
+      "artifacts": {
+        "evidence": "../out/evidence.json",
+        "commands": "../out/command-findings.json",
+        "validation": "../out/final-validation.json",
+        "observations": "../out/observations.json",
+        "patch": "../out/source.patch",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1808775,
+        "out": 10902,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d484045e4841a6034a1d61988265e3d6324cca2e"
+      },
+      "note": "No literal shell command supplied; acceptance interpreted as named suites plus lint, focused contract docs and diff checks. Only launch.py and its contract changed. SUCCESS-only and planner payload behavior preserved; lifecycle usage assertions untouched. Git staging exited 128 because .git is read-only; COMMIT_MSG supplied for launcher fallback.",
+      "commit": {
+        "subject": "fix(dispatch): retain agy binding and historical model evidence",
+        "body": "Tolerate unfinished and blank trailing transcript data while retaining stdout binding; complete malformed evidence still refuses. Preserve historical model/source on resume and close, recording current-attempt unresolved identity separately. Preserve SUCCESS-only and planner payload rules. Named suites and focused checks pass; tests unchanged. Three pre-existing repository-wide docs references remain follow-ups.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T09:05:19.122Z"
+    }
+  },
+  "status": "closed"
+}
