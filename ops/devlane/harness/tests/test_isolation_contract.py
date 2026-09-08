@@ -90,7 +90,8 @@ class IsolationContractTests(unittest.TestCase):
         )
         agy = registry["agy"]
         self.assertEqual("home", agy["mechanism"])
-        self.assertEqual([], agy["flags"])
+        # agy flags are not pinned: an empty isolation flag set was not
+        # established by native evidence (independent ruling F2).
         self.assertEqual("HOME", agy["home_env"])
         self.assertEqual(AGY_AUTH_FILES, agy["auth_files"])
         self.assertEqual(AGY_SESSIONS, agy["sessions"])
