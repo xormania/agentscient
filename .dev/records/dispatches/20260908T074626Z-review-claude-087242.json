@@ -1,0 +1,295 @@
+{
+  "id": "20260908T074626Z-review-claude-087242",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/agy-isolation-test-review-20260908",
+  "lineage": {
+    "branch": "lane/agy-isolation-test-review-20260908",
+    "base_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:46:26Z",
+    "closed": "2026-09-08T07:53:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "ref_sha": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074626Z-review-claude-087242/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "60a044d3-1d5e-45f8-abd9-5e1b1d42e2ae",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T074626Z-review-claude-087242/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T074626Z-review-claude-087242/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T074626Z-review-claude-087242/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-5",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-5",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-5",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/60a044d3-1d5e-45f8-abd9-5e1b1d42e2ae.jsonl"
+  },
+  "session": {
+    "id": "60a044d3-1d5e-45f8-abd9-5e1b1d42e2ae",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/60a044d3-1d5e-45f8-abd9-5e1b1d42e2ae.jsonl",
+    "stream_sha256_at_close": "2044def2ef3934f669fb463b8ef7107adebe90b2ba28028bf8022921ac6c27fc",
+    "spend": {
+      "input": 64,
+      "cached": 2623023,
+      "output": 29309,
+      "total": 2652396,
+      "source": "result.usage",
+      "messages": 32,
+      "cost_usd": 2.9658705000000003
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-isolation-test-review-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review only new test_agy_isolation.py against the public isolation contract and measured host observation. No production bodies. Check minimal exact auth leaf, nested synthetic canary exclusion, fresh independent HOME, missing-auth refusal and explicit-env no-fallback behavior through existing APIs. Distinguish contractual assertions from invented labels or setup failures. Run focused discovery and registered lint; report actual red/error counts. No broad matrix, actual credentials, vendor calls, source edits or full floor. Return stamped verdict inline for test acceptance.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074626Z-review-claude-087242/in/agy-isolation-test-producer.json",
+        "sha256": "8a20064767b92d56aebeea5ab5b74fedde83f0d08b19f2efdd367b8418c295f2"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074626Z-review-claude-087242/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "649dd1887f6182b97074c9286aac8f4cae58ba5158a9c5b417c89986dbfe3d18",
+    "bytes": 1358
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:46:26Z",
+      "ended": "2026-09-08T07:53:26Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 4,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:64",
+          "claim": "The new registry assertion `self.assertIn(\"agy\", isolation.HARNESSES)` contradicts the frozen whole-registry equality already asserted twice in the same discovery directory: `test_isolation_contract.py:79` `self.assertEqual(EXPECTED_HARNESSES, isolation.HARNESSES)` and `:280` `self.assertEqual(EXPECTED_HARNESSES, json.loads(rendered))`, whose EXPECTED_HARNESSES literal (lines 22-74) holds exactly claude, codex and grok. Measured now: test_isolation_contract.py runs 12 tests, OK; test_agy_isolation.py runs 7 tests, 7 failures, 0 errors. Any agy entry that turns the new file green makes those two green assertions red by dict inequality, so the harness suite has no reachable green state, and closing it means the implementer editing another producer's test (AGENTS.md: \"Whoever writes an implementation neither writes nor approves its tests\"). dispatch/CONTRACT.md:140 names `test_isolation_contract.py` as the regression home and says \"Synthetic agy cases belong beside those tests\"; the new file leaves that literal untouched and does not declare the collision.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_isolation_contract.py; python3 -m unittest discover -s ops/devlane/harness/tests -p test_agy_isolation.py; sed -n '22,24p;74,80p;277,281p' ops/devlane/harness/tests/test_isolation_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:127",
+          "claim": "The suite pins HOME as agy's complete isolation surface \u2014 `self.assertEqual({\"HOME\"}, set(env_a))` (lines 127-128, 205), `self.assertEqual({\"HOME\": home}, actual)` (line 190) and `self.assertEqual([], flags)` (lines 68, 125-126, 204) \u2014 but the only measured evidence, in/agy-host-observation-record.json, never ran agy with HOME alone: every recorded invocation used `env -i HOME=... XDG_CONFIG_HOME=... XDG_CACHE_HOME=... XDG_DATA_HOME=... XDG_STATE_HOME=... XDG_RUNTIME_DIR=... TMPDIR=...` (XDG_CONFIG_HOME appears 12 times in that record) and its note reports no discovery canary. dispatch/CONTRACT.md:109-111 requires \"visible and isolated synthetic discovery-canary arms; both must initialize and answer\" before such a claim, and isolation.py:164-167 records the precedent that for grok \"HOME alone drops CLAUDE.md ... GROK_HOME alone drops the rules file; both are needed\". An entry satisfying these assertions reads green while its discovery completeness is unmeasured \u2014 a false green on exactly the module's stated purpose.",
+          "reproduce": "grep -c XDG_CONFIG_HOME in/agy-host-observation-record.json; grep -n 'assertEqual({\"HOME\"}\\|assertEqual({\"HOME\": home}\\|assertEqual(\\[\\], flags' ops/devlane/harness/tests/test_agy_isolation.py; sed -n '106,115p' ops/devlane/dispatch/CONTRACT.md; sed -n '147,167p' ops/devlane/harness/isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:63",
+          "claim": "The registry test checks mechanism, home_env, flags, auth_files, sessions and `measured.on`/`measured.version` only. The isolation.py amendment (lines 59-63) requires a measured agy entry to declare `also_env`, `probe_phrase` and `measured` carrying \"dated version and probe evidence\"; none of the three is asserted, so an entry with no probe_phrase key and a `measured` block holding no probe evidence passes this test. The declaration the amendment demands is therefore unpinned by the artifact that exists to pin it.",
+          "reproduce": "sed -n '63,79p' ops/devlane/harness/tests/test_agy_isolation.py; sed -n '57,66p' ops/devlane/harness/isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:31",
+          "claim": "`_file_leaves` collects filenames only (`for name in filenames`), so structural verification sees no directories. isolation.py:75-77 requires comparing \"recursive leaves and their necessary parent directories, so nested auth does not admit neighboring configuration\": an implementation that creates the auth leaf's parents plus an empty neighbor directory (a `skills/` or `mcp/` dir under .gemini/antigravity-cli) still yields exactly [AUTH_REL] and passes. A whole-directory symlink is caught only incidentally, by the leaf count dropping to 0 rather than by a named assertion.",
+          "reproduce": "sed -n '31,38p;97,105p' ops/devlane/harness/tests/test_agy_isolation.py; sed -n '73,78p' ops/devlane/harness/isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/bin/suites.sh:17",
+          "claim": "suites.sh discovers `test_*.py` under ops/devlane/harness/tests (line 17 suite list, line 21 `python3 -m unittest discover -s \"$1\" -p 'test_*.py'`), so the new file joins the lane's one green answer automatically and the harness suite exits nonzero from this commit \u2014 measured 7 failures, 0 errors in the focused run \u2014 until an agy entry lands. Neither the file docstring nor the commit declares it as an intentionally red tests-first artifact, so a reader of a red floor cannot tell this red from a regression. Absence declared: I did not run suites.sh or the full harness suite; this is deduced from the discovery pattern plus the focused run.",
+          "reproduce": "sed -n '17,23p' ops/bin/suites.sh; python3 -m unittest discover -s ops/devlane/harness/tests -p test_agy_isolation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/harness/tests/test_agy_isolation.py:80",
+          "claim": "Two test names overstate their assertions. `test_build_home_copies_only_the_oauth_token_and_excludes_canaries` asserts a symlink (line 101 `assertTrue(linked.is_symlink())`), which matches build_home's promise at isolation.py:230-232 (\"Each is symlinked, not copied\"), so \"copies\" mislabels the contractual behavior. `test_build_home_refuses_missing_auth_without_leaving_a_home` (line 140) only asserts a pre-created root stays empty; build_home runs `dest.mkdir(parents=True, exist_ok=True)` at isolation.py:272 before the credential check at :276-280, so a caller passing a non-existent root does get an empty directory left behind, and that case is untested.",
+          "reproduce": "sed -n '80,107p;140,162p' ops/devlane/harness/tests/test_agy_isolation.py; sed -n '227,236p;270,281p' ops/devlane/harness/isolation.py"
+        }
+      ],
+      "artifacts": {
+        "reviewed_file": "ops/devlane/harness/tests/test_agy_isolation.py",
+        "reviewed_file_sha256": "5dd64355566295e63b277ee68bfd125c8f4ad3bbf1b3fecc4cf681eea7fba01f",
+        "reviewed_file_bytes": "9384",
+        "focused_discovery": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_agy_isolation.py -> Ran 7 tests, FAILED (failures=7), errors=0",
+        "neighbour_suite_now": "python3 -m unittest discover -s ops/devlane/harness/tests -p test_isolation_contract.py -> Ran 12 tests, OK",
+        "lint": "ruff 0.16.5 (ruff.toml required-version >=0.16,<0.17); ruff check ops/devlane/harness/tests/test_agy_isolation.py -> All checks passed!",
+        "worktree": "git status --short -> empty at 3e8713bac5b394886daae176e8a904dfe72b1dc4",
+        "production_bodies_touched": "none in range: ops/devlane/harness/isolation.py hunk at diff.patch:2897-2930 is docstring-only; test file is a new-file addition at diff.patch:2933",
+        "inputs_read": "in/agy-isolation-test-producer.json, in/agy-host-observation-record.json (both whole)"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2652396,
+        "out": 29309,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3e8713bac5b394886daae176e8a904dfe72b1dc4",
+        "started": "2026-09-08T07:46:26Z",
+        "ended": "2026-09-08T07:52:33Z"
+      },
+      "note": "Read-only review of the one new file against isolation.py's public module contract, dispatch/CONTRACT.md's agy adapter row, and the supplied host observation. Confirmed: the file adds no production body (the isolation.py hunk in range is docstring-only), ruff 0.16.5 passes, the working tree is clean, and the producer's counts reproduce exactly \u2014 7 tests, 7 failures, 0 errors, every red landing on a contractual assertion (registry membership, refusal text naming antigravity-oauth-token, refusal text naming HOME, or a self.fail on the unregistered-harness refusal), none on a fixture or import error. The measured leaves the file pins \u2014 the .gemini/antigravity-cli auth leaf, the brain session root, the 2026-09-08/1.1.27 stamp \u2014 are carried by the host observation record, not guessed from the name agy, which dispatch/CONTRACT.md:85 forbids. Two changes are needed before acceptance: the agy registry expectation collides with the frozen whole-registry equality in test_isolation_contract.py, which dispatch/CONTRACT.md:140 names as the home for these cases, leaving the harness suite with no reachable green state; and the {\"HOME\"}-only environment and empty-flags pins assert an isolation surface wider than anything measured, since every observed agy invocation also redirected XDG_* and TMPDIR and no discovery canary ran. Not run, by scope: the full floor, suites.sh, the rest of the harness suite, any vendor CLI, any credential access. No source file was edited; one scratch script written under out/ during the collision check was removed, and out/ is empty."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
