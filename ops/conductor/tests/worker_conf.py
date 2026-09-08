@@ -30,7 +30,12 @@ def path_with(bindir: Path) -> str:
 
 
 def plant_executable(test, path: Path, body: str | None = None) -> Path:
-    """Write a regular executable and prove the plant landed."""
+    """Write a regular executable and prove the plant landed.
+
+    Returns the realpath. Override and agy expectations use that
+    resolved target; legacy PATH lookup uses the PATH spelling
+    (bindir / name) from plant_named_bins, not this return value.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     text = body if body is not None else "#!/bin/sh\nexit 0\n"
     path.write_text(text, encoding="utf-8")
@@ -42,12 +47,15 @@ def plant_executable(test, path: Path, body: str | None = None) -> Path:
 
 
 def plant_named_bins(test, root: Path, names: tuple[str, ...]) -> tuple[Path, dict[str, Path]]:
+    """Plant NAME bins. Returned paths are the PATH-lookup spelling."""
     bindir = root / "bin"
     bindir.mkdir(parents=True, exist_ok=True)
     planted: dict[str, Path] = {}
     test.assertGreater(len(names), 0, names)
     for name in names:
-        planted[name] = plant_executable(test, bindir / name)
+        path = bindir / name
+        plant_executable(test, path)
+        planted[name] = path
     test.assertEqual(len(planted), len(names), planted)
     return bindir, planted
 
@@ -60,8 +68,13 @@ def env_source(key: str) -> str:
     return f"env:{key}"
 
 
-def parse_worker_object(test, proc) -> dict:
-    """Exact worker JSON on stdout, empty stderr, exit 0."""
+def parse_worker_object(test, proc, *, expect_absolute: bool | None = None) -> dict:
+    """Exact worker JSON on stdout, empty stderr, exit 0.
+
+    Absolute-path checking is opt-in. Legacy PATH-miss fallback is the
+    bare name, which is not absolute; override and agy cases pass
+    expect_absolute=True.
+    """
     combined = f"{proc.stdout or ''}{proc.stderr or ''}"
     test.assertEqual(proc.returncode, 0, combined)
     test.assertEqual(
@@ -86,8 +99,14 @@ def parse_worker_object(test, proc) -> dict:
     test.assertEqual(set(sources), WORKER_SOURCE_KEYS, payload)
     test.assertIsInstance(sources["workers"], str, payload)
     test.assertIsInstance(sources["executable"], str, payload)
-    test.assertTrue(
-        Path(payload["executable"]).is_absolute(),
-        f"executable must be absolute: {payload['executable']!r}",
-    )
+    if expect_absolute is True:
+        test.assertTrue(
+            Path(payload["executable"]).is_absolute(),
+            f"executable must be absolute: {payload['executable']!r}",
+        )
+    elif expect_absolute is False:
+        test.assertFalse(
+            Path(payload["executable"]).is_absolute(),
+            f"legacy PATH-miss fallback is the bare name: {payload['executable']!r}",
+        )
     return payload
