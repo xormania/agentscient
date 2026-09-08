@@ -1,0 +1,238 @@
+{
+  "id": "20260908T082619Z-adjudicate-codex-a9f480",
+  "lane": "dev",
+  "stage": "adjudicate",
+  "unit": "lane/agy-lifecycle-ruling-20260908",
+  "lineage": {
+    "branch": "lane/agy-lifecycle-ruling-20260908",
+    "base_sha": "e3d32eeb4299e2d6b2827f5803de5f5e59a809a4"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T08:26:19Z",
+    "closed": "2026-09-08T08:33:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e3d32eeb4299e2d6b2827f5803de5f5e59a809a4",
+    "ref_sha": "e3d32eeb4299e2d6b2827f5803de5f5e59a809a4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-ruling-20260908/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-26-20-01a08020-10b6-78e2-9a11-d7e885b35243.jsonl"
+  },
+  "session": {
+    "id": "01a08020-10b6-78e2-9a11-d7e885b35243",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-26-20-01a08020-10b6-78e2-9a11-d7e885b35243.jsonl",
+    "stream_sha256_at_close": "01486c50e2e5c994bfe849bc1492e8ccaeecb5381e10fc44f53f0215e2612b2f",
+    "spend": {
+      "input": 1491180,
+      "cached": 1368192,
+      "output": 9588,
+      "total": 1500768,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/home/codex-stream/sessions/2026/09/08/rollout-2026-09-08T04-26-20-01a08020-10b6-78e2-9a11-d7e885b35243.jsonl",
+      "messages": 148
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-lifecycle-ruling-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Cold-adjudicate the supplied original Claude lifecycle-test review against its exact e3d32ee source and native evidence. Grok produced tests; you are third harness. Rule each finding upheld/partial/rejected with actual boundary evidence and smallest correction. Distinguish invented interfaces/fixtures from lawful tests-first red and stale contract duties already assigned to runtime. No new matrices or generic test expansions; preserve useful tests and existing private seams. No production edits or test authorship/approval. Return executable bounded repair directions inline. Do not call vendors, credentials or full floor.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/in/agy-lifecycle-review.json",
+        "sha256": "15907d26a7d2d0be0d40e5e5bc4a1783a7fed7bf766d3d67f5b830dd22539dab"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/in/agy-dispatch-test-producer.json",
+        "sha256": "b6281aa1cfecd1d4fe5894f9ee27cd834b5f739d98ead8e16cf388e55786330e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/in/agy-permissions-observation-record.json",
+        "sha256": "ecc2fdc761cf937c4b4c7191184b00cc065dced81be680e0f5d2df30c2f98990"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T082619Z-adjudicate-codex-a9f480/in/agy-host-observation-record.json",
+        "sha256": "3a5da144c73bdd03b000056e35cd0e95493bacd46af2e8c8de041693ee8113db"
+      }
+    ],
+    "sha256": "a8f66a6bc5a06e1f6c76cd2a1619f344bdf644221075f329af7c62342cf285c2",
+    "bytes": 2940
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T08:26:19Z",
+      "ended": "2026-09-08T08:33:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e3d32eeb4299e2d6b2827f5803de5f5e59a809a4",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adjudicate",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 5,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:609-612,642-645",
+          "claim": "F1 UPHELD. At e3d32ee, executing the source parser reproduces exit 2: 'unrecognized arguments: --cap-out 50'. The contract requires preserving existing cap sources; fresh launch uses wires.budget(role), currently 500000. Repair both existing cases by removing their --cap-out arguments, obtaining the existing read budget through the fixture's module loader, and making the synthetic output exceed that budget. Keep their early-stop assertions. Do not add a production CLI option to accommodate the tests.",
+          "reproduce": "sed -n '596,660p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '2173,2212p' ops/devlane/dispatch/launch.py; sed -n '117,120p' ops/devlane/harness/wires.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:456-476,552-558",
+          "claim": "F2 PARTIAL. The invented call order is confirmed: _spend(job_dir, 'agy', session) raises TypeError because the existing seam is _spend(rec, stream, job_dir). Repair every occurrence using a synthetic record containing harness.name and session.id, the separately supplied stream observation, and job_dir; remove the alternate-signature retry. Reject the proposed implication that usage must be planted into transcript.jsonl: native host evidence reports result.usage on stdout, while transcript rows have no measured usage fields. Preserve raw.out and the existing usage numbers. A correctly shaped call remaining red until agy stdout accounting exists is lawful tests-first red; do not fabricate transcript usage or change the production signature.",
+          "reproduce": "sed -n '453,476p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '549,559p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '1498,1554p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/agy_dispatch_support.py:117-138",
+          "claim": "F3 UPHELD within the supplied evidence boundary. Executing LIVE_CHILD with AGY_FAKE_OMIT_USAGE=1 still emits step_update.usage.output_tokens=500, although result.usage is absent. The native records establish result.usage, not this intermediate usage field. Delete usage from the step_update fixture. Keep the measured result.usage carrier and its omission switch. Emitting the result, flushing, and then sleeping still exercises supervision while the child is alive; no invented intermediate telemetry is needed.",
+          "reproduce": "sed -n '77,146p' ops/devlane/dispatch/tests/agy_dispatch_support.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:372-381",
+          "claim": "F4 UPHELD as a defective positive control. The only assertion excludes 'write-role-unadmitted', so the unrelated unimplemented-worker refusal passes. Preserve that useful refusal distinction, but require the existing fake-child witness to exist before evaluating it. This makes blanket refusal fail without requiring completed envelope acceptance from the generic fixture. Do not label the present green result proof of read admission.",
+          "reproduce": "sed -n '372,381p' ops/devlane/dispatch/tests/test_agy_dispatch.py; rg -n 'implemented worker adapter|IMPLEMENTED_WORKERS' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:502-519",
+          "claim": "F6 PARTIAL. Two independent raw.out replacements do not expose both cumulative totals to an accounting operation; the second inequality therefore cannot detect summing both attempts. Preserve this focused _spend test and its expected 295 rather than 415. Repair its existing fixture to retain the same conversation record, carry the first spend as prior session.spend, and present the fresh and resumed stdout in attempt order with the current attempt identified. Assert that the resumed cumulative figure replaces the prior spend. Do not claim this seam test proves resume orchestration or replace it with a lifecycle matrix.",
+          "reproduce": "sed -n '453,519p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '1848,1853p' ops/devlane/dispatch/launch.py; sed -n '1898,1919p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:282-317",
+          "claim": "F7 PARTIAL. The named-conversation, newer-foreign-session and Claude-fallback assertions are useful and must survive. The actual gap is that the test accepts three elements and never examines the contracted fourth mismatch result. Repair this existing scenario to require four elements and inspect mismatch; supply observed init.cwd through synthetic stdout for the existing snapshot, then alter that cwd within the same scenario to exercise rejection. Native transcript rows do not establish cwd/ref fields, so do not add those fields to transcript.jsonl. Reject the request for additional concurrency, relocation and malformed-stream matrices in this bounded repair.",
+          "reproduce": "sed -n '282,317p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '84,93p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/agy_dispatch_support.py:210-227; ops/devlane/dispatch/tests/test_agy_dispatch.py:258-280",
+          "claim": "F8 PARTIAL, with a missed structural defect. Exception swallowing obscures real failures, but merely exposing the KeyError is insufficient: _harness_meta returns (iso_env, flags, sandbox, containment, data), and its production caller unpacks that tuple. The test invents a dict return. Preserve the existing seam: unpack the five elements and assert containment and data.store directly. Remove TypeError-driven signature retries; report unexpected exceptions as assertion failures retaining exception type, message and cause. Keep an explicit absent-callable guard for lawful red. Do not change production to return the test's invented dictionary or make metadata carry provider identity.",
+          "reproduce": "sed -n '210,227p' ops/devlane/dispatch/tests/agy_dispatch_support.py; sed -n '258,280p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '382,402p' ops/devlane/dispatch/launch.py; sed -n '1263,1266p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:626-629; ops/devlane/dispatch/tests/agy_dispatch_support.py:77-146",
+          "claim": "F9 UPHELD. Installing LIVE_CHILD replaces the script that writes start_witness; LIVE_CHILD writes only the separate text marker. Its conditional PID assertion therefore has no producer. Repair LIVE_CHILD to write the existing start-witness JSON shape with PID/PGID, using an install-time path as the established helper does. Require that witness and check the recorded PID unconditionally after the cap trip. Preserve the existing teardown cleanup and done-marker assertion; no new liveness framework is needed.",
+          "reproduce": "sed -n '104,111p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '626,629p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '195,214p' ops/devlane/dispatch/tests/launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_agy_dispatch.py:405-438",
+          "claim": "F10 UPHELD. The planted record changes harness.name but retains Grok's worker selection, model and isolation. _resume checks recorded worker name/executable before the store boundary, so this is not a clean missing-store fixture. Repair the existing record using the fixture-selected agy worker, model and measured HOME isolation/store metadata; prove both live and archived agy stores absent. Use assert_refusal with exactly resume-store, then assert no child and unchanged record/attempt/marker evidence. Unsupported-capability remains lawful for unavailable resume capability, but must not substitute for this specifically contracted missing-store case.",
+          "reproduce": "sed -n '405,438p' ops/devlane/dispatch/tests/test_agy_dispatch.py; sed -n '1821,1832p' ops/devlane/dispatch/launch.py; sed -n '844,850p' ops/devlane/dispatch/CONTRACT.md"
+        }
+      ],
+      "artifacts": {
+        "rulings": "Original Claude finding order: F1 upheld; F2 partial; F3 upheld; F4 upheld; F5 rejected; F6 partial; F7 partial; F8 partial; F9 upheld; F10 upheld; F11 rejected. Counts cover the nine actionable adjudicated findings; F8 is p2 because the additional return-shape mismatch requires repair.",
+        "F5_rejected": "Reject as a test-repair finding. CONTRACT.md:87 contains the stale candidate transport, but :81 calls these implementation obligations and :96-98 assigns measured values to the adapter implementation. The producer brief explicitly requires --print= and one user NDJSON stdin turn. Preserve those tests. Contract/docstring reconciliation belongs to the assigned runtime work; reverting tests to bare --print or text stdin would contradict native evidence. Reproduce: sed -n '78,104p' ops/devlane/dispatch/CONTRACT.md; sed -n '120,146p' ops/devlane/dispatch/tests/test_agy_dispatch.py.",
+        "F11_rejected": "Reject private-seam testing as a defect. CONTRACT.md explicitly declares _argv and _effort_argv, and launch.py:1023-1068 uses the resulting argv in subprocess.Popen. These unit assertions lawfully pin those boundaries before the agy adapter exists. Preserve them and the existing stdin witness test. No conversion of six cases into black-box tests is required. Reproduce: sed -n '84,90p' ops/devlane/dispatch/CONTRACT.md; sed -n '1023,1068p' ops/devlane/dispatch/launch.py.",
+        "source": "HEAD verified as e3d32eeb4299e2d6b2827f5803de5f5e59a809a4; comparison base 3432b5cb8b9e171ecc981efa8409d299a85ec4c0. Both scoped additions extracted from ../context/diff.patch exactly match the checked-out files.",
+        "inputs": "Read all four supplied ../in files whole. Original review sha256=15907d26a7d2d0be0d40e5e5bc4a1783a7fed7bf766d3d67f5b830dd22539dab. Producer, host and permission input hashes match the original review's recorded inputs.",
+        "stdin_evidence": "The separate stdin input is absent from ../in. Its committed copy at .dev/records/dispatches/20260908T073056Z-code-grok-0e4417.json has sha256=7105bc23be42fbad53780a0e0ed2a360b7d5778076241963af09f3e84f4691eb, exactly matching the cited original input. Its observation records working NDJSON stdin, CANCELED and result.usage. No session store was accessed.",
+        "test_sha256": "fea1b8d4334bbf312833bc0e9f749c2491090c65c3be13303f0d74a7063332ed",
+        "helper_sha256": "4a04b2ebe194677cc3484723e417e5f24fb61631c1faa91a8033b4193cab8dd4",
+        "verification": "At e3d32ee: read-only unittest collection found 24 cases and zero loader errors; ruff check --no-cache passed; scoped git diff --check over the full requested range exited 0; both files have zero trailing-whitespace lines and zero tabs. Source-extracted execution reproduced argparse exit 2 and _spend TypeError. Synthetic LIVE_CHILD execution confirmed that omit_usage leaves intermediate usage present.",
+        "execution_limit": "The focused AgyTerminalUsage run encountered three setup errors: this read-only sandbox has no usable temporary directory. No test assertion ran. Claude's supplied 21 FAIL/3 ok result is historical evidence at matching file hashes, not a newly reproduced suite result.",
+        "permission_compatibility": "Preserve the prohibition on --permission-mode and --mode: it permits the later measured --dangerously-skip-permissions and --add-dir flags. Successful native read evidence reports always-proceed; request-review in the synthetic init frames is currently unasserted and does not establish successful permission behavior. Synthetic fixtures need not prove runtime discovery.",
+        "bounded_recheck": "After independent repair, run: python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_agy_dispatch.py -v; ruff check --no-cache ops/devlane/dispatch/tests/test_agy_dispatch.py ops/devlane/dispatch/tests/agy_dispatch_support.py; git diff --check 3432b5cb8b9e171ecc981efa8409d299a85ec4c0 -- ops/devlane/dispatch/tests/test_agy_dispatch.py ops/devlane/dispatch/tests/agy_dispatch_support.py. Report assertion reds separately from setup/interface failures and retain updated hashes. No full floor.",
+        "residue": "Final git status --porcelain=v1 --untracked-files=all and ../out listing were empty."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1500768,
+        "out": 9588,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e3d32eeb4299e2d6b2827f5803de5f5e59a809a4",
+        "started": "2026-09-08T08:26:30Z",
+        "ended": "2026-09-08T08:31:26Z"
+      },
+      "note": "Review-only adjudication of the original Claude lifecycle-test review. Repair directions are inline; no files edited, production changes made, tests authored or approved, vendors called, credentials accessed, session store read, or full floor run. Missing agy runtime behavior is lawful tests-first red. Preserve measured transport, cumulative usage numbers, explicit unknown provider, refusal boundaries, useful session decoys and declared private seams."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-08T08:33:24.174Z"
+    }
+  },
+  "status": "closed"
+}
