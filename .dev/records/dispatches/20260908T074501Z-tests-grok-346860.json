@@ -1,0 +1,175 @@
+{
+  "id": "20260908T074501Z-tests-grok-346860",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/agy-envelope-final-correction-20260908",
+  "lineage": {
+    "branch": "lane/agy-envelope-final-correction-20260908",
+    "base_sha": "e25e35d451153456fe9eb0f94333bb5d3dac157f"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-08T07:45:02Z",
+    "closed": "2026-09-08T07:55:15Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e25e35d451153456fe9eb0f94333bb5d3dac157f",
+    "ref_sha": "e25e35d451153456fe9eb0f94333bb5d3dac157f",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "154f79f4-940f-44d1-90c4-3abb8c9c03ad",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/home/grok-stream/sessions/<snapshot-encoded>/154f79f4-940f-44d1-90c4-3abb8c9c03ad/summary.json"
+  },
+  "session": {
+    "id": "154f79f4-940f-44d1-90c4-3abb8c9c03ad",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/home/grok-stream/sessions/<snapshot-encoded>/154f79f4-940f-44d1-90c4-3abb8c9c03ad/summary.json",
+    "stream_sha256_at_close": "ab16b6435f5bfd028e07fe5955602c52134abbc32ac146d7d1f8f11cc30d796d",
+    "spend": {
+      "input": 2708007,
+      "cached": 2238208,
+      "output": 30937,
+      "total": 2738944,
+      "cost_usd_ticks": 3815350800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/home/grok-stream/sessions/<snapshot-encoded>/154f79f4-940f-44d1-90c4-3abb8c9c03ad/summary.json",
+      "messages": 244
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-envelope-final-correction-20260908/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Make only the bounded remaining envelope test corrections from supplied ruling: one mixed-bare decoy-free fixture; remove ENVELOPE_SCHEMA prohibition and missing-status cause needle; do not repeat shared success controls. Separately, later native evidence now measures result.status=CANCELED with denied_actions and empty response. Add one synthetic status-only CANCELED carrier beside a plausible canonical envelope and require invalid; this closes the previously declared measured-status gap without inventing enums. Own only test_agy_envelope.py and agy_envelope_support.py; no production body reads/edits. Acceptance: focused discovery, zero errors and honest assertion results (some may now pass after vocabulary relaxation); ruff on both files; git diff --check. Preserve original receipts and stamp test hashes. No vendor calls or full floor. Grok 4.6 trailers. Base remains original test tree, not later parser implementation.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/in/agy-envelope-remaining-ruling.json",
+        "sha256": "858284a2dc6317e3c0929199ee9113e74b2006dfb701a9d87cf391dac7866bc1"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260908T074501Z-tests-grok-346860/in/agy-stdin-observation-record.json",
+        "sha256": "7105bc23be42fbad53780a0e0ed2a360b7d5778076241963af09f3e84f4691eb"
+      }
+    ],
+    "sha256": "c634b770b54266666f314e0edbb38bd1c62a82e82c8cac2249f1183207a999de",
+    "bytes": 3278
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-08T07:45:02Z",
+      "ended": "2026-09-08T07:55:14Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1ae035c03ce205205c097a20fb651a29338ab43d",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/agy_envelope_support.py",
+      "ops/devlane/dispatch/tests/test_agy_envelope.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_agy_envelope": "ops/devlane/dispatch/tests/test_agy_envelope.py",
+        "agy_envelope_support": "ops/devlane/dispatch/tests/agy_envelope_support.py",
+        "base": "e25e35d451153456fe9eb0f94333bb5d3dac157f",
+        "head": "1ae035c03ce205205c097a20fb651a29338ab43d",
+        "support_commit": "0d6b0bdcc0c4aed581f1ae2782e465343df42405",
+        "tests_commit": "1ae035c03ce205205c097a20fb651a29338ab43d",
+        "original_test_sha256": "0aa36d7cd000c7b5a91f519a24b17def1f8e93825f69a360e1d37d6ba88fb91d",
+        "original_support_sha256": "d3bb7333ad761666f87a4d56ddba6cc73af8abfd7cc7dae7ec0419872a477e64",
+        "test_sha256": "7319e50b6e13c5f627763f1ee1309fc216b0f22148ed18627f005dbd4765f163",
+        "support_sha256": "a19f353413a9b0da6c5f003f59d8aafef86a1a779eb9f126402cea5638ff136d",
+        "original_receipts": "32 tests, 30 assertion failures, 2 legacy passes, zero errors; preserved reported receipts at e25e35d; fresh re-run matched",
+        "focused_receipts": "34 tests, 27 assertion failures, 7 passes, zero errors at 1ae035c against the original parser",
+        "ruff": "ruff 0.16.5 check passed on both files",
+        "diff_check": "git diff --check exited 0",
+        "trailers": "commit-trailers clean on e25e35d..HEAD (2 messages)"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2738944,
+        "out": 30937,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e25e35d451153456fe9eb0f94333bb5d3dac157f",
+        "started": "2026-09-08T07:46:43Z",
+        "ended": "2026-09-08T07:54:13Z"
+      },
+      "note": "Owned only the two test files; launch.py was present and unread. Original receipts preserved and hashes stamped. CANCELED status-only test is assertion-red (expected invalid, got ok/decoy-scan-lead). Mixed-bare decoy-free init-plus-bare-result is an honest pass (schema-invalid). Four decoy-free rejects flipped to pass after removing the ENVELOPE_SCHEMA prohibition and the missing-status cause needle. Shared success controls were not repeated. Ruff and git diff --check are clean. Commits 0d6b0bd and 1ae035c."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-08T07:55:14.139Z"
+    }
+  },
+  "status": "closed"
+}
