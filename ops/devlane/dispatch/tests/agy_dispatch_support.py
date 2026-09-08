@@ -73,9 +73,6 @@ PROVIDER_UNRESOLVED = (
 SUPPORTED_EFFORTS = ("low", "medium", "high")
 UNSUPPORTED_EFFORT = "max"
 
-LIVE_OUTPUT_OVER = 500
-LIVE_CAP_OUT = 50
-
 LIVE_CHILD = r"""#!/usr/bin/env python3
 import json
 import os
@@ -83,6 +80,7 @@ import sys
 import time
 from pathlib import Path
 
+start_witness = Path(@@START_WITNESS@@)
 start = os.environ.get("AGY_FAKE_START") or ""
 done = os.environ.get("AGY_FAKE_DONE") or ""
 sleep_s = float(os.environ.get("AGY_FAKE_SLEEP") or "0")
@@ -103,6 +101,18 @@ else:
         "total_tokens": 10 + int(os.environ.get("AGY_FAKE_OUTPUT") or "500"),
     }
 
+try:
+    pgid = os.getpgid(0)
+except OSError:
+    pgid = os.getpid()
+start_witness.parent.mkdir(parents=True, exist_ok=True)
+start_witness.write_text(json.dumps({
+    "pid": os.getpid(),
+    "pgid": pgid,
+    "argv": sys.argv,
+    "cwd": os.getcwd(),
+    "exe": sys.argv[0] if sys.argv else "",
+}) + "\n", encoding="utf-8")
 if start:
     Path(start).write_text("started\n", encoding="utf-8")
 
@@ -122,7 +132,6 @@ step = {
         "state": "DONE",
         "step_type": "agent_response",
         "text_delta": "ok",
-        "usage": usage,
     },
 }
 sys.stdout.write(json.dumps(step) + "\n")
@@ -180,7 +189,8 @@ def tokens_from_usage(usage):
 
 
 def framed_stdout(*, usage=None, status="SUCCESS", response="ok",
-                  conversation_id=CONVERSATION_ID, extra=None):
+                  conversation_id=CONVERSATION_ID, extra=None, cwd="/synthetic",
+                  permission_mode="request-review"):
     usage = dict(FRESH_USAGE if usage is None else usage)
     result = frames.published_result(
         response, status=status, extra={"usage": usage},
@@ -193,9 +203,9 @@ def framed_stdout(*, usage=None, status="SUCCESS", response="ok",
             "event": "init",
             "conversation_id": conversation_id,
             "init": {
-                "cwd": "/synthetic",
+                "cwd": cwd,
                 "tools": [],
-                "permission_mode": "request-review",
+                "permission_mode": permission_mode,
             },
         },
         frames.step_update_frame(state="DONE", text_delta="ok"),
@@ -208,23 +218,17 @@ def print_tokens(argv):
 
 
 def call_seam(fn, *args, **kwargs):
-    """Call a launcher seam; missing support is None, not a crash."""
+    """Call a launcher seam; a missing callable is None, not a crash."""
     if not callable(fn):
         return None
     try:
         return fn(*args, **kwargs)
-    except TypeError:
-        kwargs = dict(kwargs)
-        kwargs.pop("executable", None)
-        try:
-            return fn(*args, **kwargs)
-        except TypeError:
-            try:
-                return fn(*args)
-            except TypeError:
-                return None
-    except Exception:
-        return None
+    except Exception as exc:
+        name = getattr(fn, "__name__", repr(fn))
+        raise AssertionError(
+            f"{name} raised {type(exc).__name__}: {exc} "
+            f"(cause={exc.__cause__!r})"
+        ) from exc
 
 
 def call_argv(launch, *, model=MODEL, effort=None, session="", prompt=None,
@@ -254,8 +258,25 @@ def call_stream(launch, job_dir, harness, session, snapshot, ref_sha,
     )
 
 
-def call_spend(launch, *args, **kwargs):
-    return call_seam(getattr(launch, "_spend", None), *args, **kwargs)
+def spend_record(conversation_id=CONVERSATION_ID, *, spend=None,
+                 attempts=None, snapshot_root=None):
+    rec = {
+        "harness": {"name": HARNESS},
+        "session": {"id": conversation_id},
+    }
+    if snapshot_root is not None:
+        rec["snapshot"] = {"root": str(snapshot_root)}
+    if spend is not None:
+        rec["session"]["spend"] = spend
+    if attempts is not None:
+        rec["attempts"] = list(attempts)
+    return rec
+
+
+def call_spend(launch, rec, stream, job_dir):
+    return call_seam(
+        getattr(launch, "_spend", None), rec, stream, job_dir,
+    )
 
 
 def call_harness_meta(launch, name, role, job_dir, env):
