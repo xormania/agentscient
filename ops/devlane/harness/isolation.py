@@ -61,8 +61,8 @@ mechanism ('home' or 'flags'), flags (argv strings), home_env (name or None),
 also_env (additional names, if needed), auth_files (exact relative file leaves),
 sessions {under: 'minimal' or 'real', path: relative path}, probe_phrase
 (synthetic canary or None), and measured (dated version and probe evidence).
-Auth filenames, discovery controls and session path are unresolved here;
-do not insert guessed values or an empty auth list to mean 'not measured'.
+Auth/session paths are measured below; discovery remains unresolved.
+Do not insert guessed values or an empty auth list to mean 'not measured'.
 The launch _harness_meta seam derives isolation.store from measured
 sessions.{under,path}; until measured, unsupported-capability refuses before
 minting a store. Never inherit the Claude $HOME/.claude fallback for agy.
@@ -110,13 +110,14 @@ HARNESSES = {
             "version": "1.1.27",
             "evidence": "20260908T071244Z-code-grok-220fb8",
             "binary_sha256": "93eb2118b778a4005700b54cdd7e08b896fbe665d5ff338e38e9e53da9a091ea",
-            "note": "Disposable HOME with only the nested OAuth token authenticated; "
+            "note": "Disposable HOME plus redirected XDG/TMPDIR authenticated "
+                    "with only the nested OAuth token copied for the observation; "
                     "fresh and explicit-ID resumed transcripts were under "
                     "brain/<conversation_id>/.system_generated/logs/transcript.jsonl.",
             "unresolved": "Visible/isolated discovery canaries, inherited HOME/XDG "
                           "and native project discovery were not established by "
-                          "this auth/session observation; permission enforcement "
-                          "was not measured.",
+                          "this auth/session observation. Permissions measured in "
+                          "20260908T074530Z-code-grok-5395b3 are policy, not OS containment.",
         },
     },
     "claude": {
@@ -374,6 +375,14 @@ def dispatch_env(harness, home=None, env=None):
             f"{harness} is isolated by relocating its home, and no home "
             f"was built (got {home!r}). Call build_home first.")
     out = {spec["home_env"]: str(home)}
+    if harness == "agy":
+        # Reproduce the combined environment of the native records; this
+        # is not a claim that HOME alone closes discovery paths.
+        out.update({key: str(Path(home) / leaf) for key, leaf in (
+            ("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache"),
+            ("XDG_DATA_HOME", "data"), ("XDG_STATE_HOME", "state"),
+            ("XDG_RUNTIME_DIR", "runtime"), ("TMPDIR", "tmp"))})
+        out["AGY_CLI_DISABLE_AUTO_UPDATE"] = "true"
     for extra in spec.get("also_env", ()):
         # HOME is redirected to the minimal home too, so that a harness
         # looking for a SIBLING vendor's dotfile -- grok reading

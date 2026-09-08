@@ -30,6 +30,7 @@ a test that proves its own setup never happened.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -101,12 +102,21 @@ def structural(harness, env=None):
             home = isolation.build_home(harness, root, env)
         except isolation.NotIsolated as exc:
             return Result(harness, "structural", INVALID, str(exc))
-        present = sorted(p.name for p in Path(home).iterdir())
-        declared = sorted(spec["auth_files"])
-        if present != declared:
+        declared = set(spec["auth_files"])
+        parents = {p.as_posix() for leaf in declared
+                   for p in Path(leaf).parents if p != Path(".")}
+        present, directories = set(), set()
+        for path in Path(home).rglob("*"):
+            relative = path.relative_to(home).as_posix()
+            if path.is_dir() and not path.is_symlink():
+                directories.add(relative)
+            else:
+                present.add(relative)
+        if present != declared or directories != parents:
             extra = sorted(set(present) - set(declared))
             return Result(harness, "structural", LEAKING,
-                          f"home holds {extra} beyond declared {declared}")
+                          f"home leaves extra={extra}; directories={sorted(directories)}; "
+                          f"expected leaves={sorted(declared)}, parents={sorted(parents)}")
         return Result(harness, "structural", CLEAN,
                       f"home holds exactly {declared}")
     finally:
@@ -266,7 +276,73 @@ def behavioural_claude(model="haiku", env=None):
                   "unisolated YES, isolated NO")
 
 
-BEHAVIOURAL = {"grok": behavioural_grok, "claude": behavioural_claude}
+def behavioural_agy(model=None, phrase=None, env=None, cwd=None):
+    """Later host probe against explicitly planted synthetic discovery input.
+
+    No native discovery filename is assumed: the caller plants the canary
+    in a disposable source HOME/XDG or fixture before running this probe.
+    CLEAN describes this canary only, not exhaustive discovery isolation.
+    """
+    if not model or not phrase or not cwd:
+        return Result("agy", "behavioural", INVALID,
+                      "expected explicit model, synthetic canary phrase and disposable "
+                      "git cwd; found missing probe inputs; needed a host canary control")
+    env = dict(os.environ if env is None else env)
+    executable = shutil.which("agy", path=env.get("PATH"))
+    if not executable:
+        return Result("agy", "behavioural", INVALID, "agy executable unavailable")
+    cwd = str(Path(cwd).resolve())
+    root = tempfile.mkdtemp(prefix="probe-agy-home-")
+    try:
+        digest = hashlib.sha256(Path(executable).read_bytes()).hexdigest()
+        try:
+            over, flags = isolation.isolated("agy", root, env)
+        except isolation.NotIsolated as exc:
+            return Result("agy", "behavioural", INVALID, str(exc))
+        for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
+                    "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
+            Path(over[key]).mkdir(mode=0o700)
+        prompt = ('Answer YES or NO only. Is this synthetic canary phrase present '
+                  f'in your discovered instructions, excluding this question: {phrase}')
+        stdin = json.dumps({"event": "user", "message": {"content": prompt}}) + "\n"
+        argv = [executable, "--print=", "--input-format", "stream-json",
+                "--output-format", "stream-json", "--disable-slash-commands",
+                "--dangerously-skip-permissions", "--add-dir", cwd, "--model", model]
+        answers = []
+        for label, additions in (("visible", {}), ("isolated", over)):
+            arm_env = {**env, "AGY_CLI_DISABLE_AUTO_UPDATE": "true", **additions}
+            rc, out, _err = _run(argv + (flags if label == "isolated" else []), arm_env, cwd, stdin)
+            try:
+                frames = [json.loads(line) for line in out.splitlines() if line.strip()]
+                inits = [f for f in frames if f.get("event") == "init"]
+                results = [f["result"] for f in frames if f.get("event") == "result"]
+                valid = (rc == 0 and len(inits) == len(results) == 1
+                         and inits[0]["init"]["cwd"] == cwd
+                         and inits[0]["conversation_id"] == results[0]["conversation_id"]
+                         and results[0]["status"] == "SUCCESS"
+                         and not results[0].get("error"))
+                word = results[0]["response"].strip().upper() if valid else None
+            except (ValueError, KeyError, TypeError, AttributeError):
+                word = None
+            if word not in {"YES", "NO"}:
+                return Result("agy", "behavioural", INVALID,
+                              f"{label} arm failed initialization/answer; binary_sha256={digest}")
+            answers.append(word)
+        if hashlib.sha256(Path(executable).read_bytes()).hexdigest() != digest:
+            return Result("agy", "behavioural", INVALID, "binary changed during probe")
+        if answers[0] != "YES":
+            verdict = INVALID
+        else:
+            verdict = LEAKING if answers[1] == "YES" else CLEAN
+        return Result("agy", "behavioural", verdict,
+                      f"visible={answers[0]}, isolated={answers[1]}; binary_sha256={digest}; "
+                      "scope=caller-planted canary only; other discovery unresolved; containment=policy")
+    finally:
+        _discard(root)
+
+
+BEHAVIOURAL = {"grok": behavioural_grok, "claude": behavioural_claude,
+              "agy": behavioural_agy}
 
 
 def behavioural(harness, env=None):
@@ -284,13 +360,17 @@ def main(argv=None):
     ap.add_argument("--behavioural", action="store_true",
                     help="also dispatch each harness; costs tokens")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--model", help="explicit agy probe model")
+    ap.add_argument("--phrase", help="caller-planted synthetic agy canary")
+    ap.add_argument("--cwd", help="disposable git fixture for agy controls")
     args = ap.parse_args(argv)
 
     results = []
     for h in (args.harness or sorted(isolation.HARNESSES)):
         results.append(structural(h))
         if args.behavioural:
-            results.append(behavioural(h))
+            results.append(behavioural_agy(args.model, args.phrase, cwd=args.cwd)
+                           if h == "agy" else behavioural(h))
 
     if args.json:
         print(json.dumps([r.as_dict() for r in results], indent=2))
