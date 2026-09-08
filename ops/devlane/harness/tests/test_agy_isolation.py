@@ -1,10 +1,14 @@
 """Bounded agy isolation tests, from the public isolation contract.
 
 Pinned from isolation.py's module contract, dispatch/CONTRACT.md's
-isolation seam, and the 2026-09-08 host observation: HOME isolation,
-`.gemini/antigravity-cli` credential base, `brain` session root, only
-the `antigravity-oauth-token` leaf, no settings/history copy, no
-real-HOME fallback. Synthetic fixtures only.
+isolation seam, the 2026-09-08 host observation, and the isolation-test
+rulings: HOME isolation, `.gemini/antigravity-cli` credential base,
+`brain` session root, only the `antigravity-oauth-token` leaf, no
+settings/history copy, no real-HOME fallback. Auth-file symlink is
+allowed; necessary parent directories must be real directories.
+Discovery isolation remains unresolved in existing measured metadata.
+HOME-only sufficiency and empty dispatch_flags are not pinned.
+Synthetic fixtures only. Expected red at this tree is lawful.
 """
 
 from __future__ import annotations
@@ -20,22 +24,33 @@ import isolation
 
 
 AUTH_REL = ".gemini/antigravity-cli/antigravity-oauth-token"
+AUTH_PARENTS = (".gemini", ".gemini/antigravity-cli")
 SETTINGS_REL = ".gemini/antigravity-cli/settings.json"
 HISTORY_REL = ".gemini/antigravity-cli/history"
+SKILLS_REL = ".gemini/antigravity-cli/skills"
 SESSION_REL = ".gemini/antigravity-cli/brain"
 SYNTHETIC_TOKEN = "synthetic-agy-oauth-token\n"
 SETTINGS_CANARY = "settings-canary\n"
 HISTORY_CANARY = "history-canary\n"
+EXPECTED_TREE = [*AUTH_PARENTS, AUTH_REL]
 
 
-def _file_leaves(root: Path) -> list[str]:
-    leaves = []
-    for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
+def _tree_paths(root: Path) -> list[str]:
+    """Relative files and directories under root, not following links."""
+    paths = []
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        current = Path(dirpath)
+        relative_dir = current.relative_to(root).as_posix()
+        if relative_dir != ".":
+            paths.append(relative_dir)
+        for name in dirnames:
+            child = current / name
+            if child.is_symlink():
+                paths.append(child.relative_to(root).as_posix())
         for name in filenames:
-            path = Path(dirpath) / name
-            leaves.append(path.relative_to(root).as_posix())
-    leaves.sort()
-    return leaves
+            paths.append((current / name).relative_to(root).as_posix())
+    paths.sort()
+    return paths
 
 
 def _plant_operator_home(base: Path, *, token: bool) -> Path:
@@ -44,8 +59,10 @@ def _plant_operator_home(base: Path, *, token: bool) -> Path:
     cli.mkdir(parents=True)
     settings = home / SETTINGS_REL
     history = home / HISTORY_REL
+    skills = home / SKILLS_REL
     settings.write_text(SETTINGS_CANARY, encoding="utf-8")
     history.write_text(HISTORY_CANARY, encoding="utf-8")
+    skills.mkdir()
     if token:
         auth = home / AUTH_REL
         auth.write_text(SYNTHETIC_TOKEN, encoding="utf-8")
@@ -56,16 +73,41 @@ def _plant_operator_home(base: Path, *, token: bool) -> Path:
         raise AssertionError("settings canary plant did not land")
     if history.read_text(encoding="utf-8") != HISTORY_CANARY:
         raise AssertionError("history canary plant did not land")
+    if not skills.is_dir() or skills.is_symlink():
+        raise AssertionError("skills directory plant did not land")
     return home
 
 
 class AgyIsolationTests(unittest.TestCase):
+    def _assert_measured_agy_home(self, home: Path, operator_auth: Path) -> None:
+        self.assertEqual(EXPECTED_TREE, _tree_paths(home))
+        for relative in AUTH_PARENTS:
+            parent = home / relative
+            self.assertTrue(parent.is_dir(), f"{relative} must exist as a directory")
+            self.assertFalse(parent.is_symlink(), f"{relative} must not be a symlink")
+        for dirpath, dirnames, _filenames in os.walk(home, followlinks=False):
+            current = Path(dirpath)
+            self.assertFalse(current.is_symlink())
+            for name in dirnames:
+                self.assertFalse(
+                    (current / name).is_symlink(),
+                    f"directory symlink not allowed: {name}",
+                )
+        linked = home / AUTH_REL
+        self.assertTrue(linked.is_symlink())
+        self.assertEqual(operator_auth.resolve(), linked.resolve())
+        self.assertEqual(SYNTHETIC_TOKEN, linked.read_text(encoding="utf-8"))
+        self.assertFalse((home / SETTINGS_REL).exists())
+        self.assertFalse((home / HISTORY_REL).exists())
+        self.assertFalse((home / SKILLS_REL).exists())
+
     def test_agy_registry_declares_measured_home_isolation(self):
         self.assertIn("agy", isolation.HARNESSES)
         agy = isolation.HARNESSES["agy"]
         self.assertEqual("home", agy.get("mechanism"))
         self.assertEqual("HOME", agy.get("home_env"))
-        self.assertEqual([], agy.get("flags"))
+        self.assertIn("flags", agy)
+        self.assertIsInstance(agy.get("flags"), list)
         auth_files = agy.get("auth_files")
         self.assertEqual(1, len(auth_files))
         self.assertEqual([AUTH_REL], auth_files)
@@ -73,11 +115,20 @@ class AgyIsolationTests(unittest.TestCase):
             {"under": "minimal", "path": SESSION_REL},
             agy.get("sessions"),
         )
-        measured = agy.get("measured") or {}
+        self.assertIn("probe_phrase", agy)
+        self.assertIsNone(agy.get("probe_phrase"))
+        measured = agy.get("measured")
+        self.assertIsInstance(measured, dict)
         self.assertEqual("2026-09-08", measured.get("on"))
         self.assertEqual("1.1.27", measured.get("version"))
+        self.assertNotIn("probe_default", measured)
+        self.assertNotIn("probe_isolated", measured)
+        note = measured.get("note")
+        self.assertIsInstance(note, str)
+        self.assertTrue(note.strip())
+        self.assertIn("unresolved", note.lower())
 
-    def test_build_home_copies_only_the_oauth_token_and_excludes_canaries(self):
+    def test_build_home_links_only_the_oauth_token_and_excludes_canaries(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
             operator = _plant_operator_home(base, token=True)
@@ -86,6 +137,8 @@ class AgyIsolationTests(unittest.TestCase):
             self.assertEqual(SYNTHETIC_TOKEN, (operator / AUTH_REL).read_text(encoding="utf-8"))
             self.assertEqual(SETTINGS_CANARY, (operator / SETTINGS_REL).read_text(encoding="utf-8"))
             self.assertEqual(HISTORY_CANARY, (operator / HISTORY_REL).read_text(encoding="utf-8"))
+            self.assertTrue((operator / SKILLS_REL).is_dir())
+            self.assertFalse((operator / SKILLS_REL).is_symlink())
 
             try:
                 home = Path(
@@ -94,17 +147,10 @@ class AgyIsolationTests(unittest.TestCase):
             except isolation.NotIsolated as exc:
                 self.fail(f"expected an isolated agy home, refused: {exc}")
 
-            leaves = _file_leaves(home)
-            self.assertEqual(1, len(leaves))
-            self.assertEqual([AUTH_REL], leaves)
-            linked = home / AUTH_REL
-            self.assertTrue(linked.is_symlink())
-            self.assertEqual((operator / AUTH_REL).resolve(), linked.resolve())
-            self.assertEqual(SYNTHETIC_TOKEN, linked.read_text(encoding="utf-8"))
-            self.assertFalse((home / SETTINGS_REL).exists())
-            self.assertFalse((home / HISTORY_REL).exists())
+            self._assert_measured_agy_home(home, operator / AUTH_REL)
             self.assertEqual(SETTINGS_CANARY, (operator / SETTINGS_REL).read_text(encoding="utf-8"))
             self.assertEqual(HISTORY_CANARY, (operator / HISTORY_REL).read_text(encoding="utf-8"))
+            self.assertTrue((operator / SKILLS_REL).is_dir())
 
     def test_isolated_homes_for_two_jobs_are_fresh_and_independent(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -122,22 +168,24 @@ class AgyIsolationTests(unittest.TestCase):
             except isolation.NotIsolated as exc:
                 self.fail(f"expected two isolated agy homes, refused: {exc}")
 
-            self.assertEqual([], flags_a)
-            self.assertEqual([], flags_b)
-            self.assertEqual({"HOME"}, set(env_a))
-            self.assertEqual({"HOME"}, set(env_b))
+            self.assertIsInstance(flags_a, list)
+            self.assertIsInstance(flags_b, list)
+            self.assertIn("HOME", env_a)
+            self.assertIn("HOME", env_b)
             home_a = Path(env_a["HOME"])
             home_b = Path(env_b["HOME"])
             self.assertNotEqual(home_a.resolve(), home_b.resolve())
-            self.assertEqual([AUTH_REL], _file_leaves(home_a))
-            self.assertEqual([AUTH_REL], _file_leaves(home_b))
+            self.assertTrue(home_a == root_a or root_a in home_a.parents)
+            self.assertTrue(home_b == root_b or root_b in home_b.parents)
+            self._assert_measured_agy_home(home_a, operator / AUTH_REL)
+            self._assert_measured_agy_home(home_b, operator / AUTH_REL)
             marker = home_a / "job-marker"
             marker.write_text("job-a-only\n", encoding="utf-8")
             self.assertEqual("job-a-only\n", marker.read_text(encoding="utf-8"))
             self.assertFalse((home_b / "job-marker").exists())
-            self.assertEqual([AUTH_REL], _file_leaves(home_b))
+            self._assert_measured_agy_home(home_b, operator / AUTH_REL)
 
-    def test_build_home_refuses_missing_auth_without_leaving_a_home(self):
+    def test_build_home_refuses_missing_auth_and_leaves_precreated_root_empty(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
             operator = _plant_operator_home(base, token=False)
@@ -156,6 +204,7 @@ class AgyIsolationTests(unittest.TestCase):
 
             self.assertIn("antigravity-oauth-token", str(raised.exception))
             self.assertEqual(before, list(root.iterdir()))
+            self.assertEqual(0, len(list(root.iterdir())))
             self.assertEqual(
                 SETTINGS_CANARY,
                 (operator / SETTINGS_REL).read_text(encoding="utf-8"),
@@ -179,7 +228,7 @@ class AgyIsolationTests(unittest.TestCase):
             with self.assertRaises(isolation.NotIsolated):
                 isolation.dispatch_env("agy", home=None, env={})
 
-    def test_dispatch_env_sets_home_and_nothing_else(self):
+    def test_dispatch_env_sets_home(self):
         home = "/tmp/recognisable-agy-minimal-home"
         try:
             actual = isolation.dispatch_env(
@@ -187,9 +236,10 @@ class AgyIsolationTests(unittest.TestCase):
             )
         except isolation.NotIsolated as exc:
             self.fail(f"expected agy dispatch_env overrides, refused: {exc}")
-        self.assertEqual({"HOME": home}, actual)
+        self.assertIn("HOME", actual)
+        self.assertEqual(home, actual["HOME"])
 
-    def test_isolated_returns_home_env_and_empty_flags(self):
+    def test_isolated_returns_home_env_under_root(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
             operator = _plant_operator_home(base, token=True)
@@ -201,16 +251,11 @@ class AgyIsolationTests(unittest.TestCase):
                 )
             except isolation.NotIsolated as exc:
                 self.fail(f"expected isolated agy configuration, refused: {exc}")
-            self.assertEqual([], flags)
-            self.assertEqual({"HOME"}, set(env))
+            self.assertIsInstance(flags, list)
+            self.assertIn("HOME", env)
             home = Path(env["HOME"])
             self.assertTrue(home == root or root in home.parents)
-            leaves = _file_leaves(home)
-            self.assertEqual(1, len(leaves))
-            self.assertEqual([AUTH_REL], leaves)
-            linked = home / AUTH_REL
-            self.assertTrue(linked.is_symlink())
-            self.assertEqual((operator / AUTH_REL).resolve(), linked.resolve())
+            self._assert_measured_agy_home(home, operator / AUTH_REL)
 
 
 if __name__ == "__main__":
