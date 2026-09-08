@@ -160,9 +160,8 @@ class AgyLiveTerminalSeparation(unittest.TestCase):
         self.assertIsInstance(tokens, dict, reading)
         self.assertEqual(tokens.get("total"), TERMINAL_USAGE["total_tokens"], reading)
         self.assertEqual(tokens.get("output"), TERMINAL_USAGE["output_tokens"], reading)
-        self.assertIsNone(
-            reading.get("live_output"),
-            f"live-incomplete still hides live_output: {reading}",
+        self.assertEqual(
+            reading.get("live_output"), TERMINAL_USAGE["output_tokens"], reading,
         )
         env = self.envelope_of(rows)
         self.assertEqual(env.get("status"), "ok", env)
