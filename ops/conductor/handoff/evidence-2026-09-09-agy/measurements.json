@@ -1,0 +1,2190 @@
+{
+  "measured_at": "2026-09-09T20:02:54.229944+00:00",
+  "commands": [
+    {
+      "at": "2026-09-09T20:02:51.601627+00:00",
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD",
+        "origin/dev",
+        "origin/master"
+      ],
+      "exit": 0,
+      "stdout": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b\n20f9bcaf2b3ae2152b9cab766637b5a89b71214b\nfc839a5f85f192acbea5efa6cc366efb7a7b5a42\n",
+      "stderr": ""
+    },
+    {
+      "at": "2026-09-09T20:02:52.064132+00:00",
+      "argv": [
+        "gh",
+        "pr",
+        "view",
+        "77",
+        "--json",
+        "number,title,state,mergedAt,mergeCommit,headRefOid,baseRefName,url"
+      ],
+      "exit": 0,
+      "stdout": "{\"baseRefName\":\"dev\",\"headRefOid\":\"c3f4c115f35333e0546cb63d2320cdcbf04ebd31\",\"mergeCommit\":{\"oid\":\"20f9bcaf2b3ae2152b9cab766637b5a89b71214b\"},\"mergedAt\":\"2026-09-09T19:59:29Z\",\"number\":77,\"state\":\"MERGED\",\"title\":\"lane: add agy worker harness support\",\"url\":\"https://github.com/uscient/agentscient/pull/77\"}\n",
+      "stderr": ""
+    },
+    {
+      "at": "2026-09-09T20:02:52.569267+00:00",
+      "argv": [
+        "gh",
+        "pr",
+        "list",
+        "--state",
+        "open",
+        "--limit",
+        "100",
+        "--json",
+        "number,title,headRefName,baseRefName,isDraft,url"
+      ],
+      "exit": 0,
+      "stdout": "[]\n",
+      "stderr": ""
+    },
+    {
+      "at": "2026-09-09T20:02:53.557851+00:00",
+      "argv": [
+        "gh",
+        "run",
+        "list",
+        "--branch",
+        "dev",
+        "--limit",
+        "5",
+        "--json",
+        "databaseId,headSha,status,conclusion,workflowName"
+      ],
+      "exit": 0,
+      "stdout": "[{\"conclusion\":\"success\",\"databaseId\":34398340949,\"headSha\":\"20f9bcaf2b3ae2152b9cab766637b5a89b71214b\",\"status\":\"completed\",\"workflowName\":\"CodeQL\"},{\"conclusion\":\"success\",\"databaseId\":34398341252,\"headSha\":\"20f9bcaf2b3ae2152b9cab766637b5a89b71214b\",\"status\":\"completed\",\"workflowName\":\"ci\"},{\"conclusion\":\"success\",\"databaseId\":34185890743,\"headSha\":\"3432b5cb8b9e171ecc981efa8409d299a85ec4c0\",\"status\":\"completed\",\"workflowName\":\"CodeQL\"},{\"conclusion\":\"success\",\"databaseId\":34185891044,\"headSha\":\"3432b5cb8b9e171ecc981efa8409d299a85ec4c0\",\"status\":\"completed\",\"workflowName\":\"ci\"},{\"conclusion\":\"success\",\"databaseId\":34178989190,\"headSha\":\"0c49022c688986772ae96e2cbb424ca1818135a9\",\"status\":\"completed\",\"workflowName\":\"CodeQL\"}]\n",
+      "stderr": ""
+    },
+    {
+      "at": "2026-09-09T20:02:54.017754+00:00",
+      "argv": [
+        "gh",
+        "run",
+        "view",
+        "34213696279",
+        "--json",
+        "headSha,status,conclusion,url"
+      ],
+      "exit": 0,
+      "stdout": "{\"conclusion\":\"success\",\"headSha\":\"c3f4c115f35333e0546cb63d2320cdcbf04ebd31\",\"status\":\"completed\",\"url\":\"https://github.com/uscient/agentscient/actions/runs/34213696279\"}\n",
+      "stderr": ""
+    },
+    {
+      "at": "2026-09-09T20:02:54.035330+00:00",
+      "argv": [
+        "git",
+        "diff",
+        "--stat",
+        "3432b5cb8b9e171ecc981efa8409d299a85ec4c0",
+        "c3f4c115f35333e0546cb63d2320cdcbf04ebd31"
+      ],
+      "exit": 0,
+      "stdout": " .dev/ladder-inputs/agy-worker-owner.md             |  17 +\n .../20260908T060530Z-plan-codex-099ecc.json        | 162 +++++\n .../20260908T061147Z-plan-codex-5ed24d.json        | 159 +++++\n .../20260908T061804Z-code-codex-cc64ee.json        | 363 ++++++++++\n .../20260908T064029Z-plan-codex-161211.json        | 169 +++++\n .../20260908T065000Z-adjudicate-grok-c2ae09.json   | 221 ++++++\n .../20260908T070040Z-code-codex-03813d.json        | 288 ++++++++\n .../20260908T071244Z-code-grok-220fb8.json         | 292 ++++++++\n .../20260908T073056Z-code-grok-0e4417.json         | 292 ++++++++\n .../20260908T073431Z-code-codex-a6785b.json        | 266 +++++++\n .../20260908T074315Z-code-codex-f7eb5e.json        | 365 ++++++++++\n .../20260908T074530Z-code-grok-5395b3.json         | 293 ++++++++\n .../20260908T074718Z-code-codex-30a2cd.json        | 265 +++++++\n .../20260908T075754Z-code-codex-e5fb34.json        | 270 +++++++\n .../20260908T080835Z-code-codex-0608e6.json        | 570 +++++++++++++++\n .../20260908T082720Z-code-grok-dd5294.json         | 313 ++++++++\n .../20260908T083944Z-review-agy-e49b81.json        | 146 ++++\n .../20260908T085213Z-review-agy-0ed3b1.json        | 161 +++++\n .../20260908T091327Z-review-agy-c14511.json        | 162 +++++\n .../20260908T094801Z-review-agy-12d55a.json        | 151 ++++\n .../20260908T095005Z-review-agy-6be776.json        | 161 +++++\n ops/conductor/tests/test_dispatch_wrapper.py       | 424 +++++++++++\n ops/conductor/tests/test_laneconf.py               | 536 ++++++++++++++\n ops/conductor/tests/worker_conf.py                 | 112 +++\n ops/conductor/tools/dispatch.sh                    |  27 +-\n ops/conductor/tools/laneconf.py                    | 116 ++-\n ops/devlane/dispatch/CONTRACT.md                   | 270 ++++++-\n ops/devlane/dispatch/launch.py                     | 368 +++++++++-\n ops/devlane/dispatch/tests/agy_dispatch_support.py | 302 ++++++++\n ops/devlane/dispatch/tests/agy_envelope_support.py | 173 +++++\n ops/devlane/dispatch/tests/test_agy_dispatch.py    | 793 +++++++++++++++++++++\n ops/devlane/dispatch/tests/test_agy_envelope.py    | 771 ++++++++++++++++++++\n .../tests/test_agy_live_step_update_cap.py         | 350 +++++++++\n .../tests/test_agy_live_terminal_separation.py     | 175 +++++\n .../dispatch/tests/test_agy_native_transcript.py   | 283 ++++++++\n .../fixtures/tests/test_python_service_app.py      |   1 +\n .../fixtures/tests/test_python_tooling_app.py      |   1 +\n ops/devlane/fixtures/tests/test_rust_crate_app.py  |   1 +\n ops/devlane/fixtures/tests/test_symfony_app_app.py |   1 +\n ops/devlane/harness/isolation.py                   |  97 +++\n ops/devlane/harness/probe.py                       |  99 ++-\n ops/devlane/harness/tests/test_agy_isolation.py    | 264 +++++++\n .../harness/tests/test_isolation_contract.py       |  29 +-\n ops/devlane/telemetry/pulse.py                     |  22 +\n ops/devlane/telemetry/usage.py                     | 159 ++++-\n ops/lane.conf                                      |   3 +\n 46 files changed, 10411 insertions(+), 52 deletions(-)\n",
+      "stderr": ""
+    },
+    {
+      "at": "2026-09-09T20:02:54.049957+00:00",
+      "argv": [
+        "git",
+        "rev-list",
+        "--count",
+        "3432b5cb8b9e171ecc981efa8409d299a85ec4c0..c3f4c115f35333e0546cb63d2320cdcbf04ebd31"
+      ],
+      "exit": 0,
+      "stdout": "76\n",
+      "stderr": ""
+    },
+    {
+      "at": "2026-09-09T20:02:54.055198+00:00",
+      "argv": [
+        "ps",
+        "-p",
+        "2868342",
+        "-o",
+        "pid=,args="
+      ],
+      "exit": 0,
+      "stdout": "2868342 python3 -u ops/conductor/tools/watchdog.py --store /home/scientdb/.local/state/agentscient/dispatch --tick 30 --heartbeat-every 2 --no-forge\n",
+      "stderr": ""
+    }
+  ],
+  "agy_sep8_dispatches": [
+    {
+      "id": "20260908T060530Z-plan-codex-099ecc",
+      "unit": "lane/agy-worker-20260908",
+      "at": {
+        "launched": "2026-09-08T06:05:30Z",
+        "closed": "2026-09-08T06:13:31Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1206232,
+        "out": 10601,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T061147Z-plan-codex-5ed24d",
+      "unit": "lane/agy-harness-configuration-20260908",
+      "at": {
+        "launched": "2026-09-08T06:11:47Z",
+        "closed": "2026-09-08T06:15:15Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 1
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 574826,
+        "out": 4476,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T061804Z-code-codex-cc64ee",
+      "unit": "lane/agy-worker-contract-20260908",
+      "at": {
+        "launched": "2026-09-08T06:18:04Z",
+        "closed": "2026-09-08T06:31:56Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "invalid",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 31,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2478429,
+        "out": 20291,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T061937Z-review-codex-d37520",
+      "unit": "lane/agy-worker-security-20260908",
+      "at": {
+        "launched": "2026-09-08T06:19:38Z",
+        "closed": "2026-09-08T06:22:53Z"
+      },
+      "status": "closed",
+      "model": "gpt-daybreak-blue-latest",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1592796,
+        "out": 11200,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T063559Z-review-claude-6eb510",
+      "unit": "lane/agy-contract-review-20260908",
+      "at": {
+        "launched": "2026-09-08T06:35:59Z",
+        "closed": "2026-09-08T06:46:25Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 5,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 5022724,
+        "out": 44171,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T064029Z-plan-codex-161211",
+      "unit": "lane/agy-wire-evidence-20260908",
+      "at": {
+        "launched": "2026-09-08T06:40:29Z",
+        "closed": "2026-09-08T06:47:13Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1852268,
+        "out": 8881,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T064550Z-tests-grok-fd0973",
+      "unit": "lane/agy-configuration-tests-20260908",
+      "at": {
+        "launched": "2026-09-08T06:45:50Z",
+        "closed": "2026-09-08T07:11:02Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4409300,
+        "out": 52534,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T065000Z-adjudicate-grok-c2ae09",
+      "unit": "lane/agy-contract-adjudication-20260908",
+      "at": {
+        "launched": "2026-09-08T06:50:00Z",
+        "closed": "2026-09-08T06:59:44Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 5,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1120027,
+        "out": 30061,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T065318Z-tests-grok-877495",
+      "unit": "lane/agy-envelope-tests-20260908",
+      "at": {
+        "launched": "2026-09-08T06:53:19Z",
+        "closed": "2026-09-08T07:05:38Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3001502,
+        "out": 40252,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T070040Z-code-codex-03813d",
+      "unit": "lane/agy-contract-correction-20260908",
+      "at": {
+        "launched": "2026-09-08T07:00:41Z",
+        "closed": "2026-09-08T07:07:08Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 19,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1432874,
+        "out": 8884,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T070133Z-plan-codex-15d6d1",
+      "unit": "lane/agy-native-seams-20260908",
+      "at": {
+        "launched": "2026-09-08T07:01:34Z",
+        "closed": "2026-09-08T07:05:28Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 850197,
+        "out": 4967,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T070629Z-code-codex-5203be",
+      "unit": "lane/agy-live-observation-20260908",
+      "at": {
+        "launched": "2026-09-08T07:06:30Z",
+        "closed": "2026-09-08T07:11:11Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "invalid",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 16,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 339704,
+        "out": 7988,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T070655Z-review-claude-52d622",
+      "unit": "lane/agy-envelope-test-review-20260908",
+      "at": {
+        "launched": "2026-09-08T07:06:55Z",
+        "closed": "2026-09-08T07:14:36Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2555931,
+        "out": 33119,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T070848Z-review-claude-e57ffb",
+      "unit": "lane/agy-corrected-contract-review-20260908",
+      "at": {
+        "launched": "2026-09-08T07:08:48Z",
+        "closed": "2026-09-08T07:17:05Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 4,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 3712553,
+        "out": 36425,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T071157Z-review-claude-e38eb4",
+      "unit": "lane/agy-config-test-review-20260908",
+      "at": {
+        "launched": "2026-09-08T07:11:57Z",
+        "closed": "2026-09-08T07:20:11Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 1,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 3191831,
+        "out": 35829,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T071244Z-code-grok-220fb8",
+      "unit": "lane/agy-host-observation-20260908",
+      "at": {
+        "launched": "2026-09-08T07:12:44Z",
+        "closed": "2026-09-08T07:29:50Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 18,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2209859,
+        "out": 39667,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T071550Z-adjudicate-codex-aa8b1a",
+      "unit": "lane/agy-envelope-test-adjudication-20260908",
+      "at": {
+        "launched": "2026-09-08T07:15:51Z",
+        "closed": "2026-09-08T07:18:55Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 591454,
+        "out": 3822,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T071740Z-adjudicate-grok-5256d1",
+      "unit": "lane/agy-corrected-contract-adjudication-20260908",
+      "at": {
+        "launched": "2026-09-08T07:17:40Z",
+        "closed": "2026-09-08T07:26:17Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 897375,
+        "out": 29640,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T071943Z-tests-grok-b3bc51",
+      "unit": "lane/agy-envelope-test-correction-20260908",
+      "at": {
+        "launched": "2026-09-08T07:19:43Z",
+        "closed": "2026-09-08T07:32:50Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2503820,
+        "out": 46500,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T072149Z-adjudicate-codex-28745d",
+      "unit": "lane/agy-config-test-adjudication-20260908",
+      "at": {
+        "launched": "2026-09-08T07:21:49Z",
+        "closed": "2026-09-08T07:24:46Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 633747,
+        "out": 3905,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T072515Z-tests-grok-2efe40",
+      "unit": "lane/agy-config-test-correction-20260908",
+      "at": {
+        "launched": "2026-09-08T07:25:15Z",
+        "closed": "2026-09-08T07:40:27Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4798830,
+        "out": 50293,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T073056Z-code-grok-0e4417",
+      "unit": "lane/agy-stdin-observation-20260908",
+      "at": {
+        "launched": "2026-09-08T07:30:56Z",
+        "closed": "2026-09-08T07:41:42Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 18,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2560796,
+        "out": 38349,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T073227Z-tests-grok-e5fe3d",
+      "unit": "lane/agy-isolation-tests-20260908",
+      "at": {
+        "launched": "2026-09-08T07:32:27Z",
+        "closed": "2026-09-08T07:41:41Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 5,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2206260,
+        "out": 31631,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T073346Z-review-claude-ffa611",
+      "unit": "lane/agy-envelope-test-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T07:33:47Z",
+        "closed": "2026-09-08T07:39:07Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2465415,
+        "out": 23268,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T073431Z-code-codex-a6785b",
+      "unit": "lane/agy-parser-implementation-20260908",
+      "at": {
+        "launched": "2026-09-08T07:34:31Z",
+        "closed": "2026-09-08T07:39:02Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 15,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 790956,
+        "out": 6779,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074040Z-adjudicate-codex-0f2839",
+      "unit": "lane/agy-envelope-remaining-adjudication-20260908",
+      "at": {
+        "launched": "2026-09-08T07:40:40Z",
+        "closed": "2026-09-08T07:43:15Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 393856,
+        "out": 3520,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074220Z-review-claude-1cc861",
+      "unit": "lane/agy-config-test-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T07:42:20Z",
+        "closed": "2026-09-08T07:50:18Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 3383645,
+        "out": 32294,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074315Z-code-codex-f7eb5e",
+      "unit": "lane/agy-config-implementation-20260908",
+      "at": {
+        "launched": "2026-09-08T07:43:15Z",
+        "closed": "2026-09-08T07:51:25Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 31,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1173541,
+        "out": 12781,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074501Z-tests-grok-346860",
+      "unit": "lane/agy-envelope-final-correction-20260908",
+      "at": {
+        "launched": "2026-09-08T07:45:02Z",
+        "closed": "2026-09-08T07:55:15Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2738944,
+        "out": 30937,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074530Z-code-grok-5395b3",
+      "unit": "lane/agy-permissions-observation-20260908",
+      "at": {
+        "launched": "2026-09-08T07:45:31Z",
+        "closed": "2026-09-08T08:02:38Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 19,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1988629,
+        "out": 41835,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074626Z-review-claude-087242",
+      "unit": "lane/agy-isolation-test-review-20260908",
+      "at": {
+        "launched": "2026-09-08T07:46:26Z",
+        "closed": "2026-09-08T07:53:26Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 4,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2652396,
+        "out": 29309,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074718Z-code-codex-30a2cd",
+      "unit": "lane/agy-isolation-implementation-20260908",
+      "at": {
+        "launched": "2026-09-08T07:47:19Z",
+        "closed": "2026-09-08T07:52:15Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "invalid",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 15,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 872244,
+        "out": 7496,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T074907Z-tests-grok-afdc3b",
+      "unit": "lane/agy-dispatch-tests-20260908",
+      "at": {
+        "launched": "2026-09-08T07:49:08Z",
+        "closed": "2026-09-08T08:03:04Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 4060378,
+        "out": 46919,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T075202Z-adjudicate-codex-4a46c9",
+      "unit": "lane/agy-config-remaining-adjudication-20260908",
+      "at": {
+        "launched": "2026-09-08T07:52:02Z",
+        "closed": "2026-09-08T07:54:08Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 347145,
+        "out": 2957,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T075326Z-tests-grok-72e30b",
+      "unit": "lane/agy-isolation-legacy-tests-20260908",
+      "at": {
+        "launched": "2026-09-08T07:53:26Z",
+        "closed": "2026-09-08T07:59:31Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 10,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1667690,
+        "out": 21112,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T075501Z-adjudicate-codex-c5e64d",
+      "unit": "lane/agy-isolation-test-adjudication-20260908",
+      "at": {
+        "launched": "2026-09-08T07:55:02Z",
+        "closed": "2026-09-08T07:58:46Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 4,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 623793,
+        "out": 5581,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T075641Z-tests-grok-0dabf4",
+      "unit": "lane/agy-config-final-correction-20260908",
+      "at": {
+        "launched": "2026-09-08T07:56:42Z",
+        "closed": "2026-09-08T08:09:21Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1178184,
+        "out": 21650,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T075726Z-review-claude-ee31f3",
+      "unit": "lane/agy-parser-status-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T07:57:27Z",
+        "closed": "2026-09-08T08:04:18Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2006485,
+        "out": 29052,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T075754Z-code-codex-e5fb34",
+      "unit": "lane/agy-parser-status-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T07:57:54Z",
+        "closed": "2026-09-08T08:01:37Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 15,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 602989,
+        "out": 5355,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T080140Z-tests-grok-5ff874",
+      "unit": "lane/agy-isolation-test-correction-20260908",
+      "at": {
+        "launched": "2026-09-08T08:01:41Z",
+        "closed": "2026-09-08T08:10:51Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1302973,
+        "out": 29340,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T080325Z-tests-grok-107c94",
+      "unit": "lane/agy-isolation-legacy-flags-20260908",
+      "at": {
+        "launched": "2026-09-08T08:03:25Z",
+        "closed": "2026-09-08T08:08:32Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1060214,
+        "out": 15442,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T080834Z-review-claude-c183d9",
+      "unit": "lane/agy-dispatch-test-review-20260908",
+      "at": {
+        "launched": "2026-09-08T08:08:35Z",
+        "closed": "2026-09-08T08:18:52Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 2,
+        "p2": 5,
+        "p3": 4,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 6607819,
+        "out": 43833,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T080835Z-code-codex-0608e6",
+      "unit": "lane/agy-runtime-candidate-20260908",
+      "at": {
+        "launched": "2026-09-08T08:08:35Z",
+        "closed": "2026-09-08T08:28:24Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "invalid",
+      "counts": {
+        "p1": 0,
+        "p2": 5,
+        "p3": 56,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5347601,
+        "out": 29235,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T081138Z-plan-codex-a9e721",
+      "unit": "lane/agy-discovery-probe-recipe-20260908",
+      "at": {
+        "launched": "2026-09-08T08:11:39Z",
+        "closed": "2026-09-08T08:14:39Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 747404,
+        "out": 3875,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T081445Z-review-claude-2dc5b5",
+      "unit": "lane/agy-test-final-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T08:14:45Z",
+        "closed": "2026-09-08T08:20:55Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2446641,
+        "out": 24386,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T082619Z-adjudicate-codex-a9f480",
+      "unit": "lane/agy-lifecycle-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T08:26:19Z",
+        "closed": "2026-09-08T08:33:25Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 2,
+        "p2": 5,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1500768,
+        "out": 9588,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T082619Z-adjudicate-codex-f8dfc8",
+      "unit": "lane/agy-final-test-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T08:26:20Z",
+        "closed": "2026-09-08T08:28:51Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 1
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 534073,
+        "out": 3268,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T082720Z-code-grok-dd5294",
+      "unit": "lane/agy-discovery-live-20260908",
+      "at": {
+        "launched": "2026-09-08T08:27:22Z",
+        "closed": "2026-09-08T08:38:18Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 21,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2221831,
+        "out": 40455,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T082927Z-tests-grok-851ac6",
+      "unit": "lane/agy-isolation-last-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T08:29:28Z",
+        "closed": "2026-09-08T08:50:46Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3078394,
+        "out": 31176,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T083004Z-review-claude-93416f",
+      "unit": "lane/agy-combined-review-20260908",
+      "at": {
+        "launched": "2026-09-08T08:30:04Z",
+        "closed": "2026-09-08T08:45:56Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 4,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 11090522,
+        "out": 67779,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T083004Z-review-grok-e194dc",
+      "unit": "lane/agy-combined-review-20260908",
+      "at": {
+        "launched": "2026-09-08T08:30:05Z",
+        "closed": "2026-09-08T08:43:00Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 1,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3026114,
+        "out": 41088,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T083005Z-review-codex-f022fd",
+      "unit": "lane/agy-combined-review-20260908",
+      "at": {
+        "launched": "2026-09-08T08:30:05Z",
+        "closed": "2026-09-08T08:37:41Z"
+      },
+      "status": "closed",
+      "model": "gpt-daybreak-blue-latest",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3684519,
+        "out": 18782,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T083444Z-tests-grok-0fd56a",
+      "unit": "lane/agy-lifecycle-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T08:34:44Z",
+        "closed": "2026-09-08T08:48:37Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 5968092,
+        "out": 51449,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T083902Z-adjudicate-grok-b6cf99",
+      "unit": "lane/agy-security-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T08:39:02Z",
+        "closed": "2026-09-08T08:47:34Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 743595,
+        "out": 27921,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T083944Z-review-agy-e49b81",
+      "unit": "lane/agy-canonical-smoke-20260908",
+      "at": {
+        "launched": "2026-09-08T08:39:44Z",
+        "closed": "2026-09-08T08:39:52Z"
+      },
+      "status": "closed",
+      "model": "gemini-3.8-flash-high",
+      "verdict": null,
+      "envelope_status": "invalid",
+      "counts": {},
+      "spend": {}
+    },
+    {
+      "id": "20260908T084137Z-code-codex-3defb2",
+      "unit": "lane/agy-native-reader-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T08:41:37Z",
+        "closed": "2026-09-08T08:50:16Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2132059,
+        "out": 11665,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T084359Z-adjudicate-claude-ae0641",
+      "unit": "lane/agy-grok-code-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T08:43:59Z",
+        "closed": "2026-09-08T08:52:09Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 1,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2911113,
+        "out": 36170,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T084714Z-adjudicate-grok-48e890",
+      "unit": "lane/agy-claude-code-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T08:47:14Z",
+        "closed": "2026-09-08T08:57:40Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1673953,
+        "out": 34050,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T084848Z-code-codex-91f59c",
+      "unit": "lane/agy-probe-selection-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T08:48:48Z",
+        "closed": "2026-09-08T08:55:37Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 23,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1110621,
+        "out": 10392,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T085020Z-review-claude-914a79",
+      "unit": "lane/agy-lifecycle-fix-review-20260908",
+      "at": {
+        "launched": "2026-09-08T08:50:20Z",
+        "closed": "2026-09-08T08:58:39Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 5244891,
+        "out": 32551,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T085213Z-review-agy-0ed3b1",
+      "unit": "lane/agy-canonical-smoke-20260908",
+      "at": {
+        "launched": "2026-09-08T08:52:13Z",
+        "closed": "2026-09-08T08:52:38Z"
+      },
+      "status": "closed",
+      "model": "gemini-3.8-flash-high",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "agy",
+        "total": 19021,
+        "out": 6450,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T085213Z-review-claude-812e9d",
+      "unit": "lane/agy-isolation-last-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T08:52:14Z",
+        "closed": "2026-09-08T08:55:39Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 978090,
+        "out": 13445,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T085455Z-tests-grok-7d9528",
+      "unit": "lane/agy-native-regression-tests-20260908",
+      "at": {
+        "launched": "2026-09-08T08:54:55Z",
+        "closed": "2026-09-08T09:10:38Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 2,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1717586,
+        "out": 29615,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T085645Z-code-codex-652354",
+      "unit": "lane/agy-runtime-ruling-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T08:56:45Z",
+        "closed": "2026-09-08T09:05:20Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1808775,
+        "out": 10902,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T085946Z-adjudicate-codex-24c834",
+      "unit": "lane/agy-lifecycle-cwd-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T08:59:46Z",
+        "closed": "2026-09-08T09:02:48Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 511681,
+        "out": 4497,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T085947Z-code-codex-c2f73c",
+      "unit": "lane/agy-live-usage-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T08:59:47Z",
+        "closed": "2026-09-08T09:10:43Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 33,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2270829,
+        "out": 15463,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T090019Z-tests-grok-86be51",
+      "unit": "lane/agy-live-usage-tests-20260908",
+      "at": {
+        "launched": "2026-09-08T09:00:19Z",
+        "closed": "2026-09-08T09:16:12Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1757288,
+        "out": 32901,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T090315Z-code-codex-8e7818",
+      "unit": "lane/agy-portable-fixture-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T09:03:16Z",
+        "closed": "2026-09-08T09:07:33Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "invalid",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 680186,
+        "out": 6587,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T090445Z-tests-grok-813a10",
+      "unit": "lane/agy-lifecycle-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T09:04:45Z",
+        "closed": "2026-09-08T09:06:26Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 634892,
+        "out": 5113,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T090820Z-tests-grok-2ba85a",
+      "unit": "lane/agy-portable-fixture-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T09:08:21Z",
+        "closed": "2026-09-08T09:11:51Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 3,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 915482,
+        "out": 9045,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T091257Z-review-claude-d9b38e",
+      "unit": "lane/agy-correction-review-20260908",
+      "at": {
+        "launched": "2026-09-08T09:12:58Z",
+        "closed": "2026-09-08T09:29:08Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 7559819,
+        "out": 61265,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T091258Z-review-grok-c8cfdc",
+      "unit": "lane/agy-correction-review-20260908",
+      "at": {
+        "launched": "2026-09-08T09:12:58Z",
+        "closed": "2026-09-08T09:23:59Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1968467,
+        "out": 33998,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T091327Z-review-agy-c14511",
+      "unit": "lane/agy-final-candidate-20260908",
+      "at": {
+        "launched": "2026-09-08T09:13:28Z",
+        "closed": "2026-09-08T09:14:46Z"
+      },
+      "status": "closed",
+      "model": "gemini-3.8-flash-high",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "agy",
+        "total": 37456,
+        "out": 24588,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T091705Z-review-claude-8787dd",
+      "unit": "lane/agy-final-candidate-20260908",
+      "at": {
+        "launched": "2026-09-08T09:17:05Z",
+        "closed": "2026-09-08T09:26:50Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 6551830,
+        "out": 35231,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T092737Z-adjudicate-codex-fb08c5",
+      "unit": "lane/agy-regression-final-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T09:27:38Z",
+        "closed": "2026-09-08T09:30:53Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 767964,
+        "out": 4642,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T093113Z-adjudicate-grok-932c95",
+      "unit": "lane/agy-source-last-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T09:31:14Z",
+        "closed": "2026-09-08T09:37:13Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 914880,
+        "out": 18819,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T093147Z-tests-grok-0add96",
+      "unit": "lane/agy-regression-final-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T09:31:48Z",
+        "closed": "2026-09-08T09:34:52Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 910853,
+        "out": 8990,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T093620Z-review-claude-a5757c",
+      "unit": "lane/agy-regression-final-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T09:36:20Z",
+        "closed": "2026-09-08T09:38:23Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 674293,
+        "out": 8888,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T093848Z-code-codex-9cca17",
+      "unit": "lane/agy-live-accounting-final-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T09:38:49Z",
+        "closed": "2026-09-08T09:45:25Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 24,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1009051,
+        "out": 9620,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T093849Z-tests-grok-cdda3d",
+      "unit": "lane/agy-live-accounting-regression-20260908",
+      "at": {
+        "launched": "2026-09-08T09:38:49Z",
+        "closed": "2026-09-08T09:42:15Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1394837,
+        "out": 11196,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T094800Z-review-claude-c2c5f7",
+      "unit": "lane/agy-accounting-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T09:48:01Z",
+        "closed": "2026-09-08T09:53:22Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 2,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2708437,
+        "out": 22399,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T094800Z-review-grok-1b101d",
+      "unit": "lane/agy-accounting-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T09:48:00Z",
+        "closed": "2026-09-08T09:51:58Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 531510,
+        "out": 4797,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T094801Z-review-agy-12d55a",
+      "unit": "lane/agy-accounting-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T09:48:02Z",
+        "closed": "2026-09-08T09:48:05Z"
+      },
+      "status": "closed",
+      "model": null,
+      "verdict": null,
+      "envelope_status": "invalid",
+      "counts": {},
+      "spend": {}
+    },
+    {
+      "id": "20260908T095005Z-review-agy-6be776",
+      "unit": "lane/agy-accounting-acceptance-20260908",
+      "at": {
+        "launched": "2026-09-08T09:50:06Z",
+        "closed": "2026-09-08T09:50:45Z"
+      },
+      "status": "closed",
+      "model": "gemini-3.8-flash-high",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "agy",
+        "total": 24020,
+        "out": 11136,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T095856Z-adjudicate-codex-b3a76e",
+      "unit": "lane/agy-terminal-test-ruling-20260908",
+      "at": {
+        "launched": "2026-09-08T09:58:57Z",
+        "closed": "2026-09-08T10:00:38Z"
+      },
+      "status": "closed",
+      "model": "gpt-6-astra",
+      "verdict": "changes",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 305226,
+        "out": 2156,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T100151Z-tests-grok-c7d886",
+      "unit": "lane/agy-terminal-test-fix-20260908",
+      "at": {
+        "launched": "2026-09-08T10:01:51Z",
+        "closed": "2026-09-08T10:03:04Z"
+      },
+      "status": "closed",
+      "model": "grok-4.6",
+      "verdict": null,
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 478691,
+        "out": 3707,
+        "runs": 1
+      }
+    },
+    {
+      "id": "20260908T100343Z-review-claude-944125",
+      "unit": "lane/agy-terminal-test-accept-20260908",
+      "at": {
+        "launched": "2026-09-08T10:03:43Z",
+        "closed": "2026-09-08T10:05:52Z"
+      },
+      "status": "closed",
+      "model": "claude-opus-5",
+      "verdict": "approve",
+      "envelope_status": "ok",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 839147,
+        "out": 8583,
+        "runs": 1
+      }
+    }
+  ],
+  "launched_records_at_measurement": [],
+  "dispatch_selection": "record.json unit contains agy and ID begins 20260908; excludes root session usage and other lineages; reported totals are harness-native and may include cache"
+}
