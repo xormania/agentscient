@@ -1,0 +1,143 @@
+{
+  "id": "20260909T232202Z-code-codex-d3004f",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:22:03Z",
+    "closed": "2026-09-09T23:22:07Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "ref_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/out\"]",
+      "--model",
+      "gpt-6",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-22-03-01a0887a-7ce9-78e1-8dca-508a809e386b.jsonl"
+  },
+  "session": {
+    "id": "01a0887a-7ce9-78e1-8dca-508a809e386b",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-22-03-01a0887a-7ce9-78e1-8dca-508a809e386b.jsonl",
+    "stream_sha256_at_close": "ecd95217ef33137d6c0f13c8922e86dd870c101b11942172306dd2405d169dcd",
+    "spend": {
+      "unresolved": "UNREACHABLE: the store carries no usage for this session",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/home/codex-stream"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "git diff --check. Author ONLY the finding-admission contract and concise implementation handoff under the owner scope in in/owner-scope.md. Reconcile existing owning contracts/process docs; no source, prompts, tests or unrelated policy edits. Declare exact minimal interfaces, legacy handling and verified coupling boundaries for independent tests. Do not invent a new framework. Scope is owner-set, you supply the design. Commit docs with Source: original and your actual model attribution. Keep the handoff within the contract instead of a disposable plan. Run git diff --check and link checks.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232202Z-code-codex-d3004f/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      }
+    ],
+    "sha256": "f9422c5c317b147f6de7b8854ad7d2546b2705eb878966b53fe9b8fe0fc10b89",
+    "bytes": 4443
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:22:03Z",
+      "ended": "2026-09-09T23:22:07Z",
+      "exit": 1,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited 1"
+    },
+    "cause": {
+      "reason": "harness-cli:1"
+    }
+  },
+  "status": "closed"
+}
