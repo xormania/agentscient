@@ -1,0 +1,35 @@
+{
+  "measured_at": "2026-09-09T20:19:19.593084+00:00",
+  "publication": {
+    "argv": [
+      "git",
+      "ls-remote",
+      "origin",
+      "refs/heads/records/agy-closeout-20260909"
+    ],
+    "exit": 0,
+    "stdout": "702be4a9abb42712bc096f9082c847fbc60ff1d7\trefs/heads/records/agy-closeout-20260909\n",
+    "local_head": "702be4a9abb42712bc096f9082c847fbc60ff1d7"
+  },
+  "accepted_source": "9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70",
+  "review_record": ".dev/records/dispatches/20260909T201551Z-review-grok-227c17.json",
+  "review_verdict": "approve",
+  "manual_probe_results": {
+    "pass": 10,
+    "fail": 0,
+    "unreachable": 0,
+    "production_runner": "absent"
+  },
+  "accepted_artifact_hashes": {
+    "aar": "ops/conductor/AAR-2026-09-09-agy.md",
+    "handoff": "ops/conductor/handoff/HANDOFF-2026-09-09-agy.md",
+    "corpus": "ops/conductor/handoff/probes/probes-2026-09-09-agy.jsonl",
+    "evidence": "ops/conductor/handoff/evidence-2026-09-09-agy/measurements.json",
+    "aar_sha256": "db5ae8e67b40471b38a90f1585f51d17ba73f093ff5403d25d0e2cee11c00538",
+    "handoff_sha256": "8dfd8f7e11e8a36b1d5184f1782f5d91800d398dcb0a8aaaaa1c5f62c3f27e1c",
+    "corpus_sha256": "9fdd23e7a30d0815b6dff420b1f7cda4bc52beebb6cb0b524ca0275d3e0d0f82",
+    "evidence_sha256": "a20667aed9b851bcb0fce66f0b8fb6d78d4139e7bb7b18547bb1bef572119d94",
+    "probe_receipts": "pass=10 fail=0 unreachable=0; runner=absent"
+  },
+  "scope": "Publication and independent review supersede author-time pending settlement statements. Author reports and original review remain stamped to their own source. Onboard current-tree calibration verified; automatic retained-handoff selection remains unclaimed."
+}

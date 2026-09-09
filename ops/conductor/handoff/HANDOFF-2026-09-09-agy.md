@@ -1,5 +1,12 @@
 # Handoff — 2026-09-09, agy worker custody
 
+Conductor publication update, 2026-09-09: this bundle is now retained on origin
+at `records/agy-closeout-20260909`. Independent verification passed all ten
+manual custody probes (zero failures or unreachable rows). The [publication
+receipt](evidence-2026-09-09-agy/publication.json) supersedes the author-time pending settlement and
+publication statements below. Automatic retained-handoff selection remains
+unclaimed; the reports retain their original measurement boundaries.
+
 Owner-requested retained report, not authority. Author: GPT-6. Local source
 inspection on 2026-09-09 is against
 `20f9bcaf2b3ae2152b9cab766637b5a89b71214b`; inherited observations retain the
