@@ -1,0 +1,205 @@
+{
+  "id": "20260909T201551Z-review-grok-227c17",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "records/agy-closeout-20260909",
+  "lineage": {
+    "branch": "records/agy-closeout-20260909",
+    "base_sha": "9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T20:15:51Z",
+    "closed": "2026-09-09T20:17:27Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70",
+    "ref_sha": "9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-agy-closeout-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "042d2ea8-c3c7-4712-bd74-e08f2eb50102",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "low",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "low",
+    "effort_argv": [
+      "--reasoning-effort",
+      "low"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/home/grok-stream/sessions/<snapshot-encoded>/042d2ea8-c3c7-4712-bd74-e08f2eb50102/summary.json"
+  },
+  "session": {
+    "id": "042d2ea8-c3c7-4712-bd74-e08f2eb50102",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/home/grok-stream/sessions/<snapshot-encoded>/042d2ea8-c3c7-4712-bd74-e08f2eb50102/summary.json",
+    "stream_sha256_at_close": "338faeb3382a915dbc53d92e333f01a904cc9cf4a107b80bd11aa0928ff987f0",
+    "spend": {
+      "input": 326987,
+      "cached": 223488,
+      "output": 5724,
+      "total": 332711,
+      "cost_usd_ticks": 600246200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/home/grok-stream/sessions/<snapshot-encoded>/042d2ea8-c3c7-4712-bd74-e08f2eb50102/summary.json",
+      "messages": 70
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-agy-closeout-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Independently accept ONLY the new 2026-09-09 agy AAR/handoff/probe/evidence bundle. Read supplied producer and measurements; check critical claims, links, explicit gaps, calibration, no worktree-only custody claim, correct merged PR77 state, and no invented automatic onboard selection. Manually execute the corpus read commands with timeouts and identity stripped, report pass/fail/unreachable separately plus exact four file hashes; runner absent is not a green production runner. Verify onboard.py serves this AAR calibration when run in this snapshot; any unavailable state source stays declared. No edits, production review, new policies, scope expansion or full suite. No repeated permission attempts. Return concise inline acceptance and probe receipts.",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/in/agy-closeout-producer.json",
+        "sha256": "b51b5c12dd3487526d48c8efe2f8df05a4c8ddc7ab00737dc6e5ad362fe84630"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T201551Z-review-grok-227c17/in/agy-closeout-evidence.json",
+        "sha256": "a20667aed9b851bcb0fce66f0b8fb6d78d4139e7bb7b18547bb1bef572119d94"
+      }
+    ],
+    "sha256": "93500df402dfdf5abdde9f9c282f43b622f5d2298ebae5b68167c4fb22d11f5a",
+    "bytes": 3067
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T20:15:51Z",
+      "ended": "2026-09-09T20:17:27Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 5,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/handoff/probes/probes-2026-09-09-agy.jsonl",
+          "claim": "Manual corpus reads (timeout 10s; GIT_CONFIG_GLOBAL/SYSTEM=/dev/null; author/committer identity unset): pass=10 fail=0 unreachable=0. P-AGY-20260909-intent/merged/configuration/accounting/writes/acceptance/spend/lessons/custody/left-behind all matched expect via git show records/agy-closeout-20260909:... . Ref records/agy-closeout-20260909 = 9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70.",
+          "reproduce": "cd snapshot; GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null timeout 10 git show records/agy-closeout-20260909:ops/conductor/handoff/HANDOFF-2026-09-09-agy.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/probes.py",
+          "claim": "Production probe runner absent (no ops/conductor/tools/probes.py). Author checks and this manual git-show pass are not a green production runner or Arm B grade.",
+          "reproduce": "ls ops/conductor/tools/probes.py"
+        },
+        {
+          "severity": "p3",
+          "where": "four-file hashes at HEAD 9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70",
+          "claim": "AAR db5ae8e67b40471b38a90f1585f51d17ba73f093ff5403d25d0e2cee11c00538; HANDOFF 8dfd8f7e11e8a36b1d5184f1782f5d91800d398dcb0a8aaaaa1c5f62c3f27e1c; probes jsonl 9fdd23e7a30d0815b6dff420b1f7cda4bc52beebb6cb0b524ca0275d3e0d0f82; measurements a20667aed9b851bcb0fce66f0b8fb6d78d4139e7bb7b18547bb1bef572119d94 (cmp equal to in/agy-closeout-evidence.json).",
+          "reproduce": "sha256sum ops/conductor/AAR-2026-09-09-agy.md ops/conductor/handoff/HANDOFF-2026-09-09-agy.md ops/conductor/handoff/probes/probes-2026-09-09-agy.jsonl ops/conductor/handoff/evidence-2026-09-09-agy/measurements.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/onboard.py",
+          "claim": "In this snapshot, calibration() served ops/conductor/AAR-2026-09-09-agy.md Calibration (untrusted data banner). Unavailable state sources declared, not inferred empty: decisions.db ABSENT; handwork.db ABSENT; gh unavailable (GH_TOKEN); dispatch store ABSENT under grok HOME. onboard exit 1, brief complete, 3 absence(s). No automatic retained-handoff selection claimed or observed.",
+          "reproduce": "python3 ops/conductor/tools/onboard.py"
+        },
+        {
+          "severity": "p3",
+          "where": "AAR+HANDOFF vs supplied evidence",
+          "claim": "PR77 MERGED into dev at 20f9bcaf2b3ae2152b9cab766637b5a89b71214b, CI34398341252 and CodeQL34398340949 success, open-PR [] are inherited from stamped measurements, not a live forge query. Scoped spend recomputed: 87 rows, 80 ok/7 invalid, 85 with spend totaling 177093133/1880809; empty spend on e49b81 and 12d55a not zeroed. Smoke 6be776 locally ok/approve 24020/11136. Custody is Git-ref (records/agy-closeout-20260909), not worktree-only. Critical local links exist. Extra launcher dispatch json in the commit is outside the four-file bundle and was not treated as production code.",
+          "reproduce": "python3 -c \"import json;from pathlib import Path;from collections import defaultdict;ev=json.loads(Path('ops/conductor/handoff/evidence-2026-09-09-agy/measurements.json').read_text());print(len(ev['agy_sep8_dispatches']))\""
+        }
+      ],
+      "artifacts": {
+        "aar": "ops/conductor/AAR-2026-09-09-agy.md",
+        "handoff": "ops/conductor/handoff/HANDOFF-2026-09-09-agy.md",
+        "corpus": "ops/conductor/handoff/probes/probes-2026-09-09-agy.jsonl",
+        "evidence": "ops/conductor/handoff/evidence-2026-09-09-agy/measurements.json",
+        "aar_sha256": "db5ae8e67b40471b38a90f1585f51d17ba73f093ff5403d25d0e2cee11c00538",
+        "handoff_sha256": "8dfd8f7e11e8a36b1d5184f1782f5d91800d398dcb0a8aaaaa1c5f62c3f27e1c",
+        "corpus_sha256": "9fdd23e7a30d0815b6dff420b1f7cda4bc52beebb6cb0b524ca0275d3e0d0f82",
+        "evidence_sha256": "a20667aed9b851bcb0fce66f0b8fb6d78d4139e7bb7b18547bb1bef572119d94",
+        "probe_receipts": "pass=10 fail=0 unreachable=0; runner=absent"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 332711,
+        "out": 5724,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9a3ccfeb0ce98d46b036dd6fe4f2f2a863ec0d70",
+        "started": null,
+        "ended": null
+      },
+      "note": "Accept the 2026-09-09 agy AAR/handoff/probe/evidence bundle only. Manual corpus 10/10 pass after launcher settlement of records/agy-closeout-20260909; probes.py absent is not a green runner. Onboard in this snapshot serves this AAR calibration; register/ledger/gh/dispatch-store absences declared. No worktree-only custody claim; PR77 merged state matches supplied measurements; no invented automatic onboard selection."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-09T20:17:26.584Z"
+    }
+  },
+  "status": "closed"
+}
