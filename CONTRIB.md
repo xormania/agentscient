@@ -59,6 +59,10 @@ FINDINGS:
   honestly.
 - A finding is verified against the live tree before it is applied; the
   verification command belongs in the fix commit's body.
+- [Finding admission](ops/devlane/task/FINDING-ADMISSION.md) determines which
+  evaluated findings earn correction. Raw verdicts and priority do not grant
+  admission; disputed findings require independent resolution. Preserve all
+  findings, including unproven/expansion, and never approve incomplete review.
 - Denial is never an error: a CHANGES verdict recorded and addressed is the
   process working.
 

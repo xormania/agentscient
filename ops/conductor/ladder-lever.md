@@ -6,6 +6,10 @@ minutes of session latency. This instrument automates those boundaries;
 it does not replace the dispatcher, launcher, land lever, findings
 ledger, or process law.
 
+[Finding admission](../devlane/task/FINDING-ADMISSION.md) narrows the correction
+conditions and inputs below. It is the owner-scoped target; source enforcement
+requires the later independent tests and implementation described there.
+
 ## Conventions
 
 This instrument inherits `ops/conductor/instrument-conventions.md`:
@@ -36,12 +40,12 @@ dispatcher from the lane configuration, never carried in this table.
 |---|---|---|---|---|---|
 | `tests` | `author-tests` | grok | `tests` | scope, plan | always |
 | `check-tests` | `check-tests` | codex | `check-tests` | scope, plan, tests envelope | always |
-| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, skeptic envelope and `SKEPTIC.md` | skeptic says `changes` |
+| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, admitted skeptic correction projection | evaluated in-scope defects admitted |
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
-| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes | either audit says `changes` |
-| `fix-code` | `implement` | codex | `code` | scope, plan, both audit envelopes, test command | after `fix-tests` |
+| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, admitted audit correction projection | evaluated in-scope defects admitted |
+| `fix-code` | `implement` | codex | `code` | scope, plan, admitted audit correction projection, test command | after admitted `fix-tests` |
 | `security-re` | `security-audit` | codex | `review` | scope, plan, original security envelope | after the audit fix round |
 | `pr` | `gh pr create --draft` | none | none | body built from records | audits approve |
 
@@ -93,6 +97,13 @@ without relaunching. Otherwise it relaunches that stage once. A second
 failure stops as `retry-cap`. A tripped or dead stage names
 `launch.py collect` as its remedy; the driver never collects on its own.
 No second fix round and no second skeptic run exist.
+
+Before any fresh correction, including resume, consume the complete batch's
+bound ledger projection. An admission refusal stops through the existing stage
+stop wire; an empty admitted set skips correction without inventing approval
+or another dispatch. Held findings remain visible. No incomplete review becomes
+complete because filtration produced no correction. Existing retry limits and
+approval requirements are unchanged.
 
 ## Record
 

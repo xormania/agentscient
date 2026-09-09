@@ -54,11 +54,10 @@ not in its memory. Fresh sessions defeat motive; only a different model
 defeats correlated error. That is why the two code reviewers are two
 different harnesses, and why stage 4 is a third.
 
-**The residual, stated plainly:** the session that produced an artifact is
-the one that decides which findings against it to act on. No fresh session
-fixes that, because the adjudicating session is the producing session. The
-owner is the backstop, and every finding must be answered in writing —
-accepted or refuted with evidence — never silently dropped.
+Every finding must be answered in writing and preserved. The producer may
+submit counter-evidence, but must not unilaterally dismiss disputed findings;
+[finding admission](../devlane/task/FINDING-ADMISSION.md) owns their evaluation
+and independent resolution.
 
 ## The snapshot rule (non-negotiable)
 
@@ -197,15 +196,16 @@ triggers `@codex review` on a pull request** — no harness posts that trigger.
 
 ## Acting on findings
 
-**A review that returns CHANGES is adjudicated. That is not a judgement
-call.**
+**Only evaluated demonstrated in-scope defects earn correction.**
 
-The producer must not be the one deciding which findings against its own
-work are worth acting on — that is the last dial left in the hands of the
-party with the conflict, and no fresh session removes it, because the
-session deciding is the session that produced. So: any review returning
-CHANGES goes to a harness that produced **neither the artifact nor the
-finding**, before any of it is worked.
+The reviewer self-evaluates and attempts refutation under
+[finding admission](../devlane/task/FINDING-ADMISSION.md). A raw CHANGES verdict
+or priority is insufficient. Disputed findings go to an adjudicator that
+produced **neither the artifact nor the finding**, before the disputed items
+are worked. Unproven and scope-expansion findings stay visible without becoming
+automatic defects or another dispatch. Missing evaluation in legacy records
+must be supplied explicitly before fresh correction; incomplete review remains
+incomplete. The table illustrates independence, not a new assignment rule.
 
 | findings against | producer | finder | adjudicator |
 |:--|:--|:--|:--|
@@ -213,22 +213,19 @@ finding**, before any of it is worked.
 | tests | Grok | Codex | Fable, or the session |
 | code | Opus | Grok and Codex | **Fable — the only one left** |
 
-The adjudicator is given the artifact at the SHA that was reviewed and
-the reports verbatim, and nothing else: not who wrote the branch, not
-which findings the producer concedes, not what has been changed since.
-It rules UPHELD / PARTIAL / REJECTED per finding, and is asked what the
-reviewers missed — the 2026-08-25 run returned two such items, one of
-them a hole the producer's own fix had opened.
+The adjudicator receives the pinned artifact, agreed scope, verbatim reports,
+disputed keys and prior rulings needed to settle that supplied batch. It returns
+UPHELD / PARTIAL / REJECTED and the bound evaluation per supplied finding.
+Remove the extra-finding hunt: incidental serious issues are visible follow-ups,
+not additional rulings or automatic correction work. Retained provenance proves
+independence; the implementation producer's preferences do not decide the ruling.
 
-Rule on it before working it. A producer that fixes what it agrees with
-first has already adjudicated, whatever it does afterwards.
+Rule on disputed items before working them. The producer cannot settle
+a dispute by implementing the part it prefers.
 
-**This is prose, and prose runs nothing.** Making it a gate needs review
-verdicts recorded as artifacts in the tree rather than left in a
-scratchpad, so a check can refuse a merge that carries a CHANGES verdict
-with no ruling against it. Until that exists the rule is honoured by
-hand, which is exactly the condition under which the last one was
-written down and ignored.
+The [admission contract's handoff](../devlane/task/FINDING-ADMISSION.md#verification-boundaries-and-implementation-handoff)
+declares the ledger/route gates and independent behavioral checks. This prose
+does not claim runtime enforcement or add a merge gate.
 
 - **Verify every finding against the live tree before applying it.** Not
   because reviewers are often wrong — they have not been — but because the

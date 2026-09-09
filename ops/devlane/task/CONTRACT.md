@@ -104,8 +104,9 @@ reading the work:
 Three fields carry the weight:
 
 - **`reproduce`** — the command that re-derives the claim. A finding
-  without one is an opinion, and the envelope says so rather than
-  hiding it.
+  without one contributes to the historical `opinions` counter. That
+  counter is not correction eligibility: an evidenced execution path can
+  qualify under [finding admission](FINDING-ADMISSION.md).
 - **`artifacts`** — handles, not contents. The prose stays on disk;
   the Conductor reads it only if it decides to.
 - **`spend`** — what the run cost, so `worth.py` can price a job
@@ -122,6 +123,12 @@ Artifacts remain non-empty, single-line handles bounded by `HANDLE_MAX`,
 not embedded reports. Workers leave the declared zero spend placeholder;
 the launcher resolves measured spend, declaring unavailable evidence
 instead of treating that placeholder as a measurement.
+
+[Finding admission](FINDING-ADMISSION.md) owns the optional per-finding
+evaluation, its legacy handling and the evidence required before correction.
+This is a contract for later implementation: raw counts/verdicts remain intact,
+and the existing envelope is extended rather than replaced. Its embedded
+handoff owns the independent test and implementation boundaries.
 
 **Current acceptance defect (C1 baseline):** `run.py` calls
 `envelope.validate`, while launch uses `_schema_valid`, adding only an
@@ -175,9 +182,9 @@ does not change the runner.
 | `author-tests` | a test file that has been run and is red for the stated reason |
 | `sweep` | structured findings over disjoint categories, merged |
 | `plan` | a plan written to the job's `out/PLAN.md`, and an envelope naming it |
-| `check-tests` | a skeptic's report at `out/SKEPTIC.md`; verdict `changes` when any test is refuted |
+| `check-tests` | a skeptic's report at `out/SKEPTIC.md`; verdict `changes` for an evaluated demonstrated in-scope test defect |
 | `implement` | commits in the snapshot that make the named test command pass, trailers per `AGENTS.md` |
-| `adjudicate` | a ruling at `out/RULING.md` — UPHELD / PARTIAL / REJECTED per finding, and what the reviewers missed |
+| `adjudicate` | a ruling at `out/RULING.md` — UPHELD / PARTIAL / REJECTED and bound evaluation per supplied finding, under [finding admission](FINDING-ADMISSION.md#disputes-and-legacy-records); no additional-finding hunt |
 
 `verify` is deliberately callable on its own: it is the primitive the
 others lean on, and the one whose answer is mechanical — an exit code
