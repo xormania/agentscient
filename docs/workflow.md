@@ -40,10 +40,15 @@ carries, with the transition history as its chain.
 ## The audit ladder pattern
 
 A review workflow worth naming: sequential audits by independent
-reviewers, findings fixed and the full floor re-run between stages,
-so each later auditor sees a tree stripped of what any reviewer
-could find; scarce, expensive review fires only after the ladder.
+reviewers, admitted findings fixed and the full floor re-run between stages,
+so each later auditor sees a tree with admitted defects corrected;
+scarce, expensive review fires only after the ladder.
 Each stage's findings-after-filtration is recorded — the marginal
 detection series of each reviewer, produced as a byproduct. The
 sequence of reviewers is supplied by the operator as declared data
 with a per-run override; it is never inferred by the system.
+
+For the dev lane, [finding admission](../ops/devlane/task/FINDING-ADMISSION.md)
+owns filtration: only evaluated demonstrated in-scope defects enter correction.
+Raw findings/verdicts remain evidence; empty filtration never approves an
+incomplete review.
