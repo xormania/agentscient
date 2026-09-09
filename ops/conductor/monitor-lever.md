@@ -163,6 +163,92 @@ intervals rather than a catch-up storm. Source failures do not halt other
 due observations. Unchanged file readings may be cached only with change
 detection; no full transcript/store rescan every tick.
 
+## Branch freshness adapter amendment
+
+Owner direction (2026-09-09): observe both trunk and release through this
+monitor; earlier synchronization proposals are investigation, not authority.
+This declares the next contract/test boundary, not an implemented adapter.
+Register `git-refs` in `tools/monitor.py`'s existing `ADAPTERS` interface:
+validator `(params, base)` and reader `(params, now)` returning the reading
+list above. No new scheduler, condition operator or delivery mechanism.
+
+Params are exactly `{repo,remote,branches,timeout_s}`: `repo` follows the
+existing config-relative path rule; `remote` is an explicit Git remote name
+matching `[A-Za-z0-9][A-Za-z0-9._-]{0,63}`; `branches` is an ordered, unique
+list of 1..32 literal short branch names, each <=255 ASCII bytes and valid
+under Git's ref-name rules, with no patterns or leading `-`; `timeout_s`
+is finite, non-bool, 0 < value <= 30. Deployment config must include `dev`
+and `master`. Invalid params refuse `config`, including disabled entries.
+
+Read local full `refs/heads/<branch>` OIDs, never abbreviated HEAD or
+`refs/remotes/*`. Once per observation, build argv in code:
+`git -C <repo> ls-remote --refs -- <remote> refs/heads/<branch> ...`.
+One query covers every configured branch, shared across conditions/routes;
+no retry or cached remote answer. Exact returned ref names only; validate
+full 40/64 lowercase hexadecimal OIDs, reject duplicates/malformed output.
+An exit-0 response omitting a requested ref proves remote absence. Spawn,
+authentication, nonzero exit, timeout, decode or output failure cannot.
+Local reads and the query share one monotonic `timeout_s` deadline, including
+EOF and reap; each child pipe is capped at 1048576 bytes, drained concurrently.
+Overflow/deadline kills and reaps only the observation's child. Never expose
+raw stderr. Missing/unreadable repo or local read failure is unavailable.
+
+One reading per branch in configured order: `subject=refs/heads/<branch>`,
+`generation=[resolved_repo,remote,subject]` (stable across polls/ref moves),
+`observed_at` is the supplied UTC poll time; `evidence` is
+`{repo,remote,ref}`. Metrics are exactly `{local_oid,remote_oid,freshness}`;
+unobserved/absent OIDs are null, distinguished by freshness and bounded fixed
+`reason` (null on successful measurement). Remote failure takes precedence
+over missing local; local read failure takes precedence over comparison.
+
+| reading state | metrics.freshness | observable result |
+|---|---|---|
+| ok | equal | both OIDs present and identical |
+| ok | different | both present and unequal |
+| ok | missing-local | local absent, remote present |
+| ok | missing-remote | local present, remote absent |
+| ok | missing-both | both proved absent |
+| unavailable | remote-unavailable | query failed; remote_oid null |
+| unavailable | local-unavailable | local read failed; local_oid null |
+
+No ancestry claims: absent remote objects still permit `different`, never
+invented ahead/behind/divergence counts. Observation never fetches, resets,
+merges, checks out, creates refs, pushes, edits config, invokes arbitrary
+configured commands or calls models. Monitor writes remain confined to its
+existing queue/state, disjoint from the configured repo and Git common dir;
+no other actor's checkout is touched and no tick synchronizes branches.
+
+Minimal version-1 registry example (repo path relative to this config):
+
+```json
+{
+  "version": 1,
+  "schedules": {"forge": {"enabled": true, "every_s": 300}},
+  "monitors": {"branch_refs": {"enabled": true, "adapter": "git-refs", "schedule": "forge", "params": {"repo": "../..", "remote": "origin", "branches": ["dev", "master"], "timeout_s": 5}}},
+  "conditions": {
+    "refs_changed": {"enabled": true, "monitor": "branch_refs", "op": "changed", "field": "freshness", "threshold": null, "cooldown_s": 0},
+    "refs_unavailable": {"enabled": true, "monitor": "branch_refs", "op": "unavailable", "field": null, "threshold": null, "cooldown_s": 0}
+  },
+  "routes": {
+    "refs_changed": {"enabled": true, "condition": "refs_changed", "adapter": "queue", "consumer": "operator"},
+    "refs_unavailable": {"enabled": true, "condition": "refs_unavailable", "adapter": "queue", "consumer": "operator"}
+  }
+}
+```
+
+Independent TDD cases before implementation: two equal refs; dev different
+with master equal and vice versa; each missing-ref row above; stale tracking
+refs equal to local while live remote differs; remote OID absent from local
+objects still yields `different`; unreachable/auth failure, timeout, malformed
+or duplicate rows and either pipe overflow yield unavailable, never absence.
+Assert one remote argv for both branches even with both routes, bounded local
+reads, stable generation, first/transition events and unchanged-poll/restart
+dedup, recovery to equal, disabled/removed source making no query, invalid
+params refusing before observation, and unchanged refs/index/worktree/config
+with dirty files, local commits and another occupied worktree. After tests,
+one live bounded adapter probe must report both dev/master OIDs and freshness,
+stamped with repo, remote, tested revision and time; unreachable is unverified.
+
 ## Conditions, queue and context
 
 Each condition evaluates per subject and generation. Numeric predicates
