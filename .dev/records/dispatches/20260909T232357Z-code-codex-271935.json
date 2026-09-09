@@ -1,0 +1,282 @@
+{
+  "id": "20260909T232357Z-code-codex-271935",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "d7bf77f9cbf34398961dcde3add4530d25b83fd3"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:23:58Z",
+    "closed": "2026-09-09T23:34:40Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d7bf77f9cbf34398961dcde3add4530d25b83fd3",
+    "ref_sha": "d7bf77f9cbf34398961dcde3add4530d25b83fd3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-23-58-01a0887c-3d8d-7821-9459-86b156cac517.jsonl"
+  },
+  "session": {
+    "id": "01a0887c-3d8d-7821-9459-86b156cac517",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-23-58-01a0887c-3d8d-7821-9459-86b156cac517.jsonl",
+    "stream_sha256_at_close": "184963fb9ea590190f46d2c103e7f2d43831381001b3ff100411a7c7c71450ba",
+    "spend": {
+      "input": 1503314,
+      "cached": 1392512,
+      "output": 19563,
+      "total": 1522877,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T19-23-58-01a0887c-3d8d-7821-9459-86b156cac517.jsonl",
+      "messages": 172
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "git diff --check. Author ONLY the finding-admission contract and concise implementation handoff under the owner scope in in/owner-scope.md. Reconcile existing owning contracts/process docs; no source, prompts, tests or unrelated policy edits. Declare exact minimal interfaces, legacy handling and verified coupling boundaries for independent tests. Do not invent a new framework. Scope is owner-set, you supply the design. Commit docs with Source: original and your actual model attribution. Keep the handoff within the contract instead of a disposable plan. Run git diff --check and link checks.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T232357Z-code-codex-271935/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      }
+    ],
+    "sha256": "49d596d7542808a12f73f9b979de6d894b1de49f7ab4540e2bfc27b8ddeb485a",
+    "bytes": 4443
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:23:58Z",
+      "ended": "2026-09-09T23:34:40Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b483910a06d18ca25aaaaeb84c6a1b38fbf1d2a6",
+    "changed_paths": [
+      "CONTRIB.md",
+      "docs/workflow.md",
+      "ops/conductor/findings/README.md",
+      "ops/conductor/ladder-lever.md",
+      "ops/conductor/routing.md",
+      "ops/devlane/task/CONTRACT.md",
+      "ops/devlane/task/FINDING-ADMISSION.md",
+      "ops/process/cross-review.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 17,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command 01",
+          "claim": "Confirmed baseline and read the complete owner scope; exit 0.",
+          "reproduce": "bash ../out/commands/01.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 02",
+          "claim": "Enumerated governing documentation; exit 0.",
+          "reproduce": "bash ../out/commands/02.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 03",
+          "claim": "Inspected governing documents; output truncated, prompting targeted reads; exit 0.",
+          "reproduce": "bash ../out/commands/03.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 04",
+          "claim": "Read founding contracts and lane instructions; exit 0.",
+          "reproduce": "bash ../out/commands/04.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 05",
+          "claim": "Located admission and routing ownership; output truncated; exit 0.",
+          "reproduce": "bash ../out/commands/05.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 06",
+          "claim": "Read envelope semantics and ladder conditions; exit 0.",
+          "reproduce": "bash ../out/commands/06.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 07",
+          "claim": "Inspected process ownership and implementation locations; exit 0.",
+          "reproduce": "bash ../out/commands/07.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 08",
+          "claim": "Inspected contract lessons; aggregate output truncated; exit 0.",
+          "reproduce": "bash ../out/commands/08.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 09",
+          "claim": "Measured existing ledger keys, routing and finding schema; exit 0.",
+          "reproduce": "bash ../out/commands/09.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Inspected custody, correction inputs and historical sampling candidates; exit 0.",
+          "reproduce": "bash ../out/commands/10.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Pinned the sample ledger blob and located command-reference checks; exit 0.",
+          "reproduce": "bash ../out/commands/11.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Tool discovery exited 2 because guessed docs_index.py and doctor.py paths were absent; used a scratch link checker.",
+          "reproduce": "bash ../out/commands/12.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Intermediate git diff --check passed; exit 0.",
+          "reproduce": "bash ../out/commands/13.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Links and command references passed. Git staging exited 128 because .git was read-only; cached check did not run.",
+          "reproduce": "bash ../out/commands/14.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Inspected reconciliation; no-index comparison exited 1 without whitespace diagnostics.",
+          "reproduce": "bash ../out/commands/15.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Final 18 link/anchor checks, command references and new-contract whitespace passed. Changes are limited to eight Markdown files; exit 0.",
+          "reproduce": "bash ../out/commands/16.sh"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "git diff --check exited 0 in the final tree.",
+          "reproduce": "bash ../out/commands/17.sh"
+        }
+      ],
+      "artifacts": {
+        "contract": "ops/devlane/task/FINDING-ADMISSION.md",
+        "commands": "../out/commands.json",
+        "checks": "../out/checks.json",
+        "link_checks": "../out/link-check.txt",
+        "command_reference_checks": "../out/doc-command-check.txt",
+        "commit_message": "../out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1522877,
+        "out": 19563,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d7bf77f9cbf34398961dcde3add4530d25b83fd3",
+        "started": null,
+        "ended": "2026-09-09T23:32:36Z"
+      },
+      "note": "Implemented the contract-only reading of owner scope: exact interfaces, legacy handling, verified coupling obligations and embedded handoff, with owning docs reconciled. No source, prompts or tests changed. Runtime implementation, independent tests and full-suite acceptance remain later deliverables. Read-only .git prevented committing; launcher message supplied.",
+      "commit": {
+        "subject": "docs: declare finding admission and correction handoff",
+        "body": "Define evaluated in-scope defects, evidence and source bindings, legacy\nhandling, independent dispute resolution, and the ledger-to-correction\ninterface. Reconcile owning task, review, ladder and routing documentation.\nKeep independent test and implementation handoff inside the contract.\n\nValidation: git diff --check; added/changed Markdown link and anchor checks;\ncontract shell-command reference check. Runtime implementation and tests\nare subsequent owner-scoped deliverables.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-09T23:34:39.237Z"
+    }
+  },
+  "status": "closed"
+}
