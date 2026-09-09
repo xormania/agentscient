@@ -53,6 +53,35 @@ to discover, whatever the harness decides to look for next. That is
 the backstop if a leak is found with no environment variable behind
 it, or if a harness stops honouring one. This module is the cheap
 version and it is honest about being the cheap version.
+
+Worker installation amendment (2026-09-08, contract only): dispatch/CONTRACT.md
+owns the agy worker boundary. Keep the existing HARNESSES data and public
+build_home/dispatch_env/isolated signatures. A measured agy entry must declare
+mechanism ('home' or 'flags'), flags (argv strings), home_env (name or None),
+also_env (additional names, if needed), auth_files (exact relative file leaves),
+sessions {under: 'minimal' or 'real', path: relative path}, probe_phrase
+(synthetic canary or None), and measured (dated version and probe evidence).
+Auth/session paths are measured below; discovery remains unresolved.
+Do not insert guessed values or an empty auth list to mean 'not measured'.
+The launch _harness_meta seam derives isolation.store from measured
+sessions.{under,path}; until measured, unsupported-capability refuses before
+minting a store. Never inherit the Claude $HOME/.claude fallback for agy.
+A home-isolated agy resume uses the existing resume-store refusal when its
+measured store is absent from both the live and archived home.
+
+For home isolation, name the exact credential source base and environment
+override in _real_home's adapter before linking. Only declared credential
+leaves cross; no settings, hooks, instructions, skills or MCP configuration.
+Leaves exclude absolute paths, parent traversal and whole-directory links.
+Structural verification must compare recursive leaves and their necessary
+parent directories, so nested auth does not admit neighboring configuration.
+A populated destination or missing required credential raises NotIsolated;
+an explicit environment never falls back to the operator's home. Return the
+existing Path/dict/(env, flags) shapes. Probe synthetic discovery through both
+a visible control and an isolated control, including inherited HOME/XDG and
+native project discovery where applicable. A control that cannot initialize
+is INVALID, never CLEAN. Record discovery and permission limits separately;
+this amendment adds no host containment promise and changes no legacy entry.
 """
 
 from __future__ import annotations
@@ -69,6 +98,28 @@ from pathlib import Path
 # --------------------------------------------------------------------
 
 HARNESSES = {
+    "agy": {
+        "mechanism": "home",
+        "flags": [],
+        "home_env": "HOME",
+        "auth_files": [".gemini/antigravity-cli/antigravity-oauth-token"],
+        "probe_phrase": None,
+        "sessions": {"under": "minimal", "path": ".gemini/antigravity-cli/brain"},
+        "measured": {
+            "on": "2026-09-08",
+            "version": "1.1.27",
+            "evidence": "20260908T071244Z-code-grok-220fb8",
+            "binary_sha256": "93eb2118b778a4005700b54cdd7e08b896fbe665d5ff338e38e9e53da9a091ea",
+            "note": "Disposable HOME plus redirected XDG/TMPDIR authenticated "
+                    "with only the nested OAuth token copied for the observation; "
+                    "fresh and explicit-ID resumed transcripts were under "
+                    "brain/<conversation_id>/.system_generated/logs/transcript.jsonl.",
+            "unresolved": "Visible/isolated discovery canaries, inherited HOME/XDG "
+                          "and native project discovery were not established by "
+                          "this auth/session observation. Permissions measured in "
+                          "20260908T074530Z-code-grok-5395b3 are policy, not OS containment.",
+        },
+    },
     "claude": {
         "mechanism": "flags",
         "flags": [
@@ -171,6 +222,16 @@ def _real_home(harness, env, given=True):
     prevent, and it made one of the author's tests pass on this machine
     and fail on a clean one -- the shape of a suite that lies.
     """
+    # agy reads its nested .gemini/antigravity-cli tree under HOME.
+    # HOME itself is the source base and override, not a guessed .agy
+    # directory; no other home discovery is admitted by this adapter.
+    if harness == "agy":
+        if not env.get("HOME"):
+            raise NotIsolated(
+                "agy: expected HOME as the credential source base; found "
+                "HOME missing or empty; needed an explicit source HOME, "
+                "without falling back to the operator's home.")
+        return Path(env["HOME"])
     spec = HARNESSES[harness]
     named = spec.get("home_env")
     if named and env.get(named):
@@ -243,12 +304,22 @@ def build_home(harness, root, env=None):
     dest.mkdir(parents=True, exist_ok=True)
     src_home = _real_home(harness, env, given)
     for name in spec["auth_files"]:
+        if harness == "agy" and (
+                Path(name).is_absolute() or ".." in Path(name).parts
+                or not Path(name).name):
+            raise NotIsolated(
+                f"agy: expected a relative credential leaf; found {name!r}; "
+                "needed an exact file path without parent traversal.")
         src = src_home / name
         if not src.exists():
             raise NotIsolated(
                 f"{harness}: credential {src} is absent, so an isolated "
                 f"home cannot authenticate. Not falling back to the "
                 f"operator's home.")
+        if harness == "agy" and not src.is_file():
+            raise NotIsolated(
+                f"agy: expected a credential file; found {src} is not a file; "
+                "needed only the declared auth leaf, never a directory link.")
         # No exists-check: the destination was just proved empty, so a
         # name already there would mean something wrote into the home
         # between the two, and skipping it silently is the same hole in
@@ -262,6 +333,24 @@ def build_home(harness, root, env=None):
         # named `auth.json` was there. Surfaced while reproducing the
         # empty-HOME finding above; `build_home` returned normally.
         link.symlink_to(src.resolve())
+    if harness == "agy":
+        # Compare nested leaves AND necessary real parent directories;
+        # accepting just .gemini would also admit adjacent settings/history.
+        leaves = set(spec["auth_files"])
+        parents = {parent.as_posix() for name in leaves
+                   for parent in Path(name).parents if parent != Path(".")}
+        found_leaves, found_parents = set(), set()
+        for path in dest.rglob("*"):
+            relative = path.relative_to(dest).as_posix()
+            if path.is_dir() and not path.is_symlink():
+                found_parents.add(relative)
+            else:
+                found_leaves.add(relative)
+        if found_leaves != leaves or found_parents != parents:
+            raise NotIsolated(
+                f"agy: expected auth leaves {sorted(leaves)} and parents "
+                f"{sorted(parents)}; found leaves {sorted(found_leaves)} and "
+                f"parents {sorted(found_parents)}; needed a fresh minimal home.")
     return dest
 
 
@@ -286,6 +375,14 @@ def dispatch_env(harness, home=None, env=None):
             f"{harness} is isolated by relocating its home, and no home "
             f"was built (got {home!r}). Call build_home first.")
     out = {spec["home_env"]: str(home)}
+    if harness == "agy":
+        # Reproduce the combined environment of the native records; this
+        # is not a claim that HOME alone closes discovery paths.
+        out.update({key: str(Path(home) / leaf) for key, leaf in (
+            ("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache"),
+            ("XDG_DATA_HOME", "data"), ("XDG_STATE_HOME", "state"),
+            ("XDG_RUNTIME_DIR", "runtime"), ("TMPDIR", "tmp"))})
+        out["AGY_CLI_DISABLE_AUTO_UPDATE"] = "true"
     for extra in spec.get("also_env", ()):
         # HOME is redirected to the minimal home too, so that a harness
         # looking for a SIBLING vendor's dotfile -- grok reading
