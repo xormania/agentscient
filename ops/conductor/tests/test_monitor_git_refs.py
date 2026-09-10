@@ -491,25 +491,83 @@ class _GitRefsFixture(_MonitorFixture):
             msg if msg is not None else value,
         )
 
+    def _metric_summary(self, field: str | None, value) -> str:
+        if field is None:
+            return f"state={value}"
+        encoded = json.dumps(value, ensure_ascii=True, separators=(",", ":"))
+        return f"{field}={encoded}"
+
+    def _field_for_condition(self, condition: str) -> str | None:
+        mapping = {
+            "local_changed": "local_oid",
+            "remote_changed": "remote_oid",
+            "refs_changed": "freshness",
+            "refs_unavailable": None,
+        }
+        self.assertIn(condition, mapping, condition)
+        return mapping[condition]
+
+    def assert_metric_event(
+        self,
+        events: list,
+        *,
+        subject: str,
+        condition: str,
+        value,
+        state: str | None = None,
+    ) -> dict:
+        found = self.events_where(events, subject=subject, condition=condition)
+        self.assertEqual(len(found), 1, found)
+        event = found[0]
+        field = self._field_for_condition(condition)
+        self.assertEqual(
+            event["summary"],
+            self._metric_summary(field, value),
+            event,
+        )
+        if state is not None:
+            self.assertEqual(event["state"], state, event)
+        return event
+
     def assert_oid_metric(
         self, events: list, *, subject: str, condition: str, oid: str
     ) -> None:
         self.assertRegex(oid, OID_RE, oid)
-        found = self.events_where(events, subject=subject, condition=condition)
-        self.assertEqual(len(found), 1, found)
-        summary = found[0]["summary"]
-        self.assertIsInstance(summary, str, found[0])
-        self.assertEqual(summary, oid, found[0])
+        self.assert_metric_event(
+            events, subject=subject, condition=condition, value=oid
+        )
 
     def assert_absent_oid_metric(
         self, events: list, *, subject: str, condition: str, other_oid: str
     ) -> None:
-        found = self.events_where(events, subject=subject, condition=condition)
-        for event in found:
-            summary = event.get("summary")
-            text = summary if isinstance(summary, str) else json.dumps(summary)
-            self.assertNotRegex(text, OID_RE, event)
-            self.assertNotEqual(text, other_oid, event)
+        event = self.assert_metric_event(
+            events, subject=subject, condition=condition, value=None
+        )
+        text = event["summary"]
+        self.assertNotEqual(text, other_oid, event)
+        self.assertNotIn(other_oid, text, event)
+
+    def assert_encoded_oid_events_if_present(
+        self, events: list, *, condition: str
+    ) -> None:
+        field = self._field_for_condition(condition)
+        self.assertIsNotNone(field, condition)
+        prefix = f"{field}="
+        for event in self.events_where(events, condition=condition):
+            summary = event["summary"]
+            self.assertIsInstance(summary, str, event)
+            self.assertTrue(summary.startswith(prefix), event)
+            encoded = summary[len(prefix) :]
+            try:
+                value = json.loads(encoded)
+            except json.JSONDecodeError:
+                self.fail(
+                    f"{condition} summary is not field=JSON(value): {event}"
+                )
+            self.assertEqual(summary, self._metric_summary(field, value), event)
+            if value is not None:
+                self.assertIsInstance(value, str, event)
+                self.assertRegex(value, OID_RE, event)
 
     def digest_events(self) -> list:
         _, data = self.digest_data()
@@ -553,22 +611,25 @@ class GitRefsEqualAndDifferent(_GitRefsFixture):
         events = self.digest_events()
         freshness = self.events_where(events, condition="refs_changed")
         self.assertEqual(len(freshness), 2, freshness)
-        self.assertEqual(freshness[0]["subject"], DEV_REF, freshness)
-        self.assertEqual(freshness[1]["subject"], MASTER_REF, freshness)
-        for event, name in ((freshness[0], "dev"), (freshness[1], "master")):
-            self.assertEqual(event["state"], "ok", event)
-            self.assertIn("equal", str(event.get("summary")), event)
-            self.assertNotIn("different", str(event.get("summary")), event)
+        self.assertEqual([e["subject"] for e in freshness], [DEV_REF, MASTER_REF])
+        for name, subject in (("dev", DEV_REF), ("master", MASTER_REF)):
+            event = self.assert_metric_event(
+                events,
+                subject=subject,
+                condition="refs_changed",
+                value="equal",
+                state="ok",
+            )
             self.assert_utc_observed_at(event["observed_at"], NOW, event)
             self.assert_oid_metric(
                 events,
-                subject=event["subject"],
+                subject=subject,
                 condition="local_changed",
                 oid=oids[name],
             )
             self.assert_oid_metric(
                 events,
-                subject=event["subject"],
+                subject=subject,
                 condition="remote_changed",
                 oid=oids[name],
             )
@@ -597,10 +658,32 @@ class GitRefsEqualAndDifferent(_GitRefsFixture):
         events = self.digest_events()
         freshness = self.events_where(events, condition="refs_changed")
         self.assertEqual([e["subject"] for e in freshness], [DEV_REF, MASTER_REF])
-        self.assertEqual(freshness[0]["state"], "ok", freshness[0])
-        self.assertIn("different", str(freshness[0].get("summary")), freshness[0])
-        self.assertEqual(freshness[1]["state"], "ok", freshness[1])
-        self.assertIn("equal", str(freshness[1].get("summary")), freshness[1])
+        self.assert_metric_event(
+            events,
+            subject=DEV_REF,
+            condition="refs_changed",
+            value="different",
+            state="ok",
+        )
+        self.assert_metric_event(
+            events,
+            subject=MASTER_REF,
+            condition="refs_changed",
+            value="equal",
+            state="ok",
+        )
+        self.assert_oid_metric(
+            events, subject=DEV_REF, condition="local_changed", oid=oids["dev"]
+        )
+        self.assert_oid_metric(
+            events, subject=DEV_REF, condition="remote_changed", oid=new_dev
+        )
+        self.assert_oid_metric(
+            events, subject=MASTER_REF, condition="local_changed", oid=oids["master"]
+        )
+        self.assert_oid_metric(
+            events, subject=MASTER_REF, condition="remote_changed", oid=oids["master"]
+        )
         blob = json.dumps(events)
         self.assertIn(oids["dev"], blob)
         self.assertIn(new_dev, blob)
@@ -622,8 +705,32 @@ class GitRefsEqualAndDifferent(_GitRefsFixture):
         events = self.digest_events()
         freshness = self.events_where(events, condition="refs_changed")
         self.assertEqual([e["subject"] for e in freshness], [DEV_REF, MASTER_REF])
-        self.assertIn("equal", str(freshness[0].get("summary")), freshness[0])
-        self.assertIn("different", str(freshness[1].get("summary")), freshness[1])
+        self.assert_metric_event(
+            events,
+            subject=DEV_REF,
+            condition="refs_changed",
+            value="equal",
+            state="ok",
+        )
+        self.assert_metric_event(
+            events,
+            subject=MASTER_REF,
+            condition="refs_changed",
+            value="different",
+            state="ok",
+        )
+        self.assert_oid_metric(
+            events, subject=DEV_REF, condition="local_changed", oid=oids["dev"]
+        )
+        self.assert_oid_metric(
+            events, subject=DEV_REF, condition="remote_changed", oid=oids["dev"]
+        )
+        self.assert_oid_metric(
+            events, subject=MASTER_REF, condition="local_changed", oid=oids["master"]
+        )
+        self.assert_oid_metric(
+            events, subject=MASTER_REF, condition="remote_changed", oid=new_master
+        )
         blob = json.dumps(events)
         self.assertIn(new_master, blob)
         self.assertIn(oids["dev"], blob)
@@ -641,12 +748,13 @@ class GitRefsMissing(_GitRefsFixture):
         self.assertEqual(counts["observations"], 2, counts)
         self.assertEqual(counts["unavailable"], 0, counts)
         events = self.digest_events()
-        freshness = self.events_where(
-            events, subject=DEV_REF, condition="refs_changed"
+        self.assert_metric_event(
+            events,
+            subject=DEV_REF,
+            condition="refs_changed",
+            value="missing-local",
+            state="ok",
         )
-        self.assertEqual(len(freshness), 1, freshness)
-        self.assertEqual(freshness[0]["state"], "ok", freshness[0])
-        self.assertIn("missing-local", str(freshness[0].get("summary")), freshness[0])
         self.assert_oid_metric(
             events, subject=DEV_REF, condition="remote_changed", oid=oids["dev"]
         )
@@ -662,12 +770,13 @@ class GitRefsMissing(_GitRefsFixture):
         self.assertEqual(counts["observations"], 2, counts)
         self.assertEqual(counts["unavailable"], 0, counts)
         events = self.digest_events()
-        freshness = self.events_where(
-            events, subject=MASTER_REF, condition="refs_changed"
+        self.assert_metric_event(
+            events,
+            subject=MASTER_REF,
+            condition="refs_changed",
+            value="missing-remote",
+            state="ok",
         )
-        self.assertEqual(len(freshness), 1, freshness)
-        self.assertEqual(freshness[0]["state"], "ok", freshness[0])
-        self.assertIn("missing-remote", str(freshness[0].get("summary")), freshness[0])
         self.assert_oid_metric(
             events, subject=MASTER_REF, condition="local_changed", oid=oids["master"]
         )
@@ -687,12 +796,13 @@ class GitRefsMissing(_GitRefsFixture):
         self.assertEqual(counts["observations"], 2, counts)
         self.assertEqual(counts["unavailable"], 0, counts)
         events = self.digest_events()
-        freshness = self.events_where(
-            events, subject=DEV_REF, condition="refs_changed"
+        self.assert_metric_event(
+            events,
+            subject=DEV_REF,
+            condition="refs_changed",
+            value="missing-both",
+            state="ok",
         )
-        self.assertEqual(len(freshness), 1, freshness)
-        self.assertEqual(freshness[0]["state"], "ok", freshness[0])
-        self.assertIn("missing-both", str(freshness[0].get("summary")), freshness[0])
         self.assertEqual(self.events_where(events, condition="refs_unavailable"), [])
 
 
@@ -711,12 +821,19 @@ class GitRefsLiveVsCached(_GitRefsFixture):
         _, counts = self.run_counts()
         self.assertEqual(counts["unavailable"], 0, counts)
         events = self.digest_events()
-        freshness = self.events_where(
-            events, subject=DEV_REF, condition="refs_changed"
+        self.assert_metric_event(
+            events,
+            subject=DEV_REF,
+            condition="refs_changed",
+            value="different",
+            state="ok",
         )
-        self.assertEqual(len(freshness), 1, freshness)
-        self.assertIn("different", str(freshness[0].get("summary")), freshness[0])
-        self.assertNotIn("equal", str(freshness[0].get("summary")), freshness[0])
+        self.assert_oid_metric(
+            events, subject=DEV_REF, condition="local_changed", oid=oids["dev"]
+        )
+        self.assert_oid_metric(
+            events, subject=DEV_REF, condition="remote_changed", oid=new_dev
+        )
         blob = json.dumps(events)
         self.assertIn(new_dev, blob)
         self.assertIn(oids["dev"], blob)
@@ -732,12 +849,19 @@ class GitRefsLiveVsCached(_GitRefsFixture):
         self.assertEqual(counts["observations"], 2, counts)
         self.assertEqual(counts["unavailable"], 0, counts)
         events = self.digest_events()
-        freshness = self.events_where(
-            events, subject=MASTER_REF, condition="refs_changed"
+        self.assert_metric_event(
+            events,
+            subject=MASTER_REF,
+            condition="refs_changed",
+            value="different",
+            state="ok",
         )
-        self.assertEqual(len(freshness), 1, freshness)
-        self.assertEqual(freshness[0]["state"], "ok", freshness[0])
-        self.assertIn("different", str(freshness[0].get("summary")), freshness[0])
+        self.assert_oid_metric(
+            events, subject=MASTER_REF, condition="local_changed", oid=oids["master"]
+        )
+        self.assert_oid_metric(
+            events, subject=MASTER_REF, condition="remote_changed", oid=new_master
+        )
         blob = json.dumps(events)
         self.assertIn(new_master, blob)
         self.assertNotIn("ahead", blob.lower())
@@ -758,14 +882,30 @@ class GitRefsUnavailable(_GitRefsFixture):
         self.assertEqual([e["subject"] for e in unavail], [DEV_REF, MASTER_REF])
         for event in unavail:
             self.assertEqual(event["state"], "unavailable", event)
+            self.assertEqual(event["summary"], "state=unavailable", event)
             blob = json.dumps(event)
-            self.assertIn("remote-unavailable", blob)
+            self.assertNotIn("remote-unavailable", blob)
             self.assertNotIn("missing-local", blob)
             self.assertNotIn("missing-remote", blob)
             self.assertNotIn("missing-both", blob)
             self.assertNotIn(GIT_SECRET, blob)
-        changed = self.events_where(events, condition="refs_changed")
-        self.assertEqual(changed, [], changed)
+        freshness = self.events_where(events, condition="refs_changed")
+        self.assertEqual(len(freshness), 2, freshness)
+        self.assertEqual([e["subject"] for e in freshness], [DEV_REF, MASTER_REF])
+        for event in freshness:
+            self.assert_metric_event(
+                events,
+                subject=event["subject"],
+                condition="refs_changed",
+                value="remote-unavailable",
+                state="unavailable",
+            )
+            self.assertNotIn("missing-local", event["summary"])
+            self.assertNotIn("missing-remote", event["summary"])
+            self.assertNotIn("missing-both", event["summary"])
+            self.assertNotIn(GIT_SECRET, json.dumps(event))
+        self.assert_encoded_oid_events_if_present(events, condition="local_changed")
+        self.assert_encoded_oid_events_if_present(events, condition="remote_changed")
         return unavail
 
     def test_unreachable_auth_failure_is_unavailable_not_absence(self):
@@ -856,8 +996,16 @@ class GitRefsQueryDedupDisabled(_GitRefsFixture):
             events, subject=DEV_REF, condition="refs_changed"
         )
         self.assertGreaterEqual(len(freshness), 2, freshness)
-        self.assertIn("equal", str(freshness[0].get("summary")), freshness[0])
-        self.assertIn("different", str(freshness[-1].get("summary")), freshness[-1])
+        self.assertEqual(
+            freshness[0]["summary"],
+            self._metric_summary("freshness", "equal"),
+            freshness[0],
+        )
+        self.assertEqual(
+            freshness[-1]["summary"],
+            self._metric_summary("freshness", "different"),
+            freshness[-1],
+        )
         self.git(self.git_repo, "fetch", REMOTE_NAME, DEV)
         self.git(self.git_repo, "checkout", DEV)
         self.git(self.git_repo, "reset", "--hard", new_dev)
@@ -868,7 +1016,11 @@ class GitRefsQueryDedupDisabled(_GitRefsFixture):
         freshness = self.events_where(
             events, subject=DEV_REF, condition="refs_changed"
         )
-        self.assertIn("equal", str(freshness[-1].get("summary")), freshness[-1])
+        self.assertEqual(
+            freshness[-1]["summary"],
+            self._metric_summary("freshness", "equal"),
+            freshness[-1],
+        )
 
     def test_disabled_or_removed_source_makes_no_query(self):
         self.plant_pair()
