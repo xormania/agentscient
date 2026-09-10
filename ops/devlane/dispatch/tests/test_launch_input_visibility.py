@@ -252,6 +252,14 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
                         first_at, second_at,
                         f"{name}: {label} must list copies in caller order",
                     )
+                    self.assertRegex(
+                        blob,
+                        r"(?i)read (?:them|the supplied files).{0,40}before work",
+                        f"{name}: {label} must retain the instruction "
+                        "to read the supplied files before work; "
+                        "listing paths without that instruction does "
+                        "not discharge the boundary",
+                    )
                     self.assertNotIn(
                         str(first.resolve()), blob,
                         f"{name}: {label} must not name the original path "
@@ -321,6 +329,13 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
                         str((job_dir / "in" / decoy.name).resolve()), blob,
                         f"{name}: {label} must not invent a copied path for "
                         "an input that was not given",
+                    )
+                    self.assertNotRegex(
+                        blob,
+                        r"(?im)^Inputs:\s+\S",
+                        f"{name}: {label} must not invent an Inputs: "
+                        "list when none were given; with no inputs the "
+                        "list is empty, never a guessed file",
                     )
         self.assertEqual(
             launched, len(shipped),
