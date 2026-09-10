@@ -74,5 +74,8 @@ the full test logs and ad hoc runners under `/tmp/ag-audit-fixes-20260910`,
 the incoming and companion coordination notes, other sessions' live work,
 and the original `/tmp/ag-lost-work-audit-20260910` archive. The closeout
 measurement carries their relevant status/digests, not their private contents.
+The [six-row retrieval corpus](probes/probes-2026-09-10-audit-remediation.jsonl)
+uses immutable Git reads; its author-run results are retained in
+[retrieval.json](evidence-2026-09-10-audit-remediation/retrieval.json).
 Custody retrieval checks are author checks; no independent handoff grader or
 automatic onboard selection was run.
