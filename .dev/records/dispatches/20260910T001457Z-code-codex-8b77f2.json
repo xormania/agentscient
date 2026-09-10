@@ -1,0 +1,124 @@
+{
+  "id": "20260910T001457Z-code-codex-8b77f2",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:14:57Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "ref_sha": "8a6a51fff0925fd006aa3a3987cc4b3f969c940e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "8b505ed5-a4d0-4308-89fe-c8641cf096d1",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v && python3 ops/conductor/tests/test_finding_admission_ledger.py -v && python3 ops/conductor/tests/test_finding_admission_routing.py -v. Implement FINDING-ADMISSION.md under in/admission-implementation.md and the owner/TDD inputs. Tests already exist and were proven red independently. Do not write or approve tests. Complete the contract through existing owners, preserve legacy records and custody, and report any existing-test contradiction for the independent test author rather than changing tests or weakening behavior.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/admission-implementation.md",
+        "sha256": "8b93f225f42021a3a6135b296239240a047abcee675c33a84744dfb402d7c260"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/admission-test-acceptance.json",
+        "sha256": "3a912a8e234ae35733f973c3bf11bcf37013f3ac71b5c0cdc62d037fe22da671"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001457Z-code-codex-8b77f2/in/admission-red-corrected-quiet.json",
+        "sha256": "c20c7fb13e66098f2bfaaefa5d07368848b314031380548e3c3b3e102e7e1c2b"
+      }
+    ],
+    "sha256": "ea22ffb5b32cce7906db306b2e13b9febf474bc435cc7b091f0ad8a3c6f30ac6",
+    "bytes": 4440
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
