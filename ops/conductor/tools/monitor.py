@@ -161,6 +161,32 @@ def _github_params(value: object, _base: Path) -> dict[str, object]:
     return {"timeout_s": timeout}
 
 
+def _branch_name(value: object, limit: int = 255) -> bool:
+    return (
+        isinstance(value, str) and 1 <= len(value) <= limit and value.isascii()
+        and not value.startswith("-") and not value.endswith(".")
+        and ".." not in value and "@{" not in value
+        and not any(ord(char) <= 32 or ord(char) == 127 or char in "~^:?*[\\" for char in value)
+        and all(part and not part.startswith(".") and not part.endswith(".lock") for part in value.split("/"))
+    )
+
+
+def _git_refs_params(value: object, base: Path) -> dict[str, object]:
+    params = _object(value, "git-refs params", {"repo", "remote", "branches", "timeout_s"})
+    remote = params["remote"]
+    if not isinstance(remote, str) or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", remote) is None:
+        refuse("config", "git-refs params.remote to be a literal remote name", repr(remote), "supply a named Git remote")
+    branches = params["branches"]
+    if not isinstance(branches, list) or not 1 <= len(branches) <= 32 or not all(_branch_name(branch) for branch in branches):
+        refuse("config", "git-refs params.branches to contain 1..32 literal branch names", repr(branches), "use valid short Git branch names without patterns")
+    if len(set(branches)) != len(branches):
+        refuse("config", "git-refs params.branches to be unique", repr(branches), "remove duplicate branches")
+    timeout = _number(params["timeout_s"], "git-refs params.timeout_s")
+    if not 0 < timeout <= 30:
+        refuse("config", "git-refs params.timeout_s in (0, 30]", repr(params["timeout_s"]), "use the declared subprocess deadline")
+    return {"repo": _path(params["repo"], "git-refs params.repo", base), "remote": remote, "branches": list(branches), "timeout_s": timeout}
+
+
 def load_config(path: Path) -> dict[str, object]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -545,17 +571,20 @@ def read_codex_usage(params: dict[str, object], now: datetime) -> list[dict[str,
     return [_reading(str(path), state, now, metrics=metrics, generation=str(path), evidence=evidence, reason=reason)]
 
 
-def _bounded_process(argv: list[str], timeout: float) -> tuple[int | None, bytes | None, str | None]:
+def _bounded_process(argv: list[str], timeout: float, *, deadline: float | None = None, reject_stderr: bool = False) -> tuple[int | None, bytes | None, str | None]:
     proc: subprocess.Popen[bytes] | None = None
     selector = selectors.DefaultSelector()
     buffers = {"stdout": bytearray(), "stderr": bytearray()}
     failure = None
     try:
+        if deadline is not None and time.monotonic() >= deadline:
+            return None, None, "process deadline exceeded"
         proc = subprocess.Popen(
             argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        deadline = time.monotonic() + timeout
+        if deadline is None:
+            deadline = time.monotonic() + timeout
         for name, stream in (("stdout", proc.stdout), ("stderr", proc.stderr)):
             if stream is None:
                 failure = "rate limit process pipes unavailable"
@@ -593,7 +622,10 @@ def _bounded_process(argv: list[str], timeout: float) -> tuple[int | None, bytes
                 failure = "rate limit process deadline exceeded"
             else:
                 try:
-                    return proc.wait(timeout=remaining), bytes(buffers["stdout"]), None
+                    returncode = proc.wait(timeout=remaining)
+                    if reject_stderr and buffers["stderr"]:
+                        return returncode, None, "process reported a read failure"
+                    return returncode, bytes(buffers["stdout"]), None
                 except subprocess.TimeoutExpired:
                     failure = "rate limit process deadline exceeded"
     except (OSError, ValueError):
@@ -649,10 +681,75 @@ def read_github_rate(params: dict[str, object], now: datetime) -> list[dict[str,
     return rows
 
 
+def _git_ref_rows(stdout: bytes | None, selected: list[str]) -> dict[str, str] | None:
+    if stdout is None:
+        return None
+    result = {}
+    seen = set()
+    try:
+        text = stdout.decode("ascii")
+        if text and not text.endswith("\n"):
+            return None
+        for line in text.splitlines():
+            fields = line.split("\t")
+            if len(fields) != 2:
+                return None
+            oid, ref = fields
+            if re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", oid) is None or ref in seen:
+                return None
+            if not ref.startswith("refs/") or not _branch_name(ref, SOURCE_REFERENCE_BYTES):
+                return None
+            seen.add(ref)
+            if ref in selected:
+                result[ref] = oid
+    except UnicodeError:
+        return None
+    return result
+
+
+def read_git_refs(params: dict[str, object], now: datetime) -> list[dict[str, object]]:
+    deadline = time.monotonic() + params["timeout_s"]
+    repo, remote = params["repo"], params["remote"]
+    refs = [f"refs/heads/{branch}" for branch in params["branches"]]
+    argv = ["git", "-C", repo]
+    local_code, local_out, local_failure = _bounded_process(
+        [*argv, "for-each-ref", "--format=%(objectname)%09%(refname)", "--", *refs],
+        params["timeout_s"], deadline=deadline, reject_stderr=True,
+    )
+    local = _git_ref_rows(local_out, refs) if local_code == 0 and local_failure is None else None
+    remote_code, remote_out, remote_failure = _bounded_process(
+        [*argv, "ls-remote", "--refs", "--", remote, *refs],
+        params["timeout_s"], deadline=deadline,
+    )
+    distant = _git_ref_rows(remote_out, refs) if remote_code == 0 and remote_failure is None else None
+    rows = []
+    for ref in refs:
+        local_oid = local.get(ref) if local is not None else None
+        remote_oid = distant.get(ref) if distant is not None else None
+        reason = None
+        if distant is None:
+            freshness = reason = "remote-unavailable"
+        elif local is None:
+            freshness = reason = "local-unavailable"
+        elif local_oid is None:
+            freshness = "missing-both" if remote_oid is None else "missing-local"
+        elif remote_oid is None:
+            freshness = "missing-remote"
+        else:
+            freshness = "equal" if local_oid == remote_oid else "different"
+        rows.append(_reading(
+            ref, "unavailable" if reason else "ok", now,
+            metrics={"local_oid": local_oid, "remote_oid": remote_oid, "freshness": freshness},
+            generation=[repo, remote, ref], evidence={"repo": repo, "remote": remote, "ref": ref}, reason=reason,
+        ))
+    return rows
+
+
 ADAPTERS = {
     "dispatch": (_dispatch_params, read_dispatch),
     "codex-usage": (_codex_params, read_codex_usage),
     "github-rate": (_github_params, read_github_rate),
+    "git-refs": (_git_refs_params, read_git_refs),
 }
 
 
@@ -734,6 +831,42 @@ def _has_symlink_component(path: Path) -> bool:
     return False
 
 
+def _git_source_directories(repo: Path) -> list[Path]:
+    """Protect worktrees and their external Git storage without executing Git."""
+    protected = [repo]
+    try:
+        if not repo.is_dir():
+            return protected
+        for root in (repo, *repo.parents):
+            marker = root / ".git"
+            if marker.is_dir():
+                git_dir = marker.resolve()
+            else:
+                status, data, _ = _regular_bytes(marker, SOURCE_REFERENCE_BYTES)
+                if status == "missing":
+                    continue
+                if status != "ok" or data is None:
+                    raise ValueError("unreadable Git pointer")
+                pointer = data.decode("utf-8").rstrip("\r\n")
+                if not pointer.startswith("gitdir: ") or not pointer[8:] or "\n" in pointer or "\r" in pointer:
+                    raise ValueError("invalid Git pointer")
+                git_dir = (root / pointer[8:]).resolve()
+            protected.extend((root, git_dir))
+            status, data, _ = _regular_bytes(git_dir / "commondir", SOURCE_REFERENCE_BYTES)
+            if status == "missing":
+                break
+            if status != "ok" or data is None:
+                raise ValueError("unreadable Git common directory")
+            pointer = data.decode("utf-8").rstrip("\r\n")
+            if not pointer or "\n" in pointer or "\r" in pointer:
+                raise ValueError("invalid Git common directory")
+            protected.append((git_dir / pointer).resolve())
+            break
+    except (OSError, UnicodeError, ValueError, RuntimeError):
+        refuse("state", "inspectable Git source storage for state separation", "unavailable Git storage path", "restore the source metadata before writing monitor state")
+    return protected
+
+
 def _validate_state(state: Path, config_path: Path, config: dict[str, object]) -> Path:
     state = Path(os.path.abspath(state))
     resolved = state.resolve(strict=False)
@@ -758,6 +891,8 @@ def _validate_state(state: Path, config_path: Path, config: dict[str, object]) -
             protected_directories.append(Path(params["store"]).resolve(strict=False))
         elif monitor["adapter"] == "codex-usage":
             protected_files.append(Path(params["path"]).resolve(strict=False))
+        elif monitor["adapter"] == "git-refs":
+            protected_directories.extend(_git_source_directories(Path(params["repo"])))
     for source in protected_directories:
         if _paths_overlap(resolved, source):
             refuse("state", "state disjoint from configured source stores", str(resolved), "choose an isolated state directory")
