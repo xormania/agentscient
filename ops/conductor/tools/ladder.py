@@ -281,14 +281,15 @@ def full_identity(value: str, label: str) -> str:
 
 def file_arg(path: str, label: str, *, required: bool = True) -> Path | None:
     candidate = Path(path).resolve()
+    needed = f"supply a readable {label} file"
     if candidate.is_file():
         try:
             candidate.read_bytes()
         except OSError as error:
-            refuse(label, f"a readable {label} file", str(error), "correct its permissions")
+            refuse(label, f"a readable {label} file", str(error), needed)
         return candidate
     if required:
-        refuse(label, f"a readable {label} file", str(candidate), f"supply a {label}")
+        refuse(label, f"a readable {label} file", str(candidate), needed)
     return None
 
 
@@ -1556,7 +1557,12 @@ def split_inputs(args: list[str]) -> tuple[list[str], list[str]]:
         item = items.pop(0)
         if item == "--input":
             if not items:
-                refuse("arguments", "--input followed by a path", "--input with no path", "name the input file")
+                refuse(
+                    "arguments",
+                    "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID",
+                    "--input with no path",
+                    "name the input file",
+                )
             inputs.append(items.pop(0))
         elif item.startswith("--input="):
             inputs.append(item.partition("=")[2])
