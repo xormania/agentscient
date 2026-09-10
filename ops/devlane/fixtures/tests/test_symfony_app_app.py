@@ -1018,7 +1018,7 @@ class _RepoFreeze(unittest.TestCase):
             str(path): _store_snap(path) for path in _live_fixture_roots()
         }
         self._findings_before = {
-            str(path): _store_snap(path) for path in _live_findings_stores()
+            str(path): _store_snap(path)[0] for path in _live_findings_stores()
         }
         self._calibration_before = _store_snap(CALIBRATION)
         self._head_before = subprocess.run(
@@ -1055,7 +1055,7 @@ class _RepoFreeze(unittest.TestCase):
                 "live fixture state mutated",
             )
             self.assertEqual(
-                {str(path): _store_snap(path) for path in _live_findings_stores()},
+                {str(path): _store_snap(path)[0] for path in _live_findings_stores()},
                 self._findings_before,
                 "live findings store mutated",
             )
