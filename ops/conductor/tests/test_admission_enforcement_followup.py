@@ -22,6 +22,7 @@ DISPATCH_TESTS = Path(__file__).resolve().parents[2] / "devlane" / "dispatch" / 
 if str(DISPATCH_TESTS) not in sys.path:
     sys.path.insert(0, str(DISPATCH_TESTS))
 import admission_enforcement_support as aes  # noqa: E402
+import launch_support as ls  # noqa: E402
 
 
 class CorrectionsProjectionRemainsTheEligibilitySource(_LedgerFixture):
@@ -54,90 +55,148 @@ class CorrectionsProjectionRemainsTheEligibilitySource(_LedgerFixture):
         self.assertEqual(body["held"], [])
 
 
-class FollowupRequestMustBeEarned(_LedgerFixture):
-    def _followup_request(self, key, *, behavior="the admitted failure is gone"):
+class FollowupRequestMustBeEarned(ls._TempLaunch):
+    """Launch/wrapper eligibility: held and unchanged keys refuse; earned passes."""
+
+    def _plant_changed_path(self, bound):
+        before = self.root_sha
+        path = self.repo / bound.test_rel
+        text = path.read_text(encoding="utf-8") + "# corrected-behavior\n"
+        path.write_text(text, encoding="utf-8")
+        self.assertIn("# corrected-behavior", path.read_text(encoding="utf-8"))
+        after = self._commit("code: change bound fixture behavior")
+        self.ref = after
+        self.assertNotEqual(before, after)
+        return before, after
+
+    def test_an_admitted_changed_key_with_a_followup_slot_starts_once(self):
+        bound = aes.attach_bound(self)
+        before, after = self._plant_changed_path(bound)
+        key = f"{aes.BOUND_REVIEW_ID}#1"
         projection = {"admitted": [{"key": key}], "held": []}
-        digest = aes.sha256_text(aes.canonical_json(projection))
-        return aes.review_request(
-            slot="check-tests",
-            kind="followup",
-            prior=[REC],
-            projection_sha256=digest,
-            changes=[{
-                "key": key,
-                "correction_record": "20260910T005819Z-code-codex-5b0115",
-                "before_ref": REF,
-                "after_ref": "b" * 40,
-                "paths": ["ops/devlane/task/envelope.py"],
-                "behavior": behavior,
-            }],
+        req_path = self.home / "followup-request.json"
+        aes.write_followup_request(
+            req_path,
+            slot="security-re",
+            prior=[aes.BOUND_REVIEW_ID],
+            projection=projection,
+            key=key,
+            correction_record=aes.BOUND_CORRECTION_ID,
+            before_ref=before,
+            after_ref=after,
+            paths=[bound.test_rel],
+            behavior="the admitted empty-list substitution no longer holds",
         )
+        code, out, err = self.dispatch(self.argv_for(
+            job="security-audit",
+            harness="grok",
+            stage="review",
+            extra=aes.bound_extra(
+                bound, "security-audit", request_path=req_path,
+            ),
+        ))
+        text = self.combined(out, err)
+        self.assertNotIn("unrecognized arguments", text.lower(), text)
+        self.assertEqual(code, 0, text)
+        rec = self.read_record()
+        review = rec["brief"]["admission"]["review"]
+        self.assertEqual(review["kind"], "followup")
+        self.assertEqual(review["slot"], "security-re")
+        self.assertEqual(review["changes"][0]["after_ref"], after)
+        self.assertNotEqual(review["changes"][0]["before_ref"], after)
+        self.assertTrue(self.start_witness.is_file())
 
     def test_a_held_key_cannot_earn_a_followup(self):
-        row = self.sample_row("agy-unverified-flags")
-        finding = self._finding_from(row, evaluate=True)
-        self.plant_record(REC, [finding], verdict="approve")
-        self.assertEqual(self.invoke(["import"]).returncode, 0)
-        body = json.loads(self.corrections(REC).stdout)
-        self.assertEqual(body["admitted"], [])
-        key = body["held"][0]["key"]
-        req = self._followup_request(key)
-        path = self.home / "review-request.json"
-        aes.write_json(path, req)
-        # Launch binding is exercised by the wrapper/launch tests; here
-        # the ledger eligibility source must already refuse the held key
-        # as a followup batch.
-        proc = self.corrections(REC)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertNotIn(key, [item["key"] for item in json.loads(proc.stdout)["admitted"]])
-        self.assertIn("unproven", [item["reason"] for item in json.loads(proc.stdout)["held"]])
-        self.assertEqual(req["kind"], "followup")
-        self.assertTrue(req["changes"])
-        # The new request object is not itself authority:
-        self.assertEqual(aes.refusal_class("admission-review: expected an eligible unconsumed slot; found a held key; needed an admitted unresolved batch"), "admission-review")
+        bound = aes.attach_bound(self)
+        before, after = self._plant_changed_path(bound)
+        key = f"{aes.BOUND_REVIEW_ID}#1"
+        projection = {
+            "admitted": [],
+            "held": [{"key": key, "reason": "unproven"}],
+        }
+        req_path = self.home / "followup-request.json"
+        aes.write_followup_request(
+            req_path,
+            slot="security-re",
+            prior=[aes.BOUND_REVIEW_ID],
+            projection=projection,
+            key=key,
+            correction_record=aes.BOUND_CORRECTION_ID,
+            before_ref=before,
+            after_ref=after,
+            paths=[bound.test_rel],
+            behavior="held unproven key is not an admitted unresolved batch",
+        )
+        self.assertEqual(projection["admitted"], [])
+        code, out, err = self.dispatch(self.argv_for(
+            job="security-audit",
+            harness="grok",
+            stage="review",
+            extra=aes.bound_extra(
+                bound, "security-audit", request_path=req_path,
+            ),
+        ))
+        text = self.combined(out, err)
+        self.assertNotIn("unrecognized arguments", text.lower(), text)
+        self.assert_not_started()
+        self.assert_wire_refusal(
+            code, out, err,
+            ident="admission-review",
+            phrases=["admission-review", "held"],
+        )
 
     def test_unchanged_behavior_with_identical_refs_is_refused(self):
-        row = self.sample_row("agy-closure")
-        finding = self._finding_from(row, evaluate=True)
-        self.plant_record(REC, [finding])
-        self.assertEqual(self.invoke(["import"]).returncode, 0)
-        key = f"{REC}#1"
+        bound = aes.attach_bound(self)
+        key = f"{aes.BOUND_REVIEW_ID}#1"
         projection = {"admitted": [{"key": key}], "held": []}
-        digest = aes.sha256_text(aes.canonical_json(projection))
-        with self.assertRaises(ValueError):
-            aes.review_request(
-                slot="check-tests",
-                kind="followup",
-                prior=[REC],
-                projection_sha256=digest,
-                changes=[],
-            )
-        req = aes.review_request(
-            slot="check-tests",
-            kind="followup",
-            prior=[REC],
-            projection_sha256=digest,
-            changes=[{
-                "key": key,
-                "correction_record": "20260910T005819Z-code-codex-5b0115",
-                "before_ref": REF,
-                "after_ref": REF,
-                "paths": ["ops/devlane/task/envelope.py"],
-                "behavior": "no matching code or test diff",
-            }],
+        req_path = self.home / "followup-request.json"
+        req, _digest = aes.write_followup_request(
+            req_path,
+            slot="security-re",
+            prior=[aes.BOUND_REVIEW_ID],
+            projection=projection,
+            key=key,
+            correction_record=aes.BOUND_CORRECTION_ID,
+            before_ref=self.ref,
+            after_ref=self.ref,
+            paths=[bound.test_rel],
+            behavior="no matching code or test diff",
         )
         self.assertEqual(req["changes"][0]["before_ref"], req["changes"][0]["after_ref"])
-        # Unchanged refs cannot authorize followup even when the object is shaped.
-        self.assertNotEqual(req["changes"][0]["behavior"].strip(), "")
+        code, out, err = self.dispatch(self.argv_for(
+            job="security-audit",
+            harness="grok",
+            stage="review",
+            extra=aes.bound_extra(
+                bound, "security-audit", request_path=req_path,
+            ),
+        ))
+        text = self.combined(out, err)
+        self.assertNotIn("unrecognized arguments", text.lower(), text)
+        self.assert_not_started()
+        self.assert_wire_refusal(
+            code, out, err,
+            ident="admission-review",
+            phrases=["admission-review"],
+        )
 
 
 class FollowupClosureIsSourceBound(unittest.TestCase):
     """Envelope followup findings bind source exactly once."""
 
+    def _envelope(self):
+        import importlib.util
+        path = (
+            Path(__file__).resolve().parents[2]
+            / "devlane" / "task" / "tests" / "support.py"
+        )
+        spec = importlib.util.spec_from_file_location("task_admission_support", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.load("envelope")
+
     def test_missing_source_on_a_closure_finding_is_not_legacy(self):
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "devlane" / "task" / "tests"))
-        import support
-        envelope = support.load("envelope")
+        envelope = self._envelope()
         evaluation = {
             "classification": "unproven",
             "scope_sha256": "a" * 64,
@@ -158,10 +217,8 @@ class FollowupClosureIsSourceBound(unittest.TestCase):
                 evaluation=evaluation,
             )
 
-    def test_validate_accepts_keyword_only_admission_context(self):
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "devlane" / "task" / "tests"))
-        import support
-        envelope = support.load("envelope")
+    def test_validate_complete_versus_partial_supplied_key_closure(self):
+        envelope = self._envelope()
         finding = envelope.finding(
             "p2",
             "ops/devlane/task/envelope.py",
@@ -179,6 +236,20 @@ class FollowupClosureIsSourceBound(unittest.TestCase):
                 "ruling": "REJECTED",
             },
         )
+        request = aes.review_request(
+            slot="security-re",
+            kind="followup",
+            prior=[REC],
+            projection_sha256="c" * 64,
+            changes=[{
+                "key": f"{REC}#1",
+                "correction_record": aes.BOUND_CORRECTION_ID,
+                "before_ref": REF,
+                "after_ref": "b" * 40,
+                "paths": ["ops/devlane/task/envelope.py"],
+                "behavior": "the admitted failure no longer holds",
+            }],
+        )
         env = envelope.build(
             "adjudicate",
             status="ok",
@@ -186,20 +257,7 @@ class FollowupClosureIsSourceBound(unittest.TestCase):
             findings=[finding],
             stamp={"ref": "b" * 40, "started": None, "ended": None},
         )
-        request = aes.review_request(
-            slot="check-tests",
-            kind="followup",
-            prior=[REC],
-            projection_sha256="c" * 64,
-            changes=[{
-                "key": f"{REC}#1",
-                "correction_record": "20260910T005819Z-code-codex-5b0115",
-                "before_ref": REF,
-                "after_ref": "b" * 40,
-                "paths": ["ops/devlane/task/envelope.py"],
-                "behavior": "the admitted failure no longer holds",
-            }],
-        )
+        env["job"] = "adversarial-review"
         try:
             kept = envelope.validate(env, admission=request)
         except TypeError as exc:
@@ -208,6 +266,31 @@ class FollowupClosureIsSourceBound(unittest.TestCase):
                 f"found TypeError: {exc}"
             )
         self.assertEqual(kept["verdict"], "approve")
+        two_key = aes.review_request(
+            slot="security-re",
+            kind="followup",
+            prior=[REC],
+            projection_sha256="c" * 64,
+            changes=[
+                request["changes"][0],
+                {
+                    "key": f"{REC}#2",
+                    "correction_record": aes.BOUND_CORRECTION_ID,
+                    "before_ref": REF,
+                    "after_ref": "b" * 40,
+                    "paths": ["ops/devlane/task/envelope.py"],
+                    "behavior": "second admitted failure no longer holds",
+                },
+            ],
+        )
+        try:
+            with self.assertRaises(envelope.EnvelopeError):
+                envelope.validate(env, admission=two_key)
+        except TypeError as exc:
+            self.fail(
+                "validate must accept keyword-only admission; "
+                f"found TypeError: {exc}"
+            )
         incidental = envelope.finding(
             "p3",
             "ops/other.py",
@@ -225,14 +308,16 @@ class FollowupClosureIsSourceBound(unittest.TestCase):
                 "ruling": None,
             },
         )
-        mixed = envelope.build(
-            "adjudicate",
-            status="ok",
-            verdict="approve",
-            findings=[finding, incidental],
-            stamp={"ref": "b" * 40, "started": None, "ended": None},
-        )
-        kept_mixed = envelope.validate(mixed, admission=request)
+        mixed = dict(env)
+        mixed["findings"] = [finding, incidental]
+        mixed["counts"] = {"p1": 0, "p2": 1, "p3": 1, "opinions": 1}
+        try:
+            kept_mixed = envelope.validate(mixed, admission=request)
+        except TypeError as exc:
+            self.fail(
+                "validate must accept keyword-only admission; "
+                f"found TypeError: {exc}"
+            )
         self.assertEqual(kept_mixed["verdict"], "approve")
         self.assertEqual(len(kept_mixed["findings"]), 2)
         self.assertEqual(
