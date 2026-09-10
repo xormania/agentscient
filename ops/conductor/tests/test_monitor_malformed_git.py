@@ -259,8 +259,12 @@ class _MalformedGitFixture(_GitRefsFixture):
         self.assertTrue(landed.startswith(b"gitdir: "), landed)
         self.assertIn(str(self.unread_store.resolve()).encode("ascii"), landed)
         self._chmod(self.unread_store, 0o000)
-        with self.assertRaises(PermissionError):
+        try:
             next(self.unread_store.iterdir())
+        except PermissionError:
+            pass
+        else:
+            self.skipTest("mode 000 stays readable under this uid; unreadability cannot be planted")
         return self.pointer_repo
 
     def assert_no_files_under(self, root: Path) -> None:

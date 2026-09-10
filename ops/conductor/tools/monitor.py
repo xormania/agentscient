@@ -571,7 +571,7 @@ def read_codex_usage(params: dict[str, object], now: datetime) -> list[dict[str,
     return [_reading(str(path), state, now, metrics=metrics, generation=str(path), evidence=evidence, reason=reason)]
 
 
-def _bounded_process(argv: list[str], timeout: float, *, deadline: float | None = None, reject_stderr: bool = False) -> tuple[int | None, bytes | None, str | None]:
+def _bounded_process(argv: list[str], timeout: float, *, deadline: float | None = None, reject_stderr: bool = False, env: dict[str, str] | None = None) -> tuple[int | None, bytes | None, str | None]:
     proc: subprocess.Popen[bytes] | None = None
     selector = selectors.DefaultSelector()
     buffers = {"stdout": bytearray(), "stderr": bytearray()}
@@ -581,7 +581,7 @@ def _bounded_process(argv: list[str], timeout: float, *, deadline: float | None 
             return None, None, "process deadline exceeded"
         proc = subprocess.Popen(
             argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.PIPE, env=env,
         )
         if deadline is None:
             deadline = time.monotonic() + timeout
@@ -707,19 +707,53 @@ def _git_ref_rows(stdout: bytes | None, selected: list[str]) -> dict[str, str] |
     return result
 
 
+# Configuration a source repository may carry that would name a command to run,
+# emptied for the observation, and the transports it may use.
+GIT_OBSERVATION_CONFIG = (
+    ("credential.helper", ""),
+    ("core.askPass", ""),
+    ("core.alternateRefsCommand", ""),
+    ("protocol.allow", "never"),
+    ("protocol.file.allow", "always"),
+    ("protocol.http.allow", "always"),
+    ("protocol.https.allow", "always"),
+    ("protocol.ssh.allow", "always"),
+)
+
+
+def _observation_env() -> dict[str, str]:
+    """Environment for a Git read that executes nothing the source configures.
+
+    Inherited ``GIT_*`` variables are dropped, system and global configuration
+    are disabled, the SSH command is fixed to ``ssh``, and the command-bearing
+    keys above are overridden at the highest precedence, so the source
+    repository's own configuration cannot name a program to run. A remote that
+    needs any of them reads as unavailable.
+    """
+    env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    env.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull, GIT_SSH_COMMAND="ssh",
+               GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0",
+               GIT_CONFIG_COUNT=str(len(GIT_OBSERVATION_CONFIG)))
+    for index, (key, value) in enumerate(GIT_OBSERVATION_CONFIG):
+        env[f"GIT_CONFIG_KEY_{index}"] = key
+        env[f"GIT_CONFIG_VALUE_{index}"] = value
+    return env
+
+
 def read_git_refs(params: dict[str, object], now: datetime) -> list[dict[str, object]]:
     deadline = time.monotonic() + params["timeout_s"]
     repo, remote = params["repo"], params["remote"]
     refs = [f"refs/heads/{branch}" for branch in params["branches"]]
     argv = ["git", "-C", repo]
+    env = _observation_env()
     local_code, local_out, local_failure = _bounded_process(
         [*argv, "for-each-ref", "--format=%(objectname)%09%(refname)", "--", *refs],
-        params["timeout_s"], deadline=deadline, reject_stderr=True,
+        params["timeout_s"], deadline=deadline, reject_stderr=True, env=env,
     )
     local = _git_ref_rows(local_out, refs) if local_code == 0 and local_failure is None else None
     remote_code, remote_out, remote_failure = _bounded_process(
         [*argv, "ls-remote", "--refs", "--", remote, *refs],
-        params["timeout_s"], deadline=deadline,
+        params["timeout_s"], deadline=deadline, env=env,
     )
     distant = _git_ref_rows(remote_out, refs) if remote_code == 0 and remote_failure is None else None
     rows = []

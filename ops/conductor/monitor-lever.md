@@ -217,7 +217,12 @@ and comparison.
 No ancestry claims: absent remote objects still permit `different`, never
 invented ahead/behind/divergence counts. Observation never fetches, resets,
 merges, checks out, creates refs, pushes, edits config, invokes arbitrary
-configured commands or calls models. Monitor writes remain confined to its
+configured commands or calls models. Git reads run with system and global
+configuration disabled, inherited `GIT_*` variables dropped, `GIT_SSH_COMMAND`
+fixed to `ssh`, the credential, askpass and alternate-refs commands emptied,
+and only the file, http, https and ssh transports allowed, so a source
+repository's own configuration cannot name a command to execute; a remote
+needing any of those reads as remote-unavailable. Monitor writes remain confined to its
 existing queue/state, disjoint from the configured repo and Git common dir;
 no other actor's checkout is touched and no tick synchronizes branches.
 A readable invalid `.git` pointer names no external storage; its root remains
