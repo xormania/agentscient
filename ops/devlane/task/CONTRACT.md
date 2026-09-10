@@ -130,6 +130,15 @@ This is a contract for later implementation: raw counts/verdicts remain intact,
 and the existing envelope is extended rather than replaced. Its embedded
 handoff owns the independent test and implementation boundaries.
 
+Its [mandatory prevention amendment](FINDING-ADMISSION.md#mandatory-prevention-amendment)
+declares frozen work-order criteria, launcher-owned fixture/acceptance receipts,
+and requested followup source/ruling validation. These extend retained dispatch
+context and the existing finding evaluation, not the envelope's top-level keys.
+Schema-valid worker fields cannot prove execution: acceptance also consumes the
+launcher's verified record bindings. Incomplete followups cannot close supplied
+keys; unrelated findings remain visible without becoming terminal conditions.
+These are pending implementation duties, with legacy parsing preserved.
+
 **Current acceptance defect (C1 baseline):** `run.py` calls
 `envelope.validate`, while launch uses `_schema_valid`, adding only an
 invalid-plus-approve check to the schema. Shared JSON shape therefore does

@@ -1,6 +1,12 @@
 # Review churn during finding-admission work
 
-Standing: measured report and work-order guidance, not a new acceptance gate.
+Standing at recording: measured report and work-order guidance, not a new
+acceptance gate. Superseded on prevention authority by the owner's 2026-09-09
+enforcement addendum: the measures are now mandatory deliverable requirements.
+The [finding-admission amendment](../devlane/task/FINDING-ADMISSION.md#mandatory-prevention-amendment)
+declares their dispatch, execution-evidence, ledger and terminal enforcement.
+Implementation and independent acceptance of that amendment remain pending;
+this report alone is not a live guard. Earlier measurements below are retained.
 Recorded 2026-09-10T01:02:04.859611+00:00 against `46a2805d1f7075a5491a451ab4346e8f3d26192c`. The implementation remains in progress.
 
 ## What happened
@@ -43,7 +49,7 @@ authority merely because a reviewer supplied them.
   and the prior code record's custody reference. These are the bounded
   correction batch in `20260910T005819Z-code-codex-5b0115`.
 
-## Work-order guidance from this run
+## Work-order guidance from this run (now mandatory)
 
 1. Verify fixture preconditions before accepting red. Prove the actual
    planted input and consult the established public interface. Keep the new
@@ -62,8 +68,11 @@ authority merely because a reviewer supplied them.
    existing required final checks, then the draft PR into `dev`. An optional
    improvement does not silently add another stage.
 
-For this run, tests remain frozen and the active implementation order is the
-five reproduced failures above. After correction, reproduce green, run the
-full lane suite, complete the existing independent acceptance batch and open
-the draft PR. The monitor implementation stays unchanged. This report adds
-no feature, new review count, automated gate or condition to either PR.
+At recording, tests remained frozen and the active implementation order was
+the five reproduced failures above; this report originally added no automated
+gate. The subsequent owner requirement supersedes that advisory-only limit:
+finish those corrections, then independently test and implement the bounded
+enforcement amendment before the declared acceptance and draft PR into dev.
+Existing review counts and retry limits stand. The monitor implementation stays
+unchanged. Fixture proof, earned followups (manual dispatch included), and frozen
+terminal criteria are required outcomes, not optional later improvements.
