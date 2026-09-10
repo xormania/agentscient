@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-10T23:17:59Z",
-    "closed": null
+    "closed": "2026-09-10T23:32:06Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/home/grok-stream/sessions/<snapshot-encoded>/5d171135-3cad-43df-a3f2-6c9fee3c6fe7/summary.json"
   },
   "session": {
     "id": "5d171135-3cad-43df-a3f2-6c9fee3c6fe7",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/home/grok-stream/sessions/<snapshot-encoded>/5d171135-3cad-43df-a3f2-6c9fee3c6fe7/summary.json",
+    "stream_sha256_at_close": "70639f0871e25029c998e216cc147b61e400efa2f6bc6206677b45efecadf334",
+    "spend": {
+      "input": 2063063,
+      "cached": 1799936,
+      "output": 48257,
+      "total": 2111320,
+      "cost_usd_ticks": 2916798800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/home/grok-stream/sessions/<snapshot-encoded>/5d171135-3cad-43df-a3f2-6c9fee3c6fe7/summary.json",
+      "messages": 202
+    }
   },
   "brief": {
     "template": {
@@ -109,10 +117,60 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T23:17:59Z",
+      "ended": "2026-09-10T23:32:06Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "95a87a669a2bae986ee46dd45b262618fdd59882",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_correction_contract.py",
+      "ops/devlane/dispatch/tests/test_launch_correction_contract.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_launch_correction_contract.py": "ops/devlane/dispatch/tests/test_launch_correction_contract.py",
+        "test_ladder_lever_correction_contract.py": "ops/conductor/tests/test_ladder_lever_correction_contract.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2111320,
+        "out": 48257,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f2bcdbf026411c30234f8607eef418bf2b007787",
+        "started": "2026-09-10T23:22:09Z",
+        "ended": "2026-09-10T23:31:42Z"
+      },
+      "note": "Strengthened the twelve weak document-pin assertions (contract items 3, 4, 6, 9) in the two existing files; no new cases; implementation unread. Combined suite at 95a87a669a2bae986ee46dd45b262618fdd59882: python3 -m unittest ops.devlane.dispatch.tests.test_launch_correction_contract ops.conductor.tests.test_ladder_lever_correction_contract \u2014 23 tests, 32 assertion failures, 0 errors. Commits 229c322d69ff822b18b386582b875a3d7701b09b and 95a87a669a2bae986ee46dd45b262618fdd59882."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T23:32:05.787Z"
+    }
+  },
+  "status": "closed"
 }
