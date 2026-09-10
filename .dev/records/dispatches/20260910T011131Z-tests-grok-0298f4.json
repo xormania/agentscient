@@ -114,11 +114,11 @@
     }
   ],
   "result": {
-    "head": "1028693cdc3e56a0b7a78ff5810269a3f49698fe",
-    "changed_paths": [],
-    "residual_paths": [
-      "?? ops/devlane/dispatch/tests/test_launch_input_visibility.py"
+    "head": "940e76a8c3a4924ad7de24805df365838a62d6f3",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_input_visibility.py"
     ],
+    "residual_paths": [],
     "envelope": {
       "job": "author-tests",
       "status": "invalid",
@@ -142,6 +142,16 @@
     "cause": {
       "reason": "timeout",
       "note": "timeout: harness exceeded runtime"
+    },
+    "collected": {
+      "at": "2026-09-10T01:23:47Z",
+      "by": "GPT-6 Astra <noreply@openai.com>",
+      "head": "940e76a8c3a4924ad7de24805df365838a62d6f3",
+      "verify": {
+        "command": "python3 /tmp/agentscient-onboarding-20260909/verify-input-red.py",
+        "exit": 0
+      },
+      "reason": "Recover the independent test artifact: its full synthetic launch test reproduces exactly the six reported missing-input failures, with the empty-input neighbor passing and no errors or skips. Semantic test review remains separate."
     }
   },
   "status": "closed"
