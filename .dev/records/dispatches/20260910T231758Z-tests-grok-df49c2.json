@@ -1,0 +1,118 @@
+{
+  "id": "20260910T231758Z-tests-grok-df49c2",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/scope-gate-20260910",
+  "lineage": {
+    "branch": "lane/scope-gate-20260910",
+    "base_sha": "f2bcdbf026411c30234f8607eef418bf2b007787"
+  },
+  "follows": [
+    "20260910T230927Z-check-tests-codex-761ee3"
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-10T23:17:59Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f2bcdbf026411c30234f8607eef418bf2b007787",
+    "ref_sha": "f2bcdbf026411c30234f8607eef418bf2b007787",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "5d171135-3cad-43df-a3f2-6c9fee3c6fe7",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "5d171135-3cad-43df-a3f2-6c9fee3c6fe7",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/in/plan-gate-contracts.md",
+        "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/in/20260910T230927Z-check-tests-codex-761ee3.json",
+        "sha256": "fd4c55f8d8e9bb3516d8817b9c21278a50dbdc0415f9a2228c7ff9e422a446a5"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T231758Z-tests-grok-df49c2/in/SKEPTIC.md",
+        "sha256": "e36d93e733f47c6f10fbaefef37817d6251f7071043a85805dfac731c989d18e"
+      }
+    ],
+    "sha256": "3d9f2d7ddfadb3af505409adc74427f26d158b20b67a0f4b809b1b9f8e682b7c",
+    "bytes": 3318
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
