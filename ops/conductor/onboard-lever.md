@@ -94,37 +94,6 @@ line (an unperformed read is named, never silent):
   unmeasured.
 - `branch:` current branch and short sha of the repository the tool
   runs from.
-- `freshness:` one line per configured branch, using the
-  [git-refs adapter](monitor-lever.md#branch-freshness-adapter-amendment)
-  directly with the same params, metrics, states and bounds. This amendment
-  is a contract obligation pending independent tests and implementation.
-  Read `branch_refs` from the monitor's existing default registry (no new
-  CLI option or global config); its adapter must be `git-refs`, its resolved
-  repo must equal this onboarding repository, and branches must include
-  `dev` and `master`. A missing/disabled entry or schedule, invalid registry,
-  wrong repo/adapter or incomplete branch coverage prints
-  `freshness: unavailable: expected <configuration>; found <reason>; needed <remedy>`
-  and counts one unmeasured source; no query. Otherwise call the reader once
-  for all branches at onboarding time, without scheduler, queue, state-file
-  access or identity. Never substitute a stored monitor event or tracking ref
-  for a fresh remote query.
-  Each line is `freshness: <ref> local=<oid|null> remote=<oid|null> status=<freshness> observed_at=<UTC>`;
-  unavailable adds the adapter's fixed reason. Every non-equal branch adds
-  `warning: expected equal local/live remote refs for new work; found <freshness>; needed owner reconciliation or a verified baseline`.
-  Measured mismatch/missing refs are visible warnings, not absences: with all
-  other sources measured, exit 0 and `brief complete`. Each unavailable
-  branch counts once toward absences and exit 1. No startup refusal or
-  synchronization: historical reads and pinned independent tests remain
-  permitted; the warning forbids treating stale/unverified refs as current
-  truth or a verified new-work baseline. Never move another actor's checkout.
-
-Independent freshness TDD fixtures must assert the exact lines and exits:
-both equal => no warning/exit 0; dev-only or master-only mismatch and each
-missing-ref state => warning/exit 0; two remote-unavailable readings => two
-absences/exit 1; invalid/missing/disabled config => one absence/exit 1 and
-zero queries. Include stale tracking refs, missing remote objects, detached
-HEAD and pinned historical work, one query for both branches, no monitor
-state creation, and byte-identical refs/index/worktree/config after reading.
 
 Sibling outputs are as the siblings' own contracts define them — the
 register's report is deterministic JSON, the ledger's report begins
@@ -193,8 +162,7 @@ it earns its THIS-FILE-ONLY row (S603), stated in the PR.
 
 Discovery of homes, retained-ref handoffs, and owner action interfaces
 is specified in [`discovery-lever.md`](discovery-lever.md). This
-instrument's CLI remains unchanged; the freshness amendment above extends
-only its state readings. Its law table now
+instrument's CLI and state acquisition remain unchanged. Its law table now
 includes discovery and the startup sequence. Discovery/3 deliberately retains
 the five-row compact law projection specified by its accepted envelopes.
 
