@@ -28,7 +28,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
 import shlex
 import shutil
 import stat
@@ -37,6 +36,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+from live_store_guard import assert_unchanged
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "ladder.py"
@@ -149,9 +150,6 @@ BUCKET_PLAN = (
     "ops/conductor/tools/ladder.py ops/bin/ladder.sh\n"
 )
 
-_JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
-
-
 def stage_model_effort(name: str) -> tuple[str, str]:
     grok = (MODEL_GROK, EFFORT_GROK)
     codex = (MODEL_CODEX, EFFORT_CODEX)
@@ -177,19 +175,6 @@ def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
     if not path.is_dir():
         return ("other", ())
     return ("dir", tuple(sorted(p.name for p in path.iterdir())))
-
-
-def _without_new_job_dirs(before, after):
-    kept = {}
-    for key, (kind, names) in after.items():
-        if kind == "dir" and key in before and before[key][0] == "dir":
-            previous = set(before[key][1])
-            names = tuple(
-                n for n in names
-                if n in previous or not _JOB_DIR.match(n)
-            )
-        kept[key] = (kind, names)
-    return kept
 
 
 def _live_store_paths() -> list[Path]:
@@ -787,13 +772,10 @@ class _LadderFixture(unittest.TestCase):
 
     def tearDown(self):
         try:
-            self.assertEqual(
-                _without_new_job_dirs(
-                    self._live_before,
-                    {str(p): _store_snap(p) for p in _live_store_paths()},
-                ),
+            assert_unchanged(
+                self,
                 self._live_before,
-                "live dispatch store mutated",
+                {str(p): _store_snap(p) for p in _live_store_paths()},
             )
             self.assertEqual(
                 _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
