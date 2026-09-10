@@ -339,12 +339,19 @@ class _GitRefsFixture(_MonitorFixture):
         params: dict | None = None,
     ) -> dict:
         if params is None:
+            planted_branches = [DEV, MASTER] if branches is None else list(branches)
             params = {
                 "repo": self.relative_repo() if repo is None else repo,
                 "remote": remote,
-                "branches": list(branches or [DEV, MASTER]),
+                "branches": planted_branches,
                 "timeout_s": timeout_s,
             }
+            if not planted_branches:
+                self.assertEqual(
+                    params["branches"],
+                    [],
+                    "plant: empty branches remain empty",
+                )
         conditions = {
             "refs_changed": {
                 "enabled": True,
