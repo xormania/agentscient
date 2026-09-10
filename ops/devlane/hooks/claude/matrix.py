@@ -70,6 +70,10 @@ ALLOWED_BY_HAND = {
 DISPATCHERS = ("dispatch.sh", "go.sh")
 LAUNCHER = "launch.py"
 DRIVER = "ladder.sh"
+# Launcher verbs that launch nothing: they read a record the dispatcher
+# already minted. ops/README.md documents the wait verb; the lane conf the
+# direct-launch row protects is applied at the mint, not at a read.
+LAUNCHER_READ_VERBS = ("status", "wait", "brief")
 SCOPE_CAP_DEFAULT = 1024
 COPY_WORDS = ("cp", "mv", "install", "rsync", "ln")
 GRANT = re.compile(r"^\s*(?:export\s+)?HAND_GRANT=(\d+)\b")
@@ -526,6 +530,8 @@ def dispatch_args(tokens):
     if kind is None:
         return None, {}
     flags = {"input": [], "command": name}
+    if kind == "launcher" and program + 1 < len(tokens) and not tokens[program + 1].startswith("-"):
+        flags["verb"] = tokens[program + 1]
     it = iter(tokens)
     for flag in it:
         if flag in ("--scope-file", "--worktree", "--job", "--model", "--effort", "--harness", "--stage", "--unit"):
@@ -577,6 +583,8 @@ def read_text(path):
 
 def check_dispatch(kind, flags, cwd, text, grant):
     if kind == "launcher":
+        if flags.get("verb") in LAUNCHER_READ_VERBS:
+            return None
         if grant is None:
             return deny("direct-launch",
                         "every stage launched through ops/bin/dispatch.sh so the lane conf applies",
