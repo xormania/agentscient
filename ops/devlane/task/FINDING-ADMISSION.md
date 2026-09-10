@@ -1,10 +1,11 @@
 # Finding admission — which findings earn correction
 
-Standing: owner-scoped contract, 2026-09-09; implementation and independent
-acceptance are later deliverables. Owner: "does it solve an issue or expand
+Standing: owner-scoped contract, 2026-09-09; implementation is present in the
+task, dispatch, jobs, ledger and ladder owners. Independent acceptance remains
+pending. Owner: "does it solve an issue or expand
 scope - has to solve - and its can't be theoretical - it has to something
-that can actually happen". This contract implements that scope's design,
-not a claim that the runtime already enforces it. The implementation handoff
+that can actually happen". Structural enforcement does not establish the
+truth of an evaluation or independent acceptance. The implementation handoff
 is part of this contract.
 
 This is the dev lane, under [the lane boundary](../../../AGENTS.md#lane-boundary-and-precedence).
@@ -230,6 +231,61 @@ new admission with a named reason; never guess from a twelve-character ref.
 
 ## Verification boundaries and implementation handoff
 
+Recovery at base `46a2805d1f7075a5491a451ab4346e8f3d26192c` continues the
+preserved source without changing independent test bytes. Artifact producer
+records bind through recorded output commits when present; otherwise a closed,
+successful producer must bind both its snapshot and envelope stamp to the
+pinned artifact ref. Harness/model independence checks still apply.
+An empty projection that fails validation skips the correction dispatch but
+stops the ladder as admission; it supplies neither a receipt nor approval.
+Raw-envelope and admitted-projection custody checks both precede test repair,
+and implementation repair retains the prior implementation record context.
+Review prompts require self-evaluation; adjudication settles only its supplied
+batch. Independent acceptance remains a separate producer's duty.
+
+Preserved implementation reading (historical; superseded by recovery above),
+2026-09-10, against base
+`8a6a51fff0925fd006aa3a3987cc4b3f969c940e` plus the working diff:
+`git diff --stat` names `envelope.py`, `run.py`, `launch.py`, `jobs.json`,
+`findings.py` and `ladder.py`. The public additions remain the optional finding
+evaluation and the two ledger verbs. The ledger imports legacy history without
+semantic repair; it requires the shared task validator for correction reads.
+Original JSON bytes and retained input/report bytes live separately from the
+derived rows in SQLite. Corrections use a read-only connection. Migration
+records the disposition that is actually present; earlier overwritten
+disposition events are unavailable, not reconstructed.
+
+Adjudication uses existing retained inputs: original dispatch JSON files
+verbatim, artifact-producing dispatch records, prior adjudication records and
+the exact scope file. A supplied subset/dispute batch is existing ledger export
+JSONL, one row per supplied key; its disputes identify precisely which events
+the ruling may resolve. Without subset rows the original reports define the
+whole supplied finding batch. No new dispatch flag or output grant is added.
+Callers retain the exact owner scope using the existing explicit `--input`
+interface; the ladder already supplies that file. The launcher preserves the
+supplied input list and order, without adding an implicit scope input. Missing
+old scope inputs require evidence, never a digest copied from the worker's
+evaluation.
+
+The ladder records and revalidates correction receipts before correction work;
+CHANGES with empty admission remains resolved-without-correction and cannot
+provide missing approval. Audit mint metadata commits are deferred until both
+audits start, with durable partial records kept throughout. A worker closure
+or another actor can still move the ref during that interval: differing full
+review refs stop admission, rather than being treated as equivalent trees.
+Resume cannot silently rebind a previously consumed projection.
+
+Local measurements: `python3 -m unittest discover -s ops/devlane/task/tests -v`
+ran 329 tests successfully; the dispatch `test_launch_envelope*.py` discovery
+ran 58 successfully; conductor `test_findings*.py` discovery ran 16 successfully.
+The three supplied file-path gates are not green as a group. Test bytes were
+not changed. Their independent author must address missing staged task
+dependencies/scope/provenance, unbound routing mock keys, and the expectation
+that empty admission supplies a legacy CHANGES review's missing approval.
+The older ladder test that requires raw SKEPTIC input also contradicts the
+admitted-only correction requirement. Full-suite and independent acceptance
+remain outstanding; these local measurements are not their substitute.
+
 Measured source baseline: `d7bf77f9cbf34398961dcde3add4530d25b83fd3`,
 2026-09-09. `sed -n '35,120p' ops/devlane/task/envelope.py` shows the closed
 four-field finding; `sed -n '1349,1415p' ops/conductor/tools/ladder.py` shows
@@ -254,32 +310,44 @@ brief generation, resume and custody. Tests must assert real outcomes and
 refusal class/reason, not merely prompt substrings. Pure schema success is not
 proof that a reviewer correctly classified a finding.
 
-The next producer writes independent tests from this contract and owner scope,
-without implementation. Cover real defect, unsupported premise/scope expansion,
+The independent-test duty is retained here from the original handoff. Tests
+were supplied before this implementation; their corrections remain the
+independent test producer's work. Cover real defect, unsupported premise/scope expansion,
 mixed findings, complete no-defect, incomplete review, missing evidence, static
 path evidence, documentation/test defects, legacy read versus fresh correction,
 binding mismatch, disputes and partial rulings. Pair every rejection with a
 nearby valid case. A different producer checks those tests before implementation;
 the implementation author neither writes nor approves them.
 
-Add a small independently classified sample of actual agy findings alongside
-synthetic cases. Immutable starting source:
+Keep a small independently classified sample of actual agy findings alongside
+synthetic cases. The original historical sampling citation was:
 `d7bf77f9cbf34398961dcde3add4530d25b83fd3:ops/conductor/findings/findings.jsonl`,
 blob `5e996b21fb03769a365155d752e811a66deb4016`, measured by
 `git rev-parse d7bf77f9cbf34398961dcde3add4530d25b83fd3:ops/conductor/findings/findings.jsonl`.
-Candidate keys include `20260903T232447Z-review-codex-9c696a#1` and
-`20260904T040646Z-review-codex-7fbe5c#1`; these are sampling pointers, not supplied
-truth labels. The independent test producer must cite original requirement,
+The originally named keys `20260903T232447Z-review-codex-9c696a#1` and
+`20260904T040646Z-review-codex-7fbe5c#1` are effort/security history, not agy
+sample pointers (`rg` against the tracked export, 2026-09-10). The supplied
+independent sample is now
+`ops/conductor/tests/fixtures/finding_admission/agy-sample-classifications.json`,
+SHA-256 `b363c5f8c12ab3756e7b71dba429fad35d016cdc79f3457de129223503d59a83`,
+measured by `sha256sum` at the implementation base above. It cites, among others,
+`8630ccf0e72a11596ed1a5cb7e2efa2f931f6d29:.dev/records/dispatches/20260908T063559Z-review-claude-6eb510.json`
+and
+`317a12035fb2b18d92a39d43b023d0326be514ee:.dev/records/dispatches/20260908T083005Z-review-codex-f022fd.json`.
+These are the independent producer's immutable citations, not newly verified
+captures: `git rev-parse` of the first cited path refused because that path is
+absent in this checkout's cited tree. No historical reproduction was executed.
+The fixture and its labels are unchanged. The independent test producer must cite original requirement,
 supported scope and pinned evidence, justify each expected classification and
 state unavailable evidence. Existing severity/disposition is not a truth label;
 if this source cannot support a needed class, declare that limit and source
 another immutable public/repository finding. No private transcripts/auth, raw
 harness captures or automatic execution of historical reproduction strings.
 
-Then implement in the existing envelope/schema and extraction, review job
+The implementation belongs in the existing envelope/schema and extraction, review job
 prompts (self-evaluation), adjudicate prompt (supplied batch only), ledger and
-ladder seams above. Preserve existing C1/C2 validation/output custody. No source,
-prompt or test change belongs in this first deliverable. Run focused independent
+ladder seams above. Preserve existing C1/C2 validation/output custody. The
+original first deliverable was contract-only. Run focused independent
 behavior tests and `ops/bin/suites.sh` as the full suite gate; retain results and
 limits. Batch independent acceptance after implementation, then open the later
 draft PR into dev under the owner's scope. Every commit retains `Source:` and

@@ -511,6 +511,9 @@ class Driver:
             encoding="utf-8",
         )
         paths = [self.record_path, *extra]
+        if getattr(self, '_pair_pending_paths', None) is not None:
+            self._pair_pending_paths.extend(paths)
+            return  # Durable files; commit both mint records at the pair boundary.
         relative = [str(path.relative_to(self.worktree)) for path in paths if path.exists()]
         added = git(self.worktree, "add", "--", *relative)
         if added.returncode != 0:
@@ -541,7 +544,8 @@ class Driver:
             "verdict": stopped.verdict,
         }
         row = self.row(stopped.stage)
-        row["outcome"] = stopped.verdict or "stopped"
+        if row.get('outcome') != 'skipped':
+            row["outcome"] = stopped.verdict or "stopped"
         if stopped.reason:
             row["reason"] = stopped.reason
         self.commit()
@@ -987,39 +991,28 @@ class Driver:
         dispatch_dir = self.worktree / ".dev" / "records" / "dispatches"
         if name == "check-tests" and "tests" in records:
             inputs.append(dispatch_dir / f"{records['tests']}.json")
-        elif name == "tests-fix" and "check-tests" in records:
-            record_path = dispatch_dir / f"{records['check-tests']}.json"
-            inputs.append(record_path)
-            try:
-                payload = json.loads(record_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                payload = {}
-            artifacts = (
-                (((payload.get("result") or {}).get("envelope") or {}).get("artifacts"))
-                or {}
-            )
-            if isinstance(artifacts, dict):
-                for value in artifacts.values():
-                    if isinstance(value, str):
-                        artifact = Path(value)
-                        if artifact.name == "SKEPTIC.md" and artifact.is_file():
-                            inputs.append(artifact)
         elif name == "code" or name.startswith("code-"):
             inputs.append(self.scope)
             if command_file is not None:
                 inputs.append(command_file)
-        elif name in {"fix-tests", "fix-code"}:
-            for audit in ("security", "adversarial"):
-                if audit in records:
-                    inputs.append(dispatch_dir / f"{records[audit]}.json")
-            if name == "fix-code" and command_file is not None:
-                inputs.append(self.scope)
+        elif name in {"tests-fix", "fix-tests", "fix-code"}:
+            admission = self.row(name).get('admission')
+            if not admission:
+                raise Stopped(name, reason='admission', detail='no consumed correction projection')
+            projection = admission['projection']
+            # Held/raw findings and report artifacts never become instructions.
+            demand = {'ref': projection['ref'], 'scope_sha256': projection['scope_sha256'],
+                      'admitted': projection['admitted']}
+            if name in WITHHELD_STAGES and self.has_leak(demand):
+                raise Stopped(name, reason='withheld', detail='admitted evidence needs a permitted specification projection')
+            inputs = [self.scope, self.make_input(name + '-admitted', json.dumps(demand, sort_keys=True))]
+            if command_file is not None:
                 inputs.append(command_file)
-                context = self.make_input(
-                    "implementation-records",
-                    "implementation records: " + " ".join(self.implementation_markers),
-                )
-                inputs.append(context)
+            if name == 'fix-code':
+                inputs.append(self.make_input(
+                    'implementation-records',
+                    'implementation records: ' + ' '.join(self.implementation_markers),
+                ))
         elif name == "security-re" and "security" in records:
             inputs.append(dispatch_dir / f"{records['security']}.json")
         return [path for path in inputs if path is not None]
@@ -1134,6 +1127,89 @@ class Driver:
             re.search(r"implement(?:ation)?[_ -]+envelope", encoded, re.IGNORECASE)
         )
 
+    def corrections(self, name: str, stages: tuple[str, ...], records: dict[str, str]) -> dict:
+        """Consume the complete recorded stage batch; re-read it on resume."""
+        ids, refs, expected_keys = [], set(), []
+        for stage in stages:
+            record_id = records.get(stage)
+            if not record_id or self.row(stage).get('dispatch_record') != record_id:
+                raise Stopped(name, reason='admission', detail='review batch differs from recorded stages')
+            try:
+                path = self.worktree / '.dev/records/dispatches' / f'{record_id}.json'
+                source = json.loads(path.read_text(encoding='utf-8'))
+                ref = source['snapshot']['ref_sha']
+                if source['id'] != record_id:
+                    raise ValueError('record id differs from stage')
+                expected_keys.extend(f'{record_id}#{n}' for n, _item in enumerate(
+                    source['result']['envelope']['findings'], 1))
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                raise Stopped(name, reason='admission', detail=f'missing reviewed ref: {error}') from error
+            if not re.fullmatch(r'[0-9a-f]{40}', ref):
+                raise Stopped(name, reason='admission', detail='review ref is not a full SHA')
+            refs.add(ref)
+            ids.append(record_id)
+        if len(refs) != 1:
+            raise Stopped(name, reason='admission', detail='complete review batch has different reviewed refs')
+        ref = refs.pop()
+        scope = digest(self.scope)
+        if scope != self.record['scope']['sha256']:
+            raise Stopped(name, reason='admission', detail='owner scope changed')
+        result = run([sys.executable, str(self.findings), 'corrections', '--ref', ref,
+                      '--scope-sha256', scope, *ids], self.worktree)
+        if result.returncode != 0:
+            raise Stopped(name, reason='admission', detail=result.stderr.strip() or 'corrections read failed')
+        empty = False
+        try:
+            projection = json.loads(result.stdout)
+            if (set(projection) != {'ref', 'scope_sha256', 'admitted', 'held'}
+                    or projection['ref'] != ref or projection['scope_sha256'] != scope
+                    or not isinstance(projection['admitted'], list)
+                    or not isinstance(projection['held'], list)):
+                raise ValueError('malformed or unbound correction projection')
+            empty = not projection['admitted']
+            keys = [item['key'] for item in projection['admitted'] + projection['held']]
+            if len(keys) != len(set(keys)) or set(keys) != set(expected_keys):
+                raise ValueError('correction keys differ from declared batch')
+            for group in ('admitted', 'held'):
+                positions = [expected_keys.index(item['key']) for item in projection[group]]
+                if positions != sorted(positions):
+                    raise ValueError('correction order differs from declared batch')
+            for item in projection['admitted']:
+                if (set(item) != {'key', 'evaluation_record', 'evaluation_n', 'evaluation'}
+                        or item['evaluation']['classification'] != 'demonstrated-defect'
+                        or not item['evaluation']['failure'] or not item['evaluation']['requirement']):
+                    raise ValueError('admitted demand is not an evaluated defect')
+            for item in projection['held']:
+                if set(item) != {'key', 'reason'} or item['reason'] not in {'disputed', 'scope-expansion', 'unproven'}:
+                    raise ValueError('invalid held finding')
+            encoded = json.dumps(projection, sort_keys=True, ensure_ascii=False,
+                                 separators=(',', ':'), allow_nan=False).encode('utf-8')
+        except (ValueError, KeyError, TypeError, AttributeError) as error:
+            if empty:
+                # No correction dispatch is possible, but the ladder still
+                # stops: this is neither an accepted receipt nor approval.
+                self.mark_skipped(name, 'empty correction projection refused validation')
+            raise Stopped(name, reason='admission', detail=str(error)) from error
+        receipt = {'records': ids, 'ref': ref, 'scope_sha256': scope,
+                   'projection': projection, 'sha256': hashlib.sha256(encoded).hexdigest()}
+        prior = self.row(name).get('admission')
+        if prior is not None and prior != receipt:
+            raise Stopped(name, reason='admission', detail='consumed projection or bindings changed on resume')
+        self.row(name)['admission'] = receipt
+        self.commit()
+        return projection
+
+    def require_approval(self, name: str, envelopes: list[dict]) -> None:
+        if any(env.get('status') != 'ok' or env.get('verdict') != 'approve' for env in envelopes):
+            self.row(name)['resolution'] = 'resolved-without-correction'
+            raise Stopped(name, reason='admission', detail='empty admission does not supply missing approval')
+
+    @staticmethod
+    def needs_admission(envelopes: list[dict]) -> bool:
+        return any(env.get('verdict') == 'changes' or any(
+            isinstance(item, dict) and 'evaluation' in item for item in env.get('findings', [])
+        ) for env in envelopes)
+
     def verify_custody(
         self,
         name: str,
@@ -1172,18 +1248,23 @@ class Driver:
                 "adversarial", records, command_file, security_id, resume=True
             )
             return security_envelope, adversarial_envelope, adversarial_id
-        security = self.mint(
-            "security",
-            self.inputs_for("security", records, command_file),
-            previous,
-        )
-        records["security"] = security.record_id
-        adversarial = self.mint(
-            "adversarial",
-            self.inputs_for("adversarial", records, command_file),
-            security.record_id,
-        )
-        records["adversarial"] = adversarial.record_id
+        # Metadata commits between the two starts would change their full refs.
+        # Keep the durable partials, then commit the pair together. A concurrent
+        # worker closure can still move HEAD; the admission ref gate refuses it.
+        self._pair_pending_paths = []
+        try:
+            security = self.mint(
+                "security", self.inputs_for("security", records, command_file), previous,
+            )
+            records["security"] = security.record_id
+            adversarial = self.mint(
+                "adversarial", self.inputs_for("adversarial", records, command_file), security.record_id,
+            )
+            records["adversarial"] = adversarial.record_id
+        finally:
+            paths = self._pair_pending_paths
+            self._pair_pending_paths = None
+            self.commit(*dict.fromkeys(paths))
         first_error: Stopped | None = None
         try:
             security_envelope = self.finish(security)
@@ -1364,15 +1445,18 @@ class Driver:
             check_envelope, previous = self.execute(
                 "check-tests", records, None, previous, resume=resume
             )
-            if check_envelope.get("verdict") == "changes":
+            command_file = self.derive_command(tests_envelope)
+            check_projection = (self.corrections('tests-fix', ('check-tests',), records)
+                                if self.needs_admission([check_envelope]) else {'admitted': []})
+            if check_projection['admitted']:
                 if self.has_leak(check_envelope):
-                    raise Stopped("tests-fix", reason="withheld")
+                    raise Stopped('tests-fix', reason='withheld')
                 _fixed, previous = self.execute(
-                    "tests-fix", records, None, previous, resume=resume
+                    "tests-fix", records, command_file, previous, resume=resume
                 )
             else:
-                self.mark_skipped("tests-fix", "skeptic did not request changes")
-            command_file = self.derive_command(tests_envelope)
+                self.mark_skipped('tests-fix', 'explicitly empty admitted corrections')
+                self.require_approval('tests-fix', [check_envelope])
             for index, _bucket in enumerate(self.buckets, 1):
                 name = "code" if index == 1 else f"code-{index}"
                 _coded, previous = self.execute(
@@ -1381,16 +1465,15 @@ class Driver:
             security, adversarial, previous = self.audit_pair(
                 records, command_file, previous, resume=resume
             )
-            changes = (
-                security.get("verdict") == "changes"
-                or adversarial.get("verdict") == "changes"
-            )
-            if changes:
+            audit_projection = (self.corrections('fix-tests', ('security', 'adversarial'), records)
+                                if self.needs_admission([security, adversarial]) else {'admitted': []})
+            if audit_projection['admitted']:
                 if self.has_leak(security) or self.has_leak(adversarial):
-                    raise Stopped("fix-tests", reason="withheld")
+                    raise Stopped('fix-tests', reason='withheld')
                 _test_fix, previous = self.execute(
                     "fix-tests", records, command_file, previous, resume=resume
                 )
+                self.corrections('fix-code', ('security', 'adversarial'), records)
                 _code_fix, previous = self.execute(
                     "fix-code", records, command_file, previous, resume=resume
                 )
@@ -1404,9 +1487,11 @@ class Driver:
                         verdict="changes",
                         exit_code=1,
                     )
+                self.require_approval('security-re', [security_re])
             else:
                 for name in ("fix-tests", "fix-code", "security-re"):
-                    self.mark_skipped(name, "audits did not request changes")
+                    self.mark_skipped(name, 'explicitly empty admitted corrections')
+                self.require_approval('fix-tests', [security, adversarial])
             return self.open_pr()
         except Stopped as stopped:
             self.stop(stopped)

@@ -318,11 +318,15 @@ def _parse_envelope(data):
         return None
     values = []
     try:
-        values.append(json.loads(text))
+        values.append(envelope.loads(text))
+    except envelope.EnvelopeError:
+        return None
     except json.JSONDecodeError:
         for line in text.splitlines():
             try:
-                values.append(json.loads(line))
+                values.append(envelope.loads(line))
+            except envelope.EnvelopeError:
+                return None
             except json.JSONDecodeError:
                 continue
     answer = None
