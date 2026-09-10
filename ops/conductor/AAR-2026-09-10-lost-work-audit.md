@@ -1,5 +1,8 @@
 # AAR — 2026-09-10, failed-session recovery and lost-work audit
 
+Later repair: [audit enforcement repair AAR](AAR-2026-09-10-audit-enforcement-repair.md)
+records implementation, verification, session mistakes and remaining integration work.
+
 Owner-requested session record by GPT-6 (`gpt-6-astra`), not a new policy or
 acceptance of recovered implementations. The [handoff](handoff/HANDOFF-2026-09-10-lost-work-audit.md)
 carries retrieval and the next bounded actions.
