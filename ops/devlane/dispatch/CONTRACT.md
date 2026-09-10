@@ -1,5 +1,268 @@
 # The dispatch app — the dev-lane launcher
 
+## Configured workers and agy installation
+
+Standing: worker implementation candidate, owner brief of 2026-09-08.
+The configured-worker mechanism enables agy; independent combined review
+remains outstanding. Bounded native discovery evidence is recorded below.
+GPT-6 correction follows independent Grok ruling
+`20260908T065000Z-adjudicate-grok-c2ae09` on `fc9ad2c`: F1–F4 UPHELD,
+F5/F6/F8 PARTIAL, F7 REJECTED. Later wire evidence
+`20260908T064029Z-plan-codex-161211` is separate and did not seed that ruling.
+The original INVALID delivery remains preserved as recorded.
+The owner requests installed, dispatchable **agy workers** and has already
+selected Flash 3.8 uses. The integration inventory's role calibration,
+eight-PR rollout and qualification-only/candidate-admission protocol are
+superseded. Its binary/help evidence and both inventories' source maps
+remain dated evidence. Candidate code and independent fake-CLI tests may
+be developed on the owner-created branch and exercised through the existing
+dispatch/probe path under the trusted-maintainer host boundary. No second
+executor, task.run vendor extension, conduct adapter, Symfony dependency,
+global settings change or broad C1/C2 adoption is required by this amendment.
+Existing custody, job restrictions and independent producers still bind.
+
+Source homes re-read on 2026-09-08 at
+`1ba670842ea287f369a76c53a3e7455bf4ecf3d6`: `laneconf.py` parses literal
+configuration; the worker wrapper hardcodes three names; `launch.py`
+branches for their invocation, identity and supervision; `isolation.py`
+has three entries; usage/pulse have three readers. Reproduce with
+`rg -n 'def worker|def values|case \$harness|def _argv|def _stream|def _run_attempt|def .*_sessions|HARNESSES' ops/conductor/tools/laneconf.py ops/conductor/tools/dispatch.sh ops/devlane/dispatch/launch.py ops/devlane/harness/isolation.py ops/devlane/telemetry/usage.py ops/devlane/telemetry/pulse.py`.
+The supplied integration inventory measured agy 1.1.27 and help syntax;
+its `models` failure with HOME removed says nothing about model support.
+No authenticated behavior or agy format is established by those readings.
+
+### Small configuration interface
+
+[laneconf.py's module contract](../../conductor/tools/laneconf.py) owns
+the exact keys, validation, provenance and `worker(name)`/`worker NAME`
+projection. `WORKER_HARNESSES` selects implemented worker names;
+`EXECUTABLE_<NAME>` optionally names one absolute executable file. Omitted
+keys preserve the three legacy names and PATH resolution. An explicit
+empty worker list disables all workers; an empty executable refuses.
+These keys never supply flags, permissions, provider, model/role mappings
+or capability evidence. Remove agy from the list to disable new agy
+launches/resumes without changing the other adapters.
+
+The [existing wrapper](../../conductor/tools/dispatch.sh) checks selection
+through that loader, then calls `launch.main(argv=None) -> int` through its
+existing CLI. Direct launch checks the same selection before minting state.
+No executable flag or alternate loader is introduced. Preserve original
+configuration sources when forwarding; a file value must not be relabelled
+as an operator environment override. The wrapper's `saved_keys` save/restore
+must include `WORKER_HARNESSES` and `EXECUTABLE_*` before sourcing either
+file, or keep these keys out of the sourced process environment. Pin exported
+operator values versus file values in `test_dispatch_wrapper.py`.
+Launch records the returned worker object as `harness.worker` and uses its `executable` as the single argv[0],
+with shell execution disabled; paths containing spaces remain one token.
+Pass `worker.executable` into `_argv` for argv[0] separately from the harness
+name used for adapter branching; do not rebind that name. Without an override,
+claude/codex/grok retain `shutil.which(name) or name`. Absolute realpath and
+PATH-miss refusal apply to overrides and agy, preserving the three defaults.
+Configuration membership alone cannot implement an absent adapter.
+
+Selection stays explicit `--harness`; go's existing intent defaults and
+HARNESS override stay unchanged. Nonempty explicit `--model` wins over
+`MODEL_<NAME>_<JOB>`, then the wrapper's generic `MODEL_<NAME>` fallback
+after the job-key rung (empty/unset is safe under `set -u`). JOB uppercases
+and replaces `-` with `_`. Preserve Claude's special final fallback to
+`MODEL_CLAUDE_PLAN` when stage is plan, otherwise `MODEL_CLAUDE_READ`. Effort likewise uses nonempty
+`--effort`, `EFFORT_<NAME>_<JOB>`, then `EFFORT_<NAME>`; absent/empty effort
+means no effort argv: the wrapper's final indirect expansion must be
+`${!effort_harness:-}`. Each configuration key retains environment over local
+over tracked precedence. The `agy` worker gets no model
+default in code: optional MODEL_AGY/EFFORT_AGY are operator choices in
+these existing families, not a roster. Direct launch still requires
+`--model`; no supported effort may be silently dropped or translated to
+another level. Existing Claude write refusal, Codex read/check-tests
+exception, Grok policy permissions and all three fresh/resume argv persist.
+
+### Adapter interfaces and evidence
+
+All rows extend existing owners; no plugin registry or generic adapter
+framework is needed. These are implementation obligations, not live passes.
+
+| owner / seam | agy input, output and acceptance obligation |
+|:--|:--|
+| `harness/isolation.py`: `HARNESSES`, `build_home(harness, root, env=None)`, `dispatch_env(harness, home=None, env=None)`, `isolated(harness, root, env=None)` | Use the exact isolation data and refusal rules in its module contract. Return the existing home Path, environment dict and `(env, flags)` respectively. No auth filename, discovery variable or store path may be guessed from the name agy. |
+| `launch.py`: `_harness_meta(name, role, job_dir, env)` | For agy, record `harness.containment='policy'` under the trusted-host boundary. The sandbox label is `always-proceed`; argv uses the measured `--dangerously-skip-permissions`, with policy containment. `isolation.store` follows measured `sessions.{under,path}`; until available, refuse `unsupported-capability` before minting a store, never use the Claude `$HOME/.claude` else-branch. |
+| `launch.py`: `_effort_argv(harness, effort)`, `_argv(...)`, `_child_env(...)` | Preserve existing callers; add the resolved executable input to `_argv` separately from its harness-name discriminator. The measured transport is `[executable, *isolation_flags, '--print=', '--model', model, '--input-format', 'stream-json', '--output-format', 'stream-json', '--disable-slash-commands', '--dangerously-skip-permissions', '--add-dir', snapshot]`, plus `['--effort', effort]` only for low/medium/high. Feed exactly one UTF-8 NDJSON `{"event":"user","message":{"content":prompt_text}}` line through stdin and close it. Preserve prompt Unicode/newlines as JSON string content; no prompt on argv. The bare `--print` consumes the following flag; text stdin with empty print is not a prompt; `--mode plan` is ineffective with slash commands disabled. Keep the canonical schema in the brief and preserve the existing result parser. No vendor schema flag is admitted. |
+| `launch.py`: `_envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None, rec=None)` | Preserve raw stdout/stderr; decode only the measured terminal result carrier for this attempt, not arbitrary intermediate JSON. The agy branch must reject missing, ambiguous, truncated or malformed terminal results and vendor errors even beside a plausible envelope. Apply task.ENVELOPE_SCHEMA and `task/envelope.py:validate` to the extracted canonical object, including nullable verdict/reproduce, counts, invalid/tripped verdicts and optional commit. Return the existing invalid/null-verdict result with a cause on failure. Vendor schema acceptance or exit 0 alone never certifies work. Do not rewrite legacy extraction or adopt generic C2 output grants here. |
+| `launch.py`: `_stream(job_dir, harness, session, snapshot, ref_sha, role='read')`, `_resume`, `_close` | Preserve `(path, ran, stream_id, mismatch)`; missing observations are None, mismatch is a reason string. Fresh launch must obtain a unique native session id, bind it to this job/attempt and snapshot, and discover only its measured isolated store. Never pick the newest unrelated stream. Check explicit conversation identity and cwd/ref evidence, two concurrent sessions, foreign/malformed streams and relocation. `--conversation <recorded-id>` succeeded in the host observation; implicit `--continue` is not used. Resume uses the recorded id only, rechecks isolation/permissions and the recorded executable against current worker selection, preserves model/effort/lineage and prior findings, and refuses changed selection or an unavailable store before attempt/marker mutation. No implicit latest-session continuation; unsupported resume blocks resume alone. |
+| `launch.py` / `record.py`: model and attribution | Retain `model.requested`, `model.ran`, `model.read_from`; add agy-only `model.provider = {id, read_from, unresolved}` with nonempty strings for measured id/source and null unresolved, or null id/source and a nonempty unresolved reason. Source is launcher-read native session evidence, never worker prose, harness name or a model prefix. A requested alias may differ from ran; record both. Foreign session or contradictory native identity invalidates the result. Missing model/provider remains explicit and prevents attributed write settlement, not an unrelated read operation. Provider evidence selects a verified vendor address at commit time; no fallback to requested identity or guessed address for agy. Old record fields/validation and legacy attribution remain compatible. |
+| `telemetry/usage.py`: `agy_sessions(root: Path, repo: str or None)`; launch `_spend` and pulse reader | Add the existing reader-shaped iterator over the measured isolated root; each row has `harness='agy'`, `session`, `model`, `started`, `ended`, `messages`, `tokens`, `incomplete`, `note`. Nullable observations need a reason in note; tokens is null or `{input, cached, output, total}` with nonnegative integer or null values. Match session and repo before counting. Prove native event selectors, delta/cumulative/reset rules, duplicate identity, cache/thinking overlap and resumed totals with known synthetic totals. A total is known only when its currency is measured and complete; never add an overlapping cache/thinking count. Missing/malformed/truncated evidence stays incomplete/unresolved, not zero. `_spend` returns measured fields/source or its existing `{unresolved, looked_in}`; pulse consumes the same currency without exposing transcript content. No guessed price or cost-unit conversion. |
+| `launch.py`: `_run_attempt`, status/wait/close; existing watchdog | Retain inline wall, output-cap and missing-stream grace enforcement, process-group kill, raw/partial evidence, state.json PID/PGID, exit marker and attempts on fresh/resume/detached paths. Normalize agy output usage into that live cap check; a parser used only at close or in breaker.py cannot provide live protection. Incomplete accounting must not disable a known output cap; unavailable live output evidence blocks the affected capped operation. Preserve DISPATCH_TIMEOUT > job timeout > WALL_DEFAULT and existing cap sources. Do not enable disabled total-token wires or claim the unwired richer breaker battery. |
+
+Native observations bind this candidate to agy 1.1.27, binary SHA-256
+`93eb2118b778a4005700b54cdd7e08b896fbe665d5ff338e38e9e53da9a091ea`:
+`20260908T071244Z-code-grok-220fb8` establishes auth/session paths and
+cumulative explicit-ID resume usage; `20260908T073056Z-code-grok-0e4417`
+establishes the stdin event and CANCELED; `20260908T074530Z-code-grok-5395b3`
+establishes permissions, fixture-bound init.cwd and a real view_file read.
+The exact auth leaf is `HOME/.gemini/antigravity-cli/antigravity-oauth-token`;
+transcripts are `HOME/.gemini/antigravity-cli/brain/<conversation_id>/.system_generated/logs/transcript.jsonl`.
+The adapter reproduces the combined redirected HOME, XDG directories and
+TMPDIR, with auto-update disabled. HOME-only sufficiency, native discovery
+coverage and provider identity remain unresolved. The original INVALID
+isolation record and independent source/tests retain their provenance.
+
+`raw.out` is the native evidence stream for init.model/cwd and result.usage;
+brain transcript rows do not supply those fields. Each attempt records its
+raw byte offset so a resumed result is extracted from that attempt alone.
+Both crash-recovery close paths use that offset. Missing offsets in legacy
+state mean zero; malformed state or a noninteger, negative or out-of-range
+offset refuses with a controlled diagnostic, never an uncaught parse error.
+Transcript validation cannot discard an established stdout session/cwd binding.
+Ignore trailing blank lines and an unfinished final JSON row without a newline,
+including a partial UTF-8 character. Complete rows still require valid JSON and
+the supported source/type/payload shape; malformed complete evidence or a failed
+transcript read supplies a refusing mismatch while retaining the stdout binding.
+On same-session resume/close, an omitted native model preserves historical
+`model.ran` and `model.read_from`. Record the current reading separately as
+agy-only `model.current_attempt = {ran, read_from, unresolved}`: measured model
+and source with null unresolved, or null model/source with an explicit current
+attempt unresolved reason. A later measured model replaces that historical
+measurement and clears the current unresolved reason; requested identity is
+never substituted for missing native evidence.
+Only terminal `result.status == 'SUCCESS'` certifies native completion;
+every other status (including unknown nonempty values) is refused even beside
+a valid envelope. SUCCESS still requires the carrier and canonical envelope
+checks and no explicit result error; step/tool denials alone are not terminal
+failure.
+
+The owned canonical smoke `20260908T083944Z-review-agy-e49b81`, measured
+against `408d2eff029c4b4dad12354c3d872efd9509832b`, establishes a native
+`MODEL` / `PLANNER_RESPONSE` transcript row with string `thinking` and list
+`tool_calls`, without `content`. The reader accepts that payload alongside
+the existing content-bearing rows; source/type and a supported payload remain
+required. Transcript text, thinking and tool calls never certify completion
+or supply usage. The original failed receipt remains failed; this observation
+does not establish a successful live rerun.
+
+The supplied failed smoke stdout and successful canonical stdout
+`20260908T085213Z-review-agy-0ed3b1` were read at base
+`9eaee120fa69aeafb7b76dc742a9ce5f51c6f104` on 2026-09-08. They establish
+`step_update.state == 'DONE'`, `step_type == 'agent_response'`, and
+`usage.output_tokens` as live output evidence, bound by conversation_id and
+step_index. The failed capture has 1585 output tokens; the successful one
+has 1314 and 5136, whose sum is its terminal output counter, 6450.
+For live caps, sum distinct completed response steps within the current
+attempt; identical repeats count once and conflicting repeats refuse.
+Other step states/types supply no output currency. A terminal counter
+replaces the step sum, never adds to it or to a prior resumed total.
+Step replay/reset semantics across resumes remain unmeasured: reset the
+step accumulator at each init/attempt offset and never synthesize lifetime
+spend from it. Live step output is separate from terminal accounting;
+missing terminal totals remain unresolved even when live output is known.
+Cache/thinking overlap and incomplete live frames do not add tokens.
+Incomplete or unrecognized DONE response usage (including an unusable
+step index) makes live output unavailable for that attempt, never a safe
+prefix sum. This uncertainty is not a stream mismatch or terminal result
+failure and does not invalidate complete terminal accounting. A complete
+terminal reading may replace it; contradictory repeated counters still
+refuse. Existing output caps and missing-usage grace remain unchanged.
+
+The reader checks the conversation ID and snapshot cwd, never newest-file
+selection. Resume requires the exact transcript in the live or archived home
+before clearing markers, and retains the recorded configured executable.
+The last native cumulative result wins; decreases mark accounting incomplete
+instead of guessing a reset. Cache/thinking are never added to native total.
+Missing native timestamps/model/provider stay explicit. Usage and pulse accept
+`--agy-dir` as an explicit dispatch capture root (or its isolated home/agy).
+The watchdog uses this same currency; missing usage is allowed only for the
+existing stream grace, then stops the affected capped operation. No total-token
+or price wire is introduced. Read-role settlement guards remain authoritative.
+
+The existing probe accepts explicit agy `--model`, `--phrase` and `--cwd`
+inputs for a host job's planted synthetic discovery controls. It resolves
+`laneconf.worker('agy').executable` once from the probe process configuration,
+exactly as dispatch does, before building a credential home. The optional
+Python `env` argument supplies the control arms' environment, not a separate
+worker configuration. Both arms execute that resolved path; result details
+stamp the selected executable and its observed SHA-256, with the existing
+post-probe digest comparison. Loader refusals become INVALID with their
+expected–found–needed detail. Trusted operator overrides and fake CLIs remain
+valid selections. A digest is observation, never a binary allowlist or new
+launch/resume admission gate. Claude/codex/grok retain their existing PATH
+behavior. This is the upheld slice of cold ruling
+`20260908T083902Z-adjudicate-grok-b6cf99` at
+`a7611ba44a68655d13f0273606193483df358741`; its broader gate was rejected.
+Both arms
+must initialize and answer; CANCELED, failed initialization and an invisible
+positive control are INVALID. A CLEAN result covers only the named canary;
+other discovery remains unresolved. No live probe was run in the Codex sandbox.
+
+Native discovery receipt, 2026-09-08: supplied
+`agy-discovery-live-result.json` (SHA-256
+`98bcbda5fc42ebe3e395f3d07916f3daf9a6717b0dc1924f14977d7b24819aea`),
+run `20260908T082720Z-code-grok-dd5294`, measured against
+`2e4583256eeb624be0c9a5468d269cd54a395bdc`, reports agy 1.1.27 and
+the `93eb2118…` binary above, with explicit `gemini-3.8-flash-high`.
+The visible and isolated commands and receipt validation each exited 0.
+Both arms initialized and answered; native init.cwd matched the disposable
+git fixture. The visible arm returned both global and project markers; the
+isolated arm returned the project marker without the global marker. Markers
+were absent from stdin, and neither arm used tools. The CLEAN observation
+covers only the combined HOME/XDG_CONFIG_HOME/XDG_CACHE_HOME/XDG_DATA_HOME/
+XDG_STATE_HOME/XDG_RUNTIME_DIR/TMPDIR redirection with
+`AGY_CLI_DISABLE_AUTO_UPDATE=true`, `--disable-slash-commands` and
+`--dangerously-skip-permissions`; containment remains policy.
+At that receipt's revision, `isolated()` supplied HOME only and the observer
+added XDG/TMPDIR redirection. It did not measure HOME-only sufficiency.
+Settings.json discovery/exclusion, MCP config discovery/exclusion,
+project AGENTS.md and skill suppression remain unresolved. The receipt
+reports removal of the copied 0600 auth leaf and unchanged operator auth
+and named settings receipts. This is supplied dated evidence, not a new
+native run or exhaustive isolation certification. Reproduce the receipt
+reading with `cat ../in/agy-discovery-live-result.json` in the supplied
+snapshot; verify its identity with `sha256sum ../in/agy-discovery-live-result.json`.
+
+Independent tests can
+already pin the interfaces above using synthetic environments and fake CLIs;
+they must not treat guessed vendor JSON as verified real behavior.
+Missing authentication/isolation or fresh prompt/result/session supervision
+prevents a real agy launch; missing resume prevents only resume; missing
+provider prevents attributed writes; missing cost prevents cost reporting.
+These are narrow functional dependencies, not a new rollout state machine.
+
+Use bounded functional probes through the existing dispatch/probe authority
+on a disposable trusted fixture, with explicit model/effort and wall/output
+limits. Record executable hash/version, adapter/probe/mock revisions,
+platform, operation/role, UTC time and evidence handle. Isolation has visible
+and isolated synthetic discovery-canary arms; both must initialize and
+answer. A label such as plan/sandbox, a model declining a write, or a clean
+final diff does not prove prevention. Preserve the trusted-host boundary;
+configuration isolation is not OS containment and no universal container
+mandate is added. Live probes and independent reviews are later work, not
+performed or approved by this contract producer.
+
+### Refusal projection and bounded verification
+
+Loader errors use `ConfigError(kind, expected, found, needed)`; its CLI
+uses the existing exit 2 wire. Wrapper/launch project the detail through
+their existing dispatch refusal exit 3. New worker/executable errors are
+non-overridable and occur before snapshot/home/prompt/record/child creation.
+Use `worker` for malformed, disabled, unknown or unimplemented names;
+`executable` for empty/relative/missing/non-executable overrides or failed
+PATH resolution for agy (the three defaults retain their fallback);
+`model` for absent model/unsupported effort; existing
+`isolation`, `write-role-unadmitted` and `resume-store` for those boundaries.
+Unavailable measured transport/permission/supervision uses
+`unsupported-capability`, naming the requested operation, missing evidence
+and bounded probe needed. Resume selection drift uses `worker` or
+`executable` and names the recorded versus current value and a fresh launch
+as remedy. After child effects retain the existing invalid/tripped result,
+null verdict and named cause; no pre-effect rejection or success is invented.
+
+The next producer independently authors focused tests, GPT-6 implements,
+and independent reviews are PR comments. Existing regression homes are
+`ops/conductor/tests/test_laneconf.py`, `test_dispatch_wrapper.py`, dispatch
+`test_launch_refusals.py`, `test_launch_isolation.py`, `test_launch_harness_fixes.py`,
+`test_launch_record_identity.py`, `test_launch_watch.py`, harness
+`test_isolation_contract.py`, and telemetry `test_usage.py`. Synthetic agy
+cases belong beside those tests. This documentation artifact runs only
+documentation and existing focused contract/schema checks; no future-test
+command, full floor, credential access or live inference is its receipt.
+
 ## C1 — execution authority (target, not runtime completion)
 
 Standing: docs-only C1-contract, Grok ruling `518ab8`
@@ -491,6 +754,19 @@ launch.py brief --check ID
   template has no `{scope}` refuses it.
 - `--input PATH` copies a file into the job directory's `in/` and names
   it to the template as `{inputs}`; its digest enters the record.
+  Every shipped harness job must actually include those paths in
+  its rendered brief. Copying inputs without telling the worker their
+  paths does not discharge this boundary. List the copied paths in the
+  caller's order, including for implementation, planning and review jobs;
+  retain the existing instruction to read the supplied files before work.
+  With no inputs the list is empty, never a guessed file or directory scan.
+  Independent acceptance launches the shipped jobs through synthetic
+  harnesses and checks that the exact copied paths reach the worker's
+  prompt and agree with `brief.inputs`; it also checks an empty-input
+  neighbor. No input contents are inlined or promoted to extra authority.
+  The dispatch boundary supplies the list even when a shared job template
+  omits `{inputs}`; adding a new required field to another runner's shared
+  templates is not necessary to meet this dispatch obligation.
 - `--follows ID` names the records this dispatch was given and follows
   (plan → tests → check-tests → code → review → adjudicate). It is a
   dispatch-graph edge; it is **not** `context.prior`, which stays
@@ -693,17 +969,20 @@ satisfy it. `override` marks the only overridable one.
 | `record-target` | the invoking checkout is detached, on `dev` or `main`, or on a branch other than `lineage.branch`; re-checked at close | expected the checkout on `<lineage>`; found `<branch or detached>`; run from a worktree of `<lineage>` (at close: the record file is left in place, nothing is committed, and `close ID` is re-run from the right branch) |
 | `stale-base` (**override**) | `ref_sha` is not an ancestor of `lineage.branch` | expected `<ref_sha>` reachable from `<lineage>`; found it is not (`<lineage>` is at `<tip>`); name a commit on the branch, or `--override stale-base:<reason>` |
 | `model` | no `--model`; or `--effort` on a harness whose adapter cannot pass it | expected a model — a job never names one and the launcher never defaults one; found none; pass `--model` (effort is forwarded through each harness adapter) |
+| `worker` | a worker name is malformed, disabled, unknown or unimplemented, or resume selection changed | expected an enabled implemented worker matching the recorded selection on resume; found `<name/list or recorded/current values>`; correct worker configuration or launch afresh for changed selection |
+| `executable` | an override is empty, relative, missing or not executable; agy PATH lookup fails; or the recorded resume executable changed | expected a regular executable at the configured absolute path or resolved agy PATH location, matching the resume record; found `<value/failure or recorded/current paths>`; correct the executable configuration/install the binary, or launch afresh for changed selection; legacy defaults retain their PATH fallback |
+| `unsupported-capability` | measured transport, permission, store or supervision evidence for the requested operation is unavailable | expected measured support for `<operation>`; found `<missing evidence>`; supply the named bounded probe evidence before that operation |
 | `isolation` | no `HARNESSES` entry, a credential missing, or a minimal home that is not empty | `isolation.NotIsolated`'s own text |
 | `history-vs-withheld` | the job declares `withheld` and mode `whole` | expected one of history or withholding; found both on `<job>`; a withheld file is recoverable from `.git`, so declare `fileset` |
 | `mode-unavailable` | the job declares a mode the launcher does not yet mint (`fileset`) | expected `whole`; found `fileset` on `<job>`; stage it by hand with `stage.py` and name the dispatch in the PR body until fileset mode lands |
-| `write-role-unadmitted` | a write role on a harness whose adapter row has no write sandbox (claude) | expected a write row with a containment entry; found none for `<harness>`; run the containment probe and add the row, or dispatch the role on codex or grok |
+| `write-role-unadmitted` | a write role on any harness whose adapter row has no write sandbox (claude; agy until measured) | expected a write row with a containment entry; found none for `<harness>`; run the containment probe and add the row, or dispatch the role on codex or grok |
 | `scope-cap` | `--scope` over 1024 bytes, or given to a job with no `{scope}` | expected ≤ 1024 bytes on a job that takes a scope; found `<n>` bytes / a scope on `<job>`, which takes none; shorten it — a scope that needs more is a brief, and briefs are derived — or drop it |
 | `caps` (**proposed for launch**) | an unknown wire, or `cap` and `total` (or `cap_out` and `out`) both given | launch has no caps preflight; existing validation text is `RunError` from `_breaker_argv` in the dormant [task runner](../task/run.py), not a current dispatch refusal |
 | `off-lineage-head` (at close or collect, write roles) | the snapshot's `HEAD` is not a descendant of `ref_sha` | expected `HEAD` to descend from `<ref_sha>`; found `<head>`; nothing is fetched, and the close record says so or collect refuses |
-| `resume-store` | a codex or grok resume has no session store in either its live or archived home | expected the store for `<session id>` under both named paths; found neither; resume a job whose store survived, or launch afresh |
+| `resume-store` | a home-isolated resume (including agy) has no session store in either its live or archived home | expected the store for `<session id>` under both named paths; found neither; resume a job whose store survived, or launch afresh |
 | `collect-role` | `collect` names a read role | expected a write role; found read; collect only a failed write job |
-| `collect-state` | `collect` names a job with no failed or tripped attempt, a result without residue, or a result already collected | expected an uncollected write job with a failed attempt and residue; found the recorded state; use the normal result or name the recoverable job |
-| `verify` | the collection verification exits non-zero or reaches its wall | expected the named command to exit 0 within the recorded job wall or a larger `--timeout`; found its exit or timeout and stderr tail; fix the residual tree and rerun collect |
+| `collect-state` (committed recovery extension prescribed below) | `collect` names a running/unclosed job, an already collected result, neither eligible recovery arm, or an unavailable, mismatched or empty candidate | expected a closed uncollected write job with the recorded recoverable delta; found the measured state, failure evidence and candidate mismatch; name the exact preserved eligible candidate or use the normal result |
+| `verify` | the collection verification exits non-zero or reaches its wall | expected the named command to exit 0 within the recorded job wall or a larger `--timeout`; found its exit or timeout and stderr tail; correct the candidate through the existing work path and rerun explicit verification |
 | `wait-target` | `wait` names no record | expected a record for `<id>`; found none; name a launched dispatch |
 
 Runtime outcomes that are not refusals, and still produce a record:
@@ -749,8 +1028,11 @@ select unchanged collateral paths. The invoking and snapshot indexes remain
 untouched.
 
 `collect ID --verify CMD [--timeout SECONDS]` is the recovery path for a
-write job with residual files and any tripped or non-zero attempt, including
-one later resumed successfully. It runs the verification in the snapshot
+closed, uncollected write job. The existing residue arm requires residual
+files and any tripped or non-zero attempt, including one later resumed
+successfully with residue still outstanding. The committed arm prescribed
+below also admits a preserved committed delta without residual files.
+It runs the verification in the snapshot
 with an isolated home and no ambient operator variables, under the recorded
 wall or a larger explicit wall, verifies that `HEAD` still descends from
 `ref_sha`, commits the residual with the
@@ -759,6 +1041,61 @@ harness's message and running-model attribution, advances
 `result.collected {at, by, head, verify {command, exit: 0}, reason}`.
 Every failed precondition leaves the snapshot commit, ref, and record
 unchanged.
+
+#### Preserved committed recovery — contract extension
+
+Standing: implemented through the existing collect entrypoint; independent
+focused RED-to-GREEN is retained in this branch. Full acceptance is pending.
+Original source measured at `20f9bcaf2b3ae2152b9cab766637b5a89b71214b`:
+`sed -n '1924,1975p' ops/devlane/dispatch/launch.py` shows `_settle` can
+auto-commit Codex source with an invalid envelope; `sed -n '2168,2268p'
+ops/devlane/dispatch/launch.py` shows `_collect` requires both a failed/tripped
+attempt and residue. Process exit 0 is not proof that the retained work passed.
+
+The additional arm requires a retained failed result: `result.envelope.status`
+is `invalid` or `tripped`. An exit-0 attempt with an invalid envelope qualifies;
+a successful envelope does not qualify through an earlier failed attempt.
+Read jobs, running jobs, missing failure evidence and repeated collection refuse.
+This does not narrow the existing residue arm's successful-resume case.
+
+Before verification, resolve the existing record-bound snapshot and lineage;
+require snapshot `HEAD` to equal recorded `result.head`, a strict descendant
+of `snapshot.ref_sha`, and remeasure its nonempty committed tree delta against
+that base. Recorded `changed_paths` must agree with that measured delta;
+neither an asserted path list nor a different descendant supplies a candidate.
+Require recorded and measured residuals to be empty for this additional arm;
+mixed candidates continue through the existing residue arm. A commit with an
+identical tree, including a commit/revert chain with no net delta, refuses.
+Unavailable objects or evidence refuse rather than imply an empty pass.
+
+Use the existing verification subprocess, isolated environment and timeout.
+Recheck candidate identity, lineage and tree after verification; verification
+cannot substitute another head or introduce source changes for this committed
+arm. Nonzero exit, timeout or a failed recheck must not publish or advance
+`result.head`, `refs/dispatch/<id>` or `result.collected`, or create a recovery
+commit. Verification side effects remain unaccepted partial evidence, never
+a reason to rewrite the original failure. Keep original attempt exits, trips,
+envelope, cause and retained failure evidence immutable on both outcomes.
+
+After explicit verification exits 0 and all rechecks pass, reuse the preserved
+commit with its original attribution; no empty source commit or source replay.
+Use the existing accepted recovery path to publish that exact head and append
+`result.collected {at, by, head, verify {command, exit: 0}, reason}`, retaining
+existing residual-patch evidence where present. No new command or record schema
+is needed. Collection is recovery evidence, not independent review or permission
+to land. The lane-policy checks before/after verification and before publication
+declared below remain binding; this extension neither activates nor bypasses them.
+
+Paired acceptance cases for a separate Grok test author use synthetic records
+and repositories only; these are obligations, not executable tests or passes:
+
+| accepted case | refusing neighbor / invariant |
+|:--|:--|
+| Closed write, exit 0, invalid envelope, exact recorded descendant with nonempty committed delta and no residue; explicit verification exits 0 | Same candidate with successful envelope, absent failure evidence, read role, running state or existing collected marker refuses before verification |
+| Retained invalid/tripped result with exact committed candidate | Different descendant, off-lineage head, unavailable object, stale path list, base head, empty commit or net-zero commit/revert refuses without publication |
+| Verification succeeds and candidate remains exact; collected head is the original source commit | Nonzero verification or timeout leaves head/ref/record/marker unchanged; changed head or source during verification refuses publication and preserves failed evidence |
+| Existing failed/tripped residue recovery, including a successful resume with remaining residue, still verifies and commits with harness attribution | No residual and no eligible committed delta refuses; second collection refuses; original attempt/envelope/cause and residual patch remain intact |
+| Both recovery arms satisfy the existing policy and independent review/land gates | Verification exit 0 or a collected marker cannot bypass a failing policy check, substitute for independent review or authorize landing |
 
 ### The record
 

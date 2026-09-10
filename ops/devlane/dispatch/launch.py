@@ -65,6 +65,29 @@ ENVELOPE = _module("envelope", APP.parent / "task" / "envelope.py")
 ENVELOPE_SCHEMA_JSON = json.dumps(ENVELOPE.ENVELOPE_SCHEMA, separators=(",", ":"))
 
 
+def _graft_call(name, *args):
+    module = _module("graft", HARNESS_APP / "graft.py")
+    try:
+        return getattr(module, name)(*args)
+    except module.Refused as exc:
+        raise Refused(str(exc)) from exc
+
+
+def _verify_graft(rec, job_dir, snapshot):
+    metadata = rec["brief"].get("graft")
+    if metadata is None:
+        return
+    _graft_call("verify_worker", job_dir, snapshot, metadata)
+    if metadata.get("state") == "ready":
+        descriptor = json.loads((job_dir / "context/graft.json").read_text())
+        if descriptor["role"] != rec["role"] or rec["job"] in {"author-tests", "check-tests"}:
+            _refuse("graft-context", "the recorded job's source grant", "foreign role",
+                    "create a fresh dispatch")
+    elif rec["job"] not in {"author-tests", "check-tests"}:
+        _refuse("graft-context", "a ready context for this job", "foreign withheld metadata",
+                "create a fresh dispatch")
+
+
 def _lane_values(*names):
     resolved = {}
     for name in names:
@@ -74,6 +97,17 @@ def _lane_values(*names):
             kind = "conf-key" if exc.kind == "key" else exc.kind
             raise Refused(exc.line(kind)) from exc
     return resolved
+
+
+def _worker(name):
+    try:
+        worker = LANECONF.worker(name)
+    except LANECONF.ConfigError as exc:
+        raise Refused(exc.line()) from exc
+    if name not in {"claude", "codex", "grok", "agy"}:
+        _refuse("worker", "an implemented worker adapter", name,
+                "select claude, codex or grok until this adapter is implemented")
+    return worker
 
 
 def _git(repo, *args, check=True, env=None, input=None, text=True):
@@ -376,7 +410,8 @@ def _harness_meta(name, role, job_dir, env):
         _refuse("isolation", "an isolated harness with credentials", str(exc),
                 "add the isolation entry and required credential")
     spec = isolation.HARNESSES[name]
-    sandbox = {"claude": "acceptEdits", "codex": "workspace-write", "grok": "always-approve"}[name]
+    sandbox = {"claude": "acceptEdits", "codex": "workspace-write",
+               "grok": "always-approve", "agy": "always-proceed"}[name]
     if name == "codex" and role == "read":
         sandbox = "read-only"
     containment = "os" if name == "codex" else "policy"
@@ -402,6 +437,18 @@ def _preflight_isolation(name, target, env):
         _refuse("isolation", "an empty minimal home", found,
                 "use a fresh job id and empty home")
     if spec["mechanism"] == "home":
+        if name == "agy":
+            try:
+                source = isolation._real_home(name, env)
+                missing = [f for f in spec["auth_files"]
+                           if not (source / f).is_file()]
+            except isolation.NotIsolated as exc:
+                _refuse("isolation", "an explicit agy credential HOME", str(exc),
+                        "set HOME to the measured credential source")
+            if missing:
+                _refuse("isolation", "the required agy credential file",
+                        str(source / missing[0]), "install the measured auth leaf")
+            return
         named = spec.get("home_env")
         source = Path(env.get(named) or Path(env.get("HOME", "")) / f".{name}")
         missing = [f for f in spec["auth_files"] if not (source / f).exists()]
@@ -485,6 +532,11 @@ def _effort_argv(harness, effort):
     """Return the exact argv tokens that carry the requested effort."""
     if not effort:
         return []
+    if harness == "agy":
+        if effort not in {"low", "medium", "high"}:
+            _refuse("model", "agy effort low, medium or high", effort,
+                    "select a supported effort")
+        return ["--effort", effort]
     if harness == "claude":
         return ["--effort", effort]
     if harness == "codex":
@@ -493,10 +545,22 @@ def _effort_argv(harness, effort):
 
 
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
-          project_allow=(), project_deny=(), writable_out=False):
-    executable = shutil.which(name) or name
+          project_allow=(), project_deny=(), writable_out=False, executable=None):
+    if executable is None:
+        executable = shutil.which(name) or name
     out = str((Path(prompt).parent / "out").resolve())
     last_message = str((Path(out) / "last-message.json").resolve())
+    if name == "agy":
+        # 20260908T073056Z-code-grok-0e4417 (stdin) and
+        # 20260908T074530Z-code-grok-5395b3 (permissions/cwd).
+        argv = [executable, *flags, "--print=", "--model", model,
+                "--input-format", "stream-json", "--output-format", "stream-json",
+                "--disable-slash-commands", "--dangerously-skip-permissions",
+                "--add-dir", str((Path(prompt).parent / "snapshot").resolve()),
+                *_effort_argv(name, effort)]
+        if resume:
+            argv += ["--conversation", session]
+        return argv
     if resume:
         if name == "codex":
             argv = [executable, "exec", "resume", session, "--model", model,
@@ -580,7 +644,111 @@ def _child_env(base, additions, job_id):
     return env
 
 
+def _attempt_state(job_dir, *, required=False):
+    """Read the attempt boundary; old states without an offset start at zero."""
+    path = job_dir / "state.json"
+    state = json.loads(path.read_text()) if required or path.exists() else {}
+    if not isinstance(state, dict):
+        raise ValueError("state.json must be an object")
+    offset = state.get("raw_offset", 0)
+    raw = job_dir / "raw.out"
+    size = raw.stat().st_size if raw.exists() else 0
+    if type(offset) is not int or not 0 <= offset <= size:
+        raise ValueError("raw_offset must be a nonnegative integer within raw.out")
+    return state
+
+
+def _agy_stream(job_dir, session, snapshot):
+    """Bind native stdout init to this attempt; never choose newest brain."""
+    raw = job_dir / "raw.out"
+    if not raw.is_file():
+        if session and re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", session):
+            path = (job_dir / "home/agy/.gemini/antigravity-cli/brain" /
+                    session / ".system_generated/logs/transcript.jsonl")
+            if path.is_file() and _inside(path.resolve(), job_dir.resolve()):
+                return path, None, session, "agy init.cwd unavailable"
+        return None, None, None, "agy native stdout unavailable"
+    try:
+        offset = _attempt_state(job_dir).get("raw_offset", 0)
+    except (OSError, ValueError, TypeError) as exc:
+        return raw, None, None, (f"agy state: expected valid attempt state; found {exc}; "
+                                 "needed repair state.json from retained attempt evidence")
+    try:
+        usage = _module("agy_usage", TELEMETRY_APP / "usage.py")
+        observed = usage.agy_read(raw, offset)
+        sid = observed["session"]
+        if not sid:
+            return None, None, None, "agy native session unavailable"
+        if str(uuid.UUID(sid)) != sid:
+            raise ValueError("malformed native conversation id")
+        issues = [issue for issue in observed["issues"]
+                  if issue not in {"terminal usage unavailable", "truncated native frame"}]
+        inits = [f for f in observed["frames"] if f["event"] == "init"]
+        if len(inits) != 1:
+            issues.append("expected exactly one native init for this attempt")
+        elif inits[0]["init"].get("permission_mode") != "always-proceed":
+            issues.append("permission mismatch: expected native always-proceed")
+        for frame in observed["frames"]:
+            if frame["event"] == "result" and frame["result"].get("status") != "SUCCESS":
+                issues.append(f"vendor status: {frame['result'].get('status')}")
+        if session and sid != session:
+            issues.append(f"session mismatch: expected {session}, found {sid}")
+        if observed["cwd"] != str(snapshot.resolve()):
+            issues.append(f"cwd mismatch: expected {snapshot.resolve()}, found {observed['cwd']}")
+    except (OSError, ValueError, TypeError) as exc:
+        return None, None, None, f"agy stream parse: {exc}"
+    try:
+        transcript = (job_dir / "home/agy/.gemini/antigravity-cli/brain" /
+                      sid / ".system_generated/logs/transcript.jsonl")
+        if transcript.exists():
+            if not _inside(transcript.resolve(), job_dir.resolve()):
+                issues.append("native transcript outside job")
+            else:
+                lines = transcript.read_bytes().splitlines(keepends=True)
+                while lines and not lines[-1].strip():
+                    lines.pop()
+                for index, line in enumerate(lines):
+                    try:
+                        row = json.loads(line)
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        if index == len(lines) - 1 and not line.endswith(b"\n"):
+                            break  # The native writer has not finished this row.
+                        raise
+                    if not isinstance(row, dict) or not {"source", "type"} <= row.keys():
+                        issues.append("malformed native transcript")
+                        break
+                    # Native smoke 20260908T083944Z-review-agy-e49b81:
+                    # planner thinking/tool_calls can omit content entirely.
+                    planner = (row["source"] == "MODEL"
+                               and row["type"] == "PLANNER_RESPONSE"
+                               and isinstance(row.get("thinking"), str)
+                               and isinstance(row.get("tool_calls"), list))
+                    if "content" not in row and not planner:
+                        issues.append("malformed native transcript")
+                        break
+    except (OSError, ValueError, TypeError) as exc:
+        issues.append(f"malformed native transcript: {exc}")
+    # stdout carries native init.model/cwd and usage; brain lacks them.
+    return raw, observed["model"], sid, "; ".join(issues) or None
+
+
+def _record_stream_model(rec, ran, stream):
+    """Keep agy's historical measurement distinct from this attempt's reading."""
+    if rec["harness"]["name"] == "agy":
+        rec["model"]["current_attempt"] = {
+            "ran": ran, "read_from": str(stream) if ran is not None else None,
+            "unresolved": None if ran is not None else "native model unavailable in current attempt",
+        }
+        if ran is None:
+            return
+    if stream:
+        rec["model"].update(ran=ran, read_from=str(stream))
+        rec["model"].pop("note", None)
+
+
 def _stream(job_dir, harness, session, snapshot, ref_sha, role="read"):
+    if harness == "agy":
+        return _agy_stream(job_dir, session, snapshot)
     if harness == "codex":
         paths = list((job_dir / "home/codex/sessions").rglob("rollout-*.jsonl"))
     elif harness == "grok":
@@ -784,6 +952,64 @@ def _merge_spend(prior, wrapper):
     return merged
 
 
+def _agy_envelope(raw):
+    """Read one published stream-json result, never scan nested objects.
+
+    Carrier fields follow the supplied agy wire evidence
+    20260908T064029Z-plan-codex-161211. Native observation
+    20260908T073056Z-code-grok-0e4417 also establishes status CANCELED.
+    Only SUCCESS certifies completion; explicit result errors refuse, while
+    step/tool errors and denied_actions do not imply terminal failure.
+    """
+    results = []
+    for line in raw.decode("utf-8").splitlines():
+        if not line.strip():
+            continue
+        frame = json.loads(line)
+        if not isinstance(frame, dict):
+            raise ValueError("malformed stream frame: expected an object")
+        if frame.get("event") == "result":
+            results.append(frame.get("result"))
+    if not results:
+        raise ValueError("missing terminal result event")
+    if len(results) != 1:
+        raise ValueError("ambiguous terminal result: multiple result events")
+    result = results[0]
+    if not isinstance(result, dict):
+        raise ValueError("malformed terminal result: expected an object")
+    for field, kinds in (
+        ("conversation_id", (str,)), ("status", (str,)),
+        ("response", (str,)), ("duration_seconds", (int, float)),
+        ("num_turns", (int, float)), ("usage", (dict,)),
+    ):
+        if field not in result:
+            raise ValueError(f"terminal result missing {field}")
+        if (not isinstance(result[field], kinds)
+                or isinstance(result[field], bool)):
+            raise ValueError(f"malformed terminal result {field}")
+    if not result["status"].strip():
+        raise ValueError("malformed terminal result status: empty string")
+    if "error" in result:
+        if not isinstance(result["error"], str):
+            raise ValueError("malformed terminal result error")
+        if result["error"]:
+            raise ValueError(f"vendor error: {result['error']}")
+    if result["status"] != "SUCCESS":
+        raise ValueError(f"vendor status: {result['status']}")
+    if "structured_output" in result:
+        data = result["structured_output"]
+        if not isinstance(data, dict):
+            raise ValueError("malformed terminal result structured_output")
+    else:
+        data = json.loads(result["response"])
+    # Keep semantic checks in their canonical owner, including diagnostic
+    # field names; schema validation also enforces exact scalar types.
+    ENVELOPE.validate(data)
+    if not _schema_valid(data):
+        raise ValueError("schema-invalid: object does not match ENVELOPE_SCHEMA")
+    return data
+
+
 def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
               rec=None):
     """The last JSON object on stdout, or an invalid envelope that says why.
@@ -794,10 +1020,15 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
     (codex once returned the SHA as a string).
     """
     text = raw.decode("utf-8", "replace")
-    objects = _json_objects(text)
+    objects = [] if harness == "agy" else _json_objects(text)
     data = None
     cause = None
-    if harness == "claude" and objects:
+    if harness == "agy":
+        try:
+            data = _agy_envelope(raw)
+        except ValueError as exc:
+            cause = f"agy-result: {exc}"
+    elif harness == "claude" and objects:
         wrapper = next((item for item in objects if item.get("type") == "result"), None)
         if wrapper is not None:
             if rec is not None:
@@ -918,6 +1149,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         _refuse("record-target", f"the canonical job directory {bound_job_dir}",
                 str(Path(job_dir).resolve(strict=False)), "use the record's dispatch id")
     job_dir = bound_job_dir
+    _verify_graft(rec, job_dir, snapshot)
     _verify_record_ref(snapshot, rec["snapshot"]["ref_sha"])
     prompt = job_dir / "prompt.txt"
     relocated_from = rec.pop("_relocated_from", None)
@@ -932,6 +1164,13 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     if harness == "claude":
         permissions, project_allow, project_deny = _project_permissions(snapshot)
         rec["harness"]["permissions"] = permissions
+    if resume and harness == "agy":
+        rel = ".gemini/antigravity-cli/brain"
+        live = job_dir / "home/agy" / rel
+        archived = job_dir / "home/agy-stream" / rel
+        if not live.exists() and archived.exists():
+            live.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(archived), str(live))
     if resume and harness in {"codex", "grok"}:
         live = job_dir / "home" / harness / "sessions"
         streamed = job_dir / "home" / f"{harness}-stream" / "sessions"
@@ -949,13 +1188,18 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     argv = _argv(harness, rec["model"]["requested"], rec["model"]["effort_requested"],
                  rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"],
                  resume, project_allow, project_deny,
-                 writable_out=rec["job"] == "check-tests")
+                 writable_out=rec["job"] == "check-tests",
+                 executable=rec["harness"].get("worker", {}).get("executable"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
     if harness == "codex":
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
     env = _child_env(os.environ, iso_env, rec["id"])
+    if harness == "agy":
+        for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
+                    "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
+            Path(env[key]).mkdir(parents=True, exist_ok=True, mode=0o700)
     if harness == "codex" and rec["job"] == "check-tests":
         for root, dirs, files in os.walk(snapshot):
             for name in [*dirs, *files]:
@@ -985,6 +1229,14 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     # be provided either through stdin or as a prompt argument"); grok names
     # the prompt file on argv and gets DEVNULL so nothing waits on a tty.
     feed = prompt.open("rb") if harness in ("codex", "claude") else None
+    if harness == "agy":
+        # A regular file avoids a blocking pipe write ahead of supervision.
+        turn = job_dir / "stdin.ndjson"
+        turn.write_text(json.dumps({"event": "user", "message": {
+            "content": prompt.read_text(encoding="utf-8")}}, ensure_ascii=False) + "\n",
+            encoding="utf-8")
+        feed = turn.open("rb")
+    raw_offset = (job_dir / "raw.out").stat().st_size if resume and (job_dir / "raw.out").exists() else 0
     with (job_dir / "raw.out").open(raw_mode) as raw, (job_dir / "stderr").open(raw_mode) as err:
         proc = subprocess.Popen(argv, cwd=snapshot, env=env,
                                 stdin=feed if feed is not None else subprocess.DEVNULL,
@@ -992,7 +1244,8 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         if feed is not None:
             feed.close()
         state = {"pid": proc.pid, "pgid": proc.pid, "session": {"id": rec["session"]["id"]},
-                 "stream": rec["session"].get("stream"), "attempt": len(rec["attempts"]) + 1}
+                 "stream": rec["session"].get("stream"), "attempt": len(rec["attempts"]) + 1,
+                 "raw_offset": raw_offset}
         (job_dir / "state.json").write_text(json.dumps(state) + "\n")
         job_timeout = (job_caps or {}).get("timeout")
         wall_default = _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
@@ -1018,10 +1271,27 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                     rec["snapshot"]["ref_sha"], rec["role"],
                 )
                 over = False
+                if harness == "agy" and _sid and not _mis:
+                    rec["session"]["id"] = _sid
+                    state["session"]["id"] = _sid
+                    state["stream"] = str(stream)
+                    (job_dir / "state.json").write_text(json.dumps(state) + "\n")
+                if harness == "agy" and _mis and stream:
+                    runtime_note = f"unsupervised: {_mis}"
+                    break
                 if stream and rec["caps"].get("cap-out") is not None:
-                    with contextlib.suppress(OSError):
-                        over = any(int(n) > int(rec["caps"]["cap-out"])
-                                   for n in re.findall(r'"output_tokens"\s*:\s*(\d+)', stream.read_text()))
+                    if harness == "agy":
+                        usage = _module("agy_live_usage", TELEMETRY_APP / "usage.py")
+                        reading = usage.agy_read(stream, raw_offset)
+                        output = reading["live_output"]
+                        over = output is not None and output > int(rec["caps"]["cap-out"])
+                        if output is None and elapsed >= grace:
+                            runtime_note = "unsupervised: agy output usage unavailable within grace"
+                            break
+                    else:
+                        with contextlib.suppress(OSError):
+                            over = any(int(n) > int(rec["caps"]["cap-out"])
+                                       for n in re.findall(r'"output_tokens"\s*:\s*(\d+)', stream.read_text()))
                 if over:
                     runtime_note = "trip: output cap exceeded"
                     break
@@ -1032,6 +1302,11 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                 runtime_note = "unsupervised: no session stream within grace"
                 break
             sleep(min(0.05, max(0.0, min(timeout, grace) - elapsed)))
+        if harness == "agy" and not runtime_note and rec["caps"].get("cap-out") is not None:
+            usage = _module("agy_final_usage", TELEMETRY_APP / "usage.py")
+            output = usage.agy_read(job_dir / "raw.out", raw_offset)["live_output"]
+            if output is not None and output > int(rec["caps"]["cap-out"]):
+                runtime_note = "trip: output cap exceeded"
         if runtime_note:
             with contextlib.suppress(OSError, ProcessLookupError):
                 os.killpg(proc.pid, signal.SIGKILL)
@@ -1051,6 +1326,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
 
 
 def _launch(args):
+    worker = _worker(args.harness)
     lane = _lane_values(
         "WALL_DEFAULT",
         "SCOPE_CAP",
@@ -1085,6 +1361,11 @@ def _launch(args):
     stage = args.stage or ("code" if role == "write" else "review")
     if not args.model:
         _refuse("model", "a model", "none", "pass --model")
+    if args.harness == "agy":
+        _effort_argv(args.harness, args.effort)
+        if role == "write":
+            _refuse("write-role-unadmitted", "measured agy provider attribution",
+                    "provider unavailable on native evidence", "use an attributed worker")
     if args.harness == "claude" and role == "write":
         _refuse("write-role-unadmitted", "a write row with a containment entry",
                 "none for claude", "run the containment probe or use codex or grok")
@@ -1167,6 +1448,7 @@ def _launch(args):
     diff_text = _git(repo, "diff", f"{base_sha}..{ref_sha}").stdout if base_sha != ref_sha else ""
     context_dir = job_dir / "context"
     context_dir.mkdir()
+    graft_metadata = _graft_call("prepare_worker", job_dir, snapshot, args.job)
     context_diff = context_dir / "diff.patch"
     context_diff.write_text(diff_text)
     diff_file = job_dir / "diff.patch"
@@ -1176,7 +1458,13 @@ def _launch(args):
               "out": str((job_dir / "out").resolve()),
               "inputs": " ".join(item["path"] for item in copied), "scope": args.scope or ""}
     prompt_text = _render(job["prompt"], values)
-    if args.harness in {"codex", "grok"}:
+    # Dispatch names its copies even when the shared template omits inputs.
+    if copied:
+        prompt_text += "\n\nInput files: " + values["inputs"]
+    graft_note = _graft_call("worker_note", graft_metadata)
+    if graft_note:
+        prompt_text += "\n\n" + graft_note
+    if args.harness in {"codex", "grok", "agy"}:
         prompt_text += (
             "\n\nThe envelope shape, as JSON Schema. Every key in `required` "
             "is present; no other top-level key; the types are exact "
@@ -1192,7 +1480,7 @@ def _launch(args):
     project_allow = project_deny = ()
     if args.harness == "claude":
         permissions, project_allow, project_deny = _project_permissions(snapshot)
-    session = str(uuid.uuid4())
+    session = None if args.harness == "agy" else str(uuid.uuid4())
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
     rec = record.build({
@@ -1204,21 +1492,28 @@ def _launch(args):
                      "behind_tip": (lambda n: n + 1 if n else 0)(int(
                          _git(repo, "rev-list", "--count", f"{ref_sha}..{lineage}").stdout)),
                      "root": str(snapshot.resolve())},
-        "harness": {"name": args.harness, "version": "unknown", "isolation": isolation_data,
+        "harness": {"name": args.harness, "worker": worker,
+                    "version": "unknown", "isolation": isolation_data,
                     "sandbox": sandbox, "containment": containment,
                     **({"permissions": permissions} if permissions is not None else {}),
                     "argv": _argv(args.harness, args.model, args.effort, session,
                                   prompt, _flags, sandbox, False,
                                   project_allow, project_deny,
-                                  writable_out=args.job == "check-tests")},
+                                  writable_out=args.job == "check-tests",
+                                  executable=worker["executable"])},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
         "session": {"id": session, "stream": None, "stream_sha256_at_close": None},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
-                  "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size},
+                  "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,
+                  **({"graft": graft_metadata} if graft_metadata is not None else {})},
         "caps": {"cap-out": wires.budget(role), "source": "wires.py"},
         "overrides": overrides, "attempts": [], "result": None, "status": "launched"})
+    if args.harness == "agy":
+        rec["model"]["provider"] = {
+            "id": None, "read_from": None,
+            "unresolved": "provider unavailable on measured agy stdout and transcript"}
     _write_record(repo, rec)
     print(f"record: {job_id}", flush=True)
     _run_attempt(rec, job_dir, job_caps=job.get("caps"))
@@ -1236,7 +1531,7 @@ def _launch(args):
         rec["session"].update(stream=str(path), stream_sha256_at_close=_sha(path))
         rec["model"].update(ran=ran, read_from=str(path))
         rec["model"].pop("note", None)
-        if args.harness == "codex" and found_id:
+        if args.harness in {"codex", "agy"} and found_id:
             rec["session"]["id"] = found_id
     rec["session"]["spend"] = _spend(rec, path, job_dir)
     raw = (job_dir / "raw.out").read_bytes()
@@ -1430,15 +1725,18 @@ def _spend(rec, stream, job_dir):
         return {"unresolved": f"UNREACHABLE: {reason}",
                 "looked_in": [str(path) for path in (roots or fallback_roots)]}
 
-    if not stream:
+    if not stream and harness != "agy":
         return unreachable("no session stream discovered")
     try:
         usage = _module("usage", TELEMETRY_APP / "usage.py")
     except (OSError, ImportError, SyntaxError) as exc:
         return unreachable(f"usage.py not loadable: {exc}")
-    stream = Path(stream)
+    stream = job_dir / "raw.out" if harness == "agy" else Path(stream)
     try:
-        if harness == "claude":
+        if harness == "agy":
+            root = job_dir
+            sessions = list(usage.agy_sessions(root, rec["snapshot"]["root"]))
+        elif harness == "claude":
             root = stream.parent.parent
             sessions = list(usage.claude_sessions(root, None))
         elif harness == "codex":
@@ -1742,6 +2040,41 @@ def _find_record(repo, job_id):
 def _resume(args):
     repo = _repo()
     path, rec = _find_record(repo, args.id)
+    if rec["harness"]["name"] == "agy":
+        job_dir, snapshot = _bound_snapshot(rec)
+        if rec["role"] == "write":
+            _refuse("write-role-unadmitted", "measured agy provider attribution",
+                    "provider unavailable", "launch an attributed worker")
+        _effort_argv("agy", rec["model"].get("effort_requested"))
+        sid = rec["session"].get("id")
+        try:
+            valid_id = bool(sid) and str(uuid.UUID(sid)) == sid
+        except (ValueError, TypeError, AttributeError):
+            valid_id = False
+        rel = Path(".gemini/antigravity-cli/brain") / str(sid) / ".system_generated/logs/transcript.jsonl"
+        stores = [job_dir / "home" / name / rel for name in ("agy", "agy-stream")]
+        if not valid_id or not any(p.is_file() and _inside(p.resolve(), job_dir) for p in stores):
+            _refuse("resume-store", "the recorded agy conversation transcript",
+                    f"{sid}: absent in live and archived home", "launch afresh")
+        _verify_record_ref(snapshot, rec["snapshot"]["ref_sha"])
+        iso = _module("agy_resume_isolation", HARNESS_APP / "isolation.py")
+        home = job_dir / "home/agy"
+        auth = home / iso.HARNESSES["agy"]["auth_files"][0]
+        if not auth.is_file():
+            _refuse("isolation", "the retained agy credential leaf", str(auth),
+                    "restore the declared credential or launch afresh")
+        rec["harness"]["isolation"]["env"] = iso.dispatch_env("agy", home)
+        rec["harness"]["sandbox"] = "always-proceed"
+        rec["model"].setdefault("provider", {
+            "id": None, "read_from": None, "unresolved": "native provider unavailable"})
+    worker = _worker(rec["harness"]["name"])
+    recorded_worker = rec["harness"].get("worker")
+    if recorded_worker is not None:
+        for key, kind in (("name", "worker"), ("executable", "executable")):
+            if recorded_worker.get(key) != worker[key]:
+                _refuse(kind, f"recorded {key} {recorded_worker.get(key)!r}",
+                        f"current {key} {worker[key]!r}", "launch afresh")
+    rec["harness"]["worker"] = worker
     job_dir, _snapshot_path = _bound_snapshot(rec)
     prior_session = copy.deepcopy(rec.get("session") or {})
     prior_model = copy.deepcopy(rec.get("model") or {})
@@ -1807,9 +2140,9 @@ def _resume(args):
             rec["session"].update(
                 stream=str(stream), stream_sha256_at_close=_sha(stream),
             )
-            rec["model"].update(ran=ran, read_from=str(stream))
-            rec["model"].pop("note", None)
-            if rec["harness"]["name"] == "codex" and found_id:
+            if rec["harness"]["name"] != "agy":
+                _record_stream_model(rec, ran, stream)
+            if rec["harness"]["name"] in {"codex", "agy"} and found_id:
                 rec["session"]["id"] = found_id
         last_message = job_dir / "out" / "last-message.json"
         has_candidate = bool(_json_objects(raw.decode("utf-8", "replace")))
@@ -1842,6 +2175,8 @@ def _resume(args):
                 if env.get("note") != note:
                     _invalidate_envelope(env, note)
                 rec.setdefault("result", {})["envelope"] = env
+    if rec["harness"]["name"] == "agy":
+        _record_stream_model(rec, ran, stream)
     attempt = rec["attempts"][-1]["n"]
     if rec["role"] == "read":
         envelope = (rec.get("result") or {}).get("envelope") or _invalid(
@@ -1879,6 +2214,9 @@ def _collect(args):
         _refuse("collect-role", "a write role", rec.get("role"),
                 "collect only a tripped write job")
     result = rec.get("result") or {}
+    if rec.get("status") != "closed":
+        _refuse("collect-state", "a closed write job", rec.get("status"),
+                "wait for the worker to close before collecting")
     if result.get("collected"):
         _refuse("collect-state", "an uncollected failed write job",
                 "already collected", "use the recorded collected head")
@@ -1887,7 +2225,9 @@ def _collect(args):
     residual = result.get("residual_paths") or []
     failed = any(bool(attempt.get("tripped") or attempt.get("exit"))
                  for attempt in attempts)
-    if not failed or not residual:
+    committed = (not residual and
+                 (result.get("envelope") or {}).get("status") in {"invalid", "tripped"})
+    if not committed and (not failed or not residual):
         _refuse(
             "collect-state",
             "an uncollected write job with a failed or tripped attempt and residual paths",
@@ -1900,10 +2240,27 @@ def _collect(args):
     _verify_record_ref(snapshot, rec["snapshot"]["ref_sha"])
     before = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
     ref_sha = rec["snapshot"]["ref_sha"]
+    if committed and _git(snapshot, "cat-file", "-e", f"{before}^{{commit}}",
+                          check=False).returncode:
+        _refuse("collect-state", "an available recorded candidate commit", before,
+                "restore the preserved commit object before verification")
     if _git(snapshot, "merge-base", "--is-ancestor", ref_sha, before,
             check=False).returncode:
         _refuse("off-lineage-head", f"HEAD to descend from {ref_sha}",
                 before, "restore the snapshot to the dispatched lineage")
+    def check_committed():
+        head = _git(snapshot, "rev-parse", "HEAD", check=False)
+        delta = _git(snapshot, "diff", "--name-only", ref_sha, before, "--", check=False)
+        paths = delta.stdout.splitlines()
+        if (head.returncode or delta.returncode or head.stdout.strip() != before
+                or before != result.get("head") or before == ref_sha
+                or not paths or paths != result.get("changed_paths")
+                or _residual(snapshot)):
+            _refuse("collect-state", "the exact recorded nonempty committed candidate without residue",
+                    "unavailable, changed or mismatched candidate",
+                    "restore the preserved candidate before explicit verification")
+    if committed:
+        check_committed()
     recorded_timeout = float(
         (rec.get("caps") or {}).get("timeout")
         or _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
@@ -1936,7 +2293,10 @@ def _collect(args):
                 f"exit {verified.returncode}; stderr tail {verified.stderr[-200:]!r}",
                 "fix the residual tree and rerun collect")
     envelope = result.get("envelope") or {}
-    _commit_for_harness(snapshot, rec, envelope, collected=True)
+    if committed:
+        check_committed()
+    else:
+        _commit_for_harness(snapshot, rec, envelope, collected=True)
     head = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
     _git(repo, "-c", "core.logAllRefUpdates=always", "fetch",
          "--no-write-fetch-head", str(snapshot),
@@ -2016,15 +2376,25 @@ def _close(args):
         _effort_argv(rec["harness"]["name"], rec["model"].get("effort_requested")),
     )
     job_dir, _snapshot_path = _bound_snapshot(rec)
-    state = json.loads((job_dir / "state.json").read_text())
+    try:
+        state = _attempt_state(job_dir, required=True)
+        if type(state.get("pid")) is not int or state["pid"] <= 0:
+            raise ValueError("pid must be a positive integer")
+    except (OSError, ValueError, TypeError) as exc:
+        _refuse("state", "valid attempt state with pid and raw_offset", str(exc),
+                "repair state.json from retained attempt evidence")
+    raw_offset = state.get("raw_offset", 0)
     try:
         os.kill(int(state["pid"]), 0)
         died = False
+    except OverflowError as exc:
+        _refuse("state", "a representable process id", str(exc),
+                "repair state.json from retained attempt evidence")
     except (OSError, TypeError, ValueError):
         died = not (job_dir / "exit").exists()
     if died:
         raw_path = job_dir / "raw.out"
-        raw = raw_path.read_bytes() if raw_path.is_file() else b""
+        raw = raw_path.read_bytes()[raw_offset:] if raw_path.is_file() else b""
         env = _envelope(raw, rec["job"], rec["snapshot"]["ref_sha"],
                         "DIED: process vanished without exit",
                         harness=rec["harness"]["name"], job_dir=job_dir,
@@ -2041,7 +2411,7 @@ def _close(args):
         # to collect (it crashed on 2026-08-28 parsing a string stamp). The
         # output is still in raw.out, so collect it now rather than lose it.
         code = int((job_dir / "exit").read_text().strip() or 0)
-        raw = (job_dir / "raw.out").read_bytes()
+        raw = (job_dir / "raw.out").read_bytes()[raw_offset:]
         note = f"harness-cli: exited {code}" if code else None
         if (job_dir / "TRIPPED.md").exists():
             note = "trip: battery tripped"
@@ -2053,10 +2423,11 @@ def _close(args):
             rec["session"].update(
                 stream=str(stream), stream_sha256_at_close=_sha(stream),
             )
-            rec["model"].update(ran=ran, read_from=str(stream))
-            rec["model"].pop("note", None)
-            if rec["harness"]["name"] == "codex" and found_id:
+            if rec["harness"]["name"] in {"codex", "agy"} and found_id:
                 rec["session"]["id"] = found_id
+        _record_stream_model(rec, ran, stream)
+        if rec["harness"]["name"] == "agy":
+            rec["session"]["spend"] = _spend(rec, stream, job_dir)
         if mismatch:
             note = f"{note}; {mismatch}" if note else mismatch
         env = _envelope(raw, rec["job"], rec["snapshot"]["ref_sha"], note,
@@ -2074,6 +2445,7 @@ def _brief(args):
     repo = _repo()
     _path, rec = _find_record(repo, args.check)
     job_dir, _snapshot_path = _bound_snapshot(rec)
+    _verify_graft(rec, job_dir, _snapshot_path)
     prompt = job_dir / "prompt.txt"
     ok = prompt.is_file() and _sha(prompt) == rec["brief"]["sha256"]
     print("brief matches" if ok else "brief digest mismatch")

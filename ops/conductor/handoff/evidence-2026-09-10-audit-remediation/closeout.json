@@ -1,0 +1,235 @@
+{
+  "measured_at": "2026-09-10T04:20:22.143246+00:00",
+  "attempts": [
+    {
+      "id": "20260910T035550Z-check-tests-codex-d16aa1",
+      "record_sha256": "a3418a19eaf55785a6b0143f6a16bfa03710319b4bb745ebca8b247112db987a",
+      "status": "closed",
+      "result": "invalid",
+      "verdict": null,
+      "source": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1",
+      "model": "gpt-5.6-sol",
+      "role": "read"
+    },
+    {
+      "id": "20260910T035551Z-plan-claude-39632d",
+      "record_sha256": "fdd0e64ef9b5a8c1d140acaeadd24eb2849209aed55de054e155742b4789812e",
+      "status": "closed",
+      "result": "invalid",
+      "verdict": null,
+      "source": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1",
+      "model": "claude-fable-5-1",
+      "role": "read"
+    },
+    {
+      "id": "20260910T035954Z-tests-grok-944b4c",
+      "record_sha256": "45ac1c3d6e6e2b5c18b56536750a42efe606e3a0042737c561629e57ce1a05c0",
+      "status": "closed",
+      "result": "ok",
+      "verdict": null,
+      "source": "80bfc562895fc86ff73029ab6c105dbaa433138f",
+      "model": "grok-4.6",
+      "role": "write"
+    },
+    {
+      "id": "20260910T040456Z-check-tests-codex-1f5901",
+      "record_sha256": "d4281cd33a878417e1c71b6c3fd5b5080151179b81ff7f811f9bd47d6058e64e",
+      "status": "closed",
+      "result": "invalid",
+      "verdict": null,
+      "source": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1",
+      "model": "gpt-5.6-sol",
+      "role": "read"
+    },
+    {
+      "id": "20260910T040457Z-plan-claude-e8b821",
+      "record_sha256": "fc7595eadd6cd586f886ff925edc60efc77b3adf8c652751df83c4380020a5bc",
+      "status": "closed",
+      "result": "invalid",
+      "verdict": null,
+      "source": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1",
+      "model": "claude-fable-5-1",
+      "role": "read"
+    },
+    {
+      "id": "20260910T040459Z-tests-grok-cb90ec",
+      "record_sha256": "a43efac32698c1aa321e7771e0f4ed3a5e3685539a83d6f005e6de8243644e9b",
+      "status": "closed",
+      "result": "invalid",
+      "verdict": null,
+      "source": "2fac89e37fd3b78b0904b9587a3bc77ccef7c6b8",
+      "model": "grok-4.6",
+      "role": "write"
+    }
+  ],
+  "incoming_context": {
+    "path": "/tmp/current-work.md",
+    "sha256": "5e1c342e5393c0b8d055a4109d0d36045bbd576ef453f76a1b145785ab34b871"
+  },
+  "stop_evidence": [
+    {
+      "id": "20260910T035550Z-check-tests-codex-d16aa1",
+      "pid": 2480825,
+      "measured_at": "2026-09-10T04:07:24.895621+00:00",
+      "cwd": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/snapshot",
+      "pgid": 2480825,
+      "result": "SIGTERM sent to verified owned worker group; launcher left to settle"
+    },
+    {
+      "id": "20260910T035551Z-plan-claude-39632d",
+      "pid": 2481444,
+      "measured_at": "2026-09-10T04:07:24.896149+00:00",
+      "cwd": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035551Z-plan-claude-39632d/snapshot",
+      "pgid": 2481444,
+      "result": "SIGTERM sent to verified owned worker group; launcher left to settle"
+    },
+    {
+      "id": "20260910T040456Z-check-tests-codex-1f5901",
+      "pid": 2665549,
+      "measured_at": "2026-09-10T04:07:24.896304+00:00",
+      "cwd": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040456Z-check-tests-codex-1f5901/snapshot",
+      "pgid": 2665549,
+      "result": "SIGTERM sent to verified owned worker group; launcher left to settle"
+    },
+    {
+      "id": "20260910T040457Z-plan-claude-e8b821",
+      "pid": 2666038,
+      "measured_at": "2026-09-10T04:07:24.896672+00:00",
+      "cwd": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040457Z-plan-claude-e8b821/snapshot",
+      "pgid": 2666038,
+      "result": "SIGTERM sent to verified owned worker group; launcher left to settle"
+    },
+    {
+      "id": "20260910T040459Z-tests-grok-cb90ec",
+      "pid": 2666375,
+      "measured_at": "2026-09-10T04:07:24.896797+00:00",
+      "cwd": "/home/scientdb/.local/state/agentscient/dispatch/20260910T040459Z-tests-grok-cb90ec/snapshot",
+      "pgid": 2666375,
+      "result": "SIGTERM sent to verified owned worker group; launcher left to settle"
+    }
+  ],
+  "prs": [
+    {
+      "baseRefName": "dev",
+      "headRefOid": "bef559d3145986870fb22ea7587e8c422f7df935",
+      "isDraft": true,
+      "number": 80,
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:15:07Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34436392553/job/102742224871",
+          "name": "Analyze (actions)",
+          "startedAt": "2026-09-10T04:14:20Z",
+          "status": "COMPLETED",
+          "workflowName": "CodeQL"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:16:05Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34436393998/job/102742226546",
+          "name": "lane",
+          "startedAt": "2026-09-10T04:14:19Z",
+          "status": "COMPLETED",
+          "workflowName": "ci"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:14:26Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34436393998/job/102742226802",
+          "name": "app",
+          "startedAt": "2026-09-10T04:14:19Z",
+          "status": "COMPLETED",
+          "workflowName": "ci"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:15:00Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/runs/102742359953",
+          "name": "CodeQL",
+          "startedAt": "2026-09-10T04:14:58Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        }
+      ],
+      "url": "https://github.com/uscient/agentscient/pull/80"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefOid": "2372fdb0f7b0ddb4d3a18c5f0bb3476be41a85ca",
+      "isDraft": true,
+      "number": 81,
+      "statusCheckRollup": [
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:15:12Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34436394407/job/102742230490",
+          "name": "Analyze (actions)",
+          "startedAt": "2026-09-10T04:14:21Z",
+          "status": "COMPLETED",
+          "workflowName": "CodeQL"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:16:00Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34436396372/job/102742233738",
+          "name": "lane",
+          "startedAt": "2026-09-10T04:14:21Z",
+          "status": "COMPLETED",
+          "workflowName": "ci"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:14:28Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/actions/runs/34436396372/job/102742233895",
+          "name": "app",
+          "startedAt": "2026-09-10T04:14:21Z",
+          "status": "COMPLETED",
+          "workflowName": "ci"
+        },
+        {
+          "__typename": "CheckRun",
+          "completedAt": "2026-09-10T04:15:05Z",
+          "conclusion": "SUCCESS",
+          "detailsUrl": "https://github.com/uscient/agentscient/runs/102742374347",
+          "name": "CodeQL",
+          "startedAt": "2026-09-10T04:15:02Z",
+          "status": "COMPLETED",
+          "workflowName": ""
+        }
+      ],
+      "url": "https://github.com/uscient/agentscient/pull/81"
+    }
+  ],
+  "remote_heads": [
+    {
+      "ref": "refs/heads/dev",
+      "sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+    },
+    {
+      "ref": "refs/heads/lane/audit-collect-recovery-20260910",
+      "sha": "2372fdb0f7b0ddb4d3a18c5f0bb3476be41a85ca"
+    },
+    {
+      "ref": "refs/heads/lane/audit-enforcement-20260910",
+      "sha": "106defa57a3f74d3e7cb236f1edf714ba19cbd5e"
+    },
+    {
+      "ref": "refs/heads/lane/audit-monitor-recovery-20260910",
+      "sha": "bef559d3145986870fb22ea7587e8c422f7df935"
+    }
+  ],
+  "commands": [
+    "gh pr view 80 --json number,headRefOid,baseRefName,isDraft,url,statusCheckRollup",
+    "gh pr view 81 --json number,headRefOid,baseRefName,isDraft,url,statusCheckRollup",
+    "git ls-remote --heads origin dev lane/audit-enforcement-20260910 lane/audit-monitor-recovery-20260910 lane/audit-collect-recovery-20260910",
+    "Read the six named canonical record.json files and /tmp/current-work.md; hash original bytes with SHA-256."
+  ]
+}
