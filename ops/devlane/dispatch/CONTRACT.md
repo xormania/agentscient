@@ -968,8 +968,8 @@ satisfy it. `override` marks the only overridable one.
 | `off-lineage-head` (at close or collect, write roles) | the snapshot's `HEAD` is not a descendant of `ref_sha` | expected `HEAD` to descend from `<ref_sha>`; found `<head>`; nothing is fetched, and the close record says so or collect refuses |
 | `resume-store` | a home-isolated resume (including agy) has no session store in either its live or archived home | expected the store for `<session id>` under both named paths; found neither; resume a job whose store survived, or launch afresh |
 | `collect-role` | `collect` names a read role | expected a write role; found read; collect only a failed write job |
-| `collect-state` | `collect` names a job with no failed or tripped attempt, a result without residue, or a result already collected | expected an uncollected write job with a failed attempt and residue; found the recorded state; use the normal result or name the recoverable job |
-| `verify` | the collection verification exits non-zero or reaches its wall | expected the named command to exit 0 within the recorded job wall or a larger `--timeout`; found its exit or timeout and stderr tail; fix the residual tree and rerun collect |
+| `collect-state` (committed recovery extension prescribed below) | `collect` names a running/unclosed job, an already collected result, neither eligible recovery arm, or an unavailable, mismatched or empty candidate | expected a closed uncollected write job with the recorded recoverable delta; found the measured state, failure evidence and candidate mismatch; name the exact preserved eligible candidate or use the normal result |
+| `verify` | the collection verification exits non-zero or reaches its wall | expected the named command to exit 0 within the recorded job wall or a larger `--timeout`; found its exit or timeout and stderr tail; correct the candidate through the existing work path and rerun explicit verification |
 | `wait-target` | `wait` names no record | expected a record for `<id>`; found none; name a launched dispatch |
 
 Runtime outcomes that are not refusals, and still produce a record:
@@ -1015,8 +1015,11 @@ select unchanged collateral paths. The invoking and snapshot indexes remain
 untouched.
 
 `collect ID --verify CMD [--timeout SECONDS]` is the recovery path for a
-write job with residual files and any tripped or non-zero attempt, including
-one later resumed successfully. It runs the verification in the snapshot
+closed, uncollected write job. The existing residue arm requires residual
+files and any tripped or non-zero attempt, including one later resumed
+successfully with residue still outstanding. The committed arm prescribed
+below also admits a preserved committed delta without residual files.
+It runs the verification in the snapshot
 with an isolated home and no ambient operator variables, under the recorded
 wall or a larger explicit wall, verifies that `HEAD` still descends from
 `ref_sha`, commits the residual with the
@@ -1025,6 +1028,60 @@ harness's message and running-model attribution, advances
 `result.collected {at, by, head, verify {command, exit: 0}, reason}`.
 Every failed precondition leaves the snapshot commit, ref, and record
 unchanged.
+
+#### Preserved committed recovery — contract extension
+
+Standing: documentation only; runtime and independently authored tests remain
+to follow. Source measured at `20f9bcaf2b3ae2152b9cab766637b5a89b71214b`:
+`sed -n '1924,1975p' ops/devlane/dispatch/launch.py` shows `_settle` can
+auto-commit Codex source with an invalid envelope; `sed -n '2168,2268p'
+ops/devlane/dispatch/launch.py` shows `_collect` requires both a failed/tripped
+attempt and residue. Process exit 0 is not proof that the retained work passed.
+
+The additional arm requires a retained failed result: `result.envelope.status`
+is `invalid` or `tripped`. An exit-0 attempt with an invalid envelope qualifies;
+a successful envelope does not qualify through an earlier failed attempt.
+Read jobs, running jobs, missing failure evidence and repeated collection refuse.
+This does not narrow the existing residue arm's successful-resume case.
+
+Before verification, resolve the existing record-bound snapshot and lineage;
+require snapshot `HEAD` to equal recorded `result.head`, a strict descendant
+of `snapshot.ref_sha`, and remeasure its nonempty committed tree delta against
+that base. Recorded `changed_paths` must agree with that measured delta;
+neither an asserted path list nor a different descendant supplies a candidate.
+Require recorded and measured residuals to be empty for this additional arm;
+mixed candidates continue through the existing residue arm. A commit with an
+identical tree, including a commit/revert chain with no net delta, refuses.
+Unavailable objects or evidence refuse rather than imply an empty pass.
+
+Use the existing verification subprocess, isolated environment and timeout.
+Recheck candidate identity, lineage and tree after verification; verification
+cannot substitute another head or introduce source changes for this committed
+arm. Nonzero exit, timeout or a failed recheck must not publish or advance
+`result.head`, `refs/dispatch/<id>` or `result.collected`, or create a recovery
+commit. Verification side effects remain unaccepted partial evidence, never
+a reason to rewrite the original failure. Keep original attempt exits, trips,
+envelope, cause and retained failure evidence immutable on both outcomes.
+
+After explicit verification exits 0 and all rechecks pass, reuse the preserved
+commit with its original attribution; no empty source commit or source replay.
+Use the existing accepted recovery path to publish that exact head and append
+`result.collected {at, by, head, verify {command, exit: 0}, reason}`, retaining
+existing residual-patch evidence where present. No new command or record schema
+is needed. Collection is recovery evidence, not independent review or permission
+to land. The lane-policy checks before/after verification and before publication
+declared below remain binding; this extension neither activates nor bypasses them.
+
+Paired acceptance cases for a separate Grok test author use synthetic records
+and repositories only; these are obligations, not executable tests or passes:
+
+| accepted case | refusing neighbor / invariant |
+|:--|:--|
+| Closed write, exit 0, invalid envelope, exact recorded descendant with nonempty committed delta and no residue; explicit verification exits 0 | Same candidate with successful envelope, absent failure evidence, read role, running state or existing collected marker refuses before verification |
+| Retained invalid/tripped result with exact committed candidate | Different descendant, off-lineage head, unavailable object, stale path list, base head, empty commit or net-zero commit/revert refuses without publication |
+| Verification succeeds and candidate remains exact; collected head is the original source commit | Nonzero verification or timeout leaves head/ref/record/marker unchanged; changed head or source during verification refuses publication and preserves failed evidence |
+| Existing failed/tripped residue recovery, including a successful resume with remaining residue, still verifies and commits with harness attribution | No residual and no eligible committed delta refuses; second collection refuses; original attempt/envelope/cause and residual patch remain intact |
+| Both recovery arms satisfy the existing policy and independent review/land gates | Verification exit 0 or a collected marker cannot bypass a failing policy check, substitute for independent review or authorize landing |
 
 ### The record
 
