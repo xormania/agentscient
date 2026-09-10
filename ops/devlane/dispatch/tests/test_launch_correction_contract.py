@@ -1,8 +1,7 @@
 """Document pins for the uncited-correction gate in the launch contract.
 
 Written from the numbered Contract items of
-`.dev/ladder-inputs/scope-gate-20260910.md` and the planner fill-ins
-in `in/plan-gate-contracts.md` (D1-D9). Slice 1 only: these tests
+`.dev/ladder-inputs/scope-gate-20260910.md`. Slice 1 only: these tests
 read `ops/devlane/dispatch/CONTRACT.md` and never import launch.py or
 record.py.
 
@@ -50,6 +49,31 @@ FOUND_TEXTS = (
         "after the mint attempt at",
     ),
 )
+
+# Item 3's five refusal states. absent-no-store is a variant of absent.
+ITEM3_ARMS = ("no-key", "absent", "open", "uncited", "late")
+
+SAME_DEFINITION = re.compile(
+    r"(the )?gate and `findings\.py` read the same definition"
+    r"|`findings\.py` and (the )?gate read the same definition",
+    re.IGNORECASE,
+)
+PRIVATE_GRAMMAR = re.compile(
+    r"private copy|divergent (citation )?parser|uses a private",
+    re.IGNORECASE,
+)
+NEEDED_DISPOSITION = re.compile(
+    r"python3 ops/conductor/tools/findings.py disposition "
+    r"(?:<key>|<record>#<n>) <disposition> "
+    r"'contract item N of <[^'>]+>",
+)
+OVERRIDE_MARK = re.compile(r"\(\*\*override\*\*\)")
+OVERRIDE_PERMITTED = re.compile(
+    r"\boverride (permitted|allowed|accepted)\b|\bhand-grant\b",
+    re.IGNORECASE,
+)
+OVERRIDABLE = re.compile(r"\boverridable\b", re.IGNORECASE)
+NOT_OVERRIDABLE = re.compile(r"\b(not |non-)overridable\b", re.IGNORECASE)
 
 
 def _section(text: str, prefix: str) -> str:
@@ -107,6 +131,38 @@ def _row_id(cells: list[str]) -> str:
     return token.split()[0] if token.split() else ""
 
 
+def _row_authorizes_override(cells: list[str]) -> bool:
+    """True when any cell of a refusal row authorizes an override.
+
+    Item 6: the gate has no overrides row and no hand-grant escape.
+    A mark in the id cell or a permit in any later cell is enough.
+    """
+    blob = " ".join(cells)
+    if OVERRIDE_MARK.search(blob) or OVERRIDE_PERMITTED.search(blob):
+        return True
+    return bool(OVERRIDABLE.search(blob) and not NOT_OVERRIDABLE.search(blob))
+
+
+def _units_from_blob(blob: str) -> list[str]:
+    units: list[str] = []
+    for part in re.split(r"[\n;]|<br\s*/?>", blob):
+        part = part.strip()
+        if part:
+            units.append(part)
+    return units
+
+
+def _units_from_row(cells: list[str]) -> list[str]:
+    units: list[str] = []
+    for cell in cells:
+        units.extend(_units_from_blob(cell))
+    return units
+
+
+def _concatenating_units(units: list[str], fragments: list[str]) -> list[str]:
+    return [unit for unit in units if all(frag in unit for frag in fragments)]
+
+
 class _ContractPin(unittest.TestCase):
     maxDiff = None
 
@@ -147,9 +203,15 @@ class _ContractPin(unittest.TestCase):
             return " ".join(row)
         return self.section("### Refusals")
 
+    def found_text_units(self, ident: str) -> list[str]:
+        row = self.refusal_row(ident)
+        if row is not None:
+            return _units_from_row(row)
+        return _units_from_blob(self.section("### Refusals"))
+
 
 class AnswersVerbIsDeclared(_ContractPin):
-    """Item 2 / D1 — the declared field is --answers KEY, repeatable."""
+    """Item 2 — the declared field is --answers KEY, repeatable."""
 
     def test_verbs_usage_names_repeatable_answers_after_follows(self):
         usage = _first_fence(self.section("### Verbs"))
@@ -164,27 +226,64 @@ class AnswersVerbIsDeclared(_ContractPin):
 
 
 class CorrectionRefusalRow(_ContractPin):
-    """Item 3 / D4 D5 D9 — class correction, five found-texts, exit 2,
-    founding wire, not overridable."""
+    """Item 3 / item 6 — class correction, five distinct found-texts,
+    exact disposition command, exit 2, founding wire, not overridable."""
 
     def test_refusals_table_has_a_correction_row_that_is_not_overridable(self):
+        # Item 6: a permit in any column is an overrides row.
+        self.assertTrue(
+            _row_authorizes_override(["correction", "override permitted"]),
+            "helper must treat a non-ID 'override permitted' as an escape",
+        )
+        self.assertTrue(
+            _row_authorizes_override(["correction (**override**)", "refuses"]),
+            "helper must treat the table's override mark as an escape",
+        )
+        self.assertFalse(
+            _row_authorizes_override(["correction", "not overridable"]),
+            "a declared non-escape is not an authorization",
+        )
         row = self.require_refusal_row("correction")
         self.assertGreaterEqual(len(row), 2, "correction row is a table stub")
-        self.assertNotIn(
-            "override",
-            row[0].lower(),
-            "correction has no overrides row; the id cell must not "
-            "mark it overridable",
+        self.assertFalse(
+            _row_authorizes_override(row),
+            "item 6: correction has no overrides row and no hand-grant "
+            "escape; no cell may authorize one",
         )
 
     def test_correction_row_names_each_found_text(self):
         blob = self.row_or_section("correction")
+        fragments = [frag for arm, frag in FOUND_TEXTS if arm in ITEM3_ARMS]
         for arm, fragment in FOUND_TEXTS:
             with self.subTest(arm=arm):
                 self.assertIn(
                     fragment,
                     blob,
                     f"correction missing {arm} found-text {fragment!r}",
+                )
+        if not all(frag in blob for frag in fragments):
+            return
+        units = self.found_text_units("correction")
+        stuffed = _concatenating_units(units, fragments)
+        self.assertEqual(
+            stuffed,
+            [],
+            "item 3 requires distinct found-texts; one unit concatenates "
+            f"every arm: {stuffed!r}",
+        )
+        for arm, fragment in FOUND_TEXTS:
+            if arm not in ITEM3_ARMS:
+                continue
+            others = [frag for a, frag in FOUND_TEXTS if a in ITEM3_ARMS and a != arm]
+            homes = [unit for unit in units if fragment in unit]
+            private = [
+                unit for unit in homes if not all(frag in unit for frag in others)
+            ]
+            with self.subTest(distinct=arm):
+                self.assertTrue(
+                    private,
+                    f"{arm} found-text only appears inside a concatenated "
+                    "blob of every arm",
                 )
 
     def test_correction_expected_half_is_the_constant_citation_before_stamp(self):
@@ -197,9 +296,18 @@ class CorrectionRefusalRow(_ContractPin):
 
     def test_correction_needed_half_names_findings_py_disposition(self):
         blob = self.row_or_section("correction")
-        self.assertIn(
-            "python3 ops/conductor/tools/findings.py disposition",
+        self.assertRegex(
             blob,
+            NEEDED_DISPOSITION,
+            "item 3: the needed half names the exact findings.py "
+            "disposition command with key, disposition, numbered item, "
+            "and scope path",
+        )
+        self.assertFalse(
+            NEEDED_DISPOSITION.search(
+                "needed python3 ops/conductor/tools/findings.py disposition"
+            ),
+            "the bare prefix is not the exact command",
         )
 
     def test_correction_row_declares_exit_2_on_the_founding_wire(self):
@@ -210,7 +318,7 @@ class CorrectionRefusalRow(_ContractPin):
 
 
 class FollowsRefusalRow(_ContractPin):
-    """Item 1 / D7 — an unreadable followed record is class follows."""
+    """Item 1 — an unreadable followed record is class follows."""
 
     def test_refusals_table_has_a_follows_row(self):
         row = self.require_refusal_row("follows")
@@ -224,7 +332,7 @@ class FollowsRefusalRow(_ContractPin):
 
 
 class AnswersRecordField(_ContractPin):
-    """Item 8 / D8 — answers after follows, shaped, absence declared."""
+    """Item 8 — answers after follows, shaped, absence declared."""
 
     def test_worker_fields_list_answers_after_follows_with_the_declared_shape(self):
         fence = _first_fence(self.section("### The record"))
@@ -244,7 +352,8 @@ class AnswersRecordField(_ContractPin):
 
 
 class CitationGrammarQuote(_ContractPin):
-    """Item 4 / D3 — the grammar is quoted once; findings.py is its home."""
+    """Item 4 — the grammar is quoted once; gate and findings.py
+    read the same definition."""
 
     def test_citation_grammar_is_quoted_once(self):
         count = self.text.count(CITATION_GRAMMAR)
@@ -256,17 +365,27 @@ class CitationGrammarQuote(_ContractPin):
         )
 
     def test_grammar_quote_names_findings_py_as_its_home(self):
+        mutant = (
+            "The grammar lives in findings.py, but the gate uses a private copy"
+        )
+        self.assertIsNone(
+            SAME_DEFINITION.search(mutant),
+            "a private copy is not the same definition",
+        )
+        self.assertIsNotNone(PRIVATE_GRAMMAR.search(mutant))
         self.assertRegex(
             self.dispatch,
-            re.compile(
-                r"grammar.{0,240}findings\.py|findings\.py.{0,240}grammar",
-                re.IGNORECASE | re.DOTALL,
-            ),
+            SAME_DEFINITION,
+            "item 4: the gate and findings.py read the same definition",
+        )
+        self.assertIsNone(
+            PRIVATE_GRAMMAR.search(self.dispatch),
+            "item 4: the gate must not own a divergent citation parser",
         )
 
 
 class KeyShapeIsDeclared(_ContractPin):
-    """Item 2 / D1 — KEY is a findings-store key <record>#<n>."""
+    """Item 2 — KEY is a findings-store key <record>#<n>."""
 
     def test_verbs_declare_the_answers_key_shape(self):
         verbs = self.section("### Verbs")
