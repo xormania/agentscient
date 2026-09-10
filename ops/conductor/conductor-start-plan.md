@@ -18,6 +18,31 @@ reports. Executable steps remain subject to their acceptance duties. The
 [launch interface below](#trusted-conductor-launch-descriptor) completes adoption
 unit 1b; it neither reopens those boundaries nor declares runtime activation.
 
+## Session admission amendment — 2026-09-09 owner boundary
+
+[`session-onboarding.md`](session-onboarding.md) is the complete deterministic
+onboarding/admission contract for immediate independent tests and implementation.
+It governs startup identity and work ownership, freshness integration, complete
+tool/feature/MCP discovery, bounded first context, monitor coverage and delivery,
+durable admission and revalidation. The owner clarification assigns monitoring
+to onboarding; the concurrent work supplies Git/GitHub synchronization only.
+
+Within those subjects that contract takes precedence over this plan's earlier
+slice limits, deferrals and statement that a partial discovery packet may
+onboard. A partial packet remains a valid read; admission requires every required
+gate, with optional gaps explicitly declared. Steps 1–4 remain delivery order,
+not permission to stop after discovery or prose. Startup evidence and monitor
+leases are automatic operational records in the existing dispatch/monitor
+owners; step 4's owner-initiated handoff/AAR publication remains distinct.
+
+The new contract specifies proposed extensions to those owners, including the
+canonical conductor record and versioned discovery projection. Existing closed
+schemas do not acquire those fields implicitly: counterpart implementation,
+independent tests and reciprocal owner reconciliation are prerequisites to
+admission. C1/C2 consolidation, discovery boot/custody gates, shared policy and
+live adapter verification remain mandatory. No runtime, activation, new executor,
+store, Symfony dependency or completed owner task is claimed by this amendment.
+
 The latest supplied `discovery-contract-owner.md` supersedes earlier framework
 assumptions: dev-lane tools evolve independently under `ops/`; the prod Symfony
 application neither implements nor eventually replaces them. Discovery may
