@@ -11,7 +11,10 @@ disjoint from the configured repo and Git common dir) and inherited
 Admitted defect only: a valid registry whose `repo/.git` is a regular
 file of bytes `not a gitdir pointer\\n` currently makes `run --once`
 exit 2 even when that source is disabled, and blocks a healthy sibling.
-`ops/conductor/tests/test_monitor_git_refs.py` (19 tests) stays frozen.
+Healthy-consumer control: malformed source absent and disabled; queued
+events keep evidence `{repo,remote,ref}` and summarize freshness, not
+commit OIDs. `ops/conductor/tests/test_monitor_git_refs.py` (19 tests)
+stays frozen.
 
 The subject `ops/conductor/tools/monitor.py` is not read here. Tests
 drive the existing CLI through `_GitRefsFixture` with hermetic scratch
@@ -284,7 +287,7 @@ class _MalformedGitFixture(_GitRefsFixture):
         self.assertIn(str(state_dir.resolve()).lower(), err, proc.stderr)
         self.assertEqual(_tree_files(state_dir), (), _tree_files(state_dir))
 
-    def assert_healthy_sibling_observed(self, events: list, oids: dict[str, str]) -> None:
+    def assert_healthy_sibling_observed(self, events: list) -> None:
         changed = [
             event
             for event in events
@@ -296,6 +299,7 @@ class _MalformedGitFixture(_GitRefsFixture):
             [event["subject"] for event in changed],
             [DEV_REF, MASTER_REF],
         )
+        expected_repo = self.git_repo.resolve()
         for event in changed:
             self.assertEqual(event["state"], "ok", event)
             self.assertEqual(
@@ -303,16 +307,70 @@ class _MalformedGitFixture(_GitRefsFixture):
                 self._metric_summary("freshness", "equal"),
                 event,
             )
-        blob = json.dumps(events)
-        self.assertIn(oids["dev"], blob)
-        self.assertIn(oids["master"], blob)
+            evidence = event["evidence"]
+            self.assertIsInstance(evidence, dict, event)
+            self.assertEqual(set(evidence), {"repo", "remote", "ref"}, evidence)
+            self.assertEqual(evidence["ref"], event["subject"], event)
+            self.assertEqual(evidence["remote"], REMOTE_NAME, event)
+            self.assertEqual(
+                Path(evidence["repo"]).resolve(),
+                expected_repo,
+                event,
+            )
+
+
+class HealthyConsumerBaseline(_MalformedGitFixture):
+    """Absent disabled malformed source leaves the healthy consumer intact."""
+
+    def test_disabled_absent_malformed_source_observes_healthy_consumer(self):
+        oids = self.plant_pair()
+        self.assertFalse(
+            self.malformed.exists(),
+            "plant: malformed source starts absent",
+        )
+        self.assertEqual(self.oid(self.git_repo, DEV_REF), oids["dev"])
+        self.assertEqual(self.oid(self.git_repo, MASTER_REF), oids["master"])
+        self.plant_pair_registry(malformed_enabled=False)
+        self.assertFalse(
+            self.malformed.exists(),
+            "registry plant must not create the malformed source",
+        )
+        self.assertFalse(
+            self.git_argv_log.exists(),
+            "plant: planting sources must not query through the PATH git shim",
+        )
+        data = self.check_ok()
+        self.assertGreaterEqual(data["monitors"], 2, data)
+        self.assert_state_empty()
+        self.assertEqual(self.ls_remote_argvs(), [])
+        before_healthy = self.fingerprint(self.git_repo)
+        proc, counts = self.run_counts()
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(counts["observations"], 2, counts)
+        self.assertEqual(counts["events"], 2, counts)
+        self.assertEqual(counts["unavailable"], 0, counts)
+        self.assertEqual(self.ls_remote_for(self.malformed), [])
+        self.assertEqual(self.git_argvs_for(self.malformed), [])
+        self.assertEqual(len(self.ls_remote_for(self.git_repo)), 1, self.ls_remote_argvs())
+        self.assert_one_ls_remote(self.git_repo)
+        events = self.digest_events()
+        self.assertEqual(
+            [event for event in events if event.get("monitor") == BAD_MONITOR],
+            [],
+            events,
+        )
+        self.assertEqual(len(events), 2, events)
+        self.assert_healthy_sibling_observed(events)
+        self.assertFalse(self.malformed.exists())
+        self.assertEqual(self.fingerprint(self.git_repo), before_healthy)
+        self.assertNotIn("restore the source metadata", (proc.stderr or "").lower())
 
 
 class MalformedGitDisabled(_MalformedGitFixture):
     """Disabled malformed Git metadata is not evaluated and does not block."""
 
     def test_disabled_malformed_pointer_does_not_query_or_block_healthy_sibling(self):
-        oids = self.plant_healthy_and_malformed(malformed_enabled=False)
+        self.plant_healthy_and_malformed(malformed_enabled=False)
         before_malformed = (self.malformed / ".git").read_bytes()
         before_healthy = self.fingerprint(self.git_repo)
         proc, counts = self.run_counts()
@@ -330,7 +388,7 @@ class MalformedGitDisabled(_MalformedGitFixture):
             [],
             events,
         )
-        self.assert_healthy_sibling_observed(events, oids)
+        self.assert_healthy_sibling_observed(events)
         self.assertEqual((self.malformed / ".git").read_bytes(), before_malformed)
         self.assertEqual(self.fingerprint(self.git_repo), before_healthy)
         self.assertNotIn("restore the source metadata", (proc.stderr or "").lower())
@@ -350,7 +408,7 @@ class MalformedGitEnabled(_MalformedGitFixture):
         self.assertGreaterEqual(counts["events"], 1, counts)
         self.assertEqual(len(self.ls_remote_for(self.git_repo)), 1, self.ls_remote_argvs())
         events = self.digest_events()
-        self.assert_healthy_sibling_observed(events, oids)
+        self.assert_healthy_sibling_observed(events)
         unavail = [
             event
             for event in events
