@@ -84,6 +84,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 8.17169,
       "name": "check-tests",
       "outcome": "ok",
       "reason": "envelope",
