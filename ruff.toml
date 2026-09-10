@@ -131,7 +131,7 @@ ignore = [
 "ops/conductor/tools/control.py" = ["S603", "S607"]
 # Every adapter failure must become a native denial.
 "ops/devlane/hooks/conductor-control.py" = ["BLE001"]
-# monitor.py runs only the code-built `gh api rate_limit` argv.
+# monitor.py runs code-built bounded Git ref reads and `gh api rate_limit`.
 "ops/conductor/tools/monitor.py" = ["S603"]
 # The repo-scoped skills are scripts that ASK other tools: shelling out is
 # the job, not an incident.
