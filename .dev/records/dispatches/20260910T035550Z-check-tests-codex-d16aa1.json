@@ -1,0 +1,145 @@
+{
+  "id": "20260910T035550Z-check-tests-codex-d16aa1",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "audit-enforcement",
+  "lineage": {
+    "branch": "lane/audit-enforcement-20260910",
+    "base_sha": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T03:55:51Z",
+    "closed": "2026-09-10T04:07:25Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1",
+    "ref_sha": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/tmp/ag-audit-enforcement-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T23-55-52-01a08975-2944-7090-bfb0-90a15208644c.jsonl"
+  },
+  "session": {
+    "id": "01a08975-2944-7090-bfb0-90a15208644c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T23-55-52-01a08975-2944-7090-bfb0-90a15208644c.jsonl",
+    "stream_sha256_at_close": "bf56754b163b644a6a8bf64b78bbaf9a8a8d5bab0017e8d28c23b1d013e9ac8d",
+    "spend": {
+      "input": 2734055,
+      "cached": 2589696,
+      "output": 17275,
+      "total": 2751330,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T23-55-52-01a08975-2944-7090-bfb0-90a15208644c.jsonl",
+      "messages": 302
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/tmp/ag-audit-enforcement-20260910/ops/devlane/task/jobs.json",
+      "sha256": "5c2c493899a7d3a4228a07f74ede7357feeafa92c9c1e2180119c48dbc150f8e"
+    },
+    "scope": "Read ../in/enforcement-acceptance.md. Independently judge the recovered enforcement tests against ops/devlane/task/FINDING-ADMISSION.md. No source or test edits. Execute fixture controls and each behavioral file; distinguish valid RED from broken fixtures and unreachable downstream assertions. Do not approve from counts or missing API alone. New enforcement source is absent. Existing implementation may not be read; established public interfaces used by fixtures are allowed. Return a complete bounded acceptance report and exact test hashes.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T035550Z-check-tests-codex-d16aa1/in/enforcement-acceptance.md",
+        "sha256": "1b86d272d9025b9825ad620be961f011f16482da68b1284cf1c5c48b315cdd3d"
+      }
+    ],
+    "sha256": "7255c4ed70f04a99a61edc053fe3e383ccf20ddec859953e8daa75ba63f912b7",
+    "bytes": 5564
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T03:55:51Z",
+      "ended": "2026-09-10T04:07:24Z",
+      "exit": -15,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "33dfe93f566d62df69005fc3d7a6f3746d9b03d1"
+      },
+      "note": "no-last-message: no structured envelope; harness-cli: exited -15"
+    },
+    "cause": {
+      "reason": "harness-cli:-15"
+    }
+  },
+  "status": "closed"
+}
