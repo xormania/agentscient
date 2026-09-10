@@ -61,7 +61,7 @@
     {
       "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
-      "dispatch_record": "20260910T230254Z-check-tests-codex-f2b5b7",
+      "dispatch_record": "20260910T230927Z-check-tests-codex-761ee3",
       "dispatched": {
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
@@ -80,9 +80,9 @@
       },
       "job": "check-tests",
       "name": "check-tests",
-      "outcome": "stopped",
+      "outcome": "launched",
       "reason": "envelope",
-      "record": "20260910T230254Z-check-tests-codex-f2b5b7",
+      "record": "20260910T230927Z-check-tests-codex-761ee3",
       "stage": "check-tests"
     },
     {
