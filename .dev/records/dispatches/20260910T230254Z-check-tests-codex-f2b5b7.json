@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-10T23:02:54Z",
-    "closed": null
+    "closed": "2026-09-10T23:07:50Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230254Z-check-tests-codex-f2b5b7/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-02-56-01a08d8f-566e-7753-b915-1b17ecdf5d05.jsonl"
   },
   "session": {
-    "id": "bf75e3b9-c443-44d5-abe2-9c4fd701d6b6",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08d8f-566e-7753-b915-1b17ecdf5d05",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230254Z-check-tests-codex-f2b5b7/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-02-56-01a08d8f-566e-7753-b915-1b17ecdf5d05.jsonl",
+    "stream_sha256_at_close": "33ff6da534dfc24b0f99fe499459b124c8c72e41cdb59536f53e7a1740fe85a9",
+    "spend": {
+      "input": 372255,
+      "cached": 321792,
+      "output": 10438,
+      "total": 382693,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230254Z-check-tests-codex-f2b5b7/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-02-56-01a08d8f-566e-7753-b915-1b17ecdf5d05.jsonl",
+      "messages": 108
+    }
   },
   "brief": {
     "template": {
@@ -105,10 +112,56 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T23:02:54Z",
+      "ended": "2026-09-10T23:07:50Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ad774ed2c8aa1944fb730c5780149d8a077c858b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "SKEPTIC.md": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230254Z-check-tests-codex-f2b5b7/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 382693,
+        "out": 10438,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ad774ed2c8aa1944fb730c5780149d8a077c858b",
+        "started": null,
+        "ended": null
+      },
+      "note": "scope-inputs: expected in/scope-gate-20260910.md and in/scope-discipline.md beside out/; found only in/plan-gate-contracts.md and in/20260910T225013Z-tests-grok-9ae7b5.json; needed supply both named scope files under in/ and rerun check-tests"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T23:07:50.078Z"
+    }
+  },
+  "status": "closed"
 }
