@@ -1,0 +1,176 @@
+{
+  "id": "20260910T014232Z-check-tests-codex-bf8dfe",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/onboarding-brief-inputs",
+  "lineage": {
+    "branch": "lane/onboarding-brief-inputs-20260910",
+    "base_sha": "10caff085759725265ed19bfd10ff561f5829f35"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:42:32Z",
+    "closed": "2026-09-10T01:46:59Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "10caff085759725265ed19bfd10ff561f5829f35",
+    "ref_sha": "10caff085759725265ed19bfd10ff561f5829f35",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-brief-inputs-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-42-33-01a088fb-1c58-7a10-b0ba-02f131ee17c6.jsonl"
+  },
+  "session": {
+    "id": "01a088fb-1c58-7a10-b0ba-02f131ee17c6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-42-33-01a088fb-1c58-7a10-b0ba-02f131ee17c6.jsonl",
+    "stream_sha256_at_close": "dd5787b94de1d965821f90672e9e9006f494166745e87a0667199d3ed9a18e5f",
+    "spend": {
+      "input": 586862,
+      "cached": 518016,
+      "output": 7413,
+      "total": 594275,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T21-42-33-01a088fb-1c58-7a10-b0ba-02f131ee17c6.jsonl",
+      "messages": 94
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "ops/devlane/dispatch/CONTRACT.md --input visibility and Template values. Review ops/devlane/dispatch/tests/test_launch_input_visibility.py against that boundary. Do not read jobs.json or launch.py implementation. Require actual synthetic worker prompt visibility and empty-input neighbor, with assertion-red against the old tree. Preserve independent tests; classify suggestions separately from failing requirements.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/in/test_launch_input_visibility.py",
+        "sha256": "c29d385c8255d2dae8aefc19adbdc3c5ef0a2b8fa891194d546ce8447078d307"
+      }
+    ],
+    "sha256": "7c042fd9c2c2c550d0ad873ebefa51f9ca34ed7d55cdc25f6b201e1de1ff7f1c",
+    "bytes": 3234
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 420.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:42:32Z",
+      "ended": "2026-09-10T01:46:59Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "10caff085759725265ed19bfd10ff561f5829f35",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_input_visibility.py:318",
+          "claim": "The empty-input neighbor passes when every worker receives an invented in/guessed.md path under 'Input files:'. Its exclusions depend on one decoy and the label 'Inputs:'.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/probe_empty_prompt.py /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/snapshot invented"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_input_visibility.py:335",
+          "claim": "The regex consumes newlines and rejects a valid empty 'Inputs:' line followed by an instruction. All eight job subtests fail despite receiving no invented input.",
+          "reproduce": "python3 /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/probe_empty_prompt.py /home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/snapshot empty-line"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/SKEPTIC.md",
+        "probe": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/probe_empty_prompt.py",
+        "old_tree_red": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/out/old-tree-red.log"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 594275,
+        "out": 7413,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "10caff085759725265ed19bfd10ff561f5829f35",
+        "started": "2026-09-10T01:42:43Z",
+        "ended": "2026-09-10T01:46:39Z"
+      },
+      "note": "Confirmed six intended worker-prompt assertion failures against the old tree. Tests preserved; no implementation source, jobs.json, or session store inspected. Findings demonstrated through temporary prompt fault injection; no optional suggestions."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T01:46:58.467Z"
+    }
+  },
+  "status": "closed"
+}
