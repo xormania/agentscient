@@ -251,6 +251,7 @@
         "effort": "xhigh",
         "model": "gpt-daybreak-blue-latest"
       },
+      "findings": 5,
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/ladder-inputs/plan-gate-contracts.md",
@@ -264,10 +265,20 @@
         "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
       },
       "job": "security-audit",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "security",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260910T233738Z-review-codex-8f5dd0",
-      "stage": "review"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-daybreak-blue-latest",
+        "model_requested": "gpt-daybreak-blue-latest"
+      },
+      "stage": "review",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
