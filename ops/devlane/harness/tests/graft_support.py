@@ -120,9 +120,7 @@ def plant_ops_root(path: Path, files: dict[str, str] | None = None) -> Path:
 
 
 def run_cli(argv, *, env=None, cwd=None) -> tuple[int, str, str]:
-    merged = dict(os.environ)
-    if env:
-        merged.update(env)
+    merged = dict(os.environ if env is None else env)
     proc = subprocess.run(
         [sys.executable, str(GRAFT_PY), *list(argv)],
         cwd=cwd,

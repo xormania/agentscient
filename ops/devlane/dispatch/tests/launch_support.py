@@ -763,7 +763,7 @@ class _TempLaunch(unittest.TestCase):
         self._orig_env = {
             k: os.environ.get(k) for k in (
                 "PATH", "HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME",
-                "WF_AGENT", "DISPATCH_JOBS", "DISPATCH_STREAM_GRACE",
+                "WF_AGENT", "GRAFT_INSTALL", "DISPATCH_JOBS", "DISPATCH_STREAM_GRACE",
                 "DISPATCH_TIMEOUT", "TASK_LAUNCH_WITNESS", "TASK_LAUNCH_DONE",
                 "TASK_LAUNCH_SLEEP", "TASK_LAUNCH_STDOUT",
                 "TASK_LAUNCH_TOKEN", "TASK_LAUNCH_JOB",
@@ -812,6 +812,7 @@ class _TempLaunch(unittest.TestCase):
             "PATH", ""
         )
         os.environ["WF_AGENT"] = AGENT
+        os.environ["GRAFT_INSTALL"] = ""
         os.environ["DISPATCH_JOBS"] = str(self.jobs_root)
         os.environ["TASK_LAUNCH_STREAM_EPOCH"] = str(STREAM_EPOCH)
         os.environ["TASK_LAUNCH_WRITE_STREAM"] = "1"

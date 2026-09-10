@@ -72,12 +72,15 @@ class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
         self.assertEqual(result["errors"], [])
         self.assertGreater(result["files"], 0)
         self.assertTrue(result["nodes"])
-        for node in result["nodes"]:
+        self.assertIsInstance(result["nodes"], int)
+        graph = json.loads(Path(result["graphPath"]).read_text(encoding="utf-8"))
+        self.assertEqual(len(graph["nodes"]), result["nodes"])
+        for node in graph["nodes"]:
             self.assertTrue(
                 str(node["path"]).startswith("ops/"),
                 f"node escaped ops/: {node}",
             )
-        self.assertTrue((self.cache / "graph.json").is_file())
+        self.assertTrue((self.cache / ".graph" / "wiring.json").is_file())
         row = self.transcript()[-1]
         self.assertEqual(row["request"]["op"], "build")
         self.assertEqual(row["response"]["ok"], True)
@@ -151,7 +154,7 @@ class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
         self.assertEqual(body["ok"], False)
         self.assertIn("zero files", body["error"])
         self.assertFalse(
-            (self.cache / "graph.json").exists(),
+            (self.cache / ".graph" / "wiring.json").exists(),
             "unavailable build must not publish a graph",
         )
 

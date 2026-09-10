@@ -137,10 +137,20 @@ def _build(req: dict, *, graft_dir: Path) -> dict:
         "edges": [],
         "files": len(files),
     }
-    (cache / "graph.json").write_text(
+    graph_path = cache / ".graph" / "wiring.json"
+    graph_path.parent.mkdir()
+    graph_path.write_text(
         json.dumps(graph, sort_keys=True) + "\n", encoding="utf-8",
     )
-    return {"ok": True, "result": graph}
+    return {"ok": True, "result": {
+        "contextDir": str(cache), "graphPath": str(graph_path),
+        "cards": 0, "files": len(files), "parsed": len(files), "reused": 0,
+        "nodes": len(nodes), "edges": 0, "byKind": {"file": len(files)},
+        "byRelation": {}, "languages": [],
+        "meaning": {"cached": 0, "computed": 0, "stale": 0,
+                    "pending": len(nodes), "errors": [], "failedFiles": 0, "skippedFiles": 0},
+        "errors": [],
+    }}
 
 
 def _query(req: dict, *, graft_dir: Path) -> dict:
