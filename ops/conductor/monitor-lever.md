@@ -201,7 +201,8 @@ One reading per branch in configured order: `subject=refs/heads/<branch>`,
 `{repo,remote,ref}`. Metrics are exactly `{local_oid,remote_oid,freshness}`;
 unobserved/absent OIDs are null, distinguished by freshness and bounded fixed
 `reason` (null on successful measurement). Remote failure takes precedence
-over missing local; local read failure takes precedence over comparison.
+over missing local; local read failure takes precedence over remote failure
+and comparison.
 
 | reading state | metrics.freshness | observable result |
 |---|---|---|
@@ -219,6 +220,10 @@ merges, checks out, creates refs, pushes, edits config, invokes arbitrary
 configured commands or calls models. Monitor writes remain confined to its
 existing queue/state, disjoint from the configured repo and Git common dir;
 no other actor's checkout is touched and no tick synchronizes branches.
+A readable invalid `.git` pointer names no external storage; its root remains
+protected and its observation is unavailable. Uninspectable metadata still
+refuses unsafe state writes. State in a linked worktree sharing the source's
+Git storage is also refused.
 
 Minimal version-1 registry example (repo path relative to this config):
 

@@ -727,10 +727,10 @@ def read_git_refs(params: dict[str, object], now: datetime) -> list[dict[str, ob
         local_oid = local.get(ref) if local is not None else None
         remote_oid = distant.get(ref) if distant is not None else None
         reason = None
-        if distant is None:
-            freshness = reason = "remote-unavailable"
-        elif local is None:
+        if local is None:
             freshness = reason = "local-unavailable"
+        elif distant is None:
+            freshness = reason = "remote-unavailable"
         elif local_oid is None:
             freshness = "missing-both" if remote_oid is None else "missing-local"
         elif remote_oid is None:
@@ -849,7 +849,10 @@ def _git_source_directories(repo: Path) -> list[Path]:
                     raise ValueError("unreadable Git pointer")
                 pointer = data.decode("utf-8").rstrip("\r\n")
                 if not pointer.startswith("gitdir: ") or not pointer[8:] or "\n" in pointer or "\r" in pointer:
-                    raise ValueError("invalid Git pointer")
+                    # A readable invalid pointer names no external storage.
+                    # Protect this root and let observation report unavailable.
+                    protected.append(root)
+                    break
                 git_dir = (root / pointer[8:]).resolve()
             protected.extend((root, git_dir))
             status, data, _ = _regular_bytes(git_dir / "commondir", SOURCE_REFERENCE_BYTES)
@@ -893,8 +896,14 @@ def _validate_state(state: Path, config_path: Path, config: dict[str, object]) -
             protected_files.append(Path(params["path"]).resolve(strict=False))
         elif monitor["adapter"] == "git-refs":
             protected_directories.extend(_git_source_directories(Path(params["repo"])))
+    state_storage = []
+    if any(monitor["adapter"] == "git-refs" for monitor in config["monitors"].values()):
+        existing = next(parent for parent in (resolved, *resolved.parents) if parent.is_dir())
+        # A linked worktree shares source Git storage even when its path is
+        # outside the configured worktree. State must not write there either.
+        state_storage = _git_source_directories(existing)[2:]
     for source in protected_directories:
-        if _paths_overlap(resolved, source):
+        if any(_paths_overlap(path, source) for path in (resolved, *state_storage)):
             refuse("state", "state disjoint from configured source stores", str(resolved), "choose an isolated state directory")
     for source in protected_files:
         if _inside(source, resolved) or source == resolved / "monitor.db":
