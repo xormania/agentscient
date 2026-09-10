@@ -59,7 +59,7 @@
       "stage": "tests"
     },
     {
-      "attempt": 1,
+      "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
       "dispatch_record": "20260910T230254Z-check-tests-codex-f2b5b7",
       "dispatched": {
@@ -71,7 +71,7 @@
         "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/records/dispatches/20260910T225013Z-tests-grok-9ae7b5.json",
         "proof": {
           "given": [
-            "Work order: the uncited-correction gate. Read in/scope-gate-20260910.md and in/scope-discipline.md WHOLE; the numbered Contract items there are the requirements and nothing else is. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed; do not widen them.",
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.",
             "20260910T225013Z-tests-grok-9ae7b5"
           ],
           "withheld": []
