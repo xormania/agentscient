@@ -18,6 +18,7 @@ import subprocess
 import sys
 import time
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from test_monitor import (
@@ -463,6 +464,46 @@ class _GitRefsFixture(_MonitorFixture):
             found.append(event)
         return found
 
+    def _as_utc(self, value) -> datetime:
+        self.assertIsInstance(value, str, value)
+        text = value.strip()
+        self.assertTrue(text, value)
+        if text.endswith(("Z", "z")):
+            text = text[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(text)
+        except ValueError:
+            self.fail(f"observed_at is not timezone-aware ISO: {value!r}")
+        self.assertIsNotNone(parsed.tzinfo, value)
+        return parsed.astimezone(timezone.utc)
+
+    def assert_utc_observed_at(self, value, expected: str = NOW, msg=None) -> None:
+        self.assertEqual(
+            self._as_utc(value),
+            self._as_utc(expected),
+            msg if msg is not None else value,
+        )
+
+    def assert_oid_metric(
+        self, events: list, *, subject: str, condition: str, oid: str
+    ) -> None:
+        self.assertRegex(oid, OID_RE, oid)
+        found = self.events_where(events, subject=subject, condition=condition)
+        self.assertEqual(len(found), 1, found)
+        summary = found[0]["summary"]
+        self.assertIsInstance(summary, str, found[0])
+        self.assertEqual(summary, oid, found[0])
+
+    def assert_absent_oid_metric(
+        self, events: list, *, subject: str, condition: str, other_oid: str
+    ) -> None:
+        found = self.events_where(events, subject=subject, condition=condition)
+        for event in found:
+            summary = event.get("summary")
+            text = summary if isinstance(summary, str) else json.dumps(summary)
+            self.assertNotRegex(text, OID_RE, event)
+            self.assertNotEqual(text, other_oid, event)
+
     def digest_events(self) -> list:
         _, data = self.digest_data()
         events = data["events"]
@@ -511,16 +552,24 @@ class GitRefsEqualAndDifferent(_GitRefsFixture):
             self.assertEqual(event["state"], "ok", event)
             self.assertIn("equal", str(event.get("summary")), event)
             self.assertNotIn("different", str(event.get("summary")), event)
-            blob = json.dumps(event)
-            self.assertIn(oids[name], blob)
-            self.assertEqual(event["observed_at"], NOW, event)
+            self.assert_utc_observed_at(event["observed_at"], NOW, event)
+            self.assert_oid_metric(
+                events,
+                subject=event["subject"],
+                condition="local_changed",
+                oid=oids[name],
+            )
+            self.assert_oid_metric(
+                events,
+                subject=event["subject"],
+                condition="remote_changed",
+                oid=oids[name],
+            )
         local_ev = self.events_where(events, condition="local_changed")
         remote_ev = self.events_where(events, condition="remote_changed")
         self.assertEqual(len(local_ev), 2, local_ev)
         self.assertEqual(len(remote_ev), 2, remote_ev)
         blob = json.dumps(events)
-        self.assertIn(oids["dev"], blob)
-        self.assertIn(oids["master"], blob)
         self.assertNotIn("missing-local", blob)
         self.assertNotIn("ahead", blob.lower())
         self.assertNotIn("behind", blob.lower())
@@ -591,9 +640,12 @@ class GitRefsMissing(_GitRefsFixture):
         self.assertEqual(len(freshness), 1, freshness)
         self.assertEqual(freshness[0]["state"], "ok", freshness[0])
         self.assertIn("missing-local", str(freshness[0].get("summary")), freshness[0])
-        blob = json.dumps(freshness[0])
-        self.assertIn(oids["dev"], blob)
-        self.assertIn("null", blob)
+        self.assert_oid_metric(
+            events, subject=DEV_REF, condition="remote_changed", oid=oids["dev"]
+        )
+        self.assert_absent_oid_metric(
+            events, subject=DEV_REF, condition="local_changed", other_oid=oids["dev"]
+        )
 
     def test_missing_remote_when_local_present(self):
         oids = self.plant_pair()
@@ -609,9 +661,15 @@ class GitRefsMissing(_GitRefsFixture):
         self.assertEqual(len(freshness), 1, freshness)
         self.assertEqual(freshness[0]["state"], "ok", freshness[0])
         self.assertIn("missing-remote", str(freshness[0].get("summary")), freshness[0])
-        blob = json.dumps(freshness[0])
-        self.assertIn(oids["master"], blob)
-        self.assertIn("null", blob)
+        self.assert_oid_metric(
+            events, subject=MASTER_REF, condition="local_changed", oid=oids["master"]
+        )
+        self.assert_absent_oid_metric(
+            events,
+            subject=MASTER_REF,
+            condition="remote_changed",
+            other_oid=oids["master"],
+        )
 
     def test_missing_both_is_ok_not_unavailable(self):
         self.plant_pair()
