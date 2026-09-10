@@ -29,7 +29,7 @@ authority merely because a reviewer supplied them.
   `20260910T003157Z-tests-grok-298598`,
   `20260910T003832Z-tests-grok-53065e`, and
   `20260910T004501Z-check-tests-claude-8051ef`.
-  [The monitor receipt](handoff/evidence-2026-09-09-git-refs/tdd.json) lives on
+  The monitor receipt `ops/conductor/handoff/evidence-2026-09-09-git-refs/tdd.json` lives on
   `lane/dev-freshness-20260909`; it records identical red/green test hashes,
   19 focused passes and 2,233 full-suite tests with six skipped.
 - Admission fixture corrections are retained in
