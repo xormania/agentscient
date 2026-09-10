@@ -52,18 +52,15 @@
     "argv": [
       "/home/scientdb/.local/bin/codex",
       "exec",
-      "--sandbox",
-      "workspace-write",
-      "-c",
-      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/out\"]",
+      "resume",
+      "01a088aa-07ab-7cb1-858b-3e384abf6181",
       "--model",
       "gpt-6-astra",
       "-c",
       "model_reasoning_effort=\"high\"",
       "--json",
       "-o",
-      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/out/last-message.json",
-      "-"
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/out/last-message.json"
     ]
   },
   "model": {
@@ -79,14 +76,14 @@
   "session": {
     "id": "01a088aa-07ab-7cb1-858b-3e384abf6181",
     "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-13-59-01a088aa-07ab-7cb1-858b-3e384abf6181.jsonl",
-    "stream_sha256_at_close": "0fb11f323c3cc7bff7ffcf25f0e507a91a9a0dc2da29f3d0e855aab003887095",
+    "stream_sha256_at_close": "615acfaa31ac6ff965d707c2e82991487528487f18394e2554d83dd7fb59cfc4",
     "spend": {
-      "input": 3094492,
-      "cached": 2966912,
-      "output": 16021,
-      "total": 3110513,
+      "input": 3785836,
+      "cached": 3650688,
+      "output": 23346,
+      "total": 3809182,
       "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-13-59-01a088aa-07ab-7cb1-858b-3e384abf6181.jsonl",
-      "messages": 252
+      "messages": 301
     }
   },
   "brief": {
@@ -107,8 +104,8 @@
   "caps": {
     "cap-out": 500000,
     "source": "wires.py",
-    "timeout": 600.0,
-    "timeout_source": "DISPATCH_TIMEOUT"
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
   "attempts": [
@@ -118,6 +115,13 @@
       "ended": "2026-09-10T00:24:03Z",
       "exit": 137,
       "tripped": true
+    },
+    {
+      "n": 2,
+      "launched": "2026-09-10T00:51:40Z",
+      "ended": "2026-09-10T00:55:39Z",
+      "exit": 0,
+      "tripped": false
     }
   ],
   "result": {
@@ -129,17 +133,298 @@
       " M ops/conductor/tools/lane_refs.py"
     ],
     "envelope": {
-      "job": "implement",
+      "job": "code",
       "status": "invalid",
       "verdict": null,
-      "counts": {},
-      "findings": [],
-      "artifacts": {},
-      "spend": {},
-      "stamp": {
-        "ref": "31fff00f03a430644b6164112d4c4774519c4446"
+      "counts": {
+        "p1": 0,
+        "p2": 7,
+        "p3": 36,
+        "opinions": 0
       },
-      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime"
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_config.py:125",
+          "claim": "D-A3 expects acceptance although dispatch_store resolves to store/blocked while discovery.dispatch resolves to store. The contract requires the same directory.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_config.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_handoffs.py:174",
+          "claim": "D-A15 supplies an AAR superseding a handoff. The contract explicitly requires supersedes references to have the same kind.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_handoffs.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_snapshots.py:182",
+          "claim": "D-A26 expects snapshot values in the refusal for mismatching cursor and snapshot inputs. The declared validation order rejects this combination before acquisition using the fixed invalid-cursor line.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_snapshots.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_snapshots.py:344",
+          "claim": "D-A47 replaces lane_mcp.py with a directory and executes that directory. Python exits 1 before runtime code executes, making the expected runtime refusal impossible within the permitted implementation files.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_snapshots.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_startup.py:254",
+          "claim": "D-A38 expects response overflow from an oversized recorded status. The required legacy 256-byte text rule converts that status to null, leaving a bounded valid response.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_startup.py'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_discovery_v3_startup.py:403",
+          "claim": "D-A38c's estimator omits actual Home paths and dispatch evidence. With its chosen 139-byte status, four cards occupy 8056 bytes; five require 8372 bytes, exceeding the mandatory 8192-byte cap.",
+          "reproduce": "python3 ../out/check_discovery.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/discovery_v3_support.py:1049",
+          "claim": "D-A48 errors while its fixture overwrites a read-only Git object. The PermissionError occurs in fixture preparation; changing repository object permissions would violate discovery's read-only contract.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_catalogues.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 01",
+          "claim": "Measured a clean initial snapshot at the requested commit and enumerated documentation.",
+          "reproduce": "pwd && git status --short && git rev-parse HEAD && rg --files -g AGENTS.md -g '*.md' docs ops/conductor ops/process | head -100"
+        },
+        {
+          "severity": "p3",
+          "where": "command 02",
+          "claim": "Located the input brief and read repository and lane instructions.",
+          "reproduce": "ls -la ../in ../out && cat AGENTS.md && cat ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 03",
+          "claim": "Read the entire input brief and shared documentation.",
+          "reproduce": "cat ../in/discovery-code-input.md && cat docs/*.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 04",
+          "claim": "Enumerated scoped instructions and read the discovery contract.",
+          "reproduce": "rg --files -g AGENTS.md ops && cat ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 05",
+          "claim": "Measured runtime file sizes and located discovery tests and contract sections; attempted scoped instruction paths were absent.",
+          "reproduce": "cat ops/AGENTS.md ops/conductor/AGENTS.md 2>/dev/null; wc -l ops/conductor/discovery-lever.md ops/conductor/tools/lane_{mcp,read,refs}.py; rg '^#{1,4} ' ops/conductor/discovery-lever.md; rg --files ops/conductor/tests | rg 'discovery_v3|lane_mcp'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 06",
+          "claim": "Baseline exited 1: 56 tests, 62 assertion failures.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py' > ../out/baseline-tests.txt 2>&1; result=$?; tail -45 ../out/baseline-tests.txt; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 07",
+          "claim": "Read the wire, workflow, probes and verified-coupling contracts.",
+          "reproduce": "cat docs/wire.md docs/workflow.md docs/probes.md docs/verified-couplings.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 08",
+          "claim": "Read boot transport, acquisition and checkpoint requirements.",
+          "reproduce": "sed -n '1,370p' ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 09",
+          "claim": "Inspected the existing CLI and MCP projection.",
+          "reproduce": "cat ops/conductor/tools/lane_mcp.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 10",
+          "claim": "Inspected the existing direct-object acquisition adapter.",
+          "reproduce": "cat ops/conductor/tools/lane_refs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 11",
+          "claim": "Located discovery projection code and read public source, selection and envelope requirements.",
+          "reproduce": "rg -n 'discovery|Discovery|boot|acquire|snapshot|source_ids' ops/conductor/tools/lane_read.py; sed -n '370,710p' ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command 12",
+          "claim": "Inspected descriptor handling and coordinator implementation.",
+          "reproduce": "sed -n '1,210p' ops/conductor/tools/lane_refs.py; sed -n '540,914p' ops/conductor/tools/lane_refs.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 13",
+          "claim": "Located independent boot and acquisition assertions.",
+          "reproduce": "rg -n 'boot|load_evidence|execution|acquire\\(|checkpoint|reentran|loader' ops/conductor/tests/discovery_v3_support.py ops/conductor/tests/test_discovery_v3_*.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 14",
+          "claim": "Read boot-loader and checkpoint fixtures, including mutation and stationary controls.",
+          "reproduce": "sed -n '875,965p' ops/conductor/tests/discovery_v3_support.py; sed -n '1220,1320p' ops/conductor/tests/discovery_v3_support.py; sed -n '286,535p' ops/conductor/tests/test_discovery_v3_snapshots.py; sed -n '225,353p' ops/conductor/tests/test_discovery_v3_adapter.py; sed -n '1430,1455p' ops/conductor/tests/discovery_v3_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 15",
+          "claim": "Inspected profile validation, Home evidence, response paging and refusal requirements.",
+          "reproduce": "sed -n '1130,1510p' ops/conductor/tools/lane_read.py; sed -n '1650,2060p' ops/conductor/tools/lane_read.py; sed -n '755,810p' ops/conductor/discovery-lever.md; sed -n '35,90p' ops/conductor/tests/discovery_v3_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 16",
+          "claim": "Checked cursor grammar, source fingerprinting, acquisition budgets and boot refusal vocabulary.",
+          "reproduce": "sed -n '1730,1805p' ops/conductor/tools/lane_read.py; sed -n '810,850p' ops/conductor/discovery-lever.md; sed -n '210,275p' ops/conductor/tools/lane_refs.py; sed -n '1,70p' ops/conductor/tests/test_discovery_v3_adapter.py; sed -n '350,390p' ops/conductor/tests/test_discovery_v3_adapter.py; sed -n '600,612p' ops/conductor/tests/discovery_v3_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 17",
+          "claim": "Checked imports and acquisition-result assertions before projection integration.",
+          "reproduce": "sed -n '12,60p' ops/conductor/tools/lane_refs.py; sed -n '400,435p' ops/conductor/tests/test_discovery_v3_adapter.py; sed -n '1455,1485p' ops/conductor/tests/discovery_v3_support.py; sed -n '1,110p' ops/conductor/tests/test_lane_mcp.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 18",
+          "claim": "First implementation rerun exited 1 with 10 failures across 56 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py' > ../out/discovery-tests-1.txt 2>&1; result=$?; cat ../out/discovery-tests-1.txt; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 19",
+          "claim": "Investigated remaining configuration, cursor and startup assertions.",
+          "reproduce": "sed -n '88,135p' ops/conductor/tests/test_discovery_v3_config.py; sed -n '133,180p' ops/conductor/tests/test_discovery_v3_handoffs.py; sed -n '137,190p' ops/conductor/tests/test_discovery_v3_snapshots.py; sed -n '187,275p' ops/conductor/tests/test_discovery_v3_startup.py; sed -n '350,425p' ops/conductor/tests/test_discovery_v3_startup.py; sed -n '1,190p' ops/conductor/tools/lane_read.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 20",
+          "claim": "Confirmed fixture-generated dispatch bindings and inspected the independent frame estimator.",
+          "reproduce": "rg -n 'pad_status_for_five|source_ids|dispatch_store' ops/conductor/tests/discovery_v3_support.py | tail -25; sed -n '1070,1203p' ops/conductor/tests/discovery_v3_support.py; sed -n '1515,1635p' ops/conductor/tests/discovery_v3_support.py; sed -n '790,865p' ops/conductor/tools/lane_refs.py; rg -n 'def _text|_source_path|validate_discovery' ops/conductor/tools/lane_read.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 21",
+          "claim": "Confirmed the estimator omissions and legacy status limit; inspected the standard suite command and scoped diff.",
+          "reproduce": "sed -n '1635,1755p' ops/conductor/tests/discovery_v3_support.py; sed -n '318,327p' ops/conductor/tools/lane_read.py; sed -n '865,935p' ops/conductor/tools/lane_refs.py; cat ops/bin/suites.sh; git diff --stat"
+        },
+        {
+          "severity": "p3",
+          "where": "command 22",
+          "claim": "Second discovery rerun exited 1: six failures and one fixture error.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py' > ../out/discovery-tests-2.txt 2>&1; result=$?; rg '^FAIL:|^ERROR:|^Ran |^FAILED|^OK' ../out/discovery-tests-2.txt; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 23",
+          "claim": "All 50 legacy lane MCP tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_lane_mcp*.py' > ../out/legacy-tests.txt 2>&1; result=$?; tail -12 ../out/legacy-tests.txt; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 24",
+          "claim": "Standard lane suites exited 1. Discovery blockers remained, and a ladder guard detected an implementation edit during the run. Other suite groups passed; fixtures reported seven skips.",
+          "reproduce": "bash ops/bin/suites.sh > ../out/lane-suites.txt 2>&1; result=$?; rg '^==|^Ran |^FAILED|^OK|^FAIL:|^ERROR:' ../out/lane-suites.txt | tail -100; exit \"$result\""
+        },
+        {
+          "severity": "p3",
+          "where": "command 25",
+          "claim": "Identified D-A48's fixture PermissionError and verified whitespace and three-file scope.",
+          "reproduce": "head -25 ../out/discovery-tests-2.txt; sed -n '190,266p' ops/conductor/tests/test_discovery_v3_catalogues.py; git diff --check; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "command 26",
+          "claim": "Initial scratch boot checks exposed an unverified-loader ImportError; subsequently corrected.",
+          "reproduce": "python3 ../out/check_discovery.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 27",
+          "claim": "Scratch boot checks passed after correcting the unverified-loader refusal, including retained bytes and checkpoint guards.",
+          "reproduce": "python3 ../out/check_discovery.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 28",
+          "claim": "Read trailer examples and checked whitespace. The process listing exposed only its sandbox namespace, so it did not establish other sessions' progress.",
+          "reproduce": "ps -eo pid,ppid,etime,args | rg 'suites.sh|unittest discover|test_discovery|lane_mcp|launch.py' | head -45; git log -3 --format=full; git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "command 29",
+          "claim": "Exact acceptance command on the final implementation exited 1: 56 tests, 49 passing, six failures and one error.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 30",
+          "claim": "Repeated scratch controls passed; measured four-card and five-card envelopes at 8056 and 8372 bytes respectively.",
+          "reproduce": "python3 ../out/check_discovery.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command 31",
+          "claim": "Verified test files remained unchanged and identified the full-run ladder failure as concurrent tracked-file mutation.",
+          "reproduce": "rg -A24 '^FAIL: test_a_changes_envelope' ../out/lane-suites.txt; git diff -- ops/conductor/tests; git diff --numstat; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "command 32",
+          "claim": "Stationary-tree ladder rerun executed 66 tests and failed two live-dispatch-store mutation guards.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder_lever.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "command 33",
+          "claim": "Commit attempt exited 128: the sandbox refused creation of .git/index.lock on a read-only filesystem. Required commit metadata is supplied in the envelope.",
+          "reproduce": "git -c user.name='GPT-6' -c user.email=noreply@openai.com commit -a -F /tmp/discovery-v3-COMMIT_MSG"
+        },
+        {
+          "severity": "p3",
+          "where": "command 34",
+          "claim": "Final HEAD remained 31fff00f03a430644b6164112d4c4774519c4446; only the three authorized runtime files changed and whitespace checks passed.",
+          "reproduce": "git status --short && git diff --check && git rev-parse HEAD && sha256sum ops/conductor/tools/lane_mcp.py ops/conductor/tools/lane_read.py ops/conductor/tools/lane_refs.py && date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "command 35",
+          "claim": "Confirmed the only scoped AGENTS.md beneath ops is ops/devlane/AGENTS.md, outside the edited conductor files.",
+          "reproduce": "rg --files -g AGENTS.md ops"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_ladder_lever.py:790",
+          "claim": "Follow-up: ladder isolation checks observe the live dispatch-store directory and can fail when concurrent launcher activity changes it. No ladder or store changes were made.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder_lever.py'"
+        }
+      ],
+      "artifacts": {
+        "baseline": "../out/baseline-tests.txt",
+        "final_acceptance": "../out/final-tests.txt",
+        "legacy_tests": "../out/legacy-tests.txt",
+        "lane_suites": "../out/lane-suites.txt",
+        "scratch_verification": "../out/check_discovery.py"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3809182,
+        "out": 23346,
+        "runs": 2
+      },
+      "stamp": {
+        "ref": "31fff00f03a430644b6164112d4c4774519c4446",
+        "started": null,
+        "ended": "2026-09-10T00:52:27Z"
+      },
+      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime",
+      "commit": {
+        "subject": "lane: bind discovery acquisition to retained boot artifacts",
+        "body": "Add bounded descriptor boot capture, execution binding checks, and the public acquire(config, boot, checkpoint=...) coordinator. Preserve legacy queries, add synchronous immutable checkpoints and reentrancy protection, and avoid synthetic Home observations when HEAD acquisition fails.\n\nThe unchanged discovery suite now has 49 passing tests, six failures and one fixture error. Remaining fixture/contract contradictions are reported in the job envelope; this change does not claim discovery/3 acceptance. The 50 legacy lane MCP tests pass.\n\nSource: original\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
     },
     "residual_patch": {
       "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/residual.patch",
@@ -147,9 +432,11 @@
       "untracked": []
     },
     "cause": {
-      "reason": "timeout",
-      "note": "timeout: harness exceeded runtime"
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:55:38.326Z"
     }
   },
-  "status": "closed"
+  "status": "closed",
+  "note": "Continue the preserved implementation after its time limit. Focused suite rerun at 2026-09-10T00:51Z has six failures plus one fixture PermissionError. Preserve tests; complete the declared contract, report fixture defects separately, and finish with an honest structured envelope."
 }
