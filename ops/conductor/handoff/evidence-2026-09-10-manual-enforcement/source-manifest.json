@@ -1,0 +1,16 @@
+{
+  "measured_at": "2026-09-10T05:54:07.636070+00:00",
+  "base": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+  "sha256": {
+    "ops/conductor/tools/control.py": "9745f175abbbaea99abf56b1e6823c7c9bbd037d78af9156b6ffa05d4af55a8a",
+    "ops/devlane/hooks/conductor-control.py": "6d4e46f13760d0cffdd38e77a03b8508a4390190afe2c936150893bfa12e2ab8",
+    "ops/conductor/tests/test_control.py": "f29523dc9f44f9083462dc521d30f841cbba1b22b81f67b5c6088456284214ab",
+    "ops/conductor/tools/co_doc.py": "008397c51ea0fe34070e35c52ba44a2ca6b102ed161e869fde070ac651d4372c",
+    "ops/conductor/tools/laneconf.py": "502650cbf5f7983ed82c09d724488ae90162d94e5b277af8130ffa53bac04586",
+    "ops/conductor/conductor-control.md": "d6970c9e0baa76193cca702593de437505631f602c069aabccd8dae0b5e105ec",
+    "ops/conductor/permission-surface.md": "7877f1d9aa5bf769281ec3b56644b74c38c1afd683df8015a84e7108536e4adf",
+    "ops/process/tdd.md": "58bbf038dbbeba4fb548029a6cf83e76cf96db2a7d14b2b12197a251ed06725e",
+    "ops/conductor/registry/control.py.json": "8f0b532c5ec04c48a931859e234faaa824a825479ae28021785ad842a56ecb55",
+    "ruff.toml": "77aaef5aeb81954e6cdd895766d3f296589a9590d645d72a45f1259ca5d487e0"
+  }
+}
