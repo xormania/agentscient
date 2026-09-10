@@ -24,8 +24,23 @@ ADMITTED = (
 )
 BUILD_KEYS = frozenset({"op", "root", "cache"})
 QUERY_KEYS = frozenset({"op", "root", "cache", "tool", "arguments"})
+# Public GraphBuildResult fields at upstream 3a85a2f (src/graph/build.ts).
+GRAPH_BUILD_RESULT_KEYS = frozenset({
+    "contextDir", "graphPath", "cards", "files", "parsed", "reused",
+    "nodes", "edges", "byKind", "byRelation", "languages", "meaning", "errors",
+})
+WIRING_REL = Path(".graph") / "wiring.json"
 PIN_PATH = Path(__file__).resolve().parents[2] / "graft" / "pin.json"
 INSTALLED_AT = "2026-01-01T00:00:00Z"
+EMPTY_MEANING = {
+    "cached": 0,
+    "computed": 0,
+    "stale": 0,
+    "pending": 0,
+    "errors": [],
+    "failedFiles": 0,
+    "skippedFiles": 0,
+}
 
 
 def load_pin() -> dict:
@@ -122,7 +137,17 @@ def _build(req: dict, *, graft_dir: Path) -> dict:
         rel = path.relative_to(root).as_posix()
         if mode == "outside-ops":
             rel = "../outside.py"
-        nodes.append({"path": rel})
+        nodes.append({
+            "id": rel,
+            "name": Path(rel).name,
+            "kind": "file",
+            "path": rel,
+            "span": "L1-L1",
+            "signature": None,
+            "exported": False,
+            "origin": "generic",
+            "body_hash": sha256_file(path) if path.is_file() else sha256_bytes(rel.encode()),
+        })
         if mode == "outside-ops":
             break
     if any(
@@ -131,16 +156,43 @@ def _build(req: dict, *, graft_dir: Path) -> dict:
     ):
         return _fail("node path escaped ops/")
     cache.mkdir(parents=True, exist_ok=True)
-    graph = {
-        "errors": [],
+    wiring_path = cache / WIRING_REL
+    wiring_path.parent.mkdir(parents=True, exist_ok=True)
+    languages = sorted({
+        "markdown" if path.suffix.lower() in {".md", ".markdown"} else "text"
+        for path in files
+    })
+    wiring = {
+        "meta": {
+            "version": 1,
+            "nodeCount": len(nodes),
+            "edgeCount": 0,
+            "languages": languages,
+        },
         "nodes": nodes,
         "edges": [],
-        "files": len(files),
     }
-    (cache / "graph.json").write_text(
-        json.dumps(graph, sort_keys=True) + "\n", encoding="utf-8",
+    wiring_path.write_text(
+        json.dumps(wiring, sort_keys=True) + "\n", encoding="utf-8",
     )
-    return {"ok": True, "result": graph}
+    meaning = dict(EMPTY_MEANING)
+    meaning["pending"] = len(nodes)
+    result = {
+        "contextDir": str(cache),
+        "graphPath": str(wiring_path),
+        "cards": 0,
+        "files": len(files),
+        "parsed": len(files),
+        "reused": 0,
+        "nodes": len(nodes),
+        "edges": 0,
+        "byKind": {"file": len(nodes)},
+        "byRelation": {},
+        "languages": languages,
+        "meaning": meaning,
+        "errors": [],
+    }
+    return {"ok": True, "result": result}
 
 
 def _query(req: dict, *, graft_dir: Path) -> dict:

@@ -69,15 +69,31 @@ class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
         body = json.loads(out)
         self.assertEqual(body["ok"], True)
         result = body["result"]
+        self.assertTrue(
+            self.fake.GRAPH_BUILD_RESULT_KEYS <= set(result),
+            f"result keys {sorted(result)} missing {sorted(self.fake.GRAPH_BUILD_RESULT_KEYS - set(result))}",
+        )
         self.assertEqual(result["errors"], [])
+        self.assertIsInstance(result["files"], int)
+        self.assertIsInstance(result["nodes"], int)
+        self.assertIsInstance(result["edges"], int)
         self.assertGreater(result["files"], 0)
-        self.assertTrue(result["nodes"])
-        for node in result["nodes"]:
+        self.assertGreater(result["nodes"], 0)
+        self.assertEqual(result["contextDir"], str(self.cache))
+        wiring_path = self.cache / ".graph" / "wiring.json"
+        self.assertEqual(Path(result["graphPath"]), wiring_path)
+        self.assertTrue(wiring_path.is_file())
+        wiring = json.loads(wiring_path.read_text(encoding="utf-8"))
+        self.assertTrue(wiring["nodes"], "wiring.json must list graph nodes")
+        self.assertEqual(result["nodes"], len(wiring["nodes"]))
+        self.assertEqual(result["edges"], len(wiring["edges"]))
+        for node in wiring["nodes"]:
             self.assertTrue(
                 str(node["path"]).startswith("ops/"),
                 f"node escaped ops/: {node}",
             )
-        self.assertTrue((self.cache / "graph.json").is_file())
+        self.assertIsInstance(result["languages"], list)
+        self.assertIsInstance(result["meaning"], dict)
         row = self.transcript()[-1]
         self.assertEqual(row["request"]["op"], "build")
         self.assertEqual(row["response"]["ok"], True)
@@ -151,7 +167,7 @@ class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
         self.assertEqual(body["ok"], False)
         self.assertIn("zero files", body["error"])
         self.assertFalse(
-            (self.cache / "graph.json").exists(),
+            (self.cache / ".graph" / "wiring.json").exists(),
             "unavailable build must not publish a graph",
         )
 
