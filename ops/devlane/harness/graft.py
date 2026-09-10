@@ -453,8 +453,11 @@ def install(destination):
                'HOME': str(stage / 'build-home'), 'CI': 'true', 'DO_NOT_TRACK': '1',
                'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull,
                'GIT_TERMINAL_PROMPT': '0', 'npm_config_cache': str(stage / 'npm-cache'),
-               'npm_config_userconfig': os.devnull, 'npm_config_globalconfig': os.devnull}
+               'npm_config_userconfig': str(stage / 'build-home/user.npmrc'),
+               'npm_config_globalconfig': str(stage / 'build-home/global.npmrc')}
         (stage / 'build-home').mkdir()
+        (stage / 'build-home/user.npmrc').touch()
+        (stage / 'build-home/global.npmrc').touch()
         source = stage / 'graft'
         commands = [
             ['git', 'clone', '--quiet', pin['graft']['source'], str(source)],
@@ -479,6 +482,10 @@ def install(destination):
             destination.rmdir()
         stage.rename(destination)
         return receipt
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or b'').decode('utf-8', errors='replace')[-300:]
+        refuse('graft-install', 'a complete pinned build',
+               f'{Path(exc.cmd[0]).name} exited {exc.returncode}: {detail}', 'correct the reported build failure and retry')
     except (OSError, subprocess.SubprocessError) as exc:
         refuse('graft-install', 'a complete pinned build', type(exc).__name__, 'retry installation in a fresh directory')
     finally:
@@ -524,7 +531,13 @@ def main(argv=None):
             if installation is None:
                 print(json.dumps({'state': 'disabled'}))
             else:
-                receipt_sha = verify_install(installation)
+                try:
+                    receipt_sha = verify_install(installation)
+                except Refused as exc:
+                    if not installation.exists():
+                        raise
+                    print(json.dumps({'state': 'unavailable', 'install': str(installation), 'reason': str(exc)}))
+                    return 0
                 print(json.dumps({'state': 'ready', 'install': str(installation),
                                   'pin': read_json(PIN_PATH), 'receipt_sha256': receipt_sha}))
             return 0

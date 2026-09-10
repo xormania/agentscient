@@ -157,7 +157,9 @@ the descriptor path. Root defaults to Git's canonical top level. `refresh
 --context FILE` rebuilds an allowed existing context. `query --context FILE
 TOOL [JSON_ARGUMENTS]` prints Graft's text, labelled navigation data; a Graft
 `isError` result exits 1. `status` prints JSON distinguishing disabled, ready
-and unavailable without creating directories or fetching anything. `probe
+and unavailable without creating directories or fetching anything. An existing
+but invalid installation reports unavailable; malformed configuration and a
+missing configured directory refuse. `probe
 --root ROOT --cache CACHE` deliberately prepares and exercises the installed
 build/query surface, prints measured pin/root/time/counts, and needs identity.
 CLI defaults must never cause index files to appear in a source checkout.
