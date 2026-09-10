@@ -31,6 +31,8 @@ import time
 import unittest
 from pathlib import Path
 
+from live_store_guard import assert_unchanged, without_new_job_dirs
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "onboard.py"
 
@@ -143,26 +145,10 @@ def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
     return ("dir", tuple(sorted(p.name for p in path.iterdir())))
 
 
-# A launcher's job directory: <stamp>-<stage>-<harness>-<hash>. The CI
-# runners share the operator's live store, so a dispatch launched while a
-# test runs adds one of these; the guard below tolerates exactly that
-# addition and canonical transient launcher logs. Other store-name mutations
-# still fail; see ../test-store-guard.md for the concurrency exclusions.
-_JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
-_LAUNCH_LOG = re.compile(r"\.launcher\.[A-Za-z0-9]{6}\Z")
-
-
-def _without_new_job_dirs(before, after):
-    """Normalize canonical concurrent job additions and transient logs."""
-    kept = {}
-    for key, (kind, names) in after.items():
-        if kind == "dir" and key in before and before[key][0] == "dir":
-            previous = set(before[key][1])
-            names = tuple(n for n in names
-                          if not _LAUNCH_LOG.fullmatch(n)
-                          and (n in previous or not _JOB_DIR.match(n)))
-        kept[key] = (kind, names)
-    return kept
+# The live-store comparison and its concurrency exclusions live in
+# live_store_guard.py; see ../test-store-guard.md. The name below is the
+# one test_store_guard.py binds to.
+_without_new_job_dirs = without_new_job_dirs
 
 
 def _live_store_paths() -> list[Path]:
@@ -273,13 +259,10 @@ class _OnboardFixture(unittest.TestCase):
                     proc.kill()
                     with contextlib.suppress(subprocess.TimeoutExpired):
                         proc.wait(timeout=2)
-            self.assertEqual(
-                _without_new_job_dirs(
-                    self._live_before,
-                    {str(p): _store_snap(p) for p in _live_store_paths()},
-                ),
-                _without_new_job_dirs(self._live_before, self._live_before),
-                "live dispatch store mutated",
+            assert_unchanged(
+                self,
+                self._live_before,
+                {str(p): _store_snap(p) for p in _live_store_paths()},
             )
             self.assertEqual(
                 _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
