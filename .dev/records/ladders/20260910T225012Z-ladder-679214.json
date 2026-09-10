@@ -20,9 +20,23 @@
   },
   "stages": [
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
       "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/ladder-inputs/plan-gate-contracts.md",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. Read in/scope-gate-20260910.md and in/scope-discipline.md WHOLE; the numbered Contract items there are the requirements and nothing else is. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed; do not widen them."
+          ],
+          "withheld": []
+        },
+        "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
+      },
       "job": "author-tests",
       "name": "tests",
       "outcome": "pending",
