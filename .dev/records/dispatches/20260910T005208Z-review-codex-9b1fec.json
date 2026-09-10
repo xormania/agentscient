@@ -1,0 +1,220 @@
+{
+  "id": "20260910T005208Z-review-codex-9b1fec",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/onboarding-contract-review",
+  "lineage": {
+    "branch": "lane/onboarding-completion-20260909",
+    "base_sha": "cd209d61b015ba296f7705e5bd17e36d360fde5d"
+  },
+  "follows": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:52:09Z",
+    "closed": "2026-09-10T00:58:01Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cd209d61b015ba296f7705e5bd17e36d360fde5d",
+    "ref_sha": "cd209d61b015ba296f7705e5bd17e36d360fde5d",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-52-09-01a088cc-f97e-7a52-846a-bde1f2eddc87.jsonl"
+  },
+  "session": {
+    "id": "01a088cc-f97e-7a52-846a-bde1f2eddc87",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-52-09-01a088cc-f97e-7a52-846a-bde1f2eddc87.jsonl",
+    "stream_sha256_at_close": "343495c4d613e8e8457b0160278db496a952053e98b481c577b0831815e69204",
+    "spend": {
+      "input": 1471670,
+      "cached": 1328512,
+      "output": 9200,
+      "total": 1480870,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-52-09-01a088cc-f97e-7a52-846a-bde1f2eddc87.jsonl",
+      "messages": 144
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Review supplied session-onboarding.md and conductor-start-plan.md as proposed contracts against existing owners and the supplied owner request. Find contradictions, infeasible requirements, undefined interfaces, oversized scope, missing acceptance cases and dependencies that prevent fast reliable onboarding. Read only; do not implement or author tests. Return concrete findings and a verdict. The author malformed its acceptance command; inspect the artifact independently, not its claimed status. Prioritize a coherent implementable completion path without reducing the owner outcome.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/in/session-onboarding.md",
+        "sha256": "7a56c5d7a3b72c0acad46b44479fc473f9f6d199dbb40932171977760a314081"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/in/conductor-start-plan.md",
+        "sha256": "bceb15a954a4427021f0bf4489af6699a32f6689b1229502541ff1c75daf0296"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/in/onboarding-request.md",
+        "sha256": "2b2878ff11f6ad360b66e03a131e5bd6602030fc4b2f24cdfc18bdf708665620"
+      }
+    ],
+    "sha256": "ee1c6a7ecf5d0f6d33e47db922ca823bf5b60b2601c52157a4f77d2eb820903e",
+    "bytes": 2896
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:52:09Z",
+      "ended": "2026-09-10T00:58:01Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "cd209d61b015ba296f7705e5bd17e36d360fde5d",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 7,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "../in/session-onboarding.md:77-101,200-207,517-523",
+          "claim": "Worker admission has no compatible interface. The proposal includes workers and requires every session to obtain discovery/4 and a once-consumed policy Decision. However, discovery/4 retains v3's literal audience=\"conductor\", and the retained conductor-tool/1 interface requires a conductor descriptor and classifies native edits as forbidden. Thus an ordinary implementation worker cannot satisfy admission and perform its authorized work without inventing an interface or inheriting conductor context. Additionally, worker admission handles are assigned to LaunchDeclarations without specifying an extension to its closed schema. Define the worker discovery, action-gate and evidence variants through task/dispatch/harness owners, and require a complete conductor-to-write-worker-to-settlement clean case.",
+          "reproduce": "sed -n '77,101p;200,207p;517,523p' ../in/session-onboarding.md\nsed -n '11,27p;110,120p' ops/conductor/discovery-lever.md\nsed -n '103,146p' ops/conductor/permission-surface.md\nsed -n '556,578p' ops/devlane/task/CONTRACT.md"
+        },
+        {
+          "severity": "p2",
+          "where": "../in/session-onboarding.md:84-92,375-391",
+          "claim": "The actual-client proof contains an admission cycle. 'No model turn ... is released until admitted', but admission requires real delivery proof, whose instructions require probing both an idle client and 'one processing a turn' while rejecting an unrelated thread. A fresh quarantined client cannot supply the busy-turn observation before its first turn is released. Separate version-bound active/idle capability certification from the current session's pre-admission connection and idle-delivery challenge, or explicitly contract a restricted diagnostic turn. Preserve active-client proof without making ordinary startup depend on an impossible ordering.",
+          "reproduce": "sed -n '84,96p;364,419p;650,659p' ../in/session-onboarding.md"
+        },
+        {
+          "severity": "p2",
+          "where": "../in/session-onboarding.md:298-340",
+          "claim": "The proposed coverage rows do not specify how concurrent definitions share the existing scheduler safely. The proposal permits incompatible definitions to coexist after shared schedules are deduplicated, but monitor.py keys schedules solely by monitor name and condition state by condition_id/subject. Two configurations using the same monitor name with different sources overwrite the same schedule fingerprint and can repeatedly re-arm observations. Existing events also have one consumer, whereas the proposal requires session fan-out. The new owner/consumer/receipt tables do not resolve these existing keys or define the fan-out mapping. Declare the schedule/condition identity migration and consumer mapping, with clean and fault cases for partially overlapping definitions using identical local names.",
+          "reproduce": "sed -n '298,346p;654,656p' ../in/session-onboarding.md\nsed -n '660,673p;792,810p;910,921p' ops/conductor/tools/monitor.py\nsed -n '54,79p' ops/conductor/monitor-lever.md"
+        },
+        {
+          "severity": "p2",
+          "where": "../in/session-onboarding.md:115-125",
+          "claim": "Ownership admission eventually stops solely because history grows. Every claim/renew/release must scan at most 4096 canonical record headers, with overflow refusing ownership, but there is no bounded active-claim index, retirement rule or complete partitioning scheme. A store containing 4097 closed historical records cannot establish that no conflicting owner exists; truncating the scan would violate the contract. The 16 MiB aggregate can trigger the same failure earlier. Specify dispatch-owned active-claim enumeration and crash-safe retirement/recovery that preserve historical records, and add an acceptance case with history beyond the cap and only a few active claims.",
+          "reproduce": "sed -n '106,125p;525,539p;643,648p' ../in/session-onboarding.md\nsed -n '1290,1343p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p2",
+          "where": "../in/session-onboarding.md:139-169",
+          "claim": "Freshness requires policy values and WIP evidence that the declared interfaces cannot carry. The proposal says remote/upstream and equal-versus-contains come from policy, and dirty/untracked work is allowed only when policy accounts for every affected path. The owning policy schema has no such fields and rejects unknown keys; Freshness/1 returns only dirty/untracked booleans, not the paths or an explicit verified path-accounting result. Consequently independent producers cannot implement the advertised preserved-WIP clean case from these contracts. Declare the versioned policy/declaration extension and the sync counterparty's bounded path evidence, including how startup verifies their binding.",
+          "reproduce": "sed -n '139,171p;648,649p' ../in/session-onboarding.md\nsed -n '57,69p' ops/conductor/lane-policy.md"
+        },
+        {
+          "severity": "p2",
+          "where": "../in/session-onboarding.md:237-258,409-415",
+          "claim": "External catalogue evidence has no complete acquisition contract. The proposal says adapter observations in canonical records become Capability cards and enter discovery fingerprints, but supplies only generic Evidence handles and an untyped listings handle. Existing discovery authorizes 'exactly anchored dispatch/ID/record.json'; it cannot follow those handles into retained listing files. Moreover, v4's stated acquisition extension adds 'only retained tree enumeration'. Define the retained listing schema, record locator, bounded descriptor-relative evidence reads, normalization and fingerprint observations. Include changed/missing evidence and optional-service failures so implementations cannot substitute server claims or silently omit external tools.",
+          "reproduce": "sed -n '237,258p;409,415p;476,481p' ../in/session-onboarding.md\nsed -n '380,391p;565,580p' ops/conductor/discovery-lever.md"
+        },
+        {
+          "severity": "p2",
+          "where": "../in/session-onboarding.md:192-198,237-244,561-570",
+          "claim": "Catalogue completeness makes routine file creation depend on updating the trusted discovery runtime. Every retained file, including private tests and fixtures, requires classification; added/deleted/renamed paths require regenerated classification; classifications are compiled into trusted lane_read bytes; incompleteness blocks admission. After an otherwise authorized commit adds a helper or test, source revalidation can therefore suspend the session until a separately verified runtime classification update exists. No maintenance path or clean acceptance case explains this ordinary progression. Define owner-declared classification rules or a verified generated catalogue/update protocol that retains complete inventory while avoiding a trusted runtime release for every incidental path change.",
+          "reproduce": "sed -n '190,207p;237,244p;497,502p;561,570p;647,652p' ../in/session-onboarding.md"
+        },
+        {
+          "severity": "p2",
+          "where": "../in/session-onboarding.md:16-20; ../in/conductor-start-plan.md:23-28",
+          "claim": "The ownership reassignment is not supported by the supplied authority evidence. The supplied owner request explicitly identifies concurrent onboard/monitor freshness additions and says not to duplicate or overwrite that work. Both proposals instead rely on an owner-clarification.md assigning the other session Git/GitHub synchronization only. That clarification is absent from the review inputs and was not found in the snapshot. This does not establish that the clarification never existed, but its claimed supersession cannot be verified or used to settle overlapping implementation ownership. Retain the exact clarification and bind the agreed sync/monitor handover before freezing construction assignments.",
+          "reproduce": "cat ../in/onboarding-request.md\nsed -n '14,20p' ../in/session-onboarding.md\nsed -n '21,28p' ../in/conductor-start-plan.md\nls -la ../in\nrg --files -g '*owner-clarification*' -g '*host-evidence*' -g '*inventory-envelope*'"
+        }
+      ],
+      "artifacts": {
+        "reviewed_session_onboarding": "../in/session-onboarding.md",
+        "session_onboarding_sha256": "7a56c5d7a3b72c0acad46b44479fc473f9f6d199dbb40932171977760a314081",
+        "reviewed_conductor_start_plan": "../in/conductor-start-plan.md",
+        "conductor_start_plan_sha256": "bceb15a954a4427021f0bf4489af6699a32f6689b1229502541ff1c75daf0296",
+        "owner_request_sha256": "2b2878ff11f6ad360b66e03a131e5bd6602030fc4b2f24cdfc18bdf708665620"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 1480870,
+        "out": 9200,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cd209d61b015ba296f7705e5bd17e36d360fde5d",
+        "started": "2026-09-10T00:52:20Z",
+        "ended": "2026-09-10T00:56:49Z"
+      },
+      "note": "Reviewed all three supplied inputs whole against the snapshot owners. The commit diff against 20f9bcaf2b3ae2152b9cab766637b5a89b71214b contains two captured dispatch records; this verdict concerns the separately supplied proposed contracts. Independently inspected artifact bytes and declarations without relying on the author's acceptance status. No edits, test authorship, suite execution, external reads, session-store reads or activation; final working tree remained clean. Completion path: retain the governing allocation and freeze sync/policy/worker interfaces; establish feasible live quarantine and delivery mechanics; define catalogue evidence acquisition and monitor/ownership migrations; then independently test and implement the canonical admission path, including ordinary worker delegation, growing history, routine file changes and revalidation. Finish with combined-ref suites, actual-client fault/clean proof, host cutover and repeated proof for required harness/profile operations. Preserve the complete owner outcome; intermediate discovery or contract delivery is not completion."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:58:00.808Z"
+    }
+  },
+  "status": "closed"
+}
