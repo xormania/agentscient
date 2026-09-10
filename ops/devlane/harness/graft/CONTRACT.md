@@ -122,6 +122,8 @@ covers all generated graph/index/cache files excluding `binding.json` itself.
 Hash all readable regular files in the declared source set;
 an unreadable file or unexpected source type refuses, not an omitted hash.
 Symlinks cannot import material from outside the authorized root.
+The cache's `context.json` repeats the descriptor except its role and is covered
+by the cache digest, preventing reuse by a different root or installation.
 
 Before serving a query, verify descriptor shape, canonical root/cache binding,
 installation identity, graph digest and the current source digest. Missing,
