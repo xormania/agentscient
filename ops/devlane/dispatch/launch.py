@@ -65,6 +65,29 @@ ENVELOPE = _module("envelope", APP.parent / "task" / "envelope.py")
 ENVELOPE_SCHEMA_JSON = json.dumps(ENVELOPE.ENVELOPE_SCHEMA, separators=(",", ":"))
 
 
+def _graft_call(name, *args):
+    module = _module("graft", HARNESS_APP / "graft.py")
+    try:
+        return getattr(module, name)(*args)
+    except module.Refused as exc:
+        raise Refused(str(exc)) from exc
+
+
+def _verify_graft(rec, job_dir, snapshot):
+    metadata = rec["brief"].get("graft")
+    if metadata is None:
+        return
+    _graft_call("verify_worker", job_dir, snapshot, metadata)
+    if metadata.get("state") == "ready":
+        descriptor = json.loads((job_dir / "context/graft.json").read_text())
+        if descriptor["role"] != rec["role"] or rec["job"] in {"author-tests", "check-tests"}:
+            _refuse("graft-context", "the recorded job's source grant", "foreign role",
+                    "create a fresh dispatch")
+    elif rec["job"] not in {"author-tests", "check-tests"}:
+        _refuse("graft-context", "a ready context for this job", "foreign withheld metadata",
+                "create a fresh dispatch")
+
+
 def _lane_values(*names):
     resolved = {}
     for name in names:
@@ -1126,6 +1149,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         _refuse("record-target", f"the canonical job directory {bound_job_dir}",
                 str(Path(job_dir).resolve(strict=False)), "use the record's dispatch id")
     job_dir = bound_job_dir
+    _verify_graft(rec, job_dir, snapshot)
     _verify_record_ref(snapshot, rec["snapshot"]["ref_sha"])
     prompt = job_dir / "prompt.txt"
     relocated_from = rec.pop("_relocated_from", None)
@@ -1424,6 +1448,7 @@ def _launch(args):
     diff_text = _git(repo, "diff", f"{base_sha}..{ref_sha}").stdout if base_sha != ref_sha else ""
     context_dir = job_dir / "context"
     context_dir.mkdir()
+    graft_metadata = _graft_call("prepare_worker", job_dir, snapshot, args.job)
     context_diff = context_dir / "diff.patch"
     context_diff.write_text(diff_text)
     diff_file = job_dir / "diff.patch"
@@ -1436,6 +1461,9 @@ def _launch(args):
     # Dispatch names its copies even when the shared template omits inputs.
     if copied:
         prompt_text += "\n\nInput files: " + values["inputs"]
+    graft_note = _graft_call("worker_note", graft_metadata)
+    if graft_note:
+        prompt_text += "\n\n" + graft_note
     if args.harness in {"codex", "grok", "agy"}:
         prompt_text += (
             "\n\nThe envelope shape, as JSON Schema. Every key in `required` "
@@ -1478,7 +1506,8 @@ def _launch(args):
                   "ran": None, "read_from": None, "note": "no stream found"},
         "session": {"id": session, "stream": None, "stream_sha256_at_close": None},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
-                  "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size},
+                  "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,
+                  **({"graft": graft_metadata} if graft_metadata is not None else {})},
         "caps": {"cap-out": wires.budget(role), "source": "wires.py"},
         "overrides": overrides, "attempts": [], "result": None, "status": "launched"})
     if args.harness == "agy":
@@ -2416,6 +2445,7 @@ def _brief(args):
     repo = _repo()
     _path, rec = _find_record(repo, args.check)
     job_dir, _snapshot_path = _bound_snapshot(rec)
+    _verify_graft(rec, job_dir, _snapshot_path)
     prompt = job_dir / "prompt.txt"
     ok = prompt.is_file() and _sha(prompt) == rec["brief"]["sha256"]
     print("brief matches" if ok else "brief digest mismatch")
