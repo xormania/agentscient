@@ -127,7 +127,7 @@ ignore = [
 "ops/conductor/tools/ladder.py" = ["S603"]
 "ops/conductor/tools/branches.py" = ["S603"]
 "ops/conductor/tools/co_doc.py" = ["S603", "S608"]
-# monitor.py runs only the code-built `gh api rate_limit` argv.
+# monitor.py runs code-built bounded Git ref reads and `gh api rate_limit`.
 "ops/conductor/tools/monitor.py" = ["S603"]
 # The repo-scoped skills are scripts that ASK other tools: shelling out is
 # the job, not an incident.
