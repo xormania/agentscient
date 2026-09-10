@@ -287,7 +287,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         )
 
     def test_collect_refuses_a_running_unclosed_job(self):
-        rec, plant = self._plant_committed_failed_write()
+        rec, _plant = self._plant_committed_failed_write()
 
         def mark_launched(data):
             data["status"] = "launched"
@@ -307,7 +307,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         self.assertEqual(self.refs_map(), before_refs)
 
     def test_collect_refuses_missing_failure_evidence(self):
-        rec, plant = self._plant_committed_failed_write()
+        rec, _plant = self._plant_committed_failed_write()
         planted = self._rewrite_record(rec, lambda data: data["result"].pop(
             "envelope", None,
         ))
@@ -584,7 +584,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
 
     def test_collect_refuses_when_verify_mutates_head(self):
         rec, plant = self._plant_committed_failed_write()
-        snap = self.snapshot_of(rec)
+        _snap = self.snapshot_of(rec)
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         verify = (
@@ -659,7 +659,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
             "changed_paths", ["stale.py"],
         ))
         before_record = self._record_bytes(rec["id"])
-        code, out, err = self._collect(rec["id"], VERIFY_OK)
+        code, _out, err = self._collect(rec["id"], VERIFY_OK)
         self.assertNotEqual(code, 0, err)
         rec2 = json.loads(self._record_bytes(rec["id"]))
         self.assertEqual(self._record_bytes(rec["id"]), before_record)
