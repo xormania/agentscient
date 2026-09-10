@@ -730,7 +730,8 @@ artifacts live, outside every repository.
 ```text
 launch.py <job> --harness H --model M [--effort E] --ref R
           [--lineage B] [--unit U] [--stage S] [--scope TEXT]
-          [--input PATH]... [--follows ID]... [--override ID:REASON]...
+          [--input PATH]... [--follows ID]... [--answers KEY]...
+          [--override ID:REASON]...
 launch.py status [ID] [--json]
 launch.py resume ID [--prompt-file PATH]
 launch.py collect ID --verify CMD [--reason TEXT] [--timeout SECONDS]
@@ -771,6 +772,11 @@ launch.py brief --check ID
   (plan → tests → check-tests → code → review → adjudicate). It is a
   dispatch-graph edge; it is **not** `context.prior`, which stays
   "findings from an earlier call".
+- `--answers KEY` is repeatable and names each findings-store key answered
+  by a correction. A key has the shape `<record>#<n>`.
+- The citation grammar lives in `findings.py` as
+  `contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s;,]+)`.
+  The gate and `findings.py` read the same definition.
 - `--override ID:REASON` is accepted only for a refusal marked
   overridable below, and only with a non-empty reason.
 - Identity: `WF_AGENT` in the `Name <address>` form, as for `wf`.
@@ -966,6 +972,8 @@ satisfy it. `override` marks the only overridable one.
 | `identity` | `WF_AGENT` unset or not `Name <address>` | expected an identity in the `Name <address>` form; found `<value or unset>`; export `WF_AGENT='Your Model Name <noreply@vendor>'` |
 | `live-target` | the destination is inside any entry of the invoking repository's `git worktree list --porcelain` or its common dir | expected a job directory outside every worktree of `<repo>`; found `<path>` inside `<worktree>`; set `DISPATCH_JOBS` to a directory outside the repository |
 | `ref` | `--ref` does not resolve to a commit | expected a ref naming a commit in `<repo>`; found `<ref>` (`<git's message>`); commit the work, then name the commit — uncommitted work is never dispatched |
+| `follows` | a followed record or a record named by an `out/` input cannot be read | expected a readable record for `<id>` under `.dev/records/dispatches`; found none; needed name a record in `.dev/records/dispatches` |
+| `correction` (not overridable; exit 2, founding wire) | a correction does not name every answered finding, or a named finding is absent, open, uncited, or disposed too late | expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found no --answers key named for a correction following `<id>` (`<job>`); found key `<key>` absent from the findings store `<path>`; found key `<key>` absent from the findings store `<path>` (no store); found key <key> still open; found key `<key>` disposed `<what>` without a contract citation (`<reason>`); found key `<key>` disposed at `<disposed_at>`, after the mint attempt at `<stamp>`; needed python3 ops/conductor/tools/findings.py disposition <key> <disposition> 'contract item N of <scope path>: <why>' |
 | `record-target` | the invoking checkout is detached, on `dev` or `main`, or on a branch other than `lineage.branch`; re-checked at close | expected the checkout on `<lineage>`; found `<branch or detached>`; run from a worktree of `<lineage>` (at close: the record file is left in place, nothing is committed, and `close ID` is re-run from the right branch) |
 | `stale-base` (**override**) | `ref_sha` is not an ancestor of `lineage.branch` | expected `<ref_sha>` reachable from `<lineage>`; found it is not (`<lineage>` is at `<tip>`); name a commit on the branch, or `--override stale-base:<reason>` |
 | `model` | no `--model`; or `--effort` on a harness whose adapter cannot pass it | expected a model — a job never names one and the launcher never defaults one; found none; pass `--model` (effort is forwarded through each harness adapter) |
@@ -1112,7 +1120,7 @@ the field.
 Worker fields, in this order (the conductor extension follows below):
 
 ```text
-id, lane ("dev"), stage, unit, lineage {branch, base_sha}, follows [ids],
+id, lane ("dev"), stage, unit, lineage {branch, base_sha}, follows [ids], answers [{key, disposition, disposed_at, citation {item, path}}],
 job, role (read|write), dispatched_by, at {launched, closed},
 snapshot {mode, ref_name, ref_sha, behind_tip, root},
 harness {name, version, permissions?,
@@ -1131,6 +1139,9 @@ result {head, changed_paths, residual_paths, residual_patch?, envelope,
         collected? {at, by, head, verify {command, exit}, reason}},
 status (launched|closed|died)
 ```
+
+A record without an `answers` key was minted before the field landed; that
+absence is historical and must not be read as "none answered".
 
 - `model.requested` is the alias the owner chose; `model.ran` is what
   the harness's own stream says, read from `read_from`; with no stream
