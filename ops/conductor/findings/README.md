@@ -14,6 +14,10 @@ regenerated and never edited by hand. Dispositions: open, fixed,
 addressed, deferred, ruled, fix-round, opinion; the evidence names the
 commit, the record, the ruling or the scope item.
 
+The read verb `cited` KEY reports whether that finding is disposed with a
+holding contract citation. The citation grammar lives in `findings.py`; the
+gate and `findings.py` read the same definition.
+
 The series this makes readable is the audit ladder's marginal detection
 series (`docs/workflow.md`): findings per reviewer per batch, and what
 each later stage still found. That is the number the planning process
