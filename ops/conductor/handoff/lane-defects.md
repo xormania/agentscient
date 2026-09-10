@@ -14,7 +14,7 @@ Reliability is the count below trending to zero per ladder.
 | LD-1 | 2026-09-10 | matrix guard vs `ops/README.md` | README says `launch.py wait ID` waits for closure; the guard refuses it as `direct-launch`. Documented verb, unusable by a session. | open | — |
 | LD-2 | 2026-09-10 | `ladder.py`, ladder 679214 stage check-tests | the driver handed stages scope and plan only; a scope sentence citing the work order sent the skeptic after `in/` files never supplied; it refused. | PR 87, 05e5bc3, grant 51 | dispatched to Grok on `repair/ladder-inputs-tests-20260910` |
 | LD-3 | 2026-09-10 | `ladder.py` resume | scope and plan are digest-pinned; correcting a scope sentence mid-ladder needs a hand edit of the record (grant 49). A corrected scope should be a recorded event. | open | — |
-| LD-4 | 2026-09-04 → | conductor tests | five test files snapshot the shared live dispatch store; any concurrent launcher fails their teardown; every parallel session since PR 62 reran CI. | open; partial for onboard tests in 955e0a9 | — |
+| LD-4 | 2026-09-04 → | conductor tests | five test files snapshot the shared live dispatch store; any concurrent launcher fails their teardown; every parallel session since PR 62 reran CI. | PR 88, 83eb1c2, grant 55: one shared guard, exclusions declared | retained 24-case test_store_guard.py holds; helper test to follow |
 
 Not a lane defect: the setsid pid recorded for the resumed driver was the
 intermediate shell, the session's own error.
