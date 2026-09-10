@@ -28,7 +28,7 @@ probe read-only and reports findings with remedies. It is not the fixer.
 | P-SET-1 | settings | every present settings file (`.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`) parses as a JSON object; an absent file is reported absent, never as clean-by-silence | 2 |
 | P-PERM-1 | permissions | every `permissions.allow` rule naming an absolute path resolves to an existing file — an allow whose target does not exist is an **inert grant**, the lockout that looks like permission | 2 |
 | P-PERM-2 | permissions | no deny rule textually shadows an allow's target (heuristic, stated as such in output) | 3 |
-| P-HOOK-1 | hooks | every configured hook's command file exists and is executable | 2 |
+| P-HOOK-1 | hooks | every configured hook's command file exists and is executable; when `CONTROL_STATE` is supplied, the conductor control's pinned files and retained owner plan match their recorded hashes (otherwise the context is explicitly ABSENT) | 2 |
 | P-HOOK-2 | hooks | every hook matcher names the tools it judges — a `.*` or absent matcher is a finding (the tool-guard lesson, agent-lab rule) | 2 |
 | P-LEV-1 | levers | `dispatch.conf` parses; an explicit `LAUNCHER_PIN` or the sibling-default launcher, `dispatch.sh`, and `gate.sh` are each reported live or inert with the path examined | 2 |
 | P-ID-1 | identity | `WF_AGENT`, when set, is `Name <address>`; unset is a note with the export line as remedy (reads need no identity) | 2 |

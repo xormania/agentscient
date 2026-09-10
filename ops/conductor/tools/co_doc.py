@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Read-only probes for the conductor permission surface."""
 
+import hashlib
 import json
 import os
 import re
@@ -360,12 +361,39 @@ def main():
     loaded = load_settings(report)
     permission_rules(report, loaded)
     hooks(report, loaded)
+    control_context(report)
     levers(report)
     identity(report)
     workflow(report)
     ledgers(report)
     print("\n".join((*report.notes, *report.lines)))
     return 2 if report.invalid else (1 if report.lines else 0)
+
+
+def control_context(report):
+    """Inspect the new gate without importing or executing that gate."""
+    selected = os.environ.get("CONTROL_STATE")
+    if not selected:
+        report.note("P-HOOK-1", "conductor control context ABSENT; no active control state was supplied")
+        return
+    state = Path(selected)
+    try:
+        data = json.loads((state / "state.json").read_text())
+        for name, expected in data["instruments"].items():
+            actual = hashlib.sha256(Path(name).read_bytes()).hexdigest()
+            if actual != expected:
+                report.add("Denial", "P-HOOK-1", "pinned conductor controller and hook bytes",
+                           "changed binding", "restore the pinned installation or have the owner initialize a new reviewed cycle")
+                return
+        raw = (state / "plan.json").read_bytes()
+        if hashlib.sha256(raw).hexdigest() != data["plan_sha256"]:
+            report.add("Denial", "P-HOOK-1", "unchanged owner plan", "changed retained plan",
+                       "restore the retained owner declaration; do not refill the current cycle")
+            return
+        report.note("P-HOOK-1", "conductor control bindings verified; inspect control.py status for action outcomes and remaining allowance")
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        report.invalid_probe("P-HOOK-1", "readable conductor control context", "missing or malformed state or pinned file",
+                             "restore the control installation and inspect the owner state directory")
 
 
 if __name__ == "__main__":

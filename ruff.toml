@@ -65,6 +65,9 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
+# Preserve the independently produced compact control tests byte-for-byte.
+# Their import order and compact statements are style, not test semantics.
+"ops/conductor/tests/test_control.py" = ["I001", "E701", "E702"]
 # Import ORDER IS LOAD-BEARING in these suites: `import support` puts
 # the app directory on sys.path, so `import probe` resolves at all.
 # Sorting the block alphabetically puts `probe` first and the module

@@ -123,6 +123,7 @@ EXTERNAL_ENV_KEYS = {
     "TMPDIR",
     "WATCH_TICK_SCALE",
     "WATCHDOG_TICK",
+    "CONTROL_STATE",  # owner-issued execution context, not a lane default
     "WF_AGENT",
     "XDG_STATE_HOME",
 }
