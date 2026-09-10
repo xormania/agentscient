@@ -1458,6 +1458,9 @@ def _launch(args):
               "out": str((job_dir / "out").resolve()),
               "inputs": " ".join(item["path"] for item in copied), "scope": args.scope or ""}
     prompt_text = _render(job["prompt"], values)
+    # Dispatch names its copies even when the shared template omits inputs.
+    if copied:
+        prompt_text += "\n\nInput files: " + values["inputs"]
     graft_note = _graft_call("worker_note", graft_metadata)
     if graft_note:
         prompt_text += "\n\n" + graft_note
