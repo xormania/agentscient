@@ -5,8 +5,14 @@ against PR #79 implementation head `16f352c828f8e8479ba703ae08b4fddaa4d35572`.
 
 ## Outcome
 
-The owner asked to fix the audit's underlying failures. The manual repair is
-published in [PR #79](https://github.com/uscient/agentscient/pull/79): immutable
+The owner asked to fix the audit's underlying failures. This session built a
+manual repair and published it in [PR #79](https://github.com/uscient/agentscient/pull/79).
+Withdrawn 2026-09-10 by owner decision: [PR #83](https://github.com/uscient/agentscient/pull/83)
+is the designated repair, and #79 now carries only the audit records and this
+AAR. The withdrawn implementation stays retrievable at
+`16f352c828f8e8479ba703ae08b4fddaa4d35572` on branch
+`repair/audit-enforcement-manual-20260910`; its evidence is retained beside
+this AAR under a directory that no longer collides with #83. What it built: immutable
 owner actions, once-only reservations, valid assertion RED and independent
 hash-bound test acceptance before code, sealed tests, and a wall around the
 whole conductor session. Recovery candidates for monitoring and committed
@@ -14,8 +20,8 @@ worker output remain in [#80](https://github.com/uscient/agentscient/pull/80)
 and [#81](https://github.com/uscient/agentscient/pull/81).
 
 All nine local suites passed: **2,221 tests, seven skips**. All four CI checks
-passed on the implementation head above. The [retained verification](handoff/evidence-2026-09-10-manual-enforcement/verification.json)
-and [native role results](handoff/evidence-2026-09-10-manual-enforcement/native-roles.json)
+passed on the implementation head above. The [retained verification](handoff/evidence-2026-09-10-audit-enforcement-repair/verification.json)
+and [native role results](handoff/evidence-2026-09-10-audit-enforcement-repair/native-roles.json)
 bind these claims to measured commands, client versions and source hashes.
 
 Codex, Claude and Grok each blocked conductor edits and raw writes while
