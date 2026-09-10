@@ -1433,6 +1433,9 @@ def _launch(args):
               "out": str((job_dir / "out").resolve()),
               "inputs": " ".join(item["path"] for item in copied), "scope": args.scope or ""}
     prompt_text = _render(job["prompt"], values)
+    # Dispatch names its copies even when the shared template omits inputs.
+    if copied:
+        prompt_text += "\n\nInput files: " + values["inputs"]
     if args.harness in {"codex", "grok", "agy"}:
         prompt_text += (
             "\n\nThe envelope shape, as JSON Schema. Every key in `required` "
