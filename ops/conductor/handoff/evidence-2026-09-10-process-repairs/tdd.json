@@ -1,0 +1,68 @@
+{
+  "recorded_at": "2026-09-10T01:52:30.861518+00:00",
+  "source_commit": "955e0a9eb24b2096e8609ec163ec992fe01a6eac",
+  "full_suite": {
+    "command": [
+      "ops/bin/suites.sh"
+    ],
+    "head": "955e0a9eb24b2096e8609ec163ec992fe01a6eac",
+    "head_after": "b3f792d3149ebc678c90bc1a9a58e857fd53cb64",
+    "started": "2026-09-10T01:45:44.469518+00:00",
+    "ended": "2026-09-10T01:47:11.173380+00:00",
+    "exit": 0
+  },
+  "red": {
+    "head": "125fe6f56d9dec866cd7002e4d194d6a8d52d684",
+    "rows": [
+      {
+        "file": "ops/devlane/dispatch/tests/test_launch_collect_committed_recovery.py",
+        "command": [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "ops/devlane/dispatch/tests",
+          "-p",
+          "test_launch_collect_committed_recovery.py",
+          "-v"
+        ],
+        "started": "2026-09-10T01:38:41.195921+00:00",
+        "ended": "2026-09-10T01:38:46.281794+00:00",
+        "exit": 1,
+        "tests": 24,
+        "sha256_before": "f69dec3ad8f121f5d51b8ff60561e26882d3d1550064b7db7ec086154a447105",
+        "sha256_after": "f69dec3ad8f121f5d51b8ff60561e26882d3d1550064b7db7ec086154a447105"
+      },
+      {
+        "file": "ops/conductor/tests/test_store_guard.py",
+        "command": [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "ops/conductor/tests",
+          "-p",
+          "test_store_guard.py",
+          "-v"
+        ],
+        "started": "2026-09-10T01:38:46.281901+00:00",
+        "ended": "2026-09-10T01:38:46.342484+00:00",
+        "exit": 1,
+        "tests": 24,
+        "sha256_before": "002fcb99419163d863e12dfc387fd387cafeda64a378ae7e19b044d11edb5eee",
+        "sha256_after": "002fcb99419163d863e12dfc387fd387cafeda64a378ae7e19b044d11edb5eee"
+      }
+    ]
+  },
+  "full_suite_tests": 2262,
+  "skipped": 6,
+  "independent_review_status": "pending final bounded audits",
+  "test_acceptance": "20260910T013842Z-check-tests-claude-755cf8",
+  "final_audits": [
+    "20260910T014749Z-review-grok-e1208a",
+    "20260910T014750Z-review-claude-ea4c54"
+  ],
+  "source_changes_during_suites": "none; only the independent test-review record was committed"
+}
