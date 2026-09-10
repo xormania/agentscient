@@ -811,6 +811,13 @@ def _retain_findings(data, prior):
     data["findings"] = prior_findings + [
         item for item in resumed if item not in prior_findings
     ]
+    if any(isinstance(item, dict) and 'evaluation' in item for item in data['findings']):
+        try:
+            data['counts'] = ENVELOPE.tally(data['findings'])
+            ENVELOPE.validate(data)
+        except (ENVELOPE.EnvelopeError, KeyError, TypeError) as exc:
+            _invalidate_envelope(data, f'admission-evidence: resumed evidence: {exc}')
+        return data
     counts = data.get("counts")
     counts = counts if isinstance(counts, dict) else {}
     prior_counts = prior.get("counts")
@@ -838,13 +845,16 @@ def _retain_findings(data, prior):
 
 
 def _json_objects(text):
-    decoder = json.JSONDecoder()
+    decoder = json.JSONDecoder(object_pairs_hook=ENVELOPE.strict_pairs,
+                               parse_constant=ENVELOPE.strict_constant)
     found = []
     for match in re.finditer(r"\{", text):
         try:
             candidate, _end = decoder.raw_decode(text, match.start())
         except json.JSONDecodeError:
             continue
+        except ENVELOPE.EnvelopeError:
+            return []
         if isinstance(candidate, dict):
             found.append(candidate)
     return found
@@ -885,9 +895,11 @@ def _schema_valid(data):
                 return False
         return True
 
-    return (matches(data, ENVELOPE.ENVELOPE_SCHEMA)
-            and not (data.get("status") == "invalid"
-                     and data.get("verdict") == "approve"))
+    try:
+        ENVELOPE.validate(data)
+    except (ENVELOPE.EnvelopeError, TypeError, ValueError):
+        return False
+    return matches(data, ENVELOPE.ENVELOPE_SCHEMA)
 
 
 def _most_envelope_shaped(objects, *, last=False):
@@ -942,7 +954,7 @@ def _agy_envelope(raw):
     for line in raw.decode("utf-8").splitlines():
         if not line.strip():
             continue
-        frame = json.loads(line)
+        frame = ENVELOPE.loads(line)
         if not isinstance(frame, dict):
             raise ValueError("malformed stream frame: expected an object")
         if frame.get("event") == "result":
@@ -978,7 +990,7 @@ def _agy_envelope(raw):
         if not isinstance(data, dict):
             raise ValueError("malformed terminal result structured_output")
     else:
-        data = json.loads(result["response"])
+        data = ENVELOPE.loads(result["response"])
     # Keep semantic checks in their canonical owner, including diagnostic
     # field names; schema validation also enforces exact scalar types.
     ENVELOPE.validate(data)
@@ -1026,8 +1038,10 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
         last = Path(job_dir) / "out" / "last-message.json" if job_dir else None
         if last is not None and last.is_file():
             try:
-                candidate = json.loads(last.read_text(encoding="utf-8"))
+                candidate = ENVELOPE.loads(last.read_text(encoding="utf-8"))
                 data = candidate if isinstance(candidate, dict) else None
+            except ENVELOPE.EnvelopeError as exc:
+                data = _invalid(job, ref_sha, str(exc))
             except (OSError, json.JSONDecodeError):
                 data = None
         if data is None:
@@ -1035,7 +1049,10 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
                 payload = item.get("item")
                 if isinstance(payload, dict) and payload.get("type") == "agent_message":
                     try:
-                        candidate = json.loads(payload.get("text", ""))
+                        candidate = ENVELOPE.loads(payload.get("text", ""))
+                    except ENVELOPE.EnvelopeError as exc:
+                        data = _invalid(job, ref_sha, str(exc))
+                        break
                     except json.JSONDecodeError:
                         continue
                     if isinstance(candidate, dict):
@@ -1078,7 +1095,18 @@ def _envelope(raw, job, ref_sha, note=None, *, harness=None, job_dir=None,
     stamp = data.get("stamp")
     if not isinstance(stamp, dict):
         data["stamp"] = {}
-    data["stamp"]["ref"] = ref_sha
+    findings = data.get('findings')
+    evaluated = isinstance(findings, list) and any(
+        isinstance(item, dict) and 'evaluation' in item for item in findings)
+    if evaluated:
+        try:
+            ENVELOPE.validate(data)
+            if data['stamp'].get('ref') != ref_sha:
+                raise ENVELOPE.EnvelopeError('review stamp.ref differs from dispatch ref')
+        except ENVELOPE.EnvelopeError as exc:
+            _invalidate_envelope(data, f'admission-evidence: {exc}')
+    else:
+        data["stamp"]["ref"] = ref_sha
     if note:
         _invalidate_envelope(data, note)
     if rec is not None and cause:
@@ -1421,6 +1449,17 @@ def _launch(args):
             raise RuntimeError(f"duplicate input basename: {src.name}")
         shutil.copyfile(src, dest)
         copied.append({"path": str(dest), "sha256": _sha(dest)})
+    # Retain the exact owner scope as an existing dispatch input, independent
+    # of any digest returned by a worker. No output grant is added.
+    if args.job in ENVELOPE.REVIEW_JOBS and args.scope is not None:
+        scope_bytes = args.scope.encode('utf-8')
+        scope_sha = hashlib.sha256(scope_bytes).hexdigest()
+        if not any(item['sha256'] == scope_sha for item in copied):
+            scope_input = job_dir / 'in' / 'finding-owner-scope.txt'
+            if scope_input.exists():
+                raise RuntimeError('duplicate finding owner scope input basename')
+            scope_input.write_bytes(scope_bytes)
+            copied.append({'path': str(scope_input), 'sha256': scope_sha})
     diff_text = _git(repo, "diff", f"{base_sha}..{ref_sha}").stdout if base_sha != ref_sha else ""
     context_dir = job_dir / "context"
     context_dir.mkdir()

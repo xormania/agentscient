@@ -22,7 +22,7 @@
  },
  "security-audit": {
   "adapter": "harness",
-  "deliverable": "security findings against the change, each with a reproduction, that survived the auditor's own attempt to refute them",
+  "deliverable": "self-evaluated security findings with reproduction or execution-path evidence",
   "role": "read",
   "snapshot": "whole",
   "caps": {"timeout": 1200},
@@ -65,7 +65,7 @@
  },
  "check-tests": {
   "adapter": "harness",
-  "deliverable": "a skeptic's report at the job's out/SKEPTIC.md; verdict changes when any test is refuted",
+  "deliverable": "a skeptic report at out/SKEPTIC.md; changes only for evaluated demonstrated in-scope test defects",
   "role": "read",
   "snapshot": "whole",
   "caps": {"timeout": 1800},
@@ -89,7 +89,7 @@
  },
  "adjudicate": {
   "adapter": "harness",
-  "deliverable": "a ruling at the job's out/RULING.md: UPHELD, PARTIAL or REJECTED per finding, and what the reviewers missed",
+  "deliverable": "a bound evaluation and RULING.md heading per supplied finding; incidental issues remain follow-ups",
   "role": "read",
   "snapshot": "whole",
   "prompt": "Rule on the reviews at {inputs} of the artifact at {ref}. You are given the artifact at that ref and the reports verbatim, and nothing else. Rule UPHELD, PARTIAL or REJECTED per finding, each ruling grounded in a reproduction against the tree, then state what the reviewers missed. Write the ruling to {out}/RULING.md and name that path in artifacts. Review only — do not edit.\nInputs named by the brief are files under in/, a sibling of out/; read them whole before working.\nLeave `spend` as `{\"harness\": \"<harness>\", \"total\": 0, \"out\": 0, \"runs\": 0}`; the launcher fills it from the session store. Do not read the store.\nAnswer with a single JSON object and nothing else, carrying exactly these keys: job, status, verdict, counts, findings, artifacts, spend, stamp, note.",

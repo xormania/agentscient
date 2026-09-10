@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import re
+import copy
 
 #: Key order is part of the shape: a caller diffing two envelopes, or a
 #: reviewer reading one, sees the same fields in the same places.
@@ -48,6 +49,39 @@ SEVERITIES = ("p1", "p2", "p3")
 
 #: Longer than any path this lane produces, far shorter than a review.
 HANDLE_MAX = 512
+
+CLASSIFICATIONS = ('demonstrated-defect', 'scope-expansion', 'unproven')
+REVIEW_JOBS = ('check-tests', 'security-audit', 'adversarial-review', 'adjudicate')
+_NONBLANK = {'type': 'string', 'pattern': r'\S'}
+_NULLABLE_TEXT = {'type': ['string', 'null'], 'pattern': r'\S'}
+_DIGEST = {'type': 'string', 'pattern': r'^[0-9a-f]{64}$'}
+EVALUATION_SCHEMA = {
+    'type': 'object', 'additionalProperties': False,
+    'properties': {
+        'classification': {'type': 'string', 'enum': list(CLASSIFICATIONS)},
+        'scope_sha256': _DIGEST,
+        **{key: _NULLABLE_TEXT for key in ('requirement', 'trigger', 'failure')},
+        'evidence': {'type': ['object', 'null'], 'additionalProperties': False,
+                     'required': ['kind', 'details'], 'properties': {
+                         'kind': {'type': 'string', 'enum': ['reproduction', 'execution-path']},
+                         'details': _NONBLANK}},
+        'refutation': _NONBLANK,
+        'source': {'type': ['object', 'null'], 'additionalProperties': False,
+                   'required': ['key', 'sha256'], 'properties': {
+                       'key': {'type': 'string', 'pattern': r'^[^#\s]+#[1-9][0-9]*$'},
+                       'sha256': _DIGEST}},
+        'ruling': {'type': ['string', 'null'], 'enum': [None, 'UPHELD', 'PARTIAL', 'REJECTED']},
+    },
+    'required': ['classification', 'scope_sha256', 'requirement', 'trigger',
+                 'failure', 'evidence', 'refutation', 'source', 'ruling'],
+    'allOf': [{
+        'if': {'properties': {'classification': {'const': 'demonstrated-defect'}}},
+        'then': {'properties': {
+            **{key: _NONBLANK for key in ('requirement', 'trigger', 'failure')},
+            'evidence': {'type': 'object'},
+        }},
+    }],
+}
 
 #: The wire shape supplied to structured-output capable harnesses.  This is
 #: deliberately beside ``FIELDS`` and the constructor: callers do not keep a
@@ -79,6 +113,7 @@ ENVELOPE_SCHEMA = {
                     "where": {"type": "string"},
                     "claim": {"type": "string"},
                     "reproduce": {"type": ["string", "null"]},
+                    "evaluation": EVALUATION_SCHEMA,
                 },
                 "required": list(FINDING_FIELDS),
                 "additionalProperties": False,
@@ -314,7 +349,65 @@ def _handle(name, value):
     return value
 
 
-def finding(severity, where, claim, reproduce=None):
+def strict_pairs(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise EnvelopeError(f'duplicate JSON member {key!r}')
+        result[key] = value
+    return result
+
+
+def strict_constant(value):
+    raise EnvelopeError(f'non-finite JSON number {value}')
+
+
+def loads(text):
+    return json.loads(text, object_pairs_hook=strict_pairs, parse_constant=strict_constant)
+
+
+def validate_evaluation(value, reproduce=None):
+    """Structural duties only; realism and scope membership are reviewer judgments."""
+    if not isinstance(value, dict) or set(value) != set(EVALUATION_SCHEMA['required']):
+        raise EnvelopeError('evaluation must be a closed object with all declared fields')
+    if value['classification'] not in CLASSIFICATIONS:
+        raise EnvelopeError('evaluation.classification is unknown')
+    def digest(text, field):
+        if not isinstance(text, str) or not re.fullmatch(r'[0-9a-f]{64}', text):
+            raise EnvelopeError(f'{field} must be 64 lowercase hex digits')
+    digest(value['scope_sha256'], 'scope_sha256')
+    _text(value['refutation'], 'refutation')
+    for field in ('requirement', 'trigger', 'failure'):
+        if value[field] is not None:
+            _text(value[field], field)
+    evidence = value['evidence']
+    if evidence is not None:
+        if (not isinstance(evidence, dict) or set(evidence) != {'kind', 'details'}
+                or evidence['kind'] not in ('reproduction', 'execution-path')):
+            raise EnvelopeError('evidence must be a closed reproduction or execution-path object')
+        _text(evidence['details'], 'evidence.details')
+        if evidence['kind'] == 'reproduction':
+            _text(reproduce, 'reproduce')
+    if value['classification'] == 'demonstrated-defect' and any(
+            value[field] is None for field in ('requirement', 'trigger', 'failure', 'evidence')):
+        raise EnvelopeError('demonstrated-defect requires requirement, trigger, failure and evidence')
+    source, ruling = value['source'], value['ruling']
+    if source is not None:
+        if (not isinstance(source, dict) or set(source) != {'key', 'sha256'}
+                or not isinstance(source['key'], str)
+                or not re.fullmatch(r'[^#\s]+#[1-9][0-9]*', source['key'])):
+            raise EnvelopeError('source must bind an original <record>#<n> and sha256')
+        digest(source['sha256'], 'source.sha256')
+    if (ruling not in (None, 'UPHELD', 'PARTIAL', 'REJECTED')
+            or (source is None) != (ruling is None)):
+        raise EnvelopeError('source and ruling must be supplied together')
+    if ruling is not None and ((ruling != 'REJECTED') != (
+            value['classification'] == 'demonstrated-defect')):
+        raise EnvelopeError('ruling disagrees with classification')
+    return value
+
+
+def finding(severity, where, claim, reproduce=None, *, evaluation=_OMITTED):
     """One finding, normalized. A blank reproduction is an absent one."""
     if severity not in SEVERITIES:
         raise EnvelopeError(
@@ -323,10 +416,14 @@ def finding(severity, where, claim, reproduce=None):
         reproduce = None
     if reproduce is not None and not isinstance(reproduce, str):
         raise EnvelopeError("reproduce must be a command string or None")
-    return {"severity": severity,
+    result = {"severity": severity,
             "where": _text(where, "where"),
             "claim": _text(claim, "claim"),
             "reproduce": reproduce.strip() if reproduce else None}
+    if evaluation is not _OMITTED:
+        validate_evaluation(evaluation, result['reproduce'])
+        result['evaluation'] = copy.deepcopy(evaluation)
+    return result
 
 
 def tally(findings):
@@ -383,12 +480,12 @@ def build(job, *, status, verdict=None, findings=(), artifacts=None,
     the approve gate was written in both places and BOTH copies could
     be disabled undetected, because each was covering for the other.
     """
-    normalized = [
-        f if isinstance(f, dict) and tuple(f) == FINDING_FIELDS
-        else finding(**dict(zip(FINDING_FIELDS, (
-            f.get("severity"), f.get("where"), f.get("claim"),
-            f.get("reproduce")), strict=True)))
-        for f in findings]
+    normalized = []
+    for f in findings:
+        if (not isinstance(f, dict) or not set(FINDING_FIELDS) <= set(f)
+                or set(f) - {*FINDING_FIELDS, 'evaluation'}):
+            raise EnvelopeError('finding has missing or extra fields')
+        normalized.append(finding(**f))
     env = {
         "job": _text(job, "job"),
         "status": status,
@@ -471,13 +568,31 @@ def validate(env, *, outputs=_OMITTED, out_root=None,
         raise EnvelopeError(
             "an invalid envelope must say why it could not look")
     for f in env["findings"]:
-        if tuple(f) != FINDING_FIELDS:
+        if (not set(FINDING_FIELDS) <= set(f)
+                or set(f) - {*FINDING_FIELDS, 'evaluation'}):
             raise EnvelopeError(
                 f"finding fields {list(f)} are not {list(FINDING_FIELDS)}")
+        if 'evaluation' not in f and tuple(f) != FINDING_FIELDS:
+            raise EnvelopeError('legacy finding fields are not in contract order')
         # `finding` is the one place a finding's rules live; re-running
         # it is how they get checked here without being restated here.
         if finding(**f) != f:
             raise EnvelopeError(f"finding {f} is not in normal form")
+    evaluated = [f for f in env['findings'] if 'evaluation' in f]
+    if evaluated and env['job'] in REVIEW_JOBS:
+        if (not isinstance(env['stamp'].get('ref'), str)
+                or not re.fullmatch(r'[0-9a-f]{40}', env['stamp']['ref'])):
+            raise EnvelopeError('evaluated review requires a full stamp.ref')
+        for f in evaluated:
+            if (env['job'] == 'adjudicate') != (f['evaluation']['source'] is not None):
+                raise EnvelopeError('evaluation source must match review/adjudicate job')
+        if env['status'] == 'ok':
+            if len(evaluated) != len(env['findings']):
+                raise EnvelopeError('completed evaluated review contains unevaluated findings')
+            defects = any(f['evaluation']['classification'] == 'demonstrated-defect'
+                          for f in evaluated)
+            if env['verdict'] != ('changes' if defects else 'approve'):
+                raise EnvelopeError('completed review verdict disagrees with evaluation')
     if env["counts"] != tally(env["findings"]):
         # The list is what the task found; the tally is a copy of it.
         # When they disagree the list is short, which is exactly what a
