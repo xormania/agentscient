@@ -298,6 +298,10 @@ class FreshnessAndCorruption(_Prepared):
         )
         gs.assert_refusal(self, code, out, err, "graft-provider")
         self.assertEqual((out or "").strip(), "")
+        self.assertTrue(
+            self.fake.transcript_path(self.install).is_file(),
+            "truncated JSON is a provider result, so the fake must have run",
+        )
 
     def test_wrong_type_provider_result_is_graft_provider(self):
         self.install = self.plant_fake_install(mode="wrong-type")
@@ -307,6 +311,10 @@ class FreshnessAndCorruption(_Prepared):
             ["prepare", "--root", str(self.root), "--cache", str(self.cache)],
         )
         gs.assert_refusal(self, code, out, err, "graft-provider")
+        self.assertTrue(
+            self.fake.transcript_path(self.install).is_file(),
+            "a typed-wrong result is a provider result, so the fake must have run",
+        )
 
     def test_provider_error_object_is_graft_provider_not_empty_success(self):
         self.install = self.plant_fake_install(mode="provider-error")
@@ -317,6 +325,10 @@ class FreshnessAndCorruption(_Prepared):
         )
         gs.assert_refusal(self, code, out, err, "graft-provider")
         self.assertEqual((out or "").strip(), "")
+        self.assertTrue(
+            self.fake.transcript_path(self.install).is_file(),
+            "ok:false is a provider result, so the fake must have run",
+        )
 
     def test_symlink_escaping_the_source_root_is_refused(self):
         self.plant_fake_install()
