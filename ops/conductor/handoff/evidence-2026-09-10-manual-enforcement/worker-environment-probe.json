@@ -48,7 +48,7 @@
    },
    "conductor_env": {
     "CLAUDE_CONFIG_DIR": null,
-    "CODEX_HOME": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/e6ad2477-602b-4b35-86b0-c6f0c07a7730/scratchpad/wprobe/state-codex/codex-home",
+    "CODEX_HOME": "<probe>/state-codex/codex-home",
     "GROK_HOME": null,
     "HOME": "/home/scientdb"
    },
@@ -85,8 +85,8 @@
    "conductor_env": {
     "CLAUDE_CONFIG_DIR": null,
     "CODEX_HOME": null,
-    "GROK_HOME": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/e6ad2477-602b-4b35-86b0-c6f0c07a7730/scratchpad/wprobe/state-grok/grok-home",
-    "HOME": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/e6ad2477-602b-4b35-86b0-c6f0c07a7730/scratchpad/wprobe/state-grok/grok-home"
+    "GROK_HOME": "<probe>/state-grok/grok-home",
+    "HOME": "<probe>/state-grok/grok-home"
    },
    "conductor_in_private_home": true,
    "seat": {
@@ -142,7 +142,7 @@
   "branch": "probe",
   "expires_at": "2026-09-10T07:54:22.507094+00:00",
   "max_seconds": 120,
-  "repo": "/tmp/claude-1006/-home-scientdb-projects-uscient-agentscient/e6ad2477-602b-4b35-86b0-c6f0c07a7730/scratchpad/wprobe/repo",
+  "repo": "<probe>/repo",
   "scope": "scope.md",
   "scope_sha256": "bc369f18bc34c3203191629ea86355983aeefac321f82d413b270663b5b9f025",
   "version": 1
