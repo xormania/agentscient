@@ -1,0 +1,262 @@
+{
+  "id": "20260910T005000Z-check-tests-claude-f02a37",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "d9b0cb6825a06b2f2ca17ddd74358f36ff4ec64b"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:50:00Z",
+    "closed": "2026-09-10T00:57:59Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d9b0cb6825a06b2f2ca17ddd74358f36ff4ec64b",
+    "ref_sha": "d9b0cb6825a06b2f2ca17ddd74358f36ff4ec64b",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "f66bfc35-9f3a-4a0a-bfb0-b16d3151bfb5",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/f66bfc35-9f3a-4a0a-bfb0-b16d3151bfb5.jsonl"
+  },
+  "session": {
+    "id": "f66bfc35-9f3a-4a0a-bfb0-b16d3151bfb5",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/f66bfc35-9f3a-4a0a-bfb0-b16d3151bfb5.jsonl",
+    "stream_sha256_at_close": "387d9e84591b5457835f5c805d6e0e6b84b1dcc80ec6bbe405b06ab5d0b39362",
+    "spend": {
+      "input": 54,
+      "cached": 1806282,
+      "output": 27870,
+      "total": 1834206,
+      "source": "result.usage",
+      "messages": 27,
+      "cost_usd": 2.3636520000000005
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Close only the independent fixture corrections since d52bae7 against FINDING-ADMISSION.md: retained exact scope, task-validator staging, independently attributable PARTIAL with producer/input/report provenance, unsupported job no authority, routing stable keys/full projection matching real mocked batch, empty admission no inferred approval, and inherited ladder fixture corrections API plus removal of raw SKEPTIC demands. Preserve negative binding/custody/withholding/resume checks. No new implementation is present here; do not read worker snapshot/source. Check precise changed tests and contract; do not restart general audit or invent a test inventory. Verify original RED commands/no fixture errors and report exact contradiction if any survives.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/in/admission-regression-fixture-handoff.md",
+        "sha256": "2aa200f5b2682547248af394338ff4ba144b2650ff2c520be1c0d841166617e3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      }
+    ],
+    "sha256": "3c31d15949835181e60479091137e807610dcc75207aa447e573c6b98edad221",
+    "bytes": 2131
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:50:00Z",
+      "ended": "2026-09-10T00:57:58Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d9b0cb6825a06b2f2ca17ddd74358f36ff4ec64b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005000Z-check-tests-claude-f02a37/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 1834206,
+        "out": 27870,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d9b0cb6825a06b2f2ca17ddd74358f36ff4ec64b",
+        "started": null,
+        "ended": null
+      },
+      "note": "Closed the independent fixture corrections since d52bae7 (2801d3d, cbf40fa, d9b0cb6) against FINDING-ADMISSION.md; implementation absent and not read. Verified RED is behavioral, not fixture error: ledger 13/15 fail at the real findings.py corrections/dispute/export steps (fixture self-checks pass first), routing 4/4 fail because the ladder never calls corrections and ships raw SKEPTIC, ladder-lever 1/66 fails only on the superseded TestsFixInputs assertion. The other 65 ladder controls plus legacy import round-trip stay green as the preserved negative binding/custody/withholding/resume surface. Plants proven (duplicate-evaluation asserts both members and collapse target; malformed/incomplete/ref/duplicate-batch each pair a nearby valid case). Stub emits the exact {ref,scope_sha256,admitted,held} projection with full ten-field evaluation and keys derived from the real mocked batch; PARTIAL provenance asserts distinct adjudicator harness and admits only the subclaim; empty admission preserves the CHANGES verdict without advancing. test_a_review_job_does_not_acquire_correction_authority is green now via its refusal branch but is a sound negative (any refusal denies authority) that still catches an implementation admitting a review-job key. Each changed test names a broken implementation it catches; no surviving contradiction. verdict approve."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "last-prompt",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
