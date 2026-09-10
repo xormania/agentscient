@@ -1,0 +1,250 @@
+{
+  "id": "20260910T005159Z-code-codex-801b22",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/dev-freshness-20260909",
+  "lineage": {
+    "branch": "lane/dev-freshness-20260909",
+    "base_sha": "006f5f4944cc4d3e0ae2b11f36f83174247fc603"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:51:59Z",
+    "closed": "2026-09-10T00:55:45Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "006f5f4944cc4d3e0ae2b11f36f83174247fc603",
+    "ref_sha": "006f5f4944cc4d3e0ae2b11f36f83174247fc603",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-52-00-01a088cc-d574-74b1-86f2-752a597acd00.jsonl"
+  },
+  "session": {
+    "id": "01a088cc-d574-74b1-86f2-752a597acd00",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-52-00-01a088cc-d574-74b1-86f2-752a597acd00.jsonl",
+    "stream_sha256_at_close": "cb58f32832a24959fe7df285b470d5a5981b46d8d2256a75afecdbd6fac69122",
+    "spend": {
+      "input": 617450,
+      "cached": 572672,
+      "output": 5436,
+      "total": 622886,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-52-00-01a088cc-d574-74b1-86f2-752a597acd00.jsonl",
+      "messages": 110
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor*.py'\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/in/monitor-replay.md",
+        "sha256": "217ea2f217de662abe664777c2bc03dfdd4fbf745c408b24ed44141867e23b92"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/in/monitor-preserved-source.patch",
+        "sha256": "6d563a2d40c08575fee6a17bbbbe0a020cd9fb1d238ad126be3daa636fe8a805"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/in/monitor-only-scope.md",
+        "sha256": "4ae9aabbb5e70531587153caec4034ca6f9c452389c69d7e1e4724f7e3155416"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005159Z-code-codex-801b22/in/monitor-red-final.json",
+        "sha256": "aa07a0f9639d375b4101a78c602addbe724a14ab3c54db007117e11d52e7347e"
+      }
+    ],
+    "sha256": "6c8f2e8cf78a8ae652860279a65175e934abdc244ea0f40b0395c529c1221e3f",
+    "bytes": 3920
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:51:59Z",
+      "ended": "2026-09-10T00:55:45Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b3699cac6b56f6afdf3f283ba7b3870c32bd3c79",
+    "changed_paths": [
+      "ops/conductor/monitor-lever.md",
+      "ops/conductor/tools/monitor.py",
+      "ruff.toml"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "code",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 11,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Initial inspection confirmed a clean tree at 006f5f4944cc4d3e0ae2b11f36f83174247fc603 and four input files.",
+          "reproduce": "pwd && git status --short && git rev-parse HEAD && rg --files -g AGENTS.md -g '*.md' docs ops/conductor ops/process ops | head -100 && ls ../in"
+        },
+        {
+          "severity": "p3",
+          "where": "inputs and instructions",
+          "claim": "Read supplied inputs and repository instructions. Replay brief requires preserving implementation bytes.",
+          "reproduce": "cat ../in/* && cat AGENTS.md docs/*.md ops/README.md && find ops -name AGENTS.md -print"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read founding contracts governing this dev-lane change.",
+          "reproduce": "cat docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "baseline tree",
+          "claim": "Named command initially exited 1: 67 tests, 27 failures; git-refs was unregistered. Frozen test hash matched the brief.",
+          "reproduce": "cat ops/conductor/monitor-lever.md ops/conductor/instrument-conventions.md && git remote -v && git log -3 --format=full && sha256sum ops/conductor/tests/test_monitor*.py && python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "patched tree",
+          "claim": "Preserved patch applied unchanged. Named command exited 0: all 67 tests passed. Implementation hash matched the brief; test hashes remained unchanged.",
+          "reproduce": "git apply --check ../in/monitor-preserved-source.patch && git apply ../in/monitor-preserved-source.patch && git diff --check && sha256sum ops/conductor/tools/monitor.py ops/conductor/tests/test_monitor*.py && git diff --stat && python3 -m unittest discover -s ops/conductor/tests -p 'test_monitor*.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "source provenance",
+          "claim": "Prior implementation commit object was unavailable, exit 128; subsequent chained commands did not run. Provenance comes from the supplied replay brief.",
+          "reproduce": "git show -s --format=full 17bee8dac4b3b7798b17a0fcd803873e13c30101 && git config --get-regexp '^(user\\.|remote\\.)' && rg -n 'github.com[:/]|\"job\"|\"code\"' composer.json ops/devlane/task/jobs.json | head -45 && command -v ruff"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot environment",
+          "claim": "Git identity and Ruff executable were available; no remote configuration was returned.",
+          "reproduce": "git config --get-regexp '^(user\\.|remote\\.)'; rg -n 'github.com[:/]|\"job\"|\"code\"' composer.json ops/devlane/task/jobs.json | head -45; command -v ruff; date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "final implementation",
+          "claim": "Ruff passed. Tests and default registry were unchanged; only three intended files were modified.",
+          "reproduce": "ruff check ops/conductor/tools/monitor.py && git diff --exit-code -- ops/conductor/tests ops/conductor/monitor.example.json && rg -n 'REPO|agentscient/' ops/bin/*.conf* composer.json .github 2>/dev/null | head -40 && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "out/monitor-probe.json",
+          "claim": "Bounded probe reported remote-unavailable for dev and master. Live remote verification remains a follow-up.",
+          "reproduce": "python3 -c 'import json, subprocess; subprocess.run(json.load(open(\"../out/commands.json\"))[8][\"cmd\"], shell=True, check=True)'"
+        },
+        {
+          "severity": "p3",
+          "where": "commit attempt",
+          "claim": "Saved attributed COMMIT_MSG. Git staging failed because .git is read-only, preventing the commit.",
+          "reproduce": "python3 -c 'import json, subprocess; subprocess.run(json.load(open(\"../out/commands.json\"))[9][\"cmd\"], shell=True, check=True)'"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "Final audit passed: clean whitespace, preserved patch reverses cleanly, tests and default registry unchanged. HEAD remains the requested base.",
+          "reproduce": "git diff --check && git apply --reverse --check ../in/monitor-preserved-source.patch && git diff --exit-code -- ops/conductor/tests ops/conductor/monitor.example.json && git status --short && git rev-parse HEAD && date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "commands": "out/commands.json",
+        "probe": "out/monitor-probe.json",
+        "commit_message": "out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 622886,
+        "out": 5436,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "006f5f4944cc4d3e0ae2b11f36f83174247fc603",
+        "started": null,
+        "ended": "2026-09-10T00:54:23Z"
+      },
+      "note": "Implemented the supplied replay interpretation without source-byte corrections: all 67 tests pass. Tests, onboarding and activation remain unchanged. Command findings are execution records, not outstanding defects. Follow-up: live remote verification; full suites and independent acceptance remain with the integrating session per brief. Sandbox prevented staging/commit; launcher message is ready.",
+      "commit": {
+        "subject": "conductor: restore preserved git-refs monitor adapter",
+        "body": "Replay the supplied patch unchanged on 006f5f4944cc4d3e0ae2b11f36f83174247fc603. Preserve GPT-6 implementation provenance from dispatch 20260910T002932Z-code-codex-4d6fb6 and its prior invalid-envelope collection attempt, as recorded in monitor-replay.md. No test edits. Named unittest command passes all 67 tests; Ruff passes. Live remote verification is unavailable in this snapshot. Full message: out/COMMIT_MSG.\n\nSource: agentscient/agentscient@17bee8dac4b3b7798b17a0fcd803873e13c30101\nCo-Authored-By: GPT-6 <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T00:55:40.058Z"
+    }
+  },
+  "status": "closed"
+}
