@@ -5,6 +5,9 @@ omissions and Custody, producer and legacy. Original ledger tests are
 not modified. Intended reds: same-producer evidence still selects
 correction; a raw mixed report is accepted as test-author input; a
 legacy unevaluated row seeds a fresh correction.
+
+Existing corrections/import read behaviour stays. Fresh dispatch of a
+followup that uses legacy evidence is the advancement refusal.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ DISPATCH_TESTS = Path(__file__).resolve().parents[2] / "devlane" / "dispatch" / 
 if str(DISPATCH_TESTS) not in sys.path:
     sys.path.insert(0, str(DISPATCH_TESTS))
 import admission_enforcement_support as aes  # noqa: E402
+import launch_support as ls  # noqa: E402
 
 
 class EstablishedCustodySurfaces(_LedgerFixture):
@@ -39,20 +43,20 @@ class EstablishedCustodySurfaces(_LedgerFixture):
         self.assertEqual(body["admitted"], [])
         self.assertEqual(len(body["admitted"]), 0)
 
-
-class SameProducerAndLegacyCannotAdvance(_LedgerFixture):
-    def test_legacy_unevaluated_rows_cannot_seed_fresh_correction(self):
+    def test_legacy_unevaluated_rows_remain_readable_on_import(self):
         row = self.sample_row("agy-closure")
         finding = self._finding_from(row, evaluate=False)
         self.assertNotIn("evaluation", finding)
         self.plant_record(REC, [finding], verdict="changes")
         self.assertEqual(self.invoke(["import"]).returncode, 0)
-        proc = self.corrections(REC)
-        # Fresh correction using legacy rows requires explicit evaluation.
-        self.assertNotEqual(proc.returncode, 0, proc.stdout)
-        self.assertEqual((proc.stdout or "").strip(), "")
-        self.assertIn("admission-", (proc.stderr or "").lower())
+        exported = self.export_rows()
+        match = [item for item in exported if item["key"] == f"{REC}#1"]
+        self.assertEqual(len(match), 1, exported)
+        self.assertEqual(match[0]["claim"], row["claim"])
+        self.assertEqual(match[0].get("evaluations") or [], [])
 
+
+class SameProducerAndLegacyCannotAdvance(_LedgerFixture):
     def test_a_raw_report_is_not_a_permitted_test_author_projection(self):
         row = self.sample_row("agy-closure")
         finding = self._finding_from(row, evaluate=True)
@@ -66,11 +70,11 @@ class SameProducerAndLegacyCannotAdvance(_LedgerFixture):
         self.assertTrue(body["admitted"])
         raw = self.dispatch_job_dir(REC) / "out" / "SKEPTIC.md"
         self.assertTrue(raw.is_file())
-        # The admitted projection must not smuggle the raw report.
         admitted = body["admitted"][0]
         dumped = json.dumps(admitted)
         self.assertNotIn("raw mixed skeptic report", dumped)
         self.assertNotIn(str(raw), dumped)
+        self.assertTrue(path.is_file())
 
     def test_a_key_outside_the_supplied_batch_refuses_the_whole_read(self):
         row = self.sample_row("agy-closure")
@@ -80,6 +84,122 @@ class SameProducerAndLegacyCannotAdvance(_LedgerFixture):
         proc = self.corrections(REC, "20260908T000000Z-review-grok-dead01")
         self.assert_refusal(proc, "admission-binding")
         self.assertEqual((proc.stdout or "").strip(), "")
+
+
+class LegacyEvidenceCannotAuthorizeFreshDispatch(ls._TempLaunch):
+    """Fresh launch/acceptance using legacy unevaluated evidence refuses."""
+
+    def test_followup_of_a_legacy_unevaluated_key_is_refused(self):
+        bound = aes.attach_bound(self)
+        rec_dir = self.repo / ".dev" / "records" / "dispatches"
+        rec_dir.mkdir(parents=True, exist_ok=True)
+        legacy_id = aes.BOUND_REVIEW_ID
+        finding = {
+            "severity": "p2",
+            "where": "ops/devlane/task/envelope.py",
+            "claim": "legacy unevaluated finding",
+            "reproduce": "echo legacy",
+        }
+        rec = {
+            "id": legacy_id,
+            "lane": "dev",
+            "stage": "review",
+            "unit": "work",
+            "lineage": {"branch": self.lineage, "base_sha": self.root_sha},
+            "follows": [],
+            "job": "security-audit",
+            "role": "read",
+            "dispatched_by": ls.AGENT,
+            "at": {"launched": "2026-09-09T13:00:00Z", "closed": "2026-09-09T13:01:00Z"},
+            "snapshot": {
+                "mode": "whole",
+                "ref_name": self.ref,
+                "ref_sha": self.ref,
+                "behind_tip": 0,
+                "root": str(self.home / "legacy-snap"),
+            },
+            "harness": {
+                "name": "claude",
+                "version": "1.0.5",
+                "isolation": {
+                    "mechanism": "home",
+                    "observed": {"unresolved": "behavioural probe has not run"},
+                    "home": str(self.home / "legacy-home"),
+                },
+                "sandbox": "always-approve",
+                "containment": "policy",
+                "argv": ["claude"],
+            },
+            "model": {
+                "requested": "claude-opus",
+                "effort_requested": None,
+                "effort_argv": [],
+                "ran": "claude-opus",
+                "read_from": None,
+            },
+            "session": {
+                "id": "00000000-0000-4000-8000-0000000000b2",
+                "stream": None,
+                "stream_sha256_at_close": None,
+            },
+            "brief": {
+                "template": {"path": "ops/devlane/task/jobs.json", "sha256": "c" * 64},
+                "scope": aes.BOUND_SCOPE_TEXT,
+                "inputs": [],
+                "sha256": bound.scope_sha,
+                "bytes": len(aes.BOUND_SCOPE_TEXT),
+            },
+            "caps": {"cap-out": 500000, "source": "wires.py"},
+            "overrides": [],
+            "attempts": [],
+            "result": {
+                "envelope": {
+                    "job": "security-audit",
+                    "status": "ok",
+                    "verdict": "changes",
+                    "counts": {"p1": 0, "p2": 1, "p3": 0, "opinions": 0},
+                    "findings": [finding],
+                    "artifacts": {},
+                    "spend": {"harness": "claude", "total": 0, "out": 0, "runs": 1},
+                    "stamp": {"ref": self.ref, "started": None, "ended": None},
+                    "note": None,
+                }
+            },
+            "status": "closed",
+        }
+        self.assertNotIn("evaluation", finding)
+        aes.write_json(rec_dir / f"{legacy_id}.json", rec)
+        key = f"{legacy_id}#1"
+        req_path = self.home / "followup-request.json"
+        aes.write_followup_request(
+            req_path,
+            slot="security-re",
+            prior=[legacy_id],
+            projection={"admitted": [{"key": key}], "held": []},
+            key=key,
+            correction_record=aes.BOUND_CORRECTION_ID,
+            before_ref=self.root_sha,
+            after_ref=self.ref,
+            paths=[bound.test_rel],
+            behavior="legacy unevaluated key cannot close",
+        )
+        code, out, err = self.dispatch(self.argv_for(
+            job="security-audit",
+            harness="grok",
+            stage="review",
+            extra=aes.bound_extra(
+                bound, "security-audit", request_path=req_path,
+            ),
+        ))
+        text = self.combined(out, err)
+        self.assertNotIn(
+            "unrecognized arguments",
+            text.lower(),
+            f"missing flags are not legacy-custody proof: {text!r}",
+        )
+        self.assert_not_started()
+        self.assertIn("admission-", text.lower())
+        self.assertEqual(code, ls.REFUSAL_EXIT, text)
 
 
 class VerificationProvenanceCannotBeWorkerProse(unittest.TestCase):
@@ -237,7 +357,6 @@ class IndependentProducerIsRequired(_LedgerFixture):
         )
         self.assertEqual(self.invoke(["import"]).returncode, 0)
         proc = self.corrections(REC, adj_id)
-        # Same producer is unavailable independence, not last-writer wins.
         if proc.returncode == 0:
             body = json.loads(proc.stdout)
             held = {item["key"]: item["reason"] for item in body["held"]}
