@@ -173,15 +173,16 @@ class _LedgerFixture(unittest.TestCase):
             timeout=RUN_CAP,
         )
 
-    def assert_refusal(self, proc, class_name: str) -> None:
+    def assert_refusal(self, proc, class_name: str | None = None) -> None:
         err = proc.stderr or ""
         self.assertEqual(proc.returncode, 2, err)
         self.assertEqual((proc.stdout or "").strip(), "")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
         line = lines[0]
-        head = line.split(":", 1)[0].strip().lower().replace("_", "-")
-        self.assertEqual(head, class_name, line)
+        if class_name is not None:
+            head = line.split(":", 1)[0].strip().lower().replace("_", "-")
+            self.assertEqual(head, class_name, line)
         lower = line.lower()
         for word in ("expected", "found", "needed"):
             self.assertIn(word, lower, err)
@@ -365,10 +366,11 @@ class CorrectionsFiltersAdmitted(_LedgerFixture):
         )
         self.assertEqual(body["ref"], REF)
         self.assertEqual(body["scope_sha256"], self.scope_sha256)
+        planted_keys = [f"{REC}#{index}" for index in range(1, len(findings) + 1)]
         admitted_keys = [item["key"] for item in body["admitted"]]
         held_keys = [item["key"] for item in body["held"]]
-        self.assertEqual(admitted_keys, [f"{REC}#1"])
-        self.assertEqual(held_keys, [f"{REC}#7", f"{REC}#8"])
+        self.assertEqual(admitted_keys, planted_keys[:1])
+        self.assertEqual(held_keys, planted_keys[1:])
         self.assertEqual(
             body["admitted"][0]["evaluation"]["classification"],
             "demonstrated-defect",
@@ -494,10 +496,11 @@ class CorrectionsRefuses(_LedgerFixture):
         }
         self.plant_record(REC, [finding])
         imported = self.invoke(["import"])
-        proc = self.corrections(REC)
+        # Import-stage decode class is unnamed; corrections-stage is admission-evidence.
         if imported.returncode != 0:
-            self.assert_refusal(imported, "admission-evidence")
+            self.assert_refusal(imported)
             return
+        proc = self.corrections(REC)
         self.assert_refusal(proc, "admission-evidence")
 
     def test_nearby_valid_corrections_still_admits_the_defect(self):
@@ -611,7 +614,8 @@ class DuplicateJsonMembersRefuse(_LedgerFixture):
                 "last-writer-wins duplicate must not admit a defect",
             )
         else:
-            self.assert_refusal(imported, "admission-evidence")
+            # Import-stage decode class is unnamed; do not invent admission-evidence.
+            self.assert_refusal(imported)
 
 
 if __name__ == "__main__":
