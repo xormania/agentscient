@@ -1,0 +1,173 @@
+{
+  "id": "20260910T000617Z-tests-grok-ddd952",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "374659ad8e99d95db97c2235c986c76ff90dcca4"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:06:18Z",
+    "closed": "2026-09-10T00:10:22Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "374659ad8e99d95db97c2235c986c76ff90dcca4",
+    "ref_sha": "374659ad8e99d95db97c2235c986c76ff90dcca4",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "c18aaa1f-a152-48bd-b99c-1cf1555e3174",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/home/grok-stream/sessions/<snapshot-encoded>/c18aaa1f-a152-48bd-b99c-1cf1555e3174/summary.json"
+  },
+  "session": {
+    "id": "c18aaa1f-a152-48bd-b99c-1cf1555e3174",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/home/grok-stream/sessions/<snapshot-encoded>/c18aaa1f-a152-48bd-b99c-1cf1555e3174/summary.json",
+    "stream_sha256_at_close": "3b3b79cb74302d1c6cf2444b7c9377c33db047a34b411aa7a8d5fec8e4fde4a0",
+    "spend": {
+      "input": 1011974,
+      "cached": 844544,
+      "output": 13791,
+      "total": 1025765,
+      "cost_usd_ticks": 1427792600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/home/grok-stream/sessions/<snapshot-encoded>/c18aaa1f-a152-48bd-b99c-1cf1555e3174/summary.json",
+      "messages": 159
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Correct ONLY the two test defects in in/admission-test-review.json, verifying them against FINDING-ADMISSION.md first: planted finding positions must determine expected keys; import-stage decode refusal class must not be invented while corrections-stage class remains enforced. Modify only the affected ledger tests/fixture if required, no production or contract changes and no additional coverage. Preserve other tests. Re-run all three original file commands red with zero errors, record corrected hashes, commands and failures. Follow in/tdd-addendum.md. These are the complete agreed correction batch; do not hunt unrelated findings.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/in/admission-test-review.json",
+        "sha256": "667199ca081dc62b38eb8871a289532d34f85004e164ee816dd7633fdee5e290"
+      }
+    ],
+    "sha256": "a7e6d6b272e51cb0bd120035f3f22f3582c8ca4a2ecceb8115139b00aaf971eb",
+    "bytes": 2981
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:06:18Z",
+      "ended": "2026-09-10T00:10:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "d0e8cf845ac0220678af1927b9745e955ead0157",
+    "changed_paths": [
+      "ops/conductor/tests/test_finding_admission_ledger.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ledger": "ops/conductor/tests/test_finding_admission_ledger.py",
+        "red": "/home/scientdb/.local/state/agentscient/dispatch/20260910T000617Z-tests-grok-ddd952/out/RED.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1025765,
+        "out": 13791,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "374659ad8e99d95db97c2235c986c76ff90dcca4",
+        "started": "2026-09-10T00:06:18Z",
+        "ended": "2026-09-10T00:10:09Z"
+      },
+      "note": "Corrected only the two agreed ledger-test defects against FINDING-ADMISSION.md: mixed-batch expected keys now follow planted 1-based positions (REC#2/#3, not fixture n=7/8); import-stage decode refusal asserts wire shape without inventing a class, while corrections-stage still requires admission-evidence. Fixture unchanged. Committed d0e8cf845ac0220678af1927b9745e955ead0157. Re-ran the three original commands red, 0 errors at 2026-09-10T00:09:33Z. Hashes: ledger e093b49d47cbd44f0305093edbb990b699271173b44609ef03a9d6373c0b00a2; envelope 8b922c75987b6282a04ac6e77447a3f53bb8a52a5566e20c632cfef77af2ee70; routing b514e248d9d7ef40d4714685b88a98a7a56c93d6253e54a46887cedbc70a137b. envelope 17/16 fail/0 err (legacy omit-evaluation ok); ledger 15/14 fail/0 err (legacy four-field import ok; corrections/dispute unknown verbs class arguments; evaluations export absent \u2014 declared-API limitation, mixed planted-index and corrections-class assertions not yet reached); routing 4/4 fail/0 err (driver still verdict-routes tests-fix). Implementation not read; green not attempted."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T00:10:21.181Z"
+    }
+  },
+  "status": "closed"
+}
