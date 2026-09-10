@@ -1,0 +1,116 @@
+{
+  "id": "20260910T010906Z-code-codex-dfe438",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "9399f228a71d2a245a14cb06bcf4a8c123142ae6"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:09:07Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "9399f228a71d2a245a14cb06bcf4a8c123142ae6",
+    "ref_sha": "9399f228a71d2a245a14cb06bcf4a8c123142ae6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "8476603a-ea68-4e84-ae54-d46baf003063",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "git diff --check\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/in/enforcement-contract-brief.md",
+        "sha256": "eafe7d3084cae2b2a5ae75e554ccb533771ba9f598eb54d5e19241f3dc116cbc"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/in/owner-enforcement-addendum.md",
+        "sha256": "0b6e768c79fb5afd3d31179f7cfe5a01257be3a545565f2c1906c55e5fc36a8c"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010906Z-code-codex-dfe438/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      }
+    ],
+    "sha256": "d63025e2e476808fa28e7e29b8f87f61770db7f4058e5a5fdd6f751575f02aa1",
+    "bytes": 3863
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
