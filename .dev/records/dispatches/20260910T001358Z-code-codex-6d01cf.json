@@ -1,0 +1,155 @@
+{
+  "id": "20260910T001358Z-code-codex-6d01cf",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/onboarding-discovery",
+  "lineage": {
+    "branch": "lane/onboarding-discovery-20260910",
+    "base_sha": "31fff00f03a430644b6164112d4c4774519c4446"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:13:59Z",
+    "closed": "2026-09-10T00:24:03Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "31fff00f03a430644b6164112d4c4774519c4446",
+    "ref_sha": "31fff00f03a430644b6164112d4c4774519c4446",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-discovery-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-13-59-01a088aa-07ab-7cb1-858b-3e384abf6181.jsonl"
+  },
+  "session": {
+    "id": "01a088aa-07ab-7cb1-858b-3e384abf6181",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-13-59-01a088aa-07ab-7cb1-858b-3e384abf6181.jsonl",
+    "stream_sha256_at_close": "0fb11f323c3cc7bff7ffcf25f0e507a91a9a0dc2da29f3d0e855aab003887095",
+    "spend": {
+      "input": 3094492,
+      "cached": 2966912,
+      "output": 16021,
+      "total": 3110513,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-13-59-01a088aa-07ab-7cb1-858b-3e384abf6181.jsonl",
+      "messages": 252
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-discovery-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p 'test_discovery_v3_*.py'\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/in/discovery-code-input.md",
+        "sha256": "2b32ecd633d992c3fdbd6a14a560e0f7d4d1e2fd2c9970c3d6e25a069672bb62"
+      }
+    ],
+    "sha256": "55d42ceba684fb839ad5c5910cb23c4e85451aafeadfc94b7da5be0ec8d21b0b",
+    "bytes": 3926
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:13:59Z",
+      "ended": "2026-09-10T00:24:03Z",
+      "exit": 137,
+      "tripped": true
+    }
+  ],
+  "result": {
+    "head": "31fff00f03a430644b6164112d4c4774519c4446",
+    "changed_paths": [],
+    "residual_paths": [
+      " M ops/conductor/tools/lane_mcp.py",
+      " M ops/conductor/tools/lane_read.py",
+      " M ops/conductor/tools/lane_refs.py"
+    ],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "31fff00f03a430644b6164112d4c4774519c4446"
+      },
+      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime"
+    },
+    "residual_patch": {
+      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/residual.patch",
+      "sha256": "45cf6a2f46f33b0ddeb062451bfc1f223a466e105697f81f2fba6327701da66d",
+      "untracked": []
+    },
+    "cause": {
+      "reason": "timeout",
+      "note": "timeout: harness exceeded runtime"
+    }
+  },
+  "status": "closed"
+}
