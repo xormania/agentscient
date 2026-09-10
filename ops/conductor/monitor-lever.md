@@ -167,8 +167,10 @@ detection; no full transcript/store rescan every tick.
 
 Owner direction (2026-09-09): observe both trunk and release through this
 monitor; earlier synchronization proposals are investigation, not authority.
-This declares the next contract/test boundary, not an implemented adapter.
-Register `git-refs` in `tools/monitor.py`'s existing `ADAPTERS` interface:
+Implementation standing: `git-refs` is registered in `tools/monitor.py`'s
+existing `ADAPTERS` interface; independent acceptance remains pending.
+The example below leaves this source disabled; activation belongs
+to the integrating session. The interface remains:
 validator `(params, base)` and reader `(params, now)` returning the reading
 list above. No new scheduler, condition operator or delivery mechanism.
 
@@ -224,7 +226,7 @@ Minimal version-1 registry example (repo path relative to this config):
 {
   "version": 1,
   "schedules": {"forge": {"enabled": true, "every_s": 300}},
-  "monitors": {"branch_refs": {"enabled": true, "adapter": "git-refs", "schedule": "forge", "params": {"repo": "../..", "remote": "origin", "branches": ["dev", "master"], "timeout_s": 5}}},
+  "monitors": {"branch_refs": {"enabled": false, "adapter": "git-refs", "schedule": "forge", "params": {"repo": "../..", "remote": "origin", "branches": ["dev", "master"], "timeout_s": 5}}},
   "conditions": {
     "refs_changed": {"enabled": true, "monitor": "branch_refs", "op": "changed", "field": "freshness", "threshold": null, "cooldown_s": 0},
     "refs_unavailable": {"enabled": true, "monitor": "branch_refs", "op": "unavailable", "field": null, "threshold": null, "cooldown_s": 0}
