@@ -397,6 +397,7 @@ class Driver:
         conf: dict[str, str],
         agent: str,
         record: dict | None = None,
+        inputs: list[Path] | None = None,
     ) -> None:
         self.worktree = worktree
         self.branch = branch
@@ -404,6 +405,7 @@ class Driver:
         self.plan = plan
         self.conf = conf
         self.agent = agent
+        self.start_inputs: list[Path] = list(inputs or [])
         self.record = record or self.new_record()
         self.record_path = (
             worktree
@@ -470,6 +472,10 @@ class Driver:
                 if self.plan is not None
                 else None
             ),
+            "inputs": [
+                {"path": str(path), "sha256": digest(path)}
+                for path in self.start_inputs
+            ],
             "conf": {
                 "path": str(self.worktree / "ops" / "lane.conf"),
                 "sha256": digest(self.worktree / "ops" / "lane.conf"),
@@ -984,6 +990,7 @@ class Driver:
         command_file: Path | None,
     ) -> list[Path]:
         inputs = [self.plan] if self.plan is not None else []
+        inputs.extend(self.start_inputs)
         dispatch_dir = self.worktree / ".dev" / "records" / "dispatches"
         if name == "check-tests" and "tests" in records:
             inputs.append(dispatch_dir / f"{records['tests']}.json")
@@ -1514,6 +1521,7 @@ def dry_run(driver: Driver) -> int:
     stages: list[dict] = []
     for name, _job, _harness, _flag in DISPATCH_STAGES:
         inputs = [driver.plan] if driver.plan is not None else []
+        inputs.extend(driver.start_inputs)
         model, effort, base = driver.resolved(name, inputs, None)
         resolved = run([*base, "--model", model, "--effort", effort, "--dry-run"], driver.worktree)
         payload = parse_dispatch_json(resolved.stdout)
@@ -1539,13 +1547,31 @@ def dry_run(driver: Driver) -> int:
     return 0
 
 
+def split_inputs(args: list[str]) -> tuple[list[str], list[str]]:
+    """Separate repeatable ``--input PATH`` pairs from the positionals."""
+    positionals: list[str] = []
+    inputs: list[str] = []
+    items = list(args)
+    while items:
+        item = items.pop(0)
+        if item == "--input":
+            if not items:
+                refuse("arguments", "--input followed by a path", "--input with no path", "name the input file")
+            inputs.append(items.pop(0))
+        elif item.startswith("--input="):
+            inputs.append(item.partition("=")[2])
+        else:
+            positionals.append(item)
+    return positionals, inputs
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     try:
         if not args:
             refuse(
                 "arguments",
-                "SCOPE BRANCH [PLAN] or resume LADDER_ID",
+                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID",
                 "no arguments",
                 "choose one documented form",
             )
@@ -1576,18 +1602,23 @@ def main(argv: list[str] | None = None) -> int:
             scope = recorded_file(worktree, record.get("scope"), "scope")
             plan_data = record.get("plan")
             plan = recorded_file(worktree, plan_data, "plan") if plan_data else None
+            start_inputs = [
+                recorded_file(worktree, item, "input")
+                for item in (record.get("inputs") or [])
+            ]
             recorded_file(worktree, record.get("conf"), "conf")
         else:
             dry = args[0] == "--dry-run"
-            positionals = args[1:] if dry else args
+            positionals, input_args = split_inputs(args[1:] if dry else args)
             if len(positionals) not in {2, 3}:
                 refuse(
                     "arguments",
-                    "SCOPE BRANCH [PLAN]",
+                    "SCOPE BRANCH [PLAN] [--input PATH]...",
                     " ".join(args),
                     "choose the documented start form",
                 )
             scope = file_arg(positionals[0], "scope")
+            start_inputs = [file_arg(item, "input") for item in input_args]
             branch = positionals[1]
             os.environ["LANE_CONF"] = str(initial_conf_path(cwd))
             root_hint = configuration()["WORKTREE_ROOT"]
@@ -1610,7 +1641,7 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             ),
         )
-        driver = Driver(worktree, branch, scope, plan, conf, agent, record)
+        driver = Driver(worktree, branch, scope, plan, conf, agent, record, start_inputs)
         if not resume and args[0] == "--dry-run":
             return dry_run(driver)
         url = driver.run(resume=resume)

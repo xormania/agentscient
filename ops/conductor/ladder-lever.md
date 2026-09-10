@@ -14,8 +14,11 @@ and lint duty apply as written here.
 
 ## Instrument
 
-`ops/bin/ladder.sh SCOPE BRANCH [PLAN]` starts a ladder in the worktree
-that owns `BRANCH`. `ops/bin/ladder.sh resume LADDER_ID` resumes the
+`ops/bin/ladder.sh SCOPE BRANCH [PLAN] [--input PATH]...` starts a
+ladder in the worktree that owns `BRANCH`. Each `--input PATH` names a
+file handed to every stage beside the scope and plan, so the work order a
+scope sentence cites reaches every worker as a supplied input; each is
+recorded with its digest and re-verified on resume. `ops/bin/ladder.sh resume LADDER_ID` resumes the
 named record at its first stage not recorded `ok`. Every launch uses
 that worktree's `ops/bin/dispatch.sh --detach`; every wait, landing,
 ledger update, push, and PR action uses that same worktree.
@@ -70,6 +73,7 @@ one stderr line, stdout empty, and exit 2.
 | `arguments` | neither `SCOPE BRANCH [PLAN]` nor `resume LADDER_ID` was supplied | choose one documented form |
 | `conf-key` | a required lane key is absent | declare it in the named lane conf |
 | `scope` | the scope is absent, unreadable, or its stage sentence exceeds `SCOPE_CAP` | supply a bounded readable scope |
+| `input` | a `--input` path is absent or unreadable | supply a readable input file |
 | `worktree` | the named branch is not checked out in a worktree | add it below configured `WORKTREE_ROOT` |
 | `dirty` | that worktree has staged or unstaged changes | commit or stash them |
 | `identity` | `WF_AGENT` and the worktree git identity are not full `Name <address>` values | supply both identities |
@@ -104,7 +108,7 @@ After every transition the driver commits
 
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
   and PR result;
-- scope, optional plan, and conf paths with SHA-256 digests;
+- scope, optional plan, start inputs, and conf paths with SHA-256 digests;
 - ordered stage rows naming job, harness, attempt, input path and
   digest, custody proof, dispatch record, dispatched and recorded model
   and effort, outcome, landed shas, and ledger import/export state;
