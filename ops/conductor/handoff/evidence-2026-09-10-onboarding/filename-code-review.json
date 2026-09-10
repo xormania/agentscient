@@ -1,0 +1,36 @@
+{
+  "source": {
+    "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014231Z-review-grok-090298/record.json",
+    "sha256": "4fe6a71e572eccb73a1100157be1d3d9b9fa71f4773ce4e2b78c3f90aa3712c6",
+    "bytes": 6219
+  },
+  "reviewed_lineage": {
+    "branch": "lane/onboarding-brief-inputs-fix-20260910",
+    "base_sha": "b2c0ce57ee9173d0fbc30f78b9c952131c4e18e4"
+  },
+  "envelope": {
+    "job": "adversarial-review",
+    "status": "ok",
+    "verdict": "approve",
+    "counts": {
+      "p1": 0,
+      "p2": 0,
+      "p3": 0,
+      "opinions": 2
+    },
+    "findings": [],
+    "artifacts": {},
+    "spend": {
+      "harness": "grok",
+      "total": 1529530,
+      "out": 18989,
+      "runs": 1
+    },
+    "stamp": {
+      "ref": "b2c0ce57ee9173d0fbc30f78b9c952131c4e18e4",
+      "started": "2026-09-10T01:46:37Z",
+      "ended": "2026-09-10T01:48:48Z"
+    },
+    "note": "Looked in in/; no files. jobs.json blob 5da8d23f unchanged vs 20f9bcaf. Focused tests at b2c0ce57: 2 OK. Same tests against 20f9bcaf launch.py: 6 missing-path failures (adversarial-review, author-tests, implement, plan, security-audit, sweep); empty-input neighbor OK; check-tests and adjudicate already substitute {inputs}. Schema/digest 3 OK; task render/CLI 3 OK. Missing-read and phantom-empty assertions are present. Suggestions, not findings: empty-input regex is Inputs:-specific and would miss a phantom Input files: list other than the decoy; check-tests/adjudicate get a duplicate path listing from the append."
+  }
+}

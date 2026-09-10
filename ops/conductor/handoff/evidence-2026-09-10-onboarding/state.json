@@ -1,0 +1,661 @@
+{
+  "measured_at": "2026-09-10T03:05:33.175814+00:00",
+  "integration_head": {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD"
+    ],
+    "exit": 0,
+    "stdout": "e1a2ae0267292d0c50b7080ceede1401799c06bf",
+    "stderr": ""
+  },
+  "worktrees": [
+    {
+      "worktree": "/home/scientdb/projects/uscient/agentscient",
+      "HEAD": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b",
+      "branch": "refs/heads/dev"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-dev-freshness-20260909",
+      "HEAD": "c334d1ebbfd511d6659c3f1b7a4884f2e9817f59",
+      "branch": "refs/heads/lane/dev-freshness-20260909"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-brief-inputs-20260910",
+      "HEAD": "846660adbbb70ebe6bacaeb315a8c7683f3df2eb",
+      "branch": "refs/heads/lane/onboarding-brief-inputs-20260910"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-brief-inputs-fix-20260910",
+      "HEAD": "1601d9562bfbe536d8c85981ba42cca2cadb98cd",
+      "branch": "refs/heads/lane/onboarding-brief-inputs-fix-20260910"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-completion-20260909",
+      "HEAD": "e1a2ae0267292d0c50b7080ceede1401799c06bf",
+      "branch": "refs/heads/lane/onboarding-completion-20260909"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-contract-20260910",
+      "HEAD": "7c2373c09a80c9a673da2e28cd2a4c12dc895294",
+      "branch": "refs/heads/lane/onboarding-contract-20260910"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-discovery-20260910",
+      "HEAD": "9ac5685fabeaf9b88e021bb8e4800ce855b90249",
+      "branch": "refs/heads/lane/onboarding-discovery-20260910"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-discovery-tests-20260910",
+      "HEAD": "31fff00f03a430644b6164112d4c4774519c4446",
+      "branch": "refs/heads/lane/onboarding-discovery-tests-20260910"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-policy-20260910",
+      "HEAD": "ad0b6b90f7891206b0fe395ca0573fd5afdc2646",
+      "branch": "refs/heads/lane/onboarding-policy-20260910"
+    },
+    {
+      "worktree": "/home/scientdb/projects/uscient/wt/ag-onboarding-policy-tests-20260910",
+      "HEAD": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+      "branch": "refs/heads/lane/onboarding-policy-tests-20260910"
+    }
+  ],
+  "pr78": {
+    "argv": [
+      "gh",
+      "pr",
+      "view",
+      "78",
+      "--json",
+      "url,title,isDraft,state,baseRefName,headRefName,headRefOid,statusCheckRollup"
+    ],
+    "exit": 0,
+    "stdout": "{\"baseRefName\":\"dev\",\"headRefName\":\"lane/onboarding-brief-inputs-fix-20260910\",\"headRefOid\":\"b2c0ce57ee9173d0fbc30f78b9c952131c4e18e4\",\"isDraft\":true,\"state\":\"OPEN\",\"statusCheckRollup\":[{\"__typename\":\"CheckRun\",\"completedAt\":\"2026-09-10T01:43:32Z\",\"conclusion\":\"SUCCESS\",\"detailsUrl\":\"https://github.com/uscient/agentscient/actions/runs/34426551117/job/102712921091\",\"name\":\"Analyze (actions)\",\"startedAt\":\"2026-09-10T01:42:41Z\",\"status\":\"COMPLETED\",\"workflowName\":\"CodeQL\"},{\"__typename\":\"CheckRun\",\"completedAt\":\"2026-09-10T01:44:11Z\",\"conclusion\":\"SUCCESS\",\"detailsUrl\":\"https://github.com/uscient/agentscient/actions/runs/34426553700/job/102712926865\",\"name\":\"lane\",\"startedAt\":\"2026-09-10T01:42:41Z\",\"status\":\"COMPLETED\",\"workflowName\":\"ci\"},{\"__typename\":\"CheckRun\",\"completedAt\":\"2026-09-10T01:42:47Z\",\"conclusion\":\"SUCCESS\",\"detailsUrl\":\"https://github.com/uscient/agentscient/actions/runs/34426553700/job/102712927022\",\"name\":\"app\",\"startedAt\":\"2026-09-10T01:42:41Z\",\"status\":\"COMPLETED\",\"workflowName\":\"ci\"},{\"__typename\":\"CheckRun\",\"completedAt\":\"2026-09-10T01:43:27Z\",\"conclusion\":\"SUCCESS\",\"detailsUrl\":\"https://github.com/uscient/agentscient/runs/102713072474\",\"name\":\"CodeQL\",\"startedAt\":\"2026-09-10T01:43:25Z\",\"status\":\"COMPLETED\",\"workflowName\":\"\"}],\"title\":\"dispatch: include input filenames in every worker brief\",\"url\":\"https://github.com/uscient/agentscient/pull/78\"}",
+    "stderr": ""
+  },
+  "records": [
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001134Z-code-codex-712230/record.json",
+        "sha256": "f3e1e34c9d5f0428ae2814616b829388400d3c5686cd4137058ac185cf1b8801",
+        "bytes": 18568
+      },
+      "id": "20260910T001134Z-code-codex-712230",
+      "lineage": {
+        "branch": "lane/onboarding-contract-20260910",
+        "base_sha": "20f9bcaf2b3ae2152b9cab766637b5a89b71214b"
+      },
+      "at": {
+        "launched": "2026-09-10T00:11:34Z",
+        "closed": "2026-09-10T00:23:42Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 14,
+        "opinions": 0
+      },
+      "head": "9901c408a98eb6a6177715bcdcd5c059cd2ceece",
+      "changed_paths": [
+        "ops/conductor/conductor-start-plan.md",
+        "ops/conductor/session-onboarding.md"
+      ],
+      "residual_paths": [],
+      "note": "Failing test: git diff --check . -- (exit 128, bad revision '.'). Authored only the two authorized repository documents. Assumption: complete discovery requires an explicit versioned extension while preserving existing closed schemas. Existing prerequisite defects remain follow-ups, not runtime fixes. This is a contract artifact, not activation or completion of the owner's onboarding request.",
+      "worker_pid": 487183,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001358Z-code-codex-6d01cf/record.json",
+        "sha256": "08b302e542745d45b754964037b213a734fa07a45e1f41358ef10f5fbce00a9c",
+        "bytes": 23261
+      },
+      "id": "20260910T001358Z-code-codex-6d01cf",
+      "lineage": {
+        "branch": "lane/onboarding-discovery-20260910",
+        "base_sha": "31fff00f03a430644b6164112d4c4774519c4446"
+      },
+      "at": {
+        "launched": "2026-09-10T00:13:59Z",
+        "closed": "2026-09-10T00:24:03Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 7,
+        "p3": 36,
+        "opinions": 0
+      },
+      "head": "31fff00f03a430644b6164112d4c4774519c4446",
+      "changed_paths": [],
+      "residual_paths": [
+        " M ops/conductor/tools/lane_mcp.py",
+        " M ops/conductor/tools/lane_read.py",
+        " M ops/conductor/tools/lane_refs.py"
+      ],
+      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime",
+      "worker_pid": 1004213,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/record.json",
+        "sha256": "ae1fb15cc8ce0b33913fb9ca822e9219e2f10f2e1d85bed4899d7e26077dcfd5",
+        "bytes": 19041
+      },
+      "id": "20260910T001531Z-code-codex-b9d9bc",
+      "lineage": {
+        "branch": "lane/onboarding-policy-20260910",
+        "base_sha": "32e77a0db5228549fa33ddb3991a8160c5093cf3"
+      },
+      "at": {
+        "launched": "2026-09-10T00:15:32Z",
+        "closed": "2026-09-10T00:25:36Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 6,
+        "p3": 23,
+        "opinions": 0
+      },
+      "head": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+      "changed_paths": [],
+      "residual_paths": [
+        "?? ops/conductor/tools/lane_policy.py"
+      ],
+      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime",
+      "worker_pid": 1004791,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T005208Z-review-codex-9b1fec/record.json",
+        "sha256": "5de76f85b13d93a9407f71d1656c3b2b054102161af3d131436f31f76efd2447",
+        "bytes": 15963
+      },
+      "id": "20260910T005208Z-review-codex-9b1fec",
+      "lineage": {
+        "branch": "lane/onboarding-completion-20260909",
+        "base_sha": "cd209d61b015ba296f7705e5bd17e36d360fde5d"
+      },
+      "at": {
+        "launched": "2026-09-10T00:52:09Z",
+        "closed": "2026-09-10T00:58:01Z"
+      },
+      "record_status": "closed",
+      "result_status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 7,
+        "p3": 0,
+        "opinions": 0
+      },
+      "head": "cd209d61b015ba296f7705e5bd17e36d360fde5d",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "Reviewed all three supplied inputs whole against the snapshot owners. The commit diff against 20f9bcaf2b3ae2152b9cab766637b5a89b71214b contains two captured dispatch records; this verdict concerns the separately supplied proposed contracts. Independently inspected artifact bytes and declarations without relying on the author's acceptance status. No edits, test authorship, suite execution, external reads, session-store reads or activation; final working tree remained clean. Completion path: retain the governing allocation and freeze sync/policy/worker interfaces; establish feasible live quarantine and delivery mechanics; define catalogue evidence acquisition and monitor/ownership migrations; then independently test and implement the canonical admission path, including ordinary worker delegation, growing history, routine file changes and revalidation. Finish with combined-ref suites, actual-client fault/clean proof, host cutover and repeated proof for required harness/profile operations. Preserve the complete owner outcome; intermediate discovery or contract delivery is not completion.",
+      "worker_pid": 1015263,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010615Z-code-codex-9e6040/record.json",
+        "sha256": "283fcbb5952517eae575290b5cd4b91542d208f14eda58951f283ea2634aecc8",
+        "bytes": 9216
+      },
+      "id": "20260910T010615Z-code-codex-9e6040",
+      "lineage": {
+        "branch": "lane/onboarding-contract-20260910",
+        "base_sha": "bb111b48e4e5cb90e6990148e55bd8901d177de4"
+      },
+      "at": {
+        "launched": "2026-09-10T01:06:16Z",
+        "closed": "2026-09-10T01:07:18Z"
+      },
+      "record_status": "closed",
+      "result_status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 9,
+        "opinions": 0
+      },
+      "head": "bb111b48e4e5cb90e6990148e55bd8901d177de4",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "Assumed the literal named command defines acceptance. It already passes; no files, tests, or commands were modified. Commit blocked by read-only .git; message supplied for launcher. No follow-ups identified.",
+      "worker_pid": 1332289,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T010956Z-code-codex-cedae4/record.json",
+        "sha256": "da93638aa67bf420af79040ffc6ee4e45c15bd58722f9ddc5a87e7e37302722f",
+        "bytes": 7268
+      },
+      "id": "20260910T010956Z-code-codex-cedae4",
+      "lineage": {
+        "branch": "lane/onboarding-contract-20260910",
+        "base_sha": "786e7ab44e784986be545160a125d78fb8519977"
+      },
+      "at": {
+        "launched": "2026-09-10T01:09:57Z",
+        "closed": "2026-09-10T01:20:02Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "head": "786e7ab44e784986be545160a125d78fb8519977",
+      "changed_paths": [],
+      "residual_paths": [
+        " M ops/conductor/conductor-start-plan.md",
+        " M ops/conductor/session-onboarding.md"
+      ],
+      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime",
+      "worker_pid": 1414617,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T011131Z-tests-grok-0298f4/record.json",
+        "sha256": "44f63170e116a620efeab29d6e58761542547e74315b36f3583cf2bf35d476d3",
+        "bytes": 6230
+      },
+      "id": "20260910T011131Z-tests-grok-0298f4",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-20260910",
+        "base_sha": "1028693cdc3e56a0b7a78ff5810269a3f49698fe"
+      },
+      "at": {
+        "launched": "2026-09-10T01:11:32Z",
+        "closed": "2026-09-10T01:21:36Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "head": "940e76a8c3a4924ad7de24805df365838a62d6f3",
+      "changed_paths": [
+        "ops/devlane/dispatch/tests/test_launch_input_visibility.py"
+      ],
+      "residual_paths": [],
+      "note": "envelope-parse: no JSON object on stdout; timeout: harness exceeded runtime; cause: {\"note\": \"timeout: harness exceeded runtime\", \"reason\": \"timeout\"}",
+      "worker_pid": 1419230,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T011353Z-code-codex-86b213/record.json",
+        "sha256": "7a0862d5ee5f961455e69b08d4c70edcb96d55c44641f8ecb24352e9d71a1285",
+        "bytes": 5421
+      },
+      "id": "20260910T011353Z-code-codex-86b213",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-fix-20260910",
+        "base_sha": "1028693cdc3e56a0b7a78ff5810269a3f49698fe"
+      },
+      "at": {
+        "launched": "2026-09-10T01:13:53Z",
+        "closed": "2026-09-10T01:14:43Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "head": "99f9f9793c96439d5ef69ecb46ddbe9999b6fd29",
+      "changed_paths": [
+        "ops/devlane/task/jobs.json"
+      ],
+      "residual_paths": [],
+      "note": "no-last-message: no structured envelope; harness-cli: exited -15",
+      "worker_pid": 1433502,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T011454Z-code-codex-8aae13/record.json",
+        "sha256": "d4962a120fdb19ee8584bf33578a62743e126f4906a558301a2f9bad474110be",
+        "bytes": 12724
+      },
+      "id": "20260910T011454Z-code-codex-8aae13",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-fix-20260910",
+        "base_sha": "9aa72662755cff8e5c1566b366363b9360210c58"
+      },
+      "at": {
+        "launched": "2026-09-10T01:14:54Z",
+        "closed": "2026-09-10T01:17:37Z"
+      },
+      "record_status": "closed",
+      "result_status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 10,
+        "opinions": 0
+      },
+      "head": "226bb260c69536d188a1d20693a226146d07eec1",
+      "changed_paths": [
+        "ops/devlane/task/jobs.json"
+      ],
+      "residual_paths": [],
+      "note": "Added Inputs: {inputs} only to the six prompts missing it, preserving existing read, role, scope, envelope and planning instructions. Named command passes, so status is ok as specified. Follow-up: task rendering callers must supply inputs; the task suite now has two failures and one error, while baseline passes. No tests or verifier changed. Commit blocked by read-only .git.",
+      "worker_pid": 1437760,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/record.json",
+        "sha256": "6abd745664596e507218a908ae7d715f66f5b6130fe2337b7cbe637753c562bd",
+        "bytes": 12771
+      },
+      "id": "20260910T012416Z-code-codex-25d0b4",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-fix-20260910",
+        "base_sha": "afa961909d5427434d754780ef246d71b280c22c"
+      },
+      "at": {
+        "launched": "2026-09-10T01:24:17Z",
+        "closed": "2026-09-10T01:29:00Z"
+      },
+      "record_status": "closed",
+      "result_status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 12,
+        "opinions": 0
+      },
+      "head": "644a96c7507e3e010a8e42a19cf9a0dff542edc4",
+      "changed_paths": [
+        "ops/devlane/dispatch/launch.py"
+      ],
+      "residual_paths": [],
+      "note": "Implemented only in launch.py. Interpretation: dispatch appends its ordered copied-path list independently of template placeholders; empty inputs append nothing. Existing instructions, schema and digest binding are preserved. Requested command and full suites exit 0. Git staging was blocked by the read-only filesystem; commit message supplied below. Follow-up: investigate suite ResourceWarnings.",
+      "worker_pid": 1544059,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012417Z-check-tests-codex-eb0aaa/record.json",
+        "sha256": "1f5f5694a6f6fccb9eaf4727e968f7ee0cc8359ee047c7453f86310057d5958d",
+        "bytes": 7394
+      },
+      "id": "20260910T012417Z-check-tests-codex-eb0aaa",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-20260910",
+        "base_sha": "44f16fb6b6fe754a3f7fa01d80d6dc1a13faf298"
+      },
+      "at": {
+        "launched": "2026-09-10T01:24:17Z",
+        "closed": "2026-09-10T01:28:08Z"
+      },
+      "record_status": "closed",
+      "result_status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "head": "44f16fb6b6fe754a3f7fa01d80d6dc1a13faf298",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "Old-tree execution confirmed six intended assertion failures; the empty neighbor passed. Independent tests remain unchanged. No implementation source, jobs.json, or session store was inspected.",
+      "worker_pid": 1544735,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/record.json",
+        "sha256": "2284b4d47fcfb272af888bc24ed8077c4292ce33b0443a8e0b7b66d6db99ce89",
+        "bytes": 6582
+      },
+      "id": "20260910T013050Z-tests-grok-73ed30",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-20260910",
+        "base_sha": "82511029c40c80eda29d08e360c545e1fa590b2e"
+      },
+      "at": {
+        "launched": "2026-09-10T01:30:51Z",
+        "closed": "2026-09-10T01:37:53Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "head": "e940655bea8e956316ba5f60dc11dec9b786ab47",
+      "changed_paths": [
+        "ops/devlane/dispatch/tests/test_launch_input_visibility.py"
+      ],
+      "residual_paths": [],
+      "note": "envelope-parse: no JSON object on stdout; timeout: harness exceeded runtime; cause: {\"note\": \"timeout: harness exceeded runtime\", \"reason\": \"timeout\"}",
+      "worker_pid": 1740440,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013051Z-review-claude-5baf17/record.json",
+        "sha256": "1f439906604d3218b211732b28dcf33ea81d630e13b452415de17b907cf3f46b",
+        "bytes": 9086
+      },
+      "id": "20260910T013051Z-review-claude-5baf17",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-fix-20260910",
+        "base_sha": "c7b998acd15c1e89229fd2ee7ce1c296e8f525dd"
+      },
+      "at": {
+        "launched": "2026-09-10T01:30:51Z",
+        "closed": "2026-09-10T01:37:55Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "head": "c7b998acd15c1e89229fd2ee7ce1c296e8f525dd",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "envelope-parse: no JSON object on stdout; timeout: harness exceeded runtime; cause: {\"note\": \"timeout: harness exceeded runtime\", \"reason\": \"timeout\"}",
+      "worker_pid": 1740808,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014231Z-review-grok-090298/record.json",
+        "sha256": "4fe6a71e572eccb73a1100157be1d3d9b9fa71f4773ce4e2b78c3f90aa3712c6",
+        "bytes": 6219
+      },
+      "id": "20260910T014231Z-review-grok-090298",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-fix-20260910",
+        "base_sha": "b2c0ce57ee9173d0fbc30f78b9c952131c4e18e4"
+      },
+      "at": {
+        "launched": "2026-09-10T01:42:32Z",
+        "closed": "2026-09-10T01:49:05Z"
+      },
+      "record_status": "closed",
+      "result_status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 2
+      },
+      "head": "b2c0ce57ee9173d0fbc30f78b9c952131c4e18e4",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "Looked in in/; no files. jobs.json blob 5da8d23f unchanged vs 20f9bcaf. Focused tests at b2c0ce57: 2 OK. Same tests against 20f9bcaf launch.py: 6 missing-path failures (adversarial-review, author-tests, implement, plan, security-audit, sweep); empty-input neighbor OK; check-tests and adjudicate already substitute {inputs}. Schema/digest 3 OK; task render/CLI 3 OK. Missing-read and phantom-empty assertions are present. Suggestions, not findings: empty-input regex is Inputs:-specific and would miss a phantom Input files: list other than the decoy; check-tests/adjudicate get a duplicate path listing from the append.",
+      "worker_pid": 1893539,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T014232Z-check-tests-codex-bf8dfe/record.json",
+        "sha256": "db7cabb14290a1315767915383820778ebb58b94322e692ca7c23c2c61264c8d",
+        "bytes": 7453
+      },
+      "id": "20260910T014232Z-check-tests-codex-bf8dfe",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-20260910",
+        "base_sha": "10caff085759725265ed19bfd10ff561f5829f35"
+      },
+      "at": {
+        "launched": "2026-09-10T01:42:32Z",
+        "closed": "2026-09-10T01:46:59Z"
+      },
+      "record_status": "closed",
+      "result_status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "head": "10caff085759725265ed19bfd10ff561f5829f35",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "Confirmed six intended worker-prompt assertion failures against the old tree. Tests preserved; no implementation source, jobs.json, or session store inspected. Findings demonstrated through temporary prompt fault injection; no optional suggestions.",
+      "worker_pid": 1893929,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015009Z-tests-grok-9f80d3/record.json",
+        "sha256": "c045c60b25a3830d55bfb2e13ebdae7c4e4f5a910d9fec67d8db3135a0699062",
+        "bytes": 5580
+      },
+      "id": "20260910T015009Z-tests-grok-9f80d3",
+      "lineage": {
+        "branch": "lane/onboarding-completion-20260909",
+        "base_sha": "0a212e91044ce98236d4c910ea23292547dc81dc"
+      },
+      "at": {
+        "launched": "2026-09-10T01:50:10Z",
+        "closed": "2026-09-10T01:53:20Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "head": "0a212e91044ce98236d4c910ea23292547dc81dc",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "envelope-parse: no JSON object on stdout; harness-cli: exited -15; cause: {\"reason\": \"harness-cli:-15\"}",
+      "worker_pid": 2167349,
+      "worker_pid_present": false
+    },
+    {
+      "source": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T015010Z-tests-grok-f871ba/record.json",
+        "sha256": "a564a90d90d386af8590702b4249acc062ebb02444d5cd368b3d2d56aa86e213",
+        "bytes": 5508
+      },
+      "id": "20260910T015010Z-tests-grok-f871ba",
+      "lineage": {
+        "branch": "lane/onboarding-brief-inputs-20260910",
+        "base_sha": "9dbdc9fc7b088237fcea804501b3a5aa9db165df"
+      },
+      "at": {
+        "launched": "2026-09-10T01:50:10Z",
+        "closed": "2026-09-10T01:53:20Z"
+      },
+      "record_status": "closed",
+      "result_status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "head": "9dbdc9fc7b088237fcea804501b3a5aa9db165df",
+      "changed_paths": [],
+      "residual_paths": [],
+      "note": "envelope-parse: no JSON object on stdout; harness-cli: exited -15; cause: {\"reason\": \"harness-cli:-15\"}",
+      "worker_pid": 2167712,
+      "worker_pid_present": false
+    }
+  ],
+  "suite_logs": [
+    {
+      "path": "/tmp/agentscient-onboarding-20260909/baseline-suites.log",
+      "sha256": "8129998d9402c40bee5699f3187f120a3e4672144c3570fb4a71e2ffe3a55c73",
+      "bytes": 3948
+    },
+    {
+      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012416Z-code-codex-25d0b4/out/suites.log",
+      "sha256": "2f4d824b2c07a100489711aee0367aea88bd20644eb2899c9760dfad9965290a",
+      "bytes": 3949
+    }
+  ],
+  "runtime_paths": {
+    "ops/conductor/tools/session.py": false,
+    "ops/conductor/tools/session_mcp.py": false,
+    "ops/bin/session.sh": false,
+    ".codex/hooks.json": false,
+    "ops/conductor/tools/lane_policy.py": false,
+    "ops/conductor/session-start.md": true
+  },
+  "owned_monitor_pids": {
+    "2117153": false,
+    "2117176": false
+  },
+  "stop_record": {
+    "measured_at": "2026-09-10T01:53:40.456402+00:00",
+    "reason": "Owner: if it is not close to done, stop. Onboarding is not close to complete. Work stopped; no new runtime implementation authored.",
+    "branch": "lane/onboarding-completion-20260909",
+    "contract_commit": "0a212e91044ce98236d4c910ea23292547dc81dc",
+    "filename_pr": "https://github.com/uscient/agentscient/pull/78",
+    "dispatches": [
+      {
+        "id": "20260910T014231Z-review-grok-090298",
+        "status": "closed",
+        "closed": "2026-09-10T01:49:05Z",
+        "worker_process_present": false,
+        "verdict": "approve",
+        "residual_paths": []
+      },
+      {
+        "id": "20260910T014232Z-check-tests-codex-bf8dfe",
+        "status": "closed",
+        "closed": "2026-09-10T01:46:59Z",
+        "worker_process_present": false,
+        "verdict": "changes",
+        "residual_paths": []
+      },
+      {
+        "id": "20260910T015009Z-tests-grok-9f80d3",
+        "status": "closed",
+        "closed": "2026-09-10T01:53:20Z",
+        "worker_process_present": false,
+        "verdict": null,
+        "residual_paths": []
+      },
+      {
+        "id": "20260910T015010Z-tests-grok-f871ba",
+        "status": "closed",
+        "closed": "2026-09-10T01:53:20Z",
+        "worker_process_present": false,
+        "verdict": null,
+        "residual_paths": []
+      }
+    ],
+    "preservation": "All snapshots, results, local branches and draft PR retained. Other session untouched."
+  },
+  "method": "Read record.json and state.json for the named IDs; SHA-256 the original bytes; check named /proc entries. Git and gh command results retained with exact argv. Suite summaries are historical logs, not a fresh test run."
+}
