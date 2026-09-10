@@ -1,0 +1,155 @@
+{
+  "id": "20260910T001531Z-code-codex-b9d9bc",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/onboarding-policy",
+  "lineage": {
+    "branch": "lane/onboarding-policy-20260910",
+    "base_sha": "32e77a0db5228549fa33ddb3991a8160c5093cf3"
+  },
+  "follows": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T00:15:32Z",
+    "closed": "2026-09-10T00:25:36Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+    "ref_sha": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-policy-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/out\"]",
+      "--model",
+      "gpt-6-astra",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-6-astra",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-6-astra",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-15-32-01a088ab-7398-7533-92e5-396e66a98b05.jsonl"
+  },
+  "session": {
+    "id": "01a088ab-7398-7533-92e5-396e66a98b05",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-15-32-01a088ab-7398-7533-92e5-396e66a98b05.jsonl",
+    "stream_sha256_at_close": "cb944e6d8de92513d0d0d5ebd3d5d13f0869083107b8c5ee9e241495846e0833",
+    "spend": {
+      "input": 1171590,
+      "cached": 1070592,
+      "output": 17272,
+      "total": 1188862,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/home/codex-stream/sessions/2026/09/09/rollout-2026-09-09T20-15-32-01a088ab-7398-7533-92e5-396e66a98b05.jsonl",
+      "messages": 132
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-policy-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "PYTHONPATH=ops/conductor/tests python3 -m unittest test_lane_policy.ToolPresence test_lane_policy.CasesP1 test_lane_policy.CasesP2 test_lane_policy.CasesP3 test_lane_policy.CasesP4 test_lane_policy.CasesP5 test_lane_policy.CasesN1 test_lane_policy.CasesN2 test_lane_policy.CasesN3 test_lane_policy.CasesN4 test_lane_policy.CasesN5 test_lane_policy.CasesN6 test_lane_policy.CasesN7 test_lane_policy.CasesN8 test_lane_policy.CasesN9 test_lane_policy.CasesN10 test_lane_policy.CasesR1 test_lane_policy.CasesR2 test_lane_policy.CasesR3 test_lane_policy.CasesR4 test_lane_policy.CasesR5 test_lane_policy.CasesI1 test_lane_policy.ClosedDeclarations test_lane_policy.PreEffectAndLate test_lane_policy.ExactShowDigest test_lane_policy.OutputAttemptReceipts\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/in/policy-code-input.md",
+        "sha256": "e244e7d08c7c3ec81e540b5462bd91fb62e634734addfe55c6be229941227046"
+      }
+    ],
+    "sha256": "4a26f9b222b0376d5bee50ca13d99ffcdfdfa5991c136fd3bfffa82cd1402c43",
+    "bytes": 4595
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 600.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T00:15:32Z",
+      "ended": "2026-09-10T00:25:36Z",
+      "exit": 137,
+      "tripped": true
+    }
+  ],
+  "result": {
+    "head": "32e77a0db5228549fa33ddb3991a8160c5093cf3",
+    "changed_paths": [],
+    "residual_paths": [
+      "?? ops/conductor/tools/lane_policy.py"
+    ],
+    "envelope": {
+      "job": "implement",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "32e77a0db5228549fa33ddb3991a8160c5093cf3"
+      },
+      "note": "no-last-message: no structured envelope; timeout: harness exceeded runtime"
+    },
+    "residual_patch": {
+      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T001531Z-code-codex-b9d9bc/residual.patch",
+      "sha256": "b6ff2997f97c6b8682fee0687039e18706acf306274e4ded3cc30220dc9bdf35",
+      "untracked": [
+        "ops/conductor/tools/lane_policy.py"
+      ]
+    },
+    "cause": {
+      "reason": "timeout",
+      "note": "timeout: harness exceeded runtime"
+    }
+  },
+  "status": "closed"
+}
