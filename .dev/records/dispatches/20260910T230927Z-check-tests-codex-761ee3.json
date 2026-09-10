@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-10T23:09:28Z",
-    "closed": null
+    "closed": "2026-09-10T23:17:56Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230927Z-check-tests-codex-761ee3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-09-28-01a08d95-53ec-7592-b117-1aeae92c2d60.jsonl"
   },
   "session": {
-    "id": "9dec3cc6-93cb-4cac-be24-48aa7e082816",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08d95-53ec-7592-b117-1aeae92c2d60",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230927Z-check-tests-codex-761ee3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-09-28-01a08d95-53ec-7592-b117-1aeae92c2d60.jsonl",
+    "stream_sha256_at_close": "e6d38ad75826ead1b855232d3e54b3b43a12d33b0155f1158ae57110b935f58f",
+    "spend": {
+      "input": 828990,
+      "cached": 759680,
+      "output": 21991,
+      "total": 850981,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230927Z-check-tests-codex-761ee3/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T19-09-28-01a08d95-53ec-7592-b117-1aeae92c2d60.jsonl",
+      "messages": 163
+    }
   },
   "brief": {
     "template": {
@@ -105,10 +112,129 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T23:09:28Z",
+      "ended": "2026-09-10T23:17:56Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "51a0842f0d86d63b3b3c66676fef42ad290dfe3d",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 5,
+        "p2": 7,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_contract.py:170",
+          "claim": "Contract item 6: the test inspects only the correction row's identifier cell, so a non-ID column may authorize an override and still pass.",
+          "reproduce": "sed -n '170,178p' ops/devlane/dispatch/tests/test_launch_correction_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_contract.py:180",
+          "claim": "Contract item 3: searching one combined blob for fragments does not prove the five refusal states have distinct found-texts.",
+          "reproduce": "sed -n '180,188p' ops/devlane/dispatch/tests/test_launch_correction_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_contract.py:198",
+          "claim": "Contract item 3: the assertion accepts the bare findings.py disposition prefix without the key, disposition, evidence, numbered item, or scope path required for the exact remedy command.",
+          "reproduce": "sed -n '198,203p' ops/devlane/dispatch/tests/test_launch_correction_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/dispatch/tests/test_launch_correction_contract.py:258",
+          "claim": "Contract item 4: word proximity between grammar and findings.py passes even when the contract says the gate uses a private, divergent parser.",
+          "reproduce": "sed -n '258,266p' ops/devlane/dispatch/tests/test_launch_correction_contract.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:103",
+          "claim": "Contract item 9: the fix-tests assertion proves only that two flag names occur, not that every audit finding is checked and named.",
+          "reproduce": "sed -n '103,108p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:109",
+          "claim": "Contract item 9: the fix-code assertion permits only one of several findings to be named and permits incomplete review provenance.",
+          "reproduce": "sed -n '109,114p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:132",
+          "claim": "Contract item 9: the literal prefix 'undisposed keys:' does not prove that the stop names every undisposed key.",
+          "reproduce": "sed -n '132,135p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:136",
+          "claim": "Contract item 9: unrelated occurrences of 'stopped' and 'keys' within 160 characters satisfy the record assertion even when the stopped object omits finding IDs.",
+          "reproduce": "sed -n '136,141p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:143",
+          "claim": "Contract item 9: the proximity regex accepts the statement 'resume does not repeat the undisposed check', missing a resume path that never rechecks the ledger.",
+          "reproduce": "sed -n '143,150p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:152",
+          "claim": "Contract item 9: banning one findings.py command string does not prevent the driver from writing disposition rows directly or through another command.",
+          "reproduce": "sed -n '152,154p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:159",
+          "claim": "Contract items 4 and 9: mere mention of `cited` passes even when the README declares that verb unsupported.",
+          "reproduce": "sed -n '159,164p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever_correction_contract.py:165",
+          "claim": "Contract item 4: the README proximity regex passes documentation that names findings.py as the grammar home while declaring that the gate uses a private copy.",
+          "reproduce": "sed -n '165,173p' ops/conductor/tests/test_ladder_lever_correction_contract.py"
+        }
+      ],
+      "artifacts": {
+        "SKEPTIC.md": "/home/scientdb/.local/state/agentscient/dispatch/20260910T230927Z-check-tests-codex-761ee3/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 850981,
+        "out": 21991,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "51a0842f0d86d63b3b3c66676fef42ad290dfe3d",
+        "started": "2026-09-10T23:09:41Z",
+        "ended": "2026-09-10T23:17:23Z"
+      },
+      "note": "Reviewed 23 frozen tests without inspecting implementation. The baseline produced 34 intended assertion failures and no collection/import errors; the plant guard passed. In-memory broken-contract mutants survived the 12 weak assertions reported."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-10T23:17:55.341Z"
+    }
+  },
+  "status": "closed"
 }
