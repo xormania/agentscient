@@ -23,6 +23,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "findings.py"
+# FINDING-ADMISSION.md / task CONTRACT.md: dispatch, replay and the
+# ledger consume the same semantic validator (ops/devlane/task/envelope.py).
+VALIDATOR = REPO / "ops" / "devlane" / "task" / "envelope.py"
 FIXTURE = (
     Path(__file__).resolve().parent
     / "fixtures"
@@ -73,6 +76,7 @@ def finding_sha256(finding: dict) -> str:
 class _LedgerFixture(unittest.TestCase):
     def setUp(self):
         self.assertTrue(TOOL.is_file(), f"{TOOL} is missing")
+        self.assertTrue(VALIDATOR.is_file(), f"{VALIDATOR} is missing")
         self.assertTrue(FIXTURE.is_file(), f"{FIXTURE} is missing")
         self._live_before = _live_snapshot()
         self._tmp = tempfile.TemporaryDirectory(prefix="finding-admission-")
@@ -88,11 +92,8 @@ class _LedgerFixture(unittest.TestCase):
         self.records = self.repo / ".dev" / "records" / "dispatches"
         self.records.mkdir(parents=True)
         self.staged = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        self.staged.parent.mkdir(parents=True, exist_ok=True)
-        data = TOOL.read_bytes()
-        self.staged.write_bytes(data)
-        self.assertEqual(self.staged.read_bytes(), data)
-        self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
+        self.validator = self.repo / "ops" / "devlane" / "task" / "envelope.py"
+        self._stage_declared_dependencies()
         self.sample = json.loads(FIXTURE.read_text(encoding="utf-8"))
         self.scope_text = self.sample["agreed_scope"]["text"]
         self.scope_sha256 = sha256_text(self.scope_text)
@@ -107,6 +108,18 @@ class _LedgerFixture(unittest.TestCase):
             )
         finally:
             self._tmp.cleanup()
+
+    def _stage_declared_dependencies(self) -> None:
+        # Copy declared runtime counterparts as bytes. Do not inspect them.
+        tool = TOOL.read_bytes()
+        self.staged.parent.mkdir(parents=True, exist_ok=True)
+        self.staged.write_bytes(tool)
+        self.assertEqual(self.staged.read_bytes(), tool)
+        self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
+        validator = VALIDATOR.read_bytes()
+        self._plant_bytes(self.validator, validator)
+        self.assertNotEqual(self.validator.read_bytes(), ABSENT_STUB)
+        self.assertNotEqual(self.validator.read_bytes(), tool)
 
     def _git_init(self) -> None:
         proc = subprocess.run(
@@ -508,9 +521,15 @@ class CorrectionsFiltersAdmitted(_LedgerFixture):
         self.assertEqual(body["held"][0]["reason"], "unproven")
 
     def test_a_review_job_does_not_acquire_correction_authority(self):
+        # FINDING-ADMISSION.md: correction sources are check-tests,
+        # security-audit, adversarial-review, and adjudication against
+        # those keys. A generic review job has no correction authority.
+        # The selected batch may contain only those jobs; do not require
+        # successful selection of an unsupported job.
         row = self.sample_row("agy-live-output-test")
         finding = self._finding_from(row, evaluate=True)
         rec = row["record"]
+        key = f"{rec}#1"
         self.plant_record(
             rec,
             [finding],
@@ -519,14 +538,16 @@ class CorrectionsFiltersAdmitted(_LedgerFixture):
         )
         self.assertEqual(self.invoke(["import"]).returncode, 0)
         proc = self.corrections(rec, ref=row["snapshot_ref"])
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        body = json.loads(proc.stdout)
-        admitted_keys = [item["key"] for item in body["admitted"]]
-        self.assertNotIn(f"{rec}#1", admitted_keys)
         self.assertEqual(
             finding["evaluation"]["classification"],
             "demonstrated-defect",
         )
+        if proc.returncode == 0:
+            body = json.loads(proc.stdout)
+            admitted_keys = [item["key"] for item in body["admitted"]]
+            self.assertNotIn(key, admitted_keys)
+        else:
+            self.assert_refusal(proc)
 
     def test_partial_ruling_admits_only_the_subclaim(self):
         original = self._finding_from(self.sample_row("agy-closure"), evaluate=True)
