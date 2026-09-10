@@ -28,6 +28,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from live_store_guard import assert_unchanged
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "land.py"
 
@@ -159,10 +161,10 @@ class _LandFixture(unittest.TestCase):
 
     def tearDown(self):
         try:
-            self.assertEqual(
-                {str(p): _store_snap(p) for p in _live_store_paths()},
+            assert_unchanged(
+                self,
                 self._live_before,
-                "live dispatch store mutated",
+                {str(p): _store_snap(p) for p in _live_store_paths()},
             )
             self.assertEqual(
                 _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),

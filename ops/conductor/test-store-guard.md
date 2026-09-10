@@ -40,3 +40,27 @@ identical test bytes. Run that file, existing test_onboard_lever.py, and the
 lane suite. No paid model or real live-store mutation is needed to reproduce.
 Standing: helper normalization implemented; the independently authored 24-case
 suite passes after six intended RED failures. Full acceptance is pending.
+
+## The shared guard, 2026-09-10
+
+Owner, 2026-09-10: lane defects observed live get a direct repair. On
+PR 87 three teardown guards failed with nothing in the change: two
+`.launcher.*` logs from concurrent dispatches in suites that had not
+taken the launcher-log exclusion, and the live `findings.db` growing
+under a concurrent ladder's ledger import.
+
+The comparison now lives once, in
+`ops/conductor/tests/live_store_guard.py`, and every conductor suite's
+teardown calls `assert_unchanged`. The exclusions are exactly the two
+above: new canonical job directories and transient launcher logs,
+normalized on both sides. Nothing else is tolerated. The retained
+24-case `test_store_guard.py` keeps binding to
+`test_onboard_lever._without_new_job_dirs`, now an alias of the shared
+function, so its pins hold unchanged.
+
+The app fixture suite's live-findings-store check compares presence and
+kind, not byte size. Declared gap: a tool under test that appends to the
+live ledger is no longer caught by size; the ledger's own identity and
+the suites' scratch HOME remain the isolation, and this guard has never
+claimed attribution. A tool that creates or removes a live store is
+still caught.
