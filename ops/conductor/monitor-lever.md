@@ -198,10 +198,13 @@ raw stderr. Missing/unreadable repo or local read failure is unavailable.
 One reading per branch in configured order: `subject=refs/heads/<branch>`,
 `generation=[resolved_repo,remote,subject]` (stable across polls/ref moves),
 `observed_at` is the supplied UTC poll time; `evidence` is
-`{repo,remote,ref}`. Metrics are exactly `{local_oid,remote_oid,freshness}`;
+`{repo,remote,ref,oids}`, retaining distinct observed OIDs in local-then-remote
+order (empty when neither was observed) in queued events without duplicating
+equal OIDs. Metrics are exactly `{local_oid,remote_oid,freshness}`;
 unobserved/absent OIDs are null, distinguished by freshness and bounded fixed
 `reason` (null on successful measurement). Remote failure takes precedence
-over missing local; local read failure takes precedence over comparison.
+over missing local; local read failure takes precedence over remote failure
+and comparison.
 
 | reading state | metrics.freshness | observable result |
 |---|---|---|
@@ -219,6 +222,11 @@ merges, checks out, creates refs, pushes, edits config, invokes arbitrary
 configured commands or calls models. Monitor writes remain confined to its
 existing queue/state, disjoint from the configured repo and Git common dir;
 no other actor's checkout is touched and no tick synchronizes branches.
+State in a linked worktree sharing the configured source's Git storage is
+also refused. A readable, syntactically invalid `.git` pointer names no
+external storage: protect its repository root and leave the observation
+failure to the reader. Uninspectable metadata still refuses state writes
+when storage separation cannot be established, including disabled sources.
 
 Minimal version-1 registry example (repo path relative to this config):
 
