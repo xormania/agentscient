@@ -158,12 +158,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "reason": "envelope",
-    "record": "20260910T230254Z-check-tests-codex-f2b5b7",
-    "stage": "check-tests",
-    "verdict": null
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910"
 }
