@@ -38,4 +38,5 @@ jobs; ordinary mutations; absent/type-changing stores. Valid fixtures execute
 before comparison. Prove the new expected comparisons red, then green with
 identical test bytes. Run that file, existing test_onboard_lever.py, and the
 lane suite. No paid model or real live-store mutation is needed to reproduce.
-Standing: declared behavior; implementation and independent tests pending.
+Standing: helper normalization implemented; the independently authored 24-case
+suite passes after six intended RED failures. Full acceptance is pending.

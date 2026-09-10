@@ -2182,6 +2182,9 @@ def _collect(args):
         _refuse("collect-role", "a write role", rec.get("role"),
                 "collect only a tripped write job")
     result = rec.get("result") or {}
+    if rec.get("status") != "closed":
+        _refuse("collect-state", "a closed write job", rec.get("status"),
+                "wait for the worker to close before collecting")
     if result.get("collected"):
         _refuse("collect-state", "an uncollected failed write job",
                 "already collected", "use the recorded collected head")
@@ -2190,7 +2193,9 @@ def _collect(args):
     residual = result.get("residual_paths") or []
     failed = any(bool(attempt.get("tripped") or attempt.get("exit"))
                  for attempt in attempts)
-    if not failed or not residual:
+    committed = (not residual and
+                 (result.get("envelope") or {}).get("status") in {"invalid", "tripped"})
+    if not committed and (not failed or not residual):
         _refuse(
             "collect-state",
             "an uncollected write job with a failed or tripped attempt and residual paths",
@@ -2203,10 +2208,27 @@ def _collect(args):
     _verify_record_ref(snapshot, rec["snapshot"]["ref_sha"])
     before = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
     ref_sha = rec["snapshot"]["ref_sha"]
+    if committed and _git(snapshot, "cat-file", "-e", f"{before}^{{commit}}",
+                          check=False).returncode:
+        _refuse("collect-state", "an available recorded candidate commit", before,
+                "restore the preserved commit object before verification")
     if _git(snapshot, "merge-base", "--is-ancestor", ref_sha, before,
             check=False).returncode:
         _refuse("off-lineage-head", f"HEAD to descend from {ref_sha}",
                 before, "restore the snapshot to the dispatched lineage")
+    def check_committed():
+        head = _git(snapshot, "rev-parse", "HEAD", check=False)
+        delta = _git(snapshot, "diff", "--name-only", ref_sha, before, "--", check=False)
+        paths = delta.stdout.splitlines()
+        if (head.returncode or delta.returncode or head.stdout.strip() != before
+                or before != result.get("head") or before == ref_sha
+                or not paths or paths != result.get("changed_paths")
+                or _residual(snapshot)):
+            _refuse("collect-state", "the exact recorded nonempty committed candidate without residue",
+                    "unavailable, changed or mismatched candidate",
+                    "restore the preserved candidate before explicit verification")
+    if committed:
+        check_committed()
     recorded_timeout = float(
         (rec.get("caps") or {}).get("timeout")
         or _lane_values("WALL_DEFAULT")["WALL_DEFAULT"]
@@ -2239,7 +2261,10 @@ def _collect(args):
                 f"exit {verified.returncode}; stderr tail {verified.stderr[-200:]!r}",
                 "fix the residual tree and rerun collect")
     envelope = result.get("envelope") or {}
-    _commit_for_harness(snapshot, rec, envelope, collected=True)
+    if committed:
+        check_committed()
+    else:
+        _commit_for_harness(snapshot, rec, envelope, collected=True)
     head = _git(snapshot, "rev-parse", "HEAD").stdout.strip()
     _git(repo, "-c", "core.logAllRefUpdates=always", "fetch",
          "--no-write-fetch-head", str(snapshot),

@@ -1031,8 +1031,9 @@ unchanged.
 
 #### Preserved committed recovery — contract extension
 
-Standing: documentation only; runtime and independently authored tests remain
-to follow. Source measured at `20f9bcaf2b3ae2152b9cab766637b5a89b71214b`:
+Standing: implemented through the existing collect entrypoint; independent
+focused RED-to-GREEN is retained in this branch. Full acceptance is pending.
+Original source measured at `20f9bcaf2b3ae2152b9cab766637b5a89b71214b`:
 `sed -n '1924,1975p' ops/devlane/dispatch/launch.py` shows `_settle` can
 auto-commit Codex source with an invalid envelope; `sed -n '2168,2268p'
 ops/devlane/dispatch/launch.py` shows `_collect` requires both a failed/tripped

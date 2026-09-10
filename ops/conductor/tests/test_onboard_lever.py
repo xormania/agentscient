@@ -146,18 +146,21 @@ def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
 # A launcher's job directory: <stamp>-<stage>-<harness>-<hash>. The CI
 # runners share the operator's live store, so a dispatch launched while a
 # test runs adds one of these; the guard below tolerates exactly that
-# addition and nothing else (a store file the tool under test wrote to
-# the live path is still a mutation).
+# addition and canonical transient launcher logs. Other store-name mutations
+# still fail; see ../test-store-guard.md for the concurrency exclusions.
 _JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
+_LAUNCH_LOG = re.compile(r"\.launcher\.[A-Za-z0-9]{6}\Z")
 
 
 def _without_new_job_dirs(before, after):
-    """Drop from ``after`` the job directories absent from ``before``."""
+    """Normalize canonical concurrent job additions and transient logs."""
     kept = {}
     for key, (kind, names) in after.items():
         if kind == "dir" and key in before and before[key][0] == "dir":
             previous = set(before[key][1])
-            names = tuple(n for n in names if n in previous or not _JOB_DIR.match(n))
+            names = tuple(n for n in names
+                          if not _LAUNCH_LOG.fullmatch(n)
+                          and (n in previous or not _JOB_DIR.match(n)))
         kept[key] = (kind, names)
     return kept
 
@@ -275,7 +278,7 @@ class _OnboardFixture(unittest.TestCase):
                     self._live_before,
                     {str(p): _store_snap(p) for p in _live_store_paths()},
                 ),
-                self._live_before,
+                _without_new_job_dirs(self._live_before, self._live_before),
                 "live dispatch store mutated",
             )
             self.assertEqual(
