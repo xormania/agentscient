@@ -754,6 +754,19 @@ launch.py brief --check ID
   template has no `{scope}` refuses it.
 - `--input PATH` copies a file into the job directory's `in/` and names
   it to the template as `{inputs}`; its digest enters the record.
+  Every shipped harness job must actually include those paths in
+  its rendered brief. Copying inputs without telling the worker their
+  paths does not discharge this boundary. List the copied paths in the
+  caller's order, including for implementation, planning and review jobs;
+  retain the existing instruction to read the supplied files before work.
+  With no inputs the list is empty, never a guessed file or directory scan.
+  Independent acceptance launches the shipped jobs through synthetic
+  harnesses and checks that the exact copied paths reach the worker's
+  prompt and agree with `brief.inputs`; it also checks an empty-input
+  neighbor. No input contents are inlined or promoted to extra authority.
+  The dispatch boundary supplies the list even when a shared job template
+  omits `{inputs}`; adding a new required field to another runner's shared
+  templates is not necessary to meet this dispatch obligation.
 - `--follows ID` names the records this dispatch was given and follows
   (plan → tests → check-tests → code → review → adjudicate). It is a
   dispatch-graph edge; it is **not** `context.prior`, which stays
