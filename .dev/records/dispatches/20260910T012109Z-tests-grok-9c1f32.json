@@ -1,0 +1,184 @@
+{
+  "id": "20260910T012109Z-tests-grok-9c1f32",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "16f870930c373b8e266343af222f985898be6303"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:21:10Z",
+    "closed": "2026-09-10T01:38:23Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "16f870930c373b8e266343af222f985898be6303",
+    "ref_sha": "16f870930c373b8e266343af222f985898be6303",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "b34f8f95-a0ee-4a6b-a336-f91d2a26762a",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "medium",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "medium",
+    "effort_argv": [
+      "--reasoning-effort",
+      "medium"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/home/grok-stream/sessions/<snapshot-encoded>/b34f8f95-a0ee-4a6b-a336-f91d2a26762a/summary.json"
+  },
+  "session": {
+    "id": "b34f8f95-a0ee-4a6b-a336-f91d2a26762a",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/home/grok-stream/sessions/<snapshot-encoded>/b34f8f95-a0ee-4a6b-a336-f91d2a26762a/summary.json",
+    "stream_sha256_at_close": "b4d35af687490df91bd29282edaf8a8455c247b18a05f8b5f4eb54d72004beba",
+    "spend": {
+      "input": 5988916,
+      "cached": 5791232,
+      "output": 57844,
+      "total": 6046760,
+      "cost_usd_ticks": 6184681600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/home/grok-stream/sessions/<snapshot-encoded>/b34f8f95-a0ee-4a6b-a336-f91d2a26762a/summary.json",
+      "messages": 472
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "5c2c493899a7d3a4228a07f74ede7357feeafa92c9c1e2180119c48dbc150f8e"
+    },
+    "scope": "Author independent tests for the mandatory prevention amendment in ops/devlane/task/FINDING-ADMISSION.md. Read ../in/enforcement-tests-brief.md and ../in/owner-enforcement-addendum.md. Tests and fixture-check helpers only; no source edits. Prove intended assertion RED per file, with fixture checks GREEN first.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/in/enforcement-tests-brief.md",
+        "sha256": "00d31e0a594a5c2bed97c77709f0d28199c8a104217bcb6ddd46450c37006420"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T012109Z-tests-grok-9c1f32/in/owner-enforcement-addendum.md",
+        "sha256": "0b6e768c79fb5afd3d31179f7cfe5a01257be3a545565f2c1906c55e5fc36a8c"
+      }
+    ],
+    "sha256": "25e3b533b1d9becda9a5cc9d654dab2d4f5f426ce88d9f2f983f0c6da1acce6f",
+    "bytes": 4011
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:21:10Z",
+      "ended": "2026-09-10T01:38:23Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "9dd31a1f3262b4fdfa5dbfea9b0a6836dd806f19",
+    "changed_paths": [
+      "ops/conductor/tests/test_admission_enforcement_custody.py",
+      "ops/conductor/tests/test_admission_enforcement_followup.py",
+      "ops/conductor/tests/test_admission_enforcement_terminal.py",
+      "ops/devlane/dispatch/tests/admission_enforcement_support.py",
+      "ops/devlane/dispatch/tests/test_admission_enforcement_declaration.py",
+      "ops/devlane/dispatch/tests/test_admission_enforcement_fixtures.py",
+      "ops/devlane/dispatch/tests/test_admission_enforcement_review_slots.py",
+      "ops/devlane/dispatch/tests/test_admission_enforcement_verify.py",
+      "ops/devlane/task/tests/test_admission_enforcement_validate.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "support": "ops/devlane/dispatch/tests/admission_enforcement_support.py",
+        "fixtures": "ops/devlane/dispatch/tests/test_admission_enforcement_fixtures.py",
+        "declaration": "ops/devlane/dispatch/tests/test_admission_enforcement_declaration.py",
+        "verify": "ops/devlane/dispatch/tests/test_admission_enforcement_verify.py",
+        "review_slots": "ops/devlane/dispatch/tests/test_admission_enforcement_review_slots.py",
+        "followup": "ops/conductor/tests/test_admission_enforcement_followup.py",
+        "terminal": "ops/conductor/tests/test_admission_enforcement_terminal.py",
+        "custody": "ops/conductor/tests/test_admission_enforcement_custody.py",
+        "validate": "ops/devlane/task/tests/test_admission_enforcement_validate.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 6046760,
+        "out": 57844,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "16f870930c373b8e266343af222f985898be6303",
+        "started": "2026-09-10T01:29:34Z",
+        "ended": "2026-09-10T01:37:52Z"
+      },
+      "note": "Independent prevention-amendment tests from FINDING-ADMISSION.md against base 16f870930c373b8e266343af222f985898be6303; HEAD 9dd31a1f3262b4fdfa5dbfea9b0a6836dd806f19. Original independent admission tests unchanged (git diff --stat vs 16f8709 empty). No source edits. Fixture-only GREEN at that HEAD: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_admission_enforcement_fixtures.py \u2014 Ran 15, OK. Per-file commands and SHA-256 (sha256sum now): support 604e96ae0ca927127c669a1bcc30c3940bf018677e8cfb0d5f48705305fe2e47; fixtures e6994471af98653ac2043fef2890cb6fe596bccda76b1234db2a01bfb85e3d75 GREEN 15/15 empty-list, observation keys, record identity/model/producer, retained-input hashes; declaration aa4a4d379dd1f684bfd7a4214df87869f1154ccb6ea2263d55c9ec348861fba3 python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_admission_enforcement_declaration.py \u2014 3 GREEN (plan without WO, planted [] inputs, valid admission extra key currently preserved) / intended RED: check-tests/author-tests/implement/adjudicate without --work-order still spawn the spy model; record.validate accepts blank/extra brief.admission; --work-order still argparse unrecognized (labeled, after empty-list plant); verify 44862fda1265ed996ab34bcc73d5f383480eb61bf77686980d6e04154fc7d858 \u2026 -p test_admission_enforcement_verify.py \u2014 1 GREEN event/empty-list / RED: check-tests starts with no fixture receipt and with a worker-authored empty-commands ok receipt; launch.py verify --phase fixture is not a verb (argparse, after observation plant); review_slots ecf3c555e4f810b933354e527246dbdb3cb9ca7e4d5b605df73fecdd8e46000a \u2026 -p test_admission_enforcement_review_slots.py \u2014 2 GREEN request shape / RED: second whole check-tests, renamed --unit and new id still start a model; --review-request unrecognized; followup 795a75aedc5fda3e9b3f785a628d2e92645b15c54da17c260db7a408cb4e1bce python3 -m unittest discover -s ops/conductor/tests -p test_admission_enforcement_followup.py \u2014 5 GREEN corrections empty-admitted/held / RED: envelope.validate(..., admission=request) TypeError; terminal 6dac75ccf2dccd1ffa43260f17e5123f8dd9ddc5bd91aa8d4b361ffffc038135 \u2026 -p test_admission_enforcement_terminal.py \u2014 2 GREEN terminal object / RED: finish without WO is arguments not admission-criteria; finish WO-id is treated as a scope path; custody 3f08eeb004ba1f843f1d8f4dc626b96f7e84f5fba55f400a1b1d1b4d281db5a7 \u2026 -p test_admission_enforcement_custody.py \u2014 6 GREEN existing ledger binding / RED: record.validate accepts verification.tests.producers=[]; validate c76ece510ea744af97a0c8573149a02643fe947e8090ed3bebf76ce86c0b4c4b python3 -m unittest discover -s ops/devlane/task/tests -p test_admission_enforcement_validate.py \u2014 1 GREEN omitted admission / RED: admission=None TypeError wrapped as assertion. Commits: f72f399, 02aeeec, 6d222bc, 5891826, d30b7f4, d867e86, 9dd31a1. Source: original. Co-Authored-By: Grok 4.6 <noreply@x.ai>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T01:38:21.640Z"
+    }
+  },
+  "status": "closed"
+}
