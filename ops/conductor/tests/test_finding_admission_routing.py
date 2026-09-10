@@ -19,11 +19,9 @@ import stat
 import unittest
 from pathlib import Path
 
-from test_ladder_lever import _LadderFixture
+from test_ladder_lever import SKEPTIC_BODY, _LadderFixture
 
-ADMITTED_KEY = "20260904T120000Z-review-codex-aa0132#1"
 ADMITTED_FAIL = "ADMITTED_FAILURE_aa32 closure undeclared read"
-HELD_KEY = "20260904T120000Z-review-codex-aa0132#2"
 HELD_CLAIM = "HELD_UNPROVEN_aa32 agy help was not measured"
 HELD_REASON = "unproven"
 
@@ -49,6 +47,42 @@ if plant.get("ledger_fail"):
         "needed a writable ledger\n"
     )
     raise SystemExit(3)
+
+def parse_corrections(args):
+    ref = "missing-ref"
+    scope = "missing-scope"
+    records = []
+    rest = args[1:]
+    i = 0
+    while i < len(rest):
+        if rest[i] == "--ref" and i + 1 < len(rest):
+            ref = rest[i + 1]
+            i += 2
+            continue
+        if rest[i] == "--scope-sha256" and i + 1 < len(rest):
+            scope = rest[i + 1]
+            i += 2
+            continue
+        records.append(rest[i])
+        i += 1
+    return ref, scope, records
+
+def evaluation(failure, requirement, scope):
+    return {
+        "classification": "demonstrated-defect",
+        "scope_sha256": scope,
+        "requirement": requirement,
+        "trigger": "reachable planted trigger under supported conditions",
+        "failure": failure,
+        "evidence": {
+            "kind": "execution-path",
+            "details": "planted entry through the admitted finding",
+        },
+        "refutation": "attempted planted refutation; defect remains",
+        "source": None,
+        "ruling": None,
+    }
+
 if argv and argv[0] == "corrections":
     mode = plant.get("admission") or "empty"
     if mode == "refuse":
@@ -64,28 +98,26 @@ if argv and argv[0] == "corrections":
             "needed an adjudicate record bound to the original keys\n"
         )
         raise SystemExit(2)
-    ref = "missing-ref"
-    scope = "missing-scope"
-    if "--ref" in argv:
-        ref = argv[argv.index("--ref") + 1]
-    if "--scope-sha256" in argv:
-        scope = argv[argv.index("--scope-sha256") + 1]
+    ref, scope, records = parse_corrections(argv)
+    primary = records[0] if records else "missing-record"
+    admitted_key = primary + "#1"
+    held_key = primary + "#2"
     admitted = []
     held = []
     if mode == "mixed":
         admitted = [{
-            "key": "@@ADMITTED_KEY@@",
-            "evaluation_record": "planted-eval",
+            "key": admitted_key,
+            "evaluation_record": primary,
             "evaluation_n": 1,
-            "evaluation": {
-                "classification": "demonstrated-defect",
-                "failure": "@@ADMITTED_FAIL@@",
-                "requirement": "closure() refuses undeclared reads",
-            },
+            "evaluation": evaluation(
+                "@@ADMITTED_FAIL@@",
+                "closure() refuses undeclared reads",
+                scope,
+            ),
         }]
-        held = [{"key": "@@HELD_KEY@@", "reason": "@@HELD_REASON@@"}]
+        held = [{"key": held_key, "reason": "@@HELD_REASON@@"}]
     else:
-        held = [{"key": "@@HELD_KEY@@", "reason": "@@HELD_REASON@@"}]
+        held = [{"key": held_key, "reason": "@@HELD_REASON@@"}]
     sys.stdout.write(json.dumps({
         "ref": ref,
         "scope_sha256": scope,
@@ -108,9 +140,7 @@ class AdmissionRouting(_LadderFixture):
         body = (
             CORRECTIONS_STUB
             .replace("@@STUB@@", str(self.stub_dir))
-            .replace("@@ADMITTED_KEY@@", ADMITTED_KEY)
             .replace("@@ADMITTED_FAIL@@", ADMITTED_FAIL)
-            .replace("@@HELD_KEY@@", HELD_KEY)
             .replace("@@HELD_REASON@@", HELD_REASON)
         )
         dest = self.repo / "ops" / "conductor" / "tools" / "findings.py"
@@ -131,6 +161,11 @@ class AdmissionRouting(_LadderFixture):
             row for row in self.findings_argvs()
             if row and row[0] == "corrections"
         ]
+
+    def _batch_key(self, name: str, n: int) -> str:
+        rec_id = self.record_id_for(name)
+        self.assertTrue(rec_id, name)
+        return f"{rec_id}#{n}"
 
     def test_legacy_changes_invokes_corrections_before_tests_fix(self):
         # Unevaluated legacy evidence may refuse; do not require success.
@@ -185,16 +220,30 @@ class AdmissionRouting(_LadderFixture):
 
     def test_admitted_defect_selects_tests_fix_with_only_admitted_demand(self):
         self._install_corrections_stub("mixed")
-        self.patch_plant(verdicts={"check-tests": "changes"})
+        self.patch_plant(
+            verdicts={"check-tests": "changes"},
+            skeptic_md=True,
+            skeptic_text=SKEPTIC_BODY,
+        )
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         names = self.dispatch_names()
         self.assertIn("tests-fix", names)
         text = self.inputs_text(self.dispatch_argv_for("tests-fix"))
+        admitted_key = self._batch_key("check-tests", 1)
+        held_key = self._batch_key("check-tests", 2)
         self.assertIn(ADMITTED_FAIL, text)
-        self.assertIn(ADMITTED_KEY, text)
+        self.assertIn(admitted_key, text)
         self.assertNotIn(HELD_CLAIM, text)
-        self.assertNotIn("SKEPTIC_MD_BODY_aa32", text)
+        self.assertNotIn(held_key, text)
+        self.assertNotIn(SKEPTIC_BODY, text)
+        inputs = self.flag_values(
+            self.dispatch_argv_for("tests-fix"), "--input",
+        )
+        self.assertFalse(
+            any(Path(value).name == "SKEPTIC.md" for value in inputs),
+            inputs,
+        )
 
     def test_refused_corrections_read_stops_as_admission_not_retry(self):
         self._install_corrections_stub("refuse")
