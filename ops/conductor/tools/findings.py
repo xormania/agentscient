@@ -22,6 +22,8 @@ disposition. Inherits ops/conductor/instrument-conventions.md.
 from __future__ import annotations
 
 import glob
+import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -66,7 +68,44 @@ class Refused(Exception):
 
 
 def refuse(kind, expected, found, needed):
-    raise Refused(f"{kind}: expected {expected}; found {found}; needed {needed}")
+    raise Refused(' '.join(f"{kind}: expected {expected}; found {found}; needed {needed}".split()))
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, ensure_ascii=False,
+                      separators=(',', ':'), allow_nan=False)
+
+
+def sha(value):
+    return hashlib.sha256(value).hexdigest()
+
+
+def strict_loads(text):
+    # Historical import also runs without the task package. Never collapse duplicates.
+    def pairs(items):
+        obj = {}
+        for key, value in items:
+            if key in obj:
+                refuse('admission-evidence', 'unique JSON members', key, 'restore original evidence')
+            obj[key] = value
+        return obj
+    def constant(value):
+        refuse('admission-evidence', 'finite JSON numbers', value, 'restore original evidence')
+    try:
+        return json.loads(text, object_pairs_hook=pairs, parse_constant=constant)
+    except (ValueError, UnicodeError) as error:
+        refuse('admission-evidence', 'strict JSON evidence', str(error), 'restore source evidence')
+
+
+def task_envelope():
+    path = ROOT / 'ops/devlane/task/envelope.py'
+    if not path.is_file():
+        refuse('admission-evidence', 'the shared task semantic validator', path,
+               'restore the declared task/ledger coupling')
+    spec = importlib.util.spec_from_file_location('finding_task_envelope', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def lane_name():
@@ -107,20 +146,49 @@ def database_path():
     )
 
 
-def connect():
+def connect(*, readonly=False):
     path = database_path()
+    if readonly:
+        if not path.is_file():
+            refuse('admission-binding', 'an imported source batch', 'store absent', 'import the records first')
+        connection = sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)
+        connection.row_factory = sqlite3.Row
+        return connection
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     connection.execute(SCHEMA)
     connection.execute(CALIBRATION_SCHEMA)
+    connection.executescript('''
+        CREATE TABLE IF NOT EXISTS sources (record TEXT PRIMARY KEY, raw BLOB NOT NULL);
+        CREATE TABLE IF NOT EXISTS source_files (
+            record TEXT, path TEXT, raw BLOB, PRIMARY KEY(record, path));
+        CREATE TABLE IF NOT EXISTS evaluations (
+            seq INTEGER PRIMARY KEY, key TEXT, record TEXT, n INTEGER, evaluation TEXT,
+            UNIQUE(record, n));
+        CREATE TABLE IF NOT EXISTS disputes (
+            seq INTEGER PRIMARY KEY, key TEXT, body TEXT);
+        CREATE TABLE IF NOT EXISTS resolutions (
+            seq INTEGER PRIMARY KEY, dispute INTEGER, record TEXT, UNIQUE(dispute, record));
+        CREATE TABLE IF NOT EXISTS dispositions (
+            seq INTEGER PRIMARY KEY, key TEXT, body TEXT);
+        CREATE TABLE IF NOT EXISTS migration (name TEXT PRIMARY KEY);
+    ''')
+    if not connection.execute("SELECT 1 FROM migration WHERE name='dispositions'").fetchone():
+        for row in connection.execute('SELECT * FROM findings ORDER BY record, n'):
+            body = {key: row[key] for key in ('disposition', 'evidence', 'disposed_at', 'disposed_by')}
+            connection.execute('INSERT INTO dispositions(key, body) VALUES (?, ?)',
+                               (row['key'], canonical(body)))
+        connection.execute("INSERT INTO migration VALUES ('dispositions')")
     connection.commit()
     return connection
 
 
-def record_rows():
-    for path in sorted(glob.glob(str(RECORDS / "*.json"))):
-        rec = json.loads(Path(path).read_text(encoding="utf-8"))
+def record_rows(records=None):
+    if records is None:
+        records = [strict_loads(Path(path).read_bytes())
+                   for path in sorted(glob.glob(str(RECORDS / '*.json'))) ]
+    for rec in records:
         if rec.get("job") not in REVIEW_JOBS:
             continue
         env = ((rec.get("result") or {}).get("envelope") or {})
@@ -144,15 +212,72 @@ def do_import(argv):
     if argv:
         refuse("arguments", "no arguments after import", " ".join(argv), "drop them")
     con = connect()
+    records = []
+    for path in sorted(RECORDS.glob('*.json')):
+        raw = path.read_bytes()
+        rec = strict_loads(raw)
+        if not isinstance(rec, dict) or rec.get('id') != path.stem:
+            refuse('admission-binding', 'record id matching its path', path, 'restore original source')
+        if not isinstance((rec.get('result') or {}).get('envelope'), dict):
+            continue  # An active dispatch has not yet produced an immutable result.
+        prior = con.execute('SELECT raw FROM sources WHERE record=?', (rec['id'],)).fetchone()
+        if prior and bytes(prior['raw']) != raw:
+            refuse('admission-binding', 'unchanged imported source bytes', rec['id'],
+                   'retain the first source and use a new dispatch id')
+        con.execute('INSERT OR IGNORE INTO sources VALUES (?, ?)', (rec['id'], raw))
+        bindings = (rec.get('brief') or {}).get('inputs') or []
+        artifacts = (((rec.get('result') or {}).get('envelope') or {}).get('artifacts') or {})
+        paths = [item.get('path') for item in bindings if isinstance(item, dict)]
+        if rec.get('job') == 'adjudicate' and isinstance(artifacts, dict):
+            paths.extend(value for value in artifacts.values() if isinstance(value, str)
+                         and Path(value).name == 'RULING.md')
+        for name in paths:
+            if not isinstance(name, str) or not Path(name).is_file():
+                continue
+            data = Path(name).read_bytes()
+            prior_file = con.execute('SELECT raw FROM source_files WHERE record=? AND path=?',
+                                     (rec['id'], name)).fetchone()
+            if prior_file and bytes(prior_file['raw']) != data:
+                refuse('admission-binding', 'unchanged retained input/report bytes', name,
+                       'restore the bound source')
+            con.execute('INSERT OR IGNORE INTO source_files VALUES (?, ?, ?)', (rec['id'], name, data))
+        records.append(rec)
     n = 0
-    for r in record_rows():
+    for r in record_rows(records):
         con.execute(
             'INSERT INTO findings (key, record, job, stage, harness, model, unit, ref, verdict, n, severity, "where", claim, reproduce)'
             " VALUES (:key, :record, :job, :stage, :harness, :model, :unit, :ref, :verdict, :n, :severity, :where, :claim, :reproduce)"
-            " ON CONFLICT(key) DO UPDATE SET record=excluded.record, job=excluded.job, stage=excluded.stage, harness=excluded.harness,"
-            ' model=excluded.model, unit=excluded.unit, ref=excluded.ref, verdict=excluded.verdict, severity=excluded.severity,'
-            ' "where"=excluded."where", claim=excluded.claim, reproduce=excluded.reproduce', r)
+            " ON CONFLICT(key) DO NOTHING", r)
         n += 1
+    for rec in records:
+        if rec.get('job') not in (*REVIEW_JOBS, 'adjudicate'):
+            continue
+        for index, item in enumerate(((rec.get('result') or {}).get('envelope') or {}).get('findings') or [], 1):
+            if not isinstance(item, dict) or 'evaluation' not in item:
+                continue
+            evaluation = item['evaluation']
+            source = evaluation.get('source') if isinstance(evaluation, dict) else None
+            key = (source.get('key') if isinstance(source, dict) else None) if rec['job'] == 'adjudicate' else f"{rec['id']}#{index}"
+            con.execute('INSERT OR IGNORE INTO evaluations(key, record, n, evaluation) VALUES (?, ?, ?, ?)',
+                        (key, rec['id'], index, canonical(evaluation)))
+    # Resolution events are appended only after the complete ruling is verified.
+    for rec in records:
+        env = ((rec.get('result') or {}).get('envelope') or {})
+        if rec.get('job') == 'adjudicate' and env.get('status') == 'ok':
+            try:
+                accepted, prior, supplied = ruling_events(con, rec)
+            except Refused:
+                continue  # Partial/malformed history stays visible, never authority.
+            if accepted:
+                for dispute in con.execute('SELECT * FROM disputes ORDER BY seq'):
+                    body = strict_loads(dispute['body'])
+                    if any(row.get('key') == dispute['key'] and any(
+                            isinstance(item, dict)
+                            and {**item, 'resolved_by': None} == body
+                            and item.get('resolved_by') in {None, *prior}
+                            for item in row.get('disputes', [])) for row in supplied):
+                        con.execute('INSERT OR IGNORE INTO resolutions(dispute, record) VALUES (?, ?)',
+                                    (dispute['seq'], rec['id']))
     con.commit()
     print(f"imported {n} finding(s) from {RECORDS}")
     return 0
@@ -171,8 +296,294 @@ def do_disposition(argv):
         refuse("key", "a finding key <record>#<n> held by the store", key, "run findings.py import first, or correct the key")
     con.execute("UPDATE findings SET disposition = ?, evidence = ?, disposed_at = ?, disposed_by = ? WHERE key = ?",
                 (what, why, datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"), agent, key))
+    row = con.execute('SELECT * FROM findings WHERE key=?', (key,)).fetchone()
+    con.execute('INSERT INTO dispositions(key, body) VALUES (?, ?)',
+                (key, canonical({field: row[field] for field in
+                                 ('disposition', 'evidence', 'disposed_at', 'disposed_by')})))
     con.commit()
     print(f"{key}\t{what}")
+    return 0
+
+
+def admission_refuse(kind, found):
+    refuse('admission-' + kind, 'complete evaluated evidence with immutable source/ref/scope bindings',
+           found, 'supply the missing bound evidence through an independent review')
+
+
+def source_record(con, record_id):
+    row = con.execute('SELECT raw FROM sources WHERE record=?', (record_id,)).fetchone()
+    if row is None:
+        admission_refuse('binding', f'unknown or unimported record {record_id}')
+    path = RECORDS / f'{record_id}.json'
+    raw = bytes(row['raw'])
+    if path.is_file() and path.read_bytes() != raw:
+        admission_refuse('binding', f'changed source {record_id}')
+    return strict_loads(raw)
+
+
+def retained_file(con, rec, name):
+    if not isinstance(name, str):
+        admission_refuse('binding', 'missing retained input path')
+    row = con.execute('SELECT raw FROM source_files WHERE record=? AND path=?',
+                      (rec['id'], name)).fetchone()
+    if row is None:
+        admission_refuse('binding', f'unavailable source evidence {name}')
+    raw = bytes(row['raw'])
+    if Path(name).is_file() and Path(name).read_bytes() != raw:
+        admission_refuse('binding', f'changed input/report {name}')
+    return raw
+
+
+def bound_inputs(con, rec):
+    result = []
+    for item in (rec.get('brief') or {}).get('inputs') or []:
+        if not isinstance(item, dict):
+            admission_refuse('binding', 'malformed retained input')
+        raw = retained_file(con, rec, item.get('path'))
+        if sha(raw) != item.get('sha256'):
+            admission_refuse('binding', f"input hash mismatch {item.get('path')}")
+        result.append(raw)
+    return result
+
+
+def record_binding(con, rec, ref, scope):
+    env = ((rec.get('result') or {}).get('envelope') or {})
+    if ((rec.get('snapshot') or {}).get('ref_sha') != ref
+            or (env.get('stamp') or {}).get('ref') != ref):
+        admission_refuse('binding', f"ref mismatch in {rec['id']}")
+    if not any(sha(raw) == scope for raw in bound_inputs(con, rec)):
+        admission_refuse('binding', f"owner scope bytes unavailable in {rec['id']} retained inputs")
+    for item in env.get('findings') or []:
+        value = item.get('evaluation') if isinstance(item, dict) else None
+        if isinstance(value, dict) and value.get('scope_sha256') != scope:
+            admission_refuse('binding', f"scope mismatch in {rec['id']}")
+
+
+def semantic(rec):
+    env = ((rec.get('result') or {}).get('envelope') or {})
+    if env.get('status') != 'ok':
+        admission_refuse('incomplete', f"{rec['id']} status={env.get('status')}")
+    if env.get('verdict') not in ('approve', 'changes'):
+        admission_refuse('incomplete', f"{rec['id']} has no completed review verdict")
+    module = task_envelope()
+    try:
+        module.validate(env)
+    except (ValueError, TypeError, KeyError) as error:
+        admission_refuse('evidence', f"{rec['id']}: {error}")
+    if env['job'] != rec['job']:
+        admission_refuse('binding', f"job mismatch in {rec['id']}")
+    return env
+
+
+def producer(rec):
+    harness = (rec.get('harness') or {}).get('name')
+    model = (rec.get('model') or {}).get('ran')
+    if (not isinstance(harness, str) or not harness.strip()
+            or not isinstance(model, str) or not model.strip()
+            or model.lower() in ('unknown', 'unresolved')):
+        return None
+    return harness, model
+
+
+def ruling_events(con, rec):
+    """Validate the supplied batch as a whole; unavailable independence holds it."""
+    env = semantic(rec)
+    inputs = bound_inputs(con, rec)
+    records, supplied = {}, []
+    for raw in inputs:
+        try:
+            text = raw.decode('utf-8')
+        except UnicodeError:
+            continue
+        # The existing export is JSONL; original records are JSON objects.
+        try:
+            json.loads(text)
+            objects = [strict_loads(text)]
+        except ValueError:
+            objects = []
+            for line in text.splitlines():
+                try:
+                    json.loads(line)
+                    objects.append(strict_loads(line))
+                except ValueError:
+                    continue
+        for obj in objects:
+            if isinstance(obj, dict) and 'id' in obj and 'job' in obj:
+                original = source_record(con, obj['id'])
+                original_bytes = bytes(con.execute('SELECT raw FROM sources WHERE record=?',
+                                                   (obj['id'],)).fetchone()['raw'])
+                if obj != original or raw != original_bytes:
+                    admission_refuse('binding', f"substituted input record {obj['id']}")
+                records[obj['id']] = original
+            elif isinstance(obj, dict) and 'key' in obj:
+                supplied.append(obj)
+    originals = {key: value for key, value in records.items() if value.get('job') in REVIEW_JOBS}
+    prior = {key for key, value in records.items() if value.get('job') == 'adjudicate'}
+    artifacts = [value for value in records.values() if value.get('role') == 'write']
+    expected = [row['key'] for row in supplied] if supplied else [
+        f'{record_id}#{n}' for record_id, value in originals.items()
+        for n, _item in enumerate(((value.get('result') or {}).get('envelope') or {}).get('findings') or [], 1)]
+    if not expected or len(set(expected)) != len(expected):
+        admission_refuse('binding', 'missing/duplicate supplied source keys')
+    actual, events = [], []
+    ref = env['stamp']['ref']
+    scopes = set()
+    for n, item in enumerate(env['findings'], 1):
+        evaluation = item.get('evaluation')
+        if not isinstance(evaluation, dict) or not evaluation.get('source'):
+            admission_refuse('evidence', 'ruling without evaluation and source')
+        key = evaluation['source']['key']
+        record_id, index = key.rsplit('#', 1)
+        if record_id not in originals:
+            admission_refuse('binding', f'original finding producer absent for {key}')
+        original_env = ((originals[record_id].get('result') or {}).get('envelope') or {})
+        rows = original_env.get('findings') or []
+        if int(index) > len(rows) or sha(canonical(rows[int(index)-1]).encode()) != evaluation['source']['sha256']:
+            admission_refuse('binding', f'source hash/index mismatch for {key}')
+        scope = evaluation['scope_sha256']
+        record_binding(con, originals[record_id], ref, scope)
+        scopes.add(scope)
+        actual.append(key)
+        events.append({'key': key, 'evaluation_record': rec['id'], 'evaluation_n': n,
+                       'evaluation': evaluation})
+    if sorted(actual) != sorted(expected) or len(scopes) != 1:
+        admission_refuse('binding', 'ruling missing/extra/duplicate source keys or mixed scopes')
+    record_binding(con, rec, ref, next(iter(scopes)))
+    report_paths = [value for value in env['artifacts'].values() if Path(value).name == 'RULING.md']
+    if len(report_paths) != 1:
+        admission_refuse('binding', 'one RULING.md artifact required')
+    report = retained_file(con, rec, report_paths[0]).decode('utf-8')
+    lines = re.findall(r'^## (\S+) — (UPHELD|PARTIAL|REJECTED)$', report, re.MULTILINE)
+    expected_lines = [(event['key'], event['evaluation']['ruling']) for event in events]
+    if sorted(lines) != sorted(expected_lines):
+        admission_refuse('binding', 'structured ruling disagrees with RULING.md headings')
+    actor = producer(rec)
+    independent = bool(actor and artifacts)
+    for other in [*originals.values(), *artifacts]:
+        other_actor = producer(other)
+        if not other_actor or not actor or other_actor[0] == actor[0]:
+            independent = False
+    # Artifact records must bind the pinned artifact by their produced commit or ref.
+    for artifact in artifacts:
+        result = artifact.get('result') or {}
+        produced = [result.get('head'), *(result.get('commits') or [])]
+        produced_refs = [item if isinstance(item, str) else item.get('sha')
+                         for item in produced if isinstance(item, (str, dict))]
+        if not produced_refs:
+            # Retained producer records can bind the artifact by pinned ref
+            # without a separately recorded output commit.
+            artifact_env = result.get('envelope') or {}
+            if (artifact.get('status') == 'closed' and artifact_env.get('status') == 'ok'
+                    and (artifact_env.get('stamp') or {}).get('ref') == ref):
+                produced_refs = [(artifact.get('snapshot') or {}).get('ref_sha')]
+        if ref not in produced_refs:
+            independent = False
+    return (events if independent else []), prior, supplied
+
+
+def do_dispute(argv):
+    agent = identity()
+    if len(argv) != 2 or not argv[1].strip():
+        refuse('arguments', 'KEY nonblank-EVIDENCE', repr(argv), 'supply the dispute evidence')
+    key, evidence = argv
+    con = connect()
+    if not con.execute('SELECT 1 FROM findings WHERE key=?', (key,)).fetchone():
+        admission_refuse('binding', f'unknown finding key {key}')
+    body = {'by': agent, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
+            'evidence': evidence, 'resolved_by': None}
+    con.execute('INSERT INTO disputes(key, body) VALUES (?, ?)', (key, canonical(body)))
+    con.commit()
+    print(f'{key}\tdisputed')
+    return 0
+
+
+def do_corrections(argv):
+    if (len(argv) < 5 or argv[0] != '--ref' or argv[2] != '--scope-sha256'
+            or any(item.startswith('-') for item in argv[4:])):
+        refuse('arguments', '--ref FULL_SHA --scope-sha256 SHA256 RECORD [RECORD ...]',
+               repr(argv), 'supply the complete review batch')
+    ref, scope, ids = argv[1], argv[3], argv[4:]
+    if (not re.fullmatch(r'[0-9a-f]{40}', ref) or not re.fullmatch(r'[0-9a-f]{64}', scope)
+            or len(ids) != len(set(ids))):
+        admission_refuse('binding', 'invalid full ref/scope or duplicate batch record')
+    con = connect(readonly=True)
+    if not con.execute("SELECT 1 FROM sqlite_master WHERE name='sources'").fetchone():
+        admission_refuse('binding', 'legacy store has no retained source records')
+    records = [source_record(con, record_id) for record_id in ids]
+    # Every retained evaluation of these originals participates. Omitting an
+    # adjudication id must not restore an original demand it already rejected.
+    keys = [f"{rec['id']}#{n}" for rec in records if rec.get('job') in REVIEW_JOBS
+            for n, _item in enumerate(((rec.get('result') or {}).get('envelope') or {}).get('findings') or [], 1)]
+    seen = set(ids)
+    for key in keys:
+        for event in con.execute('SELECT record FROM evaluations WHERE key=? ORDER BY seq', (key,)):
+            if event['record'] in seen:
+                continue
+            rec = source_record(con, event['record'])
+            seen.add(rec['id'])
+            if rec.get('job') == 'adjudicate' and ((rec.get('result') or {}).get('envelope') or {}).get('status') == 'ok':
+                records.append(rec)
+    originals, rulings, held_rulings = [], {}, {}
+    superseded = {}
+    for rec in records:
+        env = ((rec.get('result') or {}).get('envelope') or {})
+        if env.get('status') != 'ok':
+            admission_refuse('incomplete', f"{rec['id']} status={env.get('status')}")
+        if (rec.get('snapshot') or {}).get('ref_sha') != ref:
+            admission_refuse('binding', f"ref mismatch in {rec['id']}")
+        if rec.get('job') == 'adjudicate':
+            events, prior, _supplied = ruling_events(con, rec)
+            if not events:
+                for item in env.get('findings') or []:
+                    held_rulings.setdefault(item['evaluation']['source']['key'], set()).add(rec['id'])
+            else:
+                for event in events:
+                    superseded.setdefault(event['key'], set()).update(prior)
+                    rulings.setdefault(event['key'], []).append(event)
+        elif rec.get('job') in REVIEW_JOBS:
+            semantic(rec)
+            originals.append(rec)
+        else:
+            admission_refuse('binding', f"{rec['id']} is not a correction-source job")
+    admitted, held = [], []
+    original_keys = set()
+    for rec in originals:
+        env = rec['result']['envelope']
+        for n, item in enumerate(env['findings'], 1):
+            key = f"{rec['id']}#{n}"
+            original_keys.add(key)
+            candidates = [event for event in rulings.get(key, [])
+                          if event['evaluation_record'] not in superseded.get(key, set())]
+            if not candidates and 'evaluation' not in item and key not in held_rulings:
+                admission_refuse('evidence', f'unevaluated legacy finding {key}')
+        record_binding(con, rec, ref, scope)
+        if producer(rec) is None:
+            admission_refuse('binding', f"unavailable original evaluator in {rec['id']}")
+        for n, item in enumerate(env['findings'], 1):
+            key = f"{rec['id']}#{n}"
+            candidates = [event for event in rulings.get(key, [])
+                          if event['evaluation_record'] not in superseded.get(key, set())]
+            event = candidates[0] if candidates else {
+                'key': key, 'evaluation_record': rec['id'], 'evaluation_n': n,
+                'evaluation': item.get('evaluation')}
+            unresolved = False
+            for dispute in con.execute('SELECT seq FROM disputes WHERE key=?', (key,)):
+                resolutions = {row['record'] for row in con.execute(
+                    'SELECT record FROM resolutions WHERE dispute=?', (dispute['seq'],))}
+                if not resolutions.intersection(event['evaluation_record'] for event in candidates):
+                    unresolved = True
+            # Different partial demands are also an unsettled conflict, not last-writer wins.
+            decisions = {canonical(event['evaluation']) for event in candidates}
+            if (unresolved or held_rulings.get(key, set()) - superseded.get(key, set())
+                    or len(decisions) > 1):
+                held.append({'key': key, 'reason': 'disputed'})
+            elif event['evaluation']['classification'] == 'demonstrated-defect':
+                admitted.append(event)
+            else:
+                held.append({'key': key, 'reason': event['evaluation']['classification']})
+    if (set(rulings) | set(held_rulings)) - original_keys:
+        admission_refuse('binding', 'ruling sources outside the supplied original review batch')
+    print(canonical({'ref': ref, 'scope_sha256': scope, 'admitted': admitted, 'held': held}))
     return 0
 
 
@@ -244,7 +655,21 @@ def do_export(argv):
         sys.stdout.write(text)
         return 0
     for row in con.execute("SELECT * FROM findings ORDER BY record, n"):
-        sys.stdout.write(json.dumps({c: row[c] for c in COLUMNS}, sort_keys=True) + "\n")
+        body = {c: row[c] for c in COLUMNS}
+        body['evaluations'] = [
+            {'record': event['record'], 'n': event['n'], 'evaluation': strict_loads(event['evaluation'])}
+            for event in con.execute('SELECT * FROM evaluations WHERE key=? ORDER BY seq', (row['key'],))]
+        body['disputes'] = []
+        for event in con.execute('SELECT * FROM disputes WHERE key=? ORDER BY seq', (row['key'],)):
+            dispute = strict_loads(event['body'])
+            resolution = con.execute('SELECT record FROM resolutions WHERE dispute=? ORDER BY seq LIMIT 1',
+                                     (event['seq'],)).fetchone()
+            if resolution:
+                dispute['resolved_by'] = resolution['record']
+            body['disputes'].append(dispute)
+        body['disposition_history'] = [strict_loads(event['body']) for event in con.execute(
+            'SELECT body FROM dispositions WHERE key=? ORDER BY seq', (row['key'],))]
+        sys.stdout.write(json.dumps(body, sort_keys=True) + '\n')
     return 0
 
 
@@ -263,6 +688,8 @@ def do_summary(argv):
 
 
 VERBS = {
+    "dispute": do_dispute,
+    "corrections": do_corrections,
     "import": do_import,
     "disposition": do_disposition,
     "calibrate": do_calibrate,
@@ -279,6 +706,10 @@ def main(argv):
         return VERBS[verb](argv[2:])
     except Refused as exc:
         print(str(exc), file=sys.stderr)
+        return 2
+    except (OSError, sqlite3.Error, UnicodeError) as exc:
+        print(' '.join(f'admission-binding: expected readable retained evidence; found {exc}; '
+                       'needed restore the source/store'.split()), file=sys.stderr)
         return 2
 
 
