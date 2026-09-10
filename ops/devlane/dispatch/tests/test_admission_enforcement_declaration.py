@@ -83,52 +83,29 @@ def _minimum_record():
 
 
 class _DeclarationLaunch(ls._TempLaunch):
-    def plant_scope(self):
-        path = self.home / "owner-scope.md"
-        text = "owner scope for admission enforcement tests\n"
-        path.write_text(text, encoding="utf-8")
-        digest = aes.sha256_text(text)
-        self.assertEqual(path.read_text(encoding="utf-8"), text)
-        return path, digest
-
-    def plant_work_order(self, **overrides):
-        scope_path, scope_sha = self.plant_scope()
-        authority = self.home / "owner-enforcement-addendum.md"
-        authority.write_text("enforce prevention; not guidance\n", encoding="utf-8")
-        body = aes.work_order(
-            ident="WO-admission-aa41",
-            branch=self.lineage,
-            base_ref=self.ref,
-            scope={"path": "owner-scope.md", "sha256": scope_sha},
-            authority=[{
-                "path": "owner-enforcement-addendum.md",
-                "sha256": aes.sha256_file(authority),
-            }],
-            test_scope=["ops/devlane/dispatch/tests/"],
-            fixture=[aes.command_row("fx-empty", "true", [])],
-            acceptance=[aes.command_row(
-                "ac-decl",
-                "python3 -m unittest discover -s ops/devlane/dispatch/tests "
-                "-p test_admission_enforcement_declaration.py",
-                [],
-            )],
-            final=[aes.command_row("fn-suites", "ops/bin/suites.sh", [])],
-            reviews=[{"slot": "check-tests", "job": "check-tests"}],
-        )
-        body.update(overrides)
-        path = self.home / "work-order.json"
-        digest = aes.write_json(path, body)
-        self.assertEqual(aes.sha256_file(path), digest)
-        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["id"], body["id"])
-        planted_inputs = json.loads(path.read_text(encoding="utf-8"))["fixture"][0]["inputs"]
-        self.assertEqual(planted_inputs, [])
-        return path, body, digest, scope_path
+    def plant_bound(self, **kwargs):
+        bound = aes.attach_bound(self, **kwargs)
+        self.assertEqual(bound.body["fixture"][0]["inputs"], [])
+        self.assertEqual(bound.request["prior"], [])
+        self.assertEqual(bound.request["kind"], "initial")
+        self.assertTrue((self.repo / bound.test_rel).is_file())
+        return bound
 
     def paid_argv(self, job, stage, extra=(), scope="pin the launcher"):
-        scope_path, _digest = self.plant_scope()
-        flags = ["--input", str(scope_path), *extra]
+        bound = self.plant_bound()
+        flags = ["--input", str(bound.scope_path), *extra]
         return self.argv_for(
             job=job, harness="grok", stage=stage, scope=scope, extra=flags,
+        )
+
+    def bound_argv(self, bound, job, stage, extra=(), *, unit=None, request_path=None):
+        return self.argv_for(
+            job=job,
+            harness="grok",
+            stage=stage,
+            extra=aes.bound_extra(
+                bound, job, extra, unit=unit, request_path=request_path,
+            ),
         )
 
     def assert_admission_launch_refusal(self, code, out, err, ident):
@@ -147,6 +124,11 @@ class _DeclarationLaunch(ls._TempLaunch):
         """Fixture already proved; the intended red is the class token."""
         self.assert_not_started()
         text = self.combined(out, err)
+        self.assertNotIn(
+            "unrecognized arguments",
+            text.lower(),
+            f"missing --work-order/--review-request is not the criteria class: {text!r}",
+        )
         self.assertIn(
             "admission-criteria",
             text.lower(),
@@ -166,13 +148,15 @@ class FixturePreconditionsHoldOnBaseline(_DeclarationLaunch):
         self.assertTrue(witness["argv"])
 
     def test_planted_work_order_keeps_empty_command_inputs(self):
-        path, body, digest, _scope = self.plant_work_order()
-        loaded = json.loads(path.read_text(encoding="utf-8"))
+        bound = self.plant_bound()
+        loaded = json.loads(bound.wo_path.read_text(encoding="utf-8"))
         self.assertEqual(loaded["fixture"][0]["inputs"], [])
         self.assertEqual(aes.retain_list(loaded["fixture"][0]["inputs"], default=["x"]), [])
         self.assertEqual(loaded["terminal"], aes.TERMINAL)
-        self.assertTrue(aes.SHA256_RE.fullmatch(digest))
-        self.assertEqual(body["id"], "WO-admission-aa41")
+        self.assertTrue(aes.SHA256_RE.fullmatch(bound.digest))
+        self.assertEqual(bound.body["id"], aes.BOUND_WO_ID)
+        self.assertEqual(bound.request["kind"], "initial")
+        self.assertIsNone(bound.request["projection_sha256"])
 
 
 class PaidWorkRequiresTheFrozenDeclaration(_DeclarationLaunch):
@@ -198,69 +182,94 @@ class PaidWorkRequiresTheFrozenDeclaration(_DeclarationLaunch):
         self.assert_admission_launch_refusal(code, out, err, "admission-criteria")
 
     def test_a_valid_declaration_lands_brief_admission_and_starts_once(self):
-        wo, body, digest, scope = self.plant_work_order()
-        self.assertEqual(body["fixture"][0]["inputs"], [])
-        code, out, err = self.dispatch(self.argv_for(
-            job="check-tests",
-            harness="grok",
-            stage="check-tests",
-            extra=["--work-order", str(wo), "--input", str(scope)],
+        bound = self.plant_bound()
+        self.assertEqual(bound.body["fixture"][0]["inputs"], [])
+        self.assertEqual(bound.request["kind"], "initial")
+        code, out, err = self.dispatch(self.bound_argv(
+            bound, "check-tests", "check-tests",
         ))
         text = self.combined(out, err)
         self.assertNotIn(
             "unrecognized arguments",
             text.lower(),
-            f"missing --work-order flag is not fixture proof: {text!r}",
+            f"missing --work-order or --review-request is not fixture proof: {text!r}",
         )
         self.assertEqual(code, 0, text)
         rec = self.read_record()
         admission = rec["brief"]["admission"]
         self.assertEqual(set(admission), set(aes.ADMISSION_BRIEF_KEYS))
-        self.assertEqual(admission["work_order"], body["id"])
-        self.assertEqual(admission["declaration_sha256"], digest)
-        self.assertEqual(admission["scope_sha256"], body["scope"]["sha256"])
-        self.assertIsNone(admission["review"])
+        self.assertEqual(admission["work_order"], bound.body["id"])
+        self.assertEqual(admission["declaration_sha256"], bound.digest)
+        self.assertEqual(admission["scope_sha256"], bound.body["scope"]["sha256"])
+        review = admission["review"]
+        self.assertIsNotNone(review, "every review job retains a nonnull initial request")
+        self.assertEqual(review["slot"], "check-tests")
+        self.assertEqual(review["kind"], "initial")
+        self.assertEqual(review["prior"], [])
+        self.assertEqual(review["changes"], [])
+        self.assertIsNone(review["projection_sha256"])
         self.assertTrue(self.start_witness.is_file())
+
+    def test_author_tests_declaration_keeps_review_null(self):
+        bound = self.plant_bound()
+        code, out, err = self.dispatch(self.bound_argv(
+            bound, "author-tests", "tests",
+        ))
+        text = self.combined(out, err)
+        self.assertNotIn("unrecognized arguments", text.lower(), text)
+        self.assertEqual(code, 0, text)
+        rec = self.read_record()
+        self.assertEqual(rec["job"], "author-tests")
+        self.assertIsNone(rec["brief"]["admission"]["review"])
+        self.assertTrue(self.start_witness.is_file())
+
+    def test_check_tests_with_work_order_but_no_request_is_admission_criteria(self):
+        bound = self.plant_bound()
+        code, out, err = self.dispatch(self.argv_for(
+            job="check-tests",
+            harness="grok",
+            stage="check-tests",
+            extra=["--work-order", str(bound.wo_path), "--input", str(bound.scope_path)],
+        ))
+        self.assert_criteria_named(code, out, err)
 
 
 class ChangedOrMalformedCriteriaRefuse(_DeclarationLaunch):
     def test_blank_work_order_id_is_admission_criteria(self):
-        wo, body, _digest, scope = self.plant_work_order()
-        self.assertEqual(body["fixture"][0]["inputs"], [])
+        bound = self.plant_bound()
+        self.assertEqual(bound.body["fixture"][0]["inputs"], [])
+        body = json.loads(bound.wo_path.read_text(encoding="utf-8"))
         body["id"] = " "
-        aes.write_json(wo, body)
-        code, out, err = self.dispatch(self.argv_for(
-            job="check-tests",
-            harness="grok",
-            stage="check-tests",
-            extra=["--work-order", str(wo), "--input", str(scope)],
+        aes.write_json(bound.wo_path, body)
+        self.assertEqual(body["id"], " ")
+        code, out, err = self.dispatch(self.bound_argv(
+            bound, "check-tests", "check-tests",
         ))
         self.assert_criteria_named(code, out, err)
 
     def test_changed_final_command_is_admission_criteria(self):
-        wo, body, digest, scope = self.plant_work_order()
+        bound = self.plant_bound()
+        body = json.loads(bound.wo_path.read_text(encoding="utf-8"))
         body["final"][0]["command"] = "echo mutated-final"
-        aes.write_json(wo, body)
-        self.assertNotEqual(aes.sha256_file(wo), digest)
-        code, out, err = self.dispatch(self.argv_for(
-            job="check-tests",
-            harness="grok",
-            stage="check-tests",
-            extra=["--work-order", str(wo), "--input", str(scope)],
+        aes.write_json(bound.wo_path, body)
+        self.assertNotEqual(aes.sha256_file(bound.wo_path), bound.digest)
+        self.assertEqual(body["final"][0]["command"], "echo mutated-final")
+        code, out, err = self.dispatch(self.bound_argv(
+            bound, "check-tests", "check-tests",
         ))
         self.assert_criteria_named(code, out, err)
 
     def test_duplicate_json_keys_in_the_declaration_refuse(self):
-        scope_path, scope_sha = self.plant_scope()
+        bound = self.plant_bound()
         raw = (
             '{\n'
             '  "id": "WO-dup",\n'
             '  "id": "WO-other",\n'
             '  "branch": "work",\n'
-            f'  "base_ref": "{self.ref}",\n'
-            f'  "scope": {{"path": "owner-scope.md", "sha256": "{scope_sha}"}},\n'
+            f'  "base_ref": "{self.root_sha}",\n'
+            f'  "scope": {{"path": "owner-scope.md", "sha256": "{bound.scope_sha}"}},\n'
             '  "authority": [],\n'
-            '  "test_scope": ["ops/devlane/dispatch/tests/"],\n'
+            f'  "test_scope": ["{aes.BOUND_TEST_REL}"],\n'
             '  "fixture": [{"id": "fx", "command": "true", "inputs": []}],\n'
             '  "acceptance": [{"id": "ac", "command": "true", "inputs": []}],\n'
             '  "final": [{"id": "fn", "command": "ops/bin/suites.sh", "inputs": []}],\n'
@@ -270,23 +279,28 @@ class ChangedOrMalformedCriteriaRefuse(_DeclarationLaunch):
         )
         wo = self.home / "dup.json"
         wo.write_text(raw, encoding="utf-8")
+        self.assertIn('"id": "WO-dup"', wo.read_text(encoding="utf-8"))
+        self.assertIn('"id": "WO-other"', wo.read_text(encoding="utf-8"))
         code, out, err = self.dispatch(self.argv_for(
             job="check-tests",
             harness="grok",
             stage="check-tests",
-            extra=["--work-order", str(wo), "--input", str(scope_path)],
+            extra=[
+                "--review-request", str(bound.request_path),
+                "--work-order", str(wo),
+                "--input", str(bound.scope_path),
+            ],
         ))
         self.assert_criteria_named(code, out, err)
 
     def test_absolute_declaration_paths_refuse(self):
-        wo, body, _digest, scope = self.plant_work_order()
+        bound = self.plant_bound()
+        body = json.loads(bound.wo_path.read_text(encoding="utf-8"))
         body["test_scope"] = [str(self.home / "outside")]
-        aes.write_json(wo, body)
-        code, out, err = self.dispatch(self.argv_for(
-            job="check-tests",
-            harness="grok",
-            stage="check-tests",
-            extra=["--work-order", str(wo), "--input", str(scope)],
+        aes.write_json(bound.wo_path, body)
+        self.assertTrue(str(body["test_scope"][0]).startswith("/"))
+        code, out, err = self.dispatch(self.bound_argv(
+            bound, "check-tests", "check-tests",
         ))
         self.assert_criteria_named(code, out, err)
 
@@ -307,6 +321,22 @@ class RecordValidateBindsAdmissionShape(unittest.TestCase):
         kept = built["brief"]["admission"]
         self.assertEqual(kept["work_order"], "WO-admission-aa41")
         self.assertEqual(kept["review"], None)
+        record.validate(built)
+
+    def test_review_job_admission_preserves_the_initial_request(self):
+        record = self.recmod()
+        payload = _minimum_record()
+        payload["job"] = "check-tests"
+        payload["stage"] = "check-tests"
+        payload["role"] = "read"
+        req = aes.initial_request()
+        payload["brief"]["admission"] = aes.admission_brief(
+            "WO-admission-aa41", "a" * 64, "b" * 64, review=req,
+        )
+        built = record.build(payload)
+        kept = built["brief"]["admission"]["review"]
+        self.assertEqual(kept["kind"], "initial")
+        self.assertEqual(kept["prior"], [])
         record.validate(built)
 
     def test_blank_work_order_id_is_refused(self):
