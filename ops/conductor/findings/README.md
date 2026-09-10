@@ -21,6 +21,16 @@ implement these interfaces; independent acceptance remains pending. Preserve
 raw findings and verdicts; neither a disposition nor severity grants admission.
 Old rows remain readable and require bound evaluation before fresh correction.
 
+The [mandatory prevention amendment](../../devlane/task/FINDING-ADMISSION.md#mandatory-prevention-amendment)
+extends this same ledger with immutable work-order declarations and append-only
+review reservations, execution-receipt references and followup closure events.
+Canonical launch uses its eligibility decision for manual and ladder dispatch
+before model spawn. A completed review cannot be restarted as an initial review
+under another unit/id; followups require admitted unresolved findings, bound
+corrections and an existing permitted slot. Imported worker assertions cannot
+certify launcher execution. Legacy reads remain unchanged; enforcement and
+independent acceptance of these additions are pending.
+
 The series this makes readable is the audit ladder's marginal detection
 series (`docs/workflow.md`): findings per reviewer per batch, and what
 each later stage still found. That is the number the planning process

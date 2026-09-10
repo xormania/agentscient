@@ -68,8 +68,8 @@ dictionary construction, including inside an evaluation.
 | `failure` | String or null; expected versus actual behavior and consequence. For a partial ruling this is the exact admitted subclaim. |
 | `evidence` | Null or closed object `{kind, details}`. `kind` is `reproduction` or `execution-path`; `details` is a nonblank string recording command and observed result, or the cited execution path, measured against the envelope's full `stamp.ref`. |
 | `refutation` | Nonblank string; attempted counterargument/check, result and remaining limits. For unproven/expansion, state the missing evidence, defeated premise or extra scope. |
-| `source` | Null for the original review; for adjudication, closed object `{key, sha256}` binding the original raw finding. `key` is the existing `<record>#<n>`, with one-based positive decimal `n`; `sha256` is 64 lowercase hex digits. |
-| `ruling` | Null for original review; `UPHELD`, `PARTIAL` or `REJECTED` for adjudication. |
+| `source` | Null for the original review; for adjudication or a requested followup closure, closed object `{key, sha256}` binding the original raw finding. `key` is the existing `<record>#<n>`, with one-based positive decimal `n`; `sha256` is 64 lowercase hex digits. |
+| `ruling` | Null for original review; `UPHELD`, `PARTIAL` or `REJECTED` for adjudication or requested followup closure. |
 
 `demonstrated-defect` requires non-null requirement, trigger, failure and
 evidence. `reproduction` also requires the existing nonblank `reproduce`
@@ -157,8 +157,10 @@ Selection uses the original evaluation unless a valid independent ruling
 supersedes it; unresolved disputes hold that key. Multiple unresolved rulings
 with conflicting classifications hold the key as disputed, never last-writer
 wins. A later ruling must explicitly settle those supplied prior rulings.
-Only a semantically valid `status=ok` adjudication can supply a ruling;
+Only a semantically valid `status=ok` adjudication can resolve a dispute;
 invalid/tripped adjudications retain partial evidence without resolving disputes.
+Requested followup closure below can settle an undisputed correction claim,
+but cannot substitute for independent adjudication of a dispute.
 
 Missing/malformed evaluations, duplicate batch records, unknown keys/records,
 missing source evidence, source/ref/scope mismatch, or any incomplete review in
@@ -229,6 +231,281 @@ dispositions such as fixed, ruled or opinion and a raw CHANGES verdict cannot
 substitute. Missing old scope, source, full ref or independence evidence blocks
 new admission with a named reason; never guess from a twelve-character ref.
 
+## Mandatory prevention amendment
+
+Authority: owner, 2026-09-09, supplied `owner-enforcement-addendum.md`:
+"what the fuck is the point if its not enforced?" The fixture-proof,
+additional-review and terminal boundaries below are requirements of this
+deliverable. They supersede advisory prevention in the
+[review-churn AAR](../../conductor/AAR-2026-09-09-review-churn.md), without
+rewriting its measurements. Standing: declared design; implementation and
+independent RED → GREEN acceptance are pending. The original five corrections
+in `20260910T005819Z-code-codex-5b0115` remain a separate active source job.
+This amendment changes no source, tests, onboarding, lane_policy or Git monitor.
+
+### Frozen work-order declaration
+
+Extend canonical dispatch/wrapper with `--work-order FILE`, retained with the
+existing hashed inputs. It is required for fresh test-authoring, implementation,
+review and adjudication work under this admission contract, including manual
+dispatch. Ladder takes the same option and forwards it; resume reads the
+retained declaration, never a replacement file. No optional bypass is defined.
+Planning and historical read/export operations do not require one.
+
+FILE is strict UTF-8 JSON with duplicate keys refused. Its closed object has
+exactly the following required fields. All strings are nonblank, all hashes
+are lowercase SHA-256, all refs are full commit object ids. File paths are
+unique normalized repository-relative paths or names of retained input files;
+absolute paths, traversal and symlinks outside admitted roots refuse. Arrays
+are ordered and nonempty unless explicitly stated otherwise.
+
+| field | exact shape and binding |
+|---|---|
+| `id` | String, matching `[A-Za-z0-9][A-Za-z0-9._-]*`; stable work-order key, not a new dispatch id. |
+| `branch`, `base_ref` | Strings; owning lineage and its initial full ref. Later candidates must descend from this ref. |
+| `scope` | `{path, sha256}`; exact retained owner scope bytes used by finding evaluations. |
+| `authority` | Array of `{path, sha256}`; retained owner scope/addendum inputs establishing this work and its terminal action. These are evidence, not a new grant or authority inference from reviewer text. |
+| `test_scope` | Array of repository-relative directory or file paths; frozen selection boundary for tests, helpers and fixture data. Directory entries end in `/` and include every tracked descendant. |
+| `fixture`, `acceptance`, `final` | Arrays of command rows defined below. Fixture checks must execute without the new API; acceptance runs the intended behavioral tests; final includes `ops/bin/suites.sh` and every already-required final check. |
+| `reviews` | Array of `{slot, job}`; the existing required review slots and jobs for this work order, in their existing order. No new reviewer count, model selection, closure stage or retry allowance. Launcher validates against the retained existing ladder stage table, or the supplied existing owner work-order sequence for manual work. |
+| `terminal` | Exactly `{action: "draft-pr", base: "dev"}`. No ready, merge, release or branch deletion. |
+
+A command row is exactly `{id, command, inputs}`. `id` is unique across all
+three phases; `command` is the exact nonblank shell command executed by the
+existing trusted verification subprocess; `inputs` is an explicit array
+(possibly empty) of `{path, sha256}` for external retained inputs. Tracked
+command scripts and their dependencies bind to each candidate's full ref.
+Commands are owner-scoped inputs, never copied from finding `reproduce`, an
+envelope or reviewer suggestions. Freeze complete test-file commands before
+the first test dispatch; absent future files do not authorize derived defaults.
+The existing ladder's artifact-derived command is only a consistency check
+against this declaration for bound work, not a second source of criteria.
+
+The ledger retains the original FILE bytes and digest, scoped to its existing
+lane/repository and branch. Only one active declaration per branch is allowed;
+a new id, `--unit`, scope spelling or fresh dispatch id cannot reset its review
+history. Registration records the invoking `WF_AGENT` and authority input
+digests, not a fabricated owner signature. Changed criteria or authority bytes
+refuse; an actual owner scope revision is a separate work order requiring
+explicit owner evidence and closure/supersession of the prior binding, never an
+automatic retry. This interface offers no reset or override operation.
+
+Dispatch `brief.admission` is exactly
+`{work_order, declaration_sha256, scope_sha256, review}`; `review` is null
+outside review jobs, otherwise the request below. `record.py` validates this
+extension; `work_order` is the declaration id string and `review` contains the
+exact decoded request, whose original bytes/digest are retained as an input.
+The ledger retains registration and reservations append-only;
+the ladder retains the same declaration digest and dispatch references.
+Hash declaration bytes without reformatting. Hash derived objects using the
+canonical JSON encoding already specified for evaluations.
+
+### Executed fixture and acceptance evidence
+
+The execution owner is `launch.py`, reusing the verification subprocess and
+sanitized child environment of `_collect`, the admitted snapshot/custody
+boundary and recorded wall. Add `launch.py verify ID --phase PHASE`, where
+PHASE is `fixture`, `acceptance` or `final`; it executes only that record's
+declared commands, requires existing write identity, and spawns no model.
+This is evidence production in the existing launcher, not a task vendor path
+or revival of the unbuilt `wf` writing verbs. `collect --verify` remains a
+recovery check and cannot replace these phase receipts with an arbitrary CMD.
+
+Before any paid `check-tests` attempt, canonical launch stages the candidate
+test bytes under its existing allowed custody, runs every fixture command and
+validates the resulting receipt before `_run_attempt`. Test-result acceptance
+also invokes this same path after the test author's result is available and
+before publishing an accepted test result. A worker may return raw candidate
+output without proof; it cannot thereby supply accepted test evidence.
+Other paid reviews require current fixture proof for the tests they rely on.
+Unchanged receipts may be reused only on an exact binding match. Missing,
+stale or failed proof blocks advancement until a fresh successful execution;
+no paid review repairs a proof failure. Retry/limit rules remain unchanged.
+
+The verifier executes in a disposable copy of the bound candidate snapshot,
+with only its already-admitted inputs and a dedicated verification home.
+It records hashes before and after execution, including all tracked files in
+`test_scope`; changed tests, scripts or inputs invalidate that run. Fixture
+mutation happens only in declared scratch copies. Test authors may inspect
+established public consumers needed by fixtures; new implementation remains
+withheld. If current snapshot staging cannot prove both permitted access and
+withholding, it refuses custody; this amendment grants no new source access.
+
+Fixture commands must assert actual planted values and exercise established
+consumer assumptions directly, before any missing-new-API call: explicit empty
+lists must stay empty; event names, fields and formatting must match the
+established consumer; dependencies, provenance and batch keys must exist as
+declared. Independently authored focused checks establish these assumptions.
+The existing `test-guard.py` may also run where applicable, but its narrow
+regex result cannot satisfy this executable fixture duty. Missing-API red is
+recorded as such; it is neither fixture proof nor proof of downstream asserts.
+The independent test reviewer still judges whether the chosen checks cover
+the assumptions. Code proves execution and bindings, not semantic completeness.
+
+Launcher-owned `verification` is an append-only array beside existing attempt
+evidence, outside worker-writable snapshot/in/out. Every entry is the closed
+object below; its hash is retained by the ledger and acceptance consumers.
+
+| fields | exact types and meaning |
+|---|---|
+| `dispatch`, `attempt`, `phase` | Dispatch id string, positive integer attempt binding, phase enum above. Pre-review proof binds the reserved next attempt; it cannot be reused for a different attempt. |
+| `work_order`, `declaration_sha256`, `scope_sha256`, `ref` | Strings matching retained declaration, owner scope and full candidate commit. |
+| `tests` | Sorted array of `{path, sha256, producers}`; nonempty complete expansion of `test_scope`; `producers` is a nonempty array of artifact-producing dispatch ids whose retained commit diffs account for the file's current bytes. No identity from worker prose. |
+| `tests_sha256` | Hash of canonical `tests`; every selected path/byte and producer is bound. |
+| `executor` | `{path, sha256}` for the launcher code actually executing the verification subprocess; resolve once and retain its bytes, never hash one revision and execute another. |
+| `by`, `started`, `ended` | Existing full invoking identity and UTC timestamp strings, measured by launcher. |
+| `commands` | Ordered rows `{id, command, inputs, exit, timed_out, stdout, stderr}` matching the phase declaration exactly. `exit` is an integer or null for spawn failure/timeout; `timed_out` is boolean; stdout/stderr are `{path, sha256}` handles to retained process bytes, not worker log summaries. |
+| `status`, `reason` | `ok` with null reason only if every command completed with exit 0 and all bindings held; otherwise `invalid` with nonblank reason naming failure or unavailable evidence. |
+
+Run phase commands in order and retain all results; on infrastructure abort,
+mark the receipt invalid and name unexecuted command ids in `reason`. An empty
+command result array never passes. Raw red behavioral runs remain separate
+failed execution evidence, bound to the same test manifest; only the independent
+review determines whether their failures are the intended red. Test producer
+provenance must establish independence from implementation under the existing
+cross-review rule. Test-byte changes require an admitted test correction and
+new proof; unchanged tests at a new candidate ref still require fresh execution.
+
+Receipt admission reads the launcher's retained process result and bound
+record, verifies files/digests and provenance, and compares the actual executed
+command list. A worker-authored `verification`, `status=ok`, output handle or
+copied historical receipt has no execution authority. Close, resume, collect,
+ledger review import and ladder/land acceptance use the same predicate, not
+merely `record.py`'s shape check. Legacy results remain readable but cannot
+authorize new bound advancement without current executed evidence. This is
+mechanical enforcement through canonical entrypoints under the trusted-host
+boundary, not protection against an owner using raw shell or same-UID tampering.
+
+### Review eligibility through manual dispatch and ladder
+
+For review jobs, add `--review-request FILE` to wrapper and launch; ladder
+generates the identical request. The closed object is
+`{slot, kind, prior, projection_sha256, changes}`. `slot` names a declared
+review slot; `kind` is `initial` or `followup`. Initial has `prior=[]`,
+`projection_sha256=null`, `changes=[]`. Followup has the complete nonempty
+prior review batch, its canonical correction-projection digest and nonempty
+`changes`, each exactly `{key, correction_record, before_ref, after_ref,
+paths, behavior}`. Paths are a nonempty sorted array of changed tracked paths;
+behavior is nonblank text naming the admitted failure and changed behavior.
+Refs and correction commit paths must match retained correction dispatch
+provenance and the candidate. This structural check cannot prove the text true.
+
+The ledger's existing `corrections` projection is the eligibility source.
+Every followup key must still be admitted, unresolved in this work order and
+included in that correction's retained input projection. A producer's `fixed`
+disposition or successful implementation is only a closure claim until the
+independent followup accepts it; it does not erase unresolved review duty.
+Reject held, unrelated, unknown, already independently closed or unevaluated
+keys; reject missing source batches, unchanged behavior with no matching code
+or test diff, and unbound correction refs. Affected paths constrain the review
+demand, not permission to hide serious incidental issues. Reuse the existing
+custody-safe admitted specification projection; raw mixed reports never become
+test-author instructions.
+
+Canonical launch consults and atomically reserves the ledger slot before
+model spawn, for both manual and ladder calls. The reservation records exactly
+`{work_order, slot, dispatch, attempt, request_sha256, state}`, with state
+`reserved`, `completed` or `failed`, appended as events. One completed initial
+review consumes its slot. Concurrent duplicates, renamed-unit duplicates and
+a new initial review after fixture fixes refuse. A retry refers to the same
+reservation and recorded failed attempt under existing retry limits; a
+completed review is never a retry. A followup additionally needs a remaining
+followup slot in the existing sequence: unresolved findings alone do not add
+one. In particular, the ladder's no-second-skeptic and single security re-audit
+limits hold. Pre-spawn proof failures leave diagnostic evidence and release
+the unstarted reservation without consuming a paid attempt. Crash recovery
+reconciles its named record; it never guesses that an active reservation died.
+
+The followup returns evaluation-bearing findings bound through `source` to
+each requested key exactly once. Reuse adjudication source/ruling semantics
+for closure: `UPHELD`/`PARTIAL` means an admitted failure remains; `REJECTED`
+with counter-evidence means the requested claim no longer holds at the new
+ref. Bind source hash/ref to its original record and review stamp to the
+candidate ref; the two refs need not be equal. Task validates structure;
+ledger validates the complete request binding and review independence.
+No extra key may become a closure ruling. Incidental findings without a source
+remain verbatim visible follow-ups with their evaluations; they cannot change
+this request's correction projection or terminal criteria. A new demonstrated
+in-scope issue still needs explicit admission to a permitted unresolved batch;
+there is no automatic new dispatch or dismissal. Disputes use the existing
+independent adjudicator. Incomplete followup never closes a key or approves.
+For this bounded followup only, the verdict reflects the supplied closure batch:
+`changes` if any requested failure remains, `approve` only if every requested
+claim is completely resolved. Incidental findings retain their raw counts and
+classifications without changing that verdict or erasing existing review gates.
+The slot's initial/followup kind must match the existing sequence, so an initial
+request cannot occupy a reserved re-audit slot. Extend task validation with
+keyword-only `admission=None`: the default preserves legacy validation;
+canonical acceptance supplies launcher-bound context, never a worker-selected
+mode. A source-bearing review closure without its retained followup request
+cannot authorize closure. Dispatch extraction and replay must use this same
+context-aware validator; standalone legacy parsing confers no advancement.
+
+### Refusals, completion and independent acceptance
+
+| class | expected / found / needed boundary |
+|---|---|
+| `admission-criteria` | Frozen complete declaration / absent, malformed or changed criteria, unknown slot or reset id / supply original retained owner-scoped declaration; an owner scope change requires separate authority. |
+| `admission-fixture` | Current successful executed fixture proof / absent, failed, stale, forged or mutated evidence / run declared checks successfully on the actual bound tests. |
+| `admission-review` | An eligible unconsumed slot and admitted changed unresolved batch / duplicate, exhausted slot or unsupported followup / complete the existing authorized path or resolve its named evidence deficiency. |
+| `admission-binding` | Exact source, producer, ref, scope, request and receipt bindings / missing or mismatched evidence / restore the correct retained records, never infer identities. |
+| `admission-incomplete` | Complete accepted review and declared final evidence / incomplete review or missing/failed acceptance/final command / finish the named existing checks. |
+
+All are non-overridable. Ledger/verify CLI preconditions use exit 2, empty
+stdout and one expected–found–needed stderr line. Canonical launch/wrapper
+preserve their existing dispatch-refusal exit 3; pre-spawn refusal creates no
+model process. After execution, retain invalid/null-verdict evidence and named
+cause; ladder uses its existing stopped-stage exit 3. Do not relabel a failed
+execution as a pre-effect rejection. Existing identity/custody refusals stand.
+
+Completion requires the exact declared fixture, acceptance and final commands
+to pass against the final candidate, current test/producer bindings, complete
+required reviews under their existing freshness rules, and no admitted
+unresolved correction/dispute in the required batch. Compare declarations on
+every fresh dispatch, resume, result acceptance and before the terminal action.
+No artifact-derived replacement command or reviewer condition may enter here.
+If freshness requires review but the existing slots are exhausted, stop with
+the named unsatisfied criterion; do not invent a stage or claim completion.
+Once satisfied, ladder takes its existing push/draft-PR path into dev. Add
+`ops/bin/ladder.sh finish WORK_ORDER` for manual work: resolve the registered
+owning worktree and accepted records, apply that identical terminal predicate,
+then invoke the existing driver's push/draft-PR operation without launching
+review stages. This is the canonical manual terminal entrypoint, not a new
+closure review. It refuses absent work-order/evidence bindings before push.
+Retain `{work_order, declaration_sha256, ref, receipts, reviews, pr}` in the
+existing ladder record (manual terminal evidence in the ledger): receipts are
+receipt hashes, reviews accepted record ids, pr the returned draft URL. A
+failed terminal operation remains stopped and resumable without fresh reviews
+if bindings are unchanged. No release/merge authority follows.
+
+Independent tests are authored once from this amendment after the original
+five corrections finish, then implemented by a different producer. Extend
+existing dispatch/task/ledger/ladder test homes, using synthetic process and
+dispatch records. No new review dispatch or executable test is part of this
+docs-only amendment. This bounded matrix supplements the original admission
+matrix; source cases are the dated AAR and supplied owner addendum, not newly
+inspected private dispatch captures.
+
+| case | required paired behavioral observation |
+|---|---|
+| Empty-list substitution | Actual fixture checks reject default substitution for `[]`; the helper preserving `[]` passes. |
+| Nineteen absent-adapter reds, guessed event consumer | Missing API alone cannot pass fixture gate; established event/format checks execute before API access, catch the wrong assumption and pass the corrected one. No new monitor implementation here. |
+| Admission fixture omissions | Missing dependency/provenance, key outside batch or forbidden raw report refuses at its owning binding/custody gate; complete permitted projection passes. |
+| Executed proof versus assertion | Invoke real launch preflight with a spy model boundary: populated worker receipt with no child run, failed/omitted fixture command and stale test/ref/scope hashes yield zero model starts; real successful process evidence permits one. |
+| Manual review churn and concurrency | Real wrapper → launch path rejects a second whole `check-tests`, including renamed unit/new id and simultaneous duplicate; first eligible slot starts once. |
+| Earned followup | Admitted unresolved key plus bound changed behavior and an existing followup slot passes; held/closed/unchanged/unrelated key, exhausted slot and altered request refuse. Resume preserves attempts rather than buying another round. |
+| Followup scope and completeness | Complete supplied-key closure is accepted; missing/duplicate ruling refuses; incidental expansion/unproven findings remain visible without becoming new closure conditions or dispatches. |
+| Criteria and terminal | Changed command/input/required check or missing declaration refuses through fresh/resume/collect/acceptance; all frozen checks and required reviews green trigger only the draft-dev terminal path. Failure retains stop; unchanged terminal retry adds no review. |
+| Custody, producer and legacy | Same/unknown producer and leaked withheld source refuse; permitted established interfaces and independent producer pass. Old records still read unchanged but cannot seed unbound new advancement. |
+
+Use real entrypoints and a controlled verification subprocess; mock paid model,
+GitHub and landing boundaries only where needed. Assert process invocation,
+retained stdout/stderr bytes, exact bindings, refusal wire and no forbidden
+dispatch/terminal effect. Shape tests and prompt substring assertions alone
+cannot certify these outcomes. Acceptance records retain RED and GREEN with
+identical independent test hashes plus focused and `ops/bin/suites.sh` results.
+Until those receipts exist, machine enforcement remains pending.
+
 ## Verification boundaries and implementation handoff
 
 Recovery at base `46a2805d1f7075a5491a451ab4346e8f3d26192c` continues the
@@ -285,6 +562,14 @@ that empty admission supplies a legacy CHANGES review's missing approval.
 The older ladder test that requires raw SKEPTIC input also contradicts the
 admitted-only correction requirement. Full-suite and independent acceptance
 remain outstanding; these local measurements are not their substitute.
+Amendment source reading, 2026-09-10, against
+`9399f228a71d2a245a14cb06bcf4a8c123142ae6`:
+`sed -n '1304,1531p' ops/devlane/dispatch/launch.py` locates preflight,
+snapshot/input retention and `_run_attempt`;
+`sed -n '2168,2266p' ops/devlane/dispatch/launch.py` locates the existing
+verification subprocess; `sed -n '1091,1121p' ops/conductor/tools/ladder.py`
+locates artifact-derived commands. These are extension seams, not executed
+proof of the amendment. Earlier source measurements below retain their dates.
 
 Measured source baseline: `d7bf77f9cbf34398961dcde3add4530d25b83fd3`,
 2026-09-09. `sed -n '35,120p' ops/devlane/task/envelope.py` shows the closed

@@ -725,6 +725,27 @@ is run from; the **lineage branch** is the branch the work unit lives
 on; the **job directory** is where one dispatch's snapshot and
 artifacts live, outside every repository.
 
+### Finding-admission enforcement amendment (target)
+
+The owner-scoped [mandatory prevention amendment](../task/FINDING-ADMISSION.md#mandatory-prevention-amendment)
+owns exact declaration, receipt, reservation and followup fields. Extend the
+existing wrapper/launch inputs with `--work-order FILE` and, for review jobs,
+`--review-request FILE`; resume uses their retained bytes. Direct canonical
+launch enforces the same ledger eligibility as manual wrapper and ladder calls,
+before `_run_attempt`, so a fresh manual dispatch cannot reset review limits.
+Add `launch.py verify ID --phase fixture|acceptance|final`, reusing `_collect`'s
+trusted verification subprocess boundary to execute frozen commands without
+a model. Fixture verification runs before paid test review and test-evidence
+acceptance; worker-authored receipts are never execution proof.
+
+`record.py` validates `brief.admission` and launcher-owned `verification` as
+declared there. Close, resume, collect and acceptance consumers verify retained
+process evidence and actual test/ref/scope/producer bindings, not just shape.
+The existing dispatch-refusal exit 3, custody, C1/C2 and failed-collect behavior
+remain authoritative. These additions are mandatory deliverable requirements
+pending independent tests and implementation; the verbs below describe the
+earlier interface, not evidence that the additions already execute.
+
 ### Verbs
 
 ```text

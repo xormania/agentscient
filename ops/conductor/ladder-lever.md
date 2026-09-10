@@ -10,6 +10,18 @@ ledger, or process law.
 conditions and inputs below. It is the owner-scoped target; source enforcement
 requires the later independent tests and implementation described there.
 
+Its [mandatory prevention amendment](../devlane/task/FINDING-ADMISSION.md#mandatory-prevention-amendment)
+also governs bound work orders: `--work-order FILE` carries frozen fixture,
+acceptance and final commands and the draft-dev terminal action. The driver
+forwards this declaration and `--review-request FILE` to canonical dispatch,
+uses launcher-executed verification receipts, and reserves review eligibility
+through the ledger. The same checks bind manual dispatch and resume. These
+are pending implementation obligations, not additional review stages.
+The target `ops/bin/ladder.sh finish WORK_ORDER` resolves a manual work order's
+registered worktree and consumes the same terminal predicate and existing
+push/draft-PR operation, without dispatching another review. Missing bindings
+refuse before push; terminal failures retain resumable evidence.
+
 ## Conventions
 
 This instrument inherits `ops/conductor/instrument-conventions.md`:
@@ -50,11 +62,13 @@ dispatcher from the lane configuration, never carried in this table.
 | `pr` | `gh pr create --draft` | none | none | body built from records | audits approve |
 
 Security and adversarial audit dispatches are started back to back and
-waited in table order. No other stages run concurrently. Test commands
-come only from test artifacts in the first test envelope: each path
+waited in table order. No other stages run concurrently. For legacy work, test
+commands come only from test artifacts in the first test envelope: each path
 under a `tests/` directory becomes a `python3 -m unittest discover`
 invocation, joined in order with `&&`. No such artifact is an
-`artifacts` stop, never an invented command.
+`artifacts` stop, never an invented command. Bound work orders instead execute
+their frozen commands; artifact derivation checks consistency and cannot
+replace, expand or drop the declared acceptance set.
 
 Write stages (`tests`, `tests-fix`, each `code`, `fix-tests`, and
 `fix-code`) land through `land.py` with `--author` from the worktree's
@@ -116,6 +130,9 @@ After every transition the driver commits
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
   and PR result;
 - scope, optional plan, and conf paths with SHA-256 digests;
+- for bound work, the immutable work-order declaration/digest, consumed review
+  request and reservation references, verified receipt hashes and terminal
+  evidence specified in the admission amendment; resume revalidates them;
 - ordered stage rows naming job, harness, attempt, input path and
   digest, custody proof, dispatch record, dispatched and recorded model
   and effort, outcome, landed shas, and ledger import/export state;
