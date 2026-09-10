@@ -1,0 +1,155 @@
+{
+  "id": "20260910T013050Z-tests-grok-73ed30",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/onboarding-brief-inputs",
+  "lineage": {
+    "branch": "lane/onboarding-brief-inputs-20260910",
+    "base_sha": "82511029c40c80eda29d08e360c545e1fa590b2e"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "GPT-6 Astra <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-10T01:30:51Z",
+    "closed": "2026-09-10T01:37:53Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "82511029c40c80eda29d08e360c545e1fa590b2e",
+    "ref_sha": "82511029c40c80eda29d08e360c545e1fa590b2e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-onboarding-brief-inputs-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "c028426d-0c41-411d-9873-fd57b66cc3f7",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/home/grok-stream/sessions/<snapshot-encoded>/c028426d-0c41-411d-9873-fd57b66cc3f7/summary.json"
+  },
+  "session": {
+    "id": "c028426d-0c41-411d-9873-fd57b66cc3f7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/home/grok-stream/sessions/<snapshot-encoded>/c028426d-0c41-411d-9873-fd57b66cc3f7/summary.json",
+    "stream_sha256_at_close": "18ee9cfb0831dd087ca6d1bda3353b794e8bc14aab2267188263c5c102f1d7b7",
+    "spend": {
+      "unresolved": "UNREACHABLE: the store carries no usage for this session",
+      "looked_in": [
+        "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/home/grok-stream"
+      ]
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-onboarding-brief-inputs-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "ops/devlane/dispatch/CONTRACT.md input visibility. Read ../in/brief-test-review.json and ../in/reproduce_prompt_faults.py whole. Fix only the two demonstrated test gaps in ops/devlane/dispatch/tests/test_launch_input_visibility.py: missing read-before-work instruction and a phantom Inputs: list for empty input. Do not read implementation or jobs.json. Add focused assertions using the existing synthetic worker witness; preserve existing cases. Prove each supplied faulty counterparty fails its own assertion and original six missing-path failures still reproduce without errors. No broader test rewrite or new requirements.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/in/brief-test-review.json",
+        "sha256": "f4e3bcb7dfb0582a38dcbbf890f6b69f0e5909e036aef284c36df957beb1e699"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/in/reproduce_prompt_faults.py",
+        "sha256": "0225c1221320c48f5e52644001427d4e69ed4016bc517c67ae094b0b6c48783b"
+      }
+    ],
+    "sha256": "e47b9848624eb8ee57fda82b992a2a772c3236f33cf1cc41d9e120e87007a0d3",
+    "bytes": 2970
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 420.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T01:30:51Z",
+      "ended": "2026-09-10T01:37:53Z",
+      "exit": 137,
+      "tripped": true
+    }
+  ],
+  "result": {
+    "head": "82511029c40c80eda29d08e360c545e1fa590b2e",
+    "changed_paths": [],
+    "residual_paths": [
+      " M ops/devlane/dispatch/tests/test_launch_input_visibility.py"
+    ],
+    "envelope": {
+      "job": "author-tests",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {},
+      "findings": [],
+      "artifacts": {},
+      "spend": {},
+      "stamp": {
+        "ref": "82511029c40c80eda29d08e360c545e1fa590b2e"
+      },
+      "note": "envelope-parse: no JSON object on stdout; timeout: harness exceeded runtime; cause: {\"note\": \"timeout: harness exceeded runtime\", \"reason\": \"timeout\"}"
+    },
+    "residual_patch": {
+      "path": "/home/scientdb/.local/state/agentscient/dispatch/20260910T013050Z-tests-grok-73ed30/residual.patch",
+      "sha256": "15d20036a5c15d254c3cdb485802c6f9ead478610d5e880e360bf527258578aa",
+      "untracked": []
+    },
+    "cause": {
+      "reason": "timeout",
+      "note": "timeout: harness exceeded runtime"
+    }
+  },
+  "status": "closed"
+}
