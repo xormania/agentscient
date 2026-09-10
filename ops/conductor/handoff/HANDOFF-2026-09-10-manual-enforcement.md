@@ -91,3 +91,15 @@ This is a native tool and process boundary, not operating-system isolation
 against a malicious same-UID owner process. Agy has no verified conductor
 interceptor in this repair and is refused in that role. No Symfony runtime
 is required. Preserved audit/onboarding branches are not integrated here.
+
+## Worker environment probe, consolidation of 2026-09-10
+
+The parallel candidate in PR #79 was withdrawn in favor of this repair; its
+implementation stays retrievable on `repair/audit-enforcement-manual-20260910`.
+The one measurement it carried that this handoff lacked is the worker side of
+the boundary. [worker-environment-probe.json](evidence-2026-09-10-manual-enforcement/worker-environment-probe.json)
+records it against this branch's exact controller bytes: for Codex and Grok a
+declared action receives the owner's original home paths, not the conductor's
+private hook home, and for Claude the gate rides on flags with no environment
+to restore. Stand-in host scripts were used, so this measures the seat's
+environment boundary only; native denials remain in the host receipts above.
