@@ -11,10 +11,12 @@ Reliability is the count below trending to zero per ladder.
 
 | id | observed | where | defect | repair | tests |
 |---|---|---|---|---|---|
-| LD-1 | 2026-09-10 | matrix guard vs `ops/README.md` | README says `launch.py wait ID` waits for closure; the guard refuses it as `direct-launch`. Documented verb, unusable by a session. | open | — |
-| LD-2 | 2026-09-10 | `ladder.py`, ladder 679214 stage check-tests | the driver handed stages scope and plan only; a scope sentence citing the work order sent the skeptic after `in/` files never supplied; it refused. | PR 87, 05e5bc3, grant 51 | dispatched to Grok on `repair/ladder-inputs-tests-20260910` |
-| LD-3 | 2026-09-10 | `ladder.py` resume | scope and plan are digest-pinned; correcting a scope sentence mid-ladder needs a hand edit of the record (grant 49). A corrected scope should be a recorded event. | open | — |
+| LD-1 | 2026-09-10 | matrix guard vs `ops/README.md` | README says the launcher's `wait ID` verb waits for closure; the guard refuses it as `direct-launch`. Documented verb, unusable by a session. | blocked: the session's edit to the guard was denied as self-modification (grant 59, no change); three-line fix handed to the owner, worktree `ag-matrix-read-verbs-20260910` | — |
+| LD-2 | 2026-09-10 | `ladder.py`, ladder 679214 stage check-tests | the driver handed stages scope and plan only; a scope sentence citing the work order sent the skeptic after `in/` files never supplied; it refused. | PR 87, 05e5bc3, grant 51 | PR 90: 13 Grok tests; 3 found LD-6, 2 corrected per ruling cd4bef |
+| LD-3 | 2026-09-10 | `ladder.py` resume | scope and plan are digest-pinned; correcting a scope sentence mid-ladder needs a hand edit of the record (grant 49). A corrected scope should be a recorded event. | PR 89, d9a455f, grant 57: `resume --rescope` records the change | to follow |
 | LD-4 | 2026-09-04 → | conductor tests | five test files snapshot the shared live dispatch store; any concurrent launcher fails their teardown; every parallel session since PR 62 reran CI. | PR 88, 83eb1c2, grant 55: one shared guard, exclusions declared | retained 24-case test_store_guard.py holds; helper test to follow |
+| LD-5 | 2026-09-10 | `findings.py import` | imports only the three ladder review jobs; a `sweep` or `adjudicate` record's findings never reach the ledger, so a third-harness ruling (20260910T233710Z-review-codex-cd4bef) cannot be disposed in the store and its dispositions ride in commit messages instead. The gate work order's slice 2 reads the same store. | open | — |
+| LD-6 | 2026-09-10 | `ladder.py` refusal texts | three `--input` refusal texts disagreed with the contract the regression tests were written from (ruling cd4bef #2 #3 #4, UPHELD) | this branch, bc18ce7, grant 61 | the three Grok tests on PR 90 |
 
 Not a lane defect: the setsid pid recorded for the resumed driver was the
 intermediate shell, the session's own error.

@@ -18,8 +18,14 @@ and lint duty apply as written here.
 ladder in the worktree that owns `BRANCH`. Each `--input PATH` names a
 file handed to every stage beside the scope and plan, so the work order a
 scope sentence cites reaches every worker as a supplied input; each is
-recorded with its digest and re-verified on resume. `ops/bin/ladder.sh resume LADDER_ID` resumes the
-named record at its first stage not recorded `ok`. Every launch uses
+recorded with its digest and re-verified on resume. `ops/bin/ladder.sh
+resume LADDER_ID [--rescope]` resumes the named record at its first stage
+not recorded `ok`. A scope, plan or input whose bytes changed since the
+record refuses `record` unless `--rescope` is given, in which case the
+change is recorded as an event, `rescoped: [{label, path, from, to, at,
+stage}]`, the digest updated, and the stages from `stage` on receive the
+new bytes; earlier stage rows keep the digests they were given. The conf
+is never rescoped. `--rescope` with nothing changed refuses `arguments`. Every launch uses
 that worktree's `ops/bin/dispatch.sh --detach`; every wait, landing,
 ledger update, push, and PR action uses that same worktree.
 
@@ -79,7 +85,7 @@ one stderr line, stdout empty, and exit 2.
 | `identity` | `WF_AGENT` and the worktree git identity are not full `Name <address>` values | supply both identities |
 | `gh-missing` | `gh` cannot be executed | install or expose the GitHub CLI |
 | `job` | a stage's named job is absent from the registry | restore the job declaration |
-| `record` | the named resume record is absent or invalid | choose or repair the record |
+| `record` | the named resume record is absent or invalid, or a recorded scope, plan or input changed without `--rescope` | choose or repair the record, or resume with `--rescope` |
 
 ## Stops, retries, and exits
 
@@ -108,7 +114,8 @@ After every transition the driver commits
 
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
   and PR result;
-- scope, optional plan, start inputs, and conf paths with SHA-256 digests;
+- scope, optional plan, start inputs, and conf paths with SHA-256 digests,
+  and `rescoped` events for any of the first three accepted on resume;
 - ordered stage rows naming job, harness, attempt, input path and
   digest, custody proof, dispatch record, dispatched and recorded model
   and effort, outcome, landed shas, and ledger import/export state;

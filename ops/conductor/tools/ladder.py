@@ -281,14 +281,15 @@ def full_identity(value: str, label: str) -> str:
 
 def file_arg(path: str, label: str, *, required: bool = True) -> Path | None:
     candidate = Path(path).resolve()
+    needed = f"supply a readable {label} file"
     if candidate.is_file():
         try:
             candidate.read_bytes()
         except OSError as error:
-            refuse(label, f"a readable {label} file", str(error), "correct its permissions")
+            refuse(label, f"a readable {label} file", str(error), needed)
         return candidate
     if required:
-        refuse(label, f"a readable {label} file", str(candidate), f"supply a {label}")
+        refuse(label, f"a readable {label} file", str(candidate), needed)
     return None
 
 
@@ -356,8 +357,15 @@ def parse_plan(plan: Path | None) -> tuple[list[dict], list[dict]]:
     return buckets, slices
 
 
-def recorded_file(worktree: Path, data: object, label: str) -> Path:
-    """Resolve and verify one file named by a durable ladder record."""
+def recorded_file(
+    worktree: Path, data: object, label: str, *, rescope: list | None = None
+) -> Path:
+    """Resolve and verify one file named by a durable ladder record.
+
+    With ``rescope`` given, a digest mismatch is not a refusal: the entry
+    is appended to ``rescope`` and the record's digest is updated to the
+    bytes on disk. Without it, changed bytes refuse ``record``.
+    """
     if not isinstance(data, dict):
         refuse("record", f"a recorded {label}", repr(data), "repair the record")
     raw_path = data.get("path")
@@ -376,12 +384,15 @@ def recorded_file(worktree: Path, data: object, label: str) -> Path:
         refuse("record", f"a readable recorded {label}", str(candidate), "repair the record")
     actual = digest(candidate)
     if not isinstance(expected, str) or actual != expected:
-        refuse(
-            "record",
-            f"the recorded {label} sha256 {expected}",
-            actual,
-            "restore the recorded bytes or repair the digest",
-        )
+        if rescope is None or not isinstance(expected, str):
+            refuse(
+                "record",
+                f"the recorded {label} sha256 {expected}",
+                actual,
+                "restore the recorded bytes, or resume with --rescope to record the change",
+            )
+        rescope.append({"label": label, "path": str(candidate), "from": expected, "to": actual})
+        data["sha256"] = actual
     return candidate
 
 
@@ -1556,7 +1567,12 @@ def split_inputs(args: list[str]) -> tuple[list[str], list[str]]:
         item = items.pop(0)
         if item == "--input":
             if not items:
-                refuse("arguments", "--input followed by a path", "--input with no path", "name the input file")
+                refuse(
+                    "arguments",
+                    "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID",
+                    "--input with no path",
+                    "name the input file",
+                )
             inputs.append(items.pop(0))
         elif item.startswith("--input="):
             inputs.append(item.partition("=")[2])
@@ -1571,7 +1587,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args:
             refuse(
                 "arguments",
-                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID",
+                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope]",
                 "no arguments",
                 "choose one documented form",
             )
@@ -1579,10 +1595,11 @@ def main(argv: list[str] | None = None) -> int:
         agent = os.environ.get("WF_AGENT", "")
         resume = args[0] == "resume"
         if resume:
-            if len(args) != 2:
+            rescope_flag = len(args) == 3 and args[2] == "--rescope"
+            if len(args) != 2 and not rescope_flag:
                 refuse(
                     "arguments",
-                    "resume LADDER_ID",
+                    "resume LADDER_ID [--rescope]",
                     " ".join(args),
                     "pass the named record id",
                 )
@@ -1599,14 +1616,35 @@ def main(argv: list[str] | None = None) -> int:
                     branch,
                     "repair the record branch",
                 )
-            scope = recorded_file(worktree, record.get("scope"), "scope")
+            changes: list | None = [] if rescope_flag else None
+            scope = recorded_file(worktree, record.get("scope"), "scope", rescope=changes)
             plan_data = record.get("plan")
-            plan = recorded_file(worktree, plan_data, "plan") if plan_data else None
+            plan = (
+                recorded_file(worktree, plan_data, "plan", rescope=changes)
+                if plan_data
+                else None
+            )
             start_inputs = [
-                recorded_file(worktree, item, "input")
+                recorded_file(worktree, item, "input", rescope=changes)
                 for item in (record.get("inputs") or [])
             ]
             recorded_file(worktree, record.get("conf"), "conf")
+            if rescope_flag:
+                if not changes:
+                    refuse(
+                        "arguments",
+                        "a changed scope, plan or input to record",
+                        "every recorded digest unchanged",
+                        "drop --rescope",
+                    )
+                stage = next(
+                    (row["name"] for row in record.get("stages", []) if row.get("outcome") != "ok"),
+                    None,
+                )
+                at = utc_stamp()
+                record.setdefault("rescoped", []).extend(
+                    {**change, "at": at, "stage": stage} for change in changes
+                )
         else:
             dry = args[0] == "--dry-run"
             positionals, input_args = split_inputs(args[1:] if dry else args)
