@@ -59,9 +59,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/records/dispatches/20260910T225013Z-tests-grok-9ae7b5.json",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. Read in/scope-gate-20260910.md and in/scope-discipline.md WHOLE; the numbered Contract items there are the requirements and nothing else is. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed; do not widen them.",
+            "20260910T225013Z-tests-grok-9ae7b5"
+          ],
+          "withheld": []
+        },
+        "sha256": "ceb15f4a977b304ed7a859dac35c2342ffb67fb73fa9284329cf1860a05b2fdb"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
