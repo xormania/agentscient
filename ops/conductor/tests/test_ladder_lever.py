@@ -76,6 +76,8 @@ TEST_BETA = "ops/conductor/tests/test_beta.py"
 TEST_RELAY = "packages/relay/spec/test_relay.py"
 SKEPTIC_MD = "ops/conductor/tests/SKEPTIC.md"
 SKEPTIC_BODY = "SKEPTIC_MD_BODY_aa32 the skeptic report"
+ADMITTED_FAIL = "ADMITTED_FAILURE_aa32 closure undeclared read"
+HELD_CLAIM = "HELD_UNPROVEN_aa32 agy help was not measured"
 PR_URL = "https://example.invalid/org/projx/pull/7"
 NOT_A_URL = "not-a-url"
 PWN_ARTIFACT = "tests/test_ok.py; printf PWNED; #.py"
@@ -418,6 +420,22 @@ if plant.get("leak_implement_into_findings") == name:
         "claim": "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers",
         "reproduce": None,
     })
+elif (
+    name in ("check-tests", "security", "adversarial")
+    and verdict == "changes"
+):
+    findings.append({
+        "severity": "p2",
+        "where": "planted-review",
+        "claim": "PLANTED_REVIEW_CLAIM_aa32 existing requirement failed",
+        "reproduce": "python3 -m unittest planted-review",
+    })
+    findings.append({
+        "severity": "p3",
+        "where": "planted-held",
+        "claim": "HELD_UNPROVEN_aa32 agy help was not measured",
+        "reproduce": None,
+    })
 tripping = name in plant.get("trip_stages", [])
 crashing = name in plant.get("crash_stages", [])
 walling = name in plant.get("wait_wall_stages", [])
@@ -707,6 +725,82 @@ if plant.get("ledger_fail"):
         "needed a writable ledger\n"
     )
     raise SystemExit(3)
+
+def parse_corrections(args):
+    ref = "missing-ref"
+    scope = "missing-scope"
+    records = []
+    rest = args[1:]
+    i = 0
+    while i < len(rest):
+        if rest[i] == "--ref" and i + 1 < len(rest):
+            ref = rest[i + 1]
+            i += 2
+            continue
+        if rest[i] == "--scope-sha256" and i + 1 < len(rest):
+            scope = rest[i + 1]
+            i += 2
+            continue
+        records.append(rest[i])
+        i += 1
+    return ref, scope, records
+
+def evaluation(failure, requirement, scope):
+    return {
+        "classification": "demonstrated-defect",
+        "scope_sha256": scope,
+        "requirement": requirement,
+        "trigger": "reachable planted trigger under supported conditions",
+        "failure": failure,
+        "evidence": {
+            "kind": "execution-path",
+            "details": "planted entry through the admitted finding",
+        },
+        "refutation": "attempted planted refutation; defect remains",
+        "source": None,
+        "ruling": None,
+    }
+
+if argv and argv[0] == "corrections":
+    ref, scope, records = parse_corrections(argv)
+    admitted = []
+    held = []
+    for rec in records:
+        info = (plant.get("records") or {}).get(rec) or {}
+        name = info.get("name")
+        env = (plant.get("envelopes") or {}).get(rec) or {}
+        findings = list(env.get("findings") or [])
+        verdict = (plant.get("verdicts") or {}).get(name)
+        leak = plant.get("leak_implement_into_findings")
+        if leak == name and findings:
+            claim = findings[0].get("claim") or ""
+            admitted.append({
+                "key": rec + "#1",
+                "evaluation_record": rec,
+                "evaluation_n": 1,
+                "evaluation": evaluation(claim, claim, scope),
+            })
+            continue
+        if verdict == "changes":
+            admitted.append({
+                "key": rec + "#1",
+                "evaluation_record": rec,
+                "evaluation_n": 1,
+                "evaluation": evaluation(
+                    "ADMITTED_FAILURE_aa32 closure undeclared read",
+                    "existing requirement from admitted evaluation",
+                    scope,
+                ),
+            })
+            if len(findings) > 1:
+                held.append({"key": rec + "#2", "reason": "unproven"})
+    sys.stdout.write(json.dumps({
+        "ref": ref,
+        "scope_sha256": scope,
+        "admitted": admitted,
+        "held": held,
+    }) + "\n")
+    raise SystemExit(0)
 if argv and argv[0] == "export":
     sys.stdout.write("{}\n")
 raise SystemExit(0)
@@ -2686,9 +2780,11 @@ class WithholdingEnvelope(_LadderFixture):
 
 
 class TestsFixInputs(_LadderFixture):
-    """A8: tests-fix is given the skeptic envelope and SKEPTIC.md."""
+    """FINDING-ADMISSION.md: tests-fix gets admitted demands, not raw SKEPTIC.md."""
 
     def test_tests_fix_is_given_skeptic_md(self):
+        # Superseded: raw SKEPTIC.md must not enter tests-fix. Assert the
+        # admitted demand and stable source key instead.
         self.patch_plant(
             verdicts={"check-tests": "changes"},
             skeptic_md=True,
@@ -2699,9 +2795,13 @@ class TestsFixInputs(_LadderFixture):
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         argv = self.dispatch_argv_for("tests-fix")
         text = self.inputs_text(argv)
-        self.assertIn(SKEPTIC_BODY, text)
+        admitted_key = self.record_id_for("check-tests") + "#1"
+        self.assertIn(ADMITTED_FAIL, text)
+        self.assertIn(admitted_key, text)
+        self.assertNotIn(SKEPTIC_BODY, text)
+        self.assertNotIn(HELD_CLAIM, text)
         inputs = self.flag_values(argv, "--input")
-        self.assertTrue(
+        self.assertFalse(
             any(Path(value).name == "SKEPTIC.md" for value in inputs),
             argv,
         )
