@@ -1,0 +1,279 @@
+{
+  "id": "20260909T235606Z-check-tests-claude-1702fb",
+  "lane": "dev",
+  "stage": "check-tests",
+  "unit": "lane/finding-admission-20260909",
+  "lineage": {
+    "branch": "lane/finding-admission-20260909",
+    "base_sha": "1d58ba79d00726ac123ad76b8addd5b9fdb5bc1d"
+  },
+  "follows": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "GPT-6 <noreply@openai.com>",
+  "at": {
+    "launched": "2026-09-09T23:56:06Z",
+    "closed": "2026-09-10T00:04:26Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "1d58ba79d00726ac123ad76b8addd5b9fdb5bc1d",
+    "ref_sha": "1d58ba79d00726ac123ad76b8addd5b9fdb5bc1d",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "178d94fb8bcf93ad28d6ab91c9db76b5b670dcfe8893aa753ea5677ed0543fc1",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "c6572588-6592-4216-8f11-a4536aa6fa14",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-opus-4-8",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}"
+    ]
+  },
+  "model": {
+    "requested": "claude-opus-4-8",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": "claude-opus-4-8",
+    "read_from": "/home/scientdb/.claude/projects/<snapshot-slug>/c6572588-6592-4216-8f11-a4536aa6fa14.jsonl"
+  },
+  "session": {
+    "id": "c6572588-6592-4216-8f11-a4536aa6fa14",
+    "stream": "/home/scientdb/.claude/projects/<snapshot-slug>/c6572588-6592-4216-8f11-a4536aa6fa14.jsonl",
+    "stream_sha256_at_close": "b2c596b46719dde89bf24ebd6116fdb8f99677462ad586709e4a94866031dd3a",
+    "spend": {
+      "input": 50,
+      "cached": 2489267,
+      "output": 35098,
+      "total": 2524415,
+      "source": "result.usage",
+      "messages": 25,
+      "cost_usd": 3.3777615
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-finding-admission-20260909/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Evaluate the new finding-admission tests against the owner scope and declared contract. Do not read implementation. Judge only real gaps or contradictions: show an in-scope supported failure the tests would miss or a contract-correct behavior they wrongly reject. No optional coverage/style suggestions as conditions. Review the test batch once; no edits. Inputs include the author evidence and original scope. Name exact targeted commands for implementation acceptance. Preserve an incomplete verdict if checks are inaccessible.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/in/owner-scope.md",
+        "sha256": "46bf342676ee1f746f0144a679e6157ddde817d79faf8def0f66827e2549eb40"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/in/tdd-addendum.md",
+        "sha256": "7a7efd059e9bbf07b4385ad3ad3163e6722403c9e7504cc43ba0deb9fa288727"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/in/admission-test-author.json",
+        "sha256": "5a85c0631a23db3b9ce1f5255b8853a79eace11b2a057018a252f0a25c423bcd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/in/admission-red.json",
+        "sha256": "81a4feac7b50cd31781ebbfec7d233025a8255199c71aba22ab8ae90d49bd533"
+      }
+    ],
+    "sha256": "8a360a110c7fa2838954971e00b1c9dcb3bf8e8469e8e935e32e6bc9b9915396",
+    "bytes": 2007
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-09T23:56:06Z",
+      "ended": "2026-09-10T00:04:25Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1d58ba79d00726ac123ad76b8addd5b9fdb5bc1d",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_finding_admission_ledger.py:344-384 (CorrectionsFiltersAdmitted.test_mixed_sample_admits_defects_and_holds_unproven)",
+          "claim": "The mixed-batch test hard-codes held_keys == [REC#7, REC#8] from the fixture rows' original n (agy-fallthrough n=7, agy-unverified-flags n=8), but plant_record plants exactly three findings and _finding_from strips n, so a contract-correct import keying <record>#<index> yields REC#1/REC#2/REC#3. The assertion held_keys == [REC#7, REC#8] can never go green against a correct implementation (actual would be [REC#2, REC#3]); it wrongly rejects the contract's index-based key rule and would force a fabricated key scheme or a later test correction.",
+          "reproduce": "Structural: fixture agy-fallthrough n=7 / agy-unverified-flags n=8 but only three findings are planted (indices 1/2/3) and _finding_from omits n. After implementation: python3 ops/conductor/tests/test_finding_admission_ledger.py CorrectionsFiltersAdmitted.test_mixed_sample_admits_defects_and_holds_unproven -> fails on held_keys (expected [REC#7,REC#8], actual [REC#2,REC#3])."
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_finding_admission_ledger.py:488-501,545-614 (test_malformed_evidence_refuses_admission_evidence, test_duplicate_evaluation_members_refuse_before_dict_collapse)",
+          "claim": "Both tests' import branch requires assert_refusal(imported, 'admission-evidence'), but the contract assigns admission-evidence only to the corrections read; import's refusal class for a duplicate/malformed key at strict decode is unnamed. A contract-correct impl that refuses the duplicate at import under a different decode/malformed class is wrongly rejected. Lower confidence: a store-raw-then-validate impl takes the corrections branch, where the assertion is correct.",
+          "reproduce": "After implementation, with an import that refuses the planted duplicate at decode under a non-admission-evidence class: python3 ops/conductor/tests/test_finding_admission_ledger.py DuplicateJsonMembersRefuse -> the assert_refusal(imported, 'admission-evidence') line rejects it."
+        }
+      ],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260909T235606Z-check-tests-claude-1702fb/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "claude",
+        "total": 2524415,
+        "out": 35098,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1d58ba79d00726ac123ad76b8addd5b9fdb5bc1d",
+        "started": null,
+        "ended": null
+      },
+      "note": "Red confirmed on the unchanged tree for all three files, each failing on its intended behavioral assertion with no collection/import errors (envelope 16/17 fail + legacy control ok; ledger 14/15 fail + legacy control ok; routing 4/4 fail). Implementation not read; green side not reachable (impl absent, out of scope), so accept the corrected batch by re-running: python3 ops/devlane/task/tests/test_finding_admission_envelope.py -v; python3 ops/conductor/tests/test_finding_admission_ledger.py -v; python3 ops/conductor/tests/test_finding_admission_routing.py -v; ops/bin/suites.sh. P2: mixed-batch test expects held keys REC#7/#8 that a correct index-based import cannot produce (findings planted at positions 1-3, n stripped by _finding_from) \u2014 a contract-correct behavior wrongly rejected. P3: duplicate/malformed-evidence tests' import branch over-specifies the refusal class as admission-evidence, which the contract assigns only to the corrections read. All other envelope/ledger/routing tests survive refutation with a named broken implementation each would catch. Verdict changes."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "atis-latch",
+      "at": null
+    }
+  },
+  "status": "closed"
+}
