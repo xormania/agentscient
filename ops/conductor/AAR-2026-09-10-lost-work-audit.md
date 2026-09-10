@@ -4,6 +4,10 @@ Owner-requested session record by GPT-6 (`gpt-6-astra`), not a new policy or
 acceptance of recovered implementations. The [handoff](handoff/HANDOFF-2026-09-10-lost-work-audit.md)
 carries retrieval and the next bounded actions.
 
+Delivery correction: the owner required this closeout to arrive as a draft PR
+into dev. Initial branch publication stopped short of that review entrypoint;
+a retained branch alone does not complete this delivery.
+
 ## Request and outcome
 
 The owner asked to retrieve the latest exception-ended session, explain the

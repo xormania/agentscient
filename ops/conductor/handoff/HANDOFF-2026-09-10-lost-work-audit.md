@@ -103,7 +103,9 @@ git show records/lost-work-audit-20260910:ops/conductor/handoff/evidence-2026-09
 Record the resolved full commit for immutable retrieval. Remote custody is only
 established by a matching live origin ref after publication, not by these
 instructions. No automatic onboard selection or trusted discovery bindings are
-created by this report. The retained branch is not a dev/master merge request.
+created by this report. The owner subsequently required a draft PR into dev
+for this closeout: publishing the retained branch alone does not finish
+delivery. Keep the branch; readiness and merge still require their own gates.
 
 The [probe corpus](probes/probes-2026-09-10-lost-work-audit.jsonl) covers key
 holdings through allowlisted Git reads. Author checks are not independent
