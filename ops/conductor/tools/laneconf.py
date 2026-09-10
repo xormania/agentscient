@@ -82,6 +82,8 @@ REQUIRED_KEYS = {
 DECLARATION = re.compile(r"^([A-Z][A-Z0-9_]*)='([^']*)'\s*$")
 SOURCE_SUFFIXES = {".py", ".sh"}
 EXTERNAL_ENV_KEYS = {
+    # Supplied by the finite controller to children and the read-only doctor.
+    "CONTROL_STATE",
     "AGENTSCIENT_ORG",
     "AGENTSCIENT_ROOT",
     "AGENTSCIENT_SIBLINGS",

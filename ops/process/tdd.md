@@ -1,91 +1,65 @@
-# The tdd loop, bound to wf
+# TDD under conductor control
 
-Evidence lives in the chain, not in your memory of having run something.
-Every step below records a receipt; if `wf` refused it, the step did not
-happen. Identity first (appending verbs refuse without it):
+Use the [conductor control](../conductor/conductor-control.md) execution
+boundary for conductor work. The owner freezes the task, commands, producer
+identities, test paths, dependencies, expiry and total time allowance. The
+conductor may select an existing action once. It cannot add a retry or rewrite
+the acceptance criteria.
+
+The owner initializes a new state directory outside the worker worktree:
 
 ```sh
-export WF_AGENT='Your Model Name <noreply@vendor>'
+python3 ops/conductor/tools/control.py init /absolute/plan.json --state /absolute/control-state
 ```
 
-`python3 ops/devlane/workflow/wf.py next <WO>` at any point tells you the stage,
-what is missing, and the exact argv that records it. Trust it over this file.
+The owner starts the supported, verified native host through `control.py seat`.
+Its mandatory PreToolUse hook allows declared `run` actions and diagnostic
+reads. Direct edits, raw launches and reinitialization refuse. Follow the
+activation procedure in the conductor control contract before relying on a
+host; a settings file alone does not establish active interception.
 
-## The stages (gate kind `tdd@1`: spec → red → impl → review → ratify)
+## The sequence
 
-**spec** — write the behavior down before any test. If the work came through
-the `bdd` skill there are scenarios already; otherwise state the promises the
-tests will pin. Advance: `wf advance <WO>`.
+1. **Tests:** a separate producer writes and tracks the complete test set,
+   including helpers and fixtures. The controller seals the actual bytes.
+2. **Fixture:** exercise the test setup and relevant existing consumers. A
+   successful fixture must establish that later assertions reach the intended
+   behavior. The independent reviewer judges this evidence.
+3. **RED:** the controller runs `unittest discover` itself. At least one test
+   must fail an assertion; import errors, skips, unexpected successes and zero
+   tests do not count. The actual result and tracebacks are retained.
+4. **Test review:** a producer distinct from both author and implementer reviews
+   the tests and fixture/RED evidence. Its approval binds the exact test manifest
+   and RED output hash. Exit zero without that attestation does not admit code.
+5. **Code:** the controller refuses unless the full prerequisite chain is
+   successful and the same test bytes remain intact. The implementer cannot
+   modify the sealed tests.
+6. **GREEN:** run the same discovery arguments as RED. All tests must pass and
+   the sealed bytes must still match. Complete the plan's separate review/check
+   actions before proposing integration.
 
-**red** — get the failing tests written and prove them red:
+Invoke a declared action with its frozen ID and state directory:
 
-1. Independent authorship is the rule, not a preference: when a second
-   harness is reachable, the **test-author role**
-   (`ops/process/roles/test-author.md`) is filled by a harness that is not
-   the implementer (`ops/process/cross-review.md`). A subagent given only
-   the contract is the fallback when no second harness is reachable, and
-   using the fallback is stated in the PR. The gate does not enforce this —
-   the review stage does (see below).
-2. **Prove the red per file, for the right reason.** Run each new test file
-   by itself and read the failure:
-   - "NO TESTS RAN" / zero collected is NOT a red — a `-k` pattern matching
-     nothing exits nonzero and proves nothing. That mistake shipped here.
-   - An import/collection error is NOT a red. The red must be the intended
-     assertion failing because the behavior does not exist yet.
-3. Record it: `wf red <WO> -- <test argv>` — the argv you record is the argv
-   that gets frozen; make it the one that runs the whole intended set (for
-   the product suite, once it exists, per the gate
-   kind's build check). `wf red` records any nonzero exit — it cannot tell an
-   honest red from a collection error, which is why step 2 is on you and the
-   skeptic checks it.
-4. Receipts refuse against a dirty tree (D3): commit first, or accept the
-   weaker hash-only receipt with `--allow-dirty` and say why.
-5. `wf advance <WO>` — advancing out of red seals the frozen set (the files
-   matched by the gate kind's `test_scope`, features included). After this a
-   quiet edit to a frozen file makes `wf green` refuse on manifest drift; the
-   honest route back is below.
+```sh
+python3 /absolute/repo/ops/conductor/tools/control.py run tests-1 --state /absolute/control-state
+python3 /absolute/repo/ops/conductor/tools/control.py status --state /absolute/control-state
+```
 
-**impl** — make it pass without touching the judge:
+A failed, interrupted or already reserved action is consumed. Do not resume it
+under a new name. A defective test requires independent correction and review
+in a new owner-issued cycle; the conductor cannot grant that cycle to itself.
+Expiry and the conductor seat wall stop further work, including repeated reads
+or thinking after the finite allowance. Retained status and logs remain readable.
 
-1. Implement. Do not edit files in the gate kind's `test_scope` or
-   `harness_scope` — green will refuse on manifest drift if you do.
-2. Before green, have the **test-skeptic role**
-   (`ops/process/roles/test-skeptic.md`) judge the sealed tests — filled by
-   a harness that wrote neither the tests nor the implementation. When it
-   proves a test wrong or weak, the route back is recorded, not quiet:
-   `wf marker <WO> open <id>` with the finding, `wf advance --to red
-   --reason "<finding>" <WO>`, fix the tests, re-prove red, reseal.
-3. `wf green <WO> -- <frozen argv>` — must be the frozen command, passing.
-4. `wf check <WO> <name>` for each of this kind's checks (`wf status
-   --checks` lists every registered kind's checks — take the rows for yours).
-   Be clear what this is: a failing check records a denial and exits 0, and
-   `tdd@1` requires only `receipt.green` to leave impl — **checks do not
-   block advance**. They are evidence the review stage reads, and skipping
-   them is visible there as absence.
+## Evidence and limits
 
-**review** — this is where the process is enforced, because the gate
-deliberately is not (records are evidence, never authority — AGENTS.md).
-The reviewer reads the record (`wf log <WO>`, `wf agents`) and refuses with
-`finding` when it shows:
+The owner plan identifies producers; this is an attestation boundary, not proof
+of who controls an arbitrary process. Reviewers still judge whether fixtures,
+assertions and the declared test set are meaningful and complete. The hook
+controls tools in a supported native host. Same-UID owner shell access remains
+a trust boundary; unhooked hosts are not authorized conductor execution paths.
 
-- the red and the tests' commits carry the same agent as the implementation
-  commits, with no stated fallback justification in the PR;
-- no skeptic pass over the sealed tests, or its findings unaddressed;
-- registered checks absent or denied with no explanation;
-- a red whose failure was collection or compile error, not the intended
-  assertion.
-
-`wf outcome <WO> <outcome> --by <actor> --source <src>` (`open` and
-`outcome` require `--source`; the other verbs do not). Review's `finding`
-returns the work order to impl; **ratify** is the owner's (D10 — recording
-states it, the attesting merge applies it).
-
-## The three honesty rules that outrank speed
-
-- **A test that never failed has proven nothing.** Red first, per file, on
-  the intended assertion.
-- **The implementer's green is a claim, not evidence.** Independent tests, or
-  at least the skeptic's review, before `wf green`.
-- **Numbers about the work come from commands run now** — test counts and
-  results in any PR body or report are produced at write time and stamped
-  with the SHA they were measured against (CONTRIB.md §Evidence).
+The former instructions for writing `ops/devlane/workflow/wf.py` receipts are
+withdrawn here. Do not use a historical receipt command as evidence that this
+execution gate admitted work. Publish measured command results against the
+actual tree or commit, and distinguish unavailable evidence from a clean result.
