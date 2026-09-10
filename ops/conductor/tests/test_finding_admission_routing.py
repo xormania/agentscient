@@ -57,6 +57,13 @@ if argv and argv[0] == "corrections":
             "found status=invalid; needed finish the review before correction\n"
         )
         raise SystemExit(2)
+    if mode == "unevaluated":
+        sys.stderr.write(
+            "admission-evidence: expected evaluated findings bound to this "
+            "ref and scope; found a legacy changes batch with no evaluation; "
+            "needed an adjudicate record bound to the original keys\n"
+        )
+        raise SystemExit(2)
     ref = "missing-ref"
     scope = "missing-scope"
     if "--ref" in argv:
@@ -126,9 +133,10 @@ class AdmissionRouting(_LadderFixture):
         ]
 
     def test_legacy_changes_invokes_corrections_before_tests_fix(self):
+        # Unevaluated legacy evidence may refuse; do not require success.
+        self._install_corrections_stub("unevaluated")
         self.patch_plant(verdicts={"check-tests": "changes"})
         proc = self.run_ladder()
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
         calls = self._corrections_argvs()
         self.assertGreaterEqual(
             len(calls),
@@ -145,22 +153,35 @@ class AdmissionRouting(_LadderFixture):
             self.scope_path.read_bytes()
         ).hexdigest()
         self.assertEqual(digest, expected, argv)
-        self.assertIn("check-tests", self.dispatch_names())
+        names = self.dispatch_names()
+        self.assertIn("check-tests", names)
+        self.assertNotIn("tests-fix", names, self.combined(proc))
+        self.assertNotIn("fix-tests", names, names)
+        self.assertNotIn("fix-code", names, names)
 
     def test_empty_admitted_skips_tests_fix_despite_changes(self):
+        # Empty admitted skips correction; it is not approval or a right
+        # to advance. Existing approval gates still govern what follows.
         self._install_corrections_stub("empty")
         self.patch_plant(verdicts={"check-tests": "changes"})
         proc = self.run_ladder()
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
         names = self.dispatch_names()
         self.assertNotIn("tests-fix", names)
         self.assertIn("check-tests", names)
-        self.assertIn("code", names)
+        self.assertNotIn("fix-tests", names, names)
+        self.assertNotIn("fix-code", names, names)
         record = self.ladder_record()
         row = self.stage_row(record, "tests-fix")
         self.assertEqual(row.get("outcome"), "skipped", row)
         condition = str(row.get("condition") or row.get("skipped") or "")
         self.assertTrue(condition.strip(), row)
+        text = self.combined(proc)
+        self.assertNotRegex(
+            text,
+            r"verdict=approve",
+            "empty admitted must not rewrite the original changes verdict "
+            f"to approval: {text}",
+        )
 
     def test_admitted_defect_selects_tests_fix_with_only_admitted_demand(self):
         self._install_corrections_stub("mixed")
