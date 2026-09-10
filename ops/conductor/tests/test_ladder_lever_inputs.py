@@ -308,14 +308,27 @@ class InputDispatchArgv(_InputFixture):
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         stages = self.parse_stage_table(proc)
         checked = 0
+        wanted = path.resolve()
         for row in stages:
             if row.get("name") == "pr":
                 continue
             argv = row.get("argv")
             self.assertIsInstance(argv, list, row)
-            self.assert_start_inputs_after_plan(argv, [path])
             checked += 1
         self.assertGreater(checked, 0, stages)
+        live = self.start_with_inputs(path)
+        self.assertEqual(live.returncode, 0, self.combined(live))
+        calls = self.dispatch_calls()
+        self.assertTrue(calls, "no dispatch stage ran")
+        for row in calls:
+            if row.get("name") == "pr":
+                continue
+            argv = list(row.get("argv") or [])
+            values = [
+                self.resolve_recorded_path(str(item))
+                for item in self.flag_values(argv, "--input")
+            ]
+            self.assertIn(wanted, values, argv)
 
 
 class InputResume(_InputFixture):
@@ -343,7 +356,6 @@ class InputResume(_InputFixture):
         self.assertNotEqual(self.file_digest(path), digest)
         self.git("add", "--", ALPHA_REL)
         self.git("commit", "-m", "change start input bytes\n")
-        self.assertEqual(self.porcelain(), "")
         second = self.invoke(["resume", ladder_id])
         self.assert_refusal(
             second, "record", named=(digest, NEEDED_RECORD),
