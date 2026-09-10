@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -101,6 +102,273 @@ def git(repo: Path, *args: str) -> subprocess.CompletedProcess:
     if proc.returncode != 0:
         raise RuntimeError(f"git {args} failed: {proc.stderr}")
     return proc
+
+
+FETCH_NAMES = frozenset({"npm", "npx", "curl", "wget", "yarn", "pnpm"})
+OBSERVER_SITE = '''\
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import urllib.request
+from pathlib import Path
+
+
+def _log_path():
+    raw = os.environ.get("GRAFT_SPAWN_LOG")
+    return Path(raw) if raw else None
+
+
+def _record(kind, argv):
+    path = _log_path()
+    if path is None:
+        return
+    if isinstance(argv, (list, tuple)):
+        argv = [str(x) for x in argv]
+    else:
+        argv = [str(argv)]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"kind": kind, "argv": argv}, sort_keys=True) + "\\n")
+
+
+def _argv(popenargs, kwargs):
+    if popenargs:
+        args = popenargs[0]
+    else:
+        args = kwargs.get("args")
+    if args is None:
+        return []
+    if isinstance(args, (list, tuple)):
+        return [str(x) for x in args]
+    return [str(args)]
+
+
+_orig_run = subprocess.run
+_orig_call = subprocess.call
+_orig_check_call = subprocess.check_call
+_orig_check_output = subprocess.check_output
+_orig_popen = subprocess.Popen
+
+
+def run(*a, **k):
+    _record("run", _argv(a, k))
+    return _orig_run(*a, **k)
+
+
+def call(*a, **k):
+    _record("call", _argv(a, k))
+    return _orig_call(*a, **k)
+
+
+def check_call(*a, **k):
+    _record("check_call", _argv(a, k))
+    return _orig_check_call(*a, **k)
+
+
+def check_output(*a, **k):
+    _record("check_output", _argv(a, k))
+    return _orig_check_output(*a, **k)
+
+
+class Popen(_orig_popen):
+    def __init__(self, *a, **k):
+        _record("popen", _argv(a, k))
+        super().__init__(*a, **k)
+
+
+subprocess.run = run
+subprocess.call = call
+subprocess.check_call = check_call
+subprocess.check_output = check_output
+subprocess.Popen = Popen
+
+_orig_urlopen = urllib.request.urlopen
+
+
+def urlopen(url, *a, **k):
+    _record("urlopen", [str(url)])
+    return _orig_urlopen(url, *a, **k)
+
+
+urllib.request.urlopen = urlopen
+
+if hasattr(urllib.request, "urlretrieve"):
+    _orig_urlretrieve = urllib.request.urlretrieve
+
+    def urlretrieve(url, *a, **k):
+        _record("urlretrieve", [str(url)])
+        return _orig_urlretrieve(url, *a, **k)
+
+    urllib.request.urlretrieve = urlretrieve
+'''
+
+FETCH_STUB = '''\
+#!/usr/bin/env python3
+import json
+import os
+import sys
+from pathlib import Path
+
+path = os.environ.get("GRAFT_SPAWN_LOG")
+if path:
+    dest = Path(path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with dest.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"kind": "path-stub", "argv": sys.argv}, sort_keys=True) + "\\n")
+raise SystemExit(1)
+'''
+
+
+def spawn_log_path(home: Path) -> Path:
+    return Path(home) / "spawn-log.jsonl"
+
+
+def install_spawn_observer(home: Path) -> Path:
+    home = Path(home)
+    observer = home / "spawn-observer"
+    observer.mkdir(parents=True, exist_ok=True)
+    (observer / "sitecustomize.py").write_text(OBSERVER_SITE, encoding="utf-8")
+    bindir = home / "fetch-stubs"
+    bindir.mkdir(parents=True, exist_ok=True)
+    stub = bindir / "_fetch_stub"
+    stub.write_text(FETCH_STUB, encoding="utf-8")
+    stub.chmod(stub.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    for name in sorted(FETCH_NAMES):
+        dest = bindir / name
+        if dest.exists() or dest.is_symlink():
+            dest.unlink()
+        dest.symlink_to(stub)
+    return observer
+
+
+def observer_env(home: Path) -> dict[str, str]:
+    home = Path(home)
+    observer = home / "spawn-observer"
+    bindir = home / "fetch-stubs"
+    pypath = str(observer)
+    existing = os.environ.get("PYTHONPATH")
+    if existing:
+        pypath = pypath + os.pathsep + existing
+    return {
+        "PYTHONPATH": pypath,
+        "GRAFT_SPAWN_LOG": str(spawn_log_path(home)),
+        "PATH": str(bindir) + os.pathsep + os.environ.get("PATH", ""),
+    }
+
+
+def read_spawns(home: Path) -> list[dict]:
+    path = spawn_log_path(home)
+    if not path.is_file():
+        return []
+    rows = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rows.append(json.loads(line))
+    return rows
+
+
+def drain_spawns(home: Path) -> list[dict]:
+    rows = read_spawns(home)
+    path = spawn_log_path(home)
+    if path.is_file():
+        path.write_text("", encoding="utf-8")
+    return rows
+
+
+def _argv_name(row: dict) -> str:
+    argv = row.get("argv") or []
+    if not argv:
+        return ""
+    return Path(str(argv[0])).name.lower()
+
+
+def is_git_spawn(row: dict) -> bool:
+    name = _argv_name(row)
+    return name in {"git", "git.exe"}
+
+
+def is_fetch_spawn(row: dict) -> bool:
+    if row.get("kind") in {"urlopen", "urlretrieve", "path-stub"}:
+        return True
+    return _argv_name(row) in FETCH_NAMES
+
+
+def assert_no_spawns(test, rows) -> None:
+    test.assertEqual(list(rows), [], f"must not spawn or fetch: {rows!r}")
+
+
+def assert_no_fetch(test, rows) -> None:
+    bad = [row for row in rows if is_fetch_spawn(row)]
+    test.assertEqual(bad, [], f"must not download or invoke npm: {bad!r}")
+
+
+def assert_only_declared_bridge(test, rows, install: Path) -> None:
+    assert_no_fetch(test, rows)
+    install = Path(install)
+    node = (install / "node" / "bin" / "node").resolve()
+    bridge = (install / "graft" / "bridge.mjs").resolve()
+    graft_dir = (install / "graft").resolve()
+    others = [row for row in rows if not is_git_spawn(row)]
+    test.assertTrue(others, "prepare/query must invoke the declared node bridge")
+    for row in others:
+        argv = [str(x) for x in (row.get("argv") or [])]
+        test.assertGreaterEqual(len(argv), 3, argv)
+        test.assertEqual(Path(argv[0]).resolve(), node, argv)
+        test.assertEqual(Path(argv[1]).resolve(), bridge, argv)
+        test.assertEqual(Path(argv[2]).resolve(), graft_dir, argv)
+
+
+def published_descriptors(root: Path) -> list[Path]:
+    root = Path(root)
+    found = []
+    if not root.exists():
+        return found
+    for path in root.rglob("*.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if isinstance(data, dict) and data.get("schema") == "graft-context/1":
+            found.append(path)
+    return found
+
+
+def assert_no_published_prepare(test, cache: Path, extra_roots=()) -> None:
+    cache = Path(cache)
+    test.assertFalse(
+        (cache / "binding.json").exists(),
+        "failed first prepare publishes no binding",
+    )
+    test.assertFalse(
+        (cache / ".graph" / "wiring.json").exists(),
+        "failed first prepare publishes no graph",
+    )
+    found = []
+    for root in (cache, *extra_roots):
+        found.extend(published_descriptors(root))
+    test.assertEqual(found, [], f"failed first prepare publishes no descriptor: {found}")
+
+
+def git_common_dir(repo: Path) -> Path:
+    raw = git(repo, "rev-parse", "--git-common-dir").stdout.strip()
+    path = Path(raw)
+    if not path.is_absolute():
+        path = Path(repo) / path
+    return path.resolve()
+
+
+def plant_linked_worktrees(home: Path) -> tuple[Path, Path]:
+    main = Path(home) / "wt-main"
+    plant_ops_root(main, {"ops/main.md": "main worktree\n"})
+    git(main, "branch", "linked")
+    linked = Path(home) / "wt-linked"
+    git(main, "worktree", "add", str(linked), "linked")
+    (linked / "ops" / "linked.md").write_text("linked worktree\n", encoding="utf-8")
+    git(linked, "add", "-A")
+    git(linked, "commit", "-m", "linked-ops")
+    return main, linked
 
 
 def plant_ops_root(path: Path, files: dict[str, str] | None = None) -> Path:
@@ -206,6 +474,7 @@ class GraftCase:
         os.environ["GRAFT_INSTALL"] = ""
         self.fake = load_fake()
         self.pin = load_pin()
+        install_spawn_observer(self.home)
 
     def tearDown(self):
         for key, value in self._saved.items():
@@ -230,6 +499,13 @@ class GraftCase:
 
     def cli(self, argv, *, identity=True):
         env = dict(os.environ)
+        env.update(observer_env(self.home))
         if not identity:
             env.pop("WF_AGENT", None)
         return run_cli(argv, env=env, cwd=self.home)
+
+    def drain_spawns(self) -> list[dict]:
+        return drain_spawns(self.home)
+
+    def read_spawns(self) -> list[dict]:
+        return read_spawns(self.home)
