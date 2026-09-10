@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-10T22:50:14Z",
-    "closed": null
+    "closed": "2026-09-10T23:02:50Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -73,14 +73,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T225013Z-tests-grok-9ae7b5/home/grok-stream/sessions/<snapshot-encoded>/cc60d402-e313-4336-bc06-f4fc32b5fef7/summary.json"
   },
   "session": {
     "id": "cc60d402-e313-4336-bc06-f4fc32b5fef7",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T225013Z-tests-grok-9ae7b5/home/grok-stream/sessions/<snapshot-encoded>/cc60d402-e313-4336-bc06-f4fc32b5fef7/summary.json",
+    "stream_sha256_at_close": "f8fded978a73b6e4a8293ff03a787ba366cf6c7fef346098074531e1b5193c93",
+    "spend": {
+      "input": 3260127,
+      "cached": 3025280,
+      "output": 41134,
+      "total": 3301261,
+      "cost_usd_ticks": 3789534600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T225013Z-tests-grok-9ae7b5/home/grok-stream/sessions/<snapshot-encoded>/cc60d402-e313-4336-bc06-f4fc32b5fef7/summary.json",
+      "messages": 317
+    }
   },
   "brief": {
     "template": {
@@ -99,10 +107,60 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T22:50:14Z",
+      "ended": "2026-09-10T23:02:50Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "1b786a1e6997879792e6711a4b06c678c8a45068",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_correction_contract.py",
+      "ops/devlane/dispatch/tests/test_launch_correction_contract.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_launch_correction_contract.py": "ops/devlane/dispatch/tests/test_launch_correction_contract.py",
+        "test_ladder_lever_correction_contract.py": "ops/conductor/tests/test_ladder_lever_correction_contract.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3301261,
+        "out": 41134,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "b4f946e37e18f530314eb1ca49012f8a29eccf8e",
+        "started": "2026-09-10T22:50:14Z",
+        "ended": "2026-09-10T23:02:30Z"
+      },
+      "note": "Slice 1 document pins only, from the ten numbered Contract items and planner fill-ins D1-D11. ops/devlane/dispatch/tests/test_launch_correction_contract.py committed at 5708296: 13 tests, 21 assertion failures, 0 errors, 0 passes against CONTRACT.md at b4f946e (no [--answers KEY]..., no correction or follows refusal row, no answers field, grammar unquoted). ops/conductor/tests/test_ladder_lever_correction_contract.py committed at 1b786a1: 10 tests, 13 assertion failures, 0 errors, 0 passes (no undisposed stop, fix-tests/fix-code rows lack --follows/--answers, README names neither cited nor the grammar home). Re-run at HEAD 1b786a1: same reds. Implementation not read. Working tree clean."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-10T23:02:49.878Z"
+    }
+  },
+  "status": "closed"
 }
