@@ -187,6 +187,34 @@ class _LedgerFixture(unittest.TestCase):
         for word in ("expected", "found", "needed"):
             self.assertIn(word, lower, err)
 
+    def _plant_bytes(self, path: Path, data: bytes) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        landed = path.read_bytes()
+        self.assertEqual(landed, data, f"plant did not land intact: {path}")
+        self.assertTrue(path.is_file(), path)
+
+    def dispatch_job_dir(self, record_id: str) -> Path:
+        path = (
+            self.home
+            / ".local"
+            / "state"
+            / "agentscient"
+            / "dispatch"
+            / record_id
+        )
+        (path / "in").mkdir(parents=True, exist_ok=True)
+        (path / "out").mkdir(parents=True, exist_ok=True)
+        return path
+
+    def retain_owner_scope(self, record_id: str) -> dict[str, str]:
+        path = self.dispatch_job_dir(record_id) / "in" / "owner-scope.md"
+        data = self.scope_text.encode("utf-8")
+        self._plant_bytes(path, data)
+        digest = sha256_bytes(data)
+        self.assertEqual(digest, self.scope_sha256, path)
+        return {"path": str(path), "sha256": digest}
+
     def _eval_for(self, row: dict) -> dict:
         evidence = None
         if row["evidence_kind"] == "reproduction":
@@ -232,44 +260,126 @@ class _LedgerFixture(unittest.TestCase):
         verdict: str = "changes",
         ref: str = REF,
         note: str | None = None,
+        harness: str = "grok",
+        model_ran: str = "grok-4.6",
+        role: str | None = None,
+        stage: str | None = None,
+        extra_inputs: list[tuple[str, bytes]] | None = None,
+        extra_outputs: list[tuple[str, bytes]] | None = None,
     ) -> Path:
+        if role is None:
+            role = "write" if job == "implement" else "read"
+        if stage is None:
+            stage = "code" if job == "implement" else "review"
+        job_dir = self.dispatch_job_dir(record_id)
+        scope_input = self.retain_owner_scope(record_id)
+        inputs = [scope_input]
+        for name, data in extra_inputs or []:
+            self.assertNotEqual(name, "owner-scope.md", name)
+            dest = job_dir / "in" / name
+            self._plant_bytes(dest, data)
+            inputs.append({"path": str(dest), "sha256": sha256_bytes(data)})
+        stream_path = job_dir / "home" / harness / "sessions" / "stream.json"
+        stream = (canonical_json({"model": model_ran}) + "\n").encode("utf-8")
+        self._plant_bytes(stream_path, stream)
+        artifacts: dict[str, str] = {}
+        for name, data in extra_outputs or []:
+            dest = job_dir / "out" / name
+            self._plant_bytes(dest, data)
+            artifacts[Path(name).stem.lower()] = str(dest)
+        if "raw" not in artifacts:
+            report = job_dir / "out" / "REPORT.md"
+            report_text = note or f"synthetic report for {record_id}\n"
+            self._plant_bytes(report, report_text.encode("utf-8"))
+            artifacts["raw"] = str(report)
         envelope = {
             "job": job,
             "status": status,
             "verdict": verdict,
             "counts": {
-                "p1": sum(1 for item in findings if item["severity"] == "p1"),
-                "p2": sum(1 for item in findings if item["severity"] == "p2"),
-                "p3": sum(1 for item in findings if item["severity"] == "p3"),
+                "p1": sum(1 for item in findings if item.get("severity") == "p1"),
+                "p2": sum(1 for item in findings if item.get("severity") == "p2"),
+                "p3": sum(1 for item in findings if item.get("severity") == "p3"),
                 "opinions": sum(
                     1 for item in findings if item.get("reproduce") is None
                 ),
             },
             "findings": findings,
-            "artifacts": {"raw": "/tmp/admission-raw"},
-            "spend": {"harness": "grok", "total": 0, "out": 0, "runs": 0},
+            "artifacts": artifacts,
+            "spend": {"harness": harness, "total": 0, "out": 0, "runs": 0},
             "stamp": {"ref": ref, "started": None, "ended": None},
             "note": note,
         }
         rec = {
             "id": record_id,
             "lane": "dev",
-            "stage": "review",
+            "stage": stage,
             "unit": "lane/agy-worker",
+            "lineage": {"branch": "lane/agy-worker", "base_sha": ref},
+            "follows": [],
             "job": job,
-            "role": "read",
-            "status": "closed",
-            "harness": {"name": "grok"},
-            "model": {"ran": "grok-4.6"},
-            "snapshot": {"ref_sha": ref},
+            "role": role,
+            "dispatched_by": AGENT,
+            "at": {
+                "launched": "2026-09-08T06:00:00Z",
+                "closed": "2026-09-08T06:01:00Z",
+            },
+            "snapshot": {
+                "mode": "whole",
+                "ref_name": ref,
+                "ref_sha": ref,
+                "behind_tip": 0,
+                "root": str(job_dir / "snapshot"),
+            },
+            "harness": {
+                "name": harness,
+                "isolation": {
+                    "mechanism": "home",
+                    "observed": {
+                        "unresolved": "behavioural probe has not run",
+                    },
+                    "home": str(job_dir / "home" / harness),
+                },
+                "sandbox": "always-approve",
+                "containment": "policy",
+                "argv": [harness],
+            },
+            "model": {
+                "requested": model_ran,
+                "effort_requested": None,
+                "effort_argv": [],
+                "ran": model_ran,
+                "read_from": str(stream_path),
+            },
+            "session": {
+                "id": "00000000-0000-4000-8000-000000000001",
+                "stream": str(stream_path),
+                "stream_sha256_at_close": sha256_bytes(stream),
+            },
+            "brief": {
+                "template": {
+                    "path": "ops/devlane/task/jobs.json",
+                    "sha256": "c" * 64,
+                },
+                "scope": self.scope_text,
+                "inputs": inputs,
+                "sha256": self.scope_sha256,
+                "bytes": len(self.scope_text.encode("utf-8")),
+            },
+            "caps": {"cap-out": 500000, "source": "wires.py"},
+            "overrides": [],
+            "attempts": [],
             "result": {"envelope": envelope},
+            "status": "closed",
         }
         path = self.records / f"{record_id}.json"
         text = json.dumps(rec, indent=2) + "\n"
-        path.write_text(text, encoding="utf-8")
+        self._plant_bytes(path, text.encode("utf-8"))
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, text)
         self.assertIn(record_id, landed)
+        self.assertIn(self.scope_sha256, landed)
+        self.assertIn(scope_input["path"], landed)
         return path
 
     def sample_row(self, item_id: str) -> dict:
@@ -438,8 +548,71 @@ class CorrectionsFiltersAdmitted(_LedgerFixture):
             "evaluation": ruling,
         }
         adj_id = "20260908T065000Z-adjudicate-grok-c2ae09"
-        self.plant_record(REC, [original])
-        self.plant_record(adj_id, [adj], job="adjudicate")
+        artifact_id = "20260908T060000Z-code-codex-a1fc01"
+        review_path = self.plant_record(
+            REC,
+            [original],
+            harness="claude",
+            model_ran="claude-opus-4-6",
+        )
+        artifact_path = self.plant_record(
+            artifact_id,
+            [],
+            job="implement",
+            verdict=None,
+            harness="codex",
+            model_ran="gpt-5.4",
+        )
+        review_report = self.dispatch_job_dir(REC) / "out" / "REPORT.md"
+        self.assertTrue(review_report.is_file(), review_report)
+        ruling_text = f"## {REC}#1 — PARTIAL\n\n{subclaim}\n"
+        adj_path = self.plant_record(
+            adj_id,
+            [adj],
+            job="adjudicate",
+            harness="grok",
+            model_ran="grok-4.6",
+            extra_inputs=[
+                ("artifact-producer.json", artifact_path.read_bytes()),
+                ("finding-producer.json", review_path.read_bytes()),
+                ("original-report.md", review_report.read_bytes()),
+                ("supplied-keys.txt", f"{REC}#1\n".encode("utf-8")),
+            ],
+            extra_outputs=[("RULING.md", ruling_text.encode("utf-8"))],
+        )
+        adj_rec = json.loads(adj_path.read_text(encoding="utf-8"))
+        review_rec = json.loads(review_path.read_text(encoding="utf-8"))
+        artifact_rec = json.loads(artifact_path.read_text(encoding="utf-8"))
+        self.assertEqual(review_rec["harness"]["name"], "claude")
+        self.assertEqual(artifact_rec["harness"]["name"], "codex")
+        self.assertEqual(adj_rec["harness"]["name"], "grok")
+        self.assertNotEqual(
+            adj_rec["harness"]["name"],
+            review_rec["harness"]["name"],
+        )
+        self.assertNotEqual(
+            adj_rec["harness"]["name"],
+            artifact_rec["harness"]["name"],
+        )
+        self.assertIsNotNone(review_rec["model"]["ran"])
+        self.assertIsNotNone(artifact_rec["model"]["ran"])
+        self.assertIsNotNone(adj_rec["model"]["ran"])
+        self.assertIsNotNone(review_rec["model"]["read_from"])
+        self.assertIsNotNone(artifact_rec["model"]["read_from"])
+        self.assertIsNotNone(adj_rec["model"]["read_from"])
+        input_names = [Path(item["path"]).name for item in adj_rec["brief"]["inputs"]]
+        self.assertEqual(
+            set(input_names),
+            {
+                "owner-scope.md",
+                "artifact-producer.json",
+                "finding-producer.json",
+                "original-report.md",
+                "supplied-keys.txt",
+            },
+        )
+        ruling_file = Path(adj_rec["result"]["envelope"]["artifacts"]["ruling"])
+        self.assertEqual(ruling_file.read_text(encoding="utf-8"), ruling_text)
         self.assertEqual(self.invoke(["import"]).returncode, 0)
         proc = self.corrections(REC, adj_id)
         self.assertEqual(proc.returncode, 0, proc.stderr)
@@ -549,6 +722,7 @@ class DuplicateJsonMembersRefuse(_LedgerFixture):
     def test_duplicate_evaluation_members_refuse_before_dict_collapse(self):
         row = self.sample_row("agy-unverified-flags")
         finding = self._finding_from(row, evaluate=True)
+        scope_input = self.retain_owner_scope(REC)
         rec = {
             "id": REC,
             "lane": "dev",
@@ -560,6 +734,16 @@ class DuplicateJsonMembersRefuse(_LedgerFixture):
             "harness": {"name": "grok"},
             "model": {"ran": "grok-4.6"},
             "snapshot": {"ref_sha": REF},
+            "brief": {
+                "template": {
+                    "path": "ops/devlane/task/jobs.json",
+                    "sha256": "c" * 64,
+                },
+                "scope": self.scope_text,
+                "inputs": [scope_input],
+                "sha256": self.scope_sha256,
+                "bytes": len(self.scope_text.encode("utf-8")),
+            },
             "result": {
                 "envelope": {
                     "job": "adversarial-review",
