@@ -127,12 +127,12 @@ ignore = [
 "ops/conductor/tools/ladder.py" = ["S603"]
 "ops/conductor/tools/branches.py" = ["S603"]
 "ops/conductor/tools/co_doc.py" = ["S603", "S608"]
+# monitor.py runs code-built bounded Git ref reads and `gh api rate_limit`.
+"ops/conductor/tools/monitor.py" = ["S603"]
 # Frozen owner argv and code-built Git reads are this controller's interface.
 "ops/conductor/tools/control.py" = ["S603", "S607"]
 # Every adapter failure must become a native denial.
 "ops/devlane/hooks/conductor-control.py" = ["BLE001"]
-# monitor.py runs code-built bounded Git ref reads and `gh api rate_limit`.
-"ops/conductor/tools/monitor.py" = ["S603"]
 # The repo-scoped skills are scripts that ASK other tools: shelling out is
 # the job, not an incident.
 ".claude/skills/*/*.py" = ["S603", "S607"]
