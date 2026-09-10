@@ -123,11 +123,11 @@
     }
   ],
   "result": {
-    "head": "82511029c40c80eda29d08e360c545e1fa590b2e",
-    "changed_paths": [],
-    "residual_paths": [
-      " M ops/devlane/dispatch/tests/test_launch_input_visibility.py"
+    "head": "e940655bea8e956316ba5f60dc11dec9b786ab47",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_input_visibility.py"
     ],
+    "residual_paths": [],
     "envelope": {
       "job": "author-tests",
       "status": "invalid",
@@ -149,6 +149,16 @@
     "cause": {
       "reason": "timeout",
       "note": "timeout: harness exceeded runtime"
+    },
+    "collected": {
+      "at": "2026-09-10T01:41:33Z",
+      "by": "GPT-6 Astra <noreply@openai.com>",
+      "head": "e940655bea8e956316ba5f60dc11dec9b786ab47",
+      "verify": {
+        "command": "python3 /tmp/agentscient-onboarding-20260909/verify-input-red.py",
+        "exit": 0
+      },
+      "reason": "Recover the completed two-assertion test correction after its wall; independent baseline still reproduces only the six filename failures. The supplied faulty counterparties and final candidate will be checked separately."
     }
   },
   "status": "closed"
