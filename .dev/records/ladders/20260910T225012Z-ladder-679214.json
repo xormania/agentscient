@@ -289,6 +289,7 @@
         "effort": "xhigh",
         "model": "grok-4.6"
       },
+      "findings": 2,
       "harness": "grok",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/ladder-inputs/plan-gate-contracts.md",
@@ -302,10 +303,20 @@
         "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
       },
       "job": "adversarial-review",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "adversarial",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260910T234542Z-review-grok-9e3b5d",
-      "stage": "review"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "review",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
