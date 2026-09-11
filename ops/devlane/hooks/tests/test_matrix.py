@@ -895,6 +895,35 @@ class MatrixHookTests(unittest.TestCase):
             )
         )
 
+    # --- triage 2026-09-11: grant spellings that were refused in practice ---
+
+    def test_grant_after_other_leading_assignments_is_seen(self):
+        self.assert_allowed(
+            self.run_bash(
+                "export WF_AGENT='Some One <a@b.c>' "
+                f"HAND_GRANT={GRANT_SCOPED} && echo x > docs/README.md"
+            )
+        )
+
+    def test_grant_carries_into_a_bash_c_body(self):
+        self.assert_allowed(
+            self.run_bash(
+                f"HAND_GRANT={GRANT_SCOPED} bash -c 'echo x > docs/README.md'"
+            )
+        )
+
+    def test_grant_before_bash_c_does_not_widen_the_scope(self):
+        self.assert_denied(
+            self.run_bash(
+                f"HAND_GRANT={GRANT_SCOPED} bash -c 'echo x > AGENTS.md'"
+            ),
+            "hand-write",
+        )
+
+    def test_launcher_help_is_a_read(self):
+        self.assert_allowed(self.run_bash("ops/devlane/dispatch/launch.py --help"))
+        self.assert_allowed(self.run_bash("python3 ops/devlane/dispatch/launch.py -h"))
+
     def test_grant_escape_allows_direct_launch_when_the_grant_is_open(self):
         self.assert_allowed(
             self.run_bash(
