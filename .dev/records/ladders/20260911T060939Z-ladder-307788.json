@@ -245,6 +245,7 @@
     {
       "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T065539Z-review-codex-2cc9ea",
       "dispatched": {
         "effort": "xhigh",
         "model": "gpt-daybreak-blue-latest"
@@ -263,7 +264,8 @@
       },
       "job": "security-audit",
       "name": "security",
-      "outcome": "pending",
+      "outcome": "launched",
+      "record": "20260911T065539Z-review-codex-2cc9ea",
       "stage": "review"
     },
     {

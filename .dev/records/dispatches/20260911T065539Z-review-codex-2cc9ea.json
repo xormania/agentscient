@@ -1,0 +1,123 @@
+{
+  "id": "20260911T065539Z-review-codex-2cc9ea",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/gate-ladder-stop-20260911",
+  "lineage": {
+    "branch": "lane/gate-ladder-stop-20260911",
+    "base_sha": "ca936a464d40c888f26840314b10ace2a59afad6"
+  },
+  "follows": [
+    "20260911T064829Z-code-codex-65028c"
+  ],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T06:55:48Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "ca936a464d40c888f26840314b10ace2a59afad6",
+    "ref_sha": "ca936a464d40c888f26840314b10ace2a59afad6",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/out\"]",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "ef663836-e3bf-4054-9b07-f431e4ba9a46",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/in/plan-ladder-stop-gate.md",
+        "sha256": "e25a3225673b983af2def10da377f56c00f92e39726a3bf917a723554443d03f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "a4b6ad5d4fe71753daf72f2fd213cbb4f60a419d0b830cc9fb2965aaf9cadf84",
+    "bytes": 4801,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "251eec6dadc084b9d325de9c865b30c49f73b4d540ce65b3fe781853790deaa9"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
