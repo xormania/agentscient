@@ -74,6 +74,7 @@
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
       },
+      "findings": 5,
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/records/dispatches/20260911T060939Z-tests-grok-9cf371.json",
@@ -87,10 +88,20 @@
         "sha256": "20a8c95713b1d9d8d9cdccdc4ad31a9d4c3547b4dd0a4969427dafeaf1db013c"
       },
       "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "check-tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T062509Z-check-tests-codex-344d3f",
-      "stage": "check-tests"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
