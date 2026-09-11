@@ -14,7 +14,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T21:39:56Z",
-    "closed": null
+    "closed": "2026-09-11T21:50:51Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -74,14 +74,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T213956Z-tests-grok-fe4899/home/grok-stream/sessions/<snapshot-encoded>/73ef574d-8546-408a-b748-7dadfe189f82/summary.json"
   },
   "session": {
     "id": "73ef574d-8546-408a-b748-7dadfe189f82",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T213956Z-tests-grok-fe4899/home/grok-stream/sessions/<snapshot-encoded>/73ef574d-8546-408a-b748-7dadfe189f82/summary.json",
+    "stream_sha256_at_close": "0f116f04a7a107887f76e14072b1822648c0b9e75daefe8b4d71e65bc31c65f7",
+    "spend": {
+      "input": 2581344,
+      "cached": 2296320,
+      "output": 37236,
+      "total": 2618580,
+      "cost_usd_ticks": 6601521600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T213956Z-tests-grok-fe4899/home/grok-stream/sessions/<snapshot-encoded>/73ef574d-8546-408a-b748-7dadfe189f82/summary.json",
+      "messages": 257
+    }
   },
   "brief": {
     "template": {
@@ -112,10 +120,62 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T21:39:57Z",
+      "ended": "2026-09-11T21:50:51Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e41154fe277a7ff41f9dab2b55bcf9459b653cb6",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+      "ops/devlane/dispatch/tests/test_launch_role_contract.py",
+      "ops/devlane/task/tests/test_check_tests_contract_row.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_check_tests_contract_row": "ops/devlane/task/tests/test_check_tests_contract_row.py",
+        "test_ladder_lever_skeptic_contract": "ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+        "test_launch_role_contract": "ops/devlane/dispatch/tests/test_launch_role_contract.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2618580,
+        "out": 37236,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "10edd429551d1f61e9e3adf901d582c81fd73081",
+        "started": "2026-09-11T21:42:06Z",
+        "ended": "2026-09-11T21:50:26Z"
+      },
+      "note": "Slice 1 document pins for item 31 items 1\u20135 and 7. Each file was run, proven red on its own assertions (0 errors), then committed. python3 -m unittest discover -s ops/devlane/task/tests -p 'test_check_tests_contract_row.py' \u2014 14 failures; python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder_lever_skeptic_contract.py' \u2014 15 failures; python3 -m unittest discover -s ops/devlane/dispatch/tests -p 'test_launch_role_contract.py' \u2014 7 failures."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T21:50:50.686Z"
+    }
+  },
+  "status": "closed"
 }
