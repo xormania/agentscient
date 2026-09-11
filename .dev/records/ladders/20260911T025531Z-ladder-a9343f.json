@@ -320,6 +320,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 8.171872,
       "name": "adversarial",
       "outcome": "ok",
       "record": "20260911T035045Z-review-grok-562818",
