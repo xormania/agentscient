@@ -772,7 +772,64 @@ class NonCorrectionsUntouched(_CorrectionLaunch):
 
 
 class CorrectionShape(_CorrectionLaunch):
-    """Item 1 — write-role + review follow or out/ input is a correction."""
+    """Item 1 — write-role + review follow or out/ input is a correction.
+
+    The given --input path decides the shape, not the symlink target.
+    A review artifact that is a symlink is not a readable input.
+    """
+
+    def plant_symlinked_review_artifact(
+        self, rec_id=REVIEW, job="adversarial-review",
+    ):
+        self.plant_record(rec_id, job)
+        secret = f"outside-job-data-{rec_id}-not-a-review-artifact"
+        outside = self.home / "outside-jobs-root" / f"{rec_id}-secret.md"
+        self.plant_new_file(outside, secret + "\n", must_contain=secret)
+        jobs_root = self.jobs_root.resolve()
+        outside_res = outside.resolve()
+        self.assertFalse(
+            outside_res == jobs_root
+            or str(outside_res).startswith(str(jobs_root) + os.sep),
+            "plant: symlink target must sit outside the jobs root",
+        )
+        out_dir = self.jobs_root / rec_id / "out"
+        link = out_dir / "review.md"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        self.assertFalse(link.exists(), "plant: link path starts absent")
+        link.symlink_to(outside)
+        self.assertTrue(link.is_symlink(), "plant: review artifact is a symlink")
+        self.assertEqual(os.readlink(link), str(outside))
+        self.assertTrue(link.exists(), "plant: symlink target exists")
+        self.assertEqual(link.parent, out_dir)
+        self.assertIn(secret, link.read_text(encoding="utf-8"))
+        self.assertFalse(
+            str(link.resolve()).startswith(str(out_dir.resolve()) + os.sep),
+            "plant: resolved target must leave the review out/",
+        )
+        self.planted_job_ids.add(rec_id)
+        return link, outside, secret
+
+    def assert_target_not_copied_under_jobs(self, secret):
+        needle = secret.encode("utf-8")
+        hits = []
+        for dirpath, _dirnames, filenames in os.walk(
+            self.jobs_root, followlinks=False,
+        ):
+            for name in filenames:
+                path = Path(dirpath) / name
+                if path.is_symlink() or not path.is_file():
+                    continue
+                try:
+                    body = path.read_bytes()
+                except OSError:
+                    continue
+                if needle in body:
+                    hits.append(str(path))
+        self.assertEqual(
+            hits, [],
+            "symlink target must not be copied under the jobs root: "
+            + ", ".join(hits),
+        )
 
     def test_every_review_job_follow_is_a_correction(self):
         for rec_id, job in REVIEW_JOBS:
@@ -808,6 +865,23 @@ class CorrectionShape(_CorrectionLaunch):
                 self.assertIn("no --answers key named", found)
                 self.assertIn(rec_id, found)
                 self.assertIn(job, found)
+
+    def test_symlinked_out_input_without_answers_is_a_correction(self):
+        link, outside, secret = self.plant_symlinked_review_artifact()
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(
+            self.write_argv(extra=["--input", str(link)]),
+        )
+        line = self.assert_wire_line(code, out, err, "correction")
+        self.assert_no_mint()
+        self.assert_expected_before_stamp(line, STAMP)
+        found = self.found_clause(line)
+        self.assertIn("no --answers key named", found)
+        self.assertIn(REVIEW, found)
+        self.assertIn("adversarial-review", found)
+        self.assertTrue(outside.is_file(), "plant: target remains in place")
+        self.assertIn(secret, outside.read_text(encoding="utf-8"))
+        self.assert_target_not_copied_under_jobs(secret)
 
     def test_author_tests_following_check_tests_is_a_correction(self):
         self.plant_record(CHECK, "check-tests")
