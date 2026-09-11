@@ -44,6 +44,21 @@ ITEM5_LITERAL_MUTANT = (
     "and name that path in artifacts; match only that literal sentence"
 )
 
+# Item 5 near-miss: instruction shape plus a closed eight-verb list at
+# sentence start. Survived the first frozen set (security
+# 20260911T224145Z, P1): ordinary positive instructions bypass.
+EIGHT_VERBS = "`write, save, create, store, emit, put, append, dump`"
+PLEASE_WRITE = "Please write /tmp/result.md"
+COPY_REPORT = "Copy the report to /tmp/result.md"
+ITEM5_EIGHT_VERB_MUTANT = (
+    "instruction shape (a write verb and a path-shaped token, "
+    "negated sentences excluded), not by a list of forbidden words; "
+    "write verbs from the declared set `write, save, create, store, "
+    "emit, put, append, dump` as a verb (sentence start, or after "
+    "`and`/`then`/`,`); Please write /tmp/result.md and Copy the "
+    "report to /tmp/result.md bypass the planned guard"
+)
+
 # Item 7 near-miss: "exit 2" as a substring of "exit 20".
 ITEM7_EXIT_20_MUTANT = (
     "exit 20; one stderr line is not required; write two stdout lines"
@@ -65,6 +80,28 @@ def _item5_shape_holds(text: str) -> bool:
         and "negated sentences excluded" in text
         and "not by a list of forbidden words" in text
     )
+
+
+def _has_positive_instruction_pin(sample: str, text: str) -> bool:
+    """True when the sample is pinned as a positive write instruction.
+
+    A mention that the sample bypasses the guard is not the pin.
+    """
+    pins = (
+        f'"{sample}" is a positive instruction to write a path',
+        f"`{sample}` is a positive instruction to write a path",
+    )
+    return any(pin in text for pin in pins)
+
+
+def _item5_ordinary_instructions_hold(text: str) -> bool:
+    if not _item5_shape_holds(text):
+        return False
+    if EIGHT_VERBS in text:
+        return False
+    if not _has_positive_instruction_pin(PLEASE_WRITE, text):
+        return False
+    return _has_positive_instruction_pin(COPY_REPORT, text)
 
 
 def _item7_refusal_holds(text: str) -> bool:
@@ -241,6 +278,60 @@ class RoleRefusalRow(_ContractPin):
         mutant = "needed remove {out} from the template values"
         self.assertNotIn(NEEDED, mutant)
         self.assertIn(NEEDED, self.role_blob())
+
+    def test_please_write_with_an_introducer_is_a_positive_write_instruction(
+        self,
+    ):
+        mutant = ITEM5_EIGHT_VERB_MUTANT
+        self.assertTrue(
+            _item5_shape_holds(mutant),
+            "plant must land: the shape rule plus a closed verb list",
+        )
+        self.assertIn(EIGHT_VERBS, mutant)
+        self.assertIn(PLEASE_WRITE, mutant)
+        self.assertFalse(
+            _has_positive_instruction_pin(PLEASE_WRITE, mutant),
+            "item 5: naming the sample as a bypass is not the pin",
+        )
+        self.assertFalse(
+            _item5_ordinary_instructions_hold(mutant),
+            "item 5: eight verbs at sentence start must not hold",
+        )
+        surface = self.role_surface()
+        self.assertTrue(
+            _has_positive_instruction_pin(PLEASE_WRITE, surface),
+            "item 5: Please write /tmp/result.md is a positive "
+            "instruction to write a path; an introducer before the "
+            "verb does not drop it",
+        )
+        self.assertNotIn(
+            EIGHT_VERBS,
+            surface,
+            "item 5: recognition is not a closed list of write verbs",
+        )
+
+    def test_copy_the_report_to_a_path_is_a_positive_write_instruction(self):
+        mutant = ITEM5_EIGHT_VERB_MUTANT
+        self.assertTrue(_item5_shape_holds(mutant))
+        self.assertIn(EIGHT_VERBS, mutant)
+        self.assertIn(COPY_REPORT, mutant)
+        self.assertFalse(
+            _has_positive_instruction_pin(COPY_REPORT, mutant),
+            "item 5: naming the sample as a bypass is not the pin",
+        )
+        self.assertFalse(_item5_ordinary_instructions_hold(mutant))
+        surface = self.role_surface()
+        self.assertTrue(
+            _has_positive_instruction_pin(COPY_REPORT, surface),
+            "item 5: Copy the report to /tmp/result.md is a positive "
+            "instruction to write a path, not a miss for want of the "
+            "verb write",
+        )
+        self.assertNotIn(
+            EIGHT_VERBS,
+            surface,
+            "item 5: recognition is not a closed list of write verbs",
+        )
 
 
 if __name__ == "__main__":
