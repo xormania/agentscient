@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T04:05:34Z",
-    "closed": null
+    "closed": "2026-09-11T04:24:36Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -73,14 +73,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T040533Z-tests-grok-294c5d/home/grok-stream/sessions/<snapshot-encoded>/ad6af508-04a3-4705-93be-9ac182492d75/summary.json"
   },
   "session": {
     "id": "ad6af508-04a3-4705-93be-9ac182492d75",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T040533Z-tests-grok-294c5d/home/grok-stream/sessions/<snapshot-encoded>/ad6af508-04a3-4705-93be-9ac182492d75/summary.json",
+    "stream_sha256_at_close": "7f47ef6d34ae547390904d1f903237d8ab8a869ca9e567cfd87f49256448c63c",
+    "spend": {
+      "input": 3847640,
+      "cached": 3659136,
+      "output": 48006,
+      "total": 3895646,
+      "cost_usd_ticks": 4240840400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T040533Z-tests-grok-294c5d/home/grok-stream/sessions/<snapshot-encoded>/ad6af508-04a3-4705-93be-9ac182492d75/summary.json",
+      "messages": 290
+    }
   },
   "brief": {
     "template": {
@@ -111,10 +119,62 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T04:05:34Z",
+      "ended": "2026-09-11T04:24:36Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "deaa86bf9e351433d78e446d948786f78a512cbb",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/launch_support.py",
+      "ops/devlane/dispatch/tests/test_launch_correction_gate.py",
+      "ops/devlane/dispatch/tests/test_record_answers.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_record_answers": "ops/devlane/dispatch/tests/test_record_answers.py",
+        "test_launch_correction_gate": "ops/devlane/dispatch/tests/test_launch_correction_gate.py",
+        "launch_support": "ops/devlane/dispatch/tests/launch_support.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3895646,
+        "out": 48006,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2a11f2cc679c7e7a365c42136ea8fea69b719589",
+        "started": "2026-09-11T04:08:40Z",
+        "ended": "2026-09-11T04:23:40Z"
+      },
+      "note": "Slice 4 (launcher-mint) tests from scope-gate-20260910.md items 1-8. launch.py and record.py were not read. Item 9 is the ladder driver (later slice); item 10 already sits on the landed correction.py registry. Commits 6a2eecd (test_record_answers.py, RECORD_FIELDS) and deaa86b (test_launch_correction_gate.py). Measured at 6a2eecd: python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py \u2014 8 tests, 6 assertion failures, 0 errors (build omits answers; FIELDS still follows then job; two neighbours already hold: well-shaped extra answers and absent-key records still validate). Measured at 6a2eecd: python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py \u2014 24 tests, 27 assertion failures (subtests included), 0 errors. Correction-shaped writes with no --answers still mint (exit 0). Writes that pass --answers die in argparse usage (seven stderr lines), not one bare correction: or arguments: line. Item 7 neighbours that already launch fail only because answers is missing, not []. One neighbour already holds: --override correction:reason is exit 3 class override. Implementation not edited."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T04:24:35.450Z"
+    }
+  },
+  "status": "closed"
 }
