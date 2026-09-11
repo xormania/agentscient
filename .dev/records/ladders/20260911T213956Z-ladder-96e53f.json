@@ -505,6 +505,7 @@
         "effort": "xhigh",
         "model": "gpt-daybreak-blue-latest"
       },
+      "findings": 3,
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/dispatches/20260911T224145Z-review-codex-c5fc8b.json",
@@ -518,10 +519,20 @@
         "sha256": "7fd24d8c54c50babdd26d7e173d6b785b153def2c2788f60ee88bc0ac9b60779"
       },
       "job": "security-audit",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "security-re",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T232448Z-review-codex-5cb35f",
-      "stage": "review"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-daybreak-blue-latest",
+        "model_requested": "gpt-daybreak-blue-latest"
+      },
+      "stage": "review",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
