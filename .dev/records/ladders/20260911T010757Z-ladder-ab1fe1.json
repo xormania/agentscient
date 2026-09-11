@@ -57,6 +57,7 @@
         "22cb26afd66ad597ae479ef6306acb515fb5e900",
         "2196b352248c063b90ccfa8f327516a5a584f0cf"
       ],
+      "minutes": 17.015134,
       "name": "tests",
       "outcome": "ok",
       "record": "20260911T010758Z-tests-grok-69e487",
