@@ -69,6 +69,7 @@
     {
       "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T062509Z-check-tests-codex-344d3f",
       "dispatched": {
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
@@ -87,7 +88,8 @@
       },
       "job": "check-tests",
       "name": "check-tests",
-      "outcome": "pending",
+      "outcome": "launched",
+      "record": "20260911T062509Z-check-tests-codex-344d3f",
       "stage": "check-tests"
     },
     {
