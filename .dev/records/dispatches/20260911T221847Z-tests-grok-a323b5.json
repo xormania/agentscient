@@ -80,7 +80,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T22:18:47Z",
-    "closed": null
+    "closed": "2026-09-11T22:33:13Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -140,14 +140,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok-stream/sessions/<snapshot-encoded>/1538185b-1618-472b-b160-fe7c36196888/summary.json"
   },
   "session": {
     "id": "1538185b-1618-472b-b160-fe7c36196888",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok-stream/sessions/<snapshot-encoded>/1538185b-1618-472b-b160-fe7c36196888/summary.json",
+    "stream_sha256_at_close": "6a73b46cb69cdb3e5dc12eb9b5ceb0373c9248bb10f4beaec36b5f09e6aefe31",
+    "spend": {
+      "input": 3141950,
+      "cached": 2666496,
+      "output": 58419,
+      "total": 3200369,
+      "cost_usd_ticks": 8957878000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T221847Z-tests-grok-a323b5/home/grok-stream/sessions/<snapshot-encoded>/1538185b-1618-472b-b160-fe7c36196888/summary.json",
+      "messages": 254
+    }
   },
   "brief": {
     "template": {
@@ -186,10 +194,62 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T22:18:48Z",
+      "ended": "2026-09-11T22:33:13Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "feaa59a27591ad232ad795231d5dce6ca8068eb6",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_skeptic_contract.py",
+      "ops/devlane/dispatch/tests/test_launch_role_contract.py",
+      "ops/devlane/task/tests/test_check_tests_contract_row.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "ops/devlane/task/tests/test_check_tests_contract_row.py": "item 1 and 2: check-tests row delivers the JSON envelope on stdout with artifacts empty and no file written, including a differently named path; quotation-pair grammar requires a non-empty reproduce command",
+        "ops/conductor/tests/test_ladder_lever_skeptic_contract.py": "item 3, 4 and 7: four envelope checks, custody regular file with path and digest that refuses a symlink or a path outside the inputs directory, refusal wire exit 2 one stderr line stdout empty",
+        "ops/devlane/dispatch/tests/test_launch_role_contract.py": "item 5 and 7: role refusal by instruction shape (write verb and path-shaped token, negated sentences excluded), exit 2 as a token not a substring of 20, one stderr line, stdout empty"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3200369,
+        "out": 58419,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fb5bb0aed677300d6a0c03c252fd7684bb1ad985",
+        "started": "2026-09-11T22:18:47Z",
+        "ended": "2026-09-11T22:32:47Z"
+      },
+      "note": "Slice-1 document pins, strengthened against the seven check-tests findings. Each file committed after its own red: 14, 17, and 7 assertion failures, 0 errors, at fb5bb0ae (ef792fe, 2ffbe1e, feaa59a). The 2026-09-11 near-miss mutants now fail the predicates; planned contract text makes them true. No implementation was read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T22:33:12.116Z"
+    }
+  },
+  "status": "closed"
 }
