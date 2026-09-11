@@ -146,7 +146,7 @@
       "stage": "tests"
     },
     {
-      "attempt": 2,
+      "attempt": 3,
       "condition": "declared stage condition not yet evaluated",
       "dispatch_record": "20260911T054927Z-code-codex-3122df",
       "dispatched": {
@@ -163,13 +163,19 @@
           ],
           "withheld": []
         },
-        "sha256": "8ad2e12aa8f1b73aef8e833c4d4ebe9a00a25afc6c4e12ae4312b5e34ecb6fd1"
+        "sha256": "c66288d4dee75b6e59b3aefd02943a9c9895084b1a5b4a0b91ac2ab1bc299447"
       },
       "job": "implement",
       "name": "code",
       "outcome": "stopped",
       "reason": "retry-cap",
       "record": "20260911T054927Z-code-codex-3122df",
+      "retry": {
+        "at": "20260911T060607Z",
+        "because": "LD-19: both code attempts were stopped by the driver's derived command (discover over launch_support.py exits 5), not by the worker; PR 122",
+        "by": "Claude Fable 5.1 <noreply@anthropic.com>",
+        "from_attempt": 2
+      },
       "stage": "code"
     },
     {
