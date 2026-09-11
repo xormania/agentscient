@@ -1,0 +1,126 @@
+{
+  "id": "20260911T022145Z-tests-grok-1229a1",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/gate-ledger-20260911",
+  "lineage": {
+    "branch": "lane/gate-ledger-20260911",
+    "base_sha": "d751aa6acddd85dde5528900b1d16b13fe581687"
+  },
+  "follows": [
+    "20260911T020630Z-review-grok-7fdc2e"
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T02:21:45Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d751aa6acddd85dde5528900b1d16b13fe581687",
+    "ref_sha": "d751aa6acddd85dde5528900b1d16b13fe581687",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "1d2792d2-4467-43c7-aae7-64295ba17195",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "1d2792d2-4467-43c7-aae7-64295ba17195",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/in/plan-ledger-gate.md",
+        "sha256": "ba159269c62cf91721641820220bc907fe458864fd01af268cfca6e838de2847"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/in/security-envelope.md",
+        "sha256": "bd3b336d35ed649dbeb2dad204f72b4bf6bde83aaf468a1e20764b3628460431"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/in/adversarial-envelope.md",
+        "sha256": "995e77b3941f79ed0d9fe640fca720ac7235cc4292c2d89eac986cfc991c0ac0"
+      }
+    ],
+    "sha256": "2a5a674d458acfce9126cdb8e257c9b91f6c3ac920a77362592c696a78c3e9b7",
+    "bytes": 3519
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
