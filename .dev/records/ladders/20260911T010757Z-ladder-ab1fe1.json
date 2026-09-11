@@ -76,7 +76,50 @@
     "git add ops/conductor/tools/findings.py ops/conductor/tools/correction.py ops/conductor/registry/correction.py.json && git commit -m 'conductor: gate corrections on cited dispositions' -m 'Add the shared citation grammar and cited ledger read, admit every declared review job, and implement the read-only correction gate with hermetic refusal registry rows.' -m 'Source: original' -m 'Co-Authored-By: GPT-5 Codex <noreply@openai.com>'",
     "Final-tree acceptance passed: 27 citation tests and 36 correction tests, exit 0.",
     "Stamped the final tree at fc31032adf42ed97bf76cd8ed6a47c0763647f22 with exactly three uncommitted implementation artifacts.",
-    "date -u +%Y-%m-%dT%H:%M:%SZ && git rev-parse HEAD && git status --short"
+    "date -u +%Y-%m-%dT%H:%M:%SZ && git rev-parse HEAD && git status --short",
+    "20260911T023535Z-code-codex-30a316",
+    "Implemented the frozen requested behavior without editing tests or the command: work-order scope resolution is shared by the ledger and gate, ledger record lookups are contained, answer keys are bound to followed review records, and remedy citations use the finding's cited item. Assumption: the cap file's declared Contract path is authoritative; without it, the unique numbered scope file excluding the discipline and cap files is the work order. No unrelated follow-up was found. Git commit was attempted but the sandbox refused .git/index.lock; the launcher commit message is recorded in out/COMMIT_MSG.",
+    "ops/conductor/tools/correction.py, ops/conductor/tools/findings.py",
+    "31 test_findings_citation.py tests and 45 test_correction.py tests passed",
+    "Confirmed the snapshot path, clean starting tree, and exact starting ref; the aggregate mandatory read exceeded the output window and probed one stale workflow filename.",
+    "for f in /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/plan-ledger-gate.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/20260911T020630Z-review-codex-bc441c.json /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/20260911T020630Z-review-grok-7fdc2e.json /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-gate-20260910.scope.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/implementation-records.md docs/wire.md docs/workflow-genus.md docs/probes.md docs/concerns.md docs/verified-couplings.md ops/README.md; do echo \"===== $f =====\"; sed -n '1,$p' \"$f\"; done",
+    "Measured all mandatory input lengths and found the governing workflow contract at docs/workflow.md.",
+    "wc -lc /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/plan-ledger-gate.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/20260911T020630Z-review-codex-bc441c.json /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/20260911T020630Z-review-grok-7fdc2e.json /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-gate-20260910.scope.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/implementation-records.md",
+    "Read plan-ledger-gate.md whole, including its binding rulings and slice boundary.",
+    "sed -n '1,642p' /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/plan-ledger-gate.md",
+    "Read the work-order scope, scope-discipline clause, and Codex review record whole.",
+    "for f in /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/20260911T020630Z-review-codex-bc441c.json; do echo \"===== $f =====\"; sed -n '1,$p' \"$f\"; done",
+    "Read the Grok review record, cap scope, and implementation record whole.",
+    "for f in /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/20260911T020630Z-review-grok-7fdc2e.json /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/scope-gate-20260910.scope.md /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/in/implementation-records.md; do echo \"===== $f =====\"; sed -n '1,$p' \"$f\"; done",
+    "Read the wire, workflow, probes, concerns, verified-couplings, and dev-lane operating instructions whole.",
+    "for f in docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md ops/README.md; do echo \"===== $f =====\"; sed -n '1,$p' \"$f\"; done",
+    "Established the frozen baseline: test_findings_citation.py failed 4 of 31 tests, preventing the chained correction suite from running.",
+    "Inspected the implementation and focused frozen assertions; aggregate output exceeded the display window after the relevant functions and failures were located.",
+    "wc -l ops/conductor/tools/findings.py ops/conductor/tools/correction.py ops/conductor/tests/test_findings_citation.py ops/conductor/tests/test_correction.py",
+    "sed -n '1,420p' ops/conductor/tools/findings.py",
+    "sed -n '1,360p' ops/conductor/tools/correction.py",
+    "sed -n '650,860p' ops/conductor/tests/test_findings_citation.py",
+    "rg -n \"scope|record|answer|remed|unrelated|contract item\" ops/conductor/tests/test_correction.py",
+    "Read correction.py whole and the frozen scope, answer-ownership, and remedy-item assertions.",
+    "sed -n '1,356p' ops/conductor/tools/correction.py",
+    "sed -n '1010,1247p' ops/conductor/tests/test_correction.py",
+    "Read the fixture definitions and established the independent correction-suite baseline: 9 of 45 tests failed.",
+    "sed -n '1,330p' ops/conductor/tests/test_findings_citation.py",
+    "sed -n '1,430p' ops/conductor/tests/test_correction.py",
+    "python3 -m unittest discover -s ops/conductor/tests -p test_correction.py",
+    "After the first implementation pass, all 31 citation tests passed and one correction test still failed because absent-store precedence was wrong.",
+    "After moving ownership validation behind ledger lookup, the named command exited 0 with 31 citation and 45 correction tests passing.",
+    "The two-file diff passed whitespace and Ruff checks; the existing findings regression and all 18 instrument-conformance tests passed; no test file changed.",
+    "git diff -- ops/conductor/tools/findings.py ops/conductor/tools/correction.py",
+    "ruff check ops/conductor/tools/findings.py ops/conductor/tools/correction.py",
+    "python3 -m unittest discover -s ops/conductor/tests -p test_instrument_conventions.py",
+    "The final-tree named acceptance command exited 0 with 31 citation and 45 correction tests passing.",
+    "Final diff and Ruff checks passed and only the two implementation files changed; commit creation was refused because .git/index.lock is read-only.",
+    "git add ops/conductor/tools/findings.py ops/conductor/tools/correction.py",
+    "git commit -m 'conductor: bind corrections to work-order findings' -m 'Resolve the work-order Contract consistently for cited findings and mint checks, contain ledger record lookups, bind answer keys to their followed reviews, and derive remedy citations from finding claims.' -m 'Source: original' -m 'Co-Authored-By: GPT-5 Codex <noreply@openai.com>'",
+    "Stamped the final uncommitted tree at the requested ref with exactly two modified implementation files and verified the launcher commit message.",
+    "date -u +%Y-%m-%dT%H:%M:%SZ",
+    "sed -n '1,$p' /home/scientdb/.local/state/agentscient/dispatch/20260911T023535Z-code-codex-30a316/out/COMMIT_MSG"
   ],
   "inputs": [
     {
@@ -461,9 +504,20 @@
         "sha256": "4c7ef6c33a2dba6a62c7505ac4de845bda2fe1e7461c153bbeae790b2be6a43a"
       },
       "job": "implement",
+      "landed": [
+        "4e2da60b3a5beac507bcd0902de1c0e5f85b39ba"
+      ],
+      "landed_shas": [
+        "4e2da60b3a5beac507bcd0902de1c0e5f85b39ba"
+      ],
       "name": "fix-code",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T023535Z-code-codex-30a316",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
       "stage": "code"
     },
     {
