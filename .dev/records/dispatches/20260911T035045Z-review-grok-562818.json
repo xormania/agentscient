@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T03:50:55Z",
-    "closed": null
+    "closed": "2026-09-11T03:59:22Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok-stream/sessions/<snapshot-encoded>/f9d93513-4c8c-439f-a002-07ce93f53d5d/summary.json"
   },
   "session": {
     "id": "f9d93513-4c8c-439f-a002-07ce93f53d5d",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok-stream/sessions/<snapshot-encoded>/f9d93513-4c8c-439f-a002-07ce93f53d5d/summary.json",
+    "stream_sha256_at_close": "ab35984f3ea42d4bdf72c6726d7afa971159569075ea047e6894469e2a045b77",
+    "spend": {
+      "input": 1897579,
+      "cached": 1723392,
+      "output": 24763,
+      "total": 1922342,
+      "cost_usd_ticks": 2309701600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/home/grok-stream/sessions/<snapshot-encoded>/f9d93513-4c8c-439f-a002-07ce93f53d5d/summary.json",
+      "messages": 196
+    }
   },
   "brief": {
     "template": {
@@ -114,10 +122,59 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:50:56Z",
+      "ended": "2026-09-11T03:59:22Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "e5698c3073323c61dc700c50f8e131daa98e0d17",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260911T035045Z-review-grok-562818/context/diff.patch",
+        "wrapper": "ops/conductor/tools/dispatch.sh",
+        "tests": "ops/conductor/tests/test_dispatch_wrapper_answers.py",
+        "scope": ".dev/ladder-inputs/scope-gate-20260910.md"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1922342,
+        "out": 24763,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e5698c3073323c61dc700c50f8e131daa98e0d17",
+        "started": null,
+        "ended": "2026-09-11T03:59:04Z"
+      },
+      "note": "Slice 3 only: ops/conductor/tools/dispatch.sh now stores --follows and --answers as arrays and appends them after --input, follows first. Measured at e5698c3073323c61dc700c50f8e131daa98e0d17: python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper_answers.py \u2192 3 ok; test_dispatch_wrapper.Row1FullFlagSetArgv and Row10 two-input order still exact-match with no stray --answers; bash -n dispatch.sh ok. A fixture probe of three --follows plus two --answers kept given order; a neighbour with no --answers emitted none. launch.py still has no --answers (slice 4). ladder.py dispatch_args still emits one --follows and no --answers (slice 5); the wrapper accepts that shape. Items 3\u20136, 8, 10 are not in this change. Tried and refuted against items 1, 2, 7, 9: last-wins on --follows; answers dropped on the exec path; wrapper inspection of non-corrections."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T03:59:20.813Z"
+    }
+  },
+  "status": "closed"
 }
