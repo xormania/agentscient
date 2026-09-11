@@ -22,7 +22,7 @@ DEFAULT_TIMEOUT = 900.0
 POLICY_CAPS = {
     "author-tests": 1800,
     "check-tests": 1800,
-    "adversarial-review": 1200,
+    "adversarial-review": 1800,
     "security-audit": 1200,
     "implement": 3600,
 }
@@ -122,7 +122,8 @@ class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
 
 
 class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
-    """author-tests 1800, check-tests 1800, adversarial-review 1200,
+    """author-tests 1800, check-tests 1800, adversarial-review 1800
+    (raised from 1200 on 2026-09-11: Grok reviews ran to 19 of 20 minutes),
     security-audit 1200, implement 3600."""
 
     def test_exactly_five_jobs_carry_the_named_caps(self):

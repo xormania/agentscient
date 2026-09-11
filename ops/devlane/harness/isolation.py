@@ -86,8 +86,10 @@ this amendment adds no host containment promise and changes no legacy entry.
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
+import re
 from pathlib import Path
 
 # --------------------------------------------------------------------
@@ -176,6 +178,20 @@ HARNESSES = {
         "home_env": "GROK_HOME",
         "also_env": ["HOME"],
         "auth_files": ["auth.json"],
+        # LD-18 (2026-09-11): the CLI refreshes the token inside each
+        # isolated job home and writes the new refresh token there; the
+        # host file keeps the login's, and that one aged out about 30 h
+        # after create_time (a refresh from it was accepted at 29.4 h,
+        # record 3ab0c7; two dispatches died "Not signed in" at 30.1 h,
+        # records dddd49 and 70b92e). Refuse before the mint instead.
+        "credential_age": {
+            "file": "auth.json",
+            "field": "create_time",
+            "max_hours": 24,
+            "remedy": "grok login --device-code",
+            "measured": {"on": "2026-09-11", "version": "1.0.13",
+                         "accepted_h": 29.4, "refused_h": 30.1},
+        },
         "probe_phrase": None,
         "sessions": {"under": "minimal", "path": "sessions"},
         "measured": {
@@ -256,6 +272,55 @@ def _real_home(harness, env, given=True):
     return Path(home) / f".{harness}"
 
 
+def _credential_created(path, field):
+    """The newest `field` stamp among the entries of a CLI credential file,
+    or None when the file carries none (lane fixtures plant "{}")."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    entries = data.values() if isinstance(data, dict) else []
+    stamps = []
+    for entry in entries:
+        raw = entry.get(field) if isinstance(entry, dict) else None
+        if not isinstance(raw, str):
+            continue
+        # The CLI writes nanoseconds and a trailing Z; fromisoformat
+        # takes microseconds and an offset.
+        text = re.sub(r"\.(\d{1,6})\d*(?=Z$)", r".\1", raw).replace("Z", "+00:00")
+        try:
+            stamps.append((datetime.datetime.fromisoformat(text), raw))
+        except ValueError:
+            continue
+    return max(stamps) if stamps else None
+
+
+def check_credential_age(harness, spec, name, src):
+    """LD-18: refuse a credential older than its measured refresh lifetime.
+
+    Called by the launcher before the mint (so a refusal leaves no job
+    directory) and again by build_home (so no other caller can skip it).
+    """
+    rule = spec.get("credential_age")
+    if not rule or rule.get("file") != name:
+        return
+    created = _credential_created(src, rule["field"])
+    if created is None:
+        return
+    stamp, raw = created
+    age = (datetime.datetime.now(datetime.timezone.utc) - stamp).total_seconds() / 3600
+    if age <= rule["max_hours"]:
+        return
+    measured = rule.get("measured") or {}
+    raise NotIsolated(
+        f"{harness}: credential {src} was created {age:.1f} h ago "
+        f"({rule['field']} {raw}); the CLI refreshes into each job home and "
+        f"the host copy's refresh token ages out (measured {measured.get('on')}: "
+        f"accepted at {measured.get('accepted_h')} h, refused at "
+        f"{measured.get('refused_h')} h), so a worker would die 'Not signed in'; "
+        f"needed `{rule['remedy']}` on the host.")
+
+
 def build_home(harness, root, env=None):
     """Create a minimal home for `harness` under `root`; return its path.
 
@@ -320,6 +385,7 @@ def build_home(harness, root, env=None):
             raise NotIsolated(
                 f"agy: expected a credential file; found {src} is not a file; "
                 "needed only the declared auth leaf, never a directory link.")
+        check_credential_age(harness, spec, name, src)
         # No exists-check: the destination was just proved empty, so a
         # name already there would mean something wrote into the home
         # between the two, and skipping it silently is the same hole in

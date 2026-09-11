@@ -14,9 +14,18 @@ and lint duty apply as written here.
 
 ## Instrument
 
-`ops/bin/ladder.sh SCOPE BRANCH [PLAN]` starts a ladder in the worktree
-that owns `BRANCH`. `ops/bin/ladder.sh resume LADDER_ID` resumes the
-named record at its first stage not recorded `ok`. Every launch uses
+`ops/bin/ladder.sh SCOPE BRANCH [PLAN] [--input PATH]...` starts a
+ladder in the worktree that owns `BRANCH`. Each `--input PATH` names a
+file handed to every stage beside the scope and plan, so the work order a
+scope sentence cites reaches every worker as a supplied input; each is
+recorded with its digest and re-verified on resume. `ops/bin/ladder.sh
+resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]` resumes the
+named record at its first stage not recorded `ok`. A scope, plan or input whose bytes changed since the
+record refuses `record` unless `--rescope` is given, in which case the
+change is recorded as an event, `rescoped: [{label, path, from, to, at,
+stage}]`, the digest updated, and the stages from `stage` on receive the
+new bytes; earlier stage rows keep the digests they were given. The conf
+is never rescoped. `--rescope` with nothing changed refuses `arguments`. Every launch uses
 that worktree's `ops/bin/dispatch.sh --detach`; every wait, landing,
 ledger update, push, and PR action uses that same worktree.
 
@@ -40,17 +49,29 @@ dispatcher from the lane configuration, never carried in this table.
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
-| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes | either audit says `changes` |
-| `fix-code` | `implement` | codex | `code` | scope, plan, both audit envelopes, test command | after `fix-tests` |
+| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes, extracted from their records (a whole record names the implementation it follows); dispatch with `--follows <previous>`, `--follows <security>`, `--follows <adversarial>`, and one `--answers KEY` per key for every finding | either audit says `changes` |
+| `fix-code` | `implement` | codex | `code` | scope, plan, both audit envelopes, test command; dispatch with `--follows <previous>`, `--follows <security>`, `--follows <adversarial>`, and one `--answers KEY` per key for every finding | after `fix-tests` |
 | `security-re` | `security-audit` | codex | `review` | scope, plan, original security envelope | after the audit fix round |
 | `pr` | `gh pr create --draft` | none | none | body built from records | audits approve |
 
 Security and adversarial audit dispatches are started back to back and
-waited in table order. No other stages run concurrently. Test commands
-come only from test artifacts in the first test envelope: each path
-under a `tests/` directory becomes a `python3 -m unittest discover`
-invocation, joined in order with `&&`. No such artifact is an
-`artifacts` stop, never an invented command.
+waited in table order. No other stages run concurrently. A stage is
+waited for its job's cap from `ops/devlane/task/jobs.json` (the record
+copy's own cap when it already carries one) plus `LADDER_WAIT_GRACE`;
+`WALL_DEFAULT` applies only when neither names a cap (LD-17,
+2026-09-11: the record copy carries no cap until the job closes). Test commands
+come only from test artifacts in the first test envelope: each test
+module (`test*.py`, unittest's default pattern) under a `tests/` directory
+becomes a `python3 -m unittest discover` invocation, joined in order with
+`&&`; another `.py` there is a support module, carried as an artifact and
+never run (LD-19, 2026-09-11: a discover over `launch_support.py` found
+zero tests, exited 5, and consumed both code attempts of ladder fd103b). No such artifact is an
+`artifacts` stop, never an invented command. The command names the
+tree: an artifact given as an absolute path is accepted only when it
+lies under a dispatch snapshot and is recorded as the part after
+`snapshot/`; any other absolute path, or a `..` component, is an
+`artifacts` stop naming the path (LD-15, 2026-09-11: a tests worker's
+absolute path made the implementer test the worker's own tree).
 
 Write stages (`tests`, `tests-fix`, each `code`, `fix-tests`, and
 `fix-code`) land through `land.py` with `--author` from the worktree's
@@ -70,12 +91,13 @@ one stderr line, stdout empty, and exit 2.
 | `arguments` | neither `SCOPE BRANCH [PLAN]` nor `resume LADDER_ID` was supplied | choose one documented form |
 | `conf-key` | a required lane key is absent | declare it in the named lane conf |
 | `scope` | the scope is absent, unreadable, or its stage sentence exceeds `SCOPE_CAP` | supply a bounded readable scope |
+| `input` | a `--input` path is absent or unreadable | supply a readable input file |
 | `worktree` | the named branch is not checked out in a worktree | add it below configured `WORKTREE_ROOT` |
 | `dirty` | that worktree has staged or unstaged changes | commit or stash them |
 | `identity` | `WF_AGENT` and the worktree git identity are not full `Name <address>` values | supply both identities |
 | `gh-missing` | `gh` cannot be executed | install or expose the GitHub CLI |
 | `job` | a stage's named job is absent from the registry | restore the job declaration |
-| `record` | the named resume record is absent or invalid | choose or repair the record |
+| `record` | the named resume record is absent or invalid, or a recorded scope, plan or input changed without `--rescope` | choose or repair the record, or resume with `--rescope` |
 
 ## Stops, retries, and exits
 
@@ -85,26 +107,37 @@ one stderr line, stdout empty, and exit 2.
 | 1 | `security-re` still says `changes` | `stopped stage=security-re record=<id> verdict=changes` |
 | 2 | a precondition refuses | the refusal wire |
 | 3 | a stage refuses, trips, dies, records an invalid envelope, violates a guarantee, or an invoked write aborts | the last reading, then `stopped stage=<stage> record=<id-or-none> reason=<class>` |
+| 3 | any audit finding remains undisposed before `fix-tests` or `fix-code` | `undisposed keys: <k1> <k2> …`, then `stopped stage=fix-tests record=none reason=undisposed` or `stopped stage=fix-code record=none reason=undisposed` |
 
 A stage has at most two attempts. Resume uses the requested ladder id,
 never the newest record by implication. If its stopped dispatch record
 is now closed with an accepted envelope, resume consumes and lands it
 without relaunching. Otherwise it relaunches that stage once. A second
-failure stops as `retry-cap`. A tripped or dead stage names
+failure stops as `retry-cap`. `resume LADDER_ID --retry STAGE --because
+TEXT` grants that stage one further attempt when the cap was the driver's
+own doing rather than the worker's; the grant is written on the stage row
+(`retry`: because, at, by, from_attempt) and is spent once (LD-19). A tripped or dead stage names
 `launch.py collect` as its remedy; the driver never collects on its own.
 No second fix round and no second skeptic run exist.
 
+Before either fix stage, the driver checks every finding key with the ledger's
+`cited` read. The driver never writes dispositions itself. On `resume`, it
+re-runs the check at the same place; `resume` continues once rows exist.
+
 ## Record
 
-After every transition the driver commits
-`.dev/records/ladders/<id>.json` as `ladder: record <id>`, with
+After every transition, and at every stop, the driver commits
+`.dev/records/ladders/<id>.json` together with every stage input it wrote
+under `.dev/records/ladders/<id>/`, as `ladder: record <id>`, with
 `Source: generated: ops/conductor/tools/ladder.py` and the active
 `WF_AGENT` as `Co-Authored-By`. The id is
 `<UTC stamp>-ladder-<6 hex>`. The record carries:
 
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
-  and PR result;
-- scope, optional plan, and conf paths with SHA-256 digests;
+  and PR result; `keys` in the ladder record's `stopped` object list every
+  undisposed finding key;
+- scope, optional plan, start inputs, and conf paths with SHA-256 digests,
+  and `rescoped` events for any of the first three accepted on resume;
 - ordered stage rows naming job, harness, attempt, input path and
   digest, custody proof, dispatch record, dispatched and recorded model
   and effort, outcome, landed shas, and ledger import/export state;
@@ -120,9 +153,12 @@ declared rather than inferred.
 1. **Custody.** Every input contains the scope's first line and the
    previous stage's record id. Inputs to `tests`, `check-tests`,
    `tests-fix`, and `fix-tests` contain no implementation record id and
-   no line from an implementation envelope. The driver verifies both
-   directions against the bytes it dispatches and records the proof;
-   failure stops as `withheld`.
+   no line from an implementation envelope. A line counts as a marker
+   only when it is at least 24 characters and is not a path present in
+   the worktree: bare paths, severity tokens and short receipts name
+   shared surfaces, and an audit that names the same file is not a leak.
+   The driver verifies both directions against the bytes it dispatches
+   and records the proof; failure stops as `withheld`.
 2. **Lineage.** Every sha printed by landing must satisfy
    `git merge-base --is-ancestor <stage-base> <landed-sha>`. Failure
    stops as `lineage`.

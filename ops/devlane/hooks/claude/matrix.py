@@ -28,6 +28,14 @@ row that cannot look refuses: "could not look" is not a pass.
     dispatch-by-hand a driver job sent straight to dispatch.sh    job, command word
     test-form       unittest given a path instead of discovery    tokens
     prune           rm -r of records, state, worktrees, .git      statement
+    graft-first     a grep/rg/git grep search over a code root    statement, targets
+                    (counts, file lists, pipes and records paths
+                    are not searches); no grant escape; every
+                    refusal and every Graft query is logged
+    deliverable     while the lane's deliverable lock names       lock file, statement
+                    branches, a new worktree or branch, a
+                    dispatch, a ladder start or a PR creation
+                    aimed at any other branch; no grant escape
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
@@ -68,11 +76,28 @@ ALLOWED_BY_HAND = {
     "verify": "verification is a session-owned read job",
 }
 DISPATCHERS = ("dispatch.sh", "go.sh")
+# graft-first (owner, 2026-09-11: "go - force it"): the conductor navigated
+# code with greps all day and called Graft zero times. A content search over
+# a code root refuses with the Graft query as the remedy. Counts (-c), file
+# lists (-l/-L), a grep reading a pipe, and records paths are not searches.
+SEARCHERS = ("grep", "egrep", "fgrep", "rg", "ugrep", "evgrep.sh")
+SEARCH_COUNT_FLAGS = {"-c", "--count", "-l", "--files-with-matches", "-L", "--files-without-match"}
+GRAFT_LEVER = "ops/devlane/harness/graft.py"
+GRAFT_LOG = "graft-first.log"
 LAUNCHER = "launch.py"
 DRIVER = "ladder.sh"
+# Launcher verbs that launch nothing: they read a record the dispatcher
+# already minted. ops/README.md documents the wait verb; the lane conf the
+# direct-launch row protects is applied at the mint, not at a read.
+LAUNCHER_READ_VERBS = ("status", "wait", "brief", "help")
 SCOPE_CAP_DEFAULT = 1024
 COPY_WORDS = ("cp", "mv", "install", "rsync", "ln")
-GRANT = re.compile(r"^\s*(?:export\s+)?HAND_GRANT=(\d+)\b")
+# Triage 2026-09-11: the grant may follow other leading assignments
+# (`export WF_AGENT='Name <a@b>' HAND_GRANT=12 && ...`); quoted values may
+# carry spaces.
+GRANT = re.compile(
+    r"^\s*(?:export\s+)?(?:\w+=(?:'[^']*'|\"[^\"]*\"|\S*)\s+)*HAND_GRANT=(\d+)\b"
+)
 WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
@@ -526,6 +551,10 @@ def dispatch_args(tokens):
     if kind is None:
         return None, {}
     flags = {"input": [], "command": name}
+    if kind == "launcher" and program + 1 < len(tokens) and not tokens[program + 1].startswith("-"):
+        flags["verb"] = tokens[program + 1]
+    elif kind == "launcher" and program + 1 < len(tokens) and tokens[program + 1] in ("--help", "-h"):
+        flags["verb"] = "help"  # triage 2026-09-11: reading the usage is a read
     it = iter(tokens)
     for flag in it:
         if flag in ("--scope-file", "--worktree", "--job", "--model", "--effort", "--harness", "--stage", "--unit"):
@@ -577,6 +606,8 @@ def read_text(path):
 
 def check_dispatch(kind, flags, cwd, text, grant):
     if kind == "launcher":
+        if flags.get("verb") in LAUNCHER_READ_VERBS:
+            return None
         if grant is None:
             return deny("direct-launch",
                         "every stage launched through ops/bin/dispatch.sh so the lane conf applies",
@@ -674,6 +705,184 @@ def check_dispatch(kind, flags, cwd, text, grant):
 
 # --- the decision -----------------------------------------------------------
 
+def graft_log(lane, kind, detail):
+    """Append one line to the lane's graft-first log; never raise."""
+    if not lane:
+        return
+    try:
+        path = os.path.join(STATE_DIR, lane, GRAFT_LOG)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(f"{_now_iso()}\t{kind}\t{detail}\n")
+    except OSError:
+        pass
+
+
+def _now_iso():
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def graft_context_path(root, lane):
+    """The prepared Graft context for ``root`` under the lane's state, else None."""
+    import hashlib
+    if not root or not lane:
+        return None
+    digest = hashlib.sha256(root.encode()).hexdigest()
+    path = os.path.join(STATE_DIR, lane, "graft", f"{digest}.context.json")
+    return path if os.path.isfile(path) else None
+
+
+def search_targets(toks):
+    """(pattern, code-ish targets) of a grep-family statement, or (None, [])."""
+    if not toks:
+        return None, []
+    word = base(toks[0])
+    args = toks[1:]
+    if word == "git" and len(toks) > 1 and toks[1] == "grep":
+        args = toks[2:]
+    elif word not in SEARCHERS:
+        return None, []
+    if any(a in SEARCH_COUNT_FLAGS for a in args):
+        return None, []
+    positional = []
+    skip = False
+    for a in args:
+        if skip:
+            skip = False
+            continue
+        if a == "--":
+            continue
+        if a.startswith("-"):
+            if a in ("-e", "-f", "-m", "-A", "-B", "-C", "--include", "--exclude", "--exclude-dir"):
+                skip = True
+            continue
+        positional.append(a)
+    if len(positional) < 2:
+        return None, []  # a pipe filter or a pattern with no path is not code navigation
+    return positional[0], positional[1:]
+
+
+def graft_first(toks, cwd, root, lane):
+    pattern, targets = search_targets(toks)
+    if pattern is None:
+        return None
+    hits = []
+    for target in targets:
+        _, rel = relative(target, cwd)
+        # a directory target normalises without its slash ("docs/" -> "docs")
+        if is_code(rel) or (rel is not None and is_code(rel + "/")):
+            hits.append(target)
+    if not hits:
+        return None
+    context = graft_context_path(root, lane)
+    query = (f"python3 {GRAFT_LEVER} query --context {context} graft_find_code "
+             f"'{{\"query\": \"{pattern}\", \"limit\": 20}}'") if context else (
+             f"python3 {GRAFT_LEVER} prepare --root {root}  (prints the context path), then "
+             f"python3 {GRAFT_LEVER} query --context <that path> graft_find_code "
+             f"'{{\"query\": \"{pattern}\", \"limit\": 20}}'")
+    graft_log(lane, "deny", f"{base(toks[0])} {pattern} {' '.join(hits)}")
+    return deny("graft-first", "code navigated through Graft (graft_find_code, graft_repo_map, graft_file_api)",
+                f"{base(toks[0])} searching {' '.join(hits)} for {pattern!r}",
+                f"{query}; a count (-c) or file list (-l) stays allowed")
+
+
+DELIVERABLE_LOCK = "deliverable.json"
+
+
+def deliverable_lock(lane):
+    """The lane's deliverable lock (branches, why, by, at) or None."""
+    if not lane:
+        return None
+    path = os.path.join(STATE_DIR, lane, DELIVERABLE_LOCK)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return None
+    branches = data.get("branches") if isinstance(data, dict) else None
+    if not isinstance(branches, list) or not branches:
+        return None
+    return data
+
+
+def branch_of(directory):
+    try:
+        proc = subprocess.run(["git", "-C", directory, "symbolic-ref", "--short", "HEAD"],  # noqa: S603,S607 - fixed argv, a read
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return proc.stdout.strip() or None
+
+
+def deliverable_targets(toks, cwd):
+    """(what, branch) pairs a statement aims new work at."""
+    if not toks:
+        return []
+    name = base(toks[0])
+    found = []
+    if name == "git" and len(toks) > 2:
+        args = [t for t in toks[1:] if not t.startswith("-C")]
+        if args[0] == "worktree" and args[1] == "add":
+            rest = args[2:]
+            if "-b" in rest or "-B" in rest:
+                flag = "-b" if "-b" in rest else "-B"
+                i = rest.index(flag)
+                if i + 1 < len(rest):
+                    found.append(("git worktree add -b", rest[i + 1]))
+            else:
+                positional = [t for t in rest if not t.startswith("-")]
+                if len(positional) >= 2:
+                    found.append(("git worktree add", positional[1]))
+                elif positional:
+                    found.append(("git worktree add", os.path.basename(positional[0].rstrip("/"))))
+        elif args[0] in ("checkout", "switch") and any(f in args for f in ("-b", "-B", "-c", "-C")):
+            flag = next(f for f in ("-b", "-B", "-c", "-C") if f in args)
+            i = args.index(flag)
+            if i + 1 < len(args):
+                found.append((f"git {args[0]} {flag}", args[i + 1]))
+    elif name == "gh" and len(toks) > 2 and toks[1] == "pr" and toks[2] == "create":
+        if "--head" in toks:
+            i = toks.index("--head")
+            branch = toks[i + 1] if i + 1 < len(toks) else None
+        else:
+            branch = branch_of(cwd)
+        found.append(("gh pr create for", branch or "an unreadable branch"))
+    elif name in DISPATCHERS:
+        if "--branch" in toks:
+            i = toks.index("--branch")
+            found.append((f"{name} --branch", toks[i + 1] if i + 1 < len(toks) else ""))
+        elif "--worktree" in toks:
+            i = toks.index("--worktree")
+            directory = toks[i + 1] if i + 1 < len(toks) else cwd
+            found.append((f"{name} --worktree", branch_of(os.path.join(cwd, os.path.expanduser(directory))) or directory))
+    elif name == DRIVER and len(toks) > 2 and toks[1] != "resume":
+        positional = [t for t in toks[1:] if not t.startswith("-")]
+        if len(positional) >= 2:
+            found.append(("ladder start for", positional[1]))
+    return found
+
+
+def deliverable(toks, cwd, lane):
+    """Owner, 2026-09-11: "i want an immediate FIX to stop that". While the
+    lock names the deliverable branches, new work aimed anywhere else
+    refuses. Findings found on the way are evidence for the ledger, not
+    work; the lock is lifted by its lever, never by a grant."""
+    lock = deliverable_lock(lane)
+    if lock is None:
+        return None
+    branches = [str(b) for b in lock["branches"]]
+    for what, branch in deliverable_targets(toks, cwd):
+        if branch not in branches:
+            return deny("deliverable",
+                        f"work on the deliverable branches {', '.join(branches)} "
+                        f"(locked {lock.get('at', '?')} by {lock.get('by', '?')}: {lock.get('why', '')})",
+                        f"{what} {branch}",
+                        "finish the deliverable; record what you found in the ledger; "
+                        "python3 ops/conductor/tools/deliverable.py clear lifts the lock when it lands")
+    return None
+
+
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
@@ -690,6 +899,14 @@ def check_text(text, cwd, depth=0):
             continue
         for target in prune_targets(toks, cwd, conf):
             return deny("prune", "data kept (never prune)", f"rm -r {target}", "leave it; move it under .dev/tmp with a note if it is in the way")
+        if depth == 0 and GRAFT_LEVER.rsplit("/", 1)[-1] in " ".join(toks) and "query" in toks:
+            graft_log(lane, "query", " ".join(t for t in toks if t.startswith("graft_")) or "query")
+        refusal = graft_first(toks, cwd, root, lane)
+        if refusal:
+            return refusal
+        refusal = deliverable(toks, cwd, lane)
+        if refusal:
+            return refusal
         for target in redirect_targets(toks) + written_paths(toks):
             if target == ".":
                 if grant is None:
@@ -712,7 +929,12 @@ def check_text(text, cwd, depth=0):
                         f"a path-form unittest argument {unittest_path}", "the discover form")
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
-                refusal = check_text(toks[2], cwd, depth + 1)
+                # Triage 2026-09-11: the outer command's grant covers the
+                # body it runs; without this a granted `bash -c` was refused.
+                body = toks[2]
+                if grant is not None:
+                    body = f"HAND_GRANT={grant[0]} {body}"
+                refusal = check_text(body, cwd, depth + 1)
                 if refusal:
                     return refusal
             else:

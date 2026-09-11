@@ -1,0 +1,349 @@
+{
+  "base_sha": "76ff27d4bd82ec5955fc03060f18f183f9d35561",
+  "branch": "lane/gate-ladder-stop-20260911",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/lane.conf",
+    "sha256": "9bb41d2ab1e32781b365987d2446c817a3cfe2047d0b4b9af96a8091ae4e088c"
+  },
+  "id": "20260911T060939Z-ladder-307788",
+  "implementation_markers": [
+    "20260911T064829Z-code-codex-65028c",
+    "Implemented the directly specified slice-5 behavior only: both fix stages recheck every audit finding through findings.py cited, stop before mint with undisposed keys recorded, and carry audit follows plus answer keys when accepted. No tests were edited. Git commit was unavailable because .git is read-only; the launcher fallback message is in out/COMMIT_MSG.",
+    "Read all four named input files; the combined display was truncated during the plan.",
+    "for f in ../in/plan-ladder-stop-gate.md ../in/scope-gate-20260910.md ../in/scope-discipline.md ../in/scope-gate-20260910.scope.md; do printf '\\n===== %s =====\\n' \"$f\"; sed -n '1,99999p' \"$f\"; done",
+    "../in/plan-ladder-stop-gate.md",
+    "sed -n '1,220p' ../in/plan-ladder-stop-gate.md",
+    "Read plan lines 221-520.",
+    "sed -n '221,520p' ../in/plan-ladder-stop-gate.md",
+    "Read the remainder of the plan, including the binding slice-5 machine lines.",
+    "sed -n '521,900p' ../in/plan-ladder-stop-gate.md",
+    "Initial Graft navigation mapped 311 files and identified ladder.py as the target driver.",
+    "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'",
+    "Enumerated the founding documents and read the lane operating instructions.",
+    "rg --files docs | sort && printf '\\n===== ops/README.md =====\\n' && sed -n '1,99999p' ops/README.md",
+    "Measured the six founding documents at 519 total lines.",
+    "Read all six founding documents in full.",
+    "for f in docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md; do printf '\\n===== %s =====\\n' \"$f\"; sed -n '1,99999p' \"$f\"; done",
+    "Graft located the fix-stage execution path and the supplied undisposed tests.",
+    "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"ladder fix-tests fix-code audit findings stopped undisposed resume dispatch follows answers\",\"limit\":10}'",
+    "Confirmed the requested starting ref.",
+    "Confirmed the initial snapshot was clean and detached.",
+    "git status --short --branch",
+    "Baseline verification produced 13 assertion failures.",
+    "python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_undisposed.py",
+    "The first file-API query refused the unsupported path parameter.",
+    "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"path\":\"ops/conductor/tools/ladder.py\"}'",
+    "The corrected Graft query returned the ladder.py symbol API.",
+    "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"file\":\"ops/conductor/tools/ladder.py\"}'",
+    "Read the supplied acceptance tests in full without editing them.",
+    "sed -n '1,700p' ops/conductor/tests/test_ladder_lever_undisposed.py",
+    "Inspected the driver record, stop, dispatch, execution, audit, and run paths.",
+    "sed -n '1,125p;442,720p;1040,1225p;1350,1610p' ops/conductor/tools/ladder.py",
+    "Located existing fix-stage, stop-record, findings, and dispatch assertions.",
+    "rg -n \"stopped\\]|stopped\\)|\\[\\\"stopped\\\"\\]|dispatch_args|--follows|fix-tests|fix-code|findings\" ops/conductor/tests/test_ladder_lever.py ops/conductor/tests/test_ladder_retry.py ops/conductor/ladder-lever.md ops/conductor/README.md",
+    "Read the conductor overview and ladder contract in full.",
+    "for f in ops/conductor/README.md ops/conductor/ladder-lever.md; do printf '\\n===== %s =====\\n' \"$f\"; sed -n '1,99999p' \"$f\"; done",
+    "ops/conductor/tools/ladder.py and tests",
+    "Verified stop records are not compared as exact objects by neighboring tests.",
+    "rg -n \"get\\(\\\"stopped\\\"\\)|\\[\\\"stopped\\\"\\]|'stopped'|\\\"stopped\\\": \\{\" ops/conductor/tests | head -n 120",
+    "Inspected mint timing, result loading, resume behavior, and ledger integration.",
+    "sed -n '700,1088p' ops/conductor/tools/ladder.py",
+    "ops/conductor/tools/ladder.py and neighboring tests",
+    "Inspected final stop output and compatibility expectations around audit changes and custody.",
+    "sed -n '1750,1885p' ops/conductor/tools/ladder.py && sed -n '1360,1445p;1800,1930p;2040,2180p' ops/conductor/tests/test_ladder_lever.py",
+    "After implementation, all 13 named tests passed.",
+    "Ruff reported no lint violations.",
+    "ruff check ops/conductor/tools/ladder.py",
+    "All 133 ladder-family tests passed.",
+    "python3 -m unittest discover -s ops/conductor/tests -p 'test_ladder*.py'",
+    "The implementation diff passed whitespace validation and remained confined to ladder.py.",
+    "git diff --check && git diff -- ops/conductor/tools/ladder.py",
+    "Inspected recent commit messages for the required trailer form.",
+    "git log -5 --format='%h%n%B%n---'",
+    "Confirmed OpenAI co-author trailers use the noreply@openai.com address.",
+    "git log --all --format='%B' | rg -m 8 '^Co-Authored-By: .*<(noreply@openai\\.com|codex@openai\\.com)>$'",
+    "Git staging was refused because the snapshot Git directory is read-only.",
+    "git add -- ops/conductor/tools/ladder.py",
+    "The exact required command exited 0 in the final tree: 13 tests passed.",
+    "Final status shows only the intended ladder.py modification in the snapshot.",
+    "Measured the completion timestamp as 2026-09-11T06:54:07Z.",
+    "date -u +%Y-%m-%dT%H:%M:%SZ"
+  ],
+  "inputs": [
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/ladder-inputs/scope-gate-20260910.md",
+      "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+    },
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/ladder-inputs/scope-discipline.md",
+      "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+    }
+  ],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/ladder-inputs/plan-ladder-stop-gate.md",
+    "sha256": "e25a3225673b983af2def10da377f56c00f92e39726a3bf917a723554443d03f"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/ladder-inputs/scope-gate-20260910.scope.md",
+    "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
+  },
+  "stages": [
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T060939Z-tests-grok-9cf371",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/ladder-inputs/scope-discipline.md",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them."
+          ],
+          "withheld": []
+        },
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      "job": "author-tests",
+      "landed": [
+        "d548c70215728ddbfe25eeea4af885f6d32c7bb0"
+      ],
+      "landed_shas": [
+        "d548c70215728ddbfe25eeea4af885f6d32c7bb0"
+      ],
+      "minutes": 14.770616,
+      "name": "tests",
+      "outcome": "ok",
+      "record": "20260911T060939Z-tests-grok-9cf371",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T062509Z-check-tests-codex-344d3f",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "findings": 5,
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/records/dispatches/20260911T060939Z-tests-grok-9cf371.json",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.",
+            "20260911T060939Z-tests-grok-9cf371"
+          ],
+          "withheld": []
+        },
+        "sha256": "20a8c95713b1d9d8d9cdccdc4ad31a9d4c3547b4dd0a4969427dafeaf1db013c"
+      },
+      "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
+      "minutes": 5.254019,
+      "name": "check-tests",
+      "outcome": "ok",
+      "record": "20260911T062509Z-check-tests-codex-344d3f",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T063039Z-tests-grok-4afbbe",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062509Z-check-tests-codex-344d3f/out/SKEPTIC.md",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.",
+            "20260911T062509Z-check-tests-codex-344d3f"
+          ],
+          "withheld": []
+        },
+        "sha256": "73c40a0dd82a4ee1b21f3ec6bcc1a2fb6aec41d61eb58dc44176447a7d37de19"
+      },
+      "job": "author-tests",
+      "landed": [
+        "d0db20878e8d403f929cf443bdda3cb3e6006978"
+      ],
+      "landed_shas": [
+        "d0db20878e8d403f929cf443bdda3cb3e6006978"
+      ],
+      "minutes": 17.021187,
+      "name": "tests-fix",
+      "outcome": "ok",
+      "record": "20260911T063039Z-tests-grok-4afbbe",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "tests"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T064829Z-code-codex-65028c",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/records/ladders/20260911T060939Z-ladder-307788/test-command.md",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.",
+            "20260911T063039Z-tests-grok-4afbbe"
+          ],
+          "withheld": []
+        },
+        "sha256": "9e2bcf07fc2804b09b543f88573ac839bdcec5dfc4dc60f4044f2c7c8cbc2093"
+      },
+      "job": "implement",
+      "landed": [
+        "685ba7c69deb83261c11d0fbbffd86cf43d2a7c1"
+      ],
+      "landed_shas": [
+        "685ba7c69deb83261c11d0fbbffd86cf43d2a7c1"
+      ],
+      "minutes": 6.687122,
+      "name": "code",
+      "outcome": "ok",
+      "record": "20260911T064829Z-code-codex-65028c",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "code"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T065539Z-review-codex-2cc9ea",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-daybreak-blue-latest"
+      },
+      "findings": 1,
+      "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/ladder-inputs/scope-discipline.md",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.",
+            "20260911T064829Z-code-codex-65028c"
+          ],
+          "withheld": []
+        },
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      "job": "security-audit",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
+      "minutes": 6.407697,
+      "name": "security",
+      "outcome": "ok",
+      "record": "20260911T065539Z-review-codex-2cc9ea",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-daybreak-blue-latest",
+        "model_requested": "gpt-daybreak-blue-latest"
+      },
+      "stage": "review",
+      "verdict": "changes"
+    },
+    {
+      "attempt": 1,
+      "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T065548Z-review-grok-757cad",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
+      "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/.dev/ladder-inputs/scope-discipline.md",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.",
+            "20260911T065539Z-review-codex-2cc9ea"
+          ],
+          "withheld": []
+        },
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "launched",
+      "record": "20260911T065548Z-review-grok-757cad",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "running",
+  "stopped": null,
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911"
+}

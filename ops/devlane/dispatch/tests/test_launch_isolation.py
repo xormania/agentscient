@@ -81,15 +81,16 @@ class MinimalHomesHoldExactlyAuthJson(ls._TempLaunch):
         self.assertEqual(rec["harness"]["containment"], "os")
         argv = [str(p) for p in witness["argv"]]
         self.assertIn("--sandbox", argv)
-        # D2: a read role gets a read-only sandbox on Codex. Snapshot
-        # integrity is not a substitute for the sandbox the role claims.
+        # D2 as amended by LD-14 (2026-09-11): a Codex read role runs under
+        # OS containment (snapshot write bits stripped, out/ the only
+        # writable root) with the workspace-write label, because the
+        # read-only label blocked TMPDIR and no audit could execute a suite.
         self.assertEqual(rec["role"], "read")
-        self.assertEqual(argv[argv.index("--sandbox") + 1], "read-only")
-        self.assertFalse(
-            any(str(a).startswith("sandbox_workspace_write.writable_roots=")
-                for a in argv),
-            f"read-only sandbox must not grant workspace-write roots: {argv!r}",
-        )
+        self.assertEqual(argv[argv.index("--sandbox") + 1], "workspace-write")
+        roots = [a for a in argv
+                 if str(a).startswith("sandbox_workspace_write.writable_roots=")]
+        self.assertEqual(len(roots), 1, argv)
+        self.assertIn(str((job_dir / "out").resolve()), roots[0])
 
     def test_grok_home_and_home_both_point_at_the_job_home(self):
         rec, witness, *_ = self.launch_ok(

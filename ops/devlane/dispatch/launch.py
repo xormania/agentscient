@@ -61,6 +61,10 @@ LANECONF = _module(
     "laneconf",
     APP.parent.parent / "conductor" / "tools" / "laneconf.py",
 )
+CORRECTION = _module(
+    "correction",
+    APP.parent.parent / "conductor" / "tools" / "correction.py",
+)
 ENVELOPE = _module("envelope", APP.parent / "task" / "envelope.py")
 ENVELOPE_SCHEMA_JSON = json.dumps(ENVELOPE.ENVELOPE_SCHEMA, separators=(",", ":"))
 
@@ -360,6 +364,23 @@ def _inside(path, root):
         return False
 
 
+def _symlinked_input(path, jobs_root):
+    candidate = Path(path)
+    candidate = candidate if candidate.is_absolute() else Path.cwd() / candidate
+    if candidate.is_symlink():
+        return True
+    try:
+        relative = candidate.relative_to(Path(jobs_root).absolute())
+    except ValueError:
+        return False
+    current = Path(jobs_root).absolute()
+    for part in relative.parts[:-1]:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
+
+
 def _parse_override(items, agent):
     out = []
     for item in items:
@@ -406,7 +427,7 @@ def _harness_meta(name, role, job_dir, env):
     isolation = _module("isolation", HARNESS_APP / "isolation.py")
     try:
         iso_env, flags = isolation.isolated(name, job_dir / "home" / name, env)
-    except (KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+    except (isolation.NotIsolated, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
         _refuse("isolation", "an isolated harness with credentials", str(exc),
                 "add the isolation entry and required credential")
     spec = isolation.HARNESSES[name]
@@ -455,6 +476,15 @@ def _preflight_isolation(name, target, env):
         if missing:
             _refuse("isolation", "the required credential", str(source / missing[0]),
                     "install the credential in the harness home")
+        # LD-18 (2026-09-11): an aged credential is refused here, before the
+        # mint, so the refusal leaves no job directory behind.
+        for leaf in spec["auth_files"]:
+            try:
+                isolation.check_credential_age(name, spec, leaf, source / leaf)
+            except isolation.NotIsolated as exc:
+                rule = spec.get("credential_age") or {}
+                _refuse("isolation", "a credential within its measured refresh lifetime",
+                        str(exc), f"{rule.get('remedy', 'log the harness in again')} on the host")
 
 
 # A read role must be able to execute to judge: a skeptic that cannot run the
@@ -1188,7 +1218,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     argv = _argv(harness, rec["model"]["requested"], rec["model"]["effort_requested"],
                  rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"],
                  resume, project_allow, project_deny,
-                 writable_out=rec["job"] == "check-tests",
+                 writable_out=rec["role"] == "read",
                  executable=rec["harness"].get("worker", {}).get("executable"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
@@ -1200,7 +1230,10 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
                     "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
             Path(env[key]).mkdir(parents=True, exist_ok=True, mode=0o700)
-    if harness == "codex" and rec["job"] == "check-tests":
+    if harness == "codex" and rec["role"] == "read":
+        # LD-14: every Codex read-role job, not only check-tests, runs under
+        # OS containment with a writable out/tmp; the read-only sandbox
+        # label blocked TMPDIR so no audit could execute a suite.
         for root, dirs, files in os.walk(snapshot):
             for name in [*dirs, *files]:
                 path = Path(root) / name
@@ -1427,6 +1460,25 @@ def _launch(args):
         _refuse("empty-comparison", f"{lineage} to differ from ref {ref_sha}",
                 f"an empty comparison at {ref_sha}",
                 f"name a ref on {lineage} with changes to review")
+    stamp = _now()
+    gate = CORRECTION.check(
+        role,
+        args.follows,
+        args.input,
+        args.answers,
+        stamp,
+        repo / ".dev/records/dispatches",
+        _jobs_root(),
+        repo,
+    )
+    for source in args.input:
+        if _symlinked_input(source, _jobs_root()):
+            CORRECTION.refuse(
+                "input",
+                "an input path without symlinked components under the jobs root",
+                f"symlink in {source}",
+                "replace it with a regular input path",
+            )
     job_id = mint_id(stage, args.harness)
     job_dir, snapshot = _job_paths(job_id)
     record_path = repo / ".dev/records/dispatches" / f"{job_id}.json"
@@ -1474,8 +1526,8 @@ def _launch(args):
     prompt = job_dir / "prompt.txt"
     prompt.write_text(prompt_text)
     _iso_env, _flags, sandbox, containment, isolation_data = _harness_meta(args.harness, role, job_dir, os.environ)
-    if args.harness == "codex" and args.job == "check-tests":
-        sandbox = "workspace-write"
+    if args.harness == "codex" and role == "read":
+        sandbox = "workspace-write"  # LD-14: OS containment, out/ writable
     permissions = None
     project_allow = project_deny = ()
     if args.harness == "claude":
@@ -1486,8 +1538,9 @@ def _launch(args):
     rec = record.build({
         "id": job_id, "lane": "dev", "stage": stage, "unit": args.unit or lineage,
         "lineage": {"branch": lineage, "base_sha": tip}, "follows": args.follows,
+        "answers": gate["answers"],
         "job": args.job, "role": role, "dispatched_by": agent,
-        "at": {"launched": _now(), "closed": None},
+        "at": {"launched": stamp, "closed": None},
         "snapshot": {"mode": "whole", "ref_name": args.ref, "ref_sha": ref_sha,
                      "behind_tip": (lambda n: n + 1 if n else 0)(int(
                          _git(repo, "rev-list", "--count", f"{ref_sha}..{lineage}").stdout)),
@@ -1499,7 +1552,7 @@ def _launch(args):
                     "argv": _argv(args.harness, args.model, args.effort, session,
                                   prompt, _flags, sandbox, False,
                                   project_allow, project_deny,
-                                  writable_out=args.job == "check-tests",
+                                  writable_out=role == "read",
                                   executable=worker["executable"])},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
@@ -2492,6 +2545,7 @@ def _launch_parser():
     p.add_argument("--scope")
     p.add_argument("--input", action="append", default=[])
     p.add_argument("--follows", action="append", default=[])
+    p.add_argument("--answers", action="append", default=[])
     p.add_argument("--override", action="append", default=[])
     return p
 
@@ -2506,6 +2560,9 @@ def main(argv=None):
                     "collect": _collect, "wait": _wait,
                     "brief": _brief}[args.verb](args)
         return _launch(_launch_parser().parse_args(argv))
+    except CORRECTION.Refused as exc:
+        print(exc.line(), file=sys.stderr)
+        return 2
     except Refused as exc:
         print(f"launch.py: refusal: {exc}", file=sys.stderr)
         return REFUSAL

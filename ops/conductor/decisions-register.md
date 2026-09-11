@@ -1,8 +1,11 @@
 # The decisions register — contract
 
-Standing: PROPOSED. The owner commissioned the instrument ("register
-should be SQLite python script", 2026-08-31); this contract is the
-specification it is built and tested against. Ratifying the register's
+Standing: the tracked seed file, `decisions.seed.json`, is the register
+(owner, 2026-09-11, in session: "register instrument ok" to amending this
+contract rather than building the SQLite instrument commissioned on
+2026-08-31). That commission is withdrawn; this contract stays as the
+specification an instrument would be built against if a queue ever
+outgrows the file. Ratifying the register's
 place in the process is a batch decision; the tool exists so that batch
 has a queryable home.
 

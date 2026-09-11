@@ -23,6 +23,8 @@ from urllib.parse import urlsplit
 IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<email>[^<>\s@]+@[^<>\s]+)>")
 RECORD_ID = re.compile(r"^record:\s+(\S+)\s*$", re.MULTILINE)
 LANDED = re.compile(r"^LANDED\t([0-9a-f]{40})\t", re.MULTILINE)
+RECORD_ID_SHAPE = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
+MARKER_MIN = 24
 DISPATCH_STAGES = (
     ("tests", "author-tests", "grok", "tests"),
     ("check-tests", "check-tests", "codex", "check-tests"),
@@ -83,6 +85,7 @@ class Stopped(Exception):
         verdict: str | None = None,
         detail: str | None = None,
         exit_code: int = 3,
+        keys: list[str] | None = None,
     ) -> None:
         self.stage = stage
         self.record_id = record_id
@@ -90,6 +93,7 @@ class Stopped(Exception):
         self.verdict = verdict
         self.detail = detail
         self.exit_code = exit_code
+        self.keys = keys
         super().__init__(self.line())
 
     def line(self) -> str:
@@ -119,6 +123,47 @@ _LANECONF: ModuleType | None = None
 
 def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
     raise Refused(kind, expected, found, needed)
+
+
+RESUME_FORM = "resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]"
+
+
+def resume_options(args: list[str]) -> tuple[bool, tuple[str, str] | None]:
+    """(rescope, retry) from ``resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]``.
+
+    LD-19: ``--retry`` names a stage at its two-attempt cap and ``--because``
+    the reason one more attempt is honest (a driver-caused stop, not the
+    worker's); both are recorded on the stage row when the attempt is minted.
+    """
+    if len(args) < 2:
+        refuse("arguments", RESUME_FORM, " ".join(args), "pass the named record id")
+    rescope = False
+    stage: str | None = None
+    because: str | None = None
+    rest = list(args[2:])
+    while rest:
+        flag = rest.pop(0)
+        if flag == "--rescope":
+            rescope = True
+        elif flag in ("--retry", "--because") and rest:
+            value = rest.pop(0)
+            if flag == "--retry":
+                stage = value
+            else:
+                because = value
+        else:
+            refuse("arguments", RESUME_FORM, " ".join(args), "choose the documented resume form")
+    if (stage is None) != (because is None):
+        refuse("arguments", "--retry STAGE together with --because TEXT", " ".join(args),
+               "name both the stage and the reason")
+    if stage is None:
+        return rescope, None
+    if stage not in {row[0] for row in DISPATCH_STAGES}:
+        refuse("arguments", "a dispatch stage for --retry", stage,
+               "one of " + ", ".join(row[0] for row in DISPATCH_STAGES))
+    if not because.strip():
+        refuse("arguments", "a non-empty --because", repr(because), "say why one more attempt is honest")
+    return rescope, (stage, because)
 
 
 def _load_laneconf() -> ModuleType:
@@ -281,14 +326,15 @@ def full_identity(value: str, label: str) -> str:
 
 def file_arg(path: str, label: str, *, required: bool = True) -> Path | None:
     candidate = Path(path).resolve()
+    needed = f"supply a readable {label} file"
     if candidate.is_file():
         try:
             candidate.read_bytes()
         except OSError as error:
-            refuse(label, f"a readable {label} file", str(error), "correct its permissions")
+            refuse(label, f"a readable {label} file", str(error), needed)
         return candidate
     if required:
-        refuse(label, f"a readable {label} file", str(candidate), f"supply a {label}")
+        refuse(label, f"a readable {label} file", str(candidate), needed)
     return None
 
 
@@ -356,8 +402,15 @@ def parse_plan(plan: Path | None) -> tuple[list[dict], list[dict]]:
     return buckets, slices
 
 
-def recorded_file(worktree: Path, data: object, label: str) -> Path:
-    """Resolve and verify one file named by a durable ladder record."""
+def recorded_file(
+    worktree: Path, data: object, label: str, *, rescope: list | None = None
+) -> Path:
+    """Resolve and verify one file named by a durable ladder record.
+
+    With ``rescope`` given, a digest mismatch is not a refusal: the entry
+    is appended to ``rescope`` and the record's digest is updated to the
+    bytes on disk. Without it, changed bytes refuse ``record``.
+    """
     if not isinstance(data, dict):
         refuse("record", f"a recorded {label}", repr(data), "repair the record")
     raw_path = data.get("path")
@@ -376,12 +429,15 @@ def recorded_file(worktree: Path, data: object, label: str) -> Path:
         refuse("record", f"a readable recorded {label}", str(candidate), "repair the record")
     actual = digest(candidate)
     if not isinstance(expected, str) or actual != expected:
-        refuse(
-            "record",
-            f"the recorded {label} sha256 {expected}",
-            actual,
-            "restore the recorded bytes or repair the digest",
-        )
+        if rescope is None or not isinstance(expected, str):
+            refuse(
+                "record",
+                f"the recorded {label} sha256 {expected}",
+                actual,
+                "restore the recorded bytes, or resume with --rescope to record the change",
+            )
+        rescope.append({"label": label, "path": str(candidate), "from": expected, "to": actual})
+        data["sha256"] = actual
     return candidate
 
 
@@ -397,13 +453,17 @@ class Driver:
         conf: dict[str, str],
         agent: str,
         record: dict | None = None,
+        inputs: list[Path] | None = None,
     ) -> None:
         self.worktree = worktree
         self.branch = branch
         self.scope = scope
+        # LD-19: one recorded extra attempt, set by resume --retry.
+        self.retry: tuple[str, str] | None = None
         self.plan = plan
         self.conf = conf
         self.agent = agent
+        self.start_inputs: list[Path] = list(inputs or [])
         self.record = record or self.new_record()
         self.record_path = (
             worktree
@@ -422,9 +482,11 @@ class Driver:
             row["name"]: row for row in self.record.get("stages", [])
         }
         self.buckets, self.slices = parse_plan(plan)
-        self.implementation_markers: list[str] = list(
+        self.implementation_markers: list[str] = self.normalize_markers(
             self.record.get("implementation_markers") or []
         )
+        self.correction_follows: list[str] = []
+        self.correction_answers: list[str] = []
 
     def new_record(self) -> dict:
         suffix = hashlib.sha256(
@@ -470,6 +532,10 @@ class Driver:
                 if self.plan is not None
                 else None
             ),
+            "inputs": [
+                {"path": str(path), "sha256": digest(path)}
+                for path in self.start_inputs
+            ],
             "conf": {
                 "path": str(self.worktree / "ops" / "lane.conf"),
                 "sha256": digest(self.worktree / "ops" / "lane.conf"),
@@ -511,6 +577,11 @@ class Driver:
             encoding="utf-8",
         )
         paths = [self.record_path, *extra]
+        # Every stage input the driver wrote rides with the record: a resume
+        # rewrites inputs for stages it then finds already done, and a stop
+        # must leave the worktree clean for the landing lever (LD-11).
+        if self.inputs_dir.is_dir():
+            paths.extend(sorted(self.inputs_dir.iterdir()))
         relative = [str(path.relative_to(self.worktree)) for path in paths if path.exists()]
         added = git(self.worktree, "add", "--", *relative)
         if added.returncode != 0:
@@ -540,12 +611,33 @@ class Driver:
             "reason": stopped.reason,
             "verdict": stopped.verdict,
         }
+        if stopped.keys is not None:
+            self.record["stopped"]["keys"] = stopped.keys
         row = self.row(stopped.stage)
         row["outcome"] = stopped.verdict or "stopped"
         if stopped.reason:
             row["reason"] = stopped.reason
         self.commit()
         raise stopped
+
+    def audit_envelope_input(self, audit: str, record_path: Path) -> Path:
+        """The audit's envelope alone, for a withheld stage.
+
+        A whole audit record names the implementation record it follows
+        and the landed head it reviewed, so handing it to the test author
+        would breach custody by construction; the stage table promises the
+        envelopes.
+        """
+        try:
+            payload = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        envelope = ((payload.get("result") or {}).get("envelope")) or {}
+        body = (
+            f"{audit} audit envelope, record {record_path.stem}\n\n"
+            + json.dumps(envelope, indent=2, sort_keys=True)
+        )
+        return self.make_input(f"{audit}-envelope", body)
 
     def make_input(self, name: str, body: str) -> Path:
         self.inputs_dir.mkdir(parents=True, exist_ok=True)
@@ -582,7 +674,35 @@ class Driver:
             argv.extend(("--input", str(path)))
         if previous:
             argv.extend(("--follows", previous))
+        if name in {"fix-tests", "fix-code"}:
+            for record_id in self.correction_follows:
+                argv.extend(("--follows", record_id))
+            for key in self.correction_answers:
+                argv.extend(("--answers", key))
         return argv
+
+    def require_cited(self, stage: str, keys: list[str]) -> None:
+        undisposed: list[str] = []
+        for key in keys:
+            checked = run(
+                [sys.executable, str(self.findings), "cited", key],
+                self.worktree,
+            )
+            if checked.returncode == 1:
+                undisposed.append(key)
+            elif checked.returncode != 0:
+                raise Stopped(
+                    stage,
+                    reason="ledger",
+                    detail=checked.stderr.strip() or checked.stdout.strip(),
+                )
+        if undisposed:
+            raise Stopped(
+                stage,
+                reason="undisposed",
+                detail="undisposed keys: " + " ".join(undisposed),
+                keys=undisposed,
+            )
 
     def stage_scope(self, name: str, inputs: list[Path]) -> Path:
         if name == "fix-code" or name == "code" or name.startswith("code-"):
@@ -764,12 +884,35 @@ class Driver:
         }
         return dispatch_record, envelope
 
+    def stage_wall(self, stage: str, launched: dict):
+        """The wait wall for a stage, in seconds, or None for WALL_DEFAULT.
+
+        LD-17 (2026-09-11): the launcher writes ``caps.timeout`` into the
+        record copy only when the job closes, so reading it at wait time
+        found nothing and every stage waited WALL_DEFAULT; a 22-minute
+        tests-fix with an 1800-second cap was stopped as ``wall``. The
+        record copy wins when it carries a cap; otherwise the stage's job
+        cap from the job registry, the launcher's own default source.
+        """
+        cap = (launched.get("caps") or {}).get("timeout")
+        if cap is not None:
+            return cap
+        job = next((row[1] for row in DISPATCH_STAGES if row[0] == stage), None)
+        if job is None:
+            return None
+        jobs_path = self.worktree / "ops" / "devlane" / "task" / "jobs.json"
+        try:
+            jobs = json.loads(jobs_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        return ((jobs.get(job) or {}).get("caps") or {}).get("timeout")
+
     def await_result(self, pending: Pending) -> tuple[dict, dict]:
         try:
             launched = json.loads(pending.record_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             launched = {}
-        cap = (launched.get("caps") or {}).get("timeout")
+        cap = self.stage_wall(pending.name, launched)
         try:
             wall = int(cap or self.conf["WALL_DEFAULT"])
             grace = int(self.conf["LADDER_WAIT_GRACE"])
@@ -925,8 +1068,8 @@ class Driver:
             marker_values = [pending.record_id]
             for key in ("note", "artifacts", "findings"):
                 marker_values.extend(self.strings(envelope.get(key)))
-            for marker in marker_values:
-                if isinstance(marker, str) and marker and marker not in self.implementation_markers:
+            for marker in self.normalize_markers(marker_values):
+                if marker not in self.implementation_markers:
                     self.implementation_markers.append(marker)
         self.commit()
 
@@ -984,6 +1127,7 @@ class Driver:
         command_file: Path | None,
     ) -> list[Path]:
         inputs = [self.plan] if self.plan is not None else []
+        inputs.extend(self.start_inputs)
         dispatch_dir = self.worktree / ".dev" / "records" / "dispatches"
         if name == "check-tests" and "tests" in records:
             inputs.append(dispatch_dir / f"{records['tests']}.json")
@@ -1011,7 +1155,11 @@ class Driver:
         elif name in {"fix-tests", "fix-code"}:
             for audit in ("security", "adversarial"):
                 if audit in records:
-                    inputs.append(dispatch_dir / f"{records[audit]}.json")
+                    record_path = dispatch_dir / f"{records[audit]}.json"
+                    if name == "fix-tests":
+                        inputs.append(self.audit_envelope_input(audit, record_path))
+                    else:
+                        inputs.append(record_path)
             if name == "fix-code" and command_file is not None:
                 inputs.append(self.scope)
                 inputs.append(command_file)
@@ -1054,7 +1202,7 @@ class Driver:
                 result = self.finish(pending, already_closed=(dispatch_record, envelope))
                 records[name] = pending.record_id
                 return result, pending.record_id
-            if int(row.get("attempt") or 0) >= 2:
+            if int(row.get("attempt") or 0) >= 2 and not self.retry_granted(name):
                 raise Stopped(
                     name,
                     str(row.get("dispatch_record") or "none"),
@@ -1083,6 +1231,24 @@ class Driver:
                 ) from stopped
             raise
 
+    def retry_granted(self, name: str) -> bool:
+        """LD-19: one recorded extra attempt for the stage named by
+        ``resume --retry STAGE --because TEXT``, for a cap the driver's own
+        command caused. Written on the stage row and spent once."""
+        retry = self.retry
+        if not retry or retry[0] != name:
+            return False
+        row = self.row(name)
+        if row.get("retry"):
+            return False
+        row["retry"] = {
+            "because": retry[1],
+            "at": utc_stamp(),
+            "by": self.agent,
+            "from_attempt": int(row.get("attempt") or 0),
+        }
+        return True
+
     def mark_skipped(self, name: str, condition: str) -> None:
         row = self.row(name)
         row["condition"] = condition
@@ -1100,8 +1266,34 @@ class Driver:
                     path.suffix != ".py"
                     or "tests" not in path.parts[:-1]
                     or re.search(r"[;&|\r\n]", value)
+                    # LD-19: only test modules (unittest's default pattern)
+                    # become commands; a support module under tests/ rides
+                    # as an artifact. A discover over launch_support.py
+                    # found zero tests, exited 5 and consumed both code
+                    # attempts of ladder fd103b.
+                    or not path.name.startswith("test")
                 ):
                     continue
+                # LD-15: the command names the tree, never a worker's
+                # snapshot. An absolute path under a dispatch snapshot is
+                # rewritten to the part after `snapshot/`; any other
+                # absolute path, or a `..` component, stops the ladder.
+                if ".." in path.parts:
+                    raise Stopped(
+                        "code",
+                        reason="artifacts",
+                        detail=f"test artifact path escapes the tree: {value}",
+                    )
+                if path.is_absolute():
+                    parts = path.parts
+                    if "snapshot" not in parts[:-1]:
+                        raise Stopped(
+                            "code",
+                            reason="artifacts",
+                            detail=f"absolute test artifact outside a snapshot: {value}",
+                        )
+                    cut = max(i for i, part in enumerate(parts[:-1]) if part == "snapshot")
+                    path = Path(*parts[cut + 1:])
                 commands.append(
                     "python3 -m unittest discover "
                     f"-s {shlex.quote(path.parent.as_posix())} "
@@ -1117,6 +1309,39 @@ class Driver:
                 detail="derived test command exceeds SCOPE_CAP",
             )
         return self.make_input("test-command", command)
+
+    def names_worktree_path(self, line: str) -> bool:
+        """True when ``line`` is a path that exists under the worktree."""
+        if " " in line or len(line) > 200 or not ("/" in line or "." in line):
+            return False
+        try:
+            return (self.worktree / line).exists()
+        except OSError:
+            return False
+
+    def normalize_markers(self, values: list) -> list[str]:
+        """The record ids and distinctive lines among ``values``.
+
+        A line is a marker only when it is at least MARKER_MIN characters
+        and is not a path present in the worktree: bare paths, severity
+        tokens and short receipts name shared surfaces, not the
+        implementation, and an audit that names the same file is not a leak.
+        """
+        markers: list[str] = []
+        for value in values:
+            if not isinstance(value, str):
+                continue
+            for line in value.splitlines():
+                line = line.strip()
+                if not line or line in markers:
+                    continue
+                if RECORD_ID_SHAPE.fullmatch(line):
+                    markers.append(line)
+                    continue
+                if len(line) < MARKER_MIN or self.names_worktree_path(line):
+                    continue
+                markers.append(line)
+        return markers
 
     @classmethod
     def strings(cls, value: object) -> list[str]:
@@ -1381,6 +1606,17 @@ class Driver:
             security, adversarial, previous = self.audit_pair(
                 records, command_file, previous, resume=resume
             )
+            self.correction_follows = [records["security"], records["adversarial"]]
+            self.correction_answers = [
+                f"{records[name]}#{number}"
+                for name, envelope in (
+                    ("security", security),
+                    ("adversarial", adversarial),
+                )
+                for number, _finding in enumerate(
+                    envelope.get("findings") or [], start=1
+                )
+            ]
             changes = (
                 security.get("verdict") == "changes"
                 or adversarial.get("verdict") == "changes"
@@ -1388,9 +1624,11 @@ class Driver:
             if changes:
                 if self.has_leak(security) or self.has_leak(adversarial):
                     raise Stopped("fix-tests", reason="withheld")
+                self.require_cited("fix-tests", self.correction_answers)
                 _test_fix, previous = self.execute(
                     "fix-tests", records, command_file, previous, resume=resume
                 )
+                self.require_cited("fix-code", self.correction_answers)
                 _code_fix, previous = self.execute(
                     "fix-code", records, command_file, previous, resume=resume
                 )
@@ -1514,6 +1752,7 @@ def dry_run(driver: Driver) -> int:
     stages: list[dict] = []
     for name, _job, _harness, _flag in DISPATCH_STAGES:
         inputs = [driver.plan] if driver.plan is not None else []
+        inputs.extend(driver.start_inputs)
         model, effort, base = driver.resolved(name, inputs, None)
         resolved = run([*base, "--model", model, "--effort", effort, "--dry-run"], driver.worktree)
         payload = parse_dispatch_json(resolved.stdout)
@@ -1539,13 +1778,36 @@ def dry_run(driver: Driver) -> int:
     return 0
 
 
+def split_inputs(args: list[str]) -> tuple[list[str], list[str]]:
+    """Separate repeatable ``--input PATH`` pairs from the positionals."""
+    positionals: list[str] = []
+    inputs: list[str] = []
+    items = list(args)
+    while items:
+        item = items.pop(0)
+        if item == "--input":
+            if not items:
+                refuse(
+                    "arguments",
+                    "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID",
+                    "--input with no path",
+                    "name the input file",
+                )
+            inputs.append(items.pop(0))
+        elif item.startswith("--input="):
+            inputs.append(item.partition("=")[2])
+        else:
+            positionals.append(item)
+    return positionals, inputs
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     try:
         if not args:
             refuse(
                 "arguments",
-                "SCOPE BRANCH [PLAN] or resume LADDER_ID",
+                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]",
                 "no arguments",
                 "choose one documented form",
             )
@@ -1553,13 +1815,7 @@ def main(argv: list[str] | None = None) -> int:
         agent = os.environ.get("WF_AGENT", "")
         resume = args[0] == "resume"
         if resume:
-            if len(args) != 2:
-                refuse(
-                    "arguments",
-                    "resume LADDER_ID",
-                    " ".join(args),
-                    "pass the named record id",
-                )
+            rescope_flag, retry = resume_options(args)
             worktree, record = record_worktree(cwd, args[1])
             branch = record.get("branch")
             if not isinstance(branch, str) or not branch:
@@ -1573,21 +1829,47 @@ def main(argv: list[str] | None = None) -> int:
                     branch,
                     "repair the record branch",
                 )
-            scope = recorded_file(worktree, record.get("scope"), "scope")
+            changes: list | None = [] if rescope_flag else None
+            scope = recorded_file(worktree, record.get("scope"), "scope", rescope=changes)
             plan_data = record.get("plan")
-            plan = recorded_file(worktree, plan_data, "plan") if plan_data else None
+            plan = (
+                recorded_file(worktree, plan_data, "plan", rescope=changes)
+                if plan_data
+                else None
+            )
+            start_inputs = [
+                recorded_file(worktree, item, "input", rescope=changes)
+                for item in (record.get("inputs") or [])
+            ]
             recorded_file(worktree, record.get("conf"), "conf")
+            if rescope_flag:
+                if not changes:
+                    refuse(
+                        "arguments",
+                        "a changed scope, plan or input to record",
+                        "every recorded digest unchanged",
+                        "drop --rescope",
+                    )
+                stage = next(
+                    (row["name"] for row in record.get("stages", []) if row.get("outcome") != "ok"),
+                    None,
+                )
+                at = utc_stamp()
+                record.setdefault("rescoped", []).extend(
+                    {**change, "at": at, "stage": stage} for change in changes
+                )
         else:
             dry = args[0] == "--dry-run"
-            positionals = args[1:] if dry else args
+            positionals, input_args = split_inputs(args[1:] if dry else args)
             if len(positionals) not in {2, 3}:
                 refuse(
                     "arguments",
-                    "SCOPE BRANCH [PLAN]",
+                    "SCOPE BRANCH [PLAN] [--input PATH]...",
                     " ".join(args),
                     "choose the documented start form",
                 )
             scope = file_arg(positionals[0], "scope")
+            start_inputs = [file_arg(item, "input") for item in input_args]
             branch = positionals[1]
             os.environ["LANE_CONF"] = str(initial_conf_path(cwd))
             root_hint = configuration()["WORKTREE_ROOT"]
@@ -1610,7 +1892,9 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             ),
         )
-        driver = Driver(worktree, branch, scope, plan, conf, agent, record)
+        driver = Driver(worktree, branch, scope, plan, conf, agent, record, start_inputs)
+        if resume:
+            driver.retry = retry
         if not resume and args[0] == "--dry-run":
             return dry_run(driver)
         url = driver.run(resume=resume)

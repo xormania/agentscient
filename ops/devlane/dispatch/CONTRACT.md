@@ -730,7 +730,8 @@ artifacts live, outside every repository.
 ```text
 launch.py <job> --harness H --model M [--effort E] --ref R
           [--lineage B] [--unit U] [--stage S] [--scope TEXT]
-          [--input PATH]... [--follows ID]... [--override ID:REASON]...
+          [--input PATH]... [--follows ID]... [--answers KEY]...
+          [--override ID:REASON]...
 launch.py status [ID] [--json]
 launch.py resume ID [--prompt-file PATH]
 launch.py collect ID --verify CMD [--reason TEXT] [--timeout SECONDS]
@@ -771,6 +772,14 @@ launch.py brief --check ID
   (plan → tests → check-tests → code → review → adjudicate). It is a
   dispatch-graph edge; it is **not** `context.prior`, which stays
   "findings from an earlier call".
+- `--answers KEY` is repeatable and names each findings-store key answered
+  by a correction. A key has the shape `<record>#<n>` and is accepted only
+  when it matches
+  `^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}#[1-9][0-9]*$`; an invalid key
+  is refused `arguments` before it can enter a printed remedy.
+- The citation grammar lives in `findings.py` as
+  `contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s;,:]+)`.
+  The gate and `findings.py` read the same definition.
 - `--override ID:REASON` is accepted only for a refusal marked
   overridable below, and only with a non-empty reason.
 - Identity: `WF_AGENT` in the `Name <address>` form, as for `wf`.
@@ -778,6 +787,19 @@ launch.py brief --check ID
 - Jobs root: `$DISPATCH_JOBS`, default
   `${XDG_STATE_HOME:-$HOME/.local/state}/agentscient/dispatch`. There is
   no flag for it; the record carries the path it used.
+
+#### Correction shape
+
+A correction is a write-role job (`implement` or `author-tests`) whose
+dispatch arguments either use `--follows` to name a record whose `job` is
+one of `check-tests`, `security-audit`, `adversarial-review`, `adjudicate`,
+or `sweep`, or include an `--input` path beneath such a record's `out/`.
+The shape is read only from the dispatch arguments and the referenced
+record, never from prose. Each followed id must match
+`^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$`; its
+`<records>/<id>.json` path must resolve beneath the records directory, and
+the record's own `id` must equal the requested id and its `job` must name a
+registry job. A failure of any of those checks is a `follows` refusal.
 
 ### Snapshot modes
 
@@ -896,20 +918,23 @@ in `~/.codex/sessions` would report "no stream" and run unsupervised.
 | harness | isolation | read sandbox | write sandbox | containment | model that ran |
 |:--|:--|:--|:--|:--|:--|
 | claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `acceptEdits`; `--add-dir out` is not OS containment | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
-| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only`; check-tests exception below | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
+| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `workspace-write` under OS containment for every read-role job (LD-14, below) | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
 | grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `always-approve` | `always-approve` | policy; no OS sandbox claimed or invented | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; read-role `head_commit` equals `snapshot.ref_sha`; write-role `head_commit` equals either that immutable ref or the actual local `HEAD`, which is always verified as its descendant; every other hash is rejected |
 
-**Measured Codex check-tests implementation — not a live containment
-proof.** The check-tests job remains role `read`,
-but its Codex process uses the `workspace-write` sandbox label so it can
-write its document and scratch files under the job `out/`, which is added
-as a writable root; `TMPDIR` is a real, non-symlinked `out/tmp`. Before the
-attempt the launcher strips Unix write bits from the snapshot as hardening,
-but mode bits alone are not a hostile-process security boundary. After the
-attempt, normal read-role settlement invalidates a changed HEAD or any
-residual snapshot path. Other Codex read jobs remain `read-only`; this
-exception does not provide generic file-output support to plan or
-adjudicate. Live vendor containment proof for this path has not run.
+**Measured Codex read-role containment — not a live containment
+proof.** Every Codex job of role `read` (check-tests, security-audit,
+adversarial-review, plan, adjudicate, sweep) keeps its role, but its
+Codex process uses the `workspace-write` sandbox label so it can write
+scratch files under the job `out/`, which is the only writable root;
+`TMPDIR` is a real, non-symlinked `out/tmp`. Before the attempt the
+launcher strips Unix write bits from every snapshot file as hardening,
+but mode bits alone are not a hostile-process security boundary. After
+the attempt, normal read-role settlement invalidates a changed HEAD or
+any residual snapshot path. LD-14 (2026-09-11) widened this from
+check-tests alone: under the `read-only` label Codex ignores
+writable_roots and blocks `TMPDIR`, so three of three security audits
+that day could not execute a suite and judged statically. Live vendor
+containment proof for this path has not run.
 
 For Claude, the snapshot's `.claude/settings.json`
 `permissions.allow` and `permissions.deny` strings are carried on argv
@@ -966,6 +991,9 @@ satisfy it. `override` marks the only overridable one.
 | `identity` | `WF_AGENT` unset or not `Name <address>` | expected an identity in the `Name <address>` form; found `<value or unset>`; export `WF_AGENT='Your Model Name <noreply@vendor>'` |
 | `live-target` | the destination is inside any entry of the invoking repository's `git worktree list --porcelain` or its common dir | expected a job directory outside every worktree of `<repo>`; found `<path>` inside `<worktree>`; set `DISPATCH_JOBS` to a directory outside the repository |
 | `ref` | `--ref` does not resolve to a commit | expected a ref naming a commit in `<repo>`; found `<ref>` (`<git's message>`); commit the work, then name the commit — uncommitted work is never dispatched |
+| `follows` | a record used to determine the [correction shape](#correction-shape) has a malformed id, escapes the records directory, cannot be read, has a different `id`, or names a job outside the registry | expected a readable record for `<id>` under `.dev/records/dispatches`, with its own `id` equal to `<id>` and a registry `job`; found the failed shape, path, read, identity, or job check; needed name a matching record in `.dev/records/dispatches` |
+| `correction` (not overridable; exit 2, founding wire) | the [correction shape](#correction-shape) does not name every answered finding, or a named finding is absent, open, uncited, or disposed too late | No key — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found no --answers key named for a correction following `<id>` (`<job>`); needed pass --answers '<record>#<n>' for each finding answered, each disposed by python3 ops/conductor/tools/findings.py disposition '<record>#<n>' <disposition> 'contract item N of <scope path>: <why>'<br>Absent — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key `<key>` absent from the findings store `<path>` or found key `<key>` absent from the findings store `<path>` (no store); needed python3 ops/conductor/tools/findings.py import, then python3 ops/conductor/tools/findings.py disposition '<key>' <disposition> 'contract item N of <scope path>: <why>'<br>Open — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key <key> still open; needed python3 ops/conductor/tools/findings.py disposition '<key>' <disposition> 'contract item N of <scope path>: <why>'<br>Uncited — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key `<key>` disposed `<what>` without a contract citation (`<reason>`); needed python3 ops/conductor/tools/findings.py disposition '<key>' <disposition> 'contract item N of <scope path>: <why>'<br>Late — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key `<key>` disposed at `<disposed_at>`, after the mint attempt at `<stamp>`, or, for the same second, found key `<key>` disposed at `<stamp>`, not before the mint attempt at `<stamp>`; needed wait one second and retry |
+| `arguments` (exit 2, before the gate) | `--answers` is given on a write job outside the [correction shape](#correction-shape) | expected no unverified answers on a non-correction write job; found `--answers` on a write job that follows a plan, tests or implement record, or nothing; needed remove `--answers`; argument parsing refuses class `arguments` before the gate runs because a claim no gate would verify must not enter a record, and the gate does not inspect the job. |
 | `record-target` | the invoking checkout is detached, on `dev` or `main`, or on a branch other than `lineage.branch`; re-checked at close | expected the checkout on `<lineage>`; found `<branch or detached>`; run from a worktree of `<lineage>` (at close: the record file is left in place, nothing is committed, and `close ID` is re-run from the right branch) |
 | `stale-base` (**override**) | `ref_sha` is not an ancestor of `lineage.branch` | expected `<ref_sha>` reachable from `<lineage>`; found it is not (`<lineage>` is at `<tip>`); name a commit on the branch, or `--override stale-base:<reason>` |
 | `model` | no `--model`; or `--effort` on a harness whose adapter cannot pass it | expected a model — a job never names one and the launcher never defaults one; found none; pass `--model` (effort is forwarded through each harness adapter) |
@@ -1112,7 +1140,7 @@ the field.
 Worker fields, in this order (the conductor extension follows below):
 
 ```text
-id, lane ("dev"), stage, unit, lineage {branch, base_sha}, follows [ids],
+id, lane ("dev"), stage, unit, lineage {branch, base_sha}, follows [ids], answers [{key, disposition, disposed_at, citation {item, path}}],
 job, role (read|write), dispatched_by, at {launched, closed},
 snapshot {mode, ref_name, ref_sha, behind_tip, root},
 harness {name, version, permissions?,
@@ -1131,6 +1159,9 @@ result {head, changed_paths, residual_paths, residual_patch?, envelope,
         collected? {at, by, head, verify {command, exit}, reason}},
 status (launched|closed|died)
 ```
+
+A record without an `answers` key was minted before the field landed; that
+absence is historical and must not be read as "none answered".
 
 - `model.requested` is the alias the owner chose; `model.ran` is what
   the harness's own stream says, read from `read_from`; with no stream

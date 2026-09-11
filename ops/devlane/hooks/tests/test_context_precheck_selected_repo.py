@@ -199,9 +199,15 @@ class SelectedRepoFreshness(unittest.TestCase):
         command = f"git -C {self.other_fix.clone} push origin topic"
         self._assert_denied_and_other_refreshed(command, cwd=plain)
 
-    def test_minus_c_linked_worktree_of_other_denies_and_refreshes_other(self):
+    def test_minus_c_linked_worktree_of_other_allows_and_refreshes_other(self):
+        """Worktree on wt-topic pushing topic: other origin/main is another lineage.
+
+        Repository selection stays: the hook fetches in the OTHER
+        repository and leaves cwd's refs untouched.
+        """
         self._prove_fresh(self.cwd_fix, "cwd")
         self._prove_stale(self.other_fix, "other")
+        cwd_main = self._origin(self.cwd_fix)
         wt = self.tmp / "other-wt"
         support.git(
             self.other_fix.clone, self.env,
@@ -218,6 +224,24 @@ class SelectedRepoFreshness(unittest.TestCase):
             f"INVALID: worktree .git contents {landed!r}",
         )
         command = f"git -C {wt} push origin topic"
-        self._assert_denied_and_other_refreshed(
-            command, cwd=self.cwd_fix.clone,
+        proc = self._fire(command, cwd=self.cwd_fix.clone)
+        decision, reason = support.permission_decision(proc.stdout)
+        self.assertNotEqual(
+            decision, "deny",
+            f"wt-topic pushing topic denied for other's origin/main: "
+            f"{decision!r} {reason!r}\n"
+            f"stdout: {proc.stdout}\nstderr: {proc.stderr}",
+        )
+        self.assertEqual(
+            self._origin(self.other_fix), self.other_fix.new_sha,
+            f"{command!r} left other origin/main stale "
+            f"({self._origin(self.other_fix)}); the gate inspected cwd",
+        )
+        self.assertTrue(
+            self._fetch_head(self.other_fix).is_file(),
+            f"{command!r} did not write other FETCH_HEAD; fetch ran elsewhere",
+        )
+        self.assertEqual(
+            self._origin(self.cwd_fix), cwd_main,
+            "cwd origin/main moved; the gate fetched in cwd",
         )

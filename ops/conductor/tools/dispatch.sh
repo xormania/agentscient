@@ -54,7 +54,11 @@ fi
 # the hard supply-chain lock may still set an absolute LAUNCHER_PIN in the conf.
 keys=(LANE_NAME TRUNK_BRANCH RELEASE_BRANCH REPO_SLUG CHECK_NAMES WF_AGENT_DEFAULT LANE_AUTHOR MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE SCOPE_CAP)
 env_keys=("${!MODEL_@}" "${!EFFORT_@}" "${!EXECUTABLE_@}")
-saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES)
+# GRAFT_INSTALL is saved and restored but never required: the tracked conf declares it
+# empty, and a worktree has no local conf, so without the restore the environment's
+# install path would be emptied on the way to the launcher and no worker would get
+# Graft (LD-13).
+saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES GRAFT_INSTALL)
 for key in "${saved_keys[@]}"; do
     if [[ -v $key ]]; then
         printf -v "saved_$key" '%s' "${!key}"
@@ -131,7 +135,8 @@ stage=''
 scope_file=''
 # Repeated --input flags preserve their order for launch.py's append action.
 inputs=()
-follows=''
+follows=()
+answers=()
 timeout=${DISPATCH_TIMEOUT:-}
 timeout_set=$had_timeout
 agent=''
@@ -148,8 +153,20 @@ need_value() {
     [[ $2 != --* ]] || refuse "expected a value after $1; found $2; provide $1 VALUE"
 }
 
+usage() {
+    cat <<'USAGE'
+usage: dispatch.sh --job JOB --harness {grok,codex,claude} --scope-file FILE (--branch BRANCH | --worktree DIR)
+                   [--model MODEL] [--effort EFFORT] [--unit UNIT] [--stage STAGE]
+                   [--input PATH]... [--follows RECORD_ID] [--timeout SECONDS] [--agent 'Name <address>']
+                   [--dry-run] [--detach]
+One job to one harness through the branch's own launcher; --detach prints the
+record id and launcher pid and returns. Contract: ops/devlane/dispatch/CONTRACT.md.
+USAGE
+}
+
 while (($#)); do
     case $1 in
+        --help|-h) usage; exit 0 ;;
         --branch) need_value "$@"; branch=$2; shift 2 ;;
         --worktree) need_value "$@"; worktree=$2; shift 2 ;;
         --job) need_value "$@"; job=$2; shift 2 ;;
@@ -160,7 +177,8 @@ while (($#)); do
         --stage) need_value "$@"; stage=$2; shift 2 ;;
         --scope-file) need_value "$@"; scope_file=$2; shift 2 ;;
         --input) need_value "$@"; inputs+=("$2"); shift 2 ;;
-        --follows) need_value "$@"; follows=$2; shift 2 ;;
+        --follows) need_value "$@"; follows+=("$2"); shift 2 ;;
+        --answers) need_value "$@"; answers+=("$2"); shift 2 ;;
         --timeout) need_value "$@"; timeout=$2; timeout_set=1; shift 2 ;;
         --agent) need_value "$@"; agent=$2; agent_set=1; shift 2 ;;
         --dry-run) dry_run=1; shift ;;
@@ -248,7 +266,12 @@ argv+=(--scope "$scope")
 for input in "${inputs[@]}"; do
     argv+=(--input "$input")
 done
-[[ -z $follows ]] || argv+=(--follows "$follows")
+for follow in "${follows[@]}"; do
+    argv+=(--follows "$follow")
+done
+for answer in "${answers[@]}"; do
+    argv+=(--answers "$answer")
+done
 
 print_launch() {
     WF_AGENT=$agent python3 -c 'import json, os, sys
@@ -256,6 +279,8 @@ env = {"WF_AGENT": os.environ["WF_AGENT"],
        "CHECK_NAMES": os.environ["CHECK_NAMES"]}
 if "DISPATCH_TIMEOUT" in os.environ:
     env["DISPATCH_TIMEOUT"] = os.environ["DISPATCH_TIMEOUT"]
+if os.environ.get("GRAFT_INSTALL"):
+    env["GRAFT_INSTALL"] = os.environ["GRAFT_INSTALL"]
 print(json.dumps({"argv": sys.argv[4:], "env": env, "exec": True,
                   "detach": sys.argv[3] == "1",
                   "launcher": {"path": sys.argv[2], "source": sys.argv[1]}},

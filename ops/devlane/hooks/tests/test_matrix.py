@@ -895,6 +895,135 @@ class MatrixHookTests(unittest.TestCase):
             )
         )
 
+    # --- triage 2026-09-11: grant spellings that were refused in practice ---
+
+    def test_grant_after_other_leading_assignments_is_seen(self):
+        self.assert_allowed(
+            self.run_bash(
+                "export WF_AGENT='Some One <a@b.c>' "
+                f"HAND_GRANT={GRANT_SCOPED} && echo x > docs/README.md"
+            )
+        )
+
+    def test_grant_carries_into_a_bash_c_body(self):
+        self.assert_allowed(
+            self.run_bash(
+                f"HAND_GRANT={GRANT_SCOPED} bash -c 'echo x > docs/README.md'"
+            )
+        )
+
+    def test_grant_before_bash_c_does_not_widen_the_scope(self):
+        self.assert_denied(
+            self.run_bash(
+                f"HAND_GRANT={GRANT_SCOPED} bash -c 'echo x > AGENTS.md'"
+            ),
+            "hand-write",
+        )
+
+    def test_launcher_help_is_a_read(self):
+        self.assert_allowed(self.run_bash("ops/devlane/dispatch/launch.py --help"))
+        self.assert_allowed(self.run_bash("python3 ops/devlane/dispatch/launch.py -h"))
+
+    # --- deliverable lock (owner 2026-09-11: "an immediate FIX to stop that") ---
+
+    def _lock(self, *branches):
+        path = self.home / ".local" / "state" / LANE_NAME / "deliverable.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"branches": list(branches), "why": "the slices",
+                                    "by": "Owner <o@x>", "at": "2026-09-11T07:00:00Z"}) + "\n")
+        self.assertIn(branches[0], path.read_text(), "plant: lock names the branch")
+
+    def _repo_branch(self):
+        return support.git(self.repo, self.env, "symbolic-ref", "--short", "HEAD").stdout.strip()
+
+    def test_without_a_lock_new_branches_and_dispatches_pass(self):
+        self.assert_allowed(self.run_bash("git worktree add ../wt/ag-other -b lane/other"))
+        self.assert_allowed(self.run_bash("git checkout -b lane/other"))
+        self.assert_allowed(self.run_bash("gh pr create --draft --head lane/other --title t --body-file b"))
+
+    def test_a_new_worktree_or_branch_outside_the_lock_is_refused(self):
+        self._lock("lane/one", "lane/two")
+        for cmd in ("git worktree add ../wt/ag-other -b lane/other",
+                    "git worktree add ../wt/ag-other lane/other",
+                    "git checkout -b lane/other",
+                    "git switch -c lane/other"):
+            with self.subTest(cmd=cmd):
+                proc = self.run_bash(cmd)
+                self.assert_denied(proc, "deliverable")
+                self.assertIn("lane/one, lane/two", proc.stdout)
+                self.assertIn("deliverable.py clear", proc.stdout)
+
+    def test_the_named_branches_stay_open_in_parallel(self):
+        self._lock("lane/one", "lane/two")
+        self.assert_allowed(self.run_bash("git worktree add ../wt/ag-one -b lane/one"))
+        self.assert_allowed(self.run_bash("git checkout -b lane/two"))
+        self.assert_allowed(self.run_bash("gh pr create --draft --head lane/two --title t --body-file b"))
+        self.assert_allowed(self.run_bash("ops/bin/ladder.sh scope.md lane/one plan.md"))
+        self.assert_allowed(self.run_bash("ops/bin/ladder.sh resume 20260911T000000Z-ladder-abcdef"))
+
+    def test_a_dispatch_ladder_or_pr_outside_the_lock_is_refused(self):
+        self._lock("lane/one")
+        self.assert_denied(self.run_bash("gh pr create --draft --head lane/other --title t --body-file b"), "deliverable")
+        self.assert_denied(self.run_bash("ops/bin/ladder.sh scope.md lane/other plan.md"), "deliverable")
+        self.assert_denied(self.run_bash(self.dispatch(job="plan", extra="--branch lane/other")), "deliverable")
+        self.assert_denied(self.run_bash(self.dispatch(job="plan")), "deliverable")  # --worktree on the fixture repo's branch
+
+    def test_a_dispatch_on_the_worktree_of_a_named_branch_passes(self):
+        self._lock(self._repo_branch())
+        self.assert_allowed(self.run_bash(self.dispatch(job="plan")))
+
+    def test_no_grant_escapes_the_lock(self):
+        self._lock("lane/one")
+        self.assert_denied(self.run_bash(f"HAND_GRANT={GRANT_OPEN} git checkout -b lane/other"), "deliverable")
+
+    # --- graft-first (owner 2026-09-11: "go - force it") ---
+
+    def _graft_log(self):
+        return self.home / ".local" / "state" / LANE_NAME / "graft-first.log"
+
+    def test_a_content_search_over_a_code_root_is_refused_with_the_graft_query(self):
+        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        self.assert_denied(proc, "graft-first")
+        self.assertIn("graft_find_code", proc.stdout)
+        self.assertIn("def foo", proc.stdout)
+        self.assertTrue(self._graft_log().is_file(), "a refusal is logged")
+        self.assertIn("\tdeny\t", self._graft_log().read_text())
+
+    def test_a_prepared_context_under_the_lane_state_is_named_in_the_remedy(self):
+        import hashlib
+        root = os.path.realpath(str(self.repo))
+        context = (self.home / ".local" / "state" / LANE_NAME / "graft"
+                   / f"{hashlib.sha256(root.encode()).hexdigest()}.context.json")
+        context.parent.mkdir(parents=True)
+        context.write_text("{}")
+        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        self.assert_denied(proc, "graft-first")
+        self.assertIn(f"--context {context}", proc.stdout)
+        self.assertNotIn("prepare --root", proc.stdout)
+
+    def test_git_grep_and_rg_over_code_are_refused_too(self):
+        self.assert_denied(self.run_bash("git grep -n pattern -- docs/"), "graft-first")
+        self.assert_denied(self.run_bash("rg pattern docs/"), "graft-first")
+
+    def test_counts_file_lists_pipes_and_records_paths_stay_allowed(self):
+        self.assert_allowed(self.run_bash("grep -c 'def foo' docs/README.md"))
+        self.assert_allowed(self.run_bash("grep -l 'def foo' docs/README.md"))
+        self.assert_allowed(self.run_bash("git log --oneline | grep foo"))
+        self.assert_allowed(self.run_bash("grep -n foo ops/conductor/handoff/notes.md"))
+        self.assert_allowed(self.run_bash("grep -rn foo .dev/records/"))
+
+    def test_a_grant_does_not_escape_graft_first(self):
+        self.assert_denied(
+            self.run_bash(f"HAND_GRANT={GRANT_OPEN} grep -n foo docs/README.md"),
+            "graft-first",
+        )
+
+    def test_a_graft_query_is_allowed_and_logged(self):
+        self.assert_allowed(self.run_bash(
+            "python3 ops/devlane/harness/graft.py query --context c.json graft_find_code '{\"query\": \"foo\"}'"
+        ))
+        self.assertIn("\tquery\tgraft_find_code", self._graft_log().read_text())
+
     def test_grant_escape_allows_direct_launch_when_the_grant_is_open(self):
         self.assert_allowed(
             self.run_bash(
