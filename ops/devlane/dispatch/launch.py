@@ -1188,7 +1188,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     argv = _argv(harness, rec["model"]["requested"], rec["model"]["effort_requested"],
                  rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"],
                  resume, project_allow, project_deny,
-                 writable_out=rec["job"] == "check-tests",
+                 writable_out=rec["role"] == "read",
                  executable=rec["harness"].get("worker", {}).get("executable"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
@@ -1200,7 +1200,10 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
                     "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
             Path(env[key]).mkdir(parents=True, exist_ok=True, mode=0o700)
-    if harness == "codex" and rec["job"] == "check-tests":
+    if harness == "codex" and rec["role"] == "read":
+        # LD-14: every Codex read-role job, not only check-tests, runs under
+        # OS containment with a writable out/tmp; the read-only sandbox
+        # label blocked TMPDIR so no audit could execute a suite.
         for root, dirs, files in os.walk(snapshot):
             for name in [*dirs, *files]:
                 path = Path(root) / name
@@ -1474,8 +1477,8 @@ def _launch(args):
     prompt = job_dir / "prompt.txt"
     prompt.write_text(prompt_text)
     _iso_env, _flags, sandbox, containment, isolation_data = _harness_meta(args.harness, role, job_dir, os.environ)
-    if args.harness == "codex" and args.job == "check-tests":
-        sandbox = "workspace-write"
+    if args.harness == "codex" and role == "read":
+        sandbox = "workspace-write"  # LD-14: OS containment, out/ writable
     permissions = None
     project_allow = project_deny = ()
     if args.harness == "claude":
@@ -1499,7 +1502,7 @@ def _launch(args):
                     "argv": _argv(args.harness, args.model, args.effort, session,
                                   prompt, _flags, sandbox, False,
                                   project_allow, project_deny,
-                                  writable_out=args.job == "check-tests",
+                                  writable_out=role == "read",
                                   executable=worker["executable"])},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
