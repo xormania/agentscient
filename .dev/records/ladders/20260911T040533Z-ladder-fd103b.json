@@ -131,6 +131,11 @@
       "outcome": "stopped",
       "reason": "wall",
       "record": "20260911T043313Z-tests-grok-3ab0c7",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
       "stage": "tests"
     },
     {
