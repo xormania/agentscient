@@ -49,9 +49,20 @@
         "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
       },
       "job": "author-tests",
+      "landed": [
+        "b4adc774d447396d485ba40400baba97b55efac8"
+      ],
+      "landed_shas": [
+        "b4adc774d447396d485ba40400baba97b55efac8"
+      ],
       "name": "tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T025531Z-tests-grok-5a362c",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
       "stage": "tests"
     },
     {
