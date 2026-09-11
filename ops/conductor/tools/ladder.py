@@ -85,6 +85,7 @@ class Stopped(Exception):
         verdict: str | None = None,
         detail: str | None = None,
         exit_code: int = 3,
+        keys: list[str] | None = None,
     ) -> None:
         self.stage = stage
         self.record_id = record_id
@@ -92,6 +93,7 @@ class Stopped(Exception):
         self.verdict = verdict
         self.detail = detail
         self.exit_code = exit_code
+        self.keys = keys
         super().__init__(self.line())
 
     def line(self) -> str:
@@ -483,6 +485,8 @@ class Driver:
         self.implementation_markers: list[str] = self.normalize_markers(
             self.record.get("implementation_markers") or []
         )
+        self.correction_follows: list[str] = []
+        self.correction_answers: list[str] = []
 
     def new_record(self) -> dict:
         suffix = hashlib.sha256(
@@ -607,6 +611,8 @@ class Driver:
             "reason": stopped.reason,
             "verdict": stopped.verdict,
         }
+        if stopped.keys is not None:
+            self.record["stopped"]["keys"] = stopped.keys
         row = self.row(stopped.stage)
         row["outcome"] = stopped.verdict or "stopped"
         if stopped.reason:
@@ -668,7 +674,35 @@ class Driver:
             argv.extend(("--input", str(path)))
         if previous:
             argv.extend(("--follows", previous))
+        if name in {"fix-tests", "fix-code"}:
+            for record_id in self.correction_follows:
+                argv.extend(("--follows", record_id))
+            for key in self.correction_answers:
+                argv.extend(("--answers", key))
         return argv
+
+    def require_cited(self, stage: str, keys: list[str]) -> None:
+        undisposed: list[str] = []
+        for key in keys:
+            checked = run(
+                [sys.executable, str(self.findings), "cited", key],
+                self.worktree,
+            )
+            if checked.returncode == 1:
+                undisposed.append(key)
+            elif checked.returncode != 0:
+                raise Stopped(
+                    stage,
+                    reason="ledger",
+                    detail=checked.stderr.strip() or checked.stdout.strip(),
+                )
+        if undisposed:
+            raise Stopped(
+                stage,
+                reason="undisposed",
+                detail="undisposed keys: " + " ".join(undisposed),
+                keys=undisposed,
+            )
 
     def stage_scope(self, name: str, inputs: list[Path]) -> Path:
         if name == "fix-code" or name == "code" or name.startswith("code-"):
@@ -1572,6 +1606,17 @@ class Driver:
             security, adversarial, previous = self.audit_pair(
                 records, command_file, previous, resume=resume
             )
+            self.correction_follows = [records["security"], records["adversarial"]]
+            self.correction_answers = [
+                f"{records[name]}#{number}"
+                for name, envelope in (
+                    ("security", security),
+                    ("adversarial", adversarial),
+                )
+                for number, _finding in enumerate(
+                    envelope.get("findings") or [], start=1
+                )
+            ]
             changes = (
                 security.get("verdict") == "changes"
                 or adversarial.get("verdict") == "changes"
@@ -1579,9 +1624,11 @@ class Driver:
             if changes:
                 if self.has_leak(security) or self.has_leak(adversarial):
                     raise Stopped("fix-tests", reason="withheld")
+                self.require_cited("fix-tests", self.correction_answers)
                 _test_fix, previous = self.execute(
                     "fix-tests", records, command_file, previous, resume=resume
                 )
+                self.require_cited("fix-code", self.correction_answers)
                 _code_fix, previous = self.execute(
                     "fix-code", records, command_file, previous, resume=resume
                 )
