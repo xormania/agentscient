@@ -487,6 +487,10 @@ class Driver:
         )
         self.correction_follows: list[str] = []
         self.correction_answers: list[str] = []
+        # LD-23: one key per skeptic finding, named on tests-fix, which
+        # the launcher classifies as a correction of the check-tests
+        # record it follows.
+        self.skeptic_answers: list[str] = []
 
     def new_record(self) -> dict:
         suffix = hashlib.sha256(
@@ -678,6 +682,9 @@ class Driver:
             for record_id in self.correction_follows:
                 argv.extend(("--follows", record_id))
             for key in self.correction_answers:
+                argv.extend(("--answers", key))
+        if name == "tests-fix":
+            for key in self.skeptic_answers:
                 argv.extend(("--answers", key))
         return argv
 
@@ -1592,6 +1599,13 @@ class Driver:
             if check_envelope.get("verdict") == "changes":
                 if self.has_leak(check_envelope):
                     raise Stopped("tests-fix", reason="withheld")
+                self.skeptic_answers = [
+                    f"{records.get('check-tests', previous)}#{number}"
+                    for number, _finding in enumerate(
+                        check_envelope.get("findings") or [], start=1
+                    )
+                ]
+                self.require_cited("tests-fix", self.skeptic_answers)
                 _fixed, previous = self.execute(
                     "tests-fix", records, None, previous, resume=resume
                 )
