@@ -55,7 +55,11 @@ dispatcher from the lane configuration, never carried in this table.
 | `pr` | `gh pr create --draft` | none | none | body built from records | audits approve |
 
 Security and adversarial audit dispatches are started back to back and
-waited in table order. No other stages run concurrently. Test commands
+waited in table order. No other stages run concurrently. A stage is
+waited for its job's cap from `ops/devlane/task/jobs.json` (the record
+copy's own cap when it already carries one) plus `LADDER_WAIT_GRACE`;
+`WALL_DEFAULT` applies only when neither names a cap (LD-17,
+2026-09-11: the record copy carries no cap until the job closes). Test commands
 come only from test artifacts in the first test envelope: each path
 under a `tests/` directory becomes a `python3 -m unittest discover`
 invocation, joined in order with `&&`. No such artifact is an
