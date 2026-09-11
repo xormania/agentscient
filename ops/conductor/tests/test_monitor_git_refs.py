@@ -140,8 +140,10 @@ class _GitRefsFixture(_MonitorFixture):
             f"control_path = Path({str(self.git_control)!r})\n"
             f"real = {self.real_git!r}\n"
             "argv = sys.argv[1:]\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text(prev + json.dumps(argv) + '\\n', encoding='utf-8')\n"
+            # Append, never read-modify-write: the monitor observes sources through a
+            # thread pool, so two shim processes run at once and a rewrite loses a line (LD-8).
+            "with open(log, 'a', encoding='utf-8') as fh:\n"
+            "    fh.write(json.dumps(argv) + '\\n')\n"
             "ctrl = json.loads(control_path.read_text(encoding='utf-8'))\n"
             "is_ls = 'ls-remote' in argv\n"
             "mode = ctrl.get('mode') or 'passthrough'\n"
