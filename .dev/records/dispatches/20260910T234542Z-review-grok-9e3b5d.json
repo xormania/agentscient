@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-10T23:45:43Z",
-    "closed": null
+    "closed": "2026-09-11T00:02:11Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234542Z-review-grok-9e3b5d/home/grok-stream/sessions/<snapshot-encoded>/b8c245e6-224c-4665-80b5-6c5f1e88898f/summary.json"
   },
   "session": {
     "id": "b8c245e6-224c-4665-80b5-6c5f1e88898f",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234542Z-review-grok-9e3b5d/home/grok-stream/sessions/<snapshot-encoded>/b8c245e6-224c-4665-80b5-6c5f1e88898f/summary.json",
+    "stream_sha256_at_close": "391f148f5feaa05dd2832d46a9254ee5691a8cfee5cf289795c546e33319d964",
+    "spend": {
+      "input": 1536055,
+      "cached": 1382016,
+      "output": 52738,
+      "total": 1588793,
+      "cost_usd_ticks": 2236373800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260910T234542Z-review-grok-9e3b5d/home/grok-stream/sessions/<snapshot-encoded>/b8c245e6-224c-4665-80b5-6c5f1e88898f/summary.json",
+      "messages": 204
+    }
   },
   "brief": {
     "template": {
@@ -101,10 +109,67 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-10T23:45:43Z",
+      "ended": "2026-09-11T00:02:11Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7b6664a420c391c511d2c419b6448772cdf7de37",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": ".dev/ladder-inputs/plan-gate-contracts.md:97-136; ops/devlane/dispatch/CONTRACT.md:777-778,976; ops/devlane/dispatch/tests/test_launch_correction_contract.py:22-24",
+          "claim": "Contract item 3 requires the needed half to name the exact findings.py disposition command that would satisfy the refusal; item 4 requires evidence to contain `contract item N` and to name that scope file by path. The declared grammar `contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\\s;,]+)` (plan D3, quoted in CONTRACT.md, pinned once by test_launch_correction_contract.py) together with the prescribed evidence `contract item N of <scope path>: <why>` (CONTRACT.md correction row; plan D3 example and D5 needed command) captures the trailing colon inside `path`, so the planned citation_holds file check cannot resolve the scope file. Following the printed remedy therefore stays uncited, and item 6 gives no override.",
+          "reproduce": "python3 -c \"import re; from pathlib import Path; p=re.compile(r'contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\\\\s;,]+)'); ev='contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: found-text missing'; m=p.search(ev); print(m['path']); assert m['path'].endswith(':') and not Path(m['path']).is_file() and Path('.dev/ladder-inputs/scope-gate-20260910.md').is_file()\""
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/ladder-inputs/plan-gate-contracts.md:151-157; .dev/ladder-inputs/scope-gate-20260910.md:50-51",
+          "claim": "Contract item 7: a write job that follows a plan, tests, or implement record, or follows nothing, is not a correction and is not inspected by this gate. Plan D7 inspects that job when `--answers` is present and refuses class arguments.",
+          "reproduce": "python3 -c \"from pathlib import Path; t=Path('.dev/ladder-inputs/plan-gate-contracts.md').read_text(); s=Path('.dev/ladder-inputs/scope-gate-20260910.md').read_text(); print([ln.strip() for ln in t.splitlines() if 'not a correction is refused' in ln][0]); assert 'is not inspected by this gate' in s and 'on a write job that is not a correction is refused' in t\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 1588793,
+        "out": 52738,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7b6664a420c391c511d2c419b6448772cdf7de37",
+        "started": "2026-09-10T23:45:43Z",
+        "ended": "2026-09-11T00:01:16Z"
+      },
+      "note": "Read both scope files and in/plan-gate-contracts.md whole; reviewed 94ab7a0..7b6664a (slice-1 contracts, pins, and the plan). Independently reproduced the citation-colon failure; the slice-1 pin locks that regex. Slice-1 document pins: 23 tests OK. Did not read the findings store. Live gate code is not in this slice. Did not adopt the security-audit envelope: adjudicate/sweep import is a store boundary (item 1 shape can still name imported keys); same-second `<=` is the plan's documented reading of item 5 at second resolution."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T00:02:10.750Z"
+    }
+  },
+  "status": "closed"
 }
