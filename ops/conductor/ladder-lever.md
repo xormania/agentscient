@@ -14,9 +14,18 @@ and lint duty apply as written here.
 
 ## Instrument
 
-`ops/bin/ladder.sh SCOPE BRANCH [PLAN]` starts a ladder in the worktree
-that owns `BRANCH`. `ops/bin/ladder.sh resume LADDER_ID` resumes the
-named record at its first stage not recorded `ok`. Every launch uses
+`ops/bin/ladder.sh SCOPE BRANCH [PLAN] [--input PATH]...` starts a
+ladder in the worktree that owns `BRANCH`. Each `--input PATH` names a
+file handed to every stage beside the scope and plan, so the work order a
+scope sentence cites reaches every worker as a supplied input; each is
+recorded with its digest and re-verified on resume. `ops/bin/ladder.sh
+resume LADDER_ID [--rescope]` resumes the named record at its first stage
+not recorded `ok`. A scope, plan or input whose bytes changed since the
+record refuses `record` unless `--rescope` is given, in which case the
+change is recorded as an event, `rescoped: [{label, path, from, to, at,
+stage}]`, the digest updated, and the stages from `stage` on receive the
+new bytes; earlier stage rows keep the digests they were given. The conf
+is never rescoped. `--rescope` with nothing changed refuses `arguments`. Every launch uses
 that worktree's `ops/bin/dispatch.sh --detach`; every wait, landing,
 ledger update, push, and PR action uses that same worktree.
 
@@ -40,7 +49,7 @@ dispatcher from the lane configuration, never carried in this table.
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
-| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes; dispatch with `--follows <previous>`, `--follows <security>`, `--follows <adversarial>`, and one `--answers KEY` per key for every finding | either audit says `changes` |
+| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes, extracted from their records (a whole record names the implementation it follows); dispatch with `--follows <previous>`, `--follows <security>`, `--follows <adversarial>`, and one `--answers KEY` per key for every finding | either audit says `changes` |
 | `fix-code` | `implement` | codex | `code` | scope, plan, both audit envelopes, test command; dispatch with `--follows <previous>`, `--follows <security>`, `--follows <adversarial>`, and one `--answers KEY` per key for every finding | after `fix-tests` |
 | `security-re` | `security-audit` | codex | `review` | scope, plan, original security envelope | after the audit fix round |
 | `pr` | `gh pr create --draft` | none | none | body built from records | audits approve |
@@ -70,12 +79,13 @@ one stderr line, stdout empty, and exit 2.
 | `arguments` | neither `SCOPE BRANCH [PLAN]` nor `resume LADDER_ID` was supplied | choose one documented form |
 | `conf-key` | a required lane key is absent | declare it in the named lane conf |
 | `scope` | the scope is absent, unreadable, or its stage sentence exceeds `SCOPE_CAP` | supply a bounded readable scope |
+| `input` | a `--input` path is absent or unreadable | supply a readable input file |
 | `worktree` | the named branch is not checked out in a worktree | add it below configured `WORKTREE_ROOT` |
 | `dirty` | that worktree has staged or unstaged changes | commit or stash them |
 | `identity` | `WF_AGENT` and the worktree git identity are not full `Name <address>` values | supply both identities |
 | `gh-missing` | `gh` cannot be executed | install or expose the GitHub CLI |
 | `job` | a stage's named job is absent from the registry | restore the job declaration |
-| `record` | the named resume record is absent or invalid | choose or repair the record |
+| `record` | the named resume record is absent or invalid, or a recorded scope, plan or input changed without `--rescope` | choose or repair the record, or resume with `--rescope` |
 
 ## Stops, retries, and exits
 
@@ -110,7 +120,8 @@ After every transition the driver commits
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
   and PR result; `keys` in the ladder record's `stopped` object list every
   undisposed finding key;
-- scope, optional plan, and conf paths with SHA-256 digests;
+- scope, optional plan, start inputs, and conf paths with SHA-256 digests,
+  and `rescoped` events for any of the first three accepted on resume;
 - ordered stage rows naming job, harness, attempt, input path and
   digest, custody proof, dispatch record, dispatched and recorded model
   and effort, outcome, landed shas, and ledger import/export state;
@@ -126,9 +137,12 @@ declared rather than inferred.
 1. **Custody.** Every input contains the scope's first line and the
    previous stage's record id. Inputs to `tests`, `check-tests`,
    `tests-fix`, and `fix-tests` contain no implementation record id and
-   no line from an implementation envelope. The driver verifies both
-   directions against the bytes it dispatches and records the proof;
-   failure stops as `withheld`.
+   no line from an implementation envelope. A line counts as a marker
+   only when it is at least 24 characters and is not a path present in
+   the worktree: bare paths, severity tokens and short receipts name
+   shared surfaces, and an audit that names the same file is not a leak.
+   The driver verifies both directions against the bytes it dispatches
+   and records the proof; failure stops as `withheld`.
 2. **Lineage.** Every sha printed by landing must satisfy
    `git merge-base --is-ancestor <stage-base> <landed-sha>`. Failure
    stops as `lineage`.

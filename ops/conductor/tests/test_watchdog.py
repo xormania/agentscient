@@ -36,6 +36,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
+from live_store_guard import assert_unchanged
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "watchdog.py"
 CATALOGUE = REPO / "ops" / "devlane" / "task" / "jobs.json"
@@ -214,9 +216,6 @@ OMIT = object()
 # PIN_HEARTBEAT_DEVIATIONS: the heartbeat carries deviations=<n> since
 # start.
 
-_JOB_DIR = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
-
-
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).strftime(
         "%Y-%m-%dT%H:%M:%SZ"
@@ -242,20 +241,6 @@ def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
     if not path.is_dir():
         return ("other", ())
     return ("dir", tuple(sorted(p.name for p in path.iterdir())))
-
-
-def _without_new_job_dirs(before, after):
-    """Drop from ``after`` the job directories absent from ``before``."""
-    kept = {}
-    for key, (kind, names) in after.items():
-        if kind == "dir" and key in before and before[key][0] == "dir":
-            previous = set(before[key][1])
-            names = tuple(
-                n for n in names
-                if n in previous or not _JOB_DIR.match(n)
-            )
-        kept[key] = (kind, names)
-    return kept
 
 
 def _live_store_paths() -> list[Path]:
@@ -333,13 +318,10 @@ class _WatchdogFixture(unittest.TestCase):
                     proc.kill()
                     with contextlib.suppress(subprocess.TimeoutExpired):
                         proc.wait(timeout=2)
-            self.assertEqual(
-                _without_new_job_dirs(
-                    self._live_before,
-                    {str(p): _store_snap(p) for p in _live_store_paths()},
-                ),
+            assert_unchanged(
+                self,
                 self._live_before,
-                "live dispatch store mutated",
+                {str(p): _store_snap(p) for p in _live_store_paths()},
             )
         finally:
             self._tmp.cleanup()
