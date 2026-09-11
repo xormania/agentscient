@@ -30,6 +30,7 @@ import unittest
 from pathlib import Path
 
 import worker_conf
+from live_store_guard import assert_unchanged
 
 REPO = Path(__file__).resolve().parents[3]
 WRAPPER = REPO / "ops" / "conductor" / "tools" / "dispatch.sh"
@@ -171,10 +172,13 @@ class _WrapperFixture(unittest.TestCase):
         self._conf_bytes = REAL_CONF.read_bytes() if self._conf_existed else None
         self._old_existed = OLD_CONF.exists()
         self._old_bytes = OLD_CONF.read_bytes() if self._old_existed else None
+        # LD-16 (2026-09-11): the CI runner shares the host store with running
+        # ladders; a job directory minted mid-run is not this tool's write.
+        # The shared guard declares exactly that exclusion.
         self._guarded = []
         for root in _jobs_roots_to_guard():
             if root.is_dir():
-                self._guarded.append((root, frozenset(os.listdir(root))))
+                self._guarded.append((root, ("dir", tuple(sorted(os.listdir(root))))))
 
         self._tmp = tempfile.TemporaryDirectory(prefix="dispatch-wrapper-")
         root = Path(self._tmp.name)
@@ -245,10 +249,11 @@ class _WrapperFixture(unittest.TestCase):
             if self._old_existed:
                 self.assertEqual(OLD_CONF.read_bytes(), self._old_bytes)
             for root, before in self._guarded:
-                after = frozenset(os.listdir(root))
-                self.assertEqual(
-                    after,
-                    before,
+                after = ("dir", tuple(sorted(os.listdir(root))))
+                assert_unchanged(
+                    self,
+                    {str(root): before},
+                    {str(root): after},
                     f"host dispatch directory changed: {root}",
                 )
         finally:
