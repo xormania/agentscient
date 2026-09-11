@@ -254,6 +254,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 9.755433,
       "name": "security",
       "outcome": "ok",
       "record": "20260911T061118Z-review-codex-314c2d",
