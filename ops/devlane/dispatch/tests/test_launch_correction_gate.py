@@ -883,6 +883,28 @@ class CorrectionShape(_CorrectionLaunch):
         self.assertIn(secret, outside.read_text(encoding="utf-8"))
         self.assert_target_not_copied_under_jobs(secret)
 
+    def test_symlinked_out_input_with_answers_is_not_a_readable_input(self):
+        link, outside, secret = self.plant_symlinked_review_artifact()
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        self.set_disposed_at(key, PAST)
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(self.write_argv(extra=[
+            "--follows", REVIEW,
+            "--answers", key,
+            "--input", str(link),
+        ]))
+        line = self.assert_wire_line(code, out, err, "input")
+        self.assert_no_mint()
+        found = self.found_clause(line)
+        self.assertIn(str(link), found)
+        self.assertIn("symlink", found.lower())
+        self.assertNotIn(str(outside), found)
+        self.assertTrue(outside.is_file(), "plant: target remains in place")
+        self.assertIn(secret, outside.read_text(encoding="utf-8"))
+        self.assert_target_not_copied_under_jobs(secret)
+
     def test_author_tests_following_check_tests_is_a_correction(self):
         self.plant_record(CHECK, "check-tests")
         self.force_stamp(STAMP)
