@@ -11,6 +11,7 @@ Item 7: the refusal is one stderr line, exit 2, founding wire.
 
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -25,8 +26,55 @@ FOUND_SENTENCE = (
 NEEDED = (
     "drop the sentence from the prompt or declare the job a write role"
 )
-EXIT_2 = "exit 2"
 FOUNDING_WIRE = "founding wire"
+SHAPE_RULE = (
+    "instruction shape (a write verb and a path-shaped token, "
+    "negated sentences excluded), not by a list of forbidden words"
+)
+ONE_STDERR_LINE = "one stderr line"
+STDOUT_EMPTY = "stdout empty"
+WIRE_GRAMMAR = "expected …; found …; needed …"
+WIRE_GRAMMAR_ASCII = "expected ...; found ...; needed ..."
+
+_EXIT_2 = re.compile(r"(?i)(?<![\w])exit\s+2(?!\d)")
+
+# Item 5 near-miss: the example sentence, matching only that literal.
+ITEM5_LITERAL_MUTANT = (
+    "found job check-tests: Write the report to {out}/SKEPTIC.md "
+    "and name that path in artifacts; match only that literal sentence"
+)
+
+# Item 7 near-miss: "exit 2" as a substring of "exit 20".
+ITEM7_EXIT_20_MUTANT = (
+    "exit 20; one stderr line is not required; write two stdout lines"
+)
+
+
+def _has_wire_grammar(text: str) -> bool:
+    collapsed = " ".join(text.split())
+    return WIRE_GRAMMAR in collapsed or WIRE_GRAMMAR_ASCII in collapsed
+
+
+def _item5_shape_holds(text: str) -> bool:
+    if SHAPE_RULE in text:
+        return True
+    return (
+        "instruction shape" in text
+        and "write verb" in text
+        and "path-shaped token" in text
+        and "negated sentences excluded" in text
+        and "not by a list of forbidden words" in text
+    )
+
+
+def _item7_refusal_holds(text: str) -> bool:
+    if _EXIT_2.search(text) is None:
+        return False
+    if ONE_STDERR_LINE not in text:
+        return False
+    if STDOUT_EMPTY not in text:
+        return False
+    return _has_wire_grammar(text)
 
 
 def _section(text: str, prefix: str) -> str:
@@ -74,6 +122,11 @@ def _row_id(cells: list[str]) -> str:
     return token.split()[0] if token.split() else ""
 
 
+def _chunks_naming(text: str, ident: str) -> list[str]:
+    chunks = re.split(r"(?<=[.!?])\s+|\n+", text)
+    return [chunk for chunk in chunks if ident in chunk]
+
+
 class _ContractPin(unittest.TestCase):
     maxDiff = None
 
@@ -107,6 +160,11 @@ class _ContractPin(unittest.TestCase):
             return ""
         return " ".join(row)
 
+    def role_surface(self) -> str:
+        parts = [self.role_blob()]
+        parts.extend(_chunks_naming(self.refusals(), "role"))
+        return "\n".join(p for p in parts if p)
+
 
 class RoleRefusalRow(_ContractPin):
     """Item 5 / item 7 — class role, exit 2, founding wire."""
@@ -119,9 +177,29 @@ class RoleRefusalRow(_ContractPin):
         )
 
     def test_role_row_declares_exit_2(self):
-        mutant = "`role` (exit 3, mid-act stop)"
-        self.assertNotIn("exit 2", mutant)
-        self.assertIn(EXIT_2, self.role_blob())
+        mutant = ITEM7_EXIT_20_MUTANT
+        self.assertIn("exit 2", mutant)
+        self.assertIsNone(
+            _EXIT_2.search(mutant),
+            "item 7: 'exit 2' must not match as a substring of 'exit 20'",
+        )
+        self.assertFalse(
+            _item7_refusal_holds(mutant),
+            "item 7: exit 20 and two stdout lines must not hold",
+        )
+        blob = self.role_blob()
+        self.assertRegex(
+            blob,
+            _EXIT_2,
+            "item 7: the role row declares exit 2 as a token, not a "
+            f"substring; found {blob!r}",
+        )
+        surface = self.role_surface()
+        self.assertTrue(
+            _item7_refusal_holds(blob) or _item7_refusal_holds(surface),
+            "item 7: one stderr line, exit 2, stdout empty, "
+            "expected …; found …; needed …",
+        )
 
     def test_role_row_declares_the_founding_wire(self):
         mutant = "`role` (exit 2, before the gate)"
@@ -141,9 +219,23 @@ class RoleRefusalRow(_ContractPin):
         self.assertIn(FOUND_JOB, self.role_blob())
 
     def test_role_found_half_names_the_sentence(self):
-        mutant = "found job check-tests: a prose report"
-        self.assertNotIn(FOUND_SENTENCE, mutant)
-        self.assertIn(FOUND_SENTENCE, self.role_blob())
+        mutant = ITEM5_LITERAL_MUTANT
+        self.assertIn(FOUND_JOB, mutant)
+        self.assertIn(FOUND_SENTENCE, mutant)
+        self.assertFalse(
+            _item5_shape_holds(mutant),
+            "item 5: matching only the check-tests sentence is not "
+            "instruction shape",
+        )
+        blob = self.role_blob()
+        self.assertIn(FOUND_SENTENCE, blob)
+        surface = self.role_surface()
+        self.assertTrue(
+            _item5_shape_holds(blob) or _item5_shape_holds(surface),
+            "item 5: recognition is by instruction shape (a write verb "
+            "and a path-shaped token, negated sentences excluded), not "
+            "by a list of forbidden words",
+        )
 
     def test_role_needed_half_drops_the_sentence_or_declares_a_write_role(self):
         mutant = "needed remove {out} from the template values"
