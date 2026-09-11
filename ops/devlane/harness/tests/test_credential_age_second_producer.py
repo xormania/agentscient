@@ -11,6 +11,7 @@ python3 -m unittest discover -s ops/devlane/harness/tests -p test_credential_age
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import importlib.util
 import json
@@ -197,10 +198,8 @@ class GrokCredentialAgeSecondProducer(unittest.TestCase):
         self.assertTrue(src.is_file())
         root = self.base / "minimal-home"
         root.mkdir()
-        try:
+        with contextlib.suppress(self.iso.NotIsolated):
             self.iso.build_home("grok", root, env={"HOME": str(operator)})
-        except self.iso.NotIsolated:
-            pass
         auth = root / "auth.json"
         self.assertFalse(auth.exists(), f"aged build left {auth}")
         self.assertFalse(auth.is_symlink(), f"aged build left a link at {auth}")
