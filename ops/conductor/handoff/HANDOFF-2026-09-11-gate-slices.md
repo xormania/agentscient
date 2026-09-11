@@ -2,11 +2,13 @@
 
 ## Where things stand
 
-- dev at 6ff81a7 carries all five slices of the uncited-correction gate,
-  LD-14 to LD-19 with repairs and second-producer tests, the deliverable
-  lock, and the watchdog's drift and stall reports. Release #129 (dev
-  into master) is a draft for the owner to merge.
-- The deliverable lock names `dev` and `records/aar-20260911`. Set the
+- dev at 80e26db carries all five slices of the uncited-correction
+  gate, LD-14 to LD-19 with repairs and tests, the deliverable lock,
+  the watchdog's drift and stall reports, release #129 merged back
+  from master (#132), slice 5's records (#131), and the close-out
+  repair #133 (the `..` spelling refused, LD-16's test, the LD
+  rows, the export with the eleven check-tests findings disposed).
+- The deliverable lock was cleared when the close-out landed. Set the
   next deliverable before any new work:
   `python3 ops/conductor/tools/deliverable.py set BRANCH... --why TEXT`;
   `show` reads it; `clear` lifts it.
@@ -17,10 +19,19 @@
 - No open grants. Grok's credential was renewed at 05:41Z; it ages out
   about 30 hours later and the launcher now refuses it before the mint.
 - Ladders fd103b (slice 4) and 307788 (slice 5) are recorded `stopped
-  withheld` at fix-tests; their PRs were opened and merged by hand. The
-  records are complete and need no resume.
+  withheld` at fix-tests on dev (307788's final records arrived with
+  #131); their PRs were opened and merged by hand. Neither ladder ran
+  its `security-re` or `pr` stage; slice 4's fix got a hand review
+  instead (#133).
 
 ## Corrections to retain
+
+- A closing record measures dev, not a worktree: slice 5's records
+  were declared complete while unpushed. Check `git log origin/dev..HEAD`
+  in every worktree the session used before writing "complete".
+- A fix round merged without its re-audit is unreviewed code. The `..`
+  spelling in 7b7979b was the same class of hole the audit had just
+  found, and the pipeline never saw it.
 
 - The scope-discipline clause binds the conductor: a finding is a
   ledger row, not a work stream, while a deliverable is open. The lock
@@ -49,6 +60,8 @@
   regenerating it.
 - The AAR trust table's audit row is read from notes; audit receipts are
   not wired.
+- The `..` fix and the LD-16 test (#133) have one producer, by the
+  owner's word; no second-producer test was dispatched for either.
 
 ## Next thread
 

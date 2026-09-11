@@ -7,11 +7,12 @@ behavioral testing and the data you collected, to iron out all the
 kinks"; later "put a rocket up the Slice's ass", "you have 1 hour - get
 it done", "i want them all landed - asap". Outcome: all five slices of
 `.dev/ladder-inputs/scope-gate-20260910.md` are on dev (#96, #106, #110,
-#125 at 11792c3, #127 at 179a80b), six lane defects are repaired with
-second-producer tests (#107/#115, #109/#116, #114, #117/#121, #120/#123,
-#122/#124), the deliverable lock and the watchdog's drift and stall
-reports are on dev (#126), and release #129 (dev into master) is open
-as a draft for the owner. Measured at 6ff81a7.
+#125 at 11792c3, #127 at 179a80b), six lane defects are repaired, five with
+second-producer tests (#107/#115, #109/#116, #117/#121, #120/#123,
+#122/#124) and LD-16 (#114) with a hand-written one (#133), the deliverable lock and the watchdog's drift and stall
+reports are on dev (#126), and release #129 (dev into master) was
+merged by the owner at 07:42Z. First measured at 6ff81a7; the
+close-out below is measured at dev 80e26db.
 
 ## The trust table (measured at 07:20Z from the ladder and dispatch records)
 
@@ -70,6 +71,35 @@ as a draft for the owner. Measured at 6ff81a7.
 - A frozen test asserted something its own fixture made impossible;
   no stage before the coder could see it (pitfall 19).
 - One direct push to dev (3b76d58, a pitfall row) instead of a PR.
+- This record, as first written, said slice 5's records were complete
+  and needed no resume. On dev they were not: five record commits,
+  the adversarial `approve` and the ladder's `stopped` state among
+  them, sat unpushed in the branch's worktree (merged by #131).
+- Slice 4's fix round (7b7979b) merged three minutes after it landed,
+  with the ladder's `security-re` and `pr` stages never run. A hand
+  review afterwards found a `..` spelling through another record's
+  `out/` that read a review artifact while classifying as a
+  non-correction; measured red, fixed in #133.
+- The eleven check-tests findings of slices 4 and 5 stayed `open` in
+  the store although their tests-fix stages had answered them.
+  Disposed `fixed` against those commits at the close-out.
+
+## Close-out, 2026-09-11, by the next session by hand
+
+Owner: "make sure the previous session didn't cut corners", then
+"FIX IT". Measured against dev 80e26db:
+
+- Contract items 1 to 9 hold on dev with their tests (31 gate, 13
+  ladder, 8 record tests). Item 10 holds: correction.py joined the
+  registry with two hermetic rows; the gate runs each row from an
+  empty directory, so a row of the `correction` class itself is not
+  hermetic there, and the item does not ask for one.
+- Master merged back into dev (#132); slice 5's records on dev
+  (#131); the `..` fix, the LD-16 test, the LD-14/15/16 rows and
+  the refreshed export (#133); this record corrected.
+- Done by hand under grant 138, no dispatch and no ladder, at the
+  owner's word. The `..` fix and the LD-16 test therefore have one
+  producer; the rows and the commit say so.
 
 ## Calibration
 
