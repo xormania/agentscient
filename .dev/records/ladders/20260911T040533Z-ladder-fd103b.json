@@ -148,7 +148,7 @@
     {
       "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
-      "dispatch_record": "20260911T045555Z-code-codex-532808",
+      "dispatch_record": "20260911T054927Z-code-codex-3122df",
       "dispatched": {
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
@@ -167,9 +167,9 @@
       },
       "job": "implement",
       "name": "code",
-      "outcome": "stopped",
+      "outcome": "launched",
       "reason": "envelope",
-      "record": "20260911T045555Z-code-codex-532808",
+      "record": "20260911T054927Z-code-codex-3122df",
       "stage": "code"
     },
     {
