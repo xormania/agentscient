@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T04:33:14Z",
-    "closed": null
+    "closed": "2026-09-11T04:55:09Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T043313Z-tests-grok-3ab0c7/home/grok-stream/sessions/<snapshot-encoded>/59c28fb8-6e04-41b6-a40c-33b71116181a/summary.json"
   },
   "session": {
     "id": "59c28fb8-6e04-41b6-a40c-33b71116181a",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T043313Z-tests-grok-3ab0c7/home/grok-stream/sessions/<snapshot-encoded>/59c28fb8-6e04-41b6-a40c-33b71116181a/summary.json",
+    "stream_sha256_at_close": "e14597fd08d3e6d711416d53b0eefe480d6d40757153b5ff4506e1094d74c0a4",
+    "spend": {
+      "input": 3220671,
+      "cached": 2965632,
+      "output": 40184,
+      "total": 3260855,
+      "cost_usd_ticks": 3797796600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T043313Z-tests-grok-3ab0c7/home/grok-stream/sessions/<snapshot-encoded>/59c28fb8-6e04-41b6-a40c-33b71116181a/summary.json",
+      "messages": 306
+    }
   },
   "brief": {
     "template": {
@@ -121,10 +129,59 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T04:33:14Z",
+      "ended": "2026-09-11T04:55:09Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "b519108be39a111e605875f945a7b3f4cff79e94",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_launch_correction_gate": "ops/devlane/dispatch/tests/test_launch_correction_gate.py",
+        "test_record_answers": "ops/devlane/dispatch/tests/test_record_answers.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3260855,
+        "out": 40184,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "9d000134875b255ae1ba193b2b7bd88d5550e1cf",
+        "started": "2026-09-11T04:35:09Z",
+        "ended": "2026-09-11T04:52:52Z"
+      },
+      "note": "Strengthened ops/devlane/dispatch/tests/test_launch_correction_gate.py for contract items 1-8 so every --answers key is checked and recorded, out/-input covers all five review jobs, citation shape rejects item 11 / another numbered file / a path outside the repo, --override stale-base cannot bypass the gate, the needed disposition command is exactly six tokens, and an accepted row exposes both the disposition citation and the finding's cited item. Committed b519108be39a111e605875f945a7b3f4cff79e94. Red at 9d000134875b255ae1ba193b2b7bd88d5550e1cf: python3 -B -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py \u2014 29 tests, 36 assertion failures, 0 errors. test_record_answers.py unchanged; still red: 8 tests, 6 assertion failures. Implementation was not read. test-guard.py exited 0."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T04:55:08.631Z"
+    }
+  },
+  "status": "closed"
 }
