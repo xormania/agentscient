@@ -1,0 +1,286 @@
+"""Job-entry pins for check-tests on the wire.
+
+Written from contract items 1 and 2 of
+`.dev/ladder-inputs/scope-item31-20260911.md`. Reads jobs.json as the
+job catalogue, not the driver.
+
+Item 1: check-tests delivers the JSON envelope on stdout, artifacts
+empty, no file written; the prompt asks for exactly that. Item 2: each
+finding is a quotation pair; the prompt carries the claim grammar.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import unittest
+
+import support
+
+JOBS_PATH = support.APP / "jobs.json"
+
+OTHER_JOBS = (
+    "adjudicate",
+    "adversarial-review",
+    "author-tests",
+    "implement",
+    "plan",
+    "security-audit",
+    "sweep",
+    "verify",
+)
+# Canonical dump of the eight entries other than check-tests at
+# 18fc6b3ecd5a3b00309582c85e23b3576eea519d.
+OTHERS_SHA256 = (
+    "cd78c4e4b912751507c8ec1e829cd70f884db1505612546edebfef655cfd854a"
+)
+
+D1_PROMPT = (
+    "Adopt the role card at ops/process/roles/test-skeptic.md in the tree "
+    "at {ref}. Judge the tests at {inputs} against the contract named here: "
+    "{scope}. Do not read any implementation. Refute by default: a test "
+    "survives only when you can name the broken implementation it would "
+    "catch. Every refuted or weak test is one finding, a quotation pair: "
+    "where is the test file and line; claim is `declared (<location>): "
+    "<the contract or test words, verbatim>; practiced: <the test's "
+    "evidence, verbatim>; misses: <the broken implementation the test "
+    "would not catch>`; reproduce is a command against the tree. Verdict "
+    "is changes exactly when findings is non-empty and approve otherwise; "
+    "counts are the tally of findings. Write no file: artifacts is an "
+    "empty object and the envelope on stdout is the whole deliverable. "
+    "Review only — do not edit."
+)
+
+D1_DELIVERABLE = (
+    "the skeptic's findings on the wire: the JSON envelope on stdout, "
+    "verdict `changes` exactly when any finding exists, each finding "
+    "a quotation pair; artifacts empty; no file written"
+)
+
+ENVELOPE_CLAUSE = (
+    "Answer with a single JSON object and nothing else, carrying exactly "
+    "these keys: job, status, verdict, counts, findings, artifacts, spend, "
+    "stamp, note"
+)
+
+SPEND_TO_THE_LAUNCHER = (
+    'Leave `spend` as `{"harness": "<harness>", "total": 0, "out": 0, '
+    '"runs": 0}`; the launcher fills it from the session store. Do not '
+    "read the store."
+)
+
+OLD_PROMPT_SENTENCE = (
+    "Write the report to {out}/SKEPTIC.md and name that path in artifacts"
+)
+OLD_DELIVERABLE = (
+    "a skeptic's report at the job's out/SKEPTIC.md; verdict changes "
+    "when any test is refuted"
+)
+
+CONSTRAINTS = ["read only", "do not edit the snapshot"]
+
+# Item 1 near-miss: the D1 paragraph plus a leftover {out} write.
+ITEM1_OUT_MUTANT = D1_PROMPT + " " + OLD_PROMPT_SENTENCE
+
+
+def _load_jobs() -> dict:
+    raw = JOBS_PATH.read_text(encoding="utf-8")
+    jobs = json.loads(raw)
+    if not isinstance(jobs, dict):
+        raise AssertionError(f"jobs.json is not an object: {type(jobs)}")
+    return jobs
+
+
+def _others_digest(jobs: dict) -> str:
+    others = {name: jobs[name] for name in jobs if name != "check-tests"}
+    canonical = json.dumps(others, sort_keys=True, ensure_ascii=False, indent=2)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _item1_prompt_holds(prompt: str) -> bool:
+    if "{out}" in prompt:
+        return False
+    if OLD_PROMPT_SENTENCE in prompt:
+        return False
+    if D1_PROMPT not in prompt:
+        return False
+    if SPEND_TO_THE_LAUNCHER not in prompt:
+        return False
+    if ENVELOPE_CLAUSE not in prompt:
+        return False
+    return all(token in prompt for token in ("{ref}", "{inputs}", "{scope}"))
+
+
+def _item1_deliverable_holds(cell: str) -> bool:
+    if "SKEPTIC.md" in cell:
+        return False
+    if OLD_DELIVERABLE in cell:
+        return False
+    if "the JSON envelope on stdout" not in cell:
+        return False
+    if "quotation pair" not in cell:
+        return False
+    if "artifacts empty" not in cell and "`artifacts` empty" not in cell:
+        return False
+    return "no file written" in cell
+
+
+class _JobsPin(unittest.TestCase):
+    maxDiff = None
+
+    def setUp(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        self.jobs = _load_jobs()
+        self.assertIn("check-tests", self.jobs)
+        spec = self.jobs["check-tests"]
+        self.assertIsInstance(spec, dict)
+        self.spec = spec
+
+
+class CheckTestsKeepsItsRole(_JobsPin):
+    """Item 1 — adapter, role, snapshot, caps, and constraints stay."""
+
+    def test_check_tests_keeps_role_read_snapshot_whole_caps_1800(self):
+        mutant = {
+            "role": "write",
+            "snapshot": "diff",
+            "caps": {"timeout": 90},
+        }
+        self.assertNotEqual(mutant.get("role"), "read")
+        self.assertEqual(self.spec.get("role"), "read")
+        self.assertEqual(self.spec.get("snapshot"), "whole")
+        caps = self.spec.get("caps")
+        self.assertIsInstance(caps, dict, "check-tests must declare caps")
+        self.assertEqual(caps.get("timeout"), 1800)
+
+    def test_check_tests_keeps_adapter_harness_and_read_constraints(self):
+        mutant = {"adapter": "direct", "constraints": ["write the report"]}
+        self.assertNotEqual(mutant.get("adapter"), "harness")
+        self.assertEqual(self.spec.get("adapter"), "harness")
+        self.assertEqual(self.spec.get("constraints"), CONSTRAINTS)
+
+    def test_check_tests_declares_no_outputs(self):
+        mutant = {
+            "outputs": [
+                {
+                    "kind": "file",
+                    "path": "{out}/SKEPTIC.md",
+                    "artifact": "skeptic",
+                }
+            ]
+        }
+        self.assertTrue(mutant.get("outputs"))
+        self.assertNotIn(
+            "outputs",
+            self.spec,
+            "item 5: check-tests declares none; an outputs array is a file",
+        )
+
+
+class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
+    """Item 1 / item 2 — the prompt asks for the envelope, no file."""
+
+    def test_a_prompt_that_still_names_out_does_not_hold(self):
+        mutant = ITEM1_OUT_MUTANT
+        self.assertIn(D1_PROMPT, mutant)
+        self.assertIn(OLD_PROMPT_SENTENCE, mutant)
+        self.assertIn("{out}", mutant)
+        self.assertFalse(
+            _item1_prompt_holds(mutant),
+            "item 1: the D1 paragraph plus a leftover {out} write "
+            "must not hold",
+        )
+
+    def test_the_prompt_drops_out_and_asks_for_no_file(self):
+        prompt = self.spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertTrue(prompt.strip(), "check-tests prompt is empty")
+        self.assertNotIn(
+            "{out}",
+            prompt,
+            "item 1: the prompt drops {out}; a remaining slot is a file",
+        )
+        self.assertNotIn(
+            OLD_PROMPT_SENTENCE,
+            prompt,
+            "item 1: the prompt must not instruct a SKEPTIC.md write",
+        )
+        self.assertTrue(
+            _item1_prompt_holds(prompt),
+            "item 1: prompt must be the D1 paragraph, spend and envelope "
+            f"clauses, no {{out}}; found {prompt[:240]!r}",
+        )
+
+    def test_the_prompt_keeps_ref_inputs_and_scope(self):
+        prompt = self.spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        for token in ("{ref}", "{inputs}", "{scope}"):
+            self.assertIn(token, prompt, f"check-tests prompt missing {token}")
+
+    def test_the_prompt_carries_the_quotation_pair_grammar(self):
+        mutant = "every finding is prose naming a contract item"
+        self.assertNotIn("declared (<location>):", mutant)
+        prompt = self.spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertIn(
+            "declared (<location>):",
+            prompt,
+            "item 2: the prompt carries the quotation-pair claim grammar",
+        )
+        self.assertIn("; practiced: ", prompt)
+        self.assertIn("; misses: ", prompt)
+        self.assertIn("quotation pair", prompt)
+
+    def test_the_prompt_keeps_the_spend_and_envelope_clauses(self):
+        prompt = self.spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertIn(SPEND_TO_THE_LAUNCHER, prompt)
+        self.assertIn(ENVELOPE_CLAUSE, prompt)
+
+
+class CheckTestsDeliverable(_JobsPin):
+    """Item 1 — deliverable is the envelope, not a skeptic file."""
+
+    def test_a_deliverable_that_still_names_skeptic_md_does_not_hold(self):
+        mutant = OLD_DELIVERABLE
+        self.assertIn("SKEPTIC.md", mutant)
+        self.assertFalse(
+            _item1_deliverable_holds(mutant),
+            "item 1: a SKEPTIC.md path is not the envelope on stdout",
+        )
+
+    def test_the_deliverable_is_the_envelope_on_stdout_with_no_file(self):
+        cell = self.spec.get("deliverable")
+        self.assertIsInstance(cell, str)
+        self.assertNotIn("SKEPTIC.md", cell)
+        self.assertIn("the JSON envelope on stdout", cell)
+        self.assertIn("quotation pair", cell)
+        self.assertTrue(
+            _item1_deliverable_holds(cell),
+            "item 1: deliverable is the envelope on stdout, artifacts "
+            f"empty, no file written; found {cell!r}",
+        )
+        self.assertEqual(
+            cell,
+            D1_DELIVERABLE,
+            "item 1: jobs.json deliverable is the D1 sentence",
+        )
+
+
+class OtherJobsUnchanged(_JobsPin):
+    """Item 1 — no other job entry changes."""
+
+    def test_the_other_eight_entries_match_the_ref(self):
+        others = {name: self.jobs[name] for name in self.jobs if name != "check-tests"}
+        self.assertEqual(sorted(others), sorted(OTHER_JOBS))
+        digest = _others_digest(self.jobs)
+        self.assertEqual(
+            digest,
+            OTHERS_SHA256,
+            "item 1: the other eight jobs.json entries are byte-for-byte "
+            f"the ref; got {digest}",
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
