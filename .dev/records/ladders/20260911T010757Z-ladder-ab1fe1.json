@@ -1,0 +1,126 @@
+{
+  "base_sha": "f703dec4b4f16e141fa70814df3bf89a70dc7def",
+  "branch": "lane/gate-ledger-20260911",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/lane.conf",
+    "sha256": "9bb41d2ab1e32781b365987d2446c817a3cfe2047d0b4b9af96a8091ae4e088c"
+  },
+  "id": "20260911T010757Z-ladder-ab1fe1",
+  "implementation_markers": [],
+  "inputs": [
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/.dev/ladder-inputs/scope-gate-20260910.md",
+      "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+    },
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/.dev/ladder-inputs/scope-discipline.md",
+      "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+    }
+  ],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/.dev/ladder-inputs/plan-ledger-gate.md",
+    "sha256": "ba159269c62cf91721641820220bc907fe458864fd01af268cfca6e838de2847"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/.dev/ladder-inputs/scope-gate-20260910.scope.md",
+    "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
+  },
+  "stages": [
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "check-tests",
+      "name": "check-tests",
+      "outcome": "pending",
+      "stage": "check-tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests-fix",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "running",
+  "stopped": null,
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911"
+}
