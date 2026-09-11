@@ -77,6 +77,21 @@ TEST_BETA = "ops/conductor/tests/test_beta.py"
 TEST_RELAY = "packages/relay/spec/test_relay.py"
 SKEPTIC_MD = "ops/conductor/tests/SKEPTIC.md"
 SKEPTIC_BODY = "SKEPTIC_MD_BODY_aa32 the skeptic report"
+SKEPTIC_FINDINGS = "skeptic-findings.md"
+WELL_FORMED_SKEPTIC_CLAIM = (
+    "declared (ops/devlane/task/CONTRACT.md): the JSON envelope on stdout; "
+    "practiced: Write the report to out/SKEPTIC.md; "
+    "misses: a check-tests job that still writes a file"
+)
+WELL_FORMED_SKEPTIC_FINDING = {
+    "severity": "p2",
+    "where": "ops/conductor/tests/test_alpha.py:1",
+    "claim": WELL_FORMED_SKEPTIC_CLAIM,
+    "reproduce": (
+        "python3 -m unittest discover -s ops/conductor/tests -p test_alpha.py"
+    ),
+}
+WELL_FORMED_SKEPTIC_COUNTS = {"p1": 0, "p2": 1, "p3": 0, "opinions": 0}
 PR_URL = "https://example.invalid/org/projx/pull/7"
 NOT_A_URL = "not-a-url"
 PWN_ARTIFACT = "tests/test_ok.py; printf PWNED; #.py"
@@ -417,6 +432,26 @@ envelope = {
     "stamp": {"ref": "planted", "started": None, "ended": None},
     "note": note,
 }
+if name == "check-tests":
+    if verdict == "changes" and not envelope["findings"]:
+        envelope["findings"] = [{
+            "severity": "p2",
+            "where": "ops/conductor/tests/test_alpha.py:1",
+            "claim": (
+                "declared (ops/devlane/task/CONTRACT.md): "
+                "the JSON envelope on stdout; "
+                "practiced: Write the report to out/SKEPTIC.md; "
+                "misses: a check-tests job that still writes a file"
+            ),
+            "reproduce": (
+                "python3 -m unittest discover -s ops/conductor/tests "
+                "-p test_alpha.py"
+            ),
+        }]
+        envelope["counts"] = {"p1": 0, "p2": 1, "p3": 0, "opinions": 0}
+    extra = plant.get("skeptic_envelope")
+    if extra:
+        envelope.update(extra)
 record = {
     "id": rec_id,
     "lane": "dev",
@@ -850,6 +885,7 @@ class _LadderFixture(unittest.TestCase):
             "notes": {},
             "skeptic_md": False,
             "skeptic_text": SKEPTIC_BODY,
+            "skeptic_envelope": None,
             "land_extra_path": None,
             "ran_grok": RAN_GROK,
             "ran_codex": RAN_CODEX,
@@ -1439,6 +1475,19 @@ class _LadderFixture(unittest.TestCase):
                 return rec_id
         self.fail(f"no record named {name}")
         return ""
+
+    def ladder_id(self) -> str:
+        payload = self.ladder_record()
+        ident = payload.get("id")
+        self.assertTrue(ident, payload)
+        return str(ident)
+
+    def ladder_inputs_dir(self, ladder_id: str | None = None) -> Path:
+        ident = ladder_id or self.ladder_id()
+        return self.repo / ".dev" / "records" / "ladders" / ident
+
+    def skeptic_findings_path(self, ladder_id: str | None = None) -> Path:
+        return self.ladder_inputs_dir(ladder_id) / SKEPTIC_FINDINGS
 
     def ladder_paths(self) -> list[Path]:
         folder = self.repo / ".dev" / "records" / "ladders"
@@ -2669,25 +2718,42 @@ class WithholdingEnvelope(_LadderFixture):
 
 
 class TestsFixInputs(_LadderFixture):
-    """A8: tests-fix is given the skeptic envelope and SKEPTIC.md."""
+    """Item 4: tests-fix is given the driver-written custody file."""
 
     def test_tests_fix_is_given_skeptic_md(self):
         self.patch_plant(
             verdicts={"check-tests": "changes"},
             skeptic_md=True,
             skeptic_text=SKEPTIC_BODY,
+            skeptic_envelope={"artifacts": {}},
         )
-        self.assertTrue(self.load_plant()["skeptic_md"])
+        planted = self.load_plant()
+        self.assertTrue(planted["skeptic_md"])
+        self.assertEqual(planted["skeptic_envelope"], {"artifacts": {}})
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         argv = self.dispatch_argv_for("tests-fix")
-        text = self.inputs_text(argv)
-        self.assertIn(SKEPTIC_BODY, text)
         inputs = self.flag_values(argv, "--input")
         self.assertTrue(
+            any(Path(value).name == SKEPTIC_FINDINGS for value in inputs),
+            argv,
+        )
+        self.assertFalse(
             any(Path(value).name == "SKEPTIC.md" for value in inputs),
             argv,
         )
+        path = self.skeptic_findings_path()
+        self.assertTrue(path.is_file(), path)
+        self.assertFalse(path.is_symlink(), path)
+        rec_id = self.record_id_for("check-tests")
+        text = path.read_text(encoding="utf-8")
+        first, _, rest = text.partition("\n")
+        self.assertIn("check-tests envelope", first)
+        self.assertIn(rec_id, first)
+        body = json.loads(rest)
+        self.assertEqual(body.get("artifacts"), {})
+        self.assertEqual(body.get("verdict"), "changes")
+        self.assertEqual(len(body.get("findings") or []), 1)
 
 
 class ResumeDigests(_LadderFixture):
