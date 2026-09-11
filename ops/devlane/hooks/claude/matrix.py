@@ -37,6 +37,10 @@ row that cannot look refuses: "could not look" is not a pass.
                     dispatch, a ladder start or a PR creation
                     aimed at any other branch; no grant escape
 
+Every refusal is also logged as a miss against the skill it names
+(``miss.py``: the deliverable row names ``deliverable``, every other row
+``refused``), best effort, after the refusal is printed.
+
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
 path -- and only for hand-write and direct-launch.  An unscoped open grant
@@ -55,6 +59,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import miss
 from command_shape import commands
 
 CODE_ROOTS = (
@@ -982,6 +987,13 @@ def main():
         return 0
     if refusal:
         print(json.dumps(refusal))
+        # Owner, 2026-09-11: every refusal logs a miss against the skill it
+        # names, so the skills report measures the pages instead of
+        # believing them. Best effort, after the refusal is on stdout.
+        reason = refusal.get("hookSpecificOutput", {}).get("permissionDecisionReason", "")
+        klass = reason.split("]", 1)[0].split(":", 1)[-1] if reason.startswith("[matrix:") else ""
+        miss.log_miss((payload.get("cwd") if isinstance(payload, dict) else None),
+                      klass, reason, hook="matrix")
     return 0
 
 

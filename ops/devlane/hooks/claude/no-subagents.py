@@ -12,6 +12,7 @@ with it, and refusing on junk would refuse the wrong thing.
 """
 
 import json
+import os
 import sys
 
 REFUSED = ("Agent", "Workflow", "Task")
@@ -38,6 +39,11 @@ def main():
     reason = decide(payload)
     if reason:
         print(reason, file=sys.stderr)
+        # Owner, 2026-09-11: a refusal logs a miss against the `refused`
+        # page; best effort, after the refusal is on stderr.
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import miss
+        miss.log_miss(payload.get("cwd"), "no-subagents", reason, hook="no-subagents")
         return 2
     return 0
 

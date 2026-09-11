@@ -31,6 +31,20 @@ class, so the second refusal of a class never happens.
 | `prune` | `rm -r` of records, state, worktrees or `.git` | never. Branches are never deleted; worktrees are listed in the handoff. |
 | `bucket-command`, `walkthrough`, `contract-vet`, `dispatch-env` | the scope names the whole suite; a write job carries no walkthrough; harness contracts do not vet; a launch without the launcher pin | read the row's needed half in the refusal; each names the exact file or token to change. |
 
+## Command-shape and delegation hooks (`unsafe-command.py`, `no-subagents.py`)
+
+| class | do this |
+|---|---|
+| `clipped-runner` | a test or build runner piped to a short tail: run it whole into a file, then read the failure count first. |
+| `unguarded-replace` | a `.replace` whose result is written with nothing asserting the anchor matched: count the anchor first and refuse on zero, as the close-out scripts of 2026-09-11 do. |
+| `shell-expanded-prose`, `stale-check-rollup`, `partial-feedback-poll` | the refusal names the shape; read its needed half. |
+| `amend-published`, `amend-sweep` | never amend a pushed commit; a new commit, and `git diff --cached --name-only` before any amend. |
+| `no-subagents` | in-session sub-agents are off; a stage goes through `ops/bin/dispatch.sh` or `go.sh`. |
+
+Every refusal above, and every matrix row, logs one miss against this
+page (or against `deliverable` for its row) in the skills registry, so
+`skills.py report` measures which pages are followed.
+
 ## Launcher and lever refusals
 
 | refusal | do this |
