@@ -94,6 +94,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 11.254831,
       "name": "check-tests",
       "outcome": "ok",
       "record": "20260911T012543Z-check-tests-codex-df1b16",
