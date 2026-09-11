@@ -37,19 +37,46 @@ SECURITY = "20260901T070000Z-review-codex-222222"
 ADJUDICATE = "20260901T080000Z-adjudicate-grok-333333"
 SWEEP = "20260901T090000Z-sweep-codex-444444"
 MISSING = "20260101T000000Z-review-codex-000000"
-OTHER_KEY = "20260901T000000Z-review-grok-ffffff#1"
+OTHER_REVIEW = "20260901T000000Z-review-grok-ffffff"
+OTHER_KEY = f"{OTHER_REVIEW}#1"
 BAD_KEY = "not-a-key"
 ZERO_KEY = f"{REVIEW}#0"
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
 OTHER_REL = ".dev/ladder-inputs/other-scope.md"
+DISCIPLINE_REL = ".dev/ladder-inputs/scope-discipline.md"
+CAP_REL = ".dev/ladder-inputs/scope-gate-20260910.scope.md"
 VALID_EVIDENCE = (
     "contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: "
     "found-text missing"
+)
+ITEM8_CLAIM = (
+    "contract item 8 of .dev/ladder-inputs/scope-gate-20260910.md: "
+    "the accepted record does not carry the item the finding cites"
+)
+DISCIPLINE_EVIDENCE = (
+    "contract item 1 of .dev/ladder-inputs/scope-discipline.md: "
+    "discipline clause is not the work-order Contract"
 )
 SCOPE_BODY = "# Work order\n\n" + "".join(
     f"{n}. Item {n} of the work order.\n" for n in range(1, 11)
 )
 OTHER_BODY = "# Other\n\n1. **A numbered item on another file.**\n"
+DISCIPLINE_BODY = (
+    "# Scope discipline\n\n"
+    "1. The requirements are the numbered items in the work order's "
+    "Contract section. Nothing else is a requirement.\n"
+    "2. A reviewer finding is evidence about the contract, not a "
+    "requirement.\n"
+    "3. One fix round per ladder.\n"
+    "4. The frozen test set is the acceptance criterion.\n"
+    "5. Reviewers: for every finding, quote the contract item violated.\n"
+    "6. A correction dispatch names the finding key and the contract item.\n"
+)
+CAP_BODY = (
+    "Work order: the uncited-correction gate. The requirements are the ten "
+    "numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, "
+    "tracked in this snapshot at the ref.\n"
+)
 ABSENT_STUB = (
     b'"""Absent-tool stand-in: exit 0, no output."""\n'
     b"import sys\n"
@@ -205,7 +232,13 @@ class _GateFixture(unittest.TestCase):
             timeout=RUN_CAP,
         )
 
-    def plant_record(self, rec_id: str, job: str, claims: list[str] | None = None):
+    def plant_record(
+        self,
+        rec_id: str,
+        job: str,
+        claims: list[str] | None = None,
+        brief_inputs: list[str] | None = None,
+    ):
         if claims is None:
             claims = [f"claim-{rec_id}"]
         findings = [
@@ -237,10 +270,44 @@ class _GateFixture(unittest.TestCase):
                 }
             },
         }
+        if brief_inputs is not None:
+            envelope["brief"] = {
+                "inputs": [
+                    {"path": path, "sha256": "0" * 64} for path in brief_inputs
+                ]
+            }
         path = self.records / f"{rec_id}.json"
         payload = json.dumps(envelope, indent=2) + "\n"
         self._plant_bytes(path, payload.encode("utf-8"))
         return path
+
+    def plant_three_scope_files(self) -> None:
+        discipline = self.repo / DISCIPLINE_REL
+        cap = self.repo / CAP_REL
+        self._plant_bytes(discipline, DISCIPLINE_BODY.encode("utf-8"))
+        self._plant_bytes(cap, CAP_BODY.encode("utf-8"))
+        names = sorted(
+            p.name
+            for p in (self.repo / ".dev" / "ladder-inputs").glob("scope-*.md")
+        )
+        self.assertEqual(
+            names,
+            [
+                "scope-discipline.md",
+                "scope-gate-20260910.md",
+                "scope-gate-20260910.scope.md",
+            ],
+            "plant: the three scope-*.md names from the work-order tree",
+        )
+        self.assertIn(
+            "1. The requirements are the numbered items",
+            discipline.read_text(encoding="utf-8"),
+        )
+        self.assertNotRegex(
+            cap.read_text(encoding="utf-8"),
+            r"(?m)^\s*[1-9][0-9]*\.\s",
+            "plant: the cap file has no numbered Contract item",
+        )
 
     def import_records(self):
         proc = self.findings_invoke(["import"])
@@ -939,6 +1006,241 @@ class RegistryJoin(_GateFixture):
             timeout=RUN_CAP,
         )
         self.assert_refusal(proc, "arguments")
+
+
+class WorkOrderScope(_GateFixture):
+    """Items 1, 3, 4 — the work-order Contract is the scope file.
+
+    Item 1 reads the correction from --follows or an out/ input, not from
+    a scope file on --input. Item 4 requires the disposition to name a
+    numbered item of that work-order file. scope-discipline.md and the
+    cap file are present on the real tree and are not the Contract.
+    """
+
+    def test_holding_work_order_citation_is_accepted_among_three_scope_files(
+        self,
+    ):
+        self.plant_three_scope_files()
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        proc = self.check(follows=[REVIEW], answers=[key])
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "items 1 and 4: a correction is --follows a review plus "
+            "a holding citation to the work-order Contract; the other "
+            f"scope-*.md files must not refuse it; stderr={proc.stderr!r} "
+            f"stdout={proc.stdout!r}",
+        )
+        payload = json.loads((proc.stdout or "").strip())
+        self.assertTrue(payload["correction"])
+        self.assertEqual(str(payload["answers"][0]["citation"]["item"]), "3")
+        self.assertEqual(payload["answers"][0]["citation"]["path"], SCOPE_REL)
+
+    def test_needed_command_then_recheck_accepts_with_no_scope_input(self):
+        self.plant_three_scope_files()
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        proc = self.check(follows=[REVIEW], answers=[key])
+        line = self.assert_refusal(proc, "correction")
+        needed = self.needed_clause(line)
+        self.assertNotIn("<scope path>", needed)
+        self.assertNotIn(DISCIPLINE_REL, needed)
+        self.assertNotIn(CAP_REL, needed)
+        parts = self.assert_needed_disposition(needed, key)
+        self.assertIn(f" of {SCOPE_REL}", parts[5])
+        self.run_needed_disposition(parts)
+        again = self.check(follows=[REVIEW], answers=[key])
+        self.assertEqual(
+            again.returncode,
+            0,
+            "item 3: the printed disposition command satisfies the "
+            f"next mint; stderr={again.stderr!r} stdout={again.stdout!r}",
+        )
+        payload = json.loads((again.stdout or "").strip())
+        self.assertTrue(payload["correction"])
+
+    def test_work_order_citation_holds_when_discipline_is_the_first_input(self):
+        self.plant_three_scope_files()
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        proc = self.check(
+            follows=[REVIEW],
+            answers=[key],
+            inputs=[
+                str(self.repo / DISCIPLINE_REL),
+                str(self.repo / SCOPE_REL),
+            ],
+        )
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "item 4: the first scope-* input must not make a work-order "
+            "Contract citation fail; "
+            f"stderr={proc.stderr!r} stdout={proc.stdout!r}",
+        )
+        payload = json.loads((proc.stdout or "").strip())
+        self.assertTrue(payload["correction"])
+        self.assertEqual(payload["answers"][0]["citation"]["path"], SCOPE_REL)
+
+    def test_discipline_citation_is_uncited_when_it_is_the_first_input(self):
+        self.plant_three_scope_files()
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", DISCIPLINE_EVIDENCE)
+        proc = self.check(
+            follows=[REVIEW],
+            answers=[key],
+            inputs=[
+                str(self.repo / DISCIPLINE_REL),
+                str(self.repo / SCOPE_REL),
+            ],
+        )
+        line = self.assert_refusal(proc, "correction")
+        self.assertIn("without a contract citation", self.found_clause(line))
+
+    def test_cap_file_input_does_not_replace_the_work_order_contract(self):
+        self.plant_three_scope_files()
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        proc = self.check(
+            follows=[REVIEW],
+            answers=[key],
+            inputs=[str(self.repo / CAP_REL)],
+        )
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "item 4: the 1024-byte cap file has no numbered Contract "
+            "item; a holding citation to the work-order file still "
+            f"satisfies; stderr={proc.stderr!r} stdout={proc.stdout!r}",
+        )
+        payload = json.loads((proc.stdout or "").strip())
+        self.assertTrue(payload["correction"])
+        self.assertEqual(payload["answers"][0]["citation"]["path"], SCOPE_REL)
+
+    def test_needed_does_not_cite_the_cap_file_when_it_is_the_only_input(self):
+        self.plant_three_scope_files()
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        proc = self.check(
+            follows=[REVIEW],
+            answers=[key],
+            inputs=[str(self.repo / CAP_REL)],
+        )
+        line = self.assert_refusal(proc, "correction")
+        needed = self.needed_clause(line)
+        self.assertNotIn(CAP_REL, needed)
+        self.assertNotIn("<scope path>", needed)
+        parts = self.assert_needed_disposition(needed, key)
+        self.assertIn(f" of {SCOPE_REL}", parts[5])
+        self.run_needed_disposition(parts)
+        again = self.check(
+            follows=[REVIEW],
+            answers=[key],
+            inputs=[str(self.repo / CAP_REL)],
+        )
+        self.assertEqual(
+            again.returncode,
+            0,
+            "item 3: running the printed command must satisfy the next "
+            f"check; stderr={again.stderr!r} stdout={again.stdout!r}",
+        )
+
+
+class AnswerKeysTiedToTheReview(_GateFixture):
+    """Items 1, 2, 6, 8 — named keys belong to the review that is the shape.
+
+    One scope-*.md so a holding citation can satisfy item 4; the
+    assertion here is only that an unrelated review's cited key is
+    not an override.
+    """
+
+    def test_cited_key_from_an_unrelated_review_does_not_admit_the_correction(
+        self,
+    ):
+        self.plant_record(REVIEW, "adversarial-review", ["this-review"])
+        self.plant_record(OTHER_REVIEW, "adversarial-review", ["other-review"])
+        self.import_records()
+        self.dispose(OTHER_KEY, "fixed", VALID_EVIDENCE)
+        own = f"{REVIEW}#1"
+        self.dispose(own, "fixed", VALID_EVIDENCE)
+        neighbour = self.check(follows=[REVIEW], answers=[own])
+        self.assertEqual(
+            neighbour.returncode,
+            0,
+            "positive neighbour: the followed review's own cited key "
+            f"is accepted; stderr={neighbour.stderr!r}",
+        )
+        proc = self.check(follows=[REVIEW], answers=[OTHER_KEY])
+        self.assertNotEqual(
+            proc.returncode,
+            0,
+            "items 1, 2, 6, 8: a previously cited key from another "
+            "review must not stand in for the followed review; "
+            f"stdout={proc.stdout!r}",
+        )
+        line = self.assert_refusal(proc, "correction")
+        needed = self.needed_clause(line)
+        self.assertIn(f"{REVIEW}#1", needed)
+
+
+class NeededCitesTheFindingItem(_GateFixture):
+    """Items 3 and 4 — the printed command cites the item the finding quotes."""
+
+    def test_needed_open_arm_cites_item_8_from_the_finding_claim(self):
+        self.plant_record(REVIEW, "adversarial-review", [ITEM8_CLAIM])
+        self.import_records()
+        key = f"{REVIEW}#1"
+        proc = self.check(follows=[REVIEW], answers=[key])
+        line = self.assert_refusal(proc, "correction")
+        found = self.found_clause(line)
+        self.assertEqual(found, f"key {key} still open")
+        needed = self.needed_clause(line)
+        parts = self.assert_needed_disposition(needed, key)
+        evidence = parts[5]
+        self.assertIn(
+            f"contract item 8 of {SCOPE_REL}",
+            evidence,
+            "items 3 and 4: the needed disposition cites the numbered "
+            "item the finding quotes, not a hard-coded item 1",
+        )
+        self.assertNotIn(f"contract item 1 of {SCOPE_REL}", evidence)
+
+    def test_cited_and_the_gate_agree_on_the_work_order_scope(self):
+        self.plant_three_scope_files()
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        cited = self.findings_invoke(["cited", key])
+        gate = self.check(follows=[REVIEW], answers=[key])
+        self.assertEqual(
+            cited.returncode,
+            0,
+            "item 9: cited of a holding work-order citation is exit 0 "
+            f"when three scope-*.md files exist; stdout={cited.stdout!r} "
+            f"stderr={cited.stderr!r}",
+        )
+        self.assertEqual(
+            (cited.stdout or "").strip(),
+            f"{key}\tcontract item 3 of {SCOPE_REL}",
+        )
+        self.assertEqual(
+            gate.returncode,
+            0,
+            "items 4 and 9: the mint gate and cited must resolve the "
+            f"same scope file; stderr={gate.stderr!r} stdout={gate.stdout!r}",
+        )
 
 
 if __name__ == "__main__":
