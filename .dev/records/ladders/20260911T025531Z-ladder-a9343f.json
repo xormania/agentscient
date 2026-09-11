@@ -334,33 +334,33 @@
     },
     {
       "attempt": 0,
-      "condition": "declared stage condition not yet evaluated",
+      "condition": "audits did not request changes",
       "harness": "grok",
       "job": "author-tests",
       "name": "fix-tests",
-      "outcome": "pending",
+      "outcome": "skipped",
       "stage": "tests"
     },
     {
       "attempt": 0,
-      "condition": "declared stage condition not yet evaluated",
+      "condition": "audits did not request changes",
       "harness": "codex",
       "job": "implement",
       "name": "fix-code",
-      "outcome": "pending",
+      "outcome": "skipped",
       "stage": "code"
     },
     {
       "attempt": 0,
-      "condition": "declared stage condition not yet evaluated",
+      "condition": "audits did not request changes",
       "harness": "codex",
       "job": "security-audit",
       "name": "security-re",
-      "outcome": "pending",
+      "outcome": "skipped",
       "stage": "review"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "audits approve",
       "harness": null,
       "job": null,
