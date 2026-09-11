@@ -498,9 +498,24 @@
       "stage": "code"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-daybreak-blue-latest"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/dispatches/20260911T224145Z-review-codex-c5fc8b.json",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T232020Z-code-codex-e3daf9"
+          ],
+          "withheld": []
+        },
+        "sha256": "7fd24d8c54c50babdd26d7e173d6b785b153def2c2788f60ee88bc0ac9b60779"
+      },
       "job": "security-audit",
       "name": "security-re",
       "outcome": "pending",
