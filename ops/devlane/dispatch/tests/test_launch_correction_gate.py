@@ -13,6 +13,7 @@ fail until the minted record carries answers: [].
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shlex
@@ -38,13 +39,23 @@ OTHER_REVIEW = "20260901T000000Z-review-grok-ffffff"
 OTHER_KEY = f"{OTHER_REVIEW}#1"
 BAD_KEY = "not-a-key"
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
+OTHER_REL = ".dev/ladder-inputs/other-scope.md"
 VALID_EVIDENCE = (
     "contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: "
     "found-text missing"
 )
+ITEM8_CLAIM = (
+    "contract item 8 of .dev/ladder-inputs/scope-gate-20260910.md: "
+    "the accepted record does not carry the item the finding cites"
+)
+ITEM2_CLAIM = (
+    "contract item 2 of .dev/ladder-inputs/scope-gate-20260910.md: "
+    "findings are named, not inferred"
+)
 SCOPE_BODY = "# Work order\n\n" + "".join(
     f"{n}. Item {n} of the work order.\n" for n in range(1, 11)
 )
+OTHER_BODY = "# Other\n\n1. **A numbered item on another file.**\n"
 DISPOSITION_MARK = "python3 ops/conductor/tools/findings.py disposition"
 RUN_CAP = 30
 STAMP = "2026-09-10T12:00:01Z"
@@ -95,6 +106,10 @@ class _CorrectionLaunch(ls._TempLaunch):
         self.findings = self._stage_findings()
         self.scope = self.repo / SCOPE_REL
         self.plant_new_file(self.scope, SCOPE_BODY, must_contain="1. Item 1")
+        self.other_scope = self.repo / OTHER_REL
+        self.plant_new_file(
+            self.other_scope, OTHER_BODY, must_contain="1. **A numbered",
+        )
         self.ref = self._commit("scope file")
         self.assertFalse(
             self.store.exists(),
@@ -144,6 +159,22 @@ class _CorrectionLaunch(ls._TempLaunch):
             timeout=RUN_CAP,
         )
 
+    def holds(self, evidence: str, scope_path: str = SCOPE_REL):
+        spec = importlib.util.spec_from_file_location(
+            "findings_for_launch_gate", self.findings,
+        )
+        if spec is None or spec.loader is None:
+            return False, "findings.py did not load"
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        fn = getattr(mod, "citation_holds", None)
+        if not callable(fn):
+            return False, "citation_holds is not defined"
+        try:
+            return fn(evidence, self.repo, scope_path)
+        except TypeError:
+            return False, "citation_holds does not take scope_path"
+
     def plant_record(
         self,
         rec_id: str,
@@ -183,6 +214,9 @@ class _CorrectionLaunch(ls._TempLaunch):
         }
         path = self.records / f"{rec_id}.json"
         self.plant_new_file(path, json.dumps(envelope, indent=2) + "\n")
+        text = path.read_text(encoding="utf-8")
+        for claim in claims:
+            self.assertIn(claim, text, "plant: finding claim missing from record")
         self.planted_ids.add(rec_id)
         return path
 
@@ -335,7 +369,13 @@ class _CorrectionLaunch(ls._TempLaunch):
             parts = shlex.split(needed[start:])
         except ValueError as exc:
             self.fail(f"needed command is not shell-quotable: {needed!r} ({exc})")
-        self.assertGreaterEqual(len(parts), 6, parts)
+        self.assertEqual(
+            len(parts),
+            6,
+            "item 3: the needed command is exactly python3 "
+            "ops/conductor/tools/findings.py disposition KEY "
+            f"DISPOSITION EVIDENCE, not extras: {parts!r}",
+        )
         self.assertEqual(parts[0], "python3")
         self.assertEqual(parts[1], "ops/conductor/tools/findings.py")
         self.assertEqual(parts[2], "disposition")
@@ -345,7 +385,7 @@ class _CorrectionLaunch(ls._TempLaunch):
         self.assertIn(f" of {SCOPE_REL}", parts[5])
         self.assertIn(shlex.quote(key), needed)
         self.assertIn(shlex.quote(parts[5]), needed)
-        return parts[:6]
+        return parts
 
 
 class FiveFoundTexts(_CorrectionLaunch):
@@ -431,7 +471,9 @@ class FiveFoundTexts(_CorrectionLaunch):
         self.plant_record(REVIEW, "adversarial-review")
         self.import_records()
         key = f"{REVIEW}#1"
-        self.dispose(key, "fixed", "fixed in tests, no item")
+        evidence = "fixed in tests, no item"
+        self.assertNotIn("contract item", evidence)
+        self.dispose(key, "fixed", evidence)
         self.force_stamp(STAMP)
         code, out, err = self.dispatch(self.write_argv(extra=[
             "--follows", REVIEW, "--answers", key,
@@ -442,6 +484,84 @@ class FiveFoundTexts(_CorrectionLaunch):
         self.assertIn(key, found)
         self.assertIn("without a contract citation", found)
         self.assertIn("fixed", found)
+        ok, reason = self.holds(evidence)
+        self.assertFalse(ok)
+        self.assertTrue(reason, "citation_holds names a reason")
+        self.assertIn(reason, found)
+        self.assert_needed_disposition(self.needed_clause(line), key)
+
+    def test_item_present_in_grammar_but_absent_from_the_file_is_uncited(self):
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        evidence = evidence_for(11, why="no such item")
+        self.assertIn("contract item 11 of ", evidence)
+        self.dispose(key, "fixed", evidence)
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(self.write_argv(extra=[
+            "--follows", REVIEW, "--answers", key,
+        ]))
+        line = self.assert_wire_line(code, out, err, "correction")
+        self.assert_no_mint()
+        found = self.found_clause(line)
+        self.assertIn("without a contract citation", found)
+        ok, reason = self.holds(evidence)
+        self.assertFalse(
+            ok, "item 4: 11 is not a numbered line of the ten-item scope",
+        )
+        self.assertIn(reason, found)
+        self.assert_needed_disposition(self.needed_clause(line), key)
+
+    def test_citation_to_a_different_numbered_file_is_uncited(self):
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        evidence = evidence_for(1, path=OTHER_REL, why="other file")
+        self.assertIn(OTHER_REL, evidence)
+        self.assertTrue(
+            self.other_scope.is_file(), "plant: other numbered file exists",
+        )
+        self.dispose(key, "fixed", evidence)
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(self.write_argv(extra=[
+            "--follows", REVIEW, "--answers", key,
+        ]))
+        line = self.assert_wire_line(code, out, err, "correction")
+        self.assert_no_mint()
+        found = self.found_clause(line)
+        self.assertIn("without a contract citation", found)
+        ok, reason = self.holds(evidence)
+        self.assertFalse(
+            ok,
+            "item 4: a citation to any file other than the correction's "
+            "scope file does not hold",
+        )
+        self.assertIn(reason, found)
+        self.assert_needed_disposition(self.needed_clause(line), key)
+
+    def test_citation_path_outside_the_repository_root_is_uncited(self):
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        outside = self.home / "outside-scope.md"
+        self.assertFalse(
+            str(outside).startswith(str(self.repo)),
+            "plant: outside path must not lie under the repo root",
+        )
+        self.plant_new_file(outside, SCOPE_BODY, must_contain="1. Item 1")
+        evidence = evidence_for(3, path=str(outside), why="outside root")
+        self.dispose(key, "fixed", evidence)
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(self.write_argv(extra=[
+            "--follows", REVIEW, "--answers", key,
+        ]))
+        line = self.assert_wire_line(code, out, err, "correction")
+        self.assert_no_mint()
+        found = self.found_clause(line)
+        self.assertIn("without a contract citation", found)
+        ok, reason = self.holds(evidence)
+        self.assertFalse(ok, "item 4: a path outside the repository does not hold")
+        self.assertIn(reason, found)
         self.assert_needed_disposition(self.needed_clause(line), key)
 
     def test_newlines_in_evidence_still_one_stderr_line(self):
@@ -517,32 +637,77 @@ class FiveFoundTexts(_CorrectionLaunch):
         self.assertEqual(found, f"key {first} still open")
         self.assertNotIn(second, found)
 
+    def test_later_open_answer_is_refused_when_the_first_is_cited(self):
+        self.plant_record(REVIEW, "adversarial-review", ["one", "two"])
+        self.import_records()
+        first = f"{REVIEW}#1"
+        second = f"{REVIEW}#2"
+        self.dispose(first, "fixed", VALID_EVIDENCE)
+        self.set_disposed_at(first, PAST)
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(self.write_argv(extra=[
+            "--follows", REVIEW,
+            "--answers", first,
+            "--answers", second,
+        ]))
+        line = self.assert_wire_line(code, out, err, "correction")
+        self.assert_no_mint()
+        found = self.found_clause(line)
+        self.assertEqual(found, f"key {second} still open")
+        self.assertNotIn(first, found)
+        self.assert_needed_disposition(self.needed_clause(line), second)
+
 
 class AcceptRecordsAnswers(_CorrectionLaunch):
     """Item 8 — an accepted correction's record carries keys and citations."""
 
     def test_satisfying_row_records_answers_and_reuses_the_gate_stamp(self):
-        self.plant_record(REVIEW, "adversarial-review")
+        self.plant_record(REVIEW, "adversarial-review", [ITEM8_CLAIM, ITEM2_CLAIM])
         self.import_records()
-        key = f"{REVIEW}#1"
-        self.dispose(key, "fixed", VALID_EVIDENCE)
-        self.set_disposed_at(key, PAST)
+        first = f"{REVIEW}#1"
+        second = f"{REVIEW}#2"
+        first_evidence = evidence_for(1, why="item 1 holds")
+        second_evidence = evidence_for(10, why="item 10 holds")
+        self.assertIn("contract item 8 of ", ITEM8_CLAIM)
+        self.assertIn("contract item 2 of ", ITEM2_CLAIM)
+        self.assertNotEqual(first_evidence, second_evidence)
+        self.dispose(first, "fixed", first_evidence)
+        self.dispose(second, "ruled", second_evidence)
+        self.set_disposed_at(first, PAST)
+        self.set_disposed_at(second, PAST)
         self.force_stamp(STAMP)
         rec, witness, _out, err = self.launch_ok_minted(self.write_argv(extra=[
-            "--follows", REVIEW, "--answers", key,
+            "--follows", REVIEW,
+            "--answers", first,
+            "--answers", second,
         ]))
         self.assertTrue(witness["argv"])
         self.assertEqual((err or "").strip(), "")
         self.assertEqual(rec["at"]["launched"], STAMP)
         self.assertEqual(rec["follows"], [REVIEW])
         rows = rec["answers"]
-        self.assertEqual(len(rows), 1, rows)
-        row = rows[0]
-        self.assertEqual(row["key"], key)
-        self.assertEqual(row["disposition"], "fixed")
-        self.assertEqual(row["disposed_at"], PAST)
-        self.assertEqual(str(row["citation"]["item"]), "3")
-        self.assertEqual(row["citation"]["path"], SCOPE_REL)
+        self.assertEqual(len(rows), 2, rows)
+        self.assertEqual([row["key"] for row in rows], [first, second])
+        self.assertEqual(rows[0]["disposition"], "fixed")
+        self.assertEqual(rows[1]["disposition"], "ruled")
+        self.assertEqual(rows[0]["disposed_at"], PAST)
+        self.assertEqual(rows[1]["disposed_at"], PAST)
+        self.assertEqual(str(rows[0]["citation"]["item"]), "1")
+        self.assertEqual(str(rows[1]["citation"]["item"]), "10")
+        self.assertEqual(rows[0]["citation"]["path"], SCOPE_REL)
+        self.assertEqual(rows[1]["citation"]["path"], SCOPE_REL)
+        self.assertIn("finding_citation", rows[0], rows[0])
+        self.assertIn("finding_citation", rows[1], rows[1])
+        self.assertEqual(str(rows[0]["finding_citation"]["item"]), "8")
+        self.assertEqual(str(rows[1]["finding_citation"]["item"]), "2")
+        self.assertEqual(rows[0]["finding_citation"]["path"], SCOPE_REL)
+        self.assertEqual(rows[1]["finding_citation"]["path"], SCOPE_REL)
+        self.assertNotEqual(
+            str(rows[0]["finding_citation"]["item"]),
+            str(rows[0]["citation"]["item"]),
+            "item 8: the record shows the disagreement between the "
+            "finding's cited item and the disposition citation",
+        )
 
 
 class NonCorrectionsUntouched(_CorrectionLaunch):
@@ -617,18 +782,21 @@ class CorrectionShape(_CorrectionLaunch):
                 )
 
     def test_out_input_under_a_review_job_is_a_correction(self):
-        self.plant_record(REVIEW, "adversarial-review")
-        note = self.jobs_root / REVIEW / "out" / "note.md"
-        self.plant_new_file(note, "review artifact\n")
-        self.force_stamp(STAMP)
-        code, out, err = self.dispatch(
-            self.write_argv(extra=["--input", str(note)]),
-        )
-        line = self.assert_wire_line(code, out, err, "correction")
-        self.assert_no_mint()
-        self.assertIn("no --answers key named", line)
-        self.assertIn(REVIEW, line)
-        self.assertIn("adversarial-review", line)
+        for rec_id, job in REVIEW_JOBS:
+            with self.subTest(job=job):
+                self.plant_record(rec_id, job)
+                note = self.jobs_root / rec_id / "out" / "note.md"
+                self.plant_new_file(note, f"review artifact for {job}\n")
+                self.force_stamp(STAMP)
+                code, out, err = self.dispatch(
+                    self.write_argv(extra=["--input", str(note)]),
+                )
+                line = self.assert_wire_line(code, out, err, "correction")
+                self.assert_no_mint()
+                found = self.found_clause(line)
+                self.assertIn("no --answers key named", found)
+                self.assertIn(rec_id, found)
+                self.assertIn(job, found)
 
     def test_author_tests_following_check_tests_is_a_correction(self):
         self.plant_record(CHECK, "check-tests")
@@ -719,6 +887,31 @@ class NoOverride(_CorrectionLaunch):
         if lines:
             head = lines[0].split(":", 1)[0].strip().lower()
             self.assertNotEqual(head, "correction")
+
+    def test_stale_base_override_does_not_bypass_the_correction_gate(self):
+        self.plant_record(REVIEW, "adversarial-review")
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(self.argv_for(
+            job="implement",
+            harness="codex",
+            stage="code",
+            scope=SCOPE_REL,
+            ref=self.side_sha,
+            extra=[
+                "--follows", REVIEW,
+                "--override", "stale-base:owner said continue",
+            ],
+        ))
+        line = self.assert_wire_line(code, out, err, "correction")
+        self.assert_no_mint()
+        found = self.found_clause(line)
+        self.assertEqual(
+            found,
+            f"no --answers key named for a correction following {REVIEW} "
+            f"(adversarial-review)",
+        )
+        self.assertNotIn("stale-base", line.lower())
+        self.assertNotIn("hand-grant", line.lower())
 
 
 if __name__ == "__main__":
