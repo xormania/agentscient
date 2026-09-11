@@ -1,0 +1,127 @@
+{
+  "id": "20260911T034128Z-code-codex-20f4c1",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/gate-dispatcher-20260911",
+  "lineage": {
+    "branch": "lane/gate-dispatcher-20260911",
+    "base_sha": "771b9ea11e14ea5700ca7dd7d77e8fd07938a9db"
+  },
+  "follows": [
+    "20260911T031453Z-tests-grok-033816"
+  ],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T03:41:37Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "771b9ea11e14ea5700ca7dd7d77e8fd07938a9db",
+    "ref_sha": "771b9ea11e14ea5700ca7dd7d77e8fd07938a9db",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "3964e0f5-3e59-4b5a-b72c-9bdf1ec39443",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p test_dispatch_wrapper_answers.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/in/plan-dispatcher-gate.md",
+        "sha256": "e7b5f7faefbef0dce092a154ebaf7ca7b8a073e0f359e78c8ffde3cf53ba7afd"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034128Z-code-codex-20f4c1/in/scope-gate-20260910.scope.md",
+        "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
+      }
+    ],
+    "sha256": "8ac0a39ea911e31bce10ad22bb905db2518efd293c4144e5a97d461194898dbe",
+    "bytes": 4893,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "8d411e6f48b9040f39f0a6c80b647652e4d42782ece5a37a119d232b2612766b"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
