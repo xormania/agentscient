@@ -62,9 +62,10 @@ ID_RE = re.compile(
 )
 
 RECORD_FIELDS = (
-    "id", "lane", "stage", "unit", "lineage", "follows", "job", "role",
-    "dispatched_by", "at", "snapshot", "harness", "model", "session",
-    "brief", "caps", "overrides", "attempts", "result", "status",
+    "id", "lane", "stage", "unit", "lineage", "follows", "answers", "job",
+    "role", "dispatched_by", "at", "snapshot", "harness", "model",
+    "session", "brief", "caps", "overrides", "attempts", "result",
+    "status",
 )
 
 # A subprocess harness. Records argv/cwd/env/stdin/prompt, optionally
