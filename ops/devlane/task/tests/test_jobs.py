@@ -91,7 +91,9 @@ class SecurityAuditIsInTheCatalogue(unittest.TestCase):
         sibling_caps = sibling.get("caps")
         self.assertIsInstance(audit_caps, dict, "security-audit must declare caps")
         self.assertIsInstance(sibling_caps, dict)
-        self.assertEqual(sibling_caps.get("timeout"), 1200)
+        # adversarial-review moved to 1800 on 2026-09-11 (Grok reviews ran
+        # to 19 of 20 minutes); security-audit stays at 1200.
+        self.assertEqual(sibling_caps.get("timeout"), 1800)
         self.assertEqual(
             audit_caps.get("timeout"), 1200,
             "security-audit declares caps.timeout 1200, like adversarial-review",
