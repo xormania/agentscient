@@ -49,9 +49,28 @@
         "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
       },
       "job": "author-tests",
+      "landed": [
+        "3a1f0706d20d37d05679b19438bd79d3fd49e2b9",
+        "a0e81b7fd64a16239a9d24cda328678def454f72",
+        "fda3d49353b990f261b9b2b51bd34a42dc122f40",
+        "de50082f1301c701ac10681b7f8ea40b0f49b3e6",
+        "9b85a41ba094b5fac5419b106a2840ad005fd6e1"
+      ],
+      "landed_shas": [
+        "3a1f0706d20d37d05679b19438bd79d3fd49e2b9",
+        "a0e81b7fd64a16239a9d24cda328678def454f72",
+        "fda3d49353b990f261b9b2b51bd34a42dc122f40",
+        "de50082f1301c701ac10681b7f8ea40b0f49b3e6",
+        "9b85a41ba094b5fac5419b106a2840ad005fd6e1"
+      ],
       "name": "tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T233646Z-tests-grok-a5fdd4",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
       "stage": "tests"
     },
     {
