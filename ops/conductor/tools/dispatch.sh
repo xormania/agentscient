@@ -135,7 +135,8 @@ stage=''
 scope_file=''
 # Repeated --input flags preserve their order for launch.py's append action.
 inputs=()
-follows=''
+follows=()
+answers=()
 timeout=${DISPATCH_TIMEOUT:-}
 timeout_set=$had_timeout
 agent=''
@@ -164,7 +165,8 @@ while (($#)); do
         --stage) need_value "$@"; stage=$2; shift 2 ;;
         --scope-file) need_value "$@"; scope_file=$2; shift 2 ;;
         --input) need_value "$@"; inputs+=("$2"); shift 2 ;;
-        --follows) need_value "$@"; follows=$2; shift 2 ;;
+        --follows) need_value "$@"; follows+=("$2"); shift 2 ;;
+        --answers) need_value "$@"; answers+=("$2"); shift 2 ;;
         --timeout) need_value "$@"; timeout=$2; timeout_set=1; shift 2 ;;
         --agent) need_value "$@"; agent=$2; agent_set=1; shift 2 ;;
         --dry-run) dry_run=1; shift ;;
@@ -252,7 +254,12 @@ argv+=(--scope "$scope")
 for input in "${inputs[@]}"; do
     argv+=(--input "$input")
 done
-[[ -z $follows ]] || argv+=(--follows "$follows")
+for follow in "${follows[@]}"; do
+    argv+=(--follows "$follow")
+done
+for answer in "${answers[@]}"; do
+    argv+=(--answers "$answer")
+done
 
 print_launch() {
     WF_AGENT=$agent python3 -c 'import json, os, sys
