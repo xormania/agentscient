@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T03:14:54Z",
-    "closed": null
+    "closed": "2026-09-11T03:24:21Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T031453Z-tests-grok-033816/home/grok-stream/sessions/<snapshot-encoded>/4516b844-7be3-4c19-bfcd-a34a082bce29/summary.json"
   },
   "session": {
     "id": "4516b844-7be3-4c19-bfcd-a34a082bce29",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T031453Z-tests-grok-033816/home/grok-stream/sessions/<snapshot-encoded>/4516b844-7be3-4c19-bfcd-a34a082bce29/summary.json",
+    "stream_sha256_at_close": "1b8a18223308e536941c3258806cfc499151c4a73549c4f665cb7e166ffe0579",
+    "spend": {
+      "input": 1441516,
+      "cached": 1326976,
+      "output": 29503,
+      "total": 1471019,
+      "cost_usd_ticks": 1818296200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T031453Z-tests-grok-033816/home/grok-stream/sessions/<snapshot-encoded>/4516b844-7be3-4c19-bfcd-a34a082bce29/summary.json",
+      "messages": 176
+    }
   },
   "brief": {
     "template": {
@@ -121,10 +129,58 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:14:54Z",
+      "ended": "2026-09-11T03:24:20Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "a264762a45bc0522043cc694be3ffd3875a30779",
+    "changed_paths": [
+      "ops/conductor/tests/test_dispatch_wrapper_answers.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_dispatch_wrapper_answers": "ops/conductor/tests/test_dispatch_wrapper_answers.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 1471019,
+        "out": 29503,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fed3025e1b3daa92ba7caacd942e0ab9973ec3fc",
+        "started": "2026-09-11T03:14:54Z",
+        "ended": "2026-09-11T03:24:04Z"
+      },
+      "note": "Rewrote ops/conductor/tests/test_dispatch_wrapper_answers.py from Contract items 1 and 2 only. Dropped follow multiplicity, option order, the item-9 wrapper proxy, and undocumented-flag policy; no case added. Three tests, each red alone at fed3025e1b3daa92ba7caacd942e0ab9973ec3fc: --answers refused as unknown flag, returncode 3. Discover: 3 tests, 3 assertion failures, 0 errors. Committed a264762a45bc0522043cc694be3ffd3875a30779."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T03:24:19.938Z"
+    }
+  },
+  "status": "closed"
 }
