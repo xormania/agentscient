@@ -530,6 +530,11 @@ class Driver:
             encoding="utf-8",
         )
         paths = [self.record_path, *extra]
+        # Every stage input the driver wrote rides with the record: a resume
+        # rewrites inputs for stages it then finds already done, and a stop
+        # must leave the worktree clean for the landing lever (LD-11).
+        if self.inputs_dir.is_dir():
+            paths.extend(sorted(self.inputs_dir.iterdir()))
         relative = [str(path.relative_to(self.worktree)) for path in paths if path.exists()]
         added = git(self.worktree, "add", "--", *relative)
         if added.returncode != 0:
