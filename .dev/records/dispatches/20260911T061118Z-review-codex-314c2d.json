@@ -16,7 +16,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T06:11:18Z",
-    "closed": null
+    "closed": "2026-09-11T06:21:38Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -76,14 +76,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-11-29-01a08f17-b020-7823-95aa-2ac8e9b763b1.jsonl"
   },
   "session": {
-    "id": "68a03097-ccef-4218-8af0-eac447519fc2",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08f17-b020-7823-95aa-2ac8e9b763b1",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-11-29-01a08f17-b020-7823-95aa-2ac8e9b763b1.jsonl",
+    "stream_sha256_at_close": "96c6b59fe05bb8061cbd7a81aa034eb7d9b92f9d3ccb4fb60340cd9590c74eae",
+    "spend": {
+      "input": 3784213,
+      "cached": 3625690,
+      "output": 22787,
+      "total": 3807000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T061118Z-review-codex-314c2d/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-11-29-01a08f17-b020-7823-95aa-2ac8e9b763b1.jsonl",
+      "messages": 313
+    }
   },
   "brief": {
     "template": {
@@ -115,10 +122,61 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:11:28Z",
+      "ended": "2026-09-11T06:21:38Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7aba71cf24ba94671d80cb8df9fafd626558a47c",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/correction.py:105; ops/devlane/dispatch/launch.py:1459",
+          "claim": "Contract item 1 is bypassed for symlinked review artifacts. Classification resolves the input before checking whether its argument is beneath a review job's out/, so an out/ symlink targeting elsewhere returns no review record. The launcher later follows that same symlink with shutil.copyfile. A lane harness writing its permitted out/ can therefore make an input-only correction mint with answers [] and cause the conductor to copy a readable file from outside the job.",
+          "reproduce": "python3 - <<'PY'\nimport importlib.util, json, shutil, tempfile\nfrom pathlib import Path\np = Path('ops/conductor/tools/correction.py').resolve()\ns = importlib.util.spec_from_file_location('audit_correction', p)\nm = importlib.util.module_from_spec(s)\ns.loader.exec_module(m)\nwith tempfile.TemporaryDirectory() as td:\n    t = Path(td); records = t/'records'; jobs = t/'jobs'; records.mkdir()\n    rid = '20260901T000000Z-review-grok-aaaaaa'\n    (records/f'{rid}.json').write_text(json.dumps({'id': rid, 'job': 'adversarial-review'}))\n    outside = t/'outside-secret'; outside.write_text('outside-job-data')\n    link = jobs/rid/'out'/'review.md'; link.parent.mkdir(parents=True); link.symlink_to(outside)\n    copied = t/'copied'; shutil.copyfile(link, copied)\n    print(link.is_relative_to(jobs/rid/'out'), copied.read_text())\n    print(m.check('write', [], [str(link)], [], '2026-09-11T00:00:00Z', records, jobs, Path.cwd()))\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 3807000,
+        "out": 22787,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "7aba71cf24ba94671d80cb8df9fafd626558a47c",
+        "started": null,
+        "ended": "2026-09-11T06:21:04Z"
+      },
+      "note": "Read all named inputs and both tracked scope files whole. Covered argv, shell, SQL and template injection; credential leakage; path/ref containment; sandbox and permission claims; vendor-output trust; and supply-chain changes. Focused correction tests passed. The full suite was not a clean signal because unrelated environment-sensitive tests failed; initial Graft navigation returned the repository map but its process exited during sandbox mount cleanup. The findings store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T06:21:38.157Z"
+    }
+  },
+  "status": "closed"
 }
