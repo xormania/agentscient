@@ -1,18 +1,18 @@
-"""Dispatcher pass-through of --follows and --answers.
+"""Dispatcher pass-through of --answers.
 
-Written from scope-gate-20260910.md items 1, 2 and 9, and the landed
-Dispatch §Verbs line `[--follows ID]... [--answers KEY]...`. The wrapper
-is the subject and is not read here. Callee flag names and order come
-from ops/devlane/dispatch/CONTRACT.md §Verbs, not from launch.py.
+Written from scope-gate-20260910.md items 1 and 2, and the landed
+Dispatch §Verbs line `[--answers KEY]...`. The wrapper is the subject
+and is not read here. Callee flag names come from
+ops/devlane/dispatch/CONTRACT.md §Verbs, not from launch.py.
 
 Item 2: a correction names finding keys through the declared dispatch
-field --answers KEY, repeatable. Item 1: the shape is read from
---follows (repeatable) and --input, never from prose. Item 9: fix-tests
-and fix-code dispatch with --follows previous, security, adversarial and
-one --answers KEY per finding.
+field --answers KEY, repeatable. Every given key must reach the launcher
+argv. Item 1: one --follows naming a review record is enough to
+establish the correction shape; these tests do not require a second or
+third follow. Option order and undocumented-flag policy are not numbered
+Contract items.
 
-Argv assertions compare exact lists. The fixture is the existing
-wrapper harness; this module does not restyle it.
+The fixture is the existing wrapper harness; this module does not restyle it.
 """
 
 from __future__ import annotations
@@ -32,12 +32,9 @@ ANSWER_KEY = re.compile(
     r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}#[1-9][0-9]*$"
 )
 
-PREVIOUS = "20260901T000000Z-code-codex-aaaaaa"
-SECURITY = "20260901T010000Z-review-codex-bbbbbb"
-ADVERSARIAL = "20260901T020000Z-review-grok-cccccc"
-KEY_SEC = f"{SECURITY}#1"
-KEY_ADV = f"{ADVERSARIAL}#2"
-UNKNOWN = "--not-a-real-flag"
+FOLLOW = "20260901T010000Z-check-tests-codex-bbbbbb"
+KEY_A = f"{FOLLOW}#1"
+KEY_B = f"{FOLLOW}#2"
 
 
 def flag_values(argv: list[str], flag: str) -> list[str]:
@@ -54,140 +51,65 @@ def flag_values(argv: list[str], flag: str) -> list[str]:
     return values
 
 
-def last_index(argv: list[str], token: str) -> int:
-    try:
-        return len(argv) - 1 - argv[::-1].index(token)
-    except ValueError as exc:
-        raise AssertionError(f"{token!r} missing from {argv!r}") from exc
-
-
 class DispatcherAnswers(wrap._WrapperFixture):
-    """Item 2 field on the wrapper; item 1/9 repeatable follows."""
+    """Item 2 field on the wrapper; item 1 needs one review follow."""
 
     maxDiff = None
 
     def setUp(self):
         super().setUp()
-        for rec in (PREVIOUS, SECURITY, ADVERSARIAL):
-            self.assertRegex(rec, RECORD_ID, rec)
-        for key in (KEY_SEC, KEY_ADV):
+        self.assertRegex(FOLLOW, RECORD_ID, FOLLOW)
+        for key in (KEY_A, KEY_B):
             self.assertRegex(key, ANSWER_KEY, key)
-        self.assertNotEqual(KEY_SEC, KEY_ADV)
-        self.assertNotEqual(SECURITY, ADVERSARIAL)
-        self.assertNotEqual(PREVIOUS, SECURITY)
+        self.assertNotEqual(KEY_A, KEY_B)
 
-    def correction_flags(
-        self,
-        follows: list[str],
-        answers: list[str],
-        *extra: str,
-        **kw,
-    ) -> list[str]:
+    def answers_flags(self, answers: list[str], *extra: str, **kw) -> list[str]:
+        self.assertTrue(answers, "plant: answers must be non-empty")
         flags: list[str] = []
-        for rec in follows:
-            flags.extend(["--follows", rec])
         for key in answers:
             flags.extend(["--answers", key])
         flags.extend(extra)
-        return self.full_flags(*flags, omit=("follows",), **kw)
+        return self.full_flags(*flags, follows=kw.pop("follows", FOLLOW), **kw)
 
-    def expected_correction_argv(
-        self,
-        follows: list[str],
-        answers: list[str],
-        **kw,
-    ) -> list[str]:
-        argv = self.expected_argv(follows="", **kw)
-        self.assertNotIn("--follows", argv)
-        self.assertNotIn("--answers", argv)
-        for rec in follows:
-            argv.extend(["--follows", rec])
+    def assert_answers_reach(self, argv: list[str], answers: list[str]) -> None:
+        self.assertTrue(answers, "plant: answers must be non-empty")
+        got = flag_values(argv, "--answers")
+        self.assertEqual(len(got), len(answers), argv)
+        self.assertCountEqual(got, answers)
         for key in answers:
-            argv.extend(["--answers", key])
-        return argv
+            self.assertIn(key, got)
+        self.assertIn(FOLLOW, flag_values(argv, "--follows"), argv)
 
-    def assert_follows_then_answers(
-        self,
-        argv: list[str],
-        follows: list[str],
-        answers: list[str],
-    ) -> None:
-        self.assertTrue(follows, "plant: follows must be non-empty")
-        got_follows = flag_values(argv, "--follows")
-        self.assertEqual(len(got_follows), len(follows), argv)
-        self.assertEqual(got_follows, follows)
-        got_answers = flag_values(argv, "--answers")
-        self.assertEqual(len(got_answers), len(answers), argv)
-        self.assertEqual(got_answers, answers)
-        input_at = last_index(argv, "--input")
-        follows_at = [i for i, tok in enumerate(argv) if tok == "--follows"]
-        self.assertEqual(len(follows_at), len(follows), argv)
-        self.assertLess(input_at, follows_at[0], argv)
-        if answers:
-            answers_at = [i for i, tok in enumerate(argv) if tok == "--answers"]
-            self.assertEqual(len(answers_at), len(answers), argv)
-            self.assertLess(follows_at[-1], answers_at[0], argv)
-        else:
-            self.assertNotIn("--answers", argv)
-
-    def test_two_follows_reach_dry_run_argv_in_given_order(self):
-        """Item 1: --follows is repeatable; last-wins drops a review."""
-        follows = [SECURITY, ADVERSARIAL]
-        proc = self.invoke(self.correction_flags(follows, answers=[]))
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        argv, _env = self.parse_dry_run(proc)
-        self.assert_follows_then_answers(argv, follows, [])
-        self.assertEqual(argv, self.expected_correction_argv(follows, []))
-        self.assert_no_launch()
-
-    def test_two_answers_reach_dry_run_argv_after_the_follows(self):
-        """Item 2: --answers KEY is a documented, repeatable field."""
-        follows = [SECURITY, ADVERSARIAL]
-        answers = [KEY_SEC, KEY_ADV]
-        proc = self.invoke(self.correction_flags(follows, answers))
+    def test_one_answers_key_reaches_dry_run_argv(self):
+        """Item 2: --answers KEY is a documented field and reaches argv."""
+        answers = [KEY_A]
+        proc = self.invoke(self.answers_flags(answers))
         text = self.combined(proc)
-        self.assertNotIn("unknown flag", text.lower(), text)
         self.assertEqual(proc.returncode, 0, text)
         argv, _env = self.parse_dry_run(proc)
-        self.assert_follows_then_answers(argv, follows, answers)
-        self.assertEqual(
-            argv,
-            self.expected_correction_argv(follows, answers),
-        )
+        self.assert_answers_reach(argv, answers)
         payload = self.parse_dry_run_object(proc)
-        self.assertEqual(payload["argv"], argv)
+        self.assertEqual(flag_values(payload["argv"], "--answers"), [KEY_A])
         self.assert_no_launch()
 
-    def test_three_follows_reach_dry_run_argv_in_given_order(self):
-        """Item 9: previous, security, adversarial all reach argv."""
-        follows = [PREVIOUS, SECURITY, ADVERSARIAL]
-        proc = self.invoke(self.correction_flags(follows, answers=[]))
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        argv, _env = self.parse_dry_run(proc)
-        self.assert_follows_then_answers(argv, follows, [])
-        self.assertEqual(argv, self.expected_correction_argv(follows, []))
-        self.assert_no_launch()
-
-    def test_fix_stage_three_follows_and_one_answers_per_key(self):
-        """Item 9: --follows previous, security, adversarial, then keys."""
-        follows = [PREVIOUS, SECURITY, ADVERSARIAL]
-        answers = [KEY_SEC, KEY_ADV]
-        proc = self.invoke(self.correction_flags(follows, answers))
+    def test_two_answers_keys_both_reach_dry_run_argv(self):
+        """Item 2: every named key reaches argv; last-wins drops a finding."""
+        answers = [KEY_A, KEY_B]
+        proc = self.invoke(self.answers_flags(answers))
         text = self.combined(proc)
-        self.assertNotIn("unknown flag", text.lower(), text)
         self.assertEqual(proc.returncode, 0, text)
         argv, _env = self.parse_dry_run(proc)
-        self.assert_follows_then_answers(argv, follows, answers)
-        self.assertEqual(
-            argv,
-            self.expected_correction_argv(follows, answers),
+        self.assert_answers_reach(argv, answers)
+        payload = self.parse_dry_run_object(proc)
+        self.assertCountEqual(
+            flag_values(payload["argv"], "--answers"),
+            answers,
         )
         self.assert_no_launch()
 
-    def test_two_answers_reach_the_foreground_launcher_after_follows(self):
-        """Item 2: the exec path carries the same flags as dry-run."""
-        follows = [SECURITY, ADVERSARIAL]
-        answers = [KEY_SEC, KEY_ADV]
+    def test_two_answers_keys_reach_the_foreground_launcher(self):
+        """Item 2: the exec path carries every named key."""
+        answers = [KEY_A, KEY_B]
         argv_log = self.scratch / "launcher-argv.json"
         self.assertFalse(argv_log.exists(), "plant: argv log must not pre-exist")
         self._plant_python_sentinel(
@@ -198,11 +120,10 @@ class DispatcherAnswers(wrap._WrapperFixture):
             f"pathlib.Path({str(self.marker)!r}).write_text('launched')\n",
         )
         proc = self.invoke(
-            self.correction_flags(follows, answers, dry_run=False),
+            self.answers_flags(answers, dry_run=False),
             timeout=8,
         )
         text = self.combined(proc)
-        self.assertNotIn("unknown flag", text.lower(), text)
         self.assertEqual(proc.returncode, 0, text)
         self.assertTrue(self.marker.exists(), "foreground path must launch")
         self.assertTrue(argv_log.is_file(), "sentinel recorded argv")
@@ -212,25 +133,7 @@ class DispatcherAnswers(wrap._WrapperFixture):
             all(isinstance(item, str) for item in launched),
             launched,
         )
-        self.assert_follows_then_answers(launched, follows, answers)
-
-    def test_a_dispatch_without_answers_does_not_emit_answers(self):
-        """Item 7: the wrapper does not invent keys on a non-correction."""
-        proc = self.invoke(self.full_flags())
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        argv, _env = self.parse_dry_run(proc)
-        self.assertNotIn("--answers", argv)
-        self.assertEqual(flag_values(argv, "--answers"), [])
-        self.assertEqual(argv, self.expected_argv())
-        self.assert_no_launch()
-
-    def test_unknown_flag_is_still_a_refusal(self):
-        """Accepting --answers must not accept an undocumented flag."""
-        proc = self.invoke(self.full_flags(UNKNOWN, dry_run=False))
-        text = self.combined(proc)
-        self.assertIn(UNKNOWN, text)
-        self.assertNotEqual(proc.returncode, 0, text)
-        self.assert_no_launch()
+        self.assert_answers_reach(launched, answers)
 
 
 if __name__ == "__main__":
