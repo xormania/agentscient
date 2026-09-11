@@ -1150,6 +1150,26 @@ class Driver:
                     or re.search(r"[;&|\r\n]", value)
                 ):
                     continue
+                # LD-15: the command names the tree, never a worker's
+                # snapshot. An absolute path under a dispatch snapshot is
+                # rewritten to the part after `snapshot/`; any other
+                # absolute path, or a `..` component, stops the ladder.
+                if ".." in path.parts:
+                    raise Stopped(
+                        "code",
+                        reason="artifacts",
+                        detail=f"test artifact path escapes the tree: {value}",
+                    )
+                if path.is_absolute():
+                    parts = path.parts
+                    if "snapshot" not in parts[:-1]:
+                        raise Stopped(
+                            "code",
+                            reason="artifacts",
+                            detail=f"absolute test artifact outside a snapshot: {value}",
+                        )
+                    cut = max(i for i, part in enumerate(parts[:-1]) if part == "snapshot")
+                    path = Path(*parts[cut + 1:])
                 commands.append(
                     "python3 -m unittest discover "
                     f"-s {shlex.quote(path.parent.as_posix())} "

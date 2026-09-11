@@ -59,7 +59,12 @@ waited in table order. No other stages run concurrently. Test commands
 come only from test artifacts in the first test envelope: each path
 under a `tests/` directory becomes a `python3 -m unittest discover`
 invocation, joined in order with `&&`. No such artifact is an
-`artifacts` stop, never an invented command.
+`artifacts` stop, never an invented command. The command names the
+tree: an artifact given as an absolute path is accepted only when it
+lies under a dispatch snapshot and is recorded as the part after
+`snapshot/`; any other absolute path, or a `..` component, is an
+`artifacts` stop naming the path (LD-15, 2026-09-11: a tests worker's
+absolute path made the implementer test the worker's own tree).
 
 Write stages (`tests`, `tests-fix`, each `code`, `fix-tests`, and
 `fix-code`) land through `land.py` with `--author` from the worktree's
