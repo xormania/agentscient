@@ -175,9 +175,21 @@ does not change the runner.
 | `author-tests` | a test file that has been run and is red for the stated reason |
 | `sweep` | structured findings over disjoint categories, merged |
 | `plan` | a plan written to the job's `out/PLAN.md`, and an envelope naming it |
-| `check-tests` | a skeptic's report at `out/SKEPTIC.md`; verdict `changes` when any test is refuted |
+| `check-tests` | the skeptic's findings on the wire: the JSON envelope on stdout; verdict `changes` exactly when any finding exists; each finding is a quotation pair (§The skeptic's finding); `artifacts` empty; no file written |
 | `implement` | commits in the snapshot that make the named test command pass, trailers per `AGENTS.md` |
 | `adjudicate` | a ruling at `out/RULING.md` — UPHELD / PARTIAL / REJECTED per finding, and what the reviewers missed |
+
+### The skeptic's finding
+
+A skeptic finding uses the existing four fields. `severity` is `p1`, `p2` or `p3`.
+`where` is the practiced location: it has no whitespace and
+contains `/` or `.`. `claim` has this grammar:
+
+    declared (<location>): <words verbatim>; practiced: <evidence verbatim>; misses: <the broken implementation the test would not catch>
+
+The declared location is non-empty and has no parentheses. The claim is
+split at the first `; practiced: ` and the last `; misses: `. `reproduce`
+is a non-empty command; `null` is refused because an opinion is not a finding.
 
 `verify` is deliberately callable on its own: it is the primitive the
 others lean on, and the one whose answer is mechanical — an exit code
