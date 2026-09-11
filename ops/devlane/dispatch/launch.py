@@ -61,6 +61,10 @@ LANECONF = _module(
     "laneconf",
     APP.parent.parent / "conductor" / "tools" / "laneconf.py",
 )
+CORRECTION = _module(
+    "correction",
+    APP.parent.parent / "conductor" / "tools" / "correction.py",
+)
 ENVELOPE = _module("envelope", APP.parent / "task" / "envelope.py")
 ENVELOPE_SCHEMA_JSON = json.dumps(ENVELOPE.ENVELOPE_SCHEMA, separators=(",", ":"))
 
@@ -358,6 +362,23 @@ def _inside(path, root):
         return True
     except ValueError:
         return False
+
+
+def _symlinked_input(path, jobs_root):
+    candidate = Path(path)
+    candidate = candidate if candidate.is_absolute() else Path.cwd() / candidate
+    if candidate.is_symlink():
+        return True
+    try:
+        relative = candidate.relative_to(Path(jobs_root).absolute())
+    except ValueError:
+        return False
+    current = Path(jobs_root).absolute()
+    for part in relative.parts[:-1]:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
 
 
 def _parse_override(items, agent):
@@ -1439,6 +1460,25 @@ def _launch(args):
         _refuse("empty-comparison", f"{lineage} to differ from ref {ref_sha}",
                 f"an empty comparison at {ref_sha}",
                 f"name a ref on {lineage} with changes to review")
+    stamp = _now()
+    gate = CORRECTION.check(
+        role,
+        args.follows,
+        args.input,
+        args.answers,
+        stamp,
+        repo / ".dev/records/dispatches",
+        _jobs_root(),
+        repo,
+    )
+    for source in args.input:
+        if _symlinked_input(source, _jobs_root()):
+            CORRECTION.refuse(
+                "input",
+                "an input path without symlinked components under the jobs root",
+                f"symlink in {source}",
+                "replace it with a regular input path",
+            )
     job_id = mint_id(stage, args.harness)
     job_dir, snapshot = _job_paths(job_id)
     record_path = repo / ".dev/records/dispatches" / f"{job_id}.json"
@@ -1498,8 +1538,9 @@ def _launch(args):
     rec = record.build({
         "id": job_id, "lane": "dev", "stage": stage, "unit": args.unit or lineage,
         "lineage": {"branch": lineage, "base_sha": tip}, "follows": args.follows,
+        "answers": gate["answers"],
         "job": args.job, "role": role, "dispatched_by": agent,
-        "at": {"launched": _now(), "closed": None},
+        "at": {"launched": stamp, "closed": None},
         "snapshot": {"mode": "whole", "ref_name": args.ref, "ref_sha": ref_sha,
                      "behind_tip": (lambda n: n + 1 if n else 0)(int(
                          _git(repo, "rev-list", "--count", f"{ref_sha}..{lineage}").stdout)),
@@ -2504,6 +2545,7 @@ def _launch_parser():
     p.add_argument("--scope")
     p.add_argument("--input", action="append", default=[])
     p.add_argument("--follows", action="append", default=[])
+    p.add_argument("--answers", action="append", default=[])
     p.add_argument("--override", action="append", default=[])
     return p
 
@@ -2518,6 +2560,9 @@ def main(argv=None):
                     "collect": _collect, "wait": _wait,
                     "brief": _brief}[args.verb](args)
         return _launch(_launch_parser().parse_args(argv))
+    except CORRECTION.Refused as exc:
+        print(exc.line(), file=sys.stderr)
+        return 2
     except Refused as exc:
         print(f"launch.py: refusal: {exc}", file=sys.stderr)
         return REFUSAL
