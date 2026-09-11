@@ -471,6 +471,7 @@
         "effort": "xhigh",
         "model": "gpt-daybreak-blue-latest"
       },
+      "findings": 7,
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/records/dispatches/20260910T233738Z-review-codex-8f5dd0.json",
@@ -484,10 +485,20 @@
         "sha256": "765a06c826ef435835eb34dcba7cc69f681a509ebfe790e0a5dab749f02533b6"
       },
       "job": "security-audit",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "security-re",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T002340Z-review-codex-461253",
-      "stage": "review"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-daybreak-blue-latest",
+        "model_requested": "gpt-daybreak-blue-latest"
+      },
+      "stage": "review",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
