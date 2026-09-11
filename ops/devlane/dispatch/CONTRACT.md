@@ -918,20 +918,23 @@ in `~/.codex/sessions` would report "no stream" and run unsupervised.
 | harness | isolation | read sandbox | write sandbox | containment | model that ran |
 |:--|:--|:--|:--|:--|:--|
 | claude | flags `--setting-sources project,local --strict-mcp-config --disable-slash-commands`; HOME untouched | `acceptEdits`; `--add-dir out` is not OS containment | **not admitted** — no write row until the containment probe below has passed | policy | `~/.claude/projects/<slug>/<session-id>.jsonl`, `assistant` records, `message.model` |
-| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `read-only`; check-tests exception below | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
+| codex | `CODEX_HOME=<job>/home/codex` holding exactly `auth.json` | `workspace-write` under OS containment for every read-role job (LD-14, below) | `workspace-write` | os | `$CODEX_HOME/sessions/Y/M/D/rollout-*.jsonl`, `turn_context.payload.model` (id and cwd from `session_meta`) |
 | grok | `GROK_HOME` **and** `HOME` at `<job>/home/grok`, holding exactly `auth.json`; prompt via `--prompt-file` from the job directory | `always-approve` | `always-approve` | policy; no OS sandbox claimed or invented | `$GROK_HOME/sessions/<url-encoded cwd>/<session-id>/summary.json`, `current_model_id`; read-role `head_commit` equals `snapshot.ref_sha`; write-role `head_commit` equals either that immutable ref or the actual local `HEAD`, which is always verified as its descendant; every other hash is rejected |
 
-**Measured Codex check-tests implementation — not a live containment
-proof.** The check-tests job remains role `read`,
-but its Codex process uses the `workspace-write` sandbox label so it can
-write its document and scratch files under the job `out/`, which is added
-as a writable root; `TMPDIR` is a real, non-symlinked `out/tmp`. Before the
-attempt the launcher strips Unix write bits from the snapshot as hardening,
-but mode bits alone are not a hostile-process security boundary. After the
-attempt, normal read-role settlement invalidates a changed HEAD or any
-residual snapshot path. Other Codex read jobs remain `read-only`; this
-exception does not provide generic file-output support to plan or
-adjudicate. Live vendor containment proof for this path has not run.
+**Measured Codex read-role containment — not a live containment
+proof.** Every Codex job of role `read` (check-tests, security-audit,
+adversarial-review, plan, adjudicate, sweep) keeps its role, but its
+Codex process uses the `workspace-write` sandbox label so it can write
+scratch files under the job `out/`, which is the only writable root;
+`TMPDIR` is a real, non-symlinked `out/tmp`. Before the attempt the
+launcher strips Unix write bits from every snapshot file as hardening,
+but mode bits alone are not a hostile-process security boundary. After
+the attempt, normal read-role settlement invalidates a changed HEAD or
+any residual snapshot path. LD-14 (2026-09-11) widened this from
+check-tests alone: under the `read-only` label Codex ignores
+writable_roots and blocks `TMPDIR`, so three of three security audits
+that day could not execute a suite and judged statically. Live vendor
+containment proof for this path has not run.
 
 For Claude, the snapshot's `.claude/settings.json`
 `permissions.allow` and `permissions.deny` strings are carried on argv
