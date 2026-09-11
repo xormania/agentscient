@@ -49,8 +49,8 @@ dispatcher from the lane configuration, never carried in this table.
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
-| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes, extracted from their records (a whole record names the implementation it follows) | either audit says `changes` |
-| `fix-code` | `implement` | codex | `code` | scope, plan, both audit envelopes, test command | after `fix-tests` |
+| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes, extracted from their records (a whole record names the implementation it follows); dispatch with `--follows <previous>`, `--follows <security>`, `--follows <adversarial>`, and one `--answers KEY` per key for every finding | either audit says `changes` |
+| `fix-code` | `implement` | codex | `code` | scope, plan, both audit envelopes, test command; dispatch with `--follows <previous>`, `--follows <security>`, `--follows <adversarial>`, and one `--answers KEY` per key for every finding | after `fix-tests` |
 | `security-re` | `security-audit` | codex | `review` | scope, plan, original security envelope | after the audit fix round |
 | `pr` | `gh pr create --draft` | none | none | body built from records | audits approve |
 
@@ -95,6 +95,7 @@ one stderr line, stdout empty, and exit 2.
 | 1 | `security-re` still says `changes` | `stopped stage=security-re record=<id> verdict=changes` |
 | 2 | a precondition refuses | the refusal wire |
 | 3 | a stage refuses, trips, dies, records an invalid envelope, violates a guarantee, or an invoked write aborts | the last reading, then `stopped stage=<stage> record=<id-or-none> reason=<class>` |
+| 3 | any audit finding remains undisposed before `fix-tests` or `fix-code` | `undisposed keys: <k1> <k2> …`, then `stopped stage=fix-tests record=none reason=undisposed` or `stopped stage=fix-code record=none reason=undisposed` |
 
 A stage has at most two attempts. Resume uses the requested ladder id,
 never the newest record by implication. If its stopped dispatch record
@@ -103,6 +104,10 @@ without relaunching. Otherwise it relaunches that stage once. A second
 failure stops as `retry-cap`. A tripped or dead stage names
 `launch.py collect` as its remedy; the driver never collects on its own.
 No second fix round and no second skeptic run exist.
+
+Before either fix stage, the driver checks every finding key with the ledger's
+`cited` read. The driver never writes dispositions itself. On `resume`, it
+re-runs the check at the same place; `resume` continues once rows exist.
 
 ## Record
 
@@ -114,7 +119,8 @@ under `.dev/records/ladders/<id>/`, as `ladder: record <id>`, with
 `<UTC stamp>-ladder-<6 hex>`. The record carries:
 
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
-  and PR result;
+  and PR result; `keys` in the ladder record's `stopped` object list every
+  undisposed finding key;
 - scope, optional plan, start inputs, and conf paths with SHA-256 digests,
   and `rescoped` events for any of the first three accepted on resume;
 - ordered stage rows naming job, harness, attempt, input path and
