@@ -1,0 +1,126 @@
+{
+  "id": "20260911T002036Z-code-codex-4de570",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/scope-gate-20260910",
+  "lineage": {
+    "branch": "lane/scope-gate-20260910",
+    "base_sha": "5306aa91829f2d57db6548a33add1b35e7a6c2e5"
+  },
+  "follows": [
+    "20260911T000902Z-tests-grok-7f3dea"
+  ],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T00:20:37Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "5306aa91829f2d57db6548a33add1b35e7a6c2e5",
+    "ref_sha": "5306aa91829f2d57db6548a33add1b35e7a6c2e5",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "b258345a-1b82-404d-b08a-a27d0e7adf12",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_contract.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_correction_contract.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/in/plan-gate-contracts.md",
+        "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/in/20260910T233738Z-review-codex-8f5dd0.json",
+        "sha256": "765a06c826ef435835eb34dcba7cc69f681a509ebfe790e0a5dab749f02533b6"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/in/20260910T234542Z-review-grok-9e3b5d.json",
+        "sha256": "fd9b3d911bb6f888e980f749f1f205a120eeacd96a4b77ffd1d309c4a00f614e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/in/scope-gate-20260910.scope.md",
+        "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002036Z-code-codex-4de570/in/implementation-records.md",
+        "sha256": "837352b8356491dcf6357d31f64c142970d75b5a7544193b89483a704cbc0f53"
+      }
+    ],
+    "sha256": "376aad8fdf1c45ad20cb124b07138be26a1eb4202648e7ced47c8e88a731b230",
+    "bytes": 4652
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
