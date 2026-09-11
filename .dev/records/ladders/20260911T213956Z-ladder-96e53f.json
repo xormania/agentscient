@@ -523,6 +523,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 5.337947,
       "name": "security-re",
       "outcome": "ok",
       "record": "20260911T232448Z-review-codex-5cb35f",
