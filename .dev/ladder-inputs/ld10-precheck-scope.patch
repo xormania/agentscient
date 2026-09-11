@@ -1,0 +1,94 @@
+--- a/ops/devlane/hooks/claude/context-precheck.py
++++ b/ops/devlane/hooks/claude/context-precheck.py
+@@ -9,10 +9,11 @@
+ publishing, deploying: those leave the machine and cannot be taken back, and those are the
+ only ones worth interrupting.
+ 
+-Fetch before every such command, then compare: if nothing moved, the command proceeds
+-silently. If a tracked ref did move, it stops — because at that point every distance,
+-merge-base and ahead/behind computed earlier is genuinely wrong, and the reason says
+-exactly which ref changed and by how much.
++Fetch before every such command, then compare the refs the command depends on: the
++pushed branch's own remote ref, and for a PR its base. If none moved, the command proceeds
++silently. If one did, it stops — because at that point every distance, merge-base and
++ahead/behind computed earlier is genuinely wrong, and the reason says exactly which ref
++changed and by how much. Movement on other refs is another lineage's business (LD-10).
+ 
+ Denying on actual movement interrupts rarely and always has something to say.
+ 
+@@ -183,6 +184,65 @@
+     return refs
+ 
+ 
++PR_BASE = re.compile(r"--base(?:=|\s+)(\S+)")
++
++
++def current_branch(selected):
++    """The checked-out branch of the selected repository, or None when detached."""
++    try:
++        proc = subprocess.run(["git", *selected, "symbolic-ref", "--short", "-q", "HEAD"],  # noqa: S603, S607 — PATH git; the arguments are options this hook read out of the command
++                              capture_output=True, text=True, timeout=10, check=False)
++    except Exception:
++        logging.exception("could not read the current branch")
++        return None
++    return proc.stdout.strip() or None
++
++
++def push_targets(cmd):
++    """`remote/branch` for every explicit push destination in the command."""
++    targets = []
++    for stmt in statements(cmd):
++        words = [_unquote(w) for w in tokens(stmt)]
++        if "push" not in words:
++            continue
++        rest = [w for w in words[words.index("push") + 1:] if not w.startswith("-")]
++        if len(rest) >= 2:
++            remote, *refspecs = rest
++            for spec in refspecs:
++                dst = spec.lstrip("+").split(":")[-1]
++                if dst:
++                    targets.append(f"{remote}/{dst.rsplit('/', 1)[-1]}")
++    return targets
++
++
++def relevant_refs(cmd, selected, refs):
++    """The remote-tracking refs this command's outcome depends on.
++
++    A push depends on the pushed branch's own remote ref; opening or editing
++    a PR depends on its base too, the named one or the remote's default
++    branch. Movement elsewhere is another lineage's business: two worktrees
++    on two branches must not refuse each other's merges. Detached, or a
++    command this hook cannot read, keeps the old breadth: every ref.
++    """
++    branch = current_branch(selected)
++    targets = push_targets(cmd)
++    if branch is None and not targets:
++        return set(refs)
++    wanted = set()
++    if branch:
++        wanted |= {r for r in refs if r.endswith("/" + branch)}
++    for target in targets:
++        tail = target.split("/", 1)[-1]
++        wanted |= {r for r in refs if r == target or r.endswith("/" + tail)}
++    if any(re.match(r"gh\b.*\bpr\b", c) for c in commands(cmd)):
++        base = PR_BASE.search(cmd)
++        if base:
++            wanted |= {r for r in refs if r.endswith("/" + base.group(1))}
++        else:
++            wanted |= {r for r in refs if r.endswith("/HEAD")}
++    return wanted
++
++
+ def main():
+     try:
+         payload = json.load(sys.stdin)
+@@ -208,7 +268,8 @@
+             sys.exit(0)          # offline or slow: never block work over it
+     after = tracked_refs(git_dir)
+ 
+-    moved = [(r, before[r], after[r]) for r in sorted(set(before) & set(after))
++    relevant = relevant_refs(cmd, selected_repo(cmd), set(before) & set(after))
++    moved = [(r, before[r], after[r]) for r in sorted(relevant)
+              if before[r] != after[r]]
+     if not moved:
+         sys.exit(0)              # fetched, nothing changed, carry on — no interruption
