@@ -164,7 +164,8 @@
       },
       "job": "implement",
       "name": "code",
-      "outcome": "launched",
+      "outcome": "stopped",
+      "reason": "envelope",
       "record": "20260911T032424Z-code-codex-f94a44",
       "stage": "code"
     },
@@ -223,7 +224,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "envelope",
+    "record": "20260911T032424Z-code-codex-f94a44",
+    "stage": "code",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911"
 }
