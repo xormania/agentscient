@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T03:07:03Z",
-    "closed": null
+    "closed": "2026-09-11T03:14:52Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-07-03-01a08e6e-d77d-7930-87a9-c680f3bf11e7.jsonl"
   },
   "session": {
-    "id": "7cabe227-7ab7-466e-be92-60739285a7f8",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08e6e-d77d-7930-87a9-c680f3bf11e7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-07-03-01a08e6e-d77d-7930-87a9-c680f3bf11e7.jsonl",
+    "stream_sha256_at_close": "3a33d33365adb4361fc0b35ca6639525446f8746d6cf73cb0f8d7167e901203a",
+    "spend": {
+      "input": 802563,
+      "cached": 713216,
+      "output": 18980,
+      "total": 821543,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-07-03-01a08e6e-d77d-7930-87a9-c680f3bf11e7.jsonl",
+      "messages": 176
+    }
   },
   "brief": {
     "template": {
@@ -117,10 +124,79 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:07:03Z",
+      "ended": "2026-09-11T03:14:52Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "6124ae9c9a6de6fb9595a3594c6194ffd28bca89",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:133",
+          "claim": "Observation: no numbered Contract item requires two or three --follows edges. These tests reject a compliant correction that follows one review record and names every answer.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '133,185p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '21,32p;56,61p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:96",
+          "claim": "Observation: the shared assertions impose an exact input/follows/answers option order absent from Contract items 1, 2, and 9, rejecting otherwise compliant argv.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '96,131p;133,215p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '21,32p;56,61p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:171",
+          "claim": "Contract item 9 is not exercised: the test manually supplies flags to the wrapper, so a broken ladder that skips the ledger check and immediately launches fix stages would pass.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '15,23p;171,185p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '56,61p'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_dispatch_wrapper_answers.py:227",
+          "claim": "Observation: refusal of an unrelated undocumented flag occurs in none of the ten Contract items, so this test freezes an out-of-scope parser policy.",
+          "reproduce": "nl -ba ops/conductor/tests/test_dispatch_wrapper_answers.py | sed -n '227,233p'; nl -ba .dev/ladder-inputs/scope-gate-20260910.md | sed -n '21,63p'"
+        }
+      ],
+      "artifacts": {
+        "report": "/home/scientdb/.local/state/agentscient/dispatch/20260911T030702Z-check-tests-codex-5f3a98/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 821543,
+        "out": 18980,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "6124ae9c9a6de6fb9595a3594c6194ffd28bca89"
+      },
+      "note": "Review only; no implementation was read. The guard accepted all plants. The seven-test run produced five assertion failures and zero errors."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T03:14:52.054Z"
+    }
+  },
+  "status": "closed"
 }
