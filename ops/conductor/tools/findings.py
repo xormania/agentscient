@@ -331,9 +331,25 @@ def do_calibrate(argv):
 
 def do_export(argv):
     calibration = argv == ["--calibration"]
+    # Triage 2026-09-11: `export` prints to stdout, which left the tracked
+    # export unchanged after a disposition until someone redirected it;
+    # `--write [PATH]` regenerates the file (default: the tracked export).
+    write_to = None
+    if argv[:1] == ["--write"]:
+        if len(argv) > 2:
+            refuse("arguments", "export --write [PATH]", " ".join(argv), "give at most one path")
+        write_to = Path(argv[1]) if len(argv) == 2 else ROOT / "ops" / "conductor" / "findings" / "findings.jsonl"
+        argv = []
     if argv and not calibration:
-        refuse("arguments", "nothing or --calibration after export", " ".join(argv), "drop or correct it")
+        refuse("arguments", "nothing, --calibration or --write [PATH] after export", " ".join(argv), "drop or correct it")
     con = connect()
+    if write_to is not None:
+        rows = [json.dumps({c: row[c] for c in COLUMNS}, sort_keys=True) + "\n"
+                for row in con.execute("SELECT * FROM findings ORDER BY record, n")]
+        write_to.parent.mkdir(parents=True, exist_ok=True)
+        write_to.write_text("".join(rows), encoding="utf-8")
+        print(f"wrote {len(rows)} row(s) to {write_to}")
+        return 0
     if calibration:
         text = "".join(
             json.dumps({c: row[c] for c in CALIBRATION_COLUMNS}, sort_keys=True) + "\n"
