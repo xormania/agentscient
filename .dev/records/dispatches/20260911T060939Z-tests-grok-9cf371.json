@@ -1,0 +1,120 @@
+{
+  "id": "20260911T060939Z-tests-grok-9cf371",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/gate-ladder-stop-20260911",
+  "lineage": {
+    "branch": "lane/gate-ladder-stop-20260911",
+    "base_sha": "65379de25adc90e229877e293fc1de8c9855d6a2"
+  },
+  "follows": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T06:09:40Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "65379de25adc90e229877e293fc1de8c9855d6a2",
+    "ref_sha": "65379de25adc90e229877e293fc1de8c9855d6a2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "96f01c8b-2f0b-450a-b81b-0096ae30aeff",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "96f01c8b-2f0b-450a-b81b-0096ae30aeff",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/in/plan-ladder-stop-gate.md",
+        "sha256": "e25a3225673b983af2def10da377f56c00f92e39726a3bf917a723554443d03f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "d1117e0ab7695e71b52b69da8b04a9f1ba86e076d616d2d8a28dac4f9add9818",
+    "bytes": 3360,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
