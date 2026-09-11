@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T03:45:57Z",
-    "closed": null
+    "closed": "2026-09-11T03:50:44Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -73,14 +73,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034548Z-review-codex-225808/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-45-58-01a08e92-78d3-7b73-b8b5-2d06dbd547c4.jsonl"
   },
   "session": {
-    "id": "c49edaf5-2c2d-4c9c-90a2-c3f4f3ffd8aa",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08e92-78d3-7b73-b8b5-2d06dbd547c4",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034548Z-review-codex-225808/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-45-58-01a08e92-78d3-7b73-b8b5-2d06dbd547c4.jsonl",
+    "stream_sha256_at_close": "3e86f25e8709f8462d78a05ebeecb1aadb1841f3e3b9ac93318d3d79e7805466",
+    "spend": {
+      "input": 2830051,
+      "cached": 2694108,
+      "output": 16323,
+      "total": 2846374,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T034548Z-review-codex-225808/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T23-45-58-01a08e92-78d3-7b73-b8b5-2d06dbd547c4.jsonl",
+      "messages": 256
+    }
   },
   "brief": {
     "template": {
@@ -112,10 +119,58 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T03:45:58Z",
+      "ended": "2026-09-11T03:50:44Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "c578dbb1b90d9397016949a5f140508c799a0ee2",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "diff": "../context/diff.patch",
+        "scope": ".dev/ladder-inputs/scope-gate-20260910.md",
+        "discipline": ".dev/ladder-inputs/scope-discipline.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2846374,
+        "out": 16323,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "c578dbb1b90d9397016949a5f140508c799a0ee2",
+        "started": "2026-09-11T03:46:35Z",
+        "ended": "2026-09-11T03:50:34Z"
+      },
+      "note": "Reviewed argv/shell handling, SQL/template seams, all 11 changed files for credentials, path/ref containment, sandbox records, vendor-output handling, modes, and supply-chain surfaces; zero findings. bash -n, ruff --no-cache, and the tracked secret scanner passed. Frozen tests could not run because the read-only audit sandbox had no writable temporary directory. No live harness/network probe was attempted; the session store was not read."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T03:50:43.735Z"
+    }
+  },
+  "status": "closed"
 }
