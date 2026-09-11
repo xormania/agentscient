@@ -924,6 +924,58 @@ class MatrixHookTests(unittest.TestCase):
         self.assert_allowed(self.run_bash("ops/devlane/dispatch/launch.py --help"))
         self.assert_allowed(self.run_bash("python3 ops/devlane/dispatch/launch.py -h"))
 
+    # --- deliverable lock (owner 2026-09-11: "an immediate FIX to stop that") ---
+
+    def _lock(self, *branches):
+        path = self.home / ".local" / "state" / LANE_NAME / "deliverable.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"branches": list(branches), "why": "the slices",
+                                    "by": "Owner <o@x>", "at": "2026-09-11T07:00:00Z"}) + "\n")
+        self.assertIn(branches[0], path.read_text(), "plant: lock names the branch")
+
+    def _repo_branch(self):
+        return support.git(self.repo, self.env, "symbolic-ref", "--short", "HEAD").stdout.strip()
+
+    def test_without_a_lock_new_branches_and_dispatches_pass(self):
+        self.assert_allowed(self.run_bash("git worktree add ../wt/ag-other -b lane/other"))
+        self.assert_allowed(self.run_bash("git checkout -b lane/other"))
+        self.assert_allowed(self.run_bash("gh pr create --draft --head lane/other --title t --body-file b"))
+
+    def test_a_new_worktree_or_branch_outside_the_lock_is_refused(self):
+        self._lock("lane/one", "lane/two")
+        for cmd in ("git worktree add ../wt/ag-other -b lane/other",
+                    "git worktree add ../wt/ag-other lane/other",
+                    "git checkout -b lane/other",
+                    "git switch -c lane/other"):
+            with self.subTest(cmd=cmd):
+                proc = self.run_bash(cmd)
+                self.assert_denied(proc, "deliverable")
+                self.assertIn("lane/one, lane/two", proc.stdout)
+                self.assertIn("deliverable.py clear", proc.stdout)
+
+    def test_the_named_branches_stay_open_in_parallel(self):
+        self._lock("lane/one", "lane/two")
+        self.assert_allowed(self.run_bash("git worktree add ../wt/ag-one -b lane/one"))
+        self.assert_allowed(self.run_bash("git checkout -b lane/two"))
+        self.assert_allowed(self.run_bash("gh pr create --draft --head lane/two --title t --body-file b"))
+        self.assert_allowed(self.run_bash("ops/bin/ladder.sh scope.md lane/one plan.md"))
+        self.assert_allowed(self.run_bash("ops/bin/ladder.sh resume 20260911T000000Z-ladder-abcdef"))
+
+    def test_a_dispatch_ladder_or_pr_outside_the_lock_is_refused(self):
+        self._lock("lane/one")
+        self.assert_denied(self.run_bash("gh pr create --draft --head lane/other --title t --body-file b"), "deliverable")
+        self.assert_denied(self.run_bash("ops/bin/ladder.sh scope.md lane/other plan.md"), "deliverable")
+        self.assert_denied(self.run_bash(self.dispatch(job="plan", extra="--branch lane/other")), "deliverable")
+        self.assert_denied(self.run_bash(self.dispatch(job="plan")), "deliverable")  # --worktree on the fixture repo's branch
+
+    def test_a_dispatch_on_the_worktree_of_a_named_branch_passes(self):
+        self._lock(self._repo_branch())
+        self.assert_allowed(self.run_bash(self.dispatch(job="plan")))
+
+    def test_no_grant_escapes_the_lock(self):
+        self._lock("lane/one")
+        self.assert_denied(self.run_bash(f"HAND_GRANT={GRANT_OPEN} git checkout -b lane/other"), "deliverable")
+
     # --- graft-first (owner 2026-09-11: "go - force it") ---
 
     def _graft_log(self):

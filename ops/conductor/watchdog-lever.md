@@ -54,6 +54,16 @@ reported unless `--report-existing`.
 - `closed <id> status=<s> env=<envelope status> changed=<n> after <m> min`
   — `m` from `at.launched` to `at.closed`; `changed` is the count of
   `result.changed_paths`, or `unknown`.
+- `drift <id>: branch <b> outside the deliverable (<branches>)` — while
+  `<state>/<lane>/deliverable.json` names branches (`deliverable.py set`),
+  a record launched after the lock whose lineage branch is not named;
+  `drift PR #<n>: head <b> outside the deliverable (...)` for an open PR
+  into the trunk from an unnamed branch. Counted as a deviation.
+- `stall <b>: no dispatch running, <m> min since <id|the lock>` — a named
+  branch with nothing running and its newest record closed STALL_MIN (45)
+  minutes ago or more; `stall <b>: ladder <id> stopped <reason> at <stage>`
+  for a stopped ladder on a named branch. Counted as a deviation. Owner,
+  2026-09-11: the watchdog watches the conductor, not only the workers.
 - `harness gone <id> after <m> min: pid <p> dead, no exit written` —
   `state.json`'s pid is not a live process whose command line carries
   the harness name (a reused pid is not the worker; EPERM is alive).
