@@ -198,6 +198,17 @@ def current_branch(selected):
     return proc.stdout.strip() or None
 
 
+def default_branch(selected):
+    """`origin/main`-style name the remote's HEAD points at, or None."""
+    try:
+        proc = subprocess.run(["git", *selected, "symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD"],  # noqa: S603, S607 — PATH git; the arguments are options this hook read out of the command
+                              capture_output=True, text=True, timeout=10, check=False)
+    except Exception:
+        logging.exception("could not read the remote default branch")
+        return None
+    return proc.stdout.strip() or None
+
+
 def push_targets(cmd):
     """`remote/branch` for every explicit push destination in the command."""
     targets = []
@@ -221,16 +232,14 @@ def relevant_refs(cmd, selected, refs):
     A push depends on the pushed branch's own remote ref; opening or editing
     a PR depends on its base too, the named one or the remote's default
     branch. Movement elsewhere is another lineage's business: two worktrees
-    on two branches must not refuse each other's merges. Detached, or a
-    command this hook cannot read, keeps the old breadth: every ref.
+    on two branches must not refuse each other's merges. Detached HEAD keeps the
+    old breadth, every ref, whatever the command names.
     """
     branch = current_branch(selected)
-    targets = push_targets(cmd)
-    if branch is None and not targets:
+    if branch is None:
         return set(refs)
-    wanted = set()
-    if branch:
-        wanted |= {r for r in refs if r.endswith("/" + branch)}
+    targets = push_targets(cmd)
+    wanted = {r for r in refs if r.endswith("/" + branch)}
     for target in targets:
         tail = target.split("/", 1)[-1]
         wanted |= {r for r in refs if r == target or r.endswith("/" + tail)}
@@ -239,7 +248,11 @@ def relevant_refs(cmd, selected, refs):
         if base:
             wanted |= {r for r in refs if r.endswith("/" + base.group(1))}
         else:
-            wanted |= {r for r in refs if r.endswith("/HEAD")}
+            default = default_branch(selected)
+            if default is None:
+                return set(refs)
+            # for-each-ref shortens the symbolic origin/HEAD to plain "origin".
+            wanted |= {r for r in refs if r == default or r == default.split("/", 1)[0]}
     return wanted
 
 

@@ -1,5 +1,5 @@
 diff --git a/ops/devlane/hooks/claude/context-precheck.py b/ops/devlane/hooks/claude/context-precheck.py
-index 10b3c7e..92a388a 100755
+index 10b3c7e..77f6a9e 100755
 --- a/ops/devlane/hooks/claude/context-precheck.py
 +++ b/ops/devlane/hooks/claude/context-precheck.py
 @@ -9,10 +9,11 @@ committing locally — all reversible, all silent here. Pushing, opening or edit
@@ -18,7 +18,7 @@ index 10b3c7e..92a388a 100755
  
  Denying on actual movement interrupts rarely and always has something to say.
  
-@@ -183,6 +184,65 @@ def tracked_refs(git_dir):
+@@ -183,6 +184,78 @@ def tracked_refs(git_dir):
      return refs
  
  
@@ -32,6 +32,17 @@ index 10b3c7e..92a388a 100755
 +                              capture_output=True, text=True, timeout=10, check=False)
 +    except Exception:
 +        logging.exception("could not read the current branch")
++        return None
++    return proc.stdout.strip() or None
++
++
++def default_branch(selected):
++    """`origin/main`-style name the remote's HEAD points at, or None."""
++    try:
++        proc = subprocess.run(["git", *selected, "symbolic-ref", "-q", "--short", "refs/remotes/origin/HEAD"],  # noqa: S603, S607 — PATH git; the arguments are options this hook read out of the command
++                              capture_output=True, text=True, timeout=10, check=False)
++    except Exception:
++        logging.exception("could not read the remote default branch")
 +        return None
 +    return proc.stdout.strip() or None
 +
@@ -59,16 +70,14 @@ index 10b3c7e..92a388a 100755
 +    A push depends on the pushed branch's own remote ref; opening or editing
 +    a PR depends on its base too, the named one or the remote's default
 +    branch. Movement elsewhere is another lineage's business: two worktrees
-+    on two branches must not refuse each other's merges. Detached, or a
-+    command this hook cannot read, keeps the old breadth: every ref.
++    on two branches must not refuse each other's merges. Detached HEAD keeps the
++    old breadth, every ref, whatever the command names.
 +    """
 +    branch = current_branch(selected)
-+    targets = push_targets(cmd)
-+    if branch is None and not targets:
++    if branch is None:
 +        return set(refs)
-+    wanted = set()
-+    if branch:
-+        wanted |= {r for r in refs if r.endswith("/" + branch)}
++    targets = push_targets(cmd)
++    wanted = {r for r in refs if r.endswith("/" + branch)}
 +    for target in targets:
 +        tail = target.split("/", 1)[-1]
 +        wanted |= {r for r in refs if r == target or r.endswith("/" + tail)}
@@ -77,14 +86,18 @@ index 10b3c7e..92a388a 100755
 +        if base:
 +            wanted |= {r for r in refs if r.endswith("/" + base.group(1))}
 +        else:
-+            wanted |= {r for r in refs if r.endswith("/HEAD")}
++            default = default_branch(selected)
++            if default is None:
++                return set(refs)
++            # for-each-ref shortens the symbolic origin/HEAD to plain "origin".
++            wanted |= {r for r in refs if r == default or r == default.split("/", 1)[0]}
 +    return wanted
 +
 +
  def main():
      try:
          payload = json.load(sys.stdin)
-@@ -208,7 +268,8 @@ def main():
+@@ -208,7 +281,8 @@ def main():
              sys.exit(0)          # offline or slow: never block work over it
      after = tracked_refs(git_dir)
  
