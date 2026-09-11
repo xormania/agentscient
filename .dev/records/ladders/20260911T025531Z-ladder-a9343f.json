@@ -282,6 +282,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 4.587897,
       "name": "security",
       "outcome": "ok",
       "record": "20260911T034548Z-review-codex-225808",
