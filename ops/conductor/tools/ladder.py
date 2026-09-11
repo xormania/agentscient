@@ -123,6 +123,47 @@ def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
     raise Refused(kind, expected, found, needed)
 
 
+RESUME_FORM = "resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]"
+
+
+def resume_options(args: list[str]) -> tuple[bool, tuple[str, str] | None]:
+    """(rescope, retry) from ``resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]``.
+
+    LD-19: ``--retry`` names a stage at its two-attempt cap and ``--because``
+    the reason one more attempt is honest (a driver-caused stop, not the
+    worker's); both are recorded on the stage row when the attempt is minted.
+    """
+    if len(args) < 2:
+        refuse("arguments", RESUME_FORM, " ".join(args), "pass the named record id")
+    rescope = False
+    stage: str | None = None
+    because: str | None = None
+    rest = list(args[2:])
+    while rest:
+        flag = rest.pop(0)
+        if flag == "--rescope":
+            rescope = True
+        elif flag in ("--retry", "--because") and rest:
+            value = rest.pop(0)
+            if flag == "--retry":
+                stage = value
+            else:
+                because = value
+        else:
+            refuse("arguments", RESUME_FORM, " ".join(args), "choose the documented resume form")
+    if (stage is None) != (because is None):
+        refuse("arguments", "--retry STAGE together with --because TEXT", " ".join(args),
+               "name both the stage and the reason")
+    if stage is None:
+        return rescope, None
+    if stage not in {row[0] for row in DISPATCH_STAGES}:
+        refuse("arguments", "a dispatch stage for --retry", stage,
+               "one of " + ", ".join(row[0] for row in DISPATCH_STAGES))
+    if not because.strip():
+        refuse("arguments", "a non-empty --because", repr(because), "say why one more attempt is honest")
+    return rescope, (stage, because)
+
+
 def _load_laneconf() -> ModuleType:
     global _LANECONF  # noqa: PLW0603 - one lazily loaded sibling module
     if _LANECONF is not None:
@@ -415,6 +456,8 @@ class Driver:
         self.worktree = worktree
         self.branch = branch
         self.scope = scope
+        # LD-19: one recorded extra attempt, set by resume --retry.
+        self.retry: tuple[str, str] | None = None
         self.plan = plan
         self.conf = conf
         self.agent = agent
@@ -1125,7 +1168,7 @@ class Driver:
                 result = self.finish(pending, already_closed=(dispatch_record, envelope))
                 records[name] = pending.record_id
                 return result, pending.record_id
-            if int(row.get("attempt") or 0) >= 2:
+            if int(row.get("attempt") or 0) >= 2 and not self.retry_granted(name):
                 raise Stopped(
                     name,
                     str(row.get("dispatch_record") or "none"),
@@ -1154,6 +1197,24 @@ class Driver:
                 ) from stopped
             raise
 
+    def retry_granted(self, name: str) -> bool:
+        """LD-19: one recorded extra attempt for the stage named by
+        ``resume --retry STAGE --because TEXT``, for a cap the driver's own
+        command caused. Written on the stage row and spent once."""
+        retry = self.retry
+        if not retry or retry[0] != name:
+            return False
+        row = self.row(name)
+        if row.get("retry"):
+            return False
+        row["retry"] = {
+            "because": retry[1],
+            "at": utc_stamp(),
+            "by": self.agent,
+            "from_attempt": int(row.get("attempt") or 0),
+        }
+        return True
+
     def mark_skipped(self, name: str, condition: str) -> None:
         row = self.row(name)
         row["condition"] = condition
@@ -1171,6 +1232,12 @@ class Driver:
                     path.suffix != ".py"
                     or "tests" not in path.parts[:-1]
                     or re.search(r"[;&|\r\n]", value)
+                    # LD-19: only test modules (unittest's default pattern)
+                    # become commands; a support module under tests/ rides
+                    # as an artifact. A discover over launch_support.py
+                    # found zero tests, exited 5 and consumed both code
+                    # attempts of ladder fd103b.
+                    or not path.name.startswith("test")
                 ):
                     continue
                 # LD-15: the command names the tree, never a worker's
@@ -1693,7 +1760,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args:
             refuse(
                 "arguments",
-                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope]",
+                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]",
                 "no arguments",
                 "choose one documented form",
             )
@@ -1701,14 +1768,7 @@ def main(argv: list[str] | None = None) -> int:
         agent = os.environ.get("WF_AGENT", "")
         resume = args[0] == "resume"
         if resume:
-            rescope_flag = len(args) == 3 and args[2] == "--rescope"
-            if len(args) != 2 and not rescope_flag:
-                refuse(
-                    "arguments",
-                    "resume LADDER_ID [--rescope]",
-                    " ".join(args),
-                    "pass the named record id",
-                )
+            rescope_flag, retry = resume_options(args)
             worktree, record = record_worktree(cwd, args[1])
             branch = record.get("branch")
             if not isinstance(branch, str) or not branch:
@@ -1786,6 +1846,8 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
         driver = Driver(worktree, branch, scope, plan, conf, agent, record, start_inputs)
+        if resume:
+            driver.retry = retry
         if not resume and args[0] == "--dry-run":
             return dry_run(driver)
         url = driver.run(resume=resume)
