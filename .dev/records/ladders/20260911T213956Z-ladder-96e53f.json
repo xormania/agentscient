@@ -129,7 +129,8 @@
       },
       "job": "author-tests",
       "name": "tests-fix",
-      "outcome": "pending",
+      "outcome": "stopped",
+      "reason": "correction",
       "stage": "tests"
     },
     {
@@ -196,7 +197,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "correction",
+    "record": "none",
+    "stage": "tests-fix",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911"
 }
