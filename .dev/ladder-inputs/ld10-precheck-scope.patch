@@ -1,6 +1,8 @@
+diff --git a/ops/devlane/hooks/claude/context-precheck.py b/ops/devlane/hooks/claude/context-precheck.py
+index 10b3c7e..92a388a 100755
 --- a/ops/devlane/hooks/claude/context-precheck.py
 +++ b/ops/devlane/hooks/claude/context-precheck.py
-@@ -9,10 +9,11 @@
+@@ -9,10 +9,11 @@ committing locally — all reversible, all silent here. Pushing, opening or edit
  publishing, deploying: those leave the machine and cannot be taken back, and those are the
  only ones worth interrupting.
  
@@ -16,7 +18,7 @@
  
  Denying on actual movement interrupts rarely and always has something to say.
  
-@@ -183,6 +184,65 @@
+@@ -183,6 +184,65 @@ def tracked_refs(git_dir):
      return refs
  
  
@@ -82,7 +84,7 @@
  def main():
      try:
          payload = json.load(sys.stdin)
-@@ -208,7 +268,8 @@
+@@ -208,7 +268,8 @@ def main():
              sys.exit(0)          # offline or slow: never block work over it
      after = tracked_refs(git_dir)
  
