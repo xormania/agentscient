@@ -491,7 +491,7 @@
       },
       "minutes": 6.25416,
       "name": "security-re",
-      "outcome": "ok",
+      "outcome": "changes",
       "record": "20260911T002340Z-review-codex-461253",
       "recorded": {
         "effort": "xhigh",
@@ -511,7 +511,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": null,
+    "record": "20260911T002340Z-review-codex-461253",
+    "stage": "security-re",
+    "verdict": "changes"
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910"
 }
