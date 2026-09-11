@@ -73,10 +73,15 @@ DRIVER = "ladder.sh"
 # Launcher verbs that launch nothing: they read a record the dispatcher
 # already minted. ops/README.md documents the wait verb; the lane conf the
 # direct-launch row protects is applied at the mint, not at a read.
-LAUNCHER_READ_VERBS = ("status", "wait", "brief")
+LAUNCHER_READ_VERBS = ("status", "wait", "brief", "help")
 SCOPE_CAP_DEFAULT = 1024
 COPY_WORDS = ("cp", "mv", "install", "rsync", "ln")
-GRANT = re.compile(r"^\s*(?:export\s+)?HAND_GRANT=(\d+)\b")
+# Triage 2026-09-11: the grant may follow other leading assignments
+# (`export WF_AGENT='Name <a@b>' HAND_GRANT=12 && ...`); quoted values may
+# carry spaces.
+GRANT = re.compile(
+    r"^\s*(?:export\s+)?(?:\w+=(?:'[^']*'|\"[^\"]*\"|\S*)\s+)*HAND_GRANT=(\d+)\b"
+)
 WHOLE_SUITE = re.compile(r"suites\.sh|unittest\s+discover(?![^\n]*\s-p\s)")
 WALK_HEADING = re.compile(r"^#{1,6}\s+first-run walkthrough\b", re.IGNORECASE | re.MULTILINE)
 WALK_LINE = re.compile(r"^\s*[-*]\s*assumption\b.*\b(measured|refusal)\b", re.IGNORECASE | re.MULTILINE)
@@ -532,6 +537,8 @@ def dispatch_args(tokens):
     flags = {"input": [], "command": name}
     if kind == "launcher" and program + 1 < len(tokens) and not tokens[program + 1].startswith("-"):
         flags["verb"] = tokens[program + 1]
+    elif kind == "launcher" and program + 1 < len(tokens) and tokens[program + 1] in ("--help", "-h"):
+        flags["verb"] = "help"  # triage 2026-09-11: reading the usage is a read
     it = iter(tokens)
     for flag in it:
         if flag in ("--scope-file", "--worktree", "--job", "--model", "--effort", "--harness", "--stage", "--unit"):
@@ -720,7 +727,12 @@ def check_text(text, cwd, depth=0):
                         f"a path-form unittest argument {unittest_path}", "the discover form")
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
-                refusal = check_text(toks[2], cwd, depth + 1)
+                # Triage 2026-09-11: the outer command's grant covers the
+                # body it runs; without this a granted `bash -c` was refused.
+                body = toks[2]
+                if grant is not None:
+                    body = f"HAND_GRANT={grant[0]} {body}"
+                refusal = check_text(body, cwd, depth + 1)
                 if refusal:
                     return refusal
             else:
