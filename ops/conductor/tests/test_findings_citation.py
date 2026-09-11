@@ -37,13 +37,8 @@ VALID_EVIDENCE = (
     "contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: "
     "found-text missing"
 )
-SCOPE_BODY = (
-    "# Work order\n"
-    "\n"
-    "1. **Correction, defined mechanically.**\n"
-    "2. **Findings are named, not inferred.**\n"
-    "3. **Refusal at mint, on the wire.**\n"
-    "4. **Citation shape.**\n"
+SCOPE_BODY = "# Work order\n\n" + "".join(
+    f"{n}. Item {n} of the work order.\n" for n in range(1, 11)
 )
 OTHER_BODY = "# Other\n\n1. **A numbered item on another file.**\n"
 ABSENT_STUB = (
@@ -52,6 +47,10 @@ ABSENT_STUB = (
     b"sys.exit(0)\n"
 )
 RUN_CAP = 30
+
+
+def evidence_for(item: int, path: str = SCOPE_REL, why: str = "why") -> str:
+    return f"contract item {item} of {path}: {why}"
 
 
 def _live_snapshot() -> tuple[str, bytes | None]:
@@ -222,6 +221,14 @@ class _CitationFixture(unittest.TestCase):
             con.close()
         return [row[0] for row in rows]
 
+    def dispose(self, key: str, disposition: str, evidence: str):
+        proc = self.invoke(
+            ["disposition", key, disposition, evidence],
+            extra_env={"WF_AGENT": AGENT},
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        return proc
+
 
 class ParseCitation(unittest.TestCase):
     """Item 4 / R1 — grammar only: item and path, colon is a delimiter."""
@@ -256,6 +263,38 @@ class ParseCitation(unittest.TestCase):
         )
         self.assertFalse(path.endswith(":"))
 
+    def test_CITATION_is_the_grammar_and_stops_before_colon_comma_semicolon(self):
+        pat = getattr(self.mod, "CITATION", None)
+        self.assertIsNotNone(pat, "item 4: the grammar is data named CITATION")
+        search = getattr(pat, "search", None)
+        self.assertTrue(callable(search), "CITATION must be a regex")
+        matched = pat.search(VALID_EVIDENCE)
+        self.assertIsNotNone(matched, "CITATION must match prescribed evidence")
+        self.assertEqual(matched.group("item"), "3")
+        self.assertEqual(matched.group("path"), SCOPE_REL)
+        comma = pat.search(f"contract item 3 of {SCOPE_REL},trail: why")
+        self.assertIsNotNone(comma)
+        self.assertEqual(comma.group("path"), SCOPE_REL)
+        self.assertNotIn(",", comma.group("path"))
+        semi = pat.search(f"contract item 3 of {SCOPE_REL};trail: why")
+        self.assertIsNotNone(semi)
+        self.assertEqual(semi.group("path"), SCOPE_REL)
+        self.assertNotIn(";", semi.group("path"))
+
+    def test_every_numbered_item_from_1_through_10_parses(self):
+        valid = _item_path(self.parse(VALID_EVIDENCE))
+        self.assertIsNotNone(valid, "grammar must parse the prescribed evidence")
+        for n in range(1, 11):
+            with self.subTest(item=n):
+                captured = _item_path(self.parse(evidence_for(n)))
+                self.assertIsNotNone(
+                    captured,
+                    f"item 4: contract item {n} must parse",
+                )
+                item, path = captured
+                self.assertEqual(item, str(n))
+                self.assertEqual(path, SCOPE_REL)
+
     def test_missing_of_is_rejected(self):
         valid = _item_path(self.parse(VALID_EVIDENCE))
         got = self.parse(
@@ -289,6 +328,39 @@ class ParseCitation(unittest.TestCase):
             "a leading zero is not a numbered item [1-9][0-9]*",
         )
 
+    def test_comma_at_the_path_boundary_does_not_enter_the_path(self):
+        valid = _item_path(self.parse(VALID_EVIDENCE))
+        got = _item_path(
+            self.parse(f"contract item 3 of {SCOPE_REL},trail: why")
+        )
+        self.assertIsNotNone(valid, "grammar must parse the prescribed evidence")
+        self.assertIsNotNone(
+            got,
+            "R1: comma is a path delimiter, so the path before it still parses",
+        )
+        item, path = got
+        self.assertEqual(item, "3")
+        self.assertEqual(path, SCOPE_REL)
+        self.assertNotIn(",", path)
+        self.assertNotIn("trail", path)
+
+    def test_semicolon_at_the_path_boundary_does_not_enter_the_path(self):
+        valid = _item_path(self.parse(VALID_EVIDENCE))
+        got = _item_path(
+            self.parse(f"contract item 3 of {SCOPE_REL};trail: why")
+        )
+        self.assertIsNotNone(valid, "grammar must parse the prescribed evidence")
+        self.assertIsNotNone(
+            got,
+            "R1: semicolon is a path delimiter, so the path before it "
+            "still parses",
+        )
+        item, path = got
+        self.assertEqual(item, "3")
+        self.assertEqual(path, SCOPE_REL)
+        self.assertNotIn(";", path)
+        self.assertNotIn("trail", path)
+
 
 class CitationHolds(_CitationFixture):
     """Item 4 / R3 — grammar plus the named scope file under root."""
@@ -300,6 +372,18 @@ class CitationHolds(_CitationFixture):
             f"item 4: numbered item on the named scope file holds; "
             f"reason={reason!r}",
         )
+
+    def test_every_numbered_item_on_the_named_scope_file_holds(self):
+        ok3, _ = self.holds(VALID_EVIDENCE, self.repo, SCOPE_REL)
+        self.assertTrue(ok3, "positive neighbour (item 3) must hold")
+        for n in range(1, 11):
+            with self.subTest(item=n):
+                ok, reason = self.holds(evidence_for(n), self.repo, SCOPE_REL)
+                self.assertTrue(
+                    ok,
+                    f"item 4: item {n} is a numbered line of the scope; "
+                    f"reason={reason!r}",
+                )
 
     def test_item_absent_from_the_named_scope_file_does_not_hold(self):
         ok, _ = self.holds(VALID_EVIDENCE, self.repo, SCOPE_REL)
@@ -368,16 +452,7 @@ class CitedVerb(_CitationFixture):
         self.import_records()
         key = f"{REC}#1"
         self.assertIn(key, self.store_keys())
-        disp = self.invoke(
-            [
-                "disposition",
-                key,
-                "fixed",
-                VALID_EVIDENCE,
-            ],
-            extra_env={"WF_AGENT": AGENT},
-        )
-        self.assertEqual(disp.returncode, 0, disp.stderr or disp.stdout)
+        self.dispose(key, "fixed", VALID_EVIDENCE)
         proc = self.invoke(["cited", key])
         self.assertEqual(
             proc.returncode,
@@ -390,6 +465,28 @@ class CitedVerb(_CitationFixture):
             f"{key}\tcontract item 3 of {SCOPE_REL}",
         )
         self.assertEqual((proc.stderr or "").strip(), "")
+
+    def test_cited_prints_item_1_and_item_10_not_only_item_3(self):
+        self.plant_record(REC, "adversarial-review", "item-one")
+        extra = "20260901T000000Z-review-grok-bbbbbb"
+        self.plant_record(extra, "adversarial-review", "item-ten")
+        self.import_records()
+        first = f"{REC}#1"
+        second = f"{extra}#1"
+        self.dispose(first, "fixed", evidence_for(1, why="item 1 holds"))
+        self.dispose(second, "fixed", evidence_for(10, why="item 10 holds"))
+        one = self.invoke(["cited", first])
+        ten = self.invoke(["cited", second])
+        self.assertEqual(one.returncode, 0, one.stderr or one.stdout)
+        self.assertEqual(ten.returncode, 0, ten.stderr or ten.stdout)
+        self.assertEqual(
+            (one.stdout or "").strip(),
+            f"{first}\tcontract item 1 of {SCOPE_REL}",
+        )
+        self.assertEqual(
+            (ten.stdout or "").strip(),
+            f"{second}\tcontract item 10 of {SCOPE_REL}",
+        )
 
     def test_cited_of_an_open_key_exits_1_with_open(self):
         self.plant_record(REC, "adversarial-review", "still-open")
@@ -404,11 +501,7 @@ class CitedVerb(_CitationFixture):
         self.plant_record(REC, "adversarial-review", "uncited-evidence")
         self.import_records()
         key = f"{REC}#1"
-        disp = self.invoke(
-            ["disposition", key, "fixed", "fixed in tests, no item"],
-            extra_env={"WF_AGENT": AGENT},
-        )
-        self.assertEqual(disp.returncode, 0, disp.stderr or disp.stdout)
+        self.dispose(key, "fixed", "fixed in tests, no item")
         proc = self.invoke(["cited", key])
         self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
         line = (proc.stdout or "").strip()
@@ -416,6 +509,70 @@ class CitedVerb(_CitationFixture):
             line.startswith(f"{key}\tuncited:"),
             f"D11: uncited disposition is KEY\\tuncited: <reason>; got {line!r}",
         )
+
+    def test_cited_of_item_absent_from_the_named_scope_file_is_uncited(self):
+        self.plant_record(REC, "adversarial-review", "item-absent")
+        self.import_records()
+        key = f"{REC}#1"
+        evidence = evidence_for(99, why="no such item")
+        self.dispose(key, "fixed", evidence)
+        ok, reason = self.holds(evidence, self.repo, SCOPE_REL)
+        self.assertFalse(ok, "item 99 must not hold on the named scope")
+        self.assertTrue(reason)
+        proc = self.invoke(["cited", key])
+        self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        line = (proc.stdout or "").strip()
+        self.assertTrue(
+            line.startswith(f"{key}\tuncited:"),
+            f"item 4/9: a parseable missing item is uncited, not cited; "
+            f"got {line!r}",
+        )
+        self.assertIn(reason, line)
+
+    def test_cited_of_a_citation_to_a_different_numbered_file_is_uncited(self):
+        self.plant_record(REC, "adversarial-review", "different_numbered")
+        self.import_records()
+        key = f"{REC}#1"
+        evidence = evidence_for(1, path=OTHER_REL, why="other file")
+        self.dispose(key, "fixed", evidence)
+        ok, reason = self.holds(evidence, self.repo, SCOPE_REL)
+        self.assertFalse(
+            ok,
+            "R3: other-scope.md is not the named scope file",
+        )
+        proc = self.invoke(["cited", key])
+        self.assertEqual(
+            proc.returncode,
+            1,
+            f"item 4/9: cited is the driver's holding check; a citation "
+            f"to another numbered file must not exit 0; "
+            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        line = (proc.stdout or "").strip()
+        self.assertTrue(
+            line.startswith(f"{key}\tuncited:"),
+            f"different_numbered citation is uncited; got {line!r}",
+        )
+        self.assertIn(reason, line)
+
+    def test_cited_of_a_parseable_path_absent_from_root_is_uncited(self):
+        self.plant_record(REC, "adversarial-review", "missing-scope-path")
+        self.import_records()
+        key = f"{REC}#1"
+        missing_rel = ".dev/ladder-inputs/no-such-scope.md"
+        evidence = evidence_for(3, path=missing_rel, why="path absent")
+        self.dispose(key, "fixed", evidence)
+        ok, reason = self.holds(evidence, self.repo, missing_rel)
+        self.assertFalse(ok, "a missing scope file does not hold")
+        proc = self.invoke(["cited", key])
+        self.assertEqual(proc.returncode, 1, proc.stderr or proc.stdout)
+        line = (proc.stdout or "").strip()
+        self.assertTrue(
+            line.startswith(f"{key}\tuncited:"),
+            f"item 4/9: parseable path absent from root is uncited; "
+            f"got {line!r}",
+        )
+        self.assertIn(reason, line)
 
     def test_cited_of_an_absent_key_is_class_key_exit_2(self):
         self.plant_record(REC, "adversarial-review", "some-other-finding")
