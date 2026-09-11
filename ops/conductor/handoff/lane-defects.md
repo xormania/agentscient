@@ -22,6 +22,7 @@ Reliability is the count below trending to zero per ladder.
 | LD-9 | 2026-09-11 | `test_handwork_ledger` | snapshots the live handwork ledger bytes and fails when the conductor declares or settles a grant during the run (PR 90 run 34545099924); same class as LD-4 | open; the fixture (I-020) retires it | — |
 | LD-10 | 2026-09-11 | freshness pre-check hook | compares every remote-tracking ref and refuses on any movement, so independent lineages in one session refuse each other's merges; three refusals on 2026-09-10, all for movement on dev while pushing unrelated branches | owner-authorized; this branch, grant 72: only the refs the command depends on | Grok, tests first, on this branch |
 | LD-11 | 2026-09-11 | `ladder.py` stop | a resume rewrites stage inputs for stages it then finds already done; at the exit-1 stop after security-re the rewritten `implementation-records.md` stayed uncommitted and `land.py` refused `dirty` | this branch, grant 79: every commit of the record adds the record's inputs directory | to follow |
+| LD-12 | 2026-09-11 | term wall vs the findings export | the export copies reviewer claims verbatim from the exempt dispatch captures into a tracked file the wall scans; one claim quoting a host path slug turned PR 96 red | this branch, grant 81: the export joins the captured-data exemption | to follow |
 
 Not a lane defect: the setsid pid recorded for the resumed driver was the
 intermediate shell, the session's own error.
