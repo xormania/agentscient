@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T04:56:03Z",
-    "closed": null
+    "closed": "2026-09-11T05:06:28Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T045555Z-code-codex-532808/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T00-56-06-01a08ed2-ab12-7a73-b82f-89570528661e.jsonl"
   },
   "session": {
-    "id": "d9a37713-e85d-447f-b1f9-d9c2fcc08dfe",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08ed2-ab12-7a73-b82f-89570528661e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T045555Z-code-codex-532808/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T00-56-06-01a08ed2-ab12-7a73-b82f-89570528661e.jsonl",
+    "stream_sha256_at_close": "c9ec913185ca6bcf3be096a838a6222df525b78eaa3b73027cd68488b8b783d2",
+    "spend": {
+      "input": 4236537,
+      "cached": 4093824,
+      "output": 23009,
+      "total": 4259546,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T045555Z-code-codex-532808/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T00-56-06-01a08ed2-ab12-7a73-b82f-89570528661e.jsonl",
+      "messages": 369
+    }
   },
   "brief": {
     "template": {
@@ -118,10 +125,318 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T04:56:04Z",
+      "ended": "2026-09-11T05:06:28Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "7bc352e9769908022b58873fcae8f322e7bbf493",
+    "changed_paths": [
+      "ops/conductor/tools/correction.py",
+      "ops/devlane/dispatch/launch.py",
+      "ops/devlane/dispatch/record.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "launcher-mint",
+      "status": "invalid",
+      "verdict": null,
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 41,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "session",
+          "claim": "Recorded the start time as 2026-09-11T04:56:29Z.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ"
+        },
+        {
+          "severity": "p3",
+          "where": "../in",
+          "claim": "Read the four supplied inputs; the combined output truncated the long plan, which was subsequently read in chunks.",
+          "reproduce": "tail -n +1 ../in/plan-launcher-gate.md ../in/scope-gate-20260910.md ../in/scope-discipline.md ../in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/plan-launcher-gate.md",
+          "claim": "Measured input lengths and read plan lines 1-260.",
+          "reproduce": "wc -l ../in/plan-launcher-gate.md ../in/scope-gate-20260910.md ../in/scope-discipline.md ../in/scope-gate-20260910.scope.md && sed -n '1,260p' ../in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/plan-launcher-gate.md",
+          "claim": "Read plan lines 261-520.",
+          "reproduce": "sed -n '261,520p' ../in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "../in/plan-launcher-gate.md",
+          "claim": "Read the remainder of the 642-line plan.",
+          "reproduce": "sed -n '521,700p' ../in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops/README.md",
+          "claim": "Found six governing files under docs and measured ops/README.md at 183 lines.",
+          "reproduce": "rg --files docs | sort && wc -l ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs",
+          "claim": "Read concerns.md, mapping.md, and probes.md in full.",
+          "reproduce": "wc -l docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md && tail -n +1 docs/concerns.md docs/mapping.md docs/probes.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs and ops/README.md",
+          "claim": "Read verified-couplings.md, wire.md, workflow.md, and ops/README.md in full.",
+          "reproduce": "tail -n +1 docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops",
+          "claim": "Completed the required initial Graft repository-map navigation.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'"
+        },
+        {
+          "severity": "p3",
+          "where": "git",
+          "claim": "Verified the clean starting tree was exactly 2c8796af33b7c85956f2dd1093a100bf9fd7dbb4.",
+          "reproduce": "git rev-parse HEAD && git status --short && git log -1 --format='%H%n%s%n%b'"
+        },
+        {
+          "severity": "p3",
+          "where": "baseline acceptance command",
+          "claim": "The initial command stopped in test_record_answers.py with six failures.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Graft navigation",
+          "claim": "The first graft_find_code query refused the unsupported path argument.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"dispatch record FIELDS build validate\", \"path\":\"ops/devlane/dispatch\", \"limit\":10}'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Graft located record build/validation and the answers tests.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"dispatch record FIELDS build validate\", \"in\":\"ops/devlane/dispatch\", \"limit\":10}'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch",
+          "claim": "Graft located launcher parsing, record minting, and correction-gate tests.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"launch correction check parser answers mint record at launched CORRECTION\", \"in\":\"ops/devlane/dispatch\", \"limit\":20}'"
+        },
+        {
+          "severity": "p3",
+          "where": "Graft navigation",
+          "claim": "The first graft_file_api query refused the unsupported path argument.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"path\":\"ops/conductor/tools/correction.py\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/correction.py",
+          "claim": "Graft identified the correction gate's check, refusal, record-reading, and answer-row APIs.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_file_api '{\"file\":\"ops/conductor/tools/correction.py\"}'"
+        },
+        {
+          "severity": "p3",
+          "where": "record.py, correction.py, test_record_answers.py",
+          "claim": "Read the authoritative record and correction implementations and focused record tests.",
+          "reproduce": "sed -n '1,260p' ops/devlane/dispatch/record.py && sed -n '1,380p' ops/conductor/tools/correction.py && sed -n '1,240p' ops/devlane/dispatch/tests/test_record_answers.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_launch_correction_gate.py",
+          "claim": "Began reading the launcher gate test; combined output truncated and was completed with subsequent chunk reads.",
+          "reproduce": "sed -n '1,220p' ops/devlane/dispatch/tests/test_launch_correction_gate.py && sed -n '221,460p' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_launch_correction_gate.py",
+          "claim": "Read launcher gate test lines 221-460.",
+          "reproduce": "sed -n '221,460p' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_launch_correction_gate.py",
+          "claim": "Measured the test at 918 lines and read lines 461-720.",
+          "reproduce": "wc -l ops/devlane/dispatch/tests/test_launch_correction_gate.py && sed -n '461,720p' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_launch_correction_gate.py",
+          "claim": "Read the final launcher gate tests.",
+          "reproduce": "sed -n '721,980p' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_launch_correction_gate.py",
+          "claim": "Read the remaining overlap around the first correction refusal cases.",
+          "reproduce": "sed -n '380,460p' ops/devlane/dispatch/tests/test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py",
+          "claim": "Located launcher module loading, mint boundary, record build, parser, and exception handling.",
+          "reproduce": "rg -n \"^(def _module|LANECONF|def _jobs_root|def _launch|def _parser|def main)|mint_id|stale-base|record\\.build|\\\"launched\\\"|args\\.follows|add_argument\\(\\\"--follows|except Refused\" ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/launch.py",
+          "claim": "Read the launcher imports, mint path, record construction, parsers, and main exception mapping.",
+          "reproduce": "sed -n '1,225p' ops/devlane/dispatch/launch.py && sed -n '1331,1530p' ops/devlane/dispatch/launch.py && sed -n '2445,2535p' ops/devlane/dispatch/launch.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Located the declared answers surface, correction shape, refusal rows, and record schema.",
+          "reproduce": "rg -n \"answers|correction|### The record|### Refusals|## Refusals|--follows|--input\" ops/devlane/dispatch/CONTRACT.md | head -120"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/CONTRACT.md",
+          "claim": "Read the authoritative verbs, correction shape, refusal rows, and record contract.",
+          "reproduce": "sed -n '720,815p' ops/devlane/dispatch/CONTRACT.md && sed -n '975,1005p' ops/devlane/dispatch/CONTRACT.md && sed -n '1128,1175p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/launch_support.py",
+          "claim": "Located fixture constants, module loading, temporary-launch setup, argv construction, and job-directory assertions.",
+          "reproduce": "rg -n \"^(REPO|RECORD_FIELDS|class _TempLaunch)|def (require_module|load_launch|setUp|argv_for)|launch.py|record.py|correction.py|conductor\" ops/devlane/dispatch/tests/launch_support.py | head -180"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/launch_support.py",
+          "claim": "Read the relevant fixture implementation, including RECORD_FIELDS, temporary roots, load_launch, and argv_for.",
+          "reproduce": "sed -n '1,115p' ops/devlane/dispatch/tests/launch_support.py && sed -n '580,655p' ops/devlane/dispatch/tests/launch_support.py && sed -n '740,970p' ops/devlane/dispatch/tests/launch_support.py && sed -n '1020,1085p' ops/devlane/dispatch/tests/launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "correction integration",
+          "claim": "Confirmed finding_citation was required by the launcher test but absent from the existing answer-row result.",
+          "reproduce": "rg -n \"finding_citation|_answer_row|CORRECTION\\.check|correction\" ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/correction.py ops/conductor/tests/test_correction.py | head -200"
+        },
+        {
+          "severity": "p3",
+          "where": "baseline test_launch_correction_gate.py",
+          "claim": "The baseline launcher gate suite ran 29 tests and reported 36 failures before integration.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "Graft context",
+          "claim": "Refreshed Graft successfully after the implementation edits.",
+          "reproduce": "WF_AGENT='Codex GPT-5 <noreply@openai.com>' python3 ops/devlane/harness/graft.py refresh --context ../context/graft.json"
+        },
+        {
+          "severity": "p3",
+          "where": "test_record_answers.py",
+          "claim": "All eight focused record-answer tests passed after the change.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py"
+        },
+        {
+          "severity": "p3",
+          "where": "test_launch_correction_gate.py",
+          "claim": "Gate integration reduced the suite to five failures, all from the out-input fixture's absolute empty-jobs-root assertion.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "changed Python files",
+          "claim": "Ruff reported all checks passed.",
+          "reproduce": "ruff check ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "All 45 conductor correction-gate tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "related dispatch suites",
+          "claim": "All 96 record tests and all 16 launcher-record tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_record.py"
+        },
+        {
+          "severity": "p3",
+          "where": "working-tree diff",
+          "claim": "The diff passed whitespace validation and contains three implementation files with 71 insertions and six deletions.",
+          "reproduce": "git diff --check && git diff --stat && git diff -- ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "No Codex attribution match appeared in the most recent 200 formatted commits.",
+          "reproduce": "git log --all -n 200 --format='%H%n%s%n%b' | rg -m 5 -B 2 'Co-Authored-By:.*Codex'"
+        },
+        {
+          "severity": "p3",
+          "where": "git history",
+          "claim": "Repository history established the trailer form GPT-5 Codex <noreply@openai.com>.",
+          "reproduce": "git log --all --format='%H%x09%s%x09%b' | rg -m 10 'Co-Authored-By:.*(Codex|OpenAI)'"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "Git add/commit was refused because the snapshot Git metadata is read-only.",
+          "reproduce": "git add ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py ops/conductor/tools/correction.py && git commit -m \"dispatch: gate correction mints\" -m \"Source: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>\""
+        },
+        {
+          "severity": "p1",
+          "where": "test_launch_correction_gate.CorrectionShape.test_out_input_under_a_review_job_is_a_correction",
+          "claim": "The final named command exits nonzero: five review-job subtests pre-create source job directories for out/ inputs, then assert that the entire jobs root contains no directories. The gate correctly refuses before mint and preserves those pre-existing artifacts.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p launch_support.py"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree",
+          "claim": "The final tree has only the three implementation changes; diff validation passes, COMMIT_MSG exists with SHA-256 477cc19e4bb4eb531ef660d0ba204bd418c7f4722ffd16d99b3891ace2c0e87c, and the end time was 2026-09-11T05:04:17Z.",
+          "reproduce": "git status --short && git diff --check && git diff --name-only && sha256sum ../out/COMMIT_MSG && date -u +%Y-%m-%dT%H:%M:%SZ"
+        }
+      ],
+      "artifacts": {
+        "implementation": "ops/devlane/dispatch/launch.py; ops/devlane/dispatch/record.py; ops/conductor/tools/correction.py",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260911T045555Z-code-codex-532808/out/COMMIT_MSG"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 4259546,
+        "out": 23009,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2c8796af33b7c85956f2dd1093a100bf9fd7dbb4",
+        "started": "2026-09-11T04:56:29Z",
+        "ended": "2026-09-11T05:04:17Z"
+      },
+      "note": "Invalid because test_launch_correction_gate.CorrectionShape.test_out_input_under_a_review_job_is_a_correction fails for five review-job subtests. Its fixture creates each source review directory under jobs_root before dispatch, while assert_no_mint requires jobs_root to contain no directories. Deleting existing review artifacts would violate the requested gate behavior, and the test files were not edited. Git commit was also sandbox-refused; the launcher can commit using out/COMMIT_MSG.",
+      "commit": {
+        "subject": "dispatch: gate correction mints",
+        "body": "Source: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T05:06:27.394Z"
+    }
+  },
+  "status": "closed"
 }
