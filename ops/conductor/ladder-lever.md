@@ -108,8 +108,8 @@ one stderr line, stdout empty, and exit 2.
 | 0 | draft PR opened | ladder id and PR URL |
 | 1 | `security-re` still says `changes` | `stopped stage=security-re record=<id> verdict=changes` |
 | 2 | a precondition refuses | the refusal wire |
-| 2 | `envelope` — check-tests returned a malformed field | exit 2, one stderr line `envelope: expected …; found …; needed …`, stdout empty, then `stopped stage=check-tests record=<id> reason=envelope` |
-| 2 | `custody` — an input target is a symlink or outside the inputs directory | exit 2, one stderr line `custody: expected …; found …; needed …`, stdout empty, then `stopped stage=<stage> record=<id-or-none> reason=custody`; refuses to write through a symlink or outside the inputs directory |
+| 2 | `envelope` — check-tests returned a malformed field | exit 2, one stderr line `envelope: expected …; found …; needed …`, stdout empty; recorded stop `reason=envelope` |
+| 2 | `custody` — an input target is a symlink or outside the inputs directory | exit 2, one stderr line `custody: expected …; found …; needed …`, stdout empty; recorded stop `reason=custody`; refuses to write through a symlink or outside the inputs directory |
 | 3 | a stage refuses, trips, dies, records an invalid envelope, violates a guarantee, or an invoked write aborts | the last reading, then `stopped stage=<stage> record=<id-or-none> reason=<class>` |
 | 3 | any skeptic finding remains undisposed before `tests-fix`, or any audit finding before `fix-tests` or `fix-code` | `undisposed keys: <k1> <k2> …`, then `stopped stage=tests-fix record=none reason=undisposed`, `stopped stage=fix-tests record=none reason=undisposed` or `stopped stage=fix-code record=none reason=undisposed` |
 
@@ -126,7 +126,7 @@ No second fix round and no second skeptic run exist.
 
 ### The check-tests stop
 
-Before the ladder advances, the driver validates that findings is a list of item 2 shapes, counts agree with findings, verdict agrees with item 2, and artifacts is empty. A malformed envelope records the failed field and is never retried as a flake; `--retry` is the only further attempt. The driver writes the validated envelope to `skeptic-findings.md` as a regular file under the ladder inputs directory and records its path and digest.
+Before the ladder advances, the driver validates that findings is a list of item 2 shapes, counts agree with findings, verdict agrees with item 2, and artifacts is empty. A malformed envelope records the failed field and is never retried as a flake; `--retry` is the only further attempt. On resume, a schema-accepted check-tests envelope that fails item 2 is not consumed and landed, and an envelope-class stop does not relaunch as a flake. The driver writes the validated envelope to `skeptic-findings.md` as a regular file under the ladder inputs directory and records its path and digest.
 
 Before `tests-fix` and before either fix stage, the driver checks every finding
 key with the ledger's `cited` read. The driver never writes dispositions itself. On `resume`, it
