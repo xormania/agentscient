@@ -244,6 +244,7 @@
       "landed_shas": [
         "9ad327874bf52ba0f9602fe0cab2db1d4feadf94"
       ],
+      "minutes": 4.013132,
       "name": "code",
       "outcome": "ok",
       "reason": "envelope",
