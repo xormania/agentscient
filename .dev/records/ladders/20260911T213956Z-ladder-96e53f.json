@@ -322,7 +322,8 @@
       "harness": "grok",
       "job": "author-tests",
       "name": "fix-tests",
-      "outcome": "pending",
+      "outcome": "stopped",
+      "reason": "undisposed",
       "stage": "tests"
     },
     {
@@ -353,7 +354,19 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "keys": [
+      "20260911T224145Z-review-codex-c5fc8b#1",
+      "20260911T224145Z-review-codex-c5fc8b#2",
+      "20260911T224145Z-review-codex-c5fc8b#3",
+      "20260911T224145Z-review-codex-c5fc8b#4",
+      "20260911T225002Z-review-grok-a00d0e#1"
+    ],
+    "reason": "undisposed",
+    "record": "none",
+    "stage": "fix-tests",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911"
 }
