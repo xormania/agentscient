@@ -1,7 +1,7 @@
 # I-023 — the test framework reference survey: ten projects, a vocabulary, and a research plan
 
 - recorded: 2026-09-11, in session, after I-022 landed (PR #140, dev `be090e5`)
-- source: owner, verbatim below; the document beside this record was supplied by the owner under `.xor/in/ci-and-tests/` and is copied verbatim, its author not verified
+- source: owner, verbatim below; the document beside this record was supplied by the owner under `.xor/in/ci-and-tests/` and is copied verbatim. Owner, 2026-09-11, after the record was first written: "the doc is not authoritative - it was Astra the created - that being said, Astra is smart, so don't dismiss it out of hand - my goal is to find the best path forward". The same applies to the two documents recorded as I-022, whose record says "author not verified": their author is Astra, and they are not authoritative.
 - disposition: open
 
 ## In the owner's words
