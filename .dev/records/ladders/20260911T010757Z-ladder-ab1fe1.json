@@ -318,6 +318,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 14.593003,
       "name": "adversarial",
       "outcome": "ok",
       "record": "20260911T020630Z-review-grok-7fdc2e",
