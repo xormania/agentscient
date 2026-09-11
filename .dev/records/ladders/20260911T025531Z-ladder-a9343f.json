@@ -92,6 +92,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 7.504464,
       "name": "check-tests",
       "outcome": "ok",
       "record": "20260911T030702Z-check-tests-codex-5f3a98",
