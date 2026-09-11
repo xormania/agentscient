@@ -292,6 +292,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 16.255051,
       "name": "adversarial",
       "outcome": "ok",
       "record": "20260911T062141Z-review-grok-79cad6",
