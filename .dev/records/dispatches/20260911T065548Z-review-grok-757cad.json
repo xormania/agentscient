@@ -1,0 +1,123 @@
+{
+  "id": "20260911T065548Z-review-grok-757cad",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/gate-ladder-stop-20260911",
+  "lineage": {
+    "branch": "lane/gate-ladder-stop-20260911",
+    "base_sha": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481"
+  },
+  "follows": [
+    "20260911T065539Z-review-codex-2cc9ea"
+  ],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T06:55:57Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481",
+    "ref_sha": "f8c18017eb22dfa8ac8f0a6cc0b9d7f07152b481",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "aa9a029b-995c-4880-8fea-780b041bb84c",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "aa9a029b-995c-4880-8fea-780b041bb84c",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/in/plan-ladder-stop-gate.md",
+        "sha256": "e25a3225673b983af2def10da377f56c00f92e39726a3bf917a723554443d03f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065548Z-review-grok-757cad/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "a79958f9a58098327ee66382bda7bf3017b05f5e2993aa6c028afc3a09d3ded2",
+    "bytes": 3773,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "7f44b78795b75415beed944b367f65d0998b1203630c1f533764447653038a64"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
