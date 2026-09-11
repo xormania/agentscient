@@ -92,6 +92,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-ladder-stop-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 5.254019,
       "name": "check-tests",
       "outcome": "ok",
       "record": "20260911T062509Z-check-tests-codex-344d3f",
