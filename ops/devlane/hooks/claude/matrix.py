@@ -719,13 +719,13 @@ def _now_iso():
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def graft_context_path(root):
-    """The prepared Graft context for ``root`` if it exists, else None."""
+def graft_context_path(root, lane):
+    """The prepared Graft context for ``root`` under the lane's state, else None."""
     import hashlib
-    if not root:
+    if not root or not lane:
         return None
     digest = hashlib.sha256(root.encode()).hexdigest()
-    path = os.path.join(STATE_DIR, "agentscient", "graft", f"{digest}.context.json")
+    path = os.path.join(STATE_DIR, lane, "graft", f"{digest}.context.json")
     return path if os.path.isfile(path) else None
 
 
@@ -771,7 +771,7 @@ def graft_first(toks, cwd, root, lane):
             hits.append(target)
     if not hits:
         return None
-    context = graft_context_path(root)
+    context = graft_context_path(root, lane)
     query = (f"python3 {GRAFT_LEVER} query --context {context} graft_find_code "
              f"'{{\"query\": \"{pattern}\", \"limit\": 20}}'") if context else (
              f"python3 {GRAFT_LEVER} prepare --root {root}  (prints the context path), then "

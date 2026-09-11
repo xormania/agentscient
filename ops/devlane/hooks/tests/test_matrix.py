@@ -937,6 +937,18 @@ class MatrixHookTests(unittest.TestCase):
         self.assertTrue(self._graft_log().is_file(), "a refusal is logged")
         self.assertIn("\tdeny\t", self._graft_log().read_text())
 
+    def test_a_prepared_context_under_the_lane_state_is_named_in_the_remedy(self):
+        import hashlib
+        root = os.path.realpath(str(self.repo))
+        context = (self.home / ".local" / "state" / LANE_NAME / "graft"
+                   / f"{hashlib.sha256(root.encode()).hexdigest()}.context.json")
+        context.parent.mkdir(parents=True)
+        context.write_text("{}")
+        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        self.assert_denied(proc, "graft-first")
+        self.assertIn(f"--context {context}", proc.stdout)
+        self.assertNotIn("prepare --root", proc.stdout)
+
     def test_git_grep_and_rg_over_code_are_refused_too(self):
         self.assert_denied(self.run_bash("git grep -n pattern -- docs/"), "graft-first")
         self.assert_denied(self.run_bash("rg pattern docs/"), "graft-first")
