@@ -13,7 +13,7 @@
   "deliverable": "findings that survived the task's own attempt to refute them",
   "role": "read",
   "snapshot": "whole",
-  "caps": {"timeout": 1200},
+  "caps": {"timeout": 1800},
   "prompt": "Review the change at {ref} against {base}. The diff is {diff}. Review only — do not edit.\nAim at: {scope}\nInputs named by the brief are files under in/, a sibling of out/; read them whole before working.\nLeave `spend` as `{\"harness\": \"<harness>\", \"total\": 0, \"out\": 0, \"runs\": 0}`; the launcher fills it from the session store. Do not read the store.\nAnswer with a single JSON object and nothing else, carrying exactly these keys: job, status, verdict, counts, findings, artifacts, spend, stamp, note. Prose is not a deliverable here — the CONTRIB.md wire block is the human review format, not this job's stdout.",
   "constraints": [
    "read only",
