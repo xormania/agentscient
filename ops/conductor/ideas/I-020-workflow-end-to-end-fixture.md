@@ -55,6 +55,29 @@ instead of driving them, and no test runs a whole ladder.
   fixture boundary, retiring the per-suite live-store and ledger
   snapshots (LD-4, and the handwork ledger case on PR 90).
 
+## Lost work reviewed before this scope is written
+
+Owner, 2026-09-11: "look through any lost branches and work - i've
+suggested this before". Measured 2026-09-11 against origin/dev 1857dc2,
+`git rev-list --count origin/dev..<branch>` and `git diff --stat`:
+
+| branch | ahead | carries | bearing on the fixture |
+|---|---|---|---|
+| `lane/fixture-fix-2` | 34 | rust-crate probes and examples, python-service, symfony-app, seven fixture tests | the planted-fault apps completion the 2026-09-05 recovery audit named; salvage candidate, first |
+| `lane/fixture-fix` | 15 | an earlier cut of the same | superseded by `-2`; compare, do not merge both |
+| `lane/fixture-apps-grok-authored-2` | 6 | four fixture tests, two conductor tests, Grok-authored | tests-only; judge against the fixture contract |
+| `lane/fixture-audit` | 3 | 163 fixture files, conductor tools, registry rows, 49 captured records | an audit-era bulk branch; inspect before anything is taken |
+| `lane/workflow` (PR 10, parked, D-PORT-2) | 5 | 153 fault contracts and 22 examples under `ops/capabilities/contracts/faults`, 303 packets and verdicts, 67 engine tests; no end-to-end runner | the fault catalogue and packet shape are reference material for scenario and calibration design; the engine stays parked |
+| `lane/session-budget` | 22 | plans, ladder inputs, one hooks test; no guard implementation | out of scope here; incomplete status stands |
+| `lane/dispatch-job-scratch`, `lane/context-contracts`, `lane/record-wall`, `lane/noguess` | 13, 19, 13, 13 | tests only, one to two thousand lines each | candidate scenario sources; each judged against the fixture contract, none merged wholesale |
+| `lane/check-tests-json` | 92 | item 31 slice 2, 48 files; hand grant 43 open six days | its own decision, not this work order |
+
+`lane/fixture-apps` through `-5`, `lane/workflow-spec`,
+`repo/idea-context-fixtures`, `lane/collect-recovery-20260910` and
+`lane/dev-freshness-20260909` are fully contained in dev. The dispatch
+refs the lost-work audit named (`46f153`, `67a6c7`, `db74db`) belong to
+other lineages.
+
 ## Calibration
 
 The concerns contract applies to the workflow itself: planted faults
