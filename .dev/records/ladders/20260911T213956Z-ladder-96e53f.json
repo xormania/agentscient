@@ -96,6 +96,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 8.088849,
       "name": "check-tests",
       "outcome": "ok",
       "record": "20260911T215054Z-check-tests-codex-bc7bad",
