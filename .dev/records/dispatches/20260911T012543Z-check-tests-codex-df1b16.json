@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T01:25:44Z",
-    "closed": null
+    "closed": "2026-09-11T01:37:24Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T012543Z-check-tests-codex-df1b16/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T21-25-45-01a08e12-18be-7800-9461-b073ebcb48f6.jsonl"
   },
   "session": {
-    "id": "679b5b98-ad77-4930-9d61-ca34a7588d43",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08e12-18be-7800-9461-b073ebcb48f6",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T012543Z-check-tests-codex-df1b16/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T21-25-45-01a08e12-18be-7800-9461-b073ebcb48f6.jsonl",
+    "stream_sha256_at_close": "2adfe5190c25ff27ced888a32d655732039a6447780167426a60bc7cded5c6cb",
+    "spend": {
+      "input": 2506514,
+      "cached": 2399232,
+      "output": 28387,
+      "total": 2534901,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T012543Z-check-tests-codex-df1b16/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T21-25-45-01a08e12-18be-7800-9461-b073ebcb48f6.jsonl",
+      "messages": 333
+    }
   },
   "brief": {
     "template": {
@@ -113,10 +120,111 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T01:25:44Z",
+      "ended": "2026-09-11T01:37:23Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "fe8bd6594f52362f1ec0d76e7a50df433ef76fce",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 5,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_correction.py:457",
+          "claim": "Contract items 2, 3, and 8: the sole multi-answer case puts the open key first. An implementation validating and recording only answers[0] passes while admitting an undisposed later answer.",
+          "reproduce": "rg -n -F -e 'self.dispose(second' -e 'answers=[first, second]' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_correction.py:473",
+          "claim": "Contract item 1: correction classification covers only adversarial-review and check-tests. An allowlist omitting security-audit, adjudicate, and sweep passes while those corrections bypass the gate.",
+          "reproduce": "rg -n 'plant_record.*\"(check-tests|security-audit|adversarial-review|adjudicate|sweep)\"|inputs=' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_correction.py:121",
+          "claim": "Contract items 3 and 6: existing planted-store rows are never snapshotted around a gate check. A gate that rewrites or auto-disposes a row after producing the asserted refusal passes, allowing a later attempt through without the commanded disposition.",
+          "reproduce": "rg -n '_live_before|_live_snapshot|self.store|update findings' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_correction.py:506",
+          "claim": "Contract item 7: the shared non-correction assertion accepts an arguments refusal at exit 2. An implementation refusing every non-correction therefore passes.",
+          "reproduce": "python3 -B -c 'import importlib.util,types,pathlib; p=pathlib.Path(\"ops/conductor/tests/test_correction.py\"); s=importlib.util.spec_from_file_location(\"tc\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); t=m.NonCorrections(\"test_write_following_nothing_is_not_a_correction\"); t._assert_not_a_correction(types.SimpleNamespace(returncode=2,stdout=\"\",stderr=\"arguments: expected x; found y; needed z\")); print(\"SURVIVED\")'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_findings_citation.py:365",
+          "claim": "Contract items 4 and 9: cited is never exercised with parseable evidence naming a missing item or the wrong scope. A cited implementation accepting any parseable contract-item evidence passes while incorrectly releasing the ladder.",
+          "reproduce": "rg -n -F -e '[\"cited\"' -e 'different_numbered' -e 'item_absent' ops/conductor/tests/test_findings_citation.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_findings_citation.py:236",
+          "claim": "Contract item 4: item 3 is the only satisfying citation tested against the named scope. A parser/holder hard-coded for item 3 passes while rejecting valid items 1, 2, and 4-10.",
+          "reproduce": "rg -n -F 'contract item ' ops/conductor/tests/test_correction.py ops/conductor/tests/test_findings_citation.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "Contract item 4: no correction-gate test proves that correction.py reads CITATION, parse_citation, or citation_holds from findings.py. A private duplicated regex passes, leaving two definitions.",
+          "reproduce": "python3 -B -c 'from pathlib import Path; s=Path(\"ops/conductor/tests/test_correction.py\").read_text(); print({x:s.count(x) for x in (\"citation_holds\",\"parse_citation\",\"CITATION\")})'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_correction.py:325",
+          "claim": "Contract item 3: needed clauses are checked only by fragments and never compared or executed. A command missing its disposition, evidence, or scope path passes.",
+          "reproduce": "rg -n 'assertEqual.needed|shlex|shell=True|needed =|findings.py disposition' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_findings_citation.py:236",
+          "claim": "Contract item 4: no rejection case places comma or semicolon at the citation-path boundary. The broken pattern `[^\\s:]+` survives in place of `[^\\s:;,]+`.",
+          "reproduce": "python3 -B -c 'import ast; from pathlib import Path; t=ast.parse(Path(\"ops/conductor/tests/test_findings_citation.py\").read_text()); v=[n.value for n in ast.walk(t) if isinstance(n,ast.Constant) and isinstance(n.value,str) and \"contract item \" in n.value]; b=[x for x in v if \" of \" in x and any(c in x.split(\" of \",1)[1].split(\":\",1)[0] for c in \",;\")]; print(b); raise SystemExit(bool(b))'"
+        }
+      ],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260911T012543Z-check-tests-codex-df1b16/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2534901,
+        "out": 28387,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fe8bd6594f52362f1ec0d76e7a50df433ef76fce",
+        "started": "2026-09-11T01:26:09Z",
+        "ended": "2026-09-11T01:36:39Z"
+      },
+      "note": "Both suites failed red on their intended assertions: 29/29 and 18/18 failures, with no errors. The plant guard passed. Report sha256: ab64244ecb57e4eec5b650c4f4a42871710fb67c59098ac222b7dc2e685ca0b6."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T01:37:23.094Z"
+    }
+  },
+  "status": "closed"
 }
