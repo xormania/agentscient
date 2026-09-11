@@ -150,34 +150,10 @@ def citation_holds(evidence, root, scope_path):
     return True, "citation holds"
 
 
-def work_order_scope(inputs, root):
-    root = Path(root).resolve()
-    shelf = root / ".dev" / "ladder-inputs"
-    paths = []
-    for value in inputs:
-        supplied = Path(value)
-        candidates = (
-            supplied if supplied.is_absolute() else root / supplied,
-            shelf / supplied.name,
-        )
-        for candidate in candidates:
-            try:
-                resolved = candidate.resolve()
-                resolved.relative_to(root)
-            except ValueError:
-                continue
-            if resolved.is_file() and resolved not in paths:
-                paths.append(resolved)
-    if shelf.is_dir():
-        for candidate in sorted(shelf.glob("scope-*.md")):
-            resolved = candidate.resolve()
-            try:
-                resolved.relative_to(root)
-            except ValueError:
-                continue
-            if resolved.is_file() and resolved not in paths:
-                paths.append(resolved)
-
+def _unique_scope(paths, root):
+    """The one work order the given files name, or None: a scope file a
+    sentence references by "numbered Contract items of PATH", else a lone
+    `scope-*.md` carrying numbered items."""
     referenced = []
     for path in paths:
         try:
@@ -210,6 +186,45 @@ def work_order_scope(inputs, root):
         return str(candidates[0].relative_to(root))
     return None
 
+
+def work_order_scope(inputs, root):
+    root = Path(root).resolve()
+    shelf = root / ".dev" / "ladder-inputs"
+    supplied = []
+    for value in inputs:
+        given = Path(value)
+        candidates = (
+            given if given.is_absolute() else root / given,
+            shelf / given.name,
+        )
+        for candidate in candidates:
+            try:
+                resolved = candidate.resolve()
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            if resolved.is_file() and resolved not in supplied:
+                supplied.append(resolved)
+
+    # LD-24 (2026-09-11): the supplied inputs name the work order; the
+    # shelf is swept only when they name none, because two work orders
+    # on the shelf (scope-gate beside scope-item31) made the sweep find
+    # two of everything and resolve nothing, for the cited read and the
+    # correction gate alike.
+    answer = _unique_scope(supplied, root)
+    if answer is not None:
+        return answer
+    swept = list(supplied)
+    if shelf.is_dir():
+        for candidate in sorted(shelf.glob("scope-*.md")):
+            resolved = candidate.resolve()
+            try:
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            if resolved.is_file() and resolved not in swept:
+                swept.append(resolved)
+    return _unique_scope(swept, root)
 
 def connect():
     path = database_path()
