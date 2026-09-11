@@ -54,7 +54,11 @@ fi
 # the hard supply-chain lock may still set an absolute LAUNCHER_PIN in the conf.
 keys=(LANE_NAME TRUNK_BRANCH RELEASE_BRANCH REPO_SLUG CHECK_NAMES WF_AGENT_DEFAULT LANE_AUTHOR MODEL_GROK MODEL_CODEX MODEL_CLAUDE_READ MODEL_CLAUDE_PLAN EFFORT_GROK EFFORT_CODEX EFFORT_CLAUDE SCOPE_CAP)
 env_keys=("${!MODEL_@}" "${!EFFORT_@}" "${!EXECUTABLE_@}")
-saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES)
+# GRAFT_INSTALL is saved and restored but never required: the tracked conf declares it
+# empty, and a worktree has no local conf, so without the restore the environment's
+# install path would be emptied on the way to the launcher and no worker would get
+# Graft (LD-13).
+saved_keys=("${keys[@]}" "${env_keys[@]}" WORKER_HARNESSES GRAFT_INSTALL)
 for key in "${saved_keys[@]}"; do
     if [[ -v $key ]]; then
         printf -v "saved_$key" '%s' "${!key}"
@@ -256,6 +260,8 @@ env = {"WF_AGENT": os.environ["WF_AGENT"],
        "CHECK_NAMES": os.environ["CHECK_NAMES"]}
 if "DISPATCH_TIMEOUT" in os.environ:
     env["DISPATCH_TIMEOUT"] = os.environ["DISPATCH_TIMEOUT"]
+if os.environ.get("GRAFT_INSTALL"):
+    env["GRAFT_INSTALL"] = os.environ["GRAFT_INSTALL"]
 print(json.dumps({"argv": sys.argv[4:], "env": env, "exec": True,
                   "detach": sys.argv[3] == "1",
                   "launcher": {"path": sys.argv[2], "source": sys.argv[1]}},
