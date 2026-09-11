@@ -773,7 +773,10 @@ launch.py brief --check ID
   dispatch-graph edge; it is **not** `context.prior`, which stays
   "findings from an earlier call".
 - `--answers KEY` is repeatable and names each findings-store key answered
-  by a correction. A key has the shape `<record>#<n>`.
+  by a correction. A key has the shape `<record>#<n>` and is accepted only
+  when it matches
+  `^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}#[1-9][0-9]*$`; an invalid key
+  is refused `arguments` before it can enter a printed remedy.
 - The citation grammar lives in `findings.py` as
   `contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s;,:]+)`.
   The gate and `findings.py` read the same definition.
@@ -784,6 +787,19 @@ launch.py brief --check ID
 - Jobs root: `$DISPATCH_JOBS`, default
   `${XDG_STATE_HOME:-$HOME/.local/state}/agentscient/dispatch`. There is
   no flag for it; the record carries the path it used.
+
+#### Correction shape
+
+A correction is a write-role job (`implement` or `author-tests`) whose
+dispatch arguments either use `--follows` to name a record whose `job` is
+one of `check-tests`, `security-audit`, `adversarial-review`, `adjudicate`,
+or `sweep`, or include an `--input` path beneath such a record's `out/`.
+The shape is read only from the dispatch arguments and the referenced
+record, never from prose. Each followed id must match
+`^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$`; its
+`<records>/<id>.json` path must resolve beneath the records directory, and
+the record's own `id` must equal the requested id and its `job` must name a
+registry job. A failure of any of those checks is a `follows` refusal.
 
 ### Snapshot modes
 
@@ -972,8 +988,9 @@ satisfy it. `override` marks the only overridable one.
 | `identity` | `WF_AGENT` unset or not `Name <address>` | expected an identity in the `Name <address>` form; found `<value or unset>`; export `WF_AGENT='Your Model Name <noreply@vendor>'` |
 | `live-target` | the destination is inside any entry of the invoking repository's `git worktree list --porcelain` or its common dir | expected a job directory outside every worktree of `<repo>`; found `<path>` inside `<worktree>`; set `DISPATCH_JOBS` to a directory outside the repository |
 | `ref` | `--ref` does not resolve to a commit | expected a ref naming a commit in `<repo>`; found `<ref>` (`<git's message>`); commit the work, then name the commit — uncommitted work is never dispatched |
-| `follows` | a followed record or a record named by an `out/` input cannot be read | expected a readable record for `<id>` under `.dev/records/dispatches`; found none; needed name a record in `.dev/records/dispatches` |
-| `correction` (not overridable; exit 2, founding wire) | a correction does not name every answered finding, or a named finding is absent, open, uncited, or disposed too late | expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found no --answers key named for a correction following `<id>` (`<job>`); found key `<key>` absent from the findings store `<path>`; found key `<key>` absent from the findings store `<path>` (no store); found key <key> still open; found key `<key>` disposed `<what>` without a contract citation (`<reason>`); found key `<key>` disposed at `<disposed_at>`, after the mint attempt at `<stamp>`; needed python3 ops/conductor/tools/findings.py disposition '<key>' <disposition> 'contract item N of <scope path>: <why>' |
+| `follows` | a record used to determine the [correction shape](#correction-shape) has a malformed id, escapes the records directory, cannot be read, has a different `id`, or names a job outside the registry | expected a readable record for `<id>` under `.dev/records/dispatches`, with its own `id` equal to `<id>` and a registry `job`; found the failed shape, path, read, identity, or job check; needed name a matching record in `.dev/records/dispatches` |
+| `correction` (not overridable; exit 2, founding wire) | the [correction shape](#correction-shape) does not name every answered finding, or a named finding is absent, open, uncited, or disposed too late | No key — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found no --answers key named for a correction following `<id>` (`<job>`); needed pass --answers '<record>#<n>' for each finding answered, each disposed by python3 ops/conductor/tools/findings.py disposition '<record>#<n>' <disposition> 'contract item N of <scope path>: <why>'<br>Absent — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key `<key>` absent from the findings store `<path>` or found key `<key>` absent from the findings store `<path>` (no store); needed python3 ops/conductor/tools/findings.py import, then python3 ops/conductor/tools/findings.py disposition '<key>' <disposition> 'contract item N of <scope path>: <why>'<br>Open — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key <key> still open; needed python3 ops/conductor/tools/findings.py disposition '<key>' <disposition> 'contract item N of <scope path>: <why>'<br>Uncited — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key `<key>` disposed `<what>` without a contract citation (`<reason>`); needed python3 ops/conductor/tools/findings.py disposition '<key>' <disposition> 'contract item N of <scope path>: <why>'<br>Late — expected every finding answered by this correction disposed with a contract citation before `<stamp>`; found key `<key>` disposed at `<disposed_at>`, after the mint attempt at `<stamp>`, or, for the same second, found key `<key>` disposed at `<stamp>`, not before the mint attempt at `<stamp>`; needed wait one second and retry |
+| `arguments` (exit 2, before the gate) | `--answers` is given on a write job outside the [correction shape](#correction-shape) | expected no unverified answers on a non-correction write job; found `--answers` on a write job that follows a plan, tests or implement record, or nothing; needed remove `--answers`; argument parsing refuses class `arguments` before the gate runs because a claim no gate would verify must not enter a record, and the gate does not inspect the job. |
 | `record-target` | the invoking checkout is detached, on `dev` or `main`, or on a branch other than `lineage.branch`; re-checked at close | expected the checkout on `<lineage>`; found `<branch or detached>`; run from a worktree of `<lineage>` (at close: the record file is left in place, nothing is committed, and `close ID` is re-run from the right branch) |
 | `stale-base` (**override**) | `ref_sha` is not an ancestor of `lineage.branch` | expected `<ref_sha>` reachable from `<lineage>`; found it is not (`<lineage>` is at `<tip>`); name a commit on the branch, or `--override stale-base:<reason>` |
 | `model` | no `--model`; or `--effort` on a harness whose adapter cannot pass it | expected a model — a job never names one and the launcher never defaults one; found none; pass `--model` (effort is forwarded through each harness adapter) |
