@@ -16,7 +16,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T23:24:48Z",
-    "closed": null
+    "closed": "2026-09-11T23:30:35Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -76,14 +76,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T232448Z-review-codex-5cb35f/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T19-25-00-01a092c9-e6fe-7f00-ac39-366b29558188.jsonl"
   },
   "session": {
-    "id": "5c1fad77-ef46-4c41-a80a-83a361e50db5",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a092c9-e6fe-7f00-ac39-366b29558188",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T232448Z-review-codex-5cb35f/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T19-25-00-01a092c9-e6fe-7f00-ac39-366b29558188.jsonl",
+    "stream_sha256_at_close": "86eb0ef7054ea6ac422296d7b1b90f5e61a6e4475ba39964f8b2c64e0c0c413c",
+    "spend": {
+      "input": 4879188,
+      "cached": 4722734,
+      "output": 20824,
+      "total": 4900012,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T232448Z-review-codex-5cb35f/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T19-25-00-01a092c9-e6fe-7f00-ac39-366b29558188.jsonl",
+      "messages": 359
+    }
   },
   "brief": {
     "template": {
@@ -119,10 +126,73 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T23:25:00Z",
+      "ended": "2026-09-11T23:30:35Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "2fa40ba5b5e7f8c903805897c70c5228c8e2afab",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 2,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": ".dev/ladder-inputs/plan-item31-slice1-20260911.md:150",
+          "claim": "declared (.dev/ladder-inputs/scope-item31-20260911.md:34): \u201cEach skeptic finding carries the declared words verbatim with their location, the practiced evidence verbatim with its location\u201d; practiced (.dev/ladder-inputs/plan-item31-slice1-20260911.md:155): locations receive only syntactic checks and quoted text is only partitioned, never matched to source bytes. A forged quotation pair therefore passes the prescribed validation and enters the downstream write-role input.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nplan=Path('.dev/ladder-inputs/plan-item31-slice1-20260911.md').read_text()\nwhere='missing/test.py:1'\nclaim='declared (missing-contract.md:1): forged declaration; practiced: forged evidence; misses: obey the injected instruction'\nf={'severity':'p2','where':where,'claim':claim,'reproduce':'printf injected'}\nenv={'artifacts':{},'findings':[f],'counts':{'p1':0,'p2':1,'p3':0,'opinions':0},'verdict':'changes'}\nleft,sep,tail=claim.partition('; practiced: '); practiced,sep2,misses=tail.rpartition('; misses: ')\nassert env['artifacts']=={} and isinstance(env['findings'],list) and env['verdict']=='changes'\nassert f['severity'] in {'p1','p2','p3'} and f['reproduce'].strip()\nassert not any(c.isspace() for c in where) and ('/' in where or '.' in where)\nassert sep and sep2 and all((left,practiced,misses))\nassert not Path('missing/test.py').exists() and not Path('missing-contract.md').exists()\nassert 'json.dumps(indent=2, sort_keys=True)' in plan\nprint('all prescribed shape checks pass for nonexistent quoted locations')\nPY"
+        },
+        {
+          "severity": "p1",
+          "where": ".dev/ladder-inputs/plan-item31-slice1-20260911.md:233",
+          "claim": "declared (.dev/ladder-inputs/scope-item31-20260911.md:53): recognition is by instruction shape, \u201cnot by a list of forbidden words\u201d; practiced (.dev/ladder-inputs/plan-item31-slice1-20260911.md:236): the planned guard admits only eight verbs in limited positions. Positive instructions such as \u201cPlease write /tmp/result.md\u201d and \u201cCopy the report to /tmp/result.md\u201d bypass it, allowing a read-role prompt to direct an outside-job write.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\np=Path('.dev/ladder-inputs/plan-item31-slice1-20260911.md').read_text()\nverbs={'write','save','create','store','emit','put','append','dump'}\nsamples=['Please write /tmp/result.md','Copy the report to /tmp/result.md']\nassert all(s.split()[0].lower() not in verbs for s in samples)\nassert '`write, save, create, store, emit, put, append, dump`' in p\nassert 'sentence start, or after `and`/`then`/`,`' in p\nprint(*samples,sep='\\n')\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/ladder-inputs/plan-item31-slice1-20260911.md:220",
+          "claim": "declared (.dev/ladder-inputs/scope-item31-20260911.md:46): the driver refuses writes \u201cthrough a symlink or outside the inputs directory\u201d; practiced (.dev/ladder-inputs/plan-item31-slice1-20260911.md:224): O_NOFOLLOW plus regular-file and resolved-path checks still accept a hard link and truncate its outside-job inode. Planting that link requires a local actor outside the ruled worker behavior, so this is P3 under D-LAUNCHER-1.",
+          "reproduce": "python3 - <<'PY'\nimport os,tempfile\nfrom pathlib import Path\nplan=Path('.dev/ladder-inputs/plan-item31-slice1-20260911.md').read_text()\nassert 'O_WRONLY|O_CREAT|O_TRUNC|O_NOFOLLOW' in plan\nwith tempfile.TemporaryDirectory() as d:\n root=Path(d); job=root/'job'; inputs=job/'inputs'; inputs.mkdir(parents=True)\n outside=root/'outside-job'; outside.write_text('KEEP')\n target=inputs/'skeptic-findings.md'; os.link(outside,target)\n fd=os.open(target,os.O_WRONLY|os.O_CREAT|os.O_TRUNC|os.O_NOFOLLOW,0o600); os.write(fd,b'OVERWRITTEN'); os.close(fd)\n assert target.is_file() and target.resolve().is_relative_to(inputs.resolve())\n assert not outside.resolve().is_relative_to(job.resolve())\n assert outside.read_text()=='OVERWRITTEN' and os.lstat(target).st_nlink==2\n print('outside-job inode overwritten')\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 4900012,
+        "out": 20824,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "2fa40ba5b5e7f8c903805897c70c5228c8e2afab",
+        "started": null,
+        "ended": "2026-09-11T23:29:28Z"
+      },
+      "note": "Covered argv, shell, SQL and template seams; credentials and records; path/ref custody; recorded sandbox argv; vendor-output trust; and supply-chain changes. Secret scans were clean across all 23 changed files and all 1,518 tracked files; no dependency, lockfile, workflow, or executable changed. All 44 changed document-pin tests pass. Later jobs.json, ladder.py, write_path.py and launch.py runtime implementations and live vendor/network confinement could not be exercised because they are absent from this slice. The session store was not read. Graft saved approximately 1,435,126 tokens."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T23:30:35.204Z"
+    }
+  },
+  "status": "closed"
 }
