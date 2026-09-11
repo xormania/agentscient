@@ -10,8 +10,10 @@ invoked as a subprocess against that planted HOME and records dir.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
+import shlex
 import sqlite3
 import subprocess
 import sys
@@ -31,23 +33,23 @@ PLAN = "20260901T030000Z-plan-claude-dddddd"
 IMPLEMENT = "20260901T040000Z-code-codex-eeeeee"
 AUTHOR = "20260901T050000Z-tests-grok-ffffff"
 CHECK = "20260901T060000Z-check-tests-codex-111111"
+SECURITY = "20260901T070000Z-review-codex-222222"
+ADJUDICATE = "20260901T080000Z-adjudicate-grok-333333"
+SWEEP = "20260901T090000Z-sweep-codex-444444"
 MISSING = "20260101T000000Z-review-codex-000000"
 OTHER_KEY = "20260901T000000Z-review-grok-ffffff#1"
 BAD_KEY = "not-a-key"
 ZERO_KEY = f"{REVIEW}#0"
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
+OTHER_REL = ".dev/ladder-inputs/other-scope.md"
 VALID_EVIDENCE = (
     "contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: "
     "found-text missing"
 )
-SCOPE_BODY = (
-    "# Work order\n"
-    "\n"
-    "1. **Correction, defined mechanically.**\n"
-    "2. **Findings are named, not inferred.**\n"
-    "3. **Refusal at mint, on the wire.**\n"
-    "4. **Citation shape.**\n"
+SCOPE_BODY = "# Work order\n\n" + "".join(
+    f"{n}. Item {n} of the work order.\n" for n in range(1, 11)
 )
+OTHER_BODY = "# Other\n\n1. **A numbered item on another file.**\n"
 ABSENT_STUB = (
     b'"""Absent-tool stand-in: exit 0, no output."""\n'
     b"import sys\n"
@@ -57,6 +59,16 @@ RUN_CAP = 30
 FUTURE = "2099-01-01T00:00:00Z"
 PAST = "2000-01-01T00:00:00Z"
 SAME = "2026-09-10T12:00:00Z"
+SPY_REASON = "substituted-citation-holds-reason"
+DISPOSITION_MARK = "python3 ops/conductor/tools/findings.py disposition"
+
+REVIEW_JOBS = (
+    (REVIEW, "adversarial-review"),
+    (CHECK, "check-tests"),
+    (SECURITY, "security-audit"),
+    (ADJUDICATE, "adjudicate"),
+    (SWEEP, "sweep"),
+)
 
 REGISTRY_ROWS = (
     {
@@ -82,12 +94,25 @@ REGISTRY_ROWS = (
 )
 
 
+def evidence_for(item: int, path: str = SCOPE_REL, why: str = "why") -> str:
+    return f"contract item {item} of {path}: {why}"
+
+
 def _live_snapshot() -> tuple[str, bytes | None]:
     if LIVE_STORE.is_file():
         return ("file", LIVE_STORE.read_bytes())
     if LIVE_STORE.exists():
         return ("other", None)
     return ("absent", None)
+
+
+def _load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        return None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 class _GateFixture(unittest.TestCase):
@@ -110,9 +135,11 @@ class _GateFixture(unittest.TestCase):
             self.home / ".local" / "state" / "agentscient" / "findings.db"
         )
         self.scope = self.repo / SCOPE_REL
+        self.other = self.repo / OTHER_REL
         self.findings = self.repo / "ops" / "conductor" / "tools" / "findings.py"
         self._stage_findings()
         self._plant_bytes(self.scope, SCOPE_BODY.encode("utf-8"))
+        self._plant_bytes(self.other, OTHER_BODY.encode("utf-8"))
         self.tool = self._correction_tool()
         self.assertFalse(
             self.store.exists(),
@@ -139,12 +166,17 @@ class _GateFixture(unittest.TestCase):
         self.assertNotEqual(landed, ABSENT_STUB)
 
     def _correction_tool(self) -> Path:
+        dest = self.repo / "ops" / "conductor" / "tools" / "correction.py"
+        dest.parent.mkdir(parents=True, exist_ok=True)
         if CORRECTION.is_file():
-            return CORRECTION
-        stub = self.scratch / "correction.py"
-        stub.write_bytes(ABSENT_STUB)
-        self.assertEqual(stub.read_bytes(), ABSENT_STUB)
-        return stub
+            data = CORRECTION.read_bytes()
+            dest.write_bytes(data)
+            self.assertEqual(dest.read_bytes(), data)
+            self.assertNotEqual(data, ABSENT_STUB)
+        else:
+            dest.write_bytes(ABSENT_STUB)
+            self.assertEqual(dest.read_bytes(), ABSENT_STUB)
+        return dest
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -191,7 +223,9 @@ class _GateFixture(unittest.TestCase):
             "stage": "review",
             "unit": "lane/correction",
             "job": job,
-            "role": "read" if job not in ("implement", "author-tests") else "write",
+            "role": (
+                "read" if job not in ("implement", "author-tests") else "write"
+            ),
             "status": "closed",
             "harness": {"name": "grok"},
             "model": {"ran": "grok-4.6"},
@@ -239,6 +273,18 @@ class _GateFixture(unittest.TestCase):
             con.close()
         self.assertEqual(rows, [(stamp,)])
 
+    def _store_state(self):
+        paths = [
+            self.store,
+            Path(str(self.store) + "-wal"),
+            Path(str(self.store) + "-shm"),
+            Path(str(self.store) + "-journal"),
+        ]
+        return tuple(
+            (p.name, p.is_file(), p.read_bytes() if p.is_file() else None)
+            for p in paths
+        )
+
     def check(
         self,
         *,
@@ -273,7 +319,8 @@ class _GateFixture(unittest.TestCase):
             argv.extend(["--answers", key])
         if extra:
             argv.extend(extra)
-        return subprocess.run(
+        before = self._store_state()
+        proc = subprocess.run(
             [sys.executable, str(self.tool), *argv],
             cwd=str(self.repo),
             env=self.env(),
@@ -282,6 +329,24 @@ class _GateFixture(unittest.TestCase):
             check=False,
             timeout=RUN_CAP,
         )
+        after = self._store_state()
+        self.assertEqual(
+            after,
+            before,
+            "items 3 and 6: the gate does not create, rewrite, or "
+            "auto-dispose the findings store",
+        )
+        return proc
+
+    def holds(self, evidence: str, root: Path, scope_path: str):
+        mod = _load_module(self.findings, "findings_for_gate")
+        fn = getattr(mod, "citation_holds", None) if mod is not None else None
+        if not callable(fn):
+            return False, "citation_holds is not defined"
+        try:
+            return fn(evidence, root, scope_path)
+        except TypeError:
+            return False, "citation_holds does not take scope_path"
 
     def assert_refusal(self, proc, class_name: str) -> str:
         err = proc.stderr or ""
@@ -322,6 +387,64 @@ class _GateFixture(unittest.TestCase):
         )
         self.assertIn(stamp, line)
 
+    def parse_needed_disposition(self, needed: str) -> list[str]:
+        self.assertIn(DISPOSITION_MARK, needed)
+        start = needed.index(DISPOSITION_MARK)
+        tail = needed[start:]
+        try:
+            parts = shlex.split(tail)
+        except ValueError as exc:
+            self.fail(f"needed command is not shell-quotable: {needed!r} ({exc})")
+        self.assertGreaterEqual(
+            len(parts),
+            6,
+            f"needed omits disposition operands: {parts!r}",
+        )
+        self.assertEqual(parts[0], "python3")
+        self.assertEqual(parts[1], "ops/conductor/tools/findings.py")
+        self.assertEqual(parts[2], "disposition")
+        return parts[:6]
+
+    def assert_needed_disposition(
+        self,
+        needed: str,
+        key: str,
+        *,
+        import_then: bool = False,
+    ) -> list[str]:
+        if import_then:
+            self.assertIn(
+                "python3 ops/conductor/tools/findings.py import, then",
+                needed,
+            )
+        parts = self.parse_needed_disposition(needed)
+        self.assertEqual(parts[3], key, parts)
+        self.assertTrue(parts[4].strip(), "needed omits the disposition")
+        evidence = parts[5]
+        self.assertIn("contract item ", evidence, evidence)
+        self.assertIn(f" of {SCOPE_REL}", evidence, evidence)
+        self.assertIn(shlex.quote(key), needed)
+        self.assertIn(shlex.quote(evidence), needed)
+        return parts
+
+    def run_needed_disposition(self, parts: list[str]):
+        self.assertEqual(parts[:3], [
+            "python3",
+            "ops/conductor/tools/findings.py",
+            "disposition",
+        ])
+        proc = subprocess.run(
+            [sys.executable, *parts[1:6]],
+            cwd=str(self.repo),
+            env=self.env(),
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=RUN_CAP,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        return proc
+
 
 class FiveFoundTexts(_GateFixture):
     """Item 3 — distinct found-texts, founding wire, exact needed command."""
@@ -332,15 +455,17 @@ class FiveFoundTexts(_GateFixture):
         line = self.assert_refusal(proc, "correction")
         self.assert_expected_before_stamp(line, FUTURE)
         found = self.found_clause(line)
-        self.assertIn("no --answers key named for a correction following", found)
-        self.assertIn(REVIEW, found)
-        self.assertIn("adversarial-review", found)
+        self.assertEqual(
+            found,
+            f"no --answers key named for a correction following {REVIEW} "
+            f"(adversarial-review)",
+        )
         needed = self.needed_clause(line)
         self.assertIn("pass --answers", needed)
-        self.assertIn(
-            "python3 ops/conductor/tools/findings.py disposition",
-            needed,
-        )
+        self.assertIn(DISPOSITION_MARK, needed)
+        self.assertIn(SCOPE_REL, needed)
+        self.assertIn("contract item ", needed)
+        self.assertIn(shlex.quote(f"{REVIEW}#1"), needed)
 
     def test_key_absent_from_the_store_names_the_path(self):
         self.plant_record(REVIEW, "adversarial-review")
@@ -350,30 +475,30 @@ class FiveFoundTexts(_GateFixture):
         line = self.assert_refusal(proc, "correction")
         self.assert_expected_before_stamp(line, FUTURE)
         found = self.found_clause(line)
-        self.assertIn(OTHER_KEY, found)
-        self.assertIn("absent from the findings store", found)
-        self.assertIn(str(self.store), found)
+        self.assertEqual(
+            found,
+            f"key {OTHER_KEY} absent from the findings store {self.store}",
+        )
         self.assertNotIn("(no store)", found)
         needed = self.needed_clause(line)
-        self.assertIn(
-            "python3 ops/conductor/tools/findings.py import, then",
-            needed,
-        )
-        self.assertIn(f"'{OTHER_KEY}'", needed)
+        self.assert_needed_disposition(needed, OTHER_KEY, import_then=True)
 
     def test_missing_store_names_no_store_and_does_not_create_one(self):
         self.plant_record(REVIEW, "adversarial-review")
         self.assertFalse(self.store.exists())
-        proc = self.check(follows=[REVIEW], answers=[f"{REVIEW}#1"])
+        key = f"{REVIEW}#1"
+        proc = self.check(follows=[REVIEW], answers=[key])
         line = self.assert_refusal(proc, "correction")
         found = self.found_clause(line)
         self.assertIn("absent from the findings store", found)
         self.assertIn("(no store)", found)
-        self.assertIn(str(self.home), found)
+        self.assertIn(str(self.store), found)
         self.assertFalse(
             self.store.exists(),
             "item 3: the gate never creates the store",
         )
+        needed = self.needed_clause(line)
+        self.assert_needed_disposition(needed, key, import_then=True)
 
     def test_key_still_open(self):
         self.plant_record(REVIEW, "adversarial-review")
@@ -382,13 +507,17 @@ class FiveFoundTexts(_GateFixture):
         proc = self.check(follows=[REVIEW], answers=[key])
         line = self.assert_refusal(proc, "correction")
         found = self.found_clause(line)
-        self.assertIn(f"key {key} still open", found)
+        self.assertEqual(found, f"key {key} still open")
         needed = self.needed_clause(line)
-        self.assertIn(f"'{key}'", needed)
-        self.assertIn(
-            "python3 ops/conductor/tools/findings.py disposition",
-            needed,
-        )
+        parts = self.assert_needed_disposition(needed, key)
+        self.run_needed_disposition(parts)
+        again = self.check(follows=[REVIEW], answers=[key])
+        self.assertEqual(again.returncode, 0, again.stderr or again.stdout)
+        body = (again.stdout or "").strip()
+        self.assertTrue(body, "accept path prints JSON on stdout")
+        payload = json.loads(body)
+        self.assertTrue(payload["correction"])
+        self.assertEqual(payload["answers"][0]["key"], key)
 
     def test_disposed_without_a_contract_citation(self):
         self.plant_record(REVIEW, "adversarial-review")
@@ -401,6 +530,14 @@ class FiveFoundTexts(_GateFixture):
         self.assertIn(key, found)
         self.assertIn("without a contract citation", found)
         self.assertIn("fixed", found)
+        ok, reason = self.holds("fixed in tests, no item", self.repo, SCOPE_REL)
+        self.assertFalse(ok)
+        self.assertIn(reason, found)
+        needed = self.needed_clause(line)
+        parts = self.assert_needed_disposition(needed, key)
+        self.run_needed_disposition(parts)
+        again = self.check(follows=[REVIEW], answers=[key])
+        self.assertEqual(again.returncode, 0, again.stderr or again.stdout)
 
     def test_newlines_in_evidence_still_one_stderr_line(self):
         self.plant_record(REVIEW, "adversarial-review")
@@ -423,6 +560,8 @@ class FiveFoundTexts(_GateFixture):
         self.assertIn(key, found)
         self.assertIn("after the mint attempt at", found)
         self.assertIn(PAST, found)
+        needed = self.needed_clause(line)
+        self.assert_needed_disposition(needed, key)
 
     def test_same_second_is_not_before_the_mint(self):
         self.plant_record(REVIEW, "adversarial-review")
@@ -433,25 +572,46 @@ class FiveFoundTexts(_GateFixture):
         proc = self.check(follows=[REVIEW], answers=[key], at=SAME)
         line = self.assert_refusal(proc, "correction")
         found = self.found_clause(line)
-        self.assertIn(
-            f"disposed at {SAME}, not before the mint attempt at {SAME}",
+        self.assertEqual(
             found,
+            f"key {key} disposed at {SAME}, not before the mint attempt "
+            f"at {SAME}",
         )
         needed = self.needed_clause(line)
         self.assertIn("wait one second and retry", needed)
+        self.assertNotIn(DISPOSITION_MARK, needed)
 
     def test_item_present_in_grammar_but_absent_from_the_file_is_uncited(self):
         self.plant_record(REVIEW, "adversarial-review")
         self.import_records()
         key = f"{REVIEW}#1"
-        evidence = (
-            "contract item 99 of .dev/ladder-inputs/scope-gate-20260910.md: "
-            "no such item"
-        )
+        evidence = evidence_for(99, why="no such item")
         self.dispose(key, "fixed", evidence)
         proc = self.check(follows=[REVIEW], answers=[key])
         line = self.assert_refusal(proc, "correction")
-        self.assertIn("without a contract citation", self.found_clause(line))
+        found = self.found_clause(line)
+        self.assertIn("without a contract citation", found)
+        ok, reason = self.holds(evidence, self.repo, SCOPE_REL)
+        self.assertFalse(ok)
+        self.assertIn(reason, found)
+
+    def test_citation_to_a_different_numbered_file_is_uncited(self):
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        evidence = evidence_for(1, path=OTHER_REL, why="other file")
+        self.dispose(key, "fixed", evidence)
+        proc = self.check(
+            follows=[REVIEW],
+            answers=[key],
+            inputs=[str(self.scope)],
+        )
+        line = self.assert_refusal(proc, "correction")
+        found = self.found_clause(line)
+        self.assertIn("without a contract citation", found)
+        ok, reason = self.holds(evidence, self.repo, SCOPE_REL)
+        self.assertFalse(ok)
+        self.assertIn(reason, found)
 
     def test_first_failure_in_answers_order_is_the_open_key(self):
         self.plant_record(REVIEW, "adversarial-review", ["one", "two"])
@@ -462,8 +622,20 @@ class FiveFoundTexts(_GateFixture):
         proc = self.check(follows=[REVIEW], answers=[first, second])
         line = self.assert_refusal(proc, "correction")
         found = self.found_clause(line)
-        self.assertIn(f"key {first} still open", found)
+        self.assertEqual(found, f"key {first} still open")
         self.assertNotIn(second, found)
+
+    def test_later_open_answer_is_refused_when_the_first_is_cited(self):
+        self.plant_record(REVIEW, "adversarial-review", ["one", "two"])
+        self.import_records()
+        first = f"{REVIEW}#1"
+        second = f"{REVIEW}#2"
+        self.dispose(first, "fixed", VALID_EVIDENCE)
+        proc = self.check(follows=[REVIEW], answers=[first, second])
+        line = self.assert_refusal(proc, "correction")
+        found = self.found_clause(line)
+        self.assertEqual(found, f"key {second} still open")
+        self.assertNotIn(first, found)
 
 
 class AcceptPath(_GateFixture):
@@ -492,6 +664,27 @@ class AcceptPath(_GateFixture):
         self.assertEqual(str(citation["item"]), "3")
         self.assertEqual(citation["path"], SCOPE_REL)
 
+    def test_two_satisfying_answers_record_item_1_and_item_10(self):
+        self.plant_record(REVIEW, "adversarial-review", ["one", "two"])
+        self.import_records()
+        first = f"{REVIEW}#1"
+        second = f"{REVIEW}#2"
+        self.dispose(first, "fixed", evidence_for(1, why="item 1 holds"))
+        self.dispose(second, "fixed", evidence_for(10, why="item 10 holds"))
+        proc = self.check(follows=[REVIEW], answers=[first, second])
+        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        body = (proc.stdout or "").strip()
+        self.assertTrue(body, "accept path prints JSON on stdout")
+        payload = json.loads(body)
+        self.assertTrue(payload["correction"])
+        rows = payload["answers"]
+        self.assertEqual(len(rows), 2, rows)
+        self.assertEqual([row["key"] for row in rows], [first, second])
+        self.assertEqual(str(rows[0]["citation"]["item"]), "1")
+        self.assertEqual(str(rows[1]["citation"]["item"]), "10")
+        self.assertEqual(rows[0]["citation"]["path"], SCOPE_REL)
+        self.assertEqual(rows[1]["citation"]["path"], SCOPE_REL)
+
     def test_author_tests_following_check_tests_is_a_correction(self):
         self.plant_record(CHECK, "check-tests")
         proc = self.check(job="author-tests", follows=[CHECK])
@@ -501,25 +694,53 @@ class AcceptPath(_GateFixture):
         self.assertIn("check-tests", line)
 
 
+class ReviewJobShape(_GateFixture):
+    """Item 1 — every read review job is the correction shape."""
+
+    def test_every_review_job_follow_is_a_correction(self):
+        for rec_id, job in REVIEW_JOBS:
+            with self.subTest(job=job):
+                self.plant_record(rec_id, job)
+                proc = self.check(follows=[rec_id])
+                line = self.assert_refusal(proc, "correction")
+                found = self.found_clause(line)
+                self.assertEqual(
+                    found,
+                    f"no --answers key named for a correction following "
+                    f"{rec_id} ({job})",
+                )
+
+    def test_every_review_job_out_input_is_a_correction(self):
+        for rec_id, job in REVIEW_JOBS:
+            with self.subTest(job=job):
+                self.plant_record(rec_id, job)
+                note = self.jobs_root / rec_id / "out" / "note.md"
+                self._plant_bytes(note, b"review artifact\n")
+                proc = self.check(inputs=[str(note)])
+                line = self.assert_refusal(proc, "correction")
+                self.assertIn("no --answers key named", line)
+                self.assertIn(rec_id, line)
+                self.assertIn(job, line)
+
+
 class NonCorrections(_GateFixture):
     """Item 7 / R8 — write jobs that are not the item-1 shape are untouched."""
 
     def _assert_not_a_correction(self, proc) -> None:
         err = proc.stderr or ""
-        head = err.split(":", 1)[0].strip().lower().replace("_", "-")
-        self.assertNotEqual(
-            head,
-            "correction",
-            "item 7: the gate does not inspect a non-correction",
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "item 7: a non-correction is not inspected and must not be "
+            f"refused; got exit {proc.returncode} stderr={err!r} "
+            f"stdout={proc.stdout!r}",
         )
-        if proc.returncode != 0:
-            self.assertEqual(proc.returncode, 2, err or proc.stdout)
-            self.assertEqual(head, "arguments", err)
-            return
+        self.assertEqual(err.strip(), "")
         body = (proc.stdout or "").strip()
         self.assertTrue(body, "non-correction prints JSON")
         payload = json.loads(body)
         self.assertFalse(payload["correction"])
+        self.assertEqual(payload.get("answers", []), [])
 
     def test_write_following_a_plan_record_is_not_a_correction(self):
         self.plant_record(PLAN, "plan")
@@ -549,17 +770,19 @@ class NonCorrections(_GateFixture):
             "item 7: a read role does not open the store",
         )
 
-    def test_answers_on_a_non_correction_is_not_a_correction_refusal(self):
+    def test_answers_on_a_non_correction_is_arguments(self):
         self.plant_record(PLAN, "plan")
         proc = self.check(follows=[PLAN], answers=[f"{REVIEW}#1"])
-        self._assert_not_a_correction(proc)
-        err = proc.stderr or ""
-        self.assertNotIn(
-            "still open",
-            err,
-            "item 7: answers on a non-correction are not looked up",
-        )
-        self.assertNotIn("absent from the findings store", err)
+        line = self.assert_refusal(proc, "arguments")
+        needed = self.needed_clause(line).lower()
+        self.assertIn("remove --answers", needed)
+        self.assertNotIn("still open", line)
+        self.assertNotIn("absent from the findings store", line)
+
+    def test_answers_on_a_write_following_nothing_is_arguments(self):
+        proc = self.check(answers=[f"{REVIEW}#1"])
+        line = self.assert_refusal(proc, "arguments")
+        self.assertIn("remove --answers", self.needed_clause(line).lower())
 
 
 class OutInputShape(_GateFixture):
@@ -641,6 +864,35 @@ class ArgumentsShape(_GateFixture):
             line,
             "R2: n starts at 1; #0 is not echoed in the remedy",
         )
+
+
+class SharedDefinition(_GateFixture):
+    """Item 4 — the gate and findings.py read one citation definition."""
+
+    def test_gate_uncited_reason_comes_from_citation_holds(self):
+        self.plant_record(REVIEW, "adversarial-review")
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        marker = SPY_REASON
+        suffix = (
+            "\n\ndef citation_holds(evidence, root, scope_path=None, "
+            "*args, **kwargs):\n"
+            f"    return False, {marker!r}\n"
+        )
+        before = self.findings.read_text(encoding="utf-8")
+        self.findings.write_text(before + suffix, encoding="utf-8")
+        landed = self.findings.read_text(encoding="utf-8")
+        self.assertTrue(
+            landed.endswith(suffix),
+            "plant: citation_holds substitution must land intact",
+        )
+        self.assertIn(marker, landed)
+        proc = self.check(follows=[REVIEW], answers=[key])
+        line = self.assert_refusal(proc, "correction")
+        found = self.found_clause(line)
+        self.assertIn("without a contract citation", found)
+        self.assertIn(marker, found)
 
 
 class NoOverride(_GateFixture):
