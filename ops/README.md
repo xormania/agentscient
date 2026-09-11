@@ -148,8 +148,8 @@ Named so nobody infers them from silence:
   narrow `--json status --checks` read projection is present for CI check
   discovery, but every writing verb remains absent. The House runtime
   stays on `lane/workflow` (PR #10,
-  closed unmerged at the owner's word, 2026-09-03; I-008, D-PORT-2
-  proposed). What crossed is its specification: `PLAN.md`, the twelve
+  closed unmerged at the owner's word, 2026-09-03; the port stops at
+  the specification, ratified 2026-09-11). What crossed is its specification: `PLAN.md`, the twelve
   CUE contracts and their notes under `contracts/`. This absence does
   not prescribe a Symfony replacement: future dev-lane runtime work
   follows its own contracts and `docs/workflow.md` independently.
