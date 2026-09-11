@@ -78,6 +78,7 @@
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
       },
+      "findings": 7,
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/.dev/records/dispatches/20260911T213956Z-tests-grok-fe4899.json",
@@ -91,10 +92,20 @@
         "sha256": "9f4aae58e2205f4766fc8715ab4c4ebeeb9488d272b1cab2e4f9432fa3ba9b7b"
       },
       "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "check-tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T215054Z-check-tests-codex-bc7bad",
-      "stage": "check-tests"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
