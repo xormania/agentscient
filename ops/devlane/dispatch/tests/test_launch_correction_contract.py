@@ -19,8 +19,19 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[4]
 CONTRACT = REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
 
-CITATION_GRAMMAR = (
+# Item 4: the path is a scope-file path. The item-3 needed command
+# writes `contract item N of <scope path>: <why>`, so a colon after the
+# path is a delimiter, not part of the path. The greedy class
+# `[^\s;,]+` is the mutant this pin refuses.
+GREEDY_CITATION_GRAMMAR = (
     r"contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s;,]+)"
+)
+CITATION_GRAMMAR = (
+    r"contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s;,:]+)"
+)
+PRESCRIBED_EVIDENCE = (
+    "contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: "
+    "found-text missing"
 )
 
 FOUND_TEXTS = (
@@ -64,8 +75,16 @@ PRIVATE_GRAMMAR = re.compile(
 )
 NEEDED_DISPOSITION = re.compile(
     r"python3 ops/conductor/tools/findings.py disposition "
-    r"(?:<key>|<record>#<n>) <disposition> "
+    r"'(?:<key>|<record>#<n>)' <disposition> "
     r"'contract item N of <[^'>]+>",
+)
+UNQUOTED_NEEDED = (
+    "python3 ops/conductor/tools/findings.py disposition "
+    "<key> <disposition> 'contract item N of <scope path>: why'"
+)
+QUOTED_NEEDED = (
+    "python3 ops/conductor/tools/findings.py disposition "
+    "'<key>' <disposition> 'contract item N of <scope path>: why'"
 )
 OVERRIDE_MARK = re.compile(r"\(\*\*override\*\*\)")
 OVERRIDE_PERMITTED = re.compile(
@@ -295,19 +314,27 @@ class CorrectionRefusalRow(_ContractPin):
         )
 
     def test_correction_needed_half_names_findings_py_disposition(self):
-        blob = self.row_or_section("correction")
-        self.assertRegex(
-            blob,
-            NEEDED_DISPOSITION,
-            "item 3: the needed half names the exact findings.py "
-            "disposition command with key, disposition, numbered item, "
-            "and scope path",
-        )
         self.assertFalse(
             NEEDED_DISPOSITION.search(
                 "needed python3 ops/conductor/tools/findings.py disposition"
             ),
             "the bare prefix is not the exact command",
+        )
+        self.assertIsNone(
+            NEEDED_DISPOSITION.search(UNQUOTED_NEEDED),
+            "item 3: an unquoted key is not an executable remedy",
+        )
+        self.assertIsNotNone(
+            NEEDED_DISPOSITION.search(QUOTED_NEEDED),
+            "the quoted key form is the exact command",
+        )
+        blob = self.row_or_section("correction")
+        self.assertRegex(
+            blob,
+            NEEDED_DISPOSITION,
+            "item 3: the needed half names the exact findings.py "
+            "disposition command with a quoted key, disposition, "
+            "numbered item, and scope path",
         )
 
     def test_correction_row_declares_exit_2_on_the_founding_wire(self):
@@ -356,12 +383,34 @@ class CitationGrammarQuote(_ContractPin):
     read the same definition."""
 
     def test_citation_grammar_is_quoted_once(self):
+        greedy = re.compile(GREEDY_CITATION_GRAMMAR)
+        greedy_match = greedy.search(PRESCRIBED_EVIDENCE)
+        self.assertIsNotNone(greedy_match)
+        self.assertTrue(
+            greedy_match.group("path").endswith(":"),
+            "the greedy class is the mutant this pin refuses",
+        )
+        pin = re.compile(CITATION_GRAMMAR)
+        pin_match = pin.search(PRESCRIBED_EVIDENCE)
+        self.assertIsNotNone(pin_match)
+        self.assertEqual(pin_match.group("item"), "3")
+        self.assertEqual(
+            pin_match.group("path"),
+            ".dev/ladder-inputs/scope-gate-20260910.md",
+            "item 4: the grammar must name the scope file by path; "
+            "a trailing colon is not a path",
+        )
         count = self.text.count(CITATION_GRAMMAR)
         self.assertEqual(
             count,
             1,
             f"citation grammar quoted {count} time(s), want 1: "
             f"{CITATION_GRAMMAR}",
+        )
+        self.assertNotIn(
+            GREEDY_CITATION_GRAMMAR,
+            self.text,
+            "item 4: the colon-capturing grammar must not remain quoted",
         )
 
     def test_grammar_quote_names_findings_py_as_its_home(self):
