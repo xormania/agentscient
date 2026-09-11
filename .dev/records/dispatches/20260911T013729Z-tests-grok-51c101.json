@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T01:37:30Z",
-    "closed": null
+    "closed": "2026-09-11T01:55:43Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T013729Z-tests-grok-51c101/home/grok-stream/sessions/<snapshot-encoded>/4742801d-f715-4af4-9e81-299a38317535/summary.json"
   },
   "session": {
     "id": "4742801d-f715-4af4-9e81-299a38317535",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T013729Z-tests-grok-51c101/home/grok-stream/sessions/<snapshot-encoded>/4742801d-f715-4af4-9e81-299a38317535/summary.json",
+    "stream_sha256_at_close": "5a6799859565b1a9d375f06b5b9dc6edf4107d461922c95589564d6b94a2198f",
+    "spend": {
+      "input": 2295961,
+      "cached": 2062464,
+      "output": 64819,
+      "total": 2360780,
+      "cost_usd_ticks": 3208138000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T013729Z-tests-grok-51c101/home/grok-stream/sessions/<snapshot-encoded>/4742801d-f715-4af4-9e81-299a38317535/summary.json",
+      "messages": 212
+    }
   },
   "brief": {
     "template": {
@@ -117,10 +125,60 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T01:37:30Z",
+      "ended": "2026-09-11T01:55:43Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "50c72eb859785424e69bb5f903e26047866d750d",
+    "changed_paths": [
+      "ops/conductor/tests/test_correction.py",
+      "ops/conductor/tests/test_findings_citation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_findings_citation": "ops/conductor/tests/test_findings_citation.py",
+        "test_correction": "ops/conductor/tests/test_correction.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2360780,
+        "out": 64819,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "8974911b8da3e4d789152cae96c073327f706624",
+        "started": "2026-09-11T01:38:14Z",
+        "ended": "2026-09-11T01:55:21Z"
+      },
+      "note": "Ledger-gate tests-fix committed at d096eaa2f6a34e0b5f2c987d87a4f83a5871b3bc and 50c72eb859785424e69bb5f903e26047866d750d. python3 -B -m unittest discover -s ops/conductor/tests -p test_findings_citation.py at 8974911b8da3e4d789152cae96c073327f706624: 27 tests, 27 assertion failures, 0 errors (parse_citation, citation_holds, and CITATION absent; cited is class arguments). python3 -B -m unittest discover -s ops/conductor/tests -p test_correction.py: 36 tests, 44 assertion failures (subtests included), 0 errors (correction.py and ops/conductor/registry/correction.py.json absent; the stub exits 0 with empty stdout). Covers check-tests 20260911T012543Z-check-tests-codex-df1b16 findings that cite contract items 1-4 and 6-9."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T01:55:42.941Z"
+    }
+  },
+  "status": "closed"
 }
