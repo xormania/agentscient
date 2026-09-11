@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T06:25:10Z",
-    "closed": null
+    "closed": "2026-09-11T06:30:37Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062509Z-check-tests-codex-344d3f/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-25-10-01a08f24-37ca-7710-809c-32f6197adc11.jsonl"
   },
   "session": {
-    "id": "78337514-1ef6-4747-9f2b-961e54b90bd6",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08f24-37ca-7710-809c-32f6197adc11",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062509Z-check-tests-codex-344d3f/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-25-10-01a08f24-37ca-7710-809c-32f6197adc11.jsonl",
+    "stream_sha256_at_close": "ce2deedb675eaf29e9237dc5015d1160003a0c4656846aeadff7ec4ed02cb601",
+    "spend": {
+      "input": 870579,
+      "cached": 791680,
+      "output": 13847,
+      "total": 884426,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062509Z-check-tests-codex-344d3f/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-25-10-01a08f24-37ca-7710-809c-32f6197adc11.jsonl",
+      "messages": 140
+    }
   },
   "brief": {
     "template": {
@@ -117,10 +124,87 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:25:10Z",
+      "ended": "2026-09-11T06:30:37Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "dca7599c283fb7af5e092dcfd73c69b43938dadf",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 3,
+        "p2": 2,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever_undisposed.py:408",
+          "claim": "Contract item 9 requires a fresh check before both fix stages, but all paths reaching fix-code keep citation success permanent. A driver that checks only before fix-tests and reuses that result would pass.",
+          "reproduce": "rg -n 'fix-code|cited_all|cited_keys\\(\\)' ops/conductor/tests/test_ladder_lever_undisposed.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever_undisposed.py:168",
+          "claim": "Contract item 9 requires checking every finding in both audit envelopes, but the suite plants only one adversarial finding. An implementation ignoring security findings and findings numbered 2 or higher would pass.",
+          "reproduce": "rg -n 'stage_findings|len\\(planted\\)|len\\(answers\\)' ops/conductor/tests/test_ladder_lever_undisposed.py"
+        },
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tests/test_ladder_lever_undisposed.py:316",
+          "claim": "Contract item 9 forbids the driver from writing dispositions. The tests check only that the findings.py disposition verb was not invoked, so direct ledger mutation would pass unnoticed.",
+          "reproduce": "rg -n 'assertNotIn\\(\"disposition\"|self\\.store|home_store' ops/conductor/tests/test_ladder_lever_undisposed.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever_undisposed.py:382",
+          "claim": "Contract items 1 and 9 require the fix jobs to have correction shape, for which one followed review record suffices. Requiring exactly three --follows values rejects conforming implementations and widens the contract.",
+          "reproduce": "rg -n 'len\\(follows\\), 3|follows\\[1\\]|follows\\[2\\]' ops/conductor/tests/test_ladder_lever_undisposed.py"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_lever_undisposed.py:281",
+          "claim": "Contract item 9 does not prescribe attempt accounting or require keys to be duplicated into stopped.keys. These assertions reject implementations that correctly stop before launch and name the undisposed keys.",
+          "reproduce": "rg -n 'attempt|stopped\\.keys|record=none|reason=\"undisposed\"' ops/conductor/tests/test_ladder_lever_undisposed.py"
+        }
+      ],
+      "artifacts": {
+        "skeptic": "/home/scientdb/.local/state/agentscient/dispatch/20260911T062509Z-check-tests-codex-344d3f/out/SKEPTIC.md"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 884426,
+        "out": 13847,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "dca7599c283fb7af5e092dcfd73c69b43938dadf",
+        "started": "2026-09-11T02:25:23-04:00",
+        "ended": "2026-09-11T02:29:28-04:00"
+      },
+      "note": "The guard accepted all plants. The frozen command ran 13 tests; all 13 failed on assertions with no collection or import errors."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T06:30:36.091Z"
+    }
+  },
+  "status": "closed"
 }
