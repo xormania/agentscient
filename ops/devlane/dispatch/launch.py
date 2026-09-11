@@ -364,6 +364,19 @@ def _inside(path, root):
         return False
 
 
+def _dotdot_input(path, jobs_root):
+    """A `..` component in an input that lies under the jobs root once
+    collapsed: the gate classifies the collapsed path, so the spelling
+    is refused rather than trusted (hand review of 7b7979b, 2026-09-11)."""
+    candidate = Path(path)
+    candidate = candidate if candidate.is_absolute() else Path.cwd() / candidate
+    if ".." not in candidate.parts:
+        return False
+    collapsed = Path(os.path.normpath(str(candidate)))
+    root = Path(jobs_root).absolute()
+    return collapsed == root or root in collapsed.parents
+
+
 def _symlinked_input(path, jobs_root):
     candidate = Path(path)
     candidate = candidate if candidate.is_absolute() else Path.cwd() / candidate
@@ -1472,6 +1485,13 @@ def _launch(args):
         repo,
     )
     for source in args.input:
+        if _dotdot_input(source, _jobs_root()):
+            CORRECTION.refuse(
+                "input",
+                "an input path without .. components under the jobs root",
+                f".. in {source}",
+                "spell the input path plainly",
+            )
         if _symlinked_input(source, _jobs_root()):
             CORRECTION.refuse(
                 "input",

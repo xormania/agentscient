@@ -106,6 +106,11 @@ def _input_record_id(path, jobs_root):
     jobs_root = Path(jobs_root).absolute()
     candidate = Path(path)
     candidate = (candidate if candidate.is_absolute() else Path.cwd() / candidate)
+    # The shape is read from the path as given, collapsed lexically: a
+    # `..` component must not reclassify a review artifact under another
+    # record's out/ (hand review of 7b7979b, 2026-09-11). No symlink is
+    # resolved here; the launcher refuses symlinked components itself.
+    candidate = Path(os.path.normpath(str(candidate)))
     try:
         relative = candidate.relative_to(jobs_root)
     except ValueError:
