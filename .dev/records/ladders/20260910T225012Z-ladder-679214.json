@@ -452,6 +452,7 @@
       "landed_shas": [
         "937ad1ee178f73f16608e7be59bc83271623688e"
       ],
+      "minutes": 2.928765,
       "name": "fix-code",
       "outcome": "ok",
       "record": "20260911T002036Z-code-codex-4de570",
