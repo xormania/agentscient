@@ -21,6 +21,7 @@ Reliability is the count below trending to zero per ladder.
 | LD-8 | 2026-09-10 | `test_monitor_malformed_git` | failed once on PR 89's CI (0 ls-remote calls for the healthy sibling), passed on rerun and locally; no other occurrence in the last ten dev runs | open, count it: 2 (PR 89 run 34542589843, PR 93 run 34545228312), both passed on rerun and locally | — |
 | LD-9 | 2026-09-11 | `test_handwork_ledger` | snapshots the live handwork ledger bytes and fails when the conductor declares or settles a grant during the run (PR 90 run 34545099924); same class as LD-4 | open; the fixture (I-020) retires it | — |
 | LD-10 | 2026-09-11 | freshness pre-check hook | compares every remote-tracking ref and refuses on any movement, so independent lineages in one session refuse each other's merges; three refusals on 2026-09-10, all for movement on dev while pushing unrelated branches | owner-authorized; this branch, grant 72: only the refs the command depends on | Grok, tests first, on this branch |
+| LD-12 | 2026-09-11 | term wall vs the findings export | the export copies reviewer claims verbatim from the exempt dispatch captures into a tracked file the wall scans; one claim quoting a host path slug turned PR 96 red | this branch, grant 81: the export joins the captured-data exemption | to follow |
 
 Not a lane defect: the setsid pid recorded for the resumed driver was the
 intermediate shell, the session's own error.
