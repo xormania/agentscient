@@ -148,7 +148,7 @@
     {
       "attempt": 3,
       "condition": "declared stage condition not yet evaluated",
-      "dispatch_record": "20260911T054927Z-code-codex-3122df",
+      "dispatch_record": "20260911T060607Z-code-codex-55c699",
       "dispatched": {
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
@@ -167,9 +167,9 @@
       },
       "job": "implement",
       "name": "code",
-      "outcome": "stopped",
+      "outcome": "launched",
       "reason": "retry-cap",
-      "record": "20260911T054927Z-code-codex-3122df",
+      "record": "20260911T060607Z-code-codex-55c699",
       "retry": {
         "at": "20260911T060607Z",
         "because": "LD-19: both code attempts were stopped by the driver's derived command (discover over launch_support.py exits 5), not by the worker; PR 122",
