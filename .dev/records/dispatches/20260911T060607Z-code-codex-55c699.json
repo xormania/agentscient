@@ -16,7 +16,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T06:06:07Z",
-    "closed": null
+    "closed": "2026-09-11T06:11:14Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -76,14 +76,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-06-21-01a08f12-fc6f-7f41-8a29-6ac68d6f15cf.jsonl"
   },
   "session": {
-    "id": "a5f8d7a5-8c6c-4690-bc15-b54cfca6edb5",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08f12-fc6f-7f41-8a29-6ac68d6f15cf",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-06-21-01a08f12-fc6f-7f41-8a29-6ac68d6f15cf.jsonl",
+    "stream_sha256_at_close": "1b159b7c3a77dfdbf64929136dffd0e4e98771ec973183760a8e3dbcbd745bb9",
+    "spend": {
+      "input": 1062785,
+      "cached": 991872,
+      "output": 8453,
+      "total": 1071238,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-06-21-01a08f12-fc6f-7f41-8a29-6ac68d6f15cf.jsonl",
+      "messages": 167
+    }
   },
   "brief": {
     "template": {
@@ -119,10 +126,183 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:06:20Z",
+      "ended": "2026-09-11T06:11:14Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "084dd0c83221ccd6d600c2a0a23568c11ea8432b",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "launcher-mint",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 21,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Initial worktree was detached and clean.",
+          "reproduce": "git status --short --branch"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Initial HEAD matched the requested ref 084dd0c83221ccd6d600c2a0a23568c11ea8432b.",
+          "reproduce": "git rev-parse HEAD"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/",
+          "claim": "Required initial Graft navigation completed successfully over 302 indexed files.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'"
+        },
+        {
+          "severity": "p3",
+          "where": "in/",
+          "claim": "Attempted the combined whole-input read; the command succeeded, although its displayed output was truncated.",
+          "reproduce": "sed -n '1,$p' /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/plan-launcher-gate.md /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/",
+          "claim": "The four required inputs contain 767 lines total; the plan contains 642.",
+          "reproduce": "wc -l /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/plan-launcher-gate.md /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/plan-launcher-gate.md",
+          "claim": "Read plan lines 1\u2013220 whole.",
+          "reproduce": "sed -n '1,220p' /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/plan-launcher-gate.md",
+          "claim": "Read plan lines 221\u2013440 whole.",
+          "reproduce": "sed -n '221,440p' /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/plan-launcher-gate.md",
+          "claim": "Read plan lines 441\u2013642 whole.",
+          "reproduce": "sed -n '441,642p' /home/scientdb/.local/state/agentscient/dispatch/20260911T060607Z-code-codex-55c699/in/plan-launcher-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Found the six tracked top-level contract and mapping documents.",
+          "reproduce": "rg --files docs"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Measured 702 lines across the governing documents and lane README.",
+          "reproduce": "wc -l docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Attempted their combined whole-file read; the command succeeded, although its displayed output was truncated in mapping.md.",
+          "reproduce": "sed -n '1,$p' docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/mapping.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read mapping lines 1\u2013160 whole.",
+          "reproduce": "sed -n '1,160p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/mapping.md",
+          "claim": "Read mapping lines 161\u2013268 whole.",
+          "reproduce": "sed -n '161,268p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/README.md",
+          "claim": "Read the lane README whole.",
+          "reproduce": "sed -n '1,183p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "The requested acceptance command already exited 0 at the pinned tree: 8 record tests and 29 launcher-gate tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "Inspected recent commit messages for repository trailer practice.",
+          "reproduce": "git log -5 --format=fuller"
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "Confirmed Codex commits use an OpenAI noreply co-author trailer.",
+          "reproduce": "git log --all --grep='Co-Authored-By:.*Codex' -5 --format=fuller"
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "The sandbox refused the evidence-only commit because .git/index.lock is on a read-only filesystem.",
+          "reproduce": "git commit --allow-empty -m 'dispatch: confirm correction gate acceptance' -m 'The named acceptance command was already green at the pinned tree; no file changes were required.\\n\\nSource: original\\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests",
+          "claim": "Final verification exited 0 again: all 37 named tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_record_answers.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_correction_gate.py"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Final worktree has no modified or untracked files.",
+          "reproduce": "git status --porcelain=v1"
+        },
+        {
+          "severity": "p3",
+          "where": "snapshot",
+          "claim": "Final HEAD remains 084dd0c83221ccd6d600c2a0a23568c11ea8432b.",
+          "reproduce": "git rev-parse HEAD"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 1071238,
+        "out": 8453,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "084dd0c83221ccd6d600c2a0a23568c11ea8432b"
+      },
+      "note": "No source edit was necessary because the exact acceptance command passed at the requested ref and again in the final clean tree. Git commit was refused by the read-only .git filesystem, so the launcher should use the supplied commit message.",
+      "commit": {
+        "subject": "dispatch: confirm correction gate acceptance",
+        "body": "The named acceptance command was already green at the pinned tree; no file changes were required.\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T06:11:13.885Z"
+    }
+  },
+  "status": "closed"
 }
