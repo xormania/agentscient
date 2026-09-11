@@ -489,6 +489,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 6.25416,
       "name": "security-re",
       "outcome": "ok",
       "record": "20260911T002340Z-review-codex-461253",
