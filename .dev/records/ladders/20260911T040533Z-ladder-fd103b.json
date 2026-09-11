@@ -146,7 +146,7 @@
       "stage": "tests"
     },
     {
-      "attempt": 1,
+      "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
       "dispatch_record": "20260911T045555Z-code-codex-532808",
       "dispatched": {
