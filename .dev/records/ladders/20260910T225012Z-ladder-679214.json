@@ -366,10 +366,21 @@
         "sha256": "7f29e11ad35397be673e5f76379d6a75475d2fa7399c0f1b2350a43a3996d0ef"
       },
       "job": "author-tests",
+      "landed": [
+        "b10bec8bea2667b40856194ef5d33e872ca3aaa2"
+      ],
+      "landed_shas": [
+        "b10bec8bea2667b40856194ef5d33e872ca3aaa2"
+      ],
       "name": "fix-tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "reason": "withheld",
       "record": "20260911T000902Z-tests-grok-7f3dea",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
       "stage": "tests"
     },
     {
