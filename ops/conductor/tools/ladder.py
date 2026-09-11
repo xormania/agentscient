@@ -807,12 +807,35 @@ class Driver:
         }
         return dispatch_record, envelope
 
+    def stage_wall(self, stage: str, launched: dict):
+        """The wait wall for a stage, in seconds, or None for WALL_DEFAULT.
+
+        LD-17 (2026-09-11): the launcher writes ``caps.timeout`` into the
+        record copy only when the job closes, so reading it at wait time
+        found nothing and every stage waited WALL_DEFAULT; a 22-minute
+        tests-fix with an 1800-second cap was stopped as ``wall``. The
+        record copy wins when it carries a cap; otherwise the stage's job
+        cap from the job registry, the launcher's own default source.
+        """
+        cap = (launched.get("caps") or {}).get("timeout")
+        if cap is not None:
+            return cap
+        job = next((row[1] for row in DISPATCH_STAGES if row[0] == stage), None)
+        if job is None:
+            return None
+        jobs_path = self.worktree / "ops" / "devlane" / "task" / "jobs.json"
+        try:
+            jobs = json.loads(jobs_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+        return ((jobs.get(job) or {}).get("caps") or {}).get("timeout")
+
     def await_result(self, pending: Pending) -> tuple[dict, dict]:
         try:
             launched = json.loads(pending.record_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             launched = {}
-        cap = (launched.get("caps") or {}).get("timeout")
+        cap = self.stage_wall(pending.name, launched)
         try:
             wall = int(cap or self.conf["WALL_DEFAULT"])
             grace = int(self.conf["LADDER_WAIT_GRACE"])
