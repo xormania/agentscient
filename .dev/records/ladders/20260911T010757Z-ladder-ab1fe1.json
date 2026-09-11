@@ -300,6 +300,7 @@
         "effort": "xhigh",
         "model": "grok-4.6"
       },
+      "findings": 2,
       "harness": "grok",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/.dev/ladder-inputs/scope-discipline.md",
@@ -313,10 +314,20 @@
         "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
       },
       "job": "adversarial-review",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "adversarial",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T020630Z-review-grok-7fdc2e",
-      "stage": "review"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
+      "stage": "review",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
