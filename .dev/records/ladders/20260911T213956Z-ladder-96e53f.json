@@ -109,9 +109,24 @@
       "verdict": "changes"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
       "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T215054Z-check-tests-codex-bc7bad/out/SKEPTIC.md",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T215054Z-check-tests-codex-bc7bad"
+          ],
+          "withheld": []
+        },
+        "sha256": "1b2450b78c0aa94fe84ba4f7c7dd0ef0a7cf4876ab5b61fd7eda5f7d3ae43466"
+      },
       "job": "author-tests",
       "name": "tests-fix",
       "outcome": "pending",
