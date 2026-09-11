@@ -1,0 +1,126 @@
+{
+  "base_sha": "51eeab4fba976f4a0198a579c642685f2794b102",
+  "branch": "lane/item31-slice2-skeptic-driver-20260911",
+  "calibration": [],
+  "conf": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/ops/lane.conf",
+    "sha256": "9bb41d2ab1e32781b365987d2446c817a3cfe2047d0b4b9af96a8091ae4e088c"
+  },
+  "id": "20260911T233644Z-ladder-a4676a",
+  "implementation_markers": [],
+  "inputs": [
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/.dev/ladder-inputs/scope-item31-20260911.md",
+      "sha256": "23bd606c542162a0e222d9207f3c01a0bf8ec67e6f1977d0f76c8f513b14b6cf"
+    },
+    {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/.dev/ladder-inputs/scope-discipline.md",
+      "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+    }
+  ],
+  "lane": "agentscient",
+  "plan": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/.dev/ladder-inputs/plan-item31-slice2-20260911.md",
+    "sha256": "79510c5be52e2402287adacf385a37fdc6a7d7751390d74df997dfc65c01b046"
+  },
+  "pr": null,
+  "scope": {
+    "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/.dev/ladder-inputs/scope-item31-20260911.scope.md",
+    "sha256": "ef0dc624979effe34f2d03dc65ad8535a40202dfc4a4be03e7f20a19a04abe1e"
+  },
+  "stages": [
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "check-tests",
+      "name": "check-tests",
+      "outcome": "pending",
+      "stage": "check-tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "tests-fix",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "adversarial-review",
+      "name": "adversarial",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "grok",
+      "job": "author-tests",
+      "name": "fix-tests",
+      "outcome": "pending",
+      "stage": "tests"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "implement",
+      "name": "fix-code",
+      "outcome": "pending",
+      "stage": "code"
+    },
+    {
+      "attempt": 0,
+      "condition": "declared stage condition not yet evaluated",
+      "harness": "codex",
+      "job": "security-audit",
+      "name": "security-re",
+      "outcome": "pending",
+      "stage": "review"
+    },
+    {
+      "attempt": 0,
+      "condition": "audits approve",
+      "harness": null,
+      "job": null,
+      "name": "pr",
+      "outcome": "pending",
+      "stage": null
+    }
+  ],
+  "status": "running",
+  "stopped": null,
+  "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911"
+}
