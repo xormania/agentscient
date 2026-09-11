@@ -406,7 +406,7 @@ def _harness_meta(name, role, job_dir, env):
     isolation = _module("isolation", HARNESS_APP / "isolation.py")
     try:
         iso_env, flags = isolation.isolated(name, job_dir / "home" / name, env)
-    except (KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
+    except (isolation.NotIsolated, KeyError, OSError, RuntimeError, TypeError, ValueError) as exc:
         _refuse("isolation", "an isolated harness with credentials", str(exc),
                 "add the isolation entry and required credential")
     spec = isolation.HARNESSES[name]
@@ -455,6 +455,15 @@ def _preflight_isolation(name, target, env):
         if missing:
             _refuse("isolation", "the required credential", str(source / missing[0]),
                     "install the credential in the harness home")
+        # LD-18 (2026-09-11): an aged credential is refused here, before the
+        # mint, so the refusal leaves no job directory behind.
+        for leaf in spec["auth_files"]:
+            try:
+                isolation.check_credential_age(name, spec, leaf, source / leaf)
+            except isolation.NotIsolated as exc:
+                rule = spec.get("credential_age") or {}
+                _refuse("isolation", "a credential within its measured refresh lifetime",
+                        str(exc), f"{rule.get('remedy', 'log the harness in again')} on the host")
 
 
 # A read role must be able to execute to judge: a skeptic that cannot run the
