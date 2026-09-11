@@ -42,7 +42,7 @@ from test_ladder_lever import BRANCH, _LadderFixture  # noqa: E402
 
 START_FORM = "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID"
 NEEDED_INPUT = "supply a readable input file"
-NEEDED_RECORD = "restore the recorded bytes or repair the digest"
+NEEDED_RECORD = "restore the recorded bytes, or resume with --rescope to record the change"
 ALPHA_REL = "wo-alpha-aa32.md"
 BETA_REL = "wo-beta-aa32.md"
 ALPHA_BODY = "start-input-alpha-aa32\n"
