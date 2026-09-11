@@ -224,12 +224,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "reason": "envelope",
-    "record": "20260911T032424Z-code-codex-f94a44",
-    "stage": "code",
-    "verdict": null
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911"
 }
