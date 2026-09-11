@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T06:30:40Z",
-    "closed": null
+    "closed": "2026-09-11T06:48:24Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T063039Z-tests-grok-4afbbe/home/grok-stream/sessions/<snapshot-encoded>/d10b3e1c-2872-4274-99a8-aced853b6702/summary.json"
   },
   "session": {
     "id": "d10b3e1c-2872-4274-99a8-aced853b6702",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T063039Z-tests-grok-4afbbe/home/grok-stream/sessions/<snapshot-encoded>/d10b3e1c-2872-4274-99a8-aced853b6702/summary.json",
+    "stream_sha256_at_close": "5a58835d2f3e2d1af482869d786ecf0d759ed13afbd08d2ca7388e1f1bed52d7",
+    "spend": {
+      "input": 2207861,
+      "cached": 2044544,
+      "output": 49212,
+      "total": 2257073,
+      "cost_usd_ticks": 2795102600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T063039Z-tests-grok-4afbbe/home/grok-stream/sessions/<snapshot-encoded>/d10b3e1c-2872-4274-99a8-aced853b6702/summary.json",
+      "messages": 215
+    }
   },
   "brief": {
     "template": {
@@ -121,10 +129,58 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:30:40Z",
+      "ended": "2026-09-11T06:48:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "97fe0d130b858fe9ddabc05a2020cb33d6d9e149",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_undisposed.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever_undisposed": "ops/conductor/tests/test_ladder_lever_undisposed.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2257073,
+        "out": 49212,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "1ac1733b8b4ec062c833ddce4f1a356970ab32bf",
+        "started": "2026-09-11T02:30:39-04:00",
+        "ended": "2026-09-11T02:48:06-04:00"
+      },
+      "note": "Rewrote ops/conductor/tests/test_ladder_lever_undisposed.py from contract item 9 (and the item-1 shape of the fix stages). 13 tests, each red on its own assertion at 1ac1733b8b4ec062c833ddce4f1a356970ab32bf (0 collection/import errors); committed 97fe0d130b858fe9ddabc05a2020cb33d6d9e149. Plants cover both audit envelopes, n>=2, a fresh check before fix-code, resume once rows exist, ledger snapshot for no driver-written dispositions, and --answers for every key without requiring a fixed --follows count."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T06:48:22.920Z"
+    }
+  },
+  "status": "closed"
 }
