@@ -28,6 +28,10 @@ row that cannot look refuses: "could not look" is not a pass.
     dispatch-by-hand a driver job sent straight to dispatch.sh    job, command word
     test-form       unittest given a path instead of discovery    tokens
     prune           rm -r of records, state, worktrees, .git      statement
+    graft-first     a grep/rg/git grep search over a code root    statement, targets
+                    (counts, file lists, pipes and records paths
+                    are not searches); no grant escape; every
+                    refusal and every Graft query is logged
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
@@ -68,6 +72,14 @@ ALLOWED_BY_HAND = {
     "verify": "verification is a session-owned read job",
 }
 DISPATCHERS = ("dispatch.sh", "go.sh")
+# graft-first (owner, 2026-09-11: "go - force it"): the conductor navigated
+# code with greps all day and called Graft zero times. A content search over
+# a code root refuses with the Graft query as the remedy. Counts (-c), file
+# lists (-l/-L), a grep reading a pipe, and records paths are not searches.
+SEARCHERS = ("grep", "egrep", "fgrep", "rg", "ugrep", "evgrep.sh")
+SEARCH_COUNT_FLAGS = {"-c", "--count", "-l", "--files-with-matches", "-L", "--files-without-match"}
+GRAFT_LEVER = "ops/devlane/harness/graft.py"
+GRAFT_LOG = "graft-first.log"
 LAUNCHER = "launch.py"
 DRIVER = "ladder.sh"
 # Launcher verbs that launch nothing: they read a record the dispatcher
@@ -689,6 +701,88 @@ def check_dispatch(kind, flags, cwd, text, grant):
 
 # --- the decision -----------------------------------------------------------
 
+def graft_log(lane, kind, detail):
+    """Append one line to the lane's graft-first log; never raise."""
+    if not lane:
+        return
+    try:
+        path = os.path.join(STATE_DIR, lane, GRAFT_LOG)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(f"{_now_iso()}\t{kind}\t{detail}\n")
+    except OSError:
+        pass
+
+
+def _now_iso():
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def graft_context_path(root):
+    """The prepared Graft context for ``root`` if it exists, else None."""
+    import hashlib
+    if not root:
+        return None
+    digest = hashlib.sha256(root.encode()).hexdigest()
+    path = os.path.join(STATE_DIR, "agentscient", "graft", f"{digest}.context.json")
+    return path if os.path.isfile(path) else None
+
+
+def search_targets(toks):
+    """(pattern, code-ish targets) of a grep-family statement, or (None, [])."""
+    if not toks:
+        return None, []
+    word = base(toks[0])
+    args = toks[1:]
+    if word == "git" and len(toks) > 1 and toks[1] == "grep":
+        args = toks[2:]
+    elif word not in SEARCHERS:
+        return None, []
+    if any(a in SEARCH_COUNT_FLAGS for a in args):
+        return None, []
+    positional = []
+    skip = False
+    for a in args:
+        if skip:
+            skip = False
+            continue
+        if a == "--":
+            continue
+        if a.startswith("-"):
+            if a in ("-e", "-f", "-m", "-A", "-B", "-C", "--include", "--exclude", "--exclude-dir"):
+                skip = True
+            continue
+        positional.append(a)
+    if len(positional) < 2:
+        return None, []  # a pipe filter or a pattern with no path is not code navigation
+    return positional[0], positional[1:]
+
+
+def graft_first(toks, cwd, root, lane):
+    pattern, targets = search_targets(toks)
+    if pattern is None:
+        return None
+    hits = []
+    for target in targets:
+        _, rel = relative(target, cwd)
+        # a directory target normalises without its slash ("docs/" -> "docs")
+        if is_code(rel) or (rel is not None and is_code(rel + "/")):
+            hits.append(target)
+    if not hits:
+        return None
+    context = graft_context_path(root)
+    query = (f"python3 {GRAFT_LEVER} query --context {context} graft_find_code "
+             f"'{{\"query\": \"{pattern}\", \"limit\": 20}}'") if context else (
+             f"python3 {GRAFT_LEVER} prepare --root {root}  (prints the context path), then "
+             f"python3 {GRAFT_LEVER} query --context <that path> graft_find_code "
+             f"'{{\"query\": \"{pattern}\", \"limit\": 20}}'")
+    graft_log(lane, "deny", f"{base(toks[0])} {pattern} {' '.join(hits)}")
+    return deny("graft-first", "code navigated through Graft (graft_find_code, graft_repo_map, graft_file_api)",
+                f"{base(toks[0])} searching {' '.join(hits)} for {pattern!r}",
+                f"{query}; a count (-c) or file list (-l) stays allowed")
+
+
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
@@ -705,6 +799,11 @@ def check_text(text, cwd, depth=0):
             continue
         for target in prune_targets(toks, cwd, conf):
             return deny("prune", "data kept (never prune)", f"rm -r {target}", "leave it; move it under .dev/tmp with a note if it is in the way")
+        if depth == 0 and GRAFT_LEVER.rsplit("/", 1)[-1] in " ".join(toks) and "query" in toks:
+            graft_log(lane, "query", " ".join(t for t in toks if t.startswith("graft_")) or "query")
+        refusal = graft_first(toks, cwd, root, lane)
+        if refusal:
+            return refusal
         for target in redirect_targets(toks) + written_paths(toks):
             if target == ".":
                 if grant is None:

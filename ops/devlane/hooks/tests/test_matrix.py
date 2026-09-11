@@ -924,6 +924,42 @@ class MatrixHookTests(unittest.TestCase):
         self.assert_allowed(self.run_bash("ops/devlane/dispatch/launch.py --help"))
         self.assert_allowed(self.run_bash("python3 ops/devlane/dispatch/launch.py -h"))
 
+    # --- graft-first (owner 2026-09-11: "go - force it") ---
+
+    def _graft_log(self):
+        return self.home / ".local" / "state" / LANE_NAME / "graft-first.log"
+
+    def test_a_content_search_over_a_code_root_is_refused_with_the_graft_query(self):
+        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        self.assert_denied(proc, "graft-first")
+        self.assertIn("graft_find_code", proc.stdout)
+        self.assertIn("def foo", proc.stdout)
+        self.assertTrue(self._graft_log().is_file(), "a refusal is logged")
+        self.assertIn("\tdeny\t", self._graft_log().read_text())
+
+    def test_git_grep_and_rg_over_code_are_refused_too(self):
+        self.assert_denied(self.run_bash("git grep -n pattern -- docs/"), "graft-first")
+        self.assert_denied(self.run_bash("rg pattern docs/"), "graft-first")
+
+    def test_counts_file_lists_pipes_and_records_paths_stay_allowed(self):
+        self.assert_allowed(self.run_bash("grep -c 'def foo' docs/README.md"))
+        self.assert_allowed(self.run_bash("grep -l 'def foo' docs/README.md"))
+        self.assert_allowed(self.run_bash("git log --oneline | grep foo"))
+        self.assert_allowed(self.run_bash("grep -n foo ops/conductor/handoff/notes.md"))
+        self.assert_allowed(self.run_bash("grep -rn foo .dev/records/"))
+
+    def test_a_grant_does_not_escape_graft_first(self):
+        self.assert_denied(
+            self.run_bash(f"HAND_GRANT={GRANT_OPEN} grep -n foo docs/README.md"),
+            "graft-first",
+        )
+
+    def test_a_graft_query_is_allowed_and_logged(self):
+        self.assert_allowed(self.run_bash(
+            "python3 ops/devlane/harness/graft.py query --context c.json graft_find_code '{\"query\": \"foo\"}'"
+        ))
+        self.assertIn("\tquery\tgraft_find_code", self._graft_log().read_text())
+
     def test_grant_escape_allows_direct_launch_when_the_grant_is_open(self):
         self.assert_allowed(
             self.run_bash(
