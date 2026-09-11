@@ -143,7 +143,7 @@
       "stage": "tests"
     },
     {
-      "attempt": 1,
+      "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
       "dispatch_record": "20260911T032424Z-code-codex-f94a44",
       "dispatched": {
@@ -160,7 +160,7 @@
           ],
           "withheld": []
         },
-        "sha256": "8ddb6a65862dfbad5b79073c6de8b160ee9523c73d3b3abb0b4e490331f392c5"
+        "sha256": "69cf34c7542b86b8d629895a4a0b8234842eed5bcbea0862dea034145c95290c"
       },
       "job": "implement",
       "name": "code",
