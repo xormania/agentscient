@@ -90,7 +90,7 @@ def head_digest(repo: Path) -> str:
 
 def dirty_paths(repo: Path) -> list[str]:
     """Paths that differ from HEAD, the receipts directory itself excluded."""
-    proc = subprocess.run(["git", "-C", str(repo), "status", "--porcelain=v1", "-z", "--untracked-files=normal"],
+    proc = subprocess.run(["git", "-C", str(repo), "status", "--porcelain=v1", "-z", "--untracked-files=all"],
                           capture_output=True, text=True, check=False)
     if proc.returncode != 0:
         refuse("repository", "git status to read the working tree", f"git status exited {proc.returncode}",
@@ -106,21 +106,25 @@ def dirty_paths(repo: Path) -> list[str]:
         if status[0] in ("R", "C"):
             index += 1
         normalized = path.rstrip("/")
-        is_receipt_state = (normalized == own or normalized.startswith(own + "/")
-                            or own.startswith(normalized + "/"))
+        is_receipt_state = normalized == own or normalized.startswith(own + "/")
         if not is_receipt_state:
             out.append(path)
     return sorted(out)
 
 
-def relative_cwd(repo: Path, cwd: str) -> str:
+def relative_cwd(repo: Path, cwd: str, refusal_kind: str = "cwd") -> str:
     candidate = Path(cwd)
     if candidate.is_absolute():
-        refuse("cwd", "a path relative to the repository root", cwd, "give the path relative to the root")
+        refuse(refusal_kind, "a path relative to the repository root", cwd,
+               "give the path relative to the root")
     target = (repo / candidate).resolve()
     if not target.is_relative_to(repo.resolve()) or not target.is_dir():
-        refuse("cwd", "a directory inside the repository", cwd, "give a directory under the root")
-    return target.relative_to(repo.resolve()).as_posix() or "."
+        refuse(refusal_kind, "a directory inside the repository", cwd, "give a directory under the root")
+    normalized = target.relative_to(repo.resolve()).as_posix() or "."
+    if cwd != normalized:
+        refuse(refusal_kind, "a normalized path relative to the repository root", cwd,
+               f"use {normalized}")
+    return normalized
 
 
 def receipt_directory(repo: Path) -> Path:
@@ -158,11 +162,17 @@ def write_receipt(repo: Path, body: dict) -> tuple[str, Path]:
 
 
 def load_receipt(repo: Path, ref: str) -> tuple[dict, Path]:
-    path = Path(ref)
-    if not path.is_file():
-        path = repo / RECEIPTS_DIR / (ref if ref.endswith(".json") else f"{ref}.json")
-    if not path.is_file():
+    directory = receipt_directory(repo).resolve()
+    path = directory / f"{ref}.json" if DIGEST.fullmatch(ref) else Path(ref)
+    try:
+        resolved = path.resolve(strict=True)
+    except (OSError, RuntimeError):
         refuse("receipt", "a receipt file or digest under " + RECEIPTS_DIR.as_posix(), ref, "name a recorded receipt")
+    if not resolved.is_file():
+        refuse("receipt", "a receipt file or digest under " + RECEIPTS_DIR.as_posix(), ref,
+               "name a recorded receipt")
+    in_receipts_directory = resolved.is_relative_to(directory)
+    path = resolved
     try:
         body = canonical.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
@@ -191,9 +201,12 @@ def load_receipt(repo: Path, ref: str) -> tuple[dict, Path]:
     if not valid:
         refuse("receipt", "field types and values conforming to #Receipt", "an invalid receipt field",
                "use a receipt written by this lever")
+    relative_cwd(repo, body["cwd"], "receipt" if in_receipts_directory else "cwd")
+    if not in_receipts_directory:
+        refuse("receipt", "a receipt file or digest under " + RECEIPTS_DIR.as_posix(), ref,
+               "name a recorded receipt")
     digest = canonical.digest(body)
-    in_receipts_directory = path.parent.resolve() == (repo / RECEIPTS_DIR).resolve()
-    if (in_receipts_directory or DIGEST.fullmatch(path.stem)) and path.stem != digest:
+    if path.stem != digest:
         refuse("receipt", f"canonical digest {path.stem}", f"canonical digest {digest}",
                "restore the receipt body named by the file")
     return body, path
