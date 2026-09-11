@@ -16,7 +16,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T22:33:16Z",
-    "closed": null
+    "closed": "2026-09-11T22:41:41Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -76,14 +76,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T18-33-30-01a0929a-beee-7c70-9310-73496c31e4f8.jsonl"
   },
   "session": {
-    "id": "46903c99-40aa-44e0-b3e3-8f3a32036a00",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a0929a-beee-7c70-9310-73496c31e4f8",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T18-33-30-01a0929a-beee-7c70-9310-73496c31e4f8.jsonl",
+    "stream_sha256_at_close": "515998a2c76bb3c74e874eed709bcd8c257b9279ee81e9f8576f93a1b4588b22",
+    "spend": {
+      "input": 2629302,
+      "cached": 2517376,
+      "output": 19356,
+      "total": 2648658,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T18-33-30-01a0929a-beee-7c70-9310-73496c31e4f8.jsonl",
+      "messages": 263
+    }
   },
   "brief": {
     "template": {
@@ -119,10 +126,217 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T22:33:29Z",
+      "ended": "2026-09-11T22:41:41Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "08725030e8effceb76b0f9caf3eb30ab2b44c163",
+    "changed_paths": [
+      "ops/conductor/ladder-lever.md",
+      "ops/devlane/dispatch/CONTRACT.md",
+      "ops/devlane/task/CONTRACT.md"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "item31-slice1-skeptic-contracts",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 25,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "command:01",
+          "claim": "Measured the input, ops README, and docs file sizes before reading.",
+          "reproduce": "wc -l /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.scope.md ops/README.md && rg --files docs | sort | xargs wc -l"
+        },
+        {
+          "severity": "p3",
+          "where": "command:02",
+          "claim": "The initial whole-plan display was truncated, so bounded reads followed.",
+          "reproduce": "cat /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:03",
+          "claim": "Read plan lines 1 through 400.",
+          "reproduce": "sed -n '1,400p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:04",
+          "claim": "Read plan lines 401 through 732, completing the input.",
+          "reproduce": "sed -n '401,732p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:05",
+          "claim": "Read the remaining brief inputs and began the governing documents; the combined display was truncated, so narrower reads followed.",
+          "reproduce": "sed -n '1,9999p' /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.scope.md ops/README.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:06",
+          "claim": "Read ops/README.md completely.",
+          "reproduce": "sed -n '1,183p' ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:07",
+          "claim": "Read concerns, probes, verified couplings, wire, and workflow completely.",
+          "reproduce": "sed -n '1,999p' docs/concerns.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:08",
+          "claim": "Read docs/mapping.md completely.",
+          "reproduce": "sed -n '1,268p' docs/mapping.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:09",
+          "claim": "The required initial Graft repository map succeeded and covered 326 ops files.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:10",
+          "claim": "Graft located the frozen contract tests and relevant ladder symbols.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_find_code '{\"query\":\"check-tests skeptic contract ladder tests-fix envelope custody role refusal\",\"limit\":10}'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:11",
+          "claim": "Confirmed clean initial HEAD dd88432c05b927c05399078182e1fd8555f55031 and inspected recent trailer style.",
+          "reproduce": "git rev-parse HEAD && git status --short && git log -3 --format='%H%n%B'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:12",
+          "claim": "Recent Codex-authored history uses the GPT-5.6 Sol noreply attribution.",
+          "reproduce": "git log -100 --format='%B' | rg -m 5 '^Co-Authored-By: .*Codex|^Co-Authored-By: GPT|^Co-Authored-By: OpenAI'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:13",
+          "claim": "The baseline chained command exited 1 after 14 failures in the first suite.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:14",
+          "claim": "Inspected the frozen test sources without editing them.",
+          "reproduce": "sed -n '1,500p' ops/devlane/task/tests/test_check_tests_contract_row.py ops/conductor/tests/test_ladder_lever_skeptic_contract.py ops/devlane/dispatch/tests/test_launch_role_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:15",
+          "claim": "Read the ladder skeptic-contract test through line 420.",
+          "reproduce": "sed -n '1,420p' ops/conductor/tests/test_ladder_lever_skeptic_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:16",
+          "claim": "Completed the ladder test and read the dispatch role-contract test.",
+          "reproduce": "sed -n '421,700p' ops/conductor/tests/test_ladder_lever_skeptic_contract.py && sed -n '1,500p' ops/devlane/dispatch/tests/test_launch_role_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:17",
+          "claim": "Read the authoritative neighboring sections in all three contract files.",
+          "reproduce": "sed -n '145,230p' ops/devlane/task/CONTRACT.md && sed -n '1,240p' ops/conductor/ladder-lever.md && sed -n '950,1030p' ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:18",
+          "claim": "The first edited diff was whitespace-clean and confined to three contract files.",
+          "reproduce": "git diff --check && git diff --stat && git diff -- ops/devlane/task/CONTRACT.md ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md"
+        },
+        {
+          "severity": "p3",
+          "where": "command:19",
+          "claim": "The first verification reduced the task-contract suite to two line-wrapping failures.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:20",
+          "claim": "After correcting task prose wrapping, its 14 tests passed; the ladder suite exposed five analogous phrase-shape failures.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:21",
+          "claim": "After the final contract adjustments, all 38 named tests passed.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:22",
+          "claim": "Final pre-commit inspection found no whitespace errors and exactly the three authorized contract files modified.",
+          "reproduce": "git diff --check && git status --short && git diff --name-only"
+        },
+        {
+          "severity": "p3",
+          "where": "command:23",
+          "claim": "Git commit was refused because snapshot/.git is read-only.",
+          "reproduce": "git add ops/devlane/task/CONTRACT.md ops/conductor/ladder-lever.md ops/devlane/dispatch/CONTRACT.md && git commit -m 'docs: put skeptic contracts on the wire' -m 'Source: owner 2026-09-11\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "command:24",
+          "claim": "The exact required command was rerun in the final tree and exited 0 with 38 tests passing.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py"
+        },
+        {
+          "severity": "p3",
+          "where": "command:25",
+          "claim": "Final inspection confirmed the three modified files, a clean diff check, unchanged HEAD, and the fallback commit message.",
+          "reproduce": "git status --short && git diff --check && git rev-parse HEAD && sed -n '1,10p' ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "changed_files": "ops/devlane/task/CONTRACT.md; ops/conductor/ladder-lever.md; ops/devlane/dispatch/CONTRACT.md",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/out/COMMIT_MSG",
+        "verification": "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2648658,
+        "out": 19356,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "dd88432c05b927c05399078182e1fd8555f55031",
+        "started": null,
+        "ended": null
+      },
+      "note": "Assumption: this is the supplied slice-1 contract-only implementation because the plan bucket and frozen command name exactly these three contract files; later jobs.json, driver, and render-guard implementation remains outside this slice. The exact named command exits 0. No unrelated issue was changed. Git commit was blocked by the read-only .git filesystem, so out/COMMIT_MSG carries the required message.",
+      "commit": {
+        "subject": "docs: put skeptic contracts on the wire",
+        "body": "Source: owner 2026-09-11\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T22:41:40.714Z"
+    }
+  },
+  "status": "closed"
 }
