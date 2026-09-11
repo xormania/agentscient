@@ -495,3 +495,7 @@ if __name__ == "__main__":
             "permissionDecision": "deny",
             "permissionDecisionReason": f"[{hit[0]}] {hit[1]}",
         }}))
+        # Owner, 2026-09-11: a refusal logs a miss against the `refused`
+        # page; best effort, after the refusal is on stdout.
+        import miss
+        miss.log_miss(payload.get("cwd"), hit[0], hit[1], hook="unsafe-command")
