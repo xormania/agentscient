@@ -149,12 +149,54 @@ class ClaudeUsageCurrency(unittest.TestCase):
         self.assertEqual(len(measured), 1, waste["sessions"])
         self.assertNotEqual(measured[0].get("kind"), "gap")
 
+    # Every key of a waste row or signal that carries a measurement. The
+    # rest of the row (id, session, harness, kind, gap_kind, repo, window)
+    # and the stamp (head, branch, since, until, now) name things; a
+    # planted number inside one of those is LD-21, not a leaked total.
+    _MEASURED_KEYS = (
+        "total", "out", "cached", "input", "output", "messages", "runs",
+        "turns", "avg_context", "refusals", "tokens", "cost_usd",
+        "cost_usd_ticks", "cost",
+    )
+
+    def _measured_fields(self, waste):
+        """The waste report's measured values, keyed by row and field.
+
+        LD-21: the serialized whole also carries the fixture's temporary
+        repo path and the head sha, so a planted number could match a
+        directory name (``worth-contract-m041w_6s`` carried 41 in CI run
+        34644878635; ``claude-1006`` carries 100). Only these values are
+        the report's answer.
+        """
+        fields = {}
+        rows = waste["sessions"]
+        self.assertIsInstance(rows, list)
+        for row in rows:
+            self.assertIsInstance(row, dict)
+            ident = row.get("id", row.get("session", row.get("record")))
+            for key in self._MEASURED_KEYS:
+                if key in row:
+                    fields[f"{ident}.{key}"] = row[key]
+        signals = waste.get("signals", [])
+        self.assertIsInstance(signals, list)
+        for n, signal in enumerate(signals):
+            for key in ("cached", "out"):
+                if key in signal:
+                    fields[f"signal[{n}].{key}"] = signal[key]
+        return fields
+
     def _assert_invalid_is_gap_not_partial(self, report, waste, session_id, forbidden):
         cost = self._claude_cost(report)
         rendered = json.dumps(cost).lower()
+        measured = self._measured_fields(waste)
         for token in forbidden:
             self.assertNotIn(str(token).lower(), rendered)
-            self.assertNotIn(str(token).lower(), json.dumps(waste).lower())
+            for name, value in measured.items():
+                self.assertNotIn(
+                    str(token).lower(),
+                    json.dumps(value).lower(),
+                    f"{name}={value!r} carries the planted {token}",
+                )
         gaps = self._gap_rows(waste, session_id)
         self.assertEqual(len(gaps), 1, waste["sessions"])
         gap = gaps[0]
