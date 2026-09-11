@@ -13,7 +13,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T06:09:40Z",
-    "closed": null
+    "closed": "2026-09-11T06:25:04Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -73,14 +73,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/home/grok-stream/sessions/<snapshot-encoded>/96f01c8b-2f0b-450a-b81b-0096ae30aeff/summary.json"
   },
   "session": {
     "id": "96f01c8b-2f0b-450a-b81b-0096ae30aeff",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/home/grok-stream/sessions/<snapshot-encoded>/96f01c8b-2f0b-450a-b81b-0096ae30aeff/summary.json",
+    "stream_sha256_at_close": "ef300cf963df0b3b58ff8858811a056941a5c943ec98dbc04f2e4d961771fbac",
+    "spend": {
+      "input": 2319854,
+      "cached": 2085376,
+      "output": 46575,
+      "total": 2366429,
+      "cost_usd_ticks": 3044859800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T060939Z-tests-grok-9cf371/home/grok-stream/sessions/<snapshot-encoded>/96f01c8b-2f0b-450a-b81b-0096ae30aeff/summary.json",
+      "messages": 203
+    }
   },
   "brief": {
     "template": {
@@ -111,10 +119,58 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:09:40Z",
+      "ended": "2026-09-11T06:25:04Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "fcfaaa2630b9a2120302c0ee65fd6d804b432839",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_lever_undisposed.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_ladder_lever_undisposed": "ops/conductor/tests/test_ladder_lever_undisposed.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 2366429,
+        "out": 46575,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "65379de25adc90e229877e293fc1de8c9855d6a2",
+        "started": "2026-09-11T06:09:39Z",
+        "ended": "2026-09-11T06:24:46Z"
+      },
+      "note": "Slice 5 only, item 9. ops/conductor/tests/test_ladder_lever_undisposed.py pins the undisposed stop before fix-tests/fix-code (reason=undisposed, record=none, keys named, attempt 0, stopped.keys), resume re-check, and --follows previous/security/adversarial plus one --answers KEY per key; the driver never writes dispositions. Red at 65379de: python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_undisposed.py \u2014 13 tests, 13 assertion failures, 0 errors. Committed fcfaaa2630b9a2120302c0ee65fd6d804b432839."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T06:25:03.374Z"
+    }
+  },
+  "status": "closed"
 }
