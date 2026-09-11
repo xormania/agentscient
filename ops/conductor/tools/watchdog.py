@@ -864,6 +864,37 @@ def _check_rows(rows):
     return normalized
 
 
+DELIVERABLE_LOCK = "deliverable.json"
+STALL_MIN = 45
+
+
+def deliverable_lock():
+    """The lane's deliverable lock (branches, why, by, at) or None. Owner,
+    2026-09-11: "watchdog updated right now to keep you from fucking up":
+    the lock names the branches the conductor may work on; the watchdog
+    reports work aimed elsewhere (drift) and deliverables going quiet or
+    stopping (stall), so the owner does not have to watch the conductor."""
+    state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local/state")
+    try:
+        lane = conf_value("LANE_NAME")
+    except Exception:
+        return None
+    data = read_json(Path(state) / lane / DELIVERABLE_LOCK)
+    if not isinstance(data, dict):
+        return None
+    branches = data.get("branches")
+    if not isinstance(branches, list) or not branches:
+        return None
+    return {"branches": [str(b) for b in branches], "at": data.get("at"),
+            "by": data.get("by"), "why": data.get("why")}
+
+
+def record_branch(rec):
+    lineage = rec.get("lineage") if isinstance(rec, dict) else None
+    branch = lineage.get("branch") if isinstance(lineage, dict) else None
+    return branch if isinstance(branch, str) and branch else None
+
+
 class Watch:
     def __init__(self, args):
         self.args = args
@@ -984,8 +1015,51 @@ class Watch:
         ):
             self.deviation("minutes", entry.name)
 
+    def scan_deliverable(self, all_entries):
+        lock = deliverable_lock()
+        if lock is None:
+            return
+        branches = lock["branches"]
+        since = parse_stamp(lock["at"]) if isinstance(lock.get("at"), str) else None
+        latest = {}
+        for e in all_entries:
+            if e.kind in ("error", "no-copy"):
+                continue
+            branch = record_branch(e.rec)
+            launched = parse_stamp(e.rec.get("at", {}).get("launched")) if isinstance(e.rec.get("at"), dict) else None
+            if branch in branches:
+                stamp = e.rec.get("at", {}).get("closed") if e.kind == "closed" else None
+                when = parse_stamp(stamp) if isinstance(stamp, str) else None
+                if e.kind != "closed":
+                    latest[branch] = ("running", e.name, None)
+                elif latest.get(branch, (None,))[0] != "running":
+                    prev = latest.get(branch)
+                    if prev is None or (when is not None and (prev[2] is None or when > prev[2])):
+                        latest[branch] = ("closed", e.name, when)
+                continue
+            if since is not None and launched is not None and launched < since:
+                continue
+            if self.once(("drift", e.name), f"drift {e.name}: branch {branch or 'unknown'} outside the deliverable ({', '.join(branches)})"):
+                self.deviations += 1
+        for branch in branches:
+            state = latest.get(branch)
+            if state is None:
+                anchor = since
+                name = "the lock"
+            elif state[0] == "running":
+                continue
+            else:
+                anchor, name = state[2], state[1]
+            if anchor is None:
+                continue
+            quiet = int((now() - anchor).total_seconds() // 60)
+            if quiet >= STALL_MIN and self.once(("stall", branch, name), f"stall {branch}: no dispatch running, {quiet} min since {name}"):
+                self.deviations += 1
+
     def scan_ladders(self):
         ladder_root = self.args.store.parent / "ladders"
+        lock = deliverable_lock()
+        deliverable_branches = lock["branches"] if lock else []
         try:
             paths = sorted(ladder_root.glob("*.json"))
         except OSError:
@@ -1007,6 +1081,11 @@ class Watch:
             )
             if ladder.get("status") == "stopped" or retried:
                 self.deviation("retry", record_id)
+            stopped = ladder.get("stopped")
+            if ladder.get("branch") in deliverable_branches and ladder.get("status") == "stopped" and isinstance(stopped, dict):
+                key = ("stall", record_id, stopped.get("stage"), stopped.get("reason"))
+                if self.once(key, f"stall {ladder.get('branch')}: ladder {record_id} stopped {stopped.get('reason')} at {stopped.get('stage')}"):
+                    self.deviations += 1
 
     def run_tick(self):
         self.tick += 1
@@ -1016,7 +1095,8 @@ class Watch:
             raise error
         running = []
         settling = 0
-        for e in entries(self.args.store, self.caps, self.closed_cache):
+        all_entries = list(entries(self.args.store, self.caps, self.closed_cache))
+        for e in all_entries:
             if e.kind == "error":
                 self.deviation("unavailable", e.name)
                 self.once(("error", e.name), f"watchdog error: InputUnavailable: job inputs unavailable for {e.name} (tick {self.tick}; the loop continues)")
@@ -1080,6 +1160,10 @@ class Watch:
             elif m >= e.wall_min * self.args.warn_fraction:
                 self.once(("long", e.name), f"long {e.name}: {m} min running, wall {int(e.wall_min)} min")
         self.scan_ladders()
+        try:
+            self.scan_deliverable(all_entries)
+        except Exception as exc:
+            say(f"watchdog error: deliverable scan {type(exc).__name__}: {exc} (tick {self.tick}; the loop continues)")
         launchers = self.launcher_count()
         if launchers is not None and launchers < len(running):
             pair = (launchers, len(running))
@@ -1133,7 +1217,7 @@ class Watch:
         deadline = time.monotonic() + FORGE_TIMEOUT
         raw = run([
             "gh", "pr", "list", "--base", self.trunk, "--state", "open",
-            "--limit", str(FORGE_LIMIT), "--json", "number,headRefOid",
+            "--limit", str(FORGE_LIMIT), "--json", "number,headRefOid,headRefName",
         ], timeout=max(0, deadline - time.monotonic()))
         if raw is None:
             return None
@@ -1156,9 +1240,14 @@ class Watch:
         ):
             return None
         unreachable = []
+        lock = deliverable_lock()
         for index, pr in enumerate(prs):
             number = pr.get("number")
             sha = pr.get("headRefOid")
+            head = pr.get("headRefName")
+            if (lock and isinstance(head, str) and head not in lock["branches"]
+                    and self.once(("drift", "pr", number), f"drift PR #{number}: head {head} outside the deliverable ({', '.join(lock['branches'])})")):
+                self.deviations += 1
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 unreachable.extend(row["number"] for row in prs[index:])

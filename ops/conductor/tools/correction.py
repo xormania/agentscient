@@ -103,11 +103,11 @@ def _read_record(record_id, records):
 
 
 def _input_record_id(path, jobs_root):
-    jobs_root = Path(jobs_root).resolve()
+    jobs_root = Path(jobs_root).absolute()
     candidate = Path(path)
     candidate = (candidate if candidate.is_absolute() else Path.cwd() / candidate)
     try:
-        relative = candidate.resolve().relative_to(jobs_root)
+        relative = candidate.relative_to(jobs_root)
     except ValueError:
         return None
     parts = relative.parts
@@ -187,11 +187,16 @@ def _answer_row(key, at, root, scope_path, review_ids):
             at,
         )
     claim_citation = FINDINGS.parse_citation(row["claim"])
+    finding_citation = None
     if claim_citation is not None:
         claim_holds, _reason = FINDINGS.citation_holds(
             row["claim"], root, scope_path
         )
         if claim_holds:
+            finding_citation = {
+                "item": claim_citation.group("item"),
+                "path": claim_citation.group("path"),
+            }
             command = _disposition_command(
                 key, scope_path, claim_citation.group("item")
             )
@@ -220,7 +225,7 @@ def _answer_row(key, at, root, scope_path, review_ids):
             at,
         )
     citation = FINDINGS.parse_citation(row["evidence"])
-    return {
+    answer = {
         "key": key,
         "disposition": row["disposition"],
         "disposed_at": disposed_at,
@@ -229,6 +234,9 @@ def _answer_row(key, at, root, scope_path, review_ids):
             "path": citation.group("path"),
         },
     }
+    if finding_citation is not None:
+        answer["finding_citation"] = finding_citation
+    return answer
 
 
 def check(role, follows, inputs, answers, at, records, jobs_root, root, job=None):

@@ -32,6 +32,10 @@ row that cannot look refuses: "could not look" is not a pass.
                     (counts, file lists, pipes and records paths
                     are not searches); no grant escape; every
                     refusal and every Graft query is logged
+    deliverable     while the lane's deliverable lock names       lock file, statement
+                    branches, a new worktree or branch, a
+                    dispatch, a ladder start or a PR creation
+                    aimed at any other branch; no grant escape
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
@@ -783,6 +787,102 @@ def graft_first(toks, cwd, root, lane):
                 f"{query}; a count (-c) or file list (-l) stays allowed")
 
 
+DELIVERABLE_LOCK = "deliverable.json"
+
+
+def deliverable_lock(lane):
+    """The lane's deliverable lock (branches, why, by, at) or None."""
+    if not lane:
+        return None
+    path = os.path.join(STATE_DIR, lane, DELIVERABLE_LOCK)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return None
+    branches = data.get("branches") if isinstance(data, dict) else None
+    if not isinstance(branches, list) or not branches:
+        return None
+    return data
+
+
+def branch_of(directory):
+    try:
+        proc = subprocess.run(["git", "-C", directory, "symbolic-ref", "--short", "HEAD"],  # noqa: S603,S607 - fixed argv, a read
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return proc.stdout.strip() or None
+
+
+def deliverable_targets(toks, cwd):
+    """(what, branch) pairs a statement aims new work at."""
+    if not toks:
+        return []
+    name = base(toks[0])
+    found = []
+    if name == "git" and len(toks) > 2:
+        args = [t for t in toks[1:] if not t.startswith("-C")]
+        if args[0] == "worktree" and args[1] == "add":
+            rest = args[2:]
+            if "-b" in rest or "-B" in rest:
+                flag = "-b" if "-b" in rest else "-B"
+                i = rest.index(flag)
+                if i + 1 < len(rest):
+                    found.append(("git worktree add -b", rest[i + 1]))
+            else:
+                positional = [t for t in rest if not t.startswith("-")]
+                if len(positional) >= 2:
+                    found.append(("git worktree add", positional[1]))
+                elif positional:
+                    found.append(("git worktree add", os.path.basename(positional[0].rstrip("/"))))
+        elif args[0] in ("checkout", "switch") and any(f in args for f in ("-b", "-B", "-c", "-C")):
+            flag = next(f for f in ("-b", "-B", "-c", "-C") if f in args)
+            i = args.index(flag)
+            if i + 1 < len(args):
+                found.append((f"git {args[0]} {flag}", args[i + 1]))
+    elif name == "gh" and len(toks) > 2 and toks[1] == "pr" and toks[2] == "create":
+        if "--head" in toks:
+            i = toks.index("--head")
+            branch = toks[i + 1] if i + 1 < len(toks) else None
+        else:
+            branch = branch_of(cwd)
+        found.append(("gh pr create for", branch or "an unreadable branch"))
+    elif name in DISPATCHERS:
+        if "--branch" in toks:
+            i = toks.index("--branch")
+            found.append((f"{name} --branch", toks[i + 1] if i + 1 < len(toks) else ""))
+        elif "--worktree" in toks:
+            i = toks.index("--worktree")
+            directory = toks[i + 1] if i + 1 < len(toks) else cwd
+            found.append((f"{name} --worktree", branch_of(os.path.join(cwd, os.path.expanduser(directory))) or directory))
+    elif name == DRIVER and len(toks) > 2 and toks[1] != "resume":
+        positional = [t for t in toks[1:] if not t.startswith("-")]
+        if len(positional) >= 2:
+            found.append(("ladder start for", positional[1]))
+    return found
+
+
+def deliverable(toks, cwd, lane):
+    """Owner, 2026-09-11: "i want an immediate FIX to stop that". While the
+    lock names the deliverable branches, new work aimed anywhere else
+    refuses. Findings found on the way are evidence for the ledger, not
+    work; the lock is lifted by its lever, never by a grant."""
+    lock = deliverable_lock(lane)
+    if lock is None:
+        return None
+    branches = [str(b) for b in lock["branches"]]
+    for what, branch in deliverable_targets(toks, cwd):
+        if branch not in branches:
+            return deny("deliverable",
+                        f"work on the deliverable branches {', '.join(branches)} "
+                        f"(locked {lock.get('at', '?')} by {lock.get('by', '?')}: {lock.get('why', '')})",
+                        f"{what} {branch}",
+                        "finish the deliverable; record what you found in the ledger; "
+                        "python3 ops/conductor/tools/deliverable.py clear lifts the lock when it lands")
+    return None
+
+
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
@@ -802,6 +902,9 @@ def check_text(text, cwd, depth=0):
         if depth == 0 and GRAFT_LEVER.rsplit("/", 1)[-1] in " ".join(toks) and "query" in toks:
             graft_log(lane, "query", " ".join(t for t in toks if t.startswith("graft_")) or "query")
         refusal = graft_first(toks, cwd, root, lane)
+        if refusal:
+            return refusal
+        refusal = deliverable(toks, cwd, lane)
         if refusal:
             return refusal
         for target in redirect_targets(toks) + written_paths(toks):
