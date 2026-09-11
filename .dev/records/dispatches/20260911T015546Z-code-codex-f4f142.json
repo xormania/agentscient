@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T01:55:46Z",
-    "closed": null
+    "closed": "2026-09-11T02:06:24Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T21-55-47-01a08e2d-97e0-7be1-8c55-72b6a4e9d5d3.jsonl"
   },
   "session": {
-    "id": "cd5e740e-4f7e-4b62-95af-ec2694305d30",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08e2d-97e0-7be1-8c55-72b6a4e9d5d3",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T21-55-47-01a08e2d-97e0-7be1-8c55-72b6a4e9d5d3.jsonl",
+    "stream_sha256_at_close": "1a005baa21177a890eafcd1b904935d30a19e5a759d0437e1fe7b28f95fe75c5",
+    "spend": {
+      "input": 3462735,
+      "cached": 3331072,
+      "output": 24622,
+      "total": 3487357,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/home/codex-stream/sessions/2026/09/10/rollout-2026-09-10T21-55-47-01a08e2d-97e0-7be1-8c55-72b6a4e9d5d3.jsonl",
+      "messages": 316
+    }
   },
   "brief": {
     "template": {
@@ -113,10 +120,278 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 3600.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T01:55:46Z",
+      "ended": "2026-09-11T02:06:24Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ce9c3f275e6a5ddcdecfb3449a7189ddfcc2da6c",
+    "changed_paths": [
+      "ops/conductor/registry/correction.py.json",
+      "ops/conductor/tools/correction.py",
+      "ops/conductor/tools/findings.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 35,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": ".",
+          "claim": "Confirmed the snapshot path, starting ref, clean tree, governing docs, and ops instructions.",
+          "reproduce": "pwd && git rev-parse HEAD && git status --short && find docs -type f -print | sort && find ops -name AGENTS.md -o -path 'ops/README.md' -print"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ and docs/",
+          "claim": "Attempted the combined required-input and governing-doc read; output was truncated, so bounded reads followed.",
+          "reproduce": "cat /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/plan-ledger-gate.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.scope.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/ and docs/",
+          "claim": "Measured input and governing-document lengths to select complete bounded reads.",
+          "reproduce": "wc -l /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/plan-ledger-gate.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.scope.md docs/concerns.md docs/mapping.md docs/probes.md docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/plan-ledger-gate.md",
+          "claim": "Read plan lines 1\u2013220.",
+          "reproduce": "sed -n '1,220p' /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/plan-ledger-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/plan-ledger-gate.md",
+          "claim": "Read plan lines 221\u2013440.",
+          "reproduce": "sed -n '221,440p' /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/plan-ledger-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/plan-ledger-gate.md",
+          "claim": "Read plan lines 441\u2013642.",
+          "reproduce": "sed -n '441,642p' /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/plan-ledger-gate.md"
+        },
+        {
+          "severity": "p3",
+          "where": "in/",
+          "claim": "Read the three remaining named inputs whole.",
+          "reproduce": "cat /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-discipline.md /home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.scope.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/",
+          "claim": "Read concerns, mapping, and probes whole.",
+          "reproduce": "cat docs/concerns.md docs/mapping.md docs/probes.md"
+        },
+        {
+          "severity": "p3",
+          "where": "docs/ and ops/README.md",
+          "claim": "Read verified couplings, wire, workflow, and ops instructions whole.",
+          "reproduce": "cat docs/verified-couplings.md docs/wire.md docs/workflow.md ops/README.md"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/",
+          "claim": "Attempted aggregate inspection of frozen tests and neighboring implementation; output was truncated, so bounded reads followed.",
+          "reproduce": "cat ops/conductor/tests/test_findings_citation.py ops/conductor/tests/test_correction.py ops/conductor/tools/findings.py ops/conductor/instrument-conventions.md ops/conductor/registry/findings.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/",
+          "claim": "Measured focused test and implementation lengths for complete bounded reads.",
+          "reproduce": "wc -l ops/conductor/tests/test_findings_citation.py ops/conductor/tests/test_correction.py ops/conductor/tools/findings.py ops/conductor/instrument-conventions.md ops/conductor/registry/findings.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_findings_citation.py",
+          "claim": "Read citation tests lines 1\u2013220.",
+          "reproduce": "sed -n '1,220p' ops/conductor/tests/test_findings_citation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_findings_citation.py",
+          "claim": "Read citation tests lines 221\u2013440.",
+          "reproduce": "sed -n '221,440p' ops/conductor/tests/test_findings_citation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_findings_citation.py",
+          "claim": "Read citation tests lines 441\u2013640.",
+          "reproduce": "sed -n '441,640p' ops/conductor/tests/test_findings_citation.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "Read correction tests lines 1\u2013240.",
+          "reproduce": "sed -n '1,240p' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "Read correction tests lines 241\u2013480.",
+          "reproduce": "sed -n '241,480p' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "Read correction tests lines 481\u2013720.",
+          "reproduce": "sed -n '481,720p' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "Read correction tests lines 721\u2013945.",
+          "reproduce": "sed -n '721,945p' ops/conductor/tests/test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_findings_citation.py",
+          "claim": "Confirmed the initial expected red state: 27 citation-test failures prevented the second command from running.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_findings_citation.py && python3 -m unittest discover -s ops/conductor/tests -p test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/ and ops/devlane/",
+          "claim": "Located the landed citation, correction, answers, and follows contracts.",
+          "reproduce": "rg -n -C 4 'citation|cited|answers|correction|follows' ops/conductor/findings/README.md ops/devlane/dispatch/CONTRACT.md ops/conductor/ladder-lever.md ops/devlane/task/jobs.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/jobs.json",
+          "claim": "Read the job registry and measured nearby history and worktree state.",
+          "reproduce": "cat ops/devlane/task/jobs.json && git log -5 --oneline --decorate && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches and ops/devlane/dispatch/record.py",
+          "claim": "Inspected recorded scope/input provenance; output was truncated after relevant matches were found.",
+          "reproduce": "rg -n -m 3 '\"inputs\"|\"scope\"' .dev/records/dispatches ops/devlane/dispatch/record.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".dev/records/dispatches",
+          "claim": "Read representative brief input structures used for scope resolution.",
+          "reproduce": "sed -n '180,215p' .dev/records/dispatches/20260910T222935Z-plan-claude-69ad8e.json && sed -n '88,112p' .dev/records/dispatches/20260911T004231Z-code-codex-daf35f.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_findings_citation.py",
+          "claim": "After the first implementation pass, isolated one cited-verb reason mismatch.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_findings_citation.py && python3 -m unittest discover -s ops/conductor/tests -p test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "After correcting citation absence precedence, citation tests passed and two remedy disposition placeholders failed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_findings_citation.py && python3 -m unittest discover -s ops/conductor/tests -p test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_correction.py",
+          "claim": "After choosing a valid disposition, two remedy evidence placeholders still failed the holding citation check.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_findings_citation.py && python3 -m unittest discover -s ops/conductor/tests -p test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/",
+          "claim": "Confirmed both frozen suites passed: 27 citation tests and 36 correction tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_findings_citation.py && python3 -m unittest discover -s ops/conductor/tests -p test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/",
+          "claim": "Reviewed the tracked diff and confirmed only the three permitted implementation artifacts were modified or added.",
+          "reproduce": "git diff -- ops/conductor/tools/findings.py ops/conductor/tools/correction.py ops/conductor/registry/correction.py.json && git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/",
+          "claim": "Confirmed Ruff, 18 instrument-conformance tests, and diff whitespace checks passed.",
+          "reproduce": "ruff check ops/conductor/tools/findings.py ops/conductor/tools/correction.py && python3 -m unittest discover -s ops/conductor/tests -p test_instrument_conventions.py && git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_findings.py",
+          "claim": "Confirmed the existing findings-ledger regression test passed.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_findings.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "Inspected recent commit message and trailer conventions.",
+          "reproduce": "git log -5 --format='%h%n%B%n--'"
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "Confirmed repository OpenAI model trailer address conventions.",
+          "reproduce": "git log --all --format='%B' | rg -m 8 '^Co-Authored-By: (GPT|Codex|OpenAI)'"
+        },
+        {
+          "severity": "p3",
+          "where": ".git",
+          "claim": "Commit creation was refused because the snapshot Git index is read-only.",
+          "reproduce": "git add ops/conductor/tools/findings.py ops/conductor/tools/correction.py ops/conductor/registry/correction.py.json && git commit -m 'conductor: gate corrections on cited dispositions' -m 'Add the shared citation grammar and cited ledger read, admit every declared review job, and implement the read-only correction gate with hermetic refusal registry rows.' -m 'Source: original' -m 'Co-Authored-By: GPT-5 Codex <noreply@openai.com>'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/",
+          "claim": "Final-tree acceptance passed: 27 citation tests and 36 correction tests, exit 0.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_findings_citation.py && python3 -m unittest discover -s ops/conductor/tests -p test_correction.py"
+        },
+        {
+          "severity": "p3",
+          "where": ".",
+          "claim": "Stamped the final tree at fc31032adf42ed97bf76cd8ed6a47c0763647f22 with exactly three uncommitted implementation artifacts.",
+          "reproduce": "date -u +%Y-%m-%dT%H:%M:%SZ && git rev-parse HEAD && git status --short"
+        }
+      ],
+      "artifacts": {
+        "ledger": "ops/conductor/tools/findings.py",
+        "gate": "ops/conductor/tools/correction.py",
+        "registry": "ops/conductor/registry/correction.py.json",
+        "verification": "Named acceptance command passed 27 + 36 tests; Ruff, instrument conformance, existing findings regression, and git diff --check also passed."
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 3487357,
+        "out": 24622,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "fc31032adf42ed97bf76cd8ed6a47c0763647f22",
+        "started": null,
+        "ended": "2026-09-11T02:05:03Z"
+      },
+      "note": "Implemented only the plan\u2019s ledger-gate slice. Assumption: the correction scope is resolved from recorded/supplied scope inputs, with a unique scope-*.md fallback for staged fixtures; missing cited paths report absence before mismatch. No unrelated follow-up was found. Git commit was attempted but the sandbox refused creation of .git/index.lock, so the launcher must commit using the supplied message.",
+      "commit": {
+        "subject": "conductor: gate corrections on cited dispositions",
+        "body": "Add the shared citation grammar and cited ledger read, admit every declared review job, and implement the read-only correction gate with hermetic refusal registry rows.\n\nSource: original\nCo-Authored-By: GPT-5 Codex <noreply@openai.com>"
+      }
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T02:06:23.556Z"
+    }
+  },
+  "status": "closed"
 }
