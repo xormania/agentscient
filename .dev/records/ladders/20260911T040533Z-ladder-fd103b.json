@@ -210,6 +210,7 @@
       "job": "implement",
       "landed": [],
       "landed_shas": [],
+      "minutes": 4.76858,
       "name": "code",
       "outcome": "ok",
       "reason": "retry-cap",
