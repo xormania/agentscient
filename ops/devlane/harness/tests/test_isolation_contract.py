@@ -62,6 +62,14 @@ EXPECTED_HARNESSES = {
         "home_env": "GROK_HOME",
         "also_env": ["HOME"],
         "auth_files": ["auth.json"],
+        "credential_age": {
+            "file": "auth.json",
+            "field": "create_time",
+            "max_hours": 24,
+            "remedy": "grok login --device-code",
+            "measured": {"on": "2026-09-11", "version": "1.0.13",
+                         "accepted_h": 29.4, "refused_h": 30.1},
+        },
         "probe_phrase": None,
         "sessions": {"under": "minimal", "path": "sessions"},
         "measured": {
