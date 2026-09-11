@@ -74,6 +74,7 @@
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
       },
+      "findings": 4,
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/.dev/records/dispatches/20260911T025531Z-tests-grok-5a362c.json",
@@ -87,10 +88,20 @@
         "sha256": "5462c5a2293a57b5709c383934c031e3c074954a4fc1adbdc656cbf134aafe5d"
       },
       "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "check-tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T030702Z-check-tests-codex-5f3a98",
-      "stage": "check-tests"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
