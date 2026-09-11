@@ -128,7 +128,8 @@
       },
       "job": "author-tests",
       "name": "tests-fix",
-      "outcome": "launched",
+      "outcome": "stopped",
+      "reason": "wall",
       "record": "20260911T043313Z-tests-grok-3ab0c7",
       "stage": "tests"
     },
@@ -196,7 +197,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "wall",
+    "record": "20260911T043313Z-tests-grok-3ab0c7",
+    "stage": "tests-fix",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911"
 }
