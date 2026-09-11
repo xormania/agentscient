@@ -310,7 +310,8 @@
       "harness": "grok",
       "job": "author-tests",
       "name": "fix-tests",
-      "outcome": "pending",
+      "outcome": "stopped",
+      "reason": "withheld",
       "stage": "tests"
     },
     {
@@ -341,7 +342,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "withheld",
+    "record": "none",
+    "stage": "fix-tests",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911"
 }
