@@ -106,8 +106,9 @@ No second fix round and no second skeptic run exist.
 
 ## Record
 
-After every transition the driver commits
-`.dev/records/ladders/<id>.json` as `ladder: record <id>`, with
+After every transition, and at every stop, the driver commits
+`.dev/records/ladders/<id>.json` together with every stage input it wrote
+under `.dev/records/ladders/<id>/`, as `ladder: record <id>`, with
 `Source: generated: ops/conductor/tools/ladder.py` and the active
 `WF_AGENT` as `Co-Authored-By`. The id is
 `<UTC stamp>-ladder-<6 hex>`. The record carries:
