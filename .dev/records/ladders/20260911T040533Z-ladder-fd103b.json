@@ -127,8 +127,14 @@
         "sha256": "1576237e6a0df47dd7d4e58984b4933af6a25d98f4f4a8cf71743490e915bcb6"
       },
       "job": "author-tests",
+      "landed": [
+        "2192950cfbea22650a742edd406f657ba20d36c1"
+      ],
+      "landed_shas": [
+        "2192950cfbea22650a742edd406f657ba20d36c1"
+      ],
       "name": "tests-fix",
-      "outcome": "stopped",
+      "outcome": "ok",
       "reason": "wall",
       "record": "20260911T043313Z-tests-grok-3ab0c7",
       "recorded": {
