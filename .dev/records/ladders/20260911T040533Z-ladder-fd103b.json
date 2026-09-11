@@ -133,6 +133,7 @@
       "landed_shas": [
         "2192950cfbea22650a742edd406f657ba20d36c1"
       ],
+      "minutes": 0.010908,
       "name": "tests-fix",
       "outcome": "ok",
       "reason": "wall",
