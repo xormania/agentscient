@@ -51,17 +51,21 @@ def _sandbox_value(argv) -> str | None:
 def _writable_roots_blob(argv) -> str:
     items = _argv_strs(argv)
     chunks: list[str] = []
+    skip: set[int] = set()
     for idx, item in enumerate(items):
+        if idx in skip:
+            continue
+        if item in ("-c", "--config") and idx + 1 < len(items):
+            nxt = items[idx + 1]
+            if "sandbox_workspace_write.writable_roots" in nxt:
+                chunks.append(nxt)
+                skip.add(idx + 1)
+                continue
         if "sandbox_workspace_write.writable_roots" in item:
             chunks.append(item)
             if idx + 1 < len(items) and not items[idx + 1].startswith("-"):
                 chunks.append(items[idx + 1])
-            continue
-        if item in ("-c", "--config") and idx + 1 < len(items):
-            nxt = items[idx + 1]
-            if "writable_roots" in nxt or "sandbox_workspace_write" in nxt:
-                chunks.append(item)
-                chunks.append(nxt)
+                skip.add(idx + 1)
     return " ".join(chunks)
 
 
@@ -94,7 +98,15 @@ def _writable_roots(argv) -> list[str]:
             roots.append(token.strip("\"'"))
     if not roots:
         roots.extend(re.findall(r"/[^\s,\[\]\"']+", blob))
-    return roots
+    unique: list[str] = []
+    seen: set[str] = set()
+    for root in roots:
+        key = os.path.realpath(root)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(root)
+    return unique
 
 
 def _real(path) -> str:
