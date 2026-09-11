@@ -1,0 +1,128 @@
+{
+  "id": "20260911T223316Z-code-codex-c876fb",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/item31-skeptic-wire-20260911",
+  "lineage": {
+    "branch": "lane/item31-skeptic-wire-20260911",
+    "base_sha": "dd88432c05b927c05399078182e1fd8555f55031"
+  },
+  "follows": [
+    "20260911T221847Z-tests-grok-a323b5"
+  ],
+  "answers": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T22:33:16Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "dd88432c05b927c05399078182e1fd8555f55031",
+    "ref_sha": "dd88432c05b927c05399078182e1fd8555f55031",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "46903c99-40aa-44e0-b3e3-8f3a32036a00",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "python3 -m unittest discover -s ops/devlane/task/tests -p test_check_tests_contract_row.py && python3 -m unittest discover -s ops/conductor/tests -p test_ladder_lever_skeptic_contract.py && python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_role_contract.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/plan-item31-slice1-20260911.md",
+        "sha256": "6a362cfd01fe53444455c1ab3067af6ecfb1437345caf5ee11ca827bdde00c65"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.md",
+        "sha256": "1aa788cf21ae0613c1d7d9249fa41201bdd61a6651077553051624f1e5593284"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T223316Z-code-codex-c876fb/in/scope-item31-20260911.scope.md",
+        "sha256": "6da20a4bfdfe133be4841412511845ec9f31aa54bc661bcf3fae129264a4a769"
+      }
+    ],
+    "sha256": "a5a788930f20f4a7d04c239c1319fc9a4b65c7008acf8ad2f7818b6cc40864c8",
+    "bytes": 5097,
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "f696f8aba478be72c2ebb48f60f0db520a3455b65236fdbae62050b7191d595f"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
