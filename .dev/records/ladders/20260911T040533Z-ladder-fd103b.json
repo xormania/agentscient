@@ -107,9 +107,24 @@
       "verdict": "changes"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "grok-4.6"
+      },
       "harness": "grok",
+      "input": {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T042439Z-check-tests-codex-dd3c18/out/SKEPTIC.md",
+        "proof": {
+          "given": [
+            "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.",
+            "20260911T042439Z-check-tests-codex-dd3c18"
+          ],
+          "withheld": []
+        },
+        "sha256": "1576237e6a0df47dd7d4e58984b4933af6a25d98f4f4a8cf71743490e915bcb6"
+      },
       "job": "author-tests",
       "name": "tests-fix",
       "outcome": "pending",
