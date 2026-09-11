@@ -167,7 +167,8 @@
       },
       "job": "implement",
       "name": "code",
-      "outcome": "launched",
+      "outcome": "stopped",
+      "reason": "envelope",
       "record": "20260911T045555Z-code-codex-532808",
       "stage": "code"
     },
@@ -226,7 +227,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "envelope",
+    "record": "20260911T045555Z-code-codex-532808",
+    "stage": "code",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911"
 }
