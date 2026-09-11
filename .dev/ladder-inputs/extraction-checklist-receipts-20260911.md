@@ -21,12 +21,12 @@ commit 99334f7, cited in commit trailers as `<path>@99334f7`.
 | 8 | `actor` | the lane's identity rule for writing verbs: `WF_AGENT` in `Name <address>` form, refused `identity` when absent, as graft.py does | adapt |
 | 9 | `at` | `canonical.now()`, UTC with a trailing Z, the module's own rule | as is |
 | 10 | `cwd` | relative to the repository root, never absolute (the contract's comment) | adapt |
-| 11 | where receipts live | `.dev/records/receipts/<digest>.json`, the digest being the canonical digest of the receipt itself, so the file name is tamper-evident; tracked like dispatch records | decide, adapt |
-| 12 | verify | re-run argv at cwd against the same head; compare exit code, both output digests and head_sha; match exit 0, mismatch exit 1 with each differing field named, refusal exit 2 | adapt |
-| 13 | red then green by hand | one receipt for a failing command and one for a passing command, each `cue vet`-ed against `#Receipt`; the passing one against `#AdmissibleReceipt` (clean tree) | pending |
-| 14 | lint and the lane's checks | `ruff check` on every file; `laneconf.py closure` and `literals` clean; `cue vet ./ops/devlane/harness/` still clean | pending |
-| 15 | the term wall over the landed tree | `term_wall.py --root .` clean | pending |
-| 16 | trailers | verbatim modules: `Source: <path>@99334f7`; the lever: `Source: original`; the extractor as co-author | pending |
+| 11 | where receipts live | `.dev/records/receipts/<digest>.json`, the digest being the canonical digest of the receipt itself, so the file name is tamper-evident; tracked like dispatch records | done |
+| 12 | verify | re-run argv at cwd against the same head; compare exit code, both output digests and head_sha; match exit 0, mismatch exit 1 with each differing field named, refusal exit 2. Measured: the red receipt (`false`) re-derives exactly; the green receipt over a unittest run differs on `stderr_sha256` because the runner prints timings. verify reports that, as the contract asks; whether a suite receipt binds on exit code alone is a ruling for the frozen-set gate, not taken here | done, finding |
+| 13 | red then green by hand | receipts 704eafbc (`false`, exit 1) and 29223cde (the ladder suite, exit 0) at 7d43a81f; both vet against `#Receipt`, the green one against `#AdmissibleReceipt`; a receipt with an extra field is refused by the closed struct (exit 1) | verified |
+| 14 | lint and the lane's checks | `ruff check` clean on the lever and the four modules; `laneconf.py closure` exit 0; `literals` exit 0; `cue vet ./ops/devlane/harness/` exit 0 | verified |
+| 15 | the term wall over the landed tree | `term_wall.py --root .`: clean, 1381 tracked files | verified |
+| 16 | trailers | 79da612 carries `Source: <path>@99334f7` for the verbatim modules; 4aca8c1 carries `Source: original` for the lever; both with the extractor as co-author | verified |
 | 17 | no tests by the extractor | tests come from Grok after, the two reviewers after that | rule |
-| 18 | one hermetic refusal by hand | the lever refuses `identity` with `WF_AGENT` unset, one line, exit 2, stdout empty | pending |
-| 19 | placement | a directory `ops/devlane/harness/receipt/` for the four modules, loaded by path by the lever `ops/devlane/harness/receipt.py`, the way graft.py loads laneconf; no package machinery | decide |
+| 18 | one hermetic refusal by hand | `env -u WF_AGENT receipt.py record --claim x -- true`: exit 2, stdout empty, one stderr line `identity: expected …; found absent identity; needed …` | verified |
+| 19 | placement | `ops/devlane/harness/receipt/` for the four modules with a README; the lever `ops/devlane/harness/receipt.py` inserts that directory on its path and imports them by name | done |
