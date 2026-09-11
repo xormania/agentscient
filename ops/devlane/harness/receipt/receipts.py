@@ -112,22 +112,25 @@ def compute_manifest(repo: Path, spec, *, commit=None, worktree=False):
     return manifest, manifest_digest(manifest)
 
 
-def run(argv, cwd):
+def run(argv, cwd, *, binary=False):
     """Run a wrapped command, capturing everything it said."""
     started = time.monotonic()
     try:
-        proc = subprocess.run(
-            list(argv), cwd=str(cwd), capture_output=True, text=True,
-            errors="replace", stdin=subprocess.DEVNULL, check=False)
-    except FileNotFoundError as exc:
+        options = {"text": not binary}
+        if not binary:
+            options["errors"] = "replace"
+        proc = subprocess.run(list(argv), cwd=str(cwd), capture_output=True,
+                              stdin=subprocess.DEVNULL, check=False, **options)
+    except FileNotFoundError:
         raise Refusal(
             "the command exists",
-            actual=" ".join(argv),
-            needed=str(exc),
+            actual="command was not found",
+            needed="install it or correct the command name",
         ) from None
-    except PermissionError as exc:
+    except PermissionError:
         raise Refusal(
-            "the command is executable", actual=" ".join(argv), needed=str(exc)
+            "the command is executable", actual="command was not executable",
+            needed="correct its permissions or choose an executable command",
         ) from None
     duration = int((time.monotonic() - started) * 1000)
     return proc.returncode, proc.stdout, proc.stderr, duration
