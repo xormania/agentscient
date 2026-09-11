@@ -117,27 +117,14 @@ def _input_record_id(path, jobs_root):
 
 
 def _scope_path(inputs, root):
-    root = Path(root).resolve()
-    shelf = root / ".dev" / "ladder-inputs"
-    for value in inputs:
-        supplied = Path(value)
-        candidate = supplied if supplied.is_absolute() else root / supplied
-        if candidate.name.startswith("scope-") and candidate.is_file():
-            try:
-                return str(candidate.resolve().relative_to(root))
-            except ValueError:
-                pass
-        staged = shelf / supplied.name
-        if supplied.name.startswith("scope-") and staged.is_file():
-            return str(staged.relative_to(root))
-    candidates = sorted(shelf.glob("scope-*.md")) if shelf.is_dir() else []
-    if len(candidates) == 1:
-        return str(candidates[0].relative_to(root))
-    return ".dev/ladder-inputs/<scope path>"
+    return (
+        FINDINGS.work_order_scope(inputs, root)
+        or ".dev/ladder-inputs/<scope path>"
+    )
 
 
-def _disposition_command(key, scope_path):
-    evidence = f"contract item 1 of {scope_path}: correction"
+def _disposition_command(key, scope_path, item="1"):
+    evidence = f"contract item {item} of {scope_path}: correction"
     return " ".join((
         "python3 ops/conductor/tools/findings.py disposition",
         shlex.quote(key),
@@ -157,7 +144,7 @@ def _correction_refusal(found, needed, at):
     refuse("correction", _expected(at), found, needed)
 
 
-def _answer_row(key, at, root, scope_path):
+def _answer_row(key, at, root, scope_path, review_ids):
     store = FINDINGS.database_path()
     command = _disposition_command(key, scope_path)
     if not store.is_file():
@@ -171,7 +158,7 @@ def _answer_row(key, at, root, scope_path):
         con.row_factory = sqlite3.Row
         try:
             row = con.execute(
-                "SELECT key, disposition, evidence, disposed_at "
+                "SELECT key, record, disposition, evidence, disposed_at, claim "
                 "FROM findings WHERE key = ?",
                 (key,),
             ).fetchone()
@@ -189,6 +176,25 @@ def _answer_row(key, at, root, scope_path):
             "python3 ops/conductor/tools/findings.py import, then " + command,
             at,
         )
+    if row["record"] not in review_ids:
+        expected_id = next(iter(review_ids))
+        expected_key = f"{expected_id}#1"
+        _correction_refusal(
+            f"key {key} does not belong to a review followed by this correction",
+            "pass --answers keys belonging to the followed review, such as "
+            f"{shlex.quote(expected_key)}, disposed by "
+            f"{_disposition_command(expected_key, scope_path)}",
+            at,
+        )
+    claim_citation = FINDINGS.parse_citation(row["claim"])
+    if claim_citation is not None:
+        claim_holds, _reason = FINDINGS.citation_holds(
+            row["claim"], root, scope_path
+        )
+        if claim_holds:
+            command = _disposition_command(
+                key, scope_path, claim_citation.group("item")
+            )
     if row["disposition"] == "open":
         _correction_refusal(f"key {key} still open", command, at)
     holds, reason = FINDINGS.citation_holds(row["evidence"], root, scope_path)
@@ -270,10 +276,13 @@ def check(role, follows, inputs, answers, at, records, jobs_root, root, job=None
             needed,
             at,
         )
+    review_ids = tuple(dict.fromkeys(
+        record_id for record_id, _review_job in reviewed
+    ))
     return {
         "correction": True,
         "answers": [
-            _answer_row(key, at, root, scope_path) for key in answers
+            _answer_row(key, at, root, scope_path, review_ids) for key in answers
         ],
     }
 
