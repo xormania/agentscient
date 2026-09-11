@@ -59,6 +59,7 @@
         "cbfe01098dccc7330c7a356f6a6275ca97a65b29",
         "2c47704bc66b45f16c12a19c6432be451b231ca3"
       ],
+      "minutes": 10.35672,
       "name": "tests",
       "outcome": "ok",
       "record": "20260911T213956Z-tests-grok-fe4899",
