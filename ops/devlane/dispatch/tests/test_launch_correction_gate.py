@@ -98,6 +98,7 @@ class _CorrectionLaunch(ls._TempLaunch):
         super().setUp()
         os.environ.pop("XDG_STATE_HOME", None)
         self.planted_ids: set[str] = set()
+        self.planted_job_ids: set[str] = set()
         self.store = (
             self.home / ".local" / "state" / "agentscient" / "findings.db"
         )
@@ -280,9 +281,18 @@ class _CorrectionLaunch(ls._TempLaunch):
             if path.stem not in self.planted_ids
         ]
 
+    def minted_job_dirs(self):
+        return [
+            path for path in self.job_dirs()
+            if path.name not in self.planted_job_ids
+        ]
+
     def assert_no_mint(self):
         self.assert_not_started()
-        self.assertEqual(self.job_dirs(), [])
+        minted_jobs = self.minted_job_dirs()
+        self.assertEqual(
+            minted_jobs, [], f"refusal minted a job directory: {minted_jobs}",
+        )
         minted = self.minted_record_files()
         self.assertEqual(minted, [], f"refusal minted a record: {minted}")
 
@@ -787,6 +797,7 @@ class CorrectionShape(_CorrectionLaunch):
                 self.plant_record(rec_id, job)
                 note = self.jobs_root / rec_id / "out" / "note.md"
                 self.plant_new_file(note, f"review artifact for {job}\n")
+                self.planted_job_ids.add(rec_id)
                 self.force_stamp(STAMP)
                 code, out, err = self.dispatch(
                     self.write_argv(extra=["--input", str(note)]),
