@@ -627,6 +627,13 @@ written so the history reads.
   row is refused with found `disposed at <t>, not before the mint attempt
   at <t>` and needed `wait one second and retry`. Slice 4.
 
+- R8 (resolves the item 7 / D7 tension; item 7). A write job that
+  follows a plan, tests or implement record, or nothing, is not inspected
+  by the gate. `--answers` given on such a job is refused `arguments` at
+  argument parsing, before the gate runs, because a claim no gate would
+  verify must not enter a record. That refusal is parsing, not
+  inspection; item 7 holds.
+
 ## 9. Machine lines
 
 This run: slice 1 only. The other four slices' lines are in plan-gate-20260910.md.
