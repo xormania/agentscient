@@ -1,0 +1,121 @@
+{
+  "id": "20260911T233646Z-tests-grok-a5fdd4",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/item31-slice2-skeptic-driver-20260911",
+  "lineage": {
+    "branch": "lane/item31-slice2-skeptic-driver-20260911",
+    "base_sha": "18fc6b3ecd5a3b00309582c85e23b3576eea519d"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T23:36:46Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "18fc6b3ecd5a3b00309582c85e23b3576eea519d",
+    "ref_sha": "18fc6b3ecd5a3b00309582c85e23b3576eea519d",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "4ddf6f73-07de-4467-be2f-63d6b1e24952",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "4ddf6f73-07de-4467-be2f-63d6b1e24952",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction for a file it does not declare is refused at render. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/in/plan-item31-slice2-20260911.md",
+        "sha256": "79510c5be52e2402287adacf385a37fdc6a7d7751390d74df997dfc65c01b046"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/in/scope-item31-20260911.md",
+        "sha256": "23bd606c542162a0e222d9207f3c01a0bf8ec67e6f1977d0f76c8f513b14b6cf"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      }
+    ],
+    "sha256": "b989743c0f6c1ac12b1df1ce4e2a778b232bf9c5070a3b71f0ff7cc68517ebb8",
+    "bytes": 3559,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}

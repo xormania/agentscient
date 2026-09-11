@@ -32,6 +32,7 @@
     {
       "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T233646Z-tests-grok-a5fdd4",
       "dispatched": {
         "effort": "xhigh",
         "model": "grok-4.6"
@@ -49,7 +50,8 @@
       },
       "job": "author-tests",
       "name": "tests",
-      "outcome": "pending",
+      "outcome": "launched",
+      "record": "20260911T233646Z-tests-grok-a5fdd4",
       "stage": "tests"
     },
     {
