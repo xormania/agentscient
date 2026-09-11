@@ -304,6 +304,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 16.00506,
       "name": "adversarial",
       "outcome": "ok",
       "record": "20260911T225002Z-review-grok-a00d0e",
