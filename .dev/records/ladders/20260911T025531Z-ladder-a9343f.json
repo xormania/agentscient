@@ -1,7 +1,37 @@
 {
   "base_sha": "1bfd1067ce7dd89c9f5d378fcf0f07fc69852205",
   "branch": "lane/gate-dispatcher-20260911",
-  "calibration": [],
+  "calibration": [
+    {
+      "buckets": [
+        {
+          "declared": "S",
+          "name": "dispatcher-answers"
+        }
+      ],
+      "declared": "S",
+      "measured": {
+        "files": 13,
+        "findings": {
+          "adversarial": 0,
+          "check-tests": 0,
+          "security": 0
+        },
+        "lines": 2356,
+        "minutes": {
+          "adversarial": 8.171872,
+          "check-tests": 7.504464,
+          "code": 4.013132,
+          "pr": 0.0,
+          "security": 4.587897,
+          "tests": 11.012283,
+          "tests-fix": 9.097639
+        },
+        "tests": 1
+      },
+      "name": "dispatcher-answers"
+    }
+  ],
   "conf": {
     "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/ops/lane.conf",
     "sha256": "9bb41d2ab1e32781b365987d2446c817a3cfe2047d0b4b9af96a8091ae4e088c"
@@ -98,7 +128,10 @@
     "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/.dev/ladder-inputs/plan-dispatcher-gate.md",
     "sha256": "e7b5f7faefbef0dce092a154ebaf7ca7b8a073e0f359e78c8ffde3cf53ba7afd"
   },
-  "pr": null,
+  "pr": {
+    "number": 110,
+    "url": "https://github.com/uscient/agentscient/pull/110"
+  },
   "scope": {
     "path": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911/.dev/ladder-inputs/scope-gate-20260910.scope.md",
     "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
@@ -365,11 +398,11 @@
       "harness": null,
       "job": null,
       "name": "pr",
-      "outcome": "pending",
+      "outcome": "ok",
       "stage": null
     }
   ],
-  "status": "running",
+  "status": "done",
   "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-dispatcher-20260911"
 }
