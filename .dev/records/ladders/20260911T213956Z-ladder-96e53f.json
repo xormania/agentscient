@@ -525,7 +525,7 @@
       },
       "minutes": 5.337947,
       "name": "security-re",
-      "outcome": "ok",
+      "outcome": "changes",
       "record": "20260911T232448Z-review-codex-5cb35f",
       "recorded": {
         "effort": "xhigh",
@@ -545,7 +545,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": null,
+    "record": "20260911T232448Z-review-codex-5cb35f",
+    "stage": "security-re",
+    "verdict": "changes"
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911"
 }
