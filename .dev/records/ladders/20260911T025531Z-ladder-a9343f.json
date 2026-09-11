@@ -131,6 +131,7 @@
       "landed_shas": [
         "6f1becd272aed7179b30ca2563d40e80adef9a87"
       ],
+      "minutes": 9.097639,
       "name": "tests-fix",
       "outcome": "ok",
       "record": "20260911T031453Z-tests-grok-033816",
