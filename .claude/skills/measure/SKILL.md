@@ -14,13 +14,14 @@ settings entry and not the wrapper it calls; two packages that do not
 exist on Packagist were cited from a survey; three of four corrections
 one day were proposals narrated as decisions; a softened verb in the
 owner's words cost four files and a supersession (AARs of 2026-09-03,
-2026-09-10, 2026-09-11; pitfalls 6, 12, 13).
+2026-09-10, 2026-09-11; pitfalls 6, 12, 13); PR #141 was merged on a
+checks watch that had returned before the run registered (pitfall 22).
 
 ## The table
 
 | the claim | the command, and what counts |
 |---|---|
-| a PR is open, merged, draft, green | `gh pr view N --json state,isDraft,mergeCommit,headRefOid`; `gh pr checks N`. A PR body's description of anything is a claim, not a reading. |
+| a PR is open, merged, draft, green | `gh pr view N --json state,isDraft,mergeCommit,headRefOid`; `gh pr checks N`. A PR body's description of anything is a claim, not a reading. Green means every check named in `CHECK_NAMES` of `ops/lane.conf` and every Analyze row reads `pass` on the head sha that will merge. `gh pr checks N --watch` exits 0 with `no checks reported` in the seconds after a push, before the run registers; that exit is not a reading. On 2026-09-11 PR #141 was marked ready and merged on it while the checks on its amended head were in progress (pitfall 22). After a push, wait until `gh run list --json headSha,status` shows the head's run, then watch. |
 | a branch or PR does or does not do X | read its diff: `git diff base...head -- <path>`; run its tests. Never its description, never a rival's description of it. |
 | a process is alive or dead | host `ps -o pid,etime,cmd -p PID`. A reading from inside a sandbox, a `status` verb, or a pid file establishes nothing about the host. |
 | a hook or guard is wired | trace the chain: `.claude/settings.json` entry, the wrapper script it names, the tool the wrapper calls, then provoke it once and paste the refusal. A settings entry alone is not "wired". |

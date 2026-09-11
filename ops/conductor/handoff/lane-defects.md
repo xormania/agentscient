@@ -37,3 +37,15 @@ Reliability is the count below trending to zero per ladder.
 
 Not a lane defect: the setsid pid recorded for the resumed driver was the
 intermediate shell, the session's own error.
+
+Not a lane defect, recorded at the owner's word (2026-09-11: "make sure we
+record the Flag on 141 - needs to be documented"): PR #141 was marked ready
+and merged at bae4077 while the checks on its amended head ae1404e were in
+progress. `gh pr checks 141 --watch` had exited 0 with `no checks reported`
+in the seconds after the push, before the run registered, and the session
+read that exit as green. The change was one prose line in an ideas record;
+the earlier head 8a44a82 had passed all five checks, and afterwards the PR
+head's run and the dev push run both passed (lane, app, both Analyze;
+CodeQL skipping on the head, the PR already merged). The session's own
+error, in the belief-for-measurement class: pitfall 22 on the `measure`
+page, one miss logged against it.
