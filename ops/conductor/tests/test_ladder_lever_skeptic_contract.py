@@ -12,6 +12,7 @@ symlink. Item 7: the verb `check-envelope` is on the instrument.
 
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -25,7 +26,6 @@ NEVER_RETRIED = "never retried"
 RETRY_ONLY = "`--retry` is the only further attempt"
 CHECK_ENVELOPE = "`check-envelope`"
 CHECK_ENVELOPE_FORM = "PATH|-"
-WIRE_THEN_STOPPED = "the wire line then the stopped line"
 ENVELOPE_SHAPE = '{"field": "<dotted field>", "refusal": "<line>"}'
 STOPPED_ENVELOPE = "reason=envelope"
 STOPPED_CUSTODY = "reason=custody"
@@ -33,6 +33,79 @@ INVALID_ENVELOPE_PROSE = (
     "a stage refuses, trips, dies, records an invalid envelope, "
     "violates a guarantee, or an invoked write aborts"
 )
+REGULAR_FILE = "regular file"
+PATH_AND_DIGEST = "path and digest"
+CUSTODY_REFUSAL = (
+    "refuses to write through a symlink or outside the inputs directory"
+)
+ITEM3_CHECKS = (
+    "findings is a list of item 2 shapes",
+    "counts agree with findings",
+    "verdict agrees with item 2",
+    "artifacts is empty",
+)
+ONE_STDERR_LINE = "one stderr line"
+STDOUT_EMPTY = "stdout empty"
+WIRE_GRAMMAR = "expected …; found …; needed …"
+WIRE_GRAMMAR_ASCII = "expected ...; found ...; needed ..."
+
+_EXIT_2 = re.compile(r"(?i)(?<![\w])exit\s+2(?!\d)")
+
+# Item 3 near-miss: names a field and never-retried, skips the four checks.
+ITEM3_FIELD_ONLY_MUTANT = (
+    "field; never retried; "
+    '{"field": "<dotted field>", "refusal": "<line>"}; '
+    "validates only the field name and ignores findings, counts, "
+    "verdict, and artifacts"
+)
+
+# Item 4 near-miss: expected filename, allows a symlink, records no digest.
+ITEM4_SYMLINK_MUTANT = (
+    "`skeptic-findings.md` written by the driver from the validated "
+    "check-tests envelope; custody; files may be symlinks outside the "
+    "inputs directory and have no recorded digest"
+)
+
+# Item 7 near-miss: exit 30 and two output lines.
+ITEM7_EXIT_30_MUTANT = (
+    "envelope exit 30 reason=envelope field "
+    "the wire line then the stopped line"
+)
+
+
+def _item3_checks_hold(text: str) -> bool:
+    return all(phrase in text for phrase in ITEM3_CHECKS)
+
+
+def _item4_custody_holds(text: str) -> bool:
+    if CUSTODY_FILE not in text:
+        return False
+    if REGULAR_FILE not in text:
+        return False
+    if PATH_AND_DIGEST not in text:
+        return False
+    return CUSTODY_REFUSAL in text
+
+
+def _has_wire_grammar(text: str) -> bool:
+    collapsed = " ".join(text.split())
+    return WIRE_GRAMMAR in collapsed or WIRE_GRAMMAR_ASCII in collapsed
+
+
+def _item7_refusal_holds(text: str) -> bool:
+    if _EXIT_2.search(text) is None:
+        return False
+    if ONE_STDERR_LINE not in text:
+        return False
+    if STDOUT_EMPTY not in text:
+        return False
+    return _has_wire_grammar(text)
+
+
+def _exit_cell(row: list[str] | None) -> str:
+    if not row:
+        return ""
+    return row[0].replace("`", "").strip()
 
 
 def _section(text: str, prefix: str) -> str:
@@ -128,6 +201,11 @@ def _row_names(cells: list[str], ident: str) -> bool:
     return False
 
 
+def _chunks_naming(text: str, ident: str) -> list[str]:
+    chunks = re.split(r"(?<=[.!?])\s+|\n+", text)
+    return [chunk for chunk in chunks if ident in chunk]
+
+
 class _LeverPin(unittest.TestCase):
     maxDiff = None
 
@@ -175,6 +253,9 @@ class _LeverPin(unittest.TestCase):
             return ""
         return " ".join(row)
 
+    def check_tests_stop(self) -> str:
+        return _heading_body(self.lever, "The check-tests stop")
+
 
 class TestsFixCustodyInput(_LeverPin):
     """Item 4 — tests-fix is given the driver-written custody file."""
@@ -201,9 +282,65 @@ class TestsFixCustodyInput(_LeverPin):
             "not a file the skeptic wrote",
         )
 
+    def test_custody_is_a_regular_file_with_path_and_digest(self):
+        mutant = ITEM4_SYMLINK_MUTANT
+        self.assertIn(CUSTODY_FILE, mutant)
+        self.assertIn(DRIVER_WROTE, mutant)
+        self.assertNotIn(SKEPTIC_MD, mutant)
+        self.assertFalse(
+            _item4_custody_holds(mutant),
+            "item 4: a symlink outside the inputs directory with no "
+            "digest must not hold",
+        )
+        surface = "\n".join(
+            [
+                self.stage_input("tests-fix"),
+                self.stop_blob("custody"),
+                self.check_tests_stop(),
+                self.section("## Record"),
+            ]
+        )
+        self.assertIn(
+            REGULAR_FILE,
+            surface,
+            "item 4: the custody file is a regular file",
+        )
+        self.assertIn(
+            PATH_AND_DIGEST,
+            surface,
+            "item 4: recorded with path and digest like every other input",
+        )
+        self.assertTrue(
+            _item4_custody_holds(surface),
+            "item 4: regular file under the inputs directory, path and "
+            "digest, refuses a symlink or a path outside",
+        )
+
+    def test_custody_refuses_a_symlink_or_a_path_outside_the_inputs_directory(
+        self,
+    ):
+        mutant = ITEM4_SYMLINK_MUTANT
+        self.assertIn("symlink", mutant)
+        self.assertIn("outside the inputs directory", mutant)
+        self.assertNotIn(CUSTODY_REFUSAL, mutant)
+        self.assertFalse(_item4_custody_holds(mutant))
+        surface = "\n".join(
+            [
+                self.stage_input("tests-fix"),
+                self.stop_blob("custody"),
+                self.check_tests_stop(),
+            ]
+        )
+        self.assertIn(
+            CUSTODY_REFUSAL,
+            surface,
+            "item 4: refuses to write through a symlink or outside "
+            "the inputs directory",
+        )
+
 
 class EnvelopeAndCustodyStops(_LeverPin):
-    """Item 3 / item 4 / item 7 — stop rows envelope and custody, exit 3."""
+    """Item 3 / item 4 / item 7 — stop rows envelope and custody."""
 
     def test_invalid_envelope_prose_is_not_the_envelope_stop_row(self):
         mutant = ["3", INVALID_ENVELOPE_PROSE, "the last reading, then stopped"]
@@ -234,49 +371,70 @@ class EnvelopeAndCustodyStops(_LeverPin):
             "stops table has no custody row",
         )
 
-    def test_envelope_stop_is_exit_3_with_the_wire_line_then_the_stopped_line(
-        self,
-    ):
+    def test_envelope_refusal_is_exit_2_one_stderr_line_stdout_empty(self):
+        mutant = ITEM7_EXIT_30_MUTANT
+        self.assertIn("3", mutant)
+        self.assertIn(STOPPED_ENVELOPE, mutant)
+        self.assertIsNone(_EXIT_2.search(mutant))
+        self.assertFalse(
+            _item7_refusal_holds(mutant),
+            "item 7: exit 30 and two output lines must not hold",
+        )
+        row = self.stop_row("envelope")
+        self.assertIsNotNone(row, "stops table has no envelope row")
+        self.assertEqual(
+            _exit_cell(row),
+            "2",
+            "item 7: envelope refusal is exit 2, not a substring of 20 or 30",
+        )
         blob = self.stop_blob("envelope")
-        self.assertIn("3", blob)
         self.assertIn(STOPPED_ENVELOPE, blob)
-        collapsed = " ".join(blob.split())
+        surface = "\n".join([blob, self.check_tests_stop()])
         self.assertTrue(
-            "wire line" in collapsed and "stopped" in collapsed,
-            "item 7: last output is the wire line then the stopped line; "
-            f"found {blob!r}",
+            _item7_refusal_holds(blob) or _item7_refusal_holds(surface),
+            "item 7: one stderr line `class: expected …; found …; "
+            f"needed …`, exit 2, stdout empty; found {blob!r}",
         )
 
-    def test_custody_stop_is_exit_3_with_the_wire_line_then_the_stopped_line(
-        self,
-    ):
+    def test_custody_refusal_is_exit_2_one_stderr_line_stdout_empty(self):
+        mutant = ITEM7_EXIT_30_MUTANT.replace("envelope", "custody")
+        self.assertIn("3", mutant)
+        self.assertIsNone(_EXIT_2.search(mutant))
+        self.assertFalse(_item7_refusal_holds(mutant))
+        row = self.stop_row("custody")
+        self.assertIsNotNone(row, "stops table has no custody row")
+        self.assertEqual(
+            _exit_cell(row),
+            "2",
+            "item 7: custody refusal is exit 2, not a substring of 20 or 30",
+        )
         blob = self.stop_blob("custody")
-        self.assertIn("3", blob)
         self.assertIn(STOPPED_CUSTODY, blob)
-        collapsed = " ".join(blob.split())
+        surface = "\n".join([blob, self.check_tests_stop()])
         self.assertTrue(
-            "wire line" in collapsed and "stopped" in collapsed,
-            "item 7: last output is the wire line then the stopped line; "
+            _item7_refusal_holds(blob) or _item7_refusal_holds(surface),
+            "item 7: one stderr line, exit 2, stdout empty; "
             f"found {blob!r}",
         )
 
-    def test_envelope_stop_names_the_field(self):
+    def test_envelope_stop_names_the_field_and_the_four_checks(self):
+        mutant = ITEM3_FIELD_ONLY_MUTANT
+        self.assertIn("field", mutant)
+        self.assertIn("never retried", mutant)
+        self.assertIn("<dotted field>", mutant)
+        self.assertFalse(
+            _item3_checks_hold(mutant),
+            "item 3: naming a field is not checking findings, counts, "
+            "verdict, and artifacts",
+        )
         blob = self.stop_blob("envelope")
+        body = self.check_tests_stop()
         self.assertIn("field", blob)
-
-    def test_stops_section_states_the_last_output_shape(self):
-        mutant = "the last reading, then stopped stage="
-        self.assertNotIn(WIRE_THEN_STOPPED, mutant)
-        stops = self.section("## Stops")
-        collapsed = " ".join(stops.split())
         self.assertTrue(
-            WIRE_THEN_STOPPED in collapsed
-            or (
-                "the wire line" in collapsed
-                and "the stopped line" in collapsed
-            ),
-            "item 7: envelope and custody last output is the wire line "
-            "then the stopped line",
+            _item3_checks_hold(body) or _item3_checks_hold(blob),
+            "item 3: the driver checks findings is a list of item 2 "
+            "shapes; counts agree with findings; verdict agrees with "
+            "item 2; artifacts is empty",
         )
 
 
@@ -284,7 +442,7 @@ class CheckTestsStopNeverRetried(_LeverPin):
     """Item 3 — a malformed envelope is never retried as a flake."""
 
     def test_the_check_tests_stop_paragraph_exists(self):
-        body = _heading_body(self.lever, "The check-tests stop")
+        body = self.check_tests_stop()
         self.assertTrue(
             body.strip(),
             "ladder-lever.md is missing paragraph The check-tests stop",
@@ -296,7 +454,7 @@ class CheckTestsStopNeverRetried(_LeverPin):
             "after a test fix."
         )
         self.assertNotIn(NEVER_RETRIED, mutant)
-        body = _heading_body(self.lever, "The check-tests stop")
+        body = self.check_tests_stop()
         self.assertIn(NEVER_RETRIED, body)
 
     def test_retry_is_the_only_further_attempt(self):
@@ -305,7 +463,7 @@ class CheckTestsStopNeverRetried(_LeverPin):
             "stage once."
         )
         self.assertNotIn(RETRY_ONLY, mutant)
-        body = _heading_body(self.lever, "The check-tests stop")
+        body = self.check_tests_stop()
         self.assertIn(RETRY_ONLY, body)
 
 
@@ -323,6 +481,20 @@ class CheckEnvelopeVerb(_LeverPin):
         mutant = "`check-envelope` reads whatever file the skeptic wrote"
         self.assertNotIn(CHECK_ENVELOPE_FORM, mutant)
         self.assertIn(CHECK_ENVELOPE_FORM, self.section("## Instrument"))
+
+    def test_check_envelope_refusal_is_item7_wire(self):
+        mutant = ITEM7_EXIT_30_MUTANT
+        self.assertIn("3", mutant)
+        self.assertFalse(_item7_refusal_holds(mutant))
+        chunks = _chunks_naming(self.section("## Instrument"), "check-envelope")
+        self.assertTrue(chunks, "instrument does not name check-envelope")
+        surface = " ".join(chunks)
+        self.assertTrue(
+            _item7_refusal_holds(surface)
+            or any(_item7_refusal_holds(c) for c in chunks),
+            "item 7: check-envelope is one stderr line, exit 2, "
+            "stdout empty, expected …; found …; needed …",
+        )
 
 
 class RecordEnvelopeField(_LeverPin):
