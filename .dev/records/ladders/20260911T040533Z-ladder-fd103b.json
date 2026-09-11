@@ -269,6 +269,7 @@
     {
       "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T062141Z-review-grok-79cad6",
       "dispatched": {
         "effort": "xhigh",
         "model": "grok-4.6"
@@ -287,7 +288,8 @@
       },
       "job": "adversarial-review",
       "name": "adversarial",
-      "outcome": "pending",
+      "outcome": "launched",
+      "record": "20260911T062141Z-review-grok-79cad6",
       "stage": "review"
     },
     {
