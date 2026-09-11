@@ -1,0 +1,122 @@
+{
+  "id": "20260911T015546Z-code-codex-f4f142",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/gate-ledger-20260911",
+  "lineage": {
+    "branch": "lane/gate-ledger-20260911",
+    "base_sha": "fc31032adf42ed97bf76cd8ed6a47c0763647f22"
+  },
+  "follows": [
+    "20260911T013729Z-tests-grok-51c101"
+  ],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T01:55:46Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "fc31032adf42ed97bf76cd8ed6a47c0763647f22",
+    "ref_sha": "fc31032adf42ed97bf76cd8ed6a47c0763647f22",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "cd5e740e-4f7e-4b62-95af-ec2694305d30",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-gate-ledger-20260911/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "python3 -m unittest discover -s ops/conductor/tests -p test_findings_citation.py && python3 -m unittest discover -s ops/conductor/tests -p test_correction.py\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/plan-ledger-gate.md",
+        "sha256": "ba159269c62cf91721641820220bc907fe458864fd01af268cfca6e838de2847"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.md",
+        "sha256": "e2129e039753d9449a704d161b584f10b55afa4d99355c608279e00410a97ef8"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T015546Z-code-codex-f4f142/in/scope-gate-20260910.scope.md",
+        "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
+      }
+    ],
+    "sha256": "dd9483e552335b4d54dcdbdabe1d8719e6acc233f80efcee33673418adda0f86",
+    "bytes": 4458
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
