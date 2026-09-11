@@ -36,11 +36,86 @@ CLAIM_GRAMMAR = (
 SPLIT_RULE = "the first `; practiced: ` and the last `; misses: `"
 DECLARED_LOCATION_RULE = "no parentheses"
 REPRODUCE_NULL = "an opinion is not a finding"
+NON_EMPTY_COMMAND = "non-empty command"
 WHERE_RULE = re.compile(
     r"no whitespace.*contains `/` or `\.`|contains `/` or `\.`.*no whitespace",
     re.IGNORECASE | re.DOTALL,
 )
 SEVERITY_RULE = re.compile(r"`p1`.*`p2`.*`p3`|p1,\s*p2 or p3")
+
+_NO_FILE = re.compile(
+    r"no file(?: is)? written|write no file", re.IGNORECASE
+)
+_WRITE_VERB = re.compile(
+    r"\b(?:write|writes|wrote|written|save|saves|saved|create|creates|"
+    r"created|store|stores|stored|emit|emits|emitted|put|puts|append|"
+    r"appends|dump|dumps|dumped)\b",
+    re.IGNORECASE,
+)
+_PATH_SHAPED = re.compile(
+    r"\{out\}"
+    r"|[\w.{}/-]*\/[\w.{}/-]+"
+    r"|`[^`]+\.(?:md|txt|json|py|log)`"
+    r"|\b[\w-]+\.(?:md|txt|json|py|log)\b"
+)
+_EMPTY_REPRODUCE_ACCEPTED = re.compile(
+    r"empty (?:reproduce )?(?:string|command) is accepted",
+    re.IGNORECASE,
+)
+
+# Item 1 near-miss: required phrases plus a differently named file write.
+# Survived the first frozen set (skeptic 20260911T215054Z, P2).
+ITEM1_FILE_WRITE_MUTANT = (
+    "the JSON envelope on stdout; quotation pair; `artifacts` empty; "
+    "no file written; verdict `changes` exactly when any finding exists; "
+    "The skeptic's finding; nevertheless writes `reports/skeptic.txt`"
+)
+
+# Item 2 near-miss: null is refused, empty reproduce is accepted.
+ITEM2_EMPTY_REPRODUCE_MUTANT = (
+    "`null` is refused because an opinion is not a finding; "
+    "an empty reproduce string is accepted"
+)
+
+
+def _remainder_after_no_file_clause(cell: str) -> str:
+    return _NO_FILE.sub("", cell)
+
+
+def _directs_a_file_write(cell: str) -> bool:
+    remainder = _remainder_after_no_file_clause(cell)
+    return bool(_WRITE_VERB.search(remainder) and _PATH_SHAPED.search(remainder))
+
+
+def _names_an_output_path(cell: str) -> bool:
+    remainder = _remainder_after_no_file_clause(cell)
+    return bool(_PATH_SHAPED.search(remainder))
+
+
+def _item1_no_file_holds(cell: str) -> bool:
+    """Item 1: artifacts empty, no file written, and no other file path."""
+    if ARTIFACTS_EMPTY not in cell:
+        return False
+    if not _NO_FILE.search(cell):
+        return False
+    if "SKEPTIC.md" in cell:
+        return False
+    if OLD_FILE_DELIVERABLE in cell:
+        return False
+    return not (
+        _directs_a_file_write(cell) or _names_an_output_path(cell)
+    )
+
+
+def _item2_reproduce_holds(body: str) -> bool:
+    """Item 2: reproduce is a non-empty command; null is an opinion."""
+    if "`null`" not in body:
+        return False
+    if REPRODUCE_NULL not in body:
+        return False
+    if NON_EMPTY_COMMAND not in body:
+        return False
+    return not _EMPTY_REPRODUCE_ACCEPTED.search(body)
 
 
 def _section(text: str, prefix: str) -> str:
@@ -158,9 +233,29 @@ class CheckTestsJobRow(_ContractPin):
         self.assertIn(ARTIFACTS_EMPTY, self.jobs_deliverable("check-tests"))
 
     def test_the_check_tests_row_says_no_file_written(self):
-        mutant = "a skeptic's report at `out/SKEPTIC.md`; verdict `changes`"
-        self.assertNotIn(NO_FILE_WRITTEN, mutant)
-        self.assertIn(NO_FILE_WRITTEN, self.jobs_deliverable("check-tests"))
+        mutant = ITEM1_FILE_WRITE_MUTANT
+        self.assertRegex(mutant, _NO_FILE)
+        self.assertIn(ARTIFACTS_EMPTY, mutant)
+        self.assertNotIn(OLD_FILE_DELIVERABLE, mutant)
+        self.assertTrue(
+            _directs_a_file_write(mutant),
+            "plant must land: a write verb and a path besides the negation",
+        )
+        self.assertFalse(
+            _item1_no_file_holds(mutant),
+            "item 1: required phrases plus a file write must not hold",
+        )
+        cell = self.jobs_deliverable("check-tests")
+        self.assertRegex(
+            cell,
+            _NO_FILE,
+            "item 1: the row says no file is written",
+        )
+        self.assertTrue(
+            _item1_no_file_holds(cell),
+            "item 1: the row must not also direct a file write; "
+            f"found {cell!r}",
+        )
 
     def test_the_check_tests_row_verdict_changes_exactly_when_any_finding_exists(
         self,
@@ -170,12 +265,24 @@ class CheckTestsJobRow(_ContractPin):
         self.assertIn(VERDICT_WHEN_FINDINGS, self.jobs_deliverable("check-tests"))
 
     def test_the_check_tests_row_does_not_deliver_a_skeptic_md_file(self):
+        mutant = ITEM1_FILE_WRITE_MUTANT
+        self.assertNotIn(OLD_FILE_DELIVERABLE, mutant)
+        self.assertFalse(
+            _item1_no_file_holds(mutant),
+            "a differently named file write is still a file deliverable",
+        )
         cell = self.jobs_deliverable("check-tests")
         self.assertTrue(cell, "no check-tests jobs-table row")
         self.assertNotIn(
             OLD_FILE_DELIVERABLE,
             cell,
             "item 1: the row delivers the envelope, not out/SKEPTIC.md",
+        )
+        self.assertNotIn("SKEPTIC.md", cell)
+        self.assertFalse(
+            _names_an_output_path(cell),
+            "item 1: the deliverable names no output path; "
+            f"found {cell!r}",
         )
 
     def test_the_check_tests_row_points_at_the_skeptic_finding_subsection(self):
@@ -210,11 +317,24 @@ class SkepticFindingGrammar(_ContractPin):
         self.assertIn(DECLARED_LOCATION_RULE, self.skeptic_finding())
 
     def test_null_reproduce_is_refused_as_an_opinion(self):
-        mutant = "reproduce may be null when the finding is an opinion"
-        self.assertNotIn(REPRODUCE_NULL, mutant)
+        mutant = ITEM2_EMPTY_REPRODUCE_MUTANT
+        self.assertIn("`null`", mutant)
+        self.assertIn(REPRODUCE_NULL, mutant)
+        self.assertNotIn(NON_EMPTY_COMMAND, mutant)
+        self.assertFalse(
+            _item2_reproduce_holds(mutant),
+            "item 2: refusing null while accepting an empty string "
+            "is not a reproduce command",
+        )
         body = self.skeptic_finding()
         self.assertIn("`null`", body)
         self.assertIn(REPRODUCE_NULL, body)
+        self.assertIn(
+            NON_EMPTY_COMMAND,
+            body,
+            "item 2: reproduce is a non-empty command, not an empty string",
+        )
+        self.assertTrue(_item2_reproduce_holds(body))
 
     def test_where_is_the_practiced_location_without_whitespace(self):
         mutant = "where is any string naming the test"
