@@ -46,6 +46,15 @@ EMPTY = hashlib.sha256(b"").hexdigest()
 REFUSAL = 2
 
 
+def canonical_text(obj) -> str:
+    """Canonical JSON as receipt/canonical.py defines it (PLAN §2)."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def canonical_digest(obj) -> str:
+    return hashlib.sha256(canonical_text(obj).encode("utf-8")).hexdigest()
+
+
 def lever_path() -> Path:
     override = os.environ.get("RECEIPT_TEST_LEVER", "").strip()
     if override:
@@ -187,13 +196,48 @@ class _Repo:
 
     def assert_named_by_digest(self, path: Path):
         self.assertRegex(path.stem, DIGEST, path.name)
-        raw = path.read_bytes()
-        stripped = raw[:-1] if raw.endswith(b"\n") else raw
-        digest = hashlib.sha256(stripped).hexdigest()
+        body = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(
-            path.stem, digest,
-            "receipt file name is the canonical digest of its own bytes",
+            path.stem,
+            canonical_digest(body),
+            "receipt file name is the canonical digest of the parsed body",
         )
+
+    def planted_body(self, **overrides):
+        body = {
+            "kind": "receipt",
+            "claim": "planted",
+            "argv": ["true"],
+            "cwd": ".",
+            "head_sha": self.head_digest(),
+            "tree_dirty": False,
+            "exit_code": 0,
+            "duration_ms": 0,
+            "stdout_sha256": EMPTY,
+            "stderr_sha256": EMPTY,
+            "actor": AGENT,
+            "at": "2026-09-11T00:00:00.000000Z",
+        }
+        body.update(overrides)
+        return body
+
+    def write_json(self, path: Path, obj) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(obj) + "\n", encoding="utf-8")
+        return path
+
+    def marker_argv(self, marker: Path):
+        return [
+            sys.executable,
+            "-c",
+            "from pathlib import Path; Path(%r).write_text('ran', encoding='utf-8')"
+            % str(marker),
+        ]
+
+    def _clear_receipts_tree(self):
+        dev = self.repo / ".dev"
+        if dev.exists():
+            shutil.rmtree(dev)
 
     def assert_twelve(self, body: dict):
         self.assertEqual(set(body), set(FIELDS), body)
@@ -328,6 +372,133 @@ class Record(_Repo, unittest.TestCase):
         self.assert_refusal(code, out, err, "cwd", named=(rel,))
         self.assert_no_receipt()
 
+    def test_malformed_identity_forms_refuse_identity(self):
+        for agent in ("<>", "Name <>", " <a@b>"):
+            with self.subTest(agent=agent):
+                self._clear_receipts_tree()
+                code, out, err = self.record("x", ["true"], agent=agent)
+                self.assert_refusal(code, out, err, "identity")
+                self.assert_no_receipt()
+
+    def test_empty_claim_or_empty_argv_element_refuses_arguments_before_running(self):
+        marker = self.home / "empty-ran"
+        cases = (
+            ("empty-claim", "", self.marker_argv(marker)),
+            ("empty-argv-element", "x", self.marker_argv(marker) + [""]),
+        )
+        for label, claim, command in cases:
+            with self.subTest(label=label):
+                self._clear_receipts_tree()
+                if marker.exists():
+                    marker.unlink()
+                code, out, err = self.record(claim, command)
+                self.assert_refusal(code, out, err, "arguments")
+                self.assertFalse(marker.exists(), f"argv ran for {label}")
+                self.assert_no_receipt()
+
+    def test_receipts_dir_symlink_outside_root_refuses_and_writes_nothing_outside(self):
+        kept = self.repo / ".dev" / "records" / "kept"
+        kept.parent.mkdir(parents=True)
+        kept.write_text("tracked\n", encoding="utf-8")
+        self.git("add", ".dev")
+        self.git("commit", "-m", "track .dev")
+        leaked = self.outside / "leaked"
+        leaked.mkdir()
+        receipts = self.repo / RECEIPTS
+        receipts.symlink_to(leaked)
+        self.assertTrue(receipts.is_symlink())
+        self.assertEqual(receipts.resolve(), leaked.resolve())
+        before = sorted(p.relative_to(self.outside) for p in self.outside.rglob("*"))
+        code, out, err = self.record("symlink receipts", ["true"])
+        self.assertEqual(code, REFUSAL, f"out={out!r} err={err!r}")
+        self.assertEqual((out or "").strip(), "", out)
+        lines = [ln for ln in (err or "").splitlines() if ln.strip()]
+        self.assertEqual(len(lines), 1, err)
+        line = lines[0]
+        self.assertRegex(line, r"^(receipt|cwd): expected ", line)
+        self.assertIn("; found ", line, line)
+        self.assertIn("; needed ", line, line)
+        after = sorted(p.relative_to(self.outside) for p in self.outside.rglob("*"))
+        self.assertEqual(after, before)
+        self.assertEqual(list(leaked.glob("*.json")), [])
+
+    def test_non_utf8_outputs_hash_as_sha256_of_raw_bytes(self):
+        payloads = (bytes([255]), bytes([254]))
+        wants = [hashlib.sha256(p).hexdigest() for p in payloads]
+        self.assertNotEqual(wants[0], wants[1])
+        got_out, got_err = [], []
+        for i, payload in enumerate(payloads):
+            n = payload[0]
+            argv = [
+                sys.executable, "-c",
+                "import os; os.write(1, bytes([%d])); os.write(2, bytes([%d]))" % (n, n),
+            ]
+            code, out, err = self.record("bytes %d" % n, argv, allow_dirty=True)
+            self.assertEqual(code, 0, f"out={out!r} err={err!r}")
+            files = self.receipt_files()
+            self.assertEqual(len(files), i + 1, files)
+            body = json.loads(files[-1].read_text(encoding="utf-8"))
+            got_out.append(body["stdout_sha256"])
+            got_err.append(body["stderr_sha256"])
+        self.assertEqual(got_out[0], wants[0])
+        self.assertEqual(got_out[1], wants[1])
+        self.assertEqual(got_err[0], wants[0])
+        self.assertEqual(got_err[1], wants[1])
+        self.assertNotEqual(got_out[0], got_out[1])
+
+    def test_git_status_failure_refuses_repository(self):
+        index = self.repo / ".git" / "index"
+        self.assertTrue(index.is_file())
+        index.write_bytes(b"corrupt")
+        probe = subprocess.run(
+            ["git", "status"],
+            cwd=self.repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertNotEqual(probe.returncode, 0, probe.stderr)
+        code, out, err = self.record("corrupt index", ["true"])
+        self.assert_refusal(code, out, err, "repository")
+        self.assert_no_receipt()
+
+    def test_argv_element_containing_a_newline_keeps_the_wire_one_line(self):
+        token = "line1\nline2"
+        self.assertIn("\n", token)
+        code, out, err = self.record(
+            "newline in argv", ["definitely-no-such-command", token],
+        )
+        self.assertNotIn(token, err or "")
+        lines = [ln for ln in (err or "").splitlines() if ln.strip()]
+        if code == REFUSAL:
+            self.assertEqual((out or "").strip(), "", out)
+            self.assertEqual(len(lines), 1, err)
+            line = lines[0]
+            self.assertRegex(line, r"^[a-z][a-z0-9-]*: expected ", line)
+            self.assertIn("; found ", line, line)
+            self.assertIn("; needed ", line, line)
+            self.assert_no_receipt()
+        else:
+            self.assertLessEqual(len(lines), 1, err)
+            files = self.receipt_files()
+            self.assertEqual(len(files), 1, files)
+
+    def test_second_record_passes_when_dev_is_untracked(self):
+        code, out, err = self.record("first", ["true"])
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
+        self.assertTrue((self.repo / RECEIPTS).is_dir())
+        status = self.git("status", "--porcelain").stdout
+        self.assertIn(".dev", status)
+        tracked = self.git("ls-files", ".dev").stdout.strip()
+        self.assertEqual(tracked, "")
+        code2, out2, err2 = self.record("second", ["true"])
+        self.assertEqual(code2, 0, f"out={out2!r} err={err2!r}")
+        files = self.receipt_files()
+        self.assertEqual(len(files), 2, files)
+        for path in files:
+            body = json.loads(path.read_text(encoding="utf-8"))
+            self.assertIs(body["tree_dirty"], False, body)
+
 
 class Verify(_Repo, unittest.TestCase):
     def test_deterministic_command_agrees_exit_0(self):
@@ -369,6 +540,36 @@ class Verify(_Repo, unittest.TestCase):
         self.assertEqual(vcode, 1, f"out={vout!r} err={verr!r}")
         reported = (vout or "") + (verr or "")
         self.assertIn("stdout_sha256", reported)
+
+    def test_absolute_or_escaping_cwd_refuses_cwd_and_does_not_run_argv(self):
+        marker = self.home / "cwd-ran"
+        argv = self.marker_argv(marker)
+        cases = ("/", "../outside")
+        for cwd in cases:
+            with self.subTest(cwd=cwd):
+                if marker.exists():
+                    marker.unlink()
+                body = self.planted_body(claim="cwd " + cwd, argv=argv, cwd=cwd)
+                path = self.write_json(self.home / "cwd.json", body)
+                code, out, err = self.verify(str(path))
+                self.assert_refusal(code, out, err, "cwd")
+                self.assertFalse(marker.exists(), f"argv ran for cwd={cwd!r}")
+
+    def test_edited_receipt_refuses_receipt_on_verify_and_show(self):
+        code, out, err = self.record("edit me", ["true"])
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
+        body, path = self.one_receipt()
+        digest = path.stem
+        body["claim"] = "tampered"
+        path.write_text(json.dumps(body) + "\n", encoding="utf-8")
+        self.assertEqual(path.stem, digest)
+        self.assertNotEqual(canonical_digest(body), digest)
+        with self.subTest("verify"):
+            vcode, vout, verr = self.verify(digest)
+            self.assert_refusal(vcode, vout, verr, "receipt")
+        with self.subTest("show"):
+            scode, sout, serr = self.show(digest)
+            self.assert_refusal(scode, sout, serr, "receipt")
 
 
 class Show(_Repo, unittest.TestCase):
@@ -414,9 +615,59 @@ class Show(_Repo, unittest.TestCase):
         body, path = self.one_receipt()
         scode, sout, serr = self.show(path.stem)
         self.assertEqual(scode, 0, f"out={sout!r} err={serr!r}")
-        printed = json.loads(sout)
-        self.assertEqual(printed, body)
-        self.assertEqual(set(printed), set(FIELDS))
+        want = canonical_text(body)
+        self.assertIn(
+            sout,
+            (want, want + "\n"),
+            "show must print exactly the canonical serialization, got %r" % (sout,),
+        )
+
+    def test_ill_typed_twelve_key_file_refuses_receipt(self):
+        zeros = "0" * 64
+        base = self.planted_body(
+            claim="wrong types",
+            head_sha=zeros,
+            stdout_sha256=zeros,
+            stderr_sha256=zeros,
+        )
+        variants = (
+            {"tree_dirty": "no"},
+            {"exit_code": "0"},
+            {"duration_ms": -1},
+            {"head_sha": "a" * 40},
+        )
+        for override in variants:
+            with self.subTest(override=override):
+                body = dict(base)
+                body.update(override)
+                self.assertEqual(len(body), 12, body)
+                path = self.write_json(
+                    self.home / ("typed-%s.json" % next(iter(override))),
+                    body,
+                )
+                code, out, err = self.show(str(path))
+                self.assert_refusal(code, out, err, "receipt")
+
+    def test_json_array_refuses_receipt(self):
+        path = self.write_json(self.home / "array.json", [])
+        code, out, err = self.show(str(path))
+        self.assert_refusal(code, out, err, "receipt")
+        self.assertNotIn("Traceback", err or "")
+        self.assertNotIn("AttributeError", err or "")
+
+    def test_missing_required_operands_refuse_arguments(self):
+        cases = (
+            ["record", "--", "true"],
+            ["verify"],
+            ["show"],
+        )
+        for args in cases:
+            with self.subTest(args=args):
+                code, out, err = self.invoke(args)
+                self.assert_refusal(code, out, err, "arguments")
+                self.assertNotIn("usage:", (err or "").lower())
+                if args[0] == "record":
+                    self.assert_no_receipt()
 
 
 if __name__ == "__main__":
