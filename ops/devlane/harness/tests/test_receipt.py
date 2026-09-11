@@ -427,6 +427,7 @@ class Record(_Repo, unittest.TestCase):
         wants = [hashlib.sha256(p).hexdigest() for p in payloads]
         self.assertNotEqual(wants[0], wants[1])
         got_out, got_err = [], []
+        seen: set[Path] = set()
         for i, payload in enumerate(payloads):
             n = payload[0]
             argv = [
@@ -437,7 +438,12 @@ class Record(_Repo, unittest.TestCase):
             self.assertEqual(code, 0, f"out={out!r} err={err!r}")
             files = self.receipt_files()
             self.assertEqual(len(files), i + 1, files)
-            body = json.loads(files[-1].read_text(encoding="utf-8"))
+            # The listing is sorted by digest, not by creation: pick the
+            # receipt this iteration wrote, never the last name in order.
+            fresh = [f for f in files if f not in seen]
+            self.assertEqual(len(fresh), 1, files)
+            seen.add(fresh[0])
+            body = json.loads(fresh[0].read_text(encoding="utf-8"))
             got_out.append(body["stdout_sha256"])
             got_err.append(body["stderr_sha256"])
         self.assertEqual(got_out[0], wants[0])
