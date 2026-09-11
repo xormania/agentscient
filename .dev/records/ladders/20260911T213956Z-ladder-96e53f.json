@@ -109,7 +109,7 @@
       "verdict": "changes"
     },
     {
-      "attempt": 1,
+      "attempt": 2,
       "condition": "declared stage condition not yet evaluated",
       "dispatched": {
         "effort": "xhigh",
