@@ -153,8 +153,20 @@ need_value() {
     [[ $2 != --* ]] || refuse "expected a value after $1; found $2; provide $1 VALUE"
 }
 
+usage() {
+    cat <<'USAGE'
+usage: dispatch.sh --job JOB --harness {grok,codex,claude} --scope-file FILE (--branch BRANCH | --worktree DIR)
+                   [--model MODEL] [--effort EFFORT] [--unit UNIT] [--stage STAGE]
+                   [--input PATH]... [--follows RECORD_ID] [--timeout SECONDS] [--agent 'Name <address>']
+                   [--dry-run] [--detach]
+One job to one harness through the branch's own launcher; --detach prints the
+record id and launcher pid and returns. Contract: ops/devlane/dispatch/CONTRACT.md.
+USAGE
+}
+
 while (($#)); do
     case $1 in
+        --help|-h) usage; exit 0 ;;
         --branch) need_value "$@"; branch=$2; shift 2 ;;
         --worktree) need_value "$@"; worktree=$2; shift 2 ;;
         --job) need_value "$@"; job=$2; shift 2 ;;
