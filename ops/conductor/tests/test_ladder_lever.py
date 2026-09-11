@@ -1963,7 +1963,12 @@ class DerivedCommand(_LadderFixture):
         self.assertNotIn("packages/relay/spec", text)
         self.assertNotIn("test_relay.py", text)
 
-    def test_a_non_test_star_file_under_tests_is_a_discover_target(self):
+    def test_a_non_test_star_file_under_tests_alone_is_an_artifacts_stop(self):
+        # LD-19 (2026-09-11): the previous assertion made a support module a
+        # discover target; `unittest discover -p conftest.py` finds zero
+        # tests and exits 5, which consumed both code attempts of ladder
+        # fd103b. A support module rides as an artifact and is never run;
+        # with no test module among the artifacts there is no command.
         planted = {"helper": HELPER_UNDER_TESTS}
         self.patch_plant(artifacts=planted)
         self.assertEqual(self.load_plant()["artifacts"], planted)
@@ -1973,14 +1978,10 @@ class DerivedCommand(_LadderFixture):
             HELPER_UNDER_TESTS,
         )
         proc = self.run_ladder()
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assertNotIn("reason=artifacts", self.combined(proc))
-        scope = self.inputs_text(self.dispatch_argv_for("code"))
-        self.assertIn(
-            "python3 -m unittest discover -s ops/conductor/tests "
-            "-p conftest.py",
-            scope,
+        self.assert_stopped(
+            proc, stage="code", record="none", reason="artifacts",
         )
+        self.assertNotIn("-p conftest.py", self.combined(proc))
 
     def test_no_test_artifact_stops_with_class_artifacts(self):
         self.patch_plant(empty_artifacts=True, artifacts={})

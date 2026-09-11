@@ -19,8 +19,8 @@ ladder in the worktree that owns `BRANCH`. Each `--input PATH` names a
 file handed to every stage beside the scope and plan, so the work order a
 scope sentence cites reaches every worker as a supplied input; each is
 recorded with its digest and re-verified on resume. `ops/bin/ladder.sh
-resume LADDER_ID [--rescope]` resumes the named record at its first stage
-not recorded `ok`. A scope, plan or input whose bytes changed since the
+resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]` resumes the
+named record at its first stage not recorded `ok`. A scope, plan or input whose bytes changed since the
 record refuses `record` unless `--rescope` is given, in which case the
 change is recorded as an event, `rescoped: [{label, path, from, to, at,
 stage}]`, the digest updated, and the stages from `stage` on receive the
@@ -60,9 +60,12 @@ waited for its job's cap from `ops/devlane/task/jobs.json` (the record
 copy's own cap when it already carries one) plus `LADDER_WAIT_GRACE`;
 `WALL_DEFAULT` applies only when neither names a cap (LD-17,
 2026-09-11: the record copy carries no cap until the job closes). Test commands
-come only from test artifacts in the first test envelope: each path
-under a `tests/` directory becomes a `python3 -m unittest discover`
-invocation, joined in order with `&&`. No such artifact is an
+come only from test artifacts in the first test envelope: each test
+module (`test*.py`, unittest's default pattern) under a `tests/` directory
+becomes a `python3 -m unittest discover` invocation, joined in order with
+`&&`; another `.py` there is a support module, carried as an artifact and
+never run (LD-19, 2026-09-11: a discover over `launch_support.py` found
+zero tests, exited 5, and consumed both code attempts of ladder fd103b). No such artifact is an
 `artifacts` stop, never an invented command. The command names the
 tree: an artifact given as an absolute path is accepted only when it
 lies under a dispatch snapshot and is recorded as the part after
@@ -110,7 +113,10 @@ A stage has at most two attempts. Resume uses the requested ladder id,
 never the newest record by implication. If its stopped dispatch record
 is now closed with an accepted envelope, resume consumes and lands it
 without relaunching. Otherwise it relaunches that stage once. A second
-failure stops as `retry-cap`. A tripped or dead stage names
+failure stops as `retry-cap`. `resume LADDER_ID --retry STAGE --because
+TEXT` grants that stage one further attempt when the cap was the driver's
+own doing rather than the worker's; the grant is written on the stage row
+(`retry`: because, at, by, from_attempt) and is spent once (LD-19). A tripped or dead stage names
 `launch.py collect` as its remedy; the driver never collects on its own.
 No second fix round and no second skeptic run exist.
 
