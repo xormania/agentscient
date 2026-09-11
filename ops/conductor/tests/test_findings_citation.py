@@ -33,14 +33,36 @@ ADJ_REC = "20260901T010000Z-adjudicate-grok-bbbbbb"
 SWEEP_REC = "20260901T020000Z-sweep-codex-cccccc"
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
 OTHER_REL = ".dev/ladder-inputs/other-scope.md"
+DISCIPLINE_REL = ".dev/ladder-inputs/scope-discipline.md"
+CAP_REL = ".dev/ladder-inputs/scope-gate-20260910.scope.md"
 VALID_EVIDENCE = (
     "contract item 3 of .dev/ladder-inputs/scope-gate-20260910.md: "
     "found-text missing"
+)
+DISCIPLINE_EVIDENCE = (
+    "contract item 1 of .dev/ladder-inputs/scope-discipline.md: "
+    "discipline clause is not the work-order Contract"
 )
 SCOPE_BODY = "# Work order\n\n" + "".join(
     f"{n}. Item {n} of the work order.\n" for n in range(1, 11)
 )
 OTHER_BODY = "# Other\n\n1. **A numbered item on another file.**\n"
+DISCIPLINE_BODY = (
+    "# Scope discipline\n\n"
+    "1. The requirements are the numbered items in the work order's "
+    "Contract section. Nothing else is a requirement.\n"
+    "2. A reviewer finding is evidence about the contract, not a "
+    "requirement.\n"
+    "3. One fix round per ladder.\n"
+    "4. The frozen test set is the acceptance criterion.\n"
+    "5. Reviewers: for every finding, quote the contract item violated.\n"
+    "6. A correction dispatch names the finding key and the contract item.\n"
+)
+CAP_BODY = (
+    "Work order: the uncited-correction gate. The requirements are the ten "
+    "numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, "
+    "tracked in this snapshot at the ref.\n"
+)
 ABSENT_STUB = (
     b'"""Absent-tool stand-in: exit 0, no output."""\n'
     b"import sys\n"
@@ -174,7 +196,13 @@ class _CitationFixture(unittest.TestCase):
         except TypeError:
             return False, "citation_holds does not take scope_path"
 
-    def plant_record(self, rec_id: str, job: str, claim: str) -> Path:
+    def plant_record(
+        self,
+        rec_id: str,
+        job: str,
+        claim: str,
+        brief_inputs: list[str] | None = None,
+    ) -> Path:
         envelope = {
             "id": rec_id,
             "lane": "dev",
@@ -200,11 +228,41 @@ class _CitationFixture(unittest.TestCase):
                 }
             },
         }
+        if brief_inputs is not None:
+            envelope["brief"] = {
+                "inputs": [
+                    {"path": path, "sha256": "0" * 64} for path in brief_inputs
+                ]
+            }
         path = self.records / f"{rec_id}.json"
         payload = json.dumps(envelope, indent=2) + "\n"
         self._plant_bytes(path, payload.encode("utf-8"))
         self.assertIn(claim, path.read_text(encoding="utf-8"))
         return path
+
+    def plant_three_scope_files(self) -> None:
+        discipline = self.repo / DISCIPLINE_REL
+        cap = self.repo / CAP_REL
+        self._plant_bytes(discipline, DISCIPLINE_BODY.encode("utf-8"))
+        self._plant_bytes(cap, CAP_BODY.encode("utf-8"))
+        names = sorted(
+            p.name
+            for p in (self.repo / ".dev" / "ladder-inputs").glob("scope-*.md")
+        )
+        self.assertEqual(
+            names,
+            [
+                "scope-discipline.md",
+                "scope-gate-20260910.md",
+                "scope-gate-20260910.scope.md",
+            ],
+            "plant: the three scope-*.md names from the work-order tree",
+        )
+        self.assertNotRegex(
+            cap.read_text(encoding="utf-8"),
+            r"(?m)^\s*[1-9][0-9]*\.\s",
+            "plant: the cap file has no numbered Contract item",
+        )
 
     def import_records(self):
         proc = self.invoke(["import"])
@@ -634,6 +692,151 @@ class ImportReviewJobs(_CitationFixture):
         proc = self.import_records()
         self.assertIn("1 finding", proc.stdout)
         self.assertIn(f"{SWEEP_REC}#1", self.store_keys())
+
+
+class CitedWorkOrderScope(_CitationFixture):
+    """Items 4 and 9 — cited uses the work-order Contract, not first scope-*."""
+
+    def test_cited_of_a_work_order_citation_with_three_scope_files(self):
+        self.plant_three_scope_files()
+        self.plant_record(REC, "adversarial-review", "holding-citation")
+        self.import_records()
+        key = f"{REC}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        proc = self.invoke(["cited", key])
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "items 4 and 9: cited of a holding work-order citation is "
+            "exit 0 when the tree also has scope-discipline.md and the "
+            f"cap file; stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        self.assertEqual(
+            (proc.stdout or "").strip(),
+            f"{key}\tcontract item 3 of {SCOPE_REL}",
+        )
+        self.assertEqual((proc.stderr or "").strip(), "")
+
+    def test_cited_of_a_work_order_citation_when_discipline_is_first_brief_input(
+        self,
+    ):
+        self.plant_three_scope_files()
+        self.plant_record(
+            REC,
+            "adversarial-review",
+            "holding-citation",
+            brief_inputs=[DISCIPLINE_REL, SCOPE_REL],
+        )
+        self.import_records()
+        key = f"{REC}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        proc = self.invoke(["cited", key])
+        self.assertEqual(
+            proc.returncode,
+            0,
+            "item 4: the first scope-* brief input must not make a "
+            "work-order Contract citation uncited; "
+            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        self.assertEqual(
+            (proc.stdout or "").strip(),
+            f"{key}\tcontract item 3 of {SCOPE_REL}",
+        )
+
+    def test_cited_of_a_discipline_citation_when_discipline_is_first_brief_input(
+        self,
+    ):
+        self.plant_three_scope_files()
+        self.plant_record(
+            REC,
+            "adversarial-review",
+            "discipline-citation",
+            brief_inputs=[DISCIPLINE_REL, SCOPE_REL],
+        )
+        self.import_records()
+        key = f"{REC}#1"
+        self.dispose(key, "fixed", DISCIPLINE_EVIDENCE)
+        proc = self.invoke(["cited", key])
+        self.assertEqual(
+            proc.returncode,
+            1,
+            "item 4: a citation to scope-discipline.md is uncited even "
+            "when that file is the first brief input; "
+            f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
+        )
+        line = (proc.stdout or "").strip()
+        self.assertTrue(
+            line.startswith(f"{key}\tuncited:"),
+            f"discipline-clause citation is uncited; got {line!r}",
+        )
+
+
+class CitedRecordContainment(_CitationFixture):
+    """Item 9 — cited does not read a record path outside the records dir."""
+
+    def test_cited_refuses_a_record_field_that_escapes_the_records_directory(
+        self,
+    ):
+        self.plant_record(REC, "adversarial-review", "escape")
+        self.import_records()
+        key = f"{REC}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        neighbour = self.invoke(["cited", key])
+        self.assertEqual(
+            neighbour.returncode,
+            0,
+            "positive neighbour: a holding row with a record-id still "
+            f"cites; stdout={neighbour.stdout!r} stderr={neighbour.stderr!r}",
+        )
+        outside = self.scratch / "agentscient-probe.json"
+        self._plant_bytes(
+            outside,
+            (
+                json.dumps(
+                    {
+                        "id": "escaped",
+                        "job": "adversarial-review",
+                        "brief": {
+                            "inputs": [
+                                {"path": SCOPE_REL, "sha256": "0" * 64}
+                            ]
+                        },
+                    }
+                )
+                + "\n"
+            ).encode("utf-8"),
+        )
+        escaped = str(self.scratch / "agentscient-probe")
+        con = sqlite3.connect(self.store)
+        try:
+            con.execute(
+                "update findings set record = ? where key = ?",
+                (escaped, key),
+            )
+            con.commit()
+            rows = list(
+                con.execute(
+                    "select record from findings where key = ?",
+                    (key,),
+                )
+            )
+        finally:
+            con.close()
+        self.assertEqual(rows, [(escaped,)])
+        proc = self.invoke(["cited", key])
+        err = proc.stderr or ""
+        self.assertEqual(
+            proc.returncode,
+            2,
+            "item 9: a ledger record field that is not a record id is "
+            f"class key, not a read of {outside}; stdout={proc.stdout!r} "
+            f"stderr={err!r}",
+        )
+        self.assertEqual((proc.stdout or "").strip(), "")
+        lines = [ln for ln in err.splitlines() if ln.strip()]
+        self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
+        head = lines[0].split(":", 1)[0].strip().lower().replace("_", "-")
+        self.assertEqual(head, "key", lines[0])
 
 
 if __name__ == "__main__":
