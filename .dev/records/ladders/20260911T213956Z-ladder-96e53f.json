@@ -396,6 +396,7 @@
         "a6dbd2a633995309f497d5e8e5ae5efe0777c652",
         "00196f0812c3177a692ba9d2e236b7cf669a2a73"
       ],
+      "minutes": 11.10592,
       "name": "fix-tests",
       "outcome": "ok",
       "reason": "undisposed",
