@@ -227,12 +227,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "reason": "retry-cap",
-    "record": "20260911T054927Z-code-codex-3122df",
-    "stage": "code",
-    "verdict": null
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911"
 }
