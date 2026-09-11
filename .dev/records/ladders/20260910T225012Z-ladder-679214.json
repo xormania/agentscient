@@ -99,9 +99,19 @@
   "lane": "agentscient",
   "plan": {
     "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/ladder-inputs/plan-gate-contracts.md",
-    "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
+    "sha256": "45697b9d59a1b03625d361611375c76837d5efb693b48beb38515bde017d7e9e"
   },
   "pr": null,
+  "rescoped": [
+    {
+      "at": "20260911T003143Z",
+      "from": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461",
+      "label": "plan",
+      "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/ladder-inputs/plan-gate-contracts.md",
+      "stage": "security-re",
+      "to": "45697b9d59a1b03625d361611375c76837d5efb693b48beb38515bde017d7e9e"
+    }
+  ],
   "scope": {
     "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/.dev/ladder-inputs/scope-gate-20260910.scope.md",
     "sha256": "16142ad752832ee82e342299112814072844a293b803dc21f328d40a6eea4d5b"
@@ -511,12 +521,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "reason": null,
-    "record": "20260911T002340Z-review-codex-461253",
-    "stage": "security-re",
-    "verdict": "changes"
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910"
 }
