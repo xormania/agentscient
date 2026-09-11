@@ -75,9 +75,24 @@
       "stage": "tests"
     },
     {
-      "attempt": 0,
+      "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatched": {
+        "effort": "xhigh",
+        "model": "gpt-5.6-sol"
+      },
       "harness": "codex",
+      "input": {
+        "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/.dev/records/dispatches/20260911T233646Z-tests-grok-a5fdd4.json",
+        "proof": {
+          "given": [
+            "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction for a file it does not declare is refused at render. Boundaries as listed there; do not widen them.",
+            "20260911T233646Z-tests-grok-a5fdd4"
+          ],
+          "withheld": []
+        },
+        "sha256": "c02e980ed7985fd424717ef1304ff70bfda42b234527b96852fd3c1dc8f4664e"
+      },
       "job": "check-tests",
       "name": "check-tests",
       "outcome": "pending",
