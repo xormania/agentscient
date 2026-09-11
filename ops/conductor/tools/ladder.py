@@ -566,6 +566,25 @@ class Driver:
         self.commit()
         raise stopped
 
+    def audit_envelope_input(self, audit: str, record_path: Path) -> Path:
+        """The audit's envelope alone, for a withheld stage.
+
+        A whole audit record names the implementation record it follows
+        and the landed head it reviewed, so handing it to the test author
+        would breach custody by construction; the stage table promises the
+        envelopes.
+        """
+        try:
+            payload = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        envelope = ((payload.get("result") or {}).get("envelope")) or {}
+        body = (
+            f"{audit} audit envelope, record {record_path.stem}\n\n"
+            + json.dumps(envelope, indent=2, sort_keys=True)
+        )
+        return self.make_input(f"{audit}-envelope", body)
+
     def make_input(self, name: str, body: str) -> Path:
         self.inputs_dir.mkdir(parents=True, exist_ok=True)
         path = self.inputs_dir / f"{name}.md"
@@ -1031,7 +1050,11 @@ class Driver:
         elif name in {"fix-tests", "fix-code"}:
             for audit in ("security", "adversarial"):
                 if audit in records:
-                    inputs.append(dispatch_dir / f"{records[audit]}.json")
+                    record_path = dispatch_dir / f"{records[audit]}.json"
+                    if name == "fix-tests":
+                        inputs.append(self.audit_envelope_input(audit, record_path))
+                    else:
+                        inputs.append(record_path)
             if name == "fix-code" and command_file is not None:
                 inputs.append(self.scope)
                 inputs.append(command_file)
