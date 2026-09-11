@@ -47,6 +47,12 @@ IDENTITY = re.compile(r"^[^<>]+ <[^<>@\s]+@[^<>@\s]+>$")
 CITATION = re.compile(
     r"contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s:;,]+)"
 )
+RECORD_ID = re.compile(
+    r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$"
+)
+SCOPE_REFERENCE = re.compile(
+    r"numbered Contract items of (?P<path>[^\s:;,]+)"
+)
 COLUMNS = ("key", "record", "job", "stage", "harness", "model", "unit", "ref", "verdict",
            "n", "severity", "where", "claim", "reproduce", "disposition", "evidence", "disposed_at", "disposed_by")
 SCHEMA = """
@@ -142,6 +148,67 @@ def citation_holds(evidence, root, scope_path):
     if re.search(rf"(?m)^\s*{re.escape(item)}\.\s", body) is None:
         return False, f"contract item {item} is absent from the cited scope file"
     return True, "citation holds"
+
+
+def work_order_scope(inputs, root):
+    root = Path(root).resolve()
+    shelf = root / ".dev" / "ladder-inputs"
+    paths = []
+    for value in inputs:
+        supplied = Path(value)
+        candidates = (
+            supplied if supplied.is_absolute() else root / supplied,
+            shelf / supplied.name,
+        )
+        for candidate in candidates:
+            try:
+                resolved = candidate.resolve()
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            if resolved.is_file() and resolved not in paths:
+                paths.append(resolved)
+    if shelf.is_dir():
+        for candidate in sorted(shelf.glob("scope-*.md")):
+            resolved = candidate.resolve()
+            try:
+                resolved.relative_to(root)
+            except ValueError:
+                continue
+            if resolved.is_file() and resolved not in paths:
+                paths.append(resolved)
+
+    referenced = []
+    for path in paths:
+        try:
+            match = SCOPE_REFERENCE.search(path.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+        if match is None:
+            continue
+        candidate = (root / match.group("path")).resolve()
+        try:
+            candidate.relative_to(root)
+        except ValueError:
+            continue
+        if candidate.is_file() and candidate not in referenced:
+            referenced.append(candidate)
+    if len(referenced) == 1:
+        return str(referenced[0].relative_to(root))
+
+    candidates = [
+        path for path in paths
+        if path.name.startswith("scope-")
+        and not path.name.endswith(".scope.md")
+        and path.name != "scope-discipline.md"
+        and re.search(
+            r"(?m)^\s*[1-9][0-9]*\.\s",
+            path.read_text(encoding="utf-8"),
+        )
+    ]
+    if len(candidates) == 1:
+        return str(candidates[0].relative_to(root))
+    return None
 
 
 def connect():
@@ -300,26 +367,31 @@ def do_summary(argv):
 
 
 def _record_scope(record):
+    records = RECORDS.resolve()
+    if RECORD_ID.fullmatch(record) is None:
+        refuse(
+            "key", "a finding row naming a dispatch record id",
+            "a malformed record field", "repair the finding row or re-import it",
+        )
+    path = (records / f"{record}.json").resolve()
     try:
-        rec = json.loads((RECORDS / f"{record}.json").read_text(encoding="utf-8"))
+        path.relative_to(records)
+    except ValueError:
+        refuse(
+            "key", "a finding record under the dispatch records directory",
+            "the record path escapes that directory",
+            "restore the record path or re-import the finding",
+        )
+    try:
+        rec = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         rec = {}
+    inputs = []
     for entry in ((rec.get("brief") or {}).get("inputs") or []):
         value = entry.get("path") if isinstance(entry, dict) else entry
-        if not isinstance(value, str):
-            continue
-        name = Path(value).name
-        if not name.startswith("scope-"):
-            continue
-        candidate = ROOT / ".dev" / "ladder-inputs" / name
-        if candidate.is_file():
-            return str(candidate.relative_to(ROOT))
-
-    shelf = ROOT / ".dev" / "ladder-inputs"
-    candidates = sorted(shelf.glob("scope-*.md")) if shelf.is_dir() else []
-    if len(candidates) == 1:
-        return str(candidates[0].relative_to(ROOT))
-    return None
+        if isinstance(value, str):
+            inputs.append(value)
+    return work_order_scope(inputs, ROOT)
 
 
 def do_cited(argv):
