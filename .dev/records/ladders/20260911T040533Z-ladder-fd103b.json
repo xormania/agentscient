@@ -94,6 +94,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-gate-launcher-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 8.171542,
       "name": "check-tests",
       "outcome": "ok",
       "record": "20260911T042439Z-check-tests-codex-dd3c18",
