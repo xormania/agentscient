@@ -14,7 +14,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T23:36:46Z",
-    "closed": null
+    "closed": "2026-09-11T23:55:28Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -74,14 +74,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/home/grok-stream/sessions/<snapshot-encoded>/4ddf6f73-07de-4467-be2f-63d6b1e24952/summary.json"
   },
   "session": {
     "id": "4ddf6f73-07de-4467-be2f-63d6b1e24952",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/home/grok-stream/sessions/<snapshot-encoded>/4ddf6f73-07de-4467-be2f-63d6b1e24952/summary.json",
+    "stream_sha256_at_close": "eec8a0bc80ffbbe10d5cae1854c38fc3859a38505d000495670ea2e234203e3d",
+    "spend": {
+      "input": 7612654,
+      "cached": 7332480,
+      "output": 66505,
+      "total": 7679159,
+      "cost_usd_ticks": 16444419600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T233646Z-tests-grok-a5fdd4/home/grok-stream/sessions/<snapshot-encoded>/4ddf6f73-07de-4467-be2f-63d6b1e24952/summary.json",
+      "messages": 414
+    }
   },
   "brief": {
     "template": {
@@ -112,10 +120,66 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T23:36:48Z",
+      "ended": "2026-09-11T23:55:28Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "aa5088cd4465ff6d8dafa5275de479030f3e98c3",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_check_envelope_verb.py",
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/conductor/tests/test_ladder_skeptic_custody.py",
+      "ops/conductor/tests/test_ladder_skeptic_envelope.py",
+      "ops/devlane/task/tests/test_check_tests_job.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_check_tests_job": "ops/devlane/task/tests/test_check_tests_job.py",
+        "test_ladder_skeptic_envelope": "ops/conductor/tests/test_ladder_skeptic_envelope.py",
+        "test_ladder_skeptic_custody": "ops/conductor/tests/test_ladder_skeptic_custody.py",
+        "test_ladder_check_envelope_verb": "ops/conductor/tests/test_ladder_check_envelope_verb.py",
+        "test_ladder_lever": "ops/conductor/tests/test_ladder_lever.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 7679159,
+        "out": 66505,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "18fc6b3ecd5a3b00309582c85e23b3576eea519d",
+        "started": "2026-09-11T23:36:46Z",
+        "ended": "2026-09-11T23:55:06Z"
+      },
+      "note": "Slice 2 frozen set for item 31, committed on lane/item31-slice2-skeptic-driver-20260911 (6abba87, 1d98fa2, 5fdcec4, e425499, aa5088c). Each new assertion failed as AssertionError against 18fc6b3 before that file was committed: jobs.json still names {out}/SKEPTIC.md; the driver still advances on a malformed check-tests envelope and still hands tests-fix the record path; check-envelope is not a verb and the registry still has only run. test_check_tests_job.py pins the D1 prompt and deliverable and the other eight jobs.json entries. test_ladder_skeptic_envelope.py stops class envelope naming each malformed field, writes skeptic-findings.md on a well-formed changes envelope, and treats resume as not a flake. test_ladder_skeptic_custody.py pins the regular file, path, digest, commit, and a planted symlink as class custody. test_ladder_check_envelope_verb.py pins empty stdin and findings[1].claim on the wire plus the registry row. test_ladder_lever.py plants a well-formed pair on changes so existing plants stay green under the new driver."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T23:55:27.110Z"
+    }
+  },
+  "status": "closed"
 }
