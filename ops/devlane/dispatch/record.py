@@ -11,9 +11,9 @@ from pathlib import Path
 POLICY_SCHEMA = "agentscient.lane-policy/v1"
 
 FIELDS = (
-    "id", "lane", "stage", "unit", "lineage", "follows", "job", "role",
-    "dispatched_by", "at", "snapshot", "harness", "model", "session",
-    "brief", "caps", "overrides", "attempts", "result", "status",
+    "id", "lane", "stage", "unit", "lineage", "follows", "answers", "job",
+    "role", "dispatched_by", "at", "snapshot", "harness", "model",
+    "session", "brief", "caps", "overrides", "attempts", "result", "status",
 )
 
 
@@ -26,6 +26,7 @@ def build(payload=None, **values):
     source.update(values)
     source["lane"] = "dev"
     source.setdefault("follows", [])
+    source.setdefault("answers", [])
     lineage = source.get("lineage") or {}
     if not str(source.get("unit") or "").strip():
         source["unit"] = lineage.get("branch", "")
@@ -131,11 +132,47 @@ def validate_context(rec, *, expected_id=None, expected_snapshot=None):
 def validate(rec, *, expected_id=None, expected_snapshot=None):
     _need(isinstance(rec, dict), "record", "must be an object")
     for field in FIELDS:
-        _need(field in rec, field, "is missing")
+        if field != "answers":
+            _need(field in rec, field, "is missing")
     _need(rec["lane"] == "dev", "lane", "must be dev")
     _need(rec["status"] in {"launched", "closed", "died"}, "status")
     _need(rec["role"] in {"read", "write"}, "role")
     _need(isinstance(rec["follows"], list), "follows", "must be a list")
+    if "answers" in rec:
+        _need(isinstance(rec["answers"], list), "answers", "must be a list")
+        for index, answer in enumerate(rec["answers"]):
+            field = f"answers[{index}]"
+            _need(isinstance(answer, dict), field, "must be an object")
+            for key in ("key", "disposition", "disposed_at", "citation"):
+                _need(key in answer, field, f"must carry {key}")
+            _need(isinstance(answer["key"], str) and re.fullmatch(
+                r"\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}#[1-9][0-9]*",
+                answer["key"],
+            ) is not None, field, "must carry a valid key")
+            _need(isinstance(answer["disposition"], str)
+                  and bool(answer["disposition"].strip()),
+                  field, "must carry a disposition")
+            _need(isinstance(answer["disposed_at"], str) and re.fullmatch(
+                r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z",
+                answer["disposed_at"],
+            ) is not None, field, "must carry disposed_at")
+            for name in ("citation", "finding_citation"):
+                if name not in answer:
+                    continue
+                citation = answer[name]
+                valid_item = (
+                    type(citation.get("item")) is int
+                    and citation["item"] > 0
+                ) if isinstance(citation, dict) else False
+                valid_item = valid_item or (
+                    isinstance(citation, dict)
+                    and isinstance(citation.get("item"), str)
+                    and re.fullmatch(r"[1-9][0-9]*", citation["item"])
+                    is not None
+                )
+                _need(valid_item and isinstance(citation.get("path"), str)
+                      and bool(citation["path"].strip()),
+                      field, f"must carry {name} item and path")
     _need(isinstance(rec["unit"], str) and bool(rec["unit"].strip()), "unit")
     lineage = rec["lineage"]
     _need(isinstance(lineage, dict) and bool(lineage.get("branch"))
