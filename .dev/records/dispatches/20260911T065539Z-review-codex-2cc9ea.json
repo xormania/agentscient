@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T06:55:48Z",
-    "closed": null
+    "closed": "2026-09-11T07:02:27Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,21 @@
       "-c",
       "model_reasoning_effort=\"xhigh\""
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "gpt-daybreak-blue-latest",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-55-49-01a08f40-4764-7613-965b-da8e8cb4069d.jsonl"
   },
   "session": {
-    "id": "ef663836-e3bf-4054-9b07-f431e4ba9a46",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "id": "01a08f40-4764-7613-965b-da8e8cb4069d",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-55-49-01a08f40-4764-7613-965b-da8e8cb4069d.jsonl",
+    "stream_sha256_at_close": "e657648770510bba410890bc5fc119ad461f1f58a73d81d9673a538b95382d4b",
+    "spend": {
+      "input": 2837698,
+      "cached": 2691235,
+      "output": 18496,
+      "total": 2856194,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/home/codex-stream/sessions/2026/09/11/rollout-2026-09-11T02-55-49-01a08f40-4764-7613-965b-da8e8cb4069d.jsonl",
+      "messages": 263
+    }
   },
   "brief": {
     "template": {
@@ -114,10 +121,63 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1200.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T06:55:49Z",
+      "ended": "2026-09-11T07:02:27Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "ca936a464d40c888f26840314b10ace2a59afad6",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "security-audit",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/ladder.py:677; ops/devlane/dispatch/launch.py:2498; ops/devlane/dispatch/record.py:13",
+          "claim": "Contract items 2, 3, 8 and 9: the driver emits --answers for fix stages, but launch.py neither accepts that flag nor invokes the correction gate, and record.py cannot store answers. Properly disposed ladder corrections therefore fail at the argv seam, while direct corrections omitting --answers remain ungated and unrecorded. This breaks lane function and integrity.",
+          "reproduce": "bash -lc 'rg -n -- \"--answers\" ops/conductor/tools/ladder.py; ! rg -n -- \"CORRECTION|correction\\.check|add_argument\\(\\\"--answers\\\"|\\\"answers\\\"\" ops/devlane/dispatch/launch.py ops/devlane/dispatch/record.py; python3 ops/devlane/dispatch/launch.py implement --harness codex --ref \"$(git rev-parse HEAD)\" --answers \"20260911T000000Z-review-codex-aaaaaa#1\" 2>&1 | tail -n 1'"
+        }
+      ],
+      "artifacts": {
+        "diff": "/home/scientdb/.local/state/agentscient/dispatch/20260911T065539Z-review-codex-2cc9ea/context/diff.patch"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2856194,
+        "out": 18496,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "ca936a464d40c888f26840314b10ace2a59afad6",
+        "started": null,
+        "ended": "2026-09-11T07:02:00Z"
+      },
+      "note": "Read all named inputs and governing scope files whole. Checked injection, secrets, containment, sandbox claims, vendor-output handling and supply-chain changes; only the argv/gate defect produced a finding. Live harness/network behavior was not exercised, and the session store was not read. All 133 ladder tests passed; ruff passed with a temporary cache. Graft saved approximately 1,223,018 tokens."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-11T07:02:26.763Z"
+    }
+  },
+  "status": "closed"
 }
