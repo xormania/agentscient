@@ -45,7 +45,7 @@ dispatcher from the lane configuration, never carried in this table.
 |---|---|---|---|---|---|
 | `tests` | `author-tests` | grok | `tests` | scope, plan | always |
 | `check-tests` | `check-tests` | codex | `check-tests` | scope, plan, tests envelope | always |
-| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, skeptic envelope and `SKEPTIC.md` | skeptic says `changes` |
+| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, skeptic envelope and `SKEPTIC.md`; dispatch with one `--answers KEY` per skeptic finding, since the launcher classifies a write job that follows the check-tests record as a correction (LD-23) | skeptic says `changes` |
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
@@ -107,7 +107,7 @@ one stderr line, stdout empty, and exit 2.
 | 1 | `security-re` still says `changes` | `stopped stage=security-re record=<id> verdict=changes` |
 | 2 | a precondition refuses | the refusal wire |
 | 3 | a stage refuses, trips, dies, records an invalid envelope, violates a guarantee, or an invoked write aborts | the last reading, then `stopped stage=<stage> record=<id-or-none> reason=<class>` |
-| 3 | any audit finding remains undisposed before `fix-tests` or `fix-code` | `undisposed keys: <k1> <k2> …`, then `stopped stage=fix-tests record=none reason=undisposed` or `stopped stage=fix-code record=none reason=undisposed` |
+| 3 | any skeptic finding remains undisposed before `tests-fix`, or any audit finding before `fix-tests` or `fix-code` | `undisposed keys: <k1> <k2> …`, then `stopped stage=tests-fix record=none reason=undisposed`, `stopped stage=fix-tests record=none reason=undisposed` or `stopped stage=fix-code record=none reason=undisposed` |
 
 A stage has at most two attempts. Resume uses the requested ladder id,
 never the newest record by implication. If its stopped dispatch record
@@ -120,8 +120,8 @@ own doing rather than the worker's; the grant is written on the stage row
 `launch.py collect` as its remedy; the driver never collects on its own.
 No second fix round and no second skeptic run exist.
 
-Before either fix stage, the driver checks every finding key with the ledger's
-`cited` read. The driver never writes dispositions itself. On `resume`, it
+Before `tests-fix` and before either fix stage, the driver checks every finding
+key with the ledger's `cited` read. The driver never writes dispositions itself. On `resume`, it
 re-runs the check at the same place; `resume` continues once rows exist.
 
 ## Record
