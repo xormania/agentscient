@@ -1,0 +1,112 @@
+{
+  "id": "20260911T002340Z-review-codex-461253",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/scope-gate-20260910",
+  "lineage": {
+    "branch": "lane/scope-gate-20260910",
+    "base_sha": "fc57fa090ad791f685b9e464a317133fd02bf3ae"
+  },
+  "follows": [
+    "20260911T002036Z-code-codex-4de570"
+  ],
+  "job": "security-audit",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-11T00:23:41Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "fc57fa090ad791f685b9e464a317133fd02bf3ae",
+    "ref_sha": "fc57fa090ad791f685b9e464a317133fd02bf3ae",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002340Z-review-codex-461253/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002340Z-review-codex-461253/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002340Z-review-codex-461253/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002340Z-review-codex-461253/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "read-only",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "read-only",
+      "--model",
+      "gpt-daybreak-blue-latest",
+      "-c",
+      "model_reasoning_effort=\"xhigh\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260911T002340Z-review-codex-461253/out/last-message.json",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-daybreak-blue-latest",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"xhigh\""
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "cd613866-7954-4f70-8f1f-d5d020484192",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/devlane/task/jobs.json",
+      "sha256": "6e0479fb8976ca9143f013ac355a950eb9b89bdcad253ed2e37ae7f315e77bec"
+    },
+    "scope": "Work order: the uncited-correction gate. The requirements are the ten numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree. Nothing else is a requirement. Refuse at mint any write job that answers reviewer findings unless every finding it answers is named by key, disposed in the findings ledger, and the disposition cites the numbered contract item it violates; the ladder stops before its fix stages instead of correcting. No override. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002340Z-review-codex-461253/in/plan-gate-contracts.md",
+        "sha256": "39021d8457cab680941b0ec066aca9c9c4c11adda63666cd057d25b0a1e6e461"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260911T002340Z-review-codex-461253/in/20260910T233738Z-review-codex-8f5dd0.json",
+        "sha256": "765a06c826ef435835eb34dcba7cc69f681a509ebfe790e0a5dab749f02533b6"
+      }
+    ],
+    "sha256": "73c1398ac3a8b499b8fa02df4bb45ea723cba8bf72760be5abe9c743f543b2f9",
+    "bytes": 4208
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
