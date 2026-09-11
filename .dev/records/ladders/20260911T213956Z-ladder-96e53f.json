@@ -197,12 +197,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "reason": "correction",
-    "record": "none",
-    "stage": "tests-fix",
-    "verdict": null
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-skeptic-wire-20260911"
 }
