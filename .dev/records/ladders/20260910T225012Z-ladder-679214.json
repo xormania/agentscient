@@ -307,6 +307,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-scope-gate-20260910/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 15.838047,
       "name": "adversarial",
       "outcome": "ok",
       "record": "20260910T234542Z-review-grok-9e3b5d",
