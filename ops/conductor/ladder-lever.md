@@ -131,9 +131,12 @@ declared rather than inferred.
 1. **Custody.** Every input contains the scope's first line and the
    previous stage's record id. Inputs to `tests`, `check-tests`,
    `tests-fix`, and `fix-tests` contain no implementation record id and
-   no line from an implementation envelope. The driver verifies both
-   directions against the bytes it dispatches and records the proof;
-   failure stops as `withheld`.
+   no line from an implementation envelope. A line counts as a marker
+   only when it is at least 24 characters and is not a path present in
+   the worktree: bare paths, severity tokens and short receipts name
+   shared surfaces, and an audit that names the same file is not a leak.
+   The driver verifies both directions against the bytes it dispatches
+   and records the proof; failure stops as `withheld`.
 2. **Lineage.** Every sha printed by landing must satisfy
    `git merge-base --is-ancestor <stage-base> <landed-sha>`. Failure
    stops as `lineage`.

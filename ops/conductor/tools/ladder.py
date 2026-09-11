@@ -23,6 +23,8 @@ from urllib.parse import urlsplit
 IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<email>[^<>\s@]+@[^<>\s]+)>")
 RECORD_ID = re.compile(r"^record:\s+(\S+)\s*$", re.MULTILINE)
 LANDED = re.compile(r"^LANDED\t([0-9a-f]{40})\t", re.MULTILINE)
+RECORD_ID_SHAPE = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
+MARKER_MIN = 24
 DISPATCH_STAGES = (
     ("tests", "author-tests", "grok", "tests"),
     ("check-tests", "check-tests", "codex", "check-tests"),
@@ -435,7 +437,7 @@ class Driver:
             row["name"]: row for row in self.record.get("stages", [])
         }
         self.buckets, self.slices = parse_plan(plan)
-        self.implementation_markers: list[str] = list(
+        self.implementation_markers: list[str] = self.normalize_markers(
             self.record.get("implementation_markers") or []
         )
 
@@ -942,8 +944,8 @@ class Driver:
             marker_values = [pending.record_id]
             for key in ("note", "artifacts", "findings"):
                 marker_values.extend(self.strings(envelope.get(key)))
-            for marker in marker_values:
-                if isinstance(marker, str) and marker and marker not in self.implementation_markers:
+            for marker in self.normalize_markers(marker_values):
+                if marker not in self.implementation_markers:
                     self.implementation_markers.append(marker)
         self.commit()
 
@@ -1135,6 +1137,39 @@ class Driver:
                 detail="derived test command exceeds SCOPE_CAP",
             )
         return self.make_input("test-command", command)
+
+    def names_worktree_path(self, line: str) -> bool:
+        """True when ``line`` is a path that exists under the worktree."""
+        if " " in line or len(line) > 200 or not ("/" in line or "." in line):
+            return False
+        try:
+            return (self.worktree / line).exists()
+        except OSError:
+            return False
+
+    def normalize_markers(self, values: list) -> list[str]:
+        """The record ids and distinctive lines among ``values``.
+
+        A line is a marker only when it is at least MARKER_MIN characters
+        and is not a path present in the worktree: bare paths, severity
+        tokens and short receipts name shared surfaces, not the
+        implementation, and an audit that names the same file is not a leak.
+        """
+        markers: list[str] = []
+        for value in values:
+            if not isinstance(value, str):
+                continue
+            for line in value.splitlines():
+                line = line.strip()
+                if not line or line in markers:
+                    continue
+                if RECORD_ID_SHAPE.fullmatch(line):
+                    markers.append(line)
+                    continue
+                if len(line) < MARKER_MIN or self.names_worktree_path(line):
+                    continue
+                markers.append(line)
+        return markers
 
     @classmethod
     def strings(cls, value: object) -> list[str]:
