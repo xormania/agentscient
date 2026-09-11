@@ -372,6 +372,7 @@
       "landed_shas": [
         "b10bec8bea2667b40856194ef5d33e872ca3aaa2"
       ],
+      "minutes": 11.09612,
       "name": "fix-tests",
       "outcome": "ok",
       "reason": "withheld",
