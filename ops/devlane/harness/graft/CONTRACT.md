@@ -21,7 +21,10 @@ Graft live together under an explicitly selected absolute install directory.
 No Symfony/PHP/vendor dependency; Python control code remains stdlib-only.
 Only the installation verb downloads dependencies or invokes npm.
 
-`GRAFT_INSTALL=''` in `ops/lane.conf` disables the capability. An absolute
+`GRAFT_INSTALL=''` in `ops/lane.conf` disables the capability. The dispatcher
+restores the invoking environment's `GRAFT_INSTALL` after sourcing the confs,
+so a worktree without a local conf still passes the operator's install path
+to the launcher (LD-13). An absolute
 directory enables it, resolved through the existing laneconf precedence.
 The tracked default is disabled so CI and other hosts need no Node install.
 The authorized host installation sets a local override after verification.
