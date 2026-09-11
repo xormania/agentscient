@@ -319,6 +319,7 @@
     {
       "attempt": 1,
       "condition": "declared stage condition not yet evaluated",
+      "dispatch_record": "20260911T230835Z-tests-grok-ae3bfa",
       "dispatched": {
         "effort": "xhigh",
         "model": "grok-4.6"
@@ -388,8 +389,9 @@
       },
       "job": "author-tests",
       "name": "fix-tests",
-      "outcome": "stopped",
+      "outcome": "launched",
       "reason": "undisposed",
+      "record": "20260911T230835Z-tests-grok-ae3bfa",
       "stage": "tests"
     },
     {
