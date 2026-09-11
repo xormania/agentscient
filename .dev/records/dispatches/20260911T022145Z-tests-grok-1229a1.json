@@ -15,7 +15,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-11T02:21:45Z",
-    "closed": null
+    "closed": "2026-09-11T02:35:30Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -75,14 +75,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/home/grok-stream/sessions/<snapshot-encoded>/1d2792d2-4467-43c7-aae7-64295ba17195/summary.json"
   },
   "session": {
     "id": "1d2792d2-4467-43c7-aae7-64295ba17195",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/home/grok-stream/sessions/<snapshot-encoded>/1d2792d2-4467-43c7-aae7-64295ba17195/summary.json",
+    "stream_sha256_at_close": "0938e7da30dafbb7892b452f8341b6efa518dd65cfab5150b24705d6bb3ffba1",
+    "spend": {
+      "input": 3072018,
+      "cached": 2924160,
+      "output": 46387,
+      "total": 3118405,
+      "cost_usd_ticks": 3461400600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260911T022145Z-tests-grok-1229a1/home/grok-stream/sessions/<snapshot-encoded>/1d2792d2-4467-43c7-aae7-64295ba17195/summary.json",
+      "messages": 257
+    }
   },
   "brief": {
     "template": {
@@ -117,10 +125,60 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1800.0,
+    "timeout_source": "job"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-11T02:21:45Z",
+      "ended": "2026-09-11T02:35:30Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "dd64195e9c14b8214acec887a5031e0505f6406b",
+    "changed_paths": [
+      "ops/conductor/tests/test_correction.py",
+      "ops/conductor/tests/test_findings_citation.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_correction.py": "ops/conductor/tests/test_correction.py",
+        "test_findings_citation.py": "ops/conductor/tests/test_findings_citation.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3118405,
+        "out": 46387,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d751aa6acddd85dde5528900b1d16b13fe581687",
+        "started": "2026-09-11T02:27:02Z",
+        "ended": "2026-09-11T02:34:29Z"
+      },
+      "note": "Wrote tests from scope-gate-20260910.md items 1-4, 6, 8 and 9 against tree d751aa6; did not read the implementation. Committed each file after proving every new method FAIL (assertion), not ERROR. d038dfe ops/conductor/tests/test_correction.py (9 new, original 36 still pass): holding work-order citation accepted among three scope-*.md with no scope --input; needed command names the Contract and satisfies the next check; first scope-* input does not make a work-order citation fail and a discipline-clause citation does not satisfy; cap file is not the Contract and must not appear in needed; a cited key from another review does not admit the correction; open-arm needed cites the item the finding quotes; cited and the mint gate resolve the same work-order file. dd64195 ops/conductor/tests/test_findings_citation.py (4 new, original 27 still pass): cited of a holding work-order citation is exit 0 among three scope-*.md; first scope-* brief input does not make a work-order citation uncited; a discipline-clause citation stays uncited; a ledger record field that is not a record id is class key and cited does not read JSON outside the records directory. Each new method was run alone via python3 -B -m unittest ops.conductor.tests.<module>.<class>.<method>."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-11T02:35:29.498Z"
+    }
+  },
+  "status": "closed"
 }
