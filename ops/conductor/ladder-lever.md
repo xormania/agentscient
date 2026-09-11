@@ -49,7 +49,7 @@ dispatcher from the lane configuration, never carried in this table.
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
-| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes | either audit says `changes` |
+| `fix-tests` | `author-tests` | grok | `tests` | scope, plan, both audit envelopes, extracted from their records (a whole record names the implementation it follows) | either audit says `changes` |
 | `fix-code` | `implement` | codex | `code` | scope, plan, both audit envelopes, test command | after `fix-tests` |
 | `security-re` | `security-audit` | codex | `review` | scope, plan, original security envelope | after the audit fix round |
 | `pr` | `gh pr create --draft` | none | none | body built from records | audits approve |
@@ -131,9 +131,12 @@ declared rather than inferred.
 1. **Custody.** Every input contains the scope's first line and the
    previous stage's record id. Inputs to `tests`, `check-tests`,
    `tests-fix`, and `fix-tests` contain no implementation record id and
-   no line from an implementation envelope. The driver verifies both
-   directions against the bytes it dispatches and records the proof;
-   failure stops as `withheld`.
+   no line from an implementation envelope. A line counts as a marker
+   only when it is at least 24 characters and is not a path present in
+   the worktree: bare paths, severity tokens and short receipts name
+   shared surfaces, and an audit that names the same file is not a leak.
+   The driver verifies both directions against the bytes it dispatches
+   and records the proof; failure stops as `withheld`.
 2. **Lineage.** Every sha printed by landing must satisfy
    `git merge-base --is-ancestor <stage-base> <landed-sha>`. Failure
    stops as `lineage`.
