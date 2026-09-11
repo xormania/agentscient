@@ -72,6 +72,29 @@ ITEM7_EXIT_30_MUTANT = (
     "the wire line then the stopped line"
 )
 
+# Item 7 near-miss: the item-7 phrases plus a following stopped line.
+# Survived the first frozen set (security 20260911T224145Z, P2).
+ITEM7_THEN_STOPPED_MUTANT = (
+    "exit 2, one stderr line `envelope: expected …; found …; needed …`, "
+    "stdout empty, then `stopped stage=check-tests record=<id> "
+    "reason=envelope`"
+)
+
+# Item 3 near-miss: never-retried plus the standing resume unamended.
+# Survived the first frozen set (adversarial 20260911T225002Z, P2).
+CONSUMES_AND_LANDS = "resume consumes and lands it"
+RELAUNCHES_ONCE = "Otherwise it relaunches that stage once."
+NOT_CONSUMED = "not consumed and landed"
+DOES_NOT_RELAUNCH = "does not relaunch"
+SCHEMA_ACCEPTED = "schema-accepted"
+ITEM3_UNAMENDED_RESUME_MUTANT = (
+    "A malformed envelope records the failed field and is never retried "
+    "as a flake; `--retry` is the only further attempt. If its stopped "
+    "dispatch record is now closed with an accepted envelope, resume "
+    "consumes and lands it without relaunching. Otherwise it relaunches "
+    "that stage once."
+)
+
 
 def _item3_checks_hold(text: str) -> bool:
     return all(phrase in text for phrase in ITEM3_CHECKS)
@@ -100,6 +123,34 @@ def _item7_refusal_holds(text: str) -> bool:
     if STDOUT_EMPTY not in text:
         return False
     return _has_wire_grammar(text)
+
+
+def _has_following_stopped_line(text: str) -> bool:
+    """True when the refusal output continues with a stopped line.
+
+    Item 7 is one stderr line and empty stdout. A last-output cell that
+    adds `then stopped …` is a second line, even when the item-7
+    phrases are present.
+    """
+    collapsed = " ".join(text.split())
+    return (
+        "then `stopped" in collapsed
+        or "then stopped stage=" in collapsed
+    )
+
+
+def _item3_resume_amended(text: str) -> bool:
+    """True when never-retried amends standing resume for envelope stops."""
+    collapsed = " ".join(text.split())
+    if NEVER_RETRIED not in collapsed:
+        return False
+    if NOT_CONSUMED not in collapsed:
+        return False
+    if DOES_NOT_RELAUNCH not in collapsed:
+        return False
+    if SCHEMA_ACCEPTED not in collapsed:
+        return False
+    return CONSUMES_AND_LANDS not in collapsed
 
 
 def _exit_cell(row: list[str] | None) -> str:
@@ -417,6 +468,43 @@ class EnvelopeAndCustodyStops(_LeverPin):
             f"found {blob!r}",
         )
 
+    def test_envelope_refusal_is_not_one_stderr_line_then_a_stopped_line(
+        self,
+    ):
+        mutant = ITEM7_THEN_STOPPED_MUTANT
+        self.assertTrue(
+            _item7_refusal_holds(mutant),
+            "plant must land: the item-7 phrases plus a following "
+            "stopped line",
+        )
+        self.assertTrue(
+            _has_following_stopped_line(mutant),
+            "plant must land: stdout empty, then a stopped line",
+        )
+        row = self.stop_row("envelope")
+        self.assertIsNotNone(row, "stops table has no envelope row")
+        blob = self.stop_blob("envelope")
+        self.assertFalse(
+            _has_following_stopped_line(blob),
+            "item 7: one stderr line, stdout empty; a following "
+            f"stopped line is a second line; found {blob!r}",
+        )
+
+    def test_custody_refusal_is_not_one_stderr_line_then_a_stopped_line(
+        self,
+    ):
+        mutant = ITEM7_THEN_STOPPED_MUTANT.replace("envelope", "custody")
+        self.assertTrue(_item7_refusal_holds(mutant))
+        self.assertTrue(_has_following_stopped_line(mutant))
+        row = self.stop_row("custody")
+        self.assertIsNotNone(row, "stops table has no custody row")
+        blob = self.stop_blob("custody")
+        self.assertFalse(
+            _has_following_stopped_line(blob),
+            "item 7: one stderr line, stdout empty; a following "
+            f"stopped line is a second line; found {blob!r}",
+        )
+
     def test_envelope_stop_names_the_field_and_the_four_checks(self):
         mutant = ITEM3_FIELD_ONLY_MUTANT
         self.assertIn("field", mutant)
@@ -465,6 +553,57 @@ class CheckTestsStopNeverRetried(_LeverPin):
         self.assertNotIn(RETRY_ONLY, mutant)
         body = self.check_tests_stop()
         self.assertIn(RETRY_ONLY, body)
+
+    def test_a_schema_accepted_envelope_that_fails_item_2_is_not_consumed_and_landed(
+        self,
+    ):
+        mutant = ITEM3_UNAMENDED_RESUME_MUTANT
+        self.assertIn(NEVER_RETRIED, mutant)
+        self.assertIn(RETRY_ONLY, mutant)
+        self.assertIn(CONSUMES_AND_LANDS, mutant)
+        self.assertNotIn(NOT_CONSUMED, mutant)
+        self.assertNotIn(SCHEMA_ACCEPTED, mutant)
+        self.assertFalse(
+            _item3_resume_amended(mutant),
+            "item 3: never-retried plus unamended standing resume "
+            "must not hold",
+        )
+        body = self.check_tests_stop()
+        self.assertIn(
+            NOT_CONSUMED,
+            body,
+            "item 3: a schema-accepted envelope that fails item 2 "
+            "shape is not consumed and landed",
+        )
+        self.assertIn(
+            SCHEMA_ACCEPTED,
+            body,
+            "item 3: the carve-out names a schema-accepted envelope",
+        )
+        self.assertTrue(
+            _item3_resume_amended(body),
+            "item 3: never retried as a flake amends standing resume",
+        )
+
+    def test_standing_resume_does_not_relaunch_an_envelope_stop(self):
+        mutant = ITEM3_UNAMENDED_RESUME_MUTANT
+        self.assertIn(NEVER_RETRIED, mutant)
+        self.assertIn(RELAUNCHES_ONCE, mutant)
+        self.assertNotIn(DOES_NOT_RELAUNCH, mutant)
+        self.assertFalse(_item3_resume_amended(mutant))
+        body = self.check_tests_stop()
+        self.assertIn(
+            DOES_NOT_RELAUNCH,
+            body,
+            "item 3: resume does not relaunch an envelope-class stop "
+            "as a flake",
+        )
+        self.assertNotIn(
+            RELAUNCHES_ONCE,
+            body,
+            "item 3: the standing relaunch sentence is not the "
+            "envelope-stop rule",
+        )
 
 
 class CheckEnvelopeVerb(_LeverPin):
