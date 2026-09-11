@@ -1,19 +1,22 @@
 """Ladder stop before fix stages when audit findings are undisposed.
 
-Written from scope-gate-20260910.md item 9 (and the item-1 shape the
-fix stages must then carry). ladder.py is the subject and is not read
-here. Tests reuse _LadderFixture; the FINDINGS_PY stub is extended with
-a plant dispositions map answering `cited`, and the dispatch stub plants
-stage_findings onto audit envelopes.
+Written from scope-gate-20260910.md item 9 (and the item-1 shape those
+fix stages must carry). ladder.py is the subject and is not read here.
+Tests reuse _LadderFixture; the FINDINGS_PY stub is extended with a
+plant answering `cited`, and the dispatch stub plants stage_findings
+onto both audit envelopes.
 
 A driver that launches fix-tests while a finding is undisposed still
-collects; it fails the stop assertion. A driver that stops but dispatches
-a fix stage with one --follows and no --answers still collects; it fails
-the argv assertion.
+collects; it fails the stop assertion. A driver that checks only the
+first finding, or only one audit envelope, still collects; it fails
+the every-finding assertion. A driver that caches the fix-tests check
+when launching fix-code still collects; it fails the fresh-check
+assertion.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -30,15 +33,35 @@ RECORD_ID = r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$"
 ANSWER_KEY = r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}#[1-9][0-9]*$"
 SCOPE_PATH = ".dev/ladder-inputs/scope-gate-20260910.md"
 CITATION = f"contract item 9 of {SCOPE_PATH}"
-FINDING = {
-    "severity": "p2",
-    "where": "ops/conductor/ladder-lever.md",
-    "claim": "UNDISPOSED_ADV_aa32 audit finding lacks a cited disposition",
-    "reproduce": (
-        "python3 -m unittest discover -s ops/conductor/tests "
-        "-p test_ladder_lever_undisposed.py"
-    ),
-}
+REVIEW_JOBS = frozenset(
+    {
+        "check-tests",
+        "security-audit",
+        "adversarial-review",
+        "adjudicate",
+        "sweep",
+    }
+)
+AUDIT_STAGES = ("security", "adversarial")
+
+
+def _finding(tag: str) -> dict:
+    return {
+        "severity": "p2",
+        "where": f"ops/conductor/ladder-lever.md:{tag}",
+        "claim": (
+            f"UNDISPOSED_{tag}_aa32 audit finding lacks a cited "
+            "disposition"
+        ),
+        "reproduce": (
+            "python3 -m unittest discover -s ops/conductor/tests "
+            "-p test_ladder_lever_undisposed.py"
+        ),
+    }
+
+
+SECURITY_FINDINGS = (_finding("SEC1"), _finding("SEC2"))
+ADVERSARIAL_FINDINGS = (_finding("ADV1"), _finding("ADV2"))
 
 FINDINGS_CITED_PY = r'''
 from __future__ import annotations
@@ -69,9 +92,18 @@ if argv and argv[0] == "cited":
         )
         raise SystemExit(2)
     key = argv[1]
+    calls = [c.get("name") for c in plant.get("calls") or []]
+    if plant.get("revoke_after_fix_tests") and "fix-tests" in calls:
+        sys.stdout.write(key + "\topen\n")
+        raise SystemExit(1)
     dispositions = plant.get("dispositions") or {}
     citation = dispositions.get(key)
-    if plant.get("cited_all") and citation is None:
+    n = str(key).rsplit("#", 1)[-1] if "#" in str(key) else ""
+    if citation in (None, "", "open") and plant.get("cite_first_only") and n == "1":
+        citation = (
+            "contract item 9 of .dev/ladder-inputs/scope-gate-20260910.md"
+        )
+    if citation in (None, "", "open") and plant.get("cited_all"):
         citation = (
             "contract item 9 of .dev/ladder-inputs/scope-gate-20260910.md"
         )
@@ -131,6 +163,8 @@ class _UndisposedFixture(_LadderFixture):
         landed = dest.read_text(encoding="utf-8")
         self.assertIn("dispositions", landed)
         self.assertIn('argv[0] == "cited"', landed)
+        self.assertIn("revoke_after_fix_tests", landed)
+        self.assertIn("cite_first_only", landed)
 
     def setUp(self):
         super().setUp()
@@ -165,23 +199,53 @@ class _UndisposedFixture(_LadderFixture):
             timeout=RUN_CAP,
         )
 
-    def plant_undisposed_audit(self, *, cited_all: bool = False) -> None:
+    def plant_undisposed_audit(
+        self,
+        *,
+        cited_all: bool = False,
+        cite_first_only: bool = False,
+        revoke_after_fix_tests: bool = False,
+    ) -> None:
         updates = {
-            "verdicts": {"adversarial": "changes"},
-            "stage_findings": {"adversarial": [FINDING]},
+            "verdicts": {
+                "security": "changes",
+                "adversarial": "changes",
+            },
+            "stage_findings": {
+                "security": [dict(row) for row in SECURITY_FINDINGS],
+                "adversarial": [dict(row) for row in ADVERSARIAL_FINDINGS],
+            },
+            "cited_all": cited_all,
+            "cite_first_only": cite_first_only,
+            "revoke_after_fix_tests": revoke_after_fix_tests,
         }
-        if cited_all:
-            updates["cited_all"] = True
         self.patch_plant(**updates)
         plant = self.load_plant()
+        self.assertEqual(plant["verdicts"].get("security"), "changes")
         self.assertEqual(plant["verdicts"].get("adversarial"), "changes")
-        planted = (plant.get("stage_findings") or {}).get("adversarial") or []
-        self.assertEqual(len(planted), 1, planted)
-        self.assertEqual(planted[0]["claim"], FINDING["claim"])
+        planted_sec = (plant.get("stage_findings") or {}).get("security") or []
+        planted_adv = (
+            (plant.get("stage_findings") or {}).get("adversarial") or []
+        )
+        self.assertEqual(len(planted_sec), 2, planted_sec)
+        self.assertEqual(len(planted_adv), 2, planted_adv)
+        self.assertEqual(planted_sec[0]["claim"], SECURITY_FINDINGS[0]["claim"])
+        self.assertEqual(planted_sec[1]["claim"], SECURITY_FINDINGS[1]["claim"])
+        self.assertEqual(
+            planted_adv[0]["claim"], ADVERSARIAL_FINDINGS[0]["claim"],
+        )
+        self.assertEqual(
+            planted_adv[1]["claim"], ADVERSARIAL_FINDINGS[1]["claim"],
+        )
         self.assertEqual(bool(plant.get("cited_all")), cited_all)
+        self.assertEqual(bool(plant.get("cite_first_only")), cite_first_only)
+        self.assertEqual(
+            bool(plant.get("revoke_after_fix_tests")),
+            revoke_after_fix_tests,
+        )
 
-    def run_undisposed(self, *, cited_all: bool = False):
-        self.plant_undisposed_audit(cited_all=cited_all)
+    def run_undisposed(self, **plant_kw):
+        self.plant_undisposed_audit(**plant_kw)
         return self.run_ladder()
 
     def closed_envelope(self, name: str) -> dict:
@@ -192,46 +256,144 @@ class _UndisposedFixture(_LadderFixture):
         self.assertIsInstance(envelope, dict, payload)
         return envelope
 
-    def assert_finding_landed(self) -> None:
-        findings = self.closed_envelope("adversarial").get("findings") or []
-        self.assertEqual(len(findings), 1, findings)
-        self.assertEqual(findings[0]["claim"], FINDING["claim"], findings)
-        self.assertEqual(findings[0]["where"], FINDING["where"], findings)
+    def assert_audit_findings_landed(self) -> None:
+        names = self.dispatch_names()
+        self.assertIn("security", names, names)
+        self.assertIn("adversarial", names, names)
+        sec = self.closed_envelope("security").get("findings") or []
+        adv = self.closed_envelope("adversarial").get("findings") or []
+        self.assertEqual(len(sec), 2, sec)
+        self.assertEqual(len(adv), 2, adv)
+        self.assertEqual(sec[0]["claim"], SECURITY_FINDINGS[0]["claim"], sec)
+        self.assertEqual(sec[1]["claim"], SECURITY_FINDINGS[1]["claim"], sec)
+        self.assertEqual(adv[0]["claim"], ADVERSARIAL_FINDINGS[0]["claim"], adv)
+        self.assertEqual(adv[1]["claim"], ADVERSARIAL_FINDINGS[1]["claim"], adv)
 
-    def adversarial_key(self) -> str:
-        self.assert_finding_landed()
-        rec_id = self.record_id_for("adversarial")
+    def envelope_keys(self, name: str) -> list[str]:
+        rec_id = self.record_id_for(name)
         self.assertRegex(rec_id, RECORD_ID, rec_id)
-        key = rec_id + "#1"
-        self.assertRegex(key, ANSWER_KEY, key)
-        return key
+        findings = self.closed_envelope(name).get("findings") or []
+        keys = []
+        for n, _row in enumerate(findings, start=1):
+            key = f"{rec_id}#{n}"
+            self.assertRegex(key, ANSWER_KEY, key)
+            keys.append(key)
+        return keys
 
-    def cited_keys(self) -> list[str]:
+    def all_audit_keys(self) -> list[str]:
+        self.assert_audit_findings_landed()
         keys: list[str] = []
-        for row in self.findings_argvs():
-            if row and row[0] == "cited" and len(row) > 1:
-                keys.append(str(row[1]))
+        for name in AUDIT_STAGES:
+            keys.extend(self.envelope_keys(name))
+        self.assertEqual(len(keys), 4, keys)
+        return keys
+
+    def later_audit_keys(self) -> list[str]:
+        """Keys numbered 2 or higher on each audit envelope."""
+        keys = []
+        for name in AUDIT_STAGES:
+            for key in self.envelope_keys(name):
+                if key.rsplit("#", 1)[-1] != "1":
+                    keys.append(key)
+        self.assertEqual(len(keys), 2, keys)
         return keys
 
     def findings_verbs(self) -> list[str]:
         return [row[0] if row else "" for row in self.findings_argvs()]
 
-    def undisposed_keys_line(self, proc) -> str:
-        lines = [
-            ln for ln in self.combined(proc).splitlines() if ln.strip()
-        ]
-        hits = [ln for ln in lines if "undisposed keys:" in ln]
+    def findings_store_snapshot(self) -> dict[str, str]:
+        snap: dict[str, str] = {}
+        for root in (self.home, self.xdg):
+            if not root.exists():
+                continue
+            for path in root.rglob("*"):
+                if not path.is_file():
+                    continue
+                name = path.name
+                if name == "findings.db" or name.startswith("findings.db"):
+                    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                    snap[str(path)] = digest
+        return snap
+
+    def dispositions_snapshot(self) -> str:
+        return json.dumps(
+            self.load_plant().get("dispositions") or {},
+            sort_keys=True,
+        )
+
+    def assert_driver_did_not_write_dispositions(
+        self,
+        before_store: dict[str, str],
+        before_disp: str,
+    ) -> None:
         self.assertEqual(
-            len(hits), 1,
-            f"item 9: one detail line names the undisposed keys; "
-            f"got {hits!r} in {self.combined(proc)!r}",
+            self.findings_store_snapshot(),
+            before_store,
+            "item 9: the driver never writes the findings store",
         )
-        self.assertLess(
-            lines.index(hits[0]),
-            lines.index(lines[-1]),
-            "item 9: the keys line is printed before the stopped line",
+        self.assertEqual(
+            self.dispositions_snapshot(),
+            before_disp,
+            "item 9: the driver never writes disposition rows",
         )
-        return hits[0]
+        self.assertNotIn("disposition", self.findings_verbs())
+
+    def assert_output_names_keys(self, proc, keys: list[str]) -> None:
+        text = self.combined(proc)
+        self.assertTrue(keys, "plant: expected undisposed keys")
+        for key in keys:
+            self.assertIn(
+                key,
+                text,
+                f"item 9: the stop names undisposed key {key}; "
+                f"got {text!r}",
+            )
+
+    def assert_no_fix_dispatch(self) -> None:
+        names = self.dispatch_names()
+        self.assertNotIn("fix-tests", names, names)
+        self.assertNotIn("fix-code", names, names)
+
+    def record_job(self, rec_id: str) -> str:
+        info = (self.load_plant().get("records") or {}).get(rec_id) or {}
+        job = info.get("job")
+        path = info.get("path")
+        if path and Path(path).is_file():
+            payload = json.loads(Path(path).read_text(encoding="utf-8"))
+            job = payload.get("job") or job
+        return str(job or "")
+
+    def assert_item1_shape(self, name: str) -> None:
+        """Item 1: a review record on --follows, or a review out/ input."""
+        argv = self.dispatch_argv_for(name)
+        follows = self.flag_values(argv, "--follows")
+        jobs = [self.record_job(rec_id) for rec_id in follows]
+        if any(job in REVIEW_JOBS for job in jobs):
+            return
+        for value in self.flag_values(argv, "--input"):
+            text = str(value).replace("\\", "/")
+            if "/out/" not in text:
+                continue
+            for rec_id, info in (self.load_plant().get("records") or {}).items():
+                if rec_id in text and info.get("job") in REVIEW_JOBS:
+                    return
+        self.fail(
+            f"item 1: {name} is not a correction under the mechanical "
+            f"shape; follows jobs={jobs} argv={argv!r}",
+        )
+
+    def assert_answers_every_key(self, name: str, keys: list[str]) -> None:
+        argv = self.dispatch_argv_for(name)
+        answers = self.flag_values(argv, "--answers")
+        self.assertTrue(keys, "plant: expected finding keys")
+        self.assertEqual(
+            sorted(answers),
+            sorted(keys),
+            f"item 9: {name} names every finding it answers; "
+            f"found {answers!r} in {argv!r}",
+        )
+        for key in answers:
+            self.assertRegex(key, ANSWER_KEY, key)
 
     def author_tests_after_audits(self) -> list[str]:
         seen_audit = False
@@ -245,239 +407,185 @@ class _UndisposedFixture(_LadderFixture):
         return later
 
 
-class UndisposedStopsFixTests(_UndisposedFixture):
-    """Item 9 — stop before fix-tests when a finding is undisposed."""
+class StopBeforeFixTests(_UndisposedFixture):
+    """Item 9 — stop before fix-tests when any audit finding is open."""
 
-    def test_stop_line_is_undisposed_at_fix_tests_with_record_none(self):
+    def test_declared_stop_at_fix_tests_with_record_none(self):
         proc = self.run_undisposed()
-        self.assert_finding_landed()
+        self.assert_audit_findings_landed()
         self.assert_stopped(
             proc, stage="fix-tests", record="none", reason="undisposed",
         )
 
-    def test_detail_line_names_the_undisposed_key(self):
+    def test_stop_names_every_undisposed_key_from_both_envelopes(self):
         proc = self.run_undisposed()
-        key = self.adversarial_key()
-        line = self.undisposed_keys_line(proc)
-        listed = line.split("undisposed keys:", 1)[1].split()
-        self.assertEqual(len(listed), 1, line)
-        self.assertEqual(listed[0], key, line)
+        keys = self.all_audit_keys()
+        self.assert_output_names_keys(proc, keys)
         self.assert_stopped(
             proc, stage="fix-tests", record="none", reason="undisposed",
         )
 
-    def test_no_author_tests_dispatch_after_the_audits(self):
+    def test_no_fix_stage_is_dispatched(self):
         proc = self.run_undisposed()
         names = self.dispatch_names()
         self.assertIn("security", names, names)
         self.assertIn("adversarial", names, names)
-        self.assertNotIn("fix-tests", names, names)
-        self.assertNotIn("fix-code", names, names)
+        self.assert_no_fix_dispatch()
         self.assertEqual(self.author_tests_after_audits(), [], names)
         self.assert_stopped(
             proc, stage="fix-tests", record="none", reason="undisposed",
         )
 
-    def test_fix_tests_attempt_is_not_incremented(self):
-        proc = self.run_undisposed()
-        row = self.stage_row(self.ladder_record(), "fix-tests")
-        attempt = row.get("attempt")
-        if attempt is None:
-            attempt = 0
-        self.assertEqual(
-            int(attempt), 0,
-            f"item 9: a stop before mint is not an attempt: {row!r}",
+    def test_driver_does_not_write_a_disposition(self):
+        self.plant_undisposed_audit()
+        before_store = self.findings_store_snapshot()
+        before_disp = self.dispositions_snapshot()
+        self.assertEqual(before_store, {})
+        self.assertEqual(before_disp, "{}")
+        proc = self.run_ladder()
+        self.assert_stopped(
+            proc, stage="fix-tests", record="none", reason="undisposed",
         )
-        self.assertNotEqual(row.get("outcome"), "skipped", row)
+        self.assert_driver_did_not_write_dispositions(before_store, before_disp)
+
+
+class EveryFindingIsChecked(_UndisposedFixture):
+    """Item 9 — every finding in both envelopes, including n>=2.
+
+    Finding 1 of each envelope is cited; later findings are open. A
+    driver that inspects only adversarial#1, or only n=1, launches.
+    """
+
+    def test_later_findings_stop_even_when_each_first_finding_is_cited(self):
+        proc = self.run_undisposed(cite_first_only=True)
+        self.assert_audit_findings_landed()
+        self.assert_no_fix_dispatch()
         self.assert_stopped(
             proc, stage="fix-tests", record="none", reason="undisposed",
         )
 
-    def test_record_stopped_keys_lists_the_undisposed_key(self):
-        proc = self.run_undisposed()
-        key = self.adversarial_key()
-        record = self.ladder_record()
-        stopped = record.get("stopped") or {}
-        keys = stopped.get("keys")
-        self.assertIsInstance(
-            keys, list,
-            f"item 9: stopped.keys is a list of undisposed keys; "
-            f"got {stopped!r} status={record.get('status')!r}",
-        )
-        self.assertEqual(len(keys), 1, keys)
-        self.assertEqual(keys[0], key, keys)
-        self.assertEqual(record.get("status"), "stopped", record)
-        self.assertEqual(stopped.get("stage"), "fix-tests", stopped)
-        self.assertEqual(stopped.get("reason"), "undisposed", stopped)
-        self.assert_stopped(
-            proc, stage="fix-tests", record="none", reason="undisposed",
-        )
-
-    def test_driver_cites_the_undisposed_key_before_stopping(self):
-        proc = self.run_undisposed()
-        key = self.adversarial_key()
-        asked = self.cited_keys()
-        self.assertTrue(
-            asked,
-            f"item 9: the driver checks the key with cited; "
-            f"findings argv={self.findings_argvs()!r}",
-        )
-        self.assertIn(key, asked, asked)
-        self.assertNotIn("disposition", self.findings_verbs())
+    def test_stop_names_the_later_keys_from_security_and_adversarial(self):
+        proc = self.run_undisposed(cite_first_only=True)
+        self.assert_audit_findings_landed()
+        later = self.later_audit_keys()
+        self.assert_output_names_keys(proc, later)
         self.assert_stopped(
             proc, stage="fix-tests", record="none", reason="undisposed",
         )
 
 
-class ResumeRechecksCited(_UndisposedFixture):
-    """Item 9 — resume re-runs the check; rows let the fix stages launch."""
+class FreshCheckBeforeFixCode(_UndisposedFixture):
+    """Item 9 — a fresh check before fix-code, not the fix-tests result.
 
-    def test_resume_without_rows_stops_undisposed_again_not_retry_cap(self):
+    Every key holds until fix-tests is dispatched; the stub then
+    reports open. A driver that caches the first check launches
+    fix-code.
+    """
+
+    def test_fix_code_stops_when_cited_fails_after_fix_tests_launched(self):
+        proc = self.run_undisposed(
+            cited_all=True, revoke_after_fix_tests=True,
+        )
+        self.assert_audit_findings_landed()
+        names = self.dispatch_names()
+        self.assertIn("fix-tests", names, names)
+        self.assertNotIn("fix-code", names, names)
+        self.assert_stopped(
+            proc, stage="fix-code", record="none", reason="undisposed",
+        )
+
+    def test_fix_code_stop_names_the_keys_now_undisposed(self):
+        proc = self.run_undisposed(
+            cited_all=True, revoke_after_fix_tests=True,
+        )
+        keys = self.all_audit_keys()
+        self.assert_output_names_keys(proc, keys)
+        self.assertIn("fix-tests", self.dispatch_names())
+        self.assertNotIn("fix-code", self.dispatch_names())
+        self.assert_stopped(
+            proc, stage="fix-code", record="none", reason="undisposed",
+        )
+
+
+class ResumeRechecks(_UndisposedFixture):
+    """Item 9 — resume re-checks; rows let the fix stages launch."""
+
+    def test_resume_without_rows_stops_undisposed_again(self):
         first = self.run_undisposed()
         self.assert_stopped(
             first, stage="fix-tests", record="none", reason="undisposed",
         )
         ladder_id = self.ladder_record().get("id")
         self.assertTrue(ladder_id)
+        before_store = self.findings_store_snapshot()
+        before_disp = self.dispositions_snapshot()
         second = self.invoke(["resume", ladder_id])
         self.assert_stopped(
             second, stage="fix-tests", record="none", reason="undisposed",
         )
-        text = self.combined(second)
-        self.assertNotIn("retry-cap", text)
-        self.assertNotIn("fix-tests", self.dispatch_names())
-        row = self.stage_row(self.ladder_record(ladder_id), "fix-tests")
-        attempt = row.get("attempt")
-        if attempt is None:
-            attempt = 0
-        self.assertEqual(int(attempt), 0, row)
+        self.assert_no_fix_dispatch()
+        self.assert_driver_did_not_write_dispositions(before_store, before_disp)
 
-    def test_resume_after_cited_rows_dispatches_fix_stages_with_answers(self):
+    def test_resume_once_rows_exist_dispatches_both_fix_stages(self):
         first = self.run_undisposed()
         self.assert_stopped(
             first, stage="fix-tests", record="none", reason="undisposed",
         )
-        key = self.adversarial_key()
-        self.patch_plant(dispositions={key: CITATION})
-        landed = (self.load_plant().get("dispositions") or {}).get(key)
-        self.assertEqual(landed, CITATION, landed)
-        probe = self.cited_probe(key)
-        self.assertEqual(
-            probe.returncode, 0,
-            f"plant: cited must hold after the disposition: "
-            f"{probe.stdout!r} {probe.stderr!r}",
-        )
-        self.assertIn(CITATION, probe.stdout)
+        keys = self.all_audit_keys()
+        dispositions = {key: CITATION for key in keys}
+        self.patch_plant(dispositions=dispositions)
+        landed = self.load_plant().get("dispositions") or {}
+        self.assertEqual(landed, dispositions, landed)
+        for key in keys:
+            probe = self.cited_probe(key)
+            self.assertEqual(
+                probe.returncode, 0,
+                f"plant: cited must hold after the disposition: "
+                f"{probe.stdout!r} {probe.stderr!r}",
+            )
+            self.assertIn(CITATION, probe.stdout)
         ladder_id = self.ladder_record().get("id")
         self.assertTrue(ladder_id)
+        before_store = self.findings_store_snapshot()
+        before_disp = self.dispositions_snapshot()
         second = self.invoke(["resume", ladder_id])
         self.assertEqual(second.returncode, 0, self.combined(second))
         names = self.dispatch_names()
         self.assertIn("fix-tests", names, names)
         self.assertIn("fix-code", names, names)
-        self.assert_fix_argv("fix-tests", [key])
-        self.assert_fix_argv("fix-code", [key])
-        self.assertNotIn("disposition", self.findings_verbs())
-
-    def assert_fix_argv(self, name: str, keys: list[str]) -> None:
-        self.assertTrue(keys, "plant: expected finding keys")
-        argv = self.dispatch_argv_for(name)
-        follows = self.flag_values(argv, "--follows")
-        self.assertEqual(
-            len(follows), 3,
-            f"item 9: {name} dispatch with --follows previous, security, "
-            f"adversarial; found {follows!r} in {argv!r}",
-        )
-        security_id = self.record_id_for("security")
-        adversarial_id = self.record_id_for("adversarial")
-        self.assertEqual(follows[1], security_id, argv)
-        self.assertEqual(follows[2], adversarial_id, argv)
-        self.assertRegex(follows[0], RECORD_ID, follows[0])
-        self.assertIn(follows[0], self.load_plant().get("records") or {}, argv)
-        answers = self.flag_values(argv, "--answers")
-        self.assertEqual(
-            len(answers), len(keys),
-            f"item 9: {name} one --answers KEY per key; "
-            f"found {answers!r} in {argv!r}",
-        )
-        self.assertEqual(sorted(answers), sorted(keys), argv)
-        for key in answers:
-            self.assertRegex(key, ANSWER_KEY, key)
+        self.assert_item1_shape("fix-tests")
+        self.assert_item1_shape("fix-code")
+        self.assert_answers_every_key("fix-tests", keys)
+        self.assert_answers_every_key("fix-code", keys)
+        self.assert_driver_did_not_write_dispositions(before_store, before_disp)
 
 
-class CitedRowsDispatchFixStages(_UndisposedFixture):
-    """Item 9 — when every key already holds, the fix stages launch
-    as corrections: three --follows and one --answers per key."""
+class FixStagesAreCorrections(_UndisposedFixture):
+    """Item 9 / item 1 — when every key holds, both fix stages launch
+    as corrections and name every finding they answer.
 
-    def test_fix_tests_carries_three_follows(self):
+    One followed review record is enough for item 1; these tests do
+    not require a fixed --follows count.
+    """
+
+    def test_fix_code_is_a_correction_under_item_1(self):
         proc = self.run_undisposed(cited_all=True)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        self.assert_finding_landed()
-        self.assertIn("fix-tests", self.dispatch_names())
-        argv = self.dispatch_argv_for("fix-tests")
-        follows = self.flag_values(argv, "--follows")
-        self.assertEqual(
-            len(follows), 3,
-            f"item 9: --follows previous, security, adversarial; "
-            f"found {follows!r} in {argv!r}",
-        )
-        self.assertEqual(follows[1], self.record_id_for("security"), argv)
-        self.assertEqual(follows[2], self.record_id_for("adversarial"), argv)
-
-    def test_fix_code_carries_three_follows(self):
-        proc = self.run_undisposed(cited_all=True)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertIn("fix-code", self.dispatch_names())
-        argv = self.dispatch_argv_for("fix-code")
-        follows = self.flag_values(argv, "--follows")
-        self.assertEqual(
-            len(follows), 3,
-            f"item 9: --follows previous, security, adversarial; "
-            f"found {follows!r} in {argv!r}",
-        )
-        self.assertEqual(follows[1], self.record_id_for("security"), argv)
-        self.assertEqual(follows[2], self.record_id_for("adversarial"), argv)
-
-    def test_fix_tests_carries_one_answers_per_key(self):
-        proc = self.run_undisposed(cited_all=True)
+        self.assert_item1_shape("fix-code")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        key = self.adversarial_key()
-        argv = self.dispatch_argv_for("fix-tests")
-        answers = self.flag_values(argv, "--answers")
-        self.assertEqual(
-            len(answers), 1,
-            f"item 9: one --answers KEY per key; found {answers!r} "
-            f"in {argv!r}",
-        )
-        self.assertEqual(answers[0], key, argv)
 
-    def test_fix_code_carries_one_answers_per_key(self):
+    def test_fix_tests_names_every_finding_key(self):
         proc = self.run_undisposed(cited_all=True)
+        keys = self.all_audit_keys()
+        self.assert_answers_every_key("fix-tests", keys)
+        self.assert_item1_shape("fix-tests")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        key = self.adversarial_key()
-        argv = self.dispatch_argv_for("fix-code")
-        answers = self.flag_values(argv, "--answers")
-        self.assertEqual(
-            len(answers), 1,
-            f"item 9: one --answers KEY per key; found {answers!r} "
-            f"in {argv!r}",
-        )
-        self.assertEqual(answers[0], key, argv)
 
-    def test_driver_cites_the_key_before_the_fix_dispatch(self):
+    def test_fix_code_names_every_finding_key(self):
         proc = self.run_undisposed(cited_all=True)
+        keys = self.all_audit_keys()
+        self.assert_answers_every_key("fix-code", keys)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        key = self.adversarial_key()
-        asked = self.cited_keys()
-        self.assertTrue(asked, self.findings_argvs())
-        self.assertIn(key, asked, asked)
-        names = self.dispatch_names()
-        self.assertLess(
-            names.index("adversarial"),
-            names.index("fix-tests"),
-            names,
-        )
-        self.assertNotIn("disposition", self.findings_verbs())
 
 
 if __name__ == "__main__":
