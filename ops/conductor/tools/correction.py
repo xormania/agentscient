@@ -103,11 +103,11 @@ def _read_record(record_id, records):
 
 
 def _input_record_id(path, jobs_root):
-    jobs_root = Path(jobs_root).resolve()
+    jobs_root = Path(jobs_root).absolute()
     candidate = Path(path)
     candidate = (candidate if candidate.is_absolute() else Path.cwd() / candidate)
     try:
-        relative = candidate.resolve().relative_to(jobs_root)
+        relative = candidate.relative_to(jobs_root)
     except ValueError:
         return None
     parts = relative.parts

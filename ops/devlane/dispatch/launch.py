@@ -364,6 +364,23 @@ def _inside(path, root):
         return False
 
 
+def _symlinked_input(path, jobs_root):
+    candidate = Path(path)
+    candidate = candidate if candidate.is_absolute() else Path.cwd() / candidate
+    if candidate.is_symlink():
+        return True
+    try:
+        relative = candidate.relative_to(Path(jobs_root).absolute())
+    except ValueError:
+        return False
+    current = Path(jobs_root).absolute()
+    for part in relative.parts[:-1]:
+        current /= part
+        if current.is_symlink():
+            return True
+    return False
+
+
 def _parse_override(items, agent):
     out = []
     for item in items:
@@ -1445,6 +1462,14 @@ def _launch(args):
         _jobs_root(),
         repo,
     )
+    for source in args.input:
+        if _symlinked_input(source, _jobs_root()):
+            CORRECTION.refuse(
+                "input",
+                "an input path without symlinked components under the jobs root",
+                f"symlink in {source}",
+                "replace it with a regular input path",
+            )
     job_id = mint_id(stage, args.harness)
     job_dir, snapshot = _job_paths(job_id)
     record_path = repo / ".dev/records/dispatches" / f"{job_id}.json"
