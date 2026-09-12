@@ -72,3 +72,20 @@ python3 ops/conductor/tools/probes.py run
 
 Left behind on purpose: the session scratchpad (live probe homes and
 outputs, edit scripts, CI logs).
+
+## Addendum: the session branch shape (owner, 2026-09-12: "one brench per session - lets try it")
+
+- Start: `git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/dev`,
+  then `deliverable.py add lane/session-<date>-<id> --why '<owner's words>'`.
+  The `add` verb keeps another session's branch in the lock.
+- Work and records commit to that branch; nothing commits to dev from
+  a session any more. One draft PR into dev at close, through the proof
+  gate (a `## Proof` section, rows at the head, a green run).
+- The dispatcher merges origin/dev forward before each launch. A
+  `stale-base` refusal now means a real conflict; resolve the named
+  files in the worktree, commit, dispatch again.
+- Two sessions land separately; if both touched
+  `ops/conductor/findings/findings.jsonl`, regenerate it with
+  `findings.py export --write` after the merge instead of resolving by
+  hand.
+- First use: this branch, `lane/session-20260912`, PR into dev at close.

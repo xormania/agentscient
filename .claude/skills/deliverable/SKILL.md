@@ -28,7 +28,18 @@ is what a session does so the refusal never fires.
    A branch or PR already carrying the same repair means this session
    reads it, and does not start a second one.
 
-2. **The lock, before the first branch:**
+2. **The session branch, then the lock.** One branch per session
+   (owner, 2026-09-12): cut `lane/session-<date>-<id>` from `origin/dev`
+   in its own worktree, and name it beside any other session's:
+
+   ```sh
+   git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/dev
+   python3 ops/conductor/tools/deliverable.py add lane/session-<date>-<id> --why '<the owner's words, dated>'
+   ```
+
+   Every change and record of the session commits there; the dispatcher
+   merges `dev` forward before each launch. The lock, before any other
+   branch this session needs:
 
    ```sh
    python3 ops/conductor/tools/deliverable.py set <branch>... --why '<the owner's words, dated>'

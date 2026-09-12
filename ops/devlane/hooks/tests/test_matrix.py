@@ -811,9 +811,36 @@ class MatrixHookTests(unittest.TestCase):
 
     # --- stale-base ---
 
-    def test_stale_base_refuses_when_origin_trunk_is_not_an_ancestor(self):
+    def make_conflicting(self):
+        """HEAD and origin/dev diverge on the same line of one file."""
+        target = self.repo / "conflict.txt"
+        support.plant_text(target, "theirs\n")
+        support.git(self.repo, self.env, "add", "-A")
+        support.git(self.repo, self.env, "commit", "-q", "-m", "theirs")
+        new = support.git(self.repo, self.env, "rev-parse", "HEAD").stdout.strip()
+        support.git(self.repo, self.env, "update-ref", "refs/remotes/origin/dev", new)
+        support.git(self.repo, self.env, "reset", "-q", "--hard", "HEAD~1")
+        support.plant_text(target, "ours\n")
+        support.git(self.repo, self.env, "add", "-A")
+        support.git(self.repo, self.env, "commit", "-q", "-m", "ours")
+        check = support.git(self.repo, self.env, "merge-base", "--is-ancestor",
+                            "origin/dev", "HEAD", expect=None)
+        self.assertNotEqual(check.returncode, 0, "INVALID: origin/dev still an ancestor")
+
+    def test_stale_base_allows_a_worktree_the_dispatcher_can_merge_forward(self):
+        """Owner, 2026-09-12: "why are the branches always out of date";
+        "one branch per session - lets try it". Behind but mergeable is the
+        dispatcher's job (it merges origin/dev in before launching), not a
+        refusal."""
         self.make_stale()
-        self.assert_denied(self.run_bash(self.dispatch()), "stale-base")
+        self.assert_allowed(self.run_bash(self.dispatch()))
+
+    def test_stale_base_refuses_when_the_merge_forward_would_conflict(self):
+        self.make_conflicting()
+        proc = self.run_bash(self.dispatch())
+        self.assert_denied(proc, "stale-base")
+        self.assertIn("conflict", proc.stdout)
+        self.assertIn("conflict.txt", proc.stdout)
 
     def test_stale_base_allows_when_origin_trunk_is_an_ancestor(self):
         self.assert_allowed(self.run_bash(self.dispatch()))

@@ -21,7 +21,9 @@ row that cannot look refuses: "could not look" is not a pass.
     scope-cap       --scope-file over SCOPE_CAP                   size, lane conf
     bucket-command  an implement scope naming the whole suite     scope text
     walkthrough     a write job whose inputs carry no walkthrough input text
-    stale-base      --worktree behind the trunk                   git merge-base
+    stale-base      --worktree whose merge-forward from the       git merge-tree
+                    trunk would conflict (behind alone is merged
+                    by the dispatcher before the launch)
     contract-vet    harness contracts do not vet as a package     cue vet
     dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
                     worktree, DISPATCH_TIMEOUT and WF_AGENT       text
@@ -681,10 +683,21 @@ def check_dispatch(kind, flags, cwd, text, grant):
         probe = subprocess.run(["git", "-C", root, "merge-base", "--is-ancestor", f"origin/{trunk}", "HEAD"],  # noqa: S603, S607 - PATH git; root is a path this hook resolved
                                capture_output=True, text=True, check=False)
         if probe.returncode == 1:
-            behind = subprocess.run(["git", "-C", root, "rev-list", "--count", f"HEAD..origin/{trunk}"],  # noqa: S603, S607 - PATH git; range is a branch name from the conf
-                                    capture_output=True, text=True, check=False).stdout.strip() or "?"
-            return deny("stale-base", f"{worktree} to contain origin/{trunk} as fetched",
-                        f"HEAD behind by {behind} commits", f"git merge origin/{trunk} in the worktree before dispatch")
+            # Owner, 2026-09-12: "why are the branches always out of date".
+            # Behind is the dispatcher's job: it merges origin/<trunk> in
+            # before the launch. Only a merge that would conflict refuses.
+            trial = subprocess.run(["git", "-C", root, "merge-tree", "--write-tree", "--name-only",  # noqa: S603, S607 - PATH git; a dry merge, no ref moves
+                                    "HEAD", f"origin/{trunk}"],
+                                   capture_output=True, text=True, check=False)
+            if trial.returncode == 1:
+                files = [line for line in trial.stdout.splitlines()[1:] if line.strip()]
+                return deny("stale-base", f"origin/{trunk} to merge cleanly into {worktree}",
+                            f"conflicts in {', '.join(files) or 'unnamed files'}",
+                            f"resolve them in the worktree (git merge origin/{trunk}), commit, then dispatch")
+            if trial.returncode > 1:
+                return deny("stale-base", f"a dry merge of origin/{trunk} from {worktree}",
+                            (trial.stderr.strip().splitlines() or ["no answer"])[-1],
+                            "a worktree the hook can read")
         if probe.returncode > 1:
             return deny("stale-base", f"a git answer from {worktree}", probe.stderr.strip().splitlines()[-1:] or "no answer",
                         "a worktree the hook can read")
