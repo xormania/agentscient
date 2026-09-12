@@ -41,6 +41,14 @@ is what a session does so the refusal never fires.
    merges `dev` forward before each launch. The lock, before any other
    branch this session needs:
 
+   When the owner says "hand grant" or "get it done", declare it at once,
+   unscoped, with a lifetime that covers the work, and lead every write
+   with its id; the owner never runs the lever:
+
+   ```sh
+   python3 ops/conductor/tools/hand.py declare '<what>' 'owner <date>: <the words>' other --ttl 480
+   ```
+
    ```sh
    python3 ops/conductor/tools/deliverable.py set <branch>... --why '<the owner's words, dated>'
    ```

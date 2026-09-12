@@ -50,6 +50,11 @@ boundary is not a declared, verifiable coupling.
   producer, red then green measured with the same command, the second
   producer's absence said in the commit and the record. The ladder and
   its second producer are for prod-lane work.
+  **The owner never runs the grant lever** (owner, 2026-09-12: "all these
+  systems are for you - not me - they can't get in MY way"): the owner's
+  word, "hand grant" or "get it done", is the grant; the session declares
+  it that moment, unscoped and long-lived, and leads its writes with the
+  id. The owner types nothing.
 - **Refusals are the interface.** Components refuse rather than
   guess, on the wire, with expected–found–needed stated.
 - **No vendor becomes load-bearing.** Every external capability is
