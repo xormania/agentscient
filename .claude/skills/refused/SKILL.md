@@ -15,6 +15,8 @@ class, so the second refusal of a class never happens.
 
 ## Hook rows (`ops/devlane/hooks/boundaries.json`, evaluated by `engine.py`; the rest still carried by `matrix.py`)
 
+Five rows are hard for agents (owner, 2026-09-12): `trunk-commit`, `claim-unmeasured`, `pr-proof`, `force-push`, `prune`. They answer `ask`, not `deny`: the harness puts the action in front of the owner, and only the owner's click passes it. An agent does the needed half; it does not ask the owner to click.
+
 A condition is a row in the registry bound to an event (PreToolUse, PostToolUse, SessionStart, Stop) with a `when` tree over the engine's predicates (`engine.py lint` lists them). Adding or removing a condition is adding or removing a row.
 
 | class | it means | do this |
@@ -25,6 +27,7 @@ A condition is a row in the registry bound to an event (PreToolUse, PostToolUse,
 | `claim-unmeasured` | a commit message, PR body or comment, record or law page with a paragraph that claims (enforced, done, landed, merged, green, impossible, verified, fixed) and no reading beside it | measure it and put the reading in the same paragraph: a sha, a record id, a `P-` row id, `#PR`, a run id, `Ran N tests`; or write `not measured`. Quoted words are not your claim. No grant lifts this row. |
 | `force-push` | `git push` with `--force`, `--force-with-lease` or `-f` | push a new commit; pushed history is never rewritten. A registry row only (`ops/devlane/hooks/boundaries.json`); no code names it. |
 | `trunk-commit` | a commit, merge, cherry-pick, rebase, revert or am while on dev or master, or a push to them | work on the session branch: `git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/dev`, `deliverable.py add` it, commit there; one draft PR at close. No grant lifts this row (owner, 2026-09-12: "one branch per session"). |
+| `wall-write` | a write to the CI and test machinery (.github/workflows, ops/bin/suites.sh, probes.py, laneconf.py, the hook registry and engine) without a grant of lever class `wall`, or a wall grant writing anything else | wall work is its own session: `hand.py declare '<what>' '<why>' wall`, lead the command with `HAND_GRANT=<id>`, touch only wall paths, land it, then other work under its own grant. |
 | `pr-proof` | `gh pr ready` or `gh pr merge` without proof the system verifies | put the change's corpus rows under `ops/conductor/handoff/probes/` on the branch, name their ids under a `## Proof` heading in the PR body, push, and wait for the ci run on that head; the hook reads the PR, the corpus at the head and the run list itself. No grant lifts this row (owner, 2026-09-12: "it has to be impossible to not do the work"). |
 | `deliverable` | new work aimed at a branch the lock does not name | finish the deliverable, or `python3 ops/conductor/tools/deliverable.py set <branches> --why '<text>'` if the owner has named new work. A finding on the way is a ledger row. No grant lifts this row. |
 | `direct-launch` | `launch.py` run without the dispatcher | `ops/bin/dispatch.sh`; `launch.py --help` reads with `HAND_GRANT=<id>` leading (pitfall 7); the `wait` and `status` verbs refuse from a session (LD-1). |

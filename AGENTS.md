@@ -55,6 +55,24 @@ boundary is not a declared, verifiable coupling.
   word, "hand grant" or "get it done", is the grant; the session declares
   it that moment, unscoped and long-lived, and leads its writes with the
   id. The owner types nothing.
+  **The owner is the authority; the hooks are for agents** (owner,
+  2026-09-12: "i am the authoritative figure - my words and by extension,
+  the system, only exists to support me and my decisions. And it can't get
+  in the way in-session"; then, asked four questions: the hard rows stay
+  refused for an agent even under "get it done": a commit or push to dev
+  or master, a published claim with no reading, a PR ready or merged
+  without proof, a forced push or a prune; a grant covers every write
+  outside them; a hard action the owner wants anyway is authorized by a
+  harness approval click, which the hook asks for by answering `ask`
+  instead of `deny`, so only the owner's hand passes it and no agent can
+  forge it; the wall is CI, the tests and the PR gate).
+  **The wall is changed only in isolation** (owner, 2026-09-12: "i have
+  the right to issue a hand grant to change CI and tests - but i'm willing
+  to make that something that can only be done in isolation"): the CI
+  workflow, the suite lever, the corpus runner, the closure levers, the
+  hook registry and engine are written only under a grant of lever class
+  `wall`, in a session whose deliverable is the wall and which writes
+  nothing else; test files stay with the code they test.
 - **Refusals are the interface.** Components refuse rather than
   guess, on the wire, with expected–found–needed stated.
 - **No vendor becomes load-bearing.** Every external capability is

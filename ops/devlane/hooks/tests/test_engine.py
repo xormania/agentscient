@@ -172,6 +172,26 @@ class RowsAreDataOverPredicates(_Engine):
         self.refusal(self.bash("HAND_GRANT=7 touch held"), "held")
 
 
+class AHardRowAnswersAsk(_Engine):
+    """Owner, 2026-09-12: a hard row stays refused for an agent; the owner
+    authorizes the action by a harness approval click. escape: ask."""
+
+    def test_an_ask_row_answers_ask_with_the_wire_line(self):
+        self.plant(row("hard", escape="ask", when={"pred": "command_matches", "args": {"pattern": "^git push --force"}}),
+                   row("plain", escape="none", when={"pred": "command_matches", "args": {"pattern": "^rm -rf"}}))
+        proc = self.bash("git push --force origin x")
+        out = json.loads(proc.stdout)["hookSpecificOutput"]
+        self.assertEqual(out["permissionDecision"], "ask")
+        self.assertTrue(out["permissionDecisionReason"].startswith("[engine:hard] hard: expected "))
+        self.refusal(self.bash("rm -rf build"), "plain")
+
+    def test_the_live_hard_rows_are_ask_rows(self):
+        data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))
+        escapes = {r["class"]: r["escape"] for r in data["rows"]}
+        for klass in ("trunk-commit", "claim-unmeasured", "pr-proof", "force-push", "prune"):
+            self.assertEqual(escapes[klass], "ask", klass)
+
+
 class TheVocabularyCoversTheLaneRows(_Engine):
     """The predicates the migrated lane rows use, each proved on its own."""
 

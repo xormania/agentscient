@@ -33,7 +33,7 @@
    "tests": [
     "ops/devlane/hooks/tests/test_engine.py::test_prune_and_path_form_unittest"
    ],
-   "escape": "none",
+   "escape": "ask",
    "event": "PreToolUse",
    "tools": [
     "Bash"
@@ -291,7 +291,7 @@
     "ops/devlane/hooks/tests/test_pr_proof.py::test_no_proof_section_refuses",
     "ops/devlane/hooks/tests/test_pr_proof.py::test_a_grant_is_no_escape"
    ],
-   "escape": "none",
+   "escape": "ask",
    "event": "PreToolUse",
    "tools": [
     "Bash"
@@ -308,7 +308,7 @@
    "tests": [
     "ops/devlane/hooks/tests/test_engine.py::test_git_write_on_protected_and_push_to_protected"
    ],
-   "escape": "none",
+   "escape": "ask",
    "event": "PreToolUse",
    "tools": [
     "Bash"
@@ -339,7 +339,7 @@
    "tests": [
     "ops/devlane/hooks/tests/test_engine.py::test_claim_without_reading"
    ],
-   "escape": "none",
+   "escape": "ask",
    "event": "PreToolUse",
    "tools": [
     "Bash"
@@ -365,7 +365,7 @@
    "evidence": "a new commit on the branch; pushed history is never rewritten",
    "gate": "engine",
    "engine": true,
-   "escape": "none",
+   "escape": "ask",
    "tests": [
     "ops/devlane/hooks/tests/test_engine.py::test_a_row_added_as_data_alone_refuses"
    ],
@@ -379,6 +379,26 @@
     "expected": "a push that adds commits (branches are never rewritten)",
     "needed": "push a new commit; never rewrite a pushed branch. This row exists only as data in ops/devlane/hooks/boundaries.json (owner, 2026-09-12: adding a condition is adding a row)"
    }
+  },
+  {
+   "class": "wall-write",
+   "boundary": "write",
+   "actor": "session",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash",
+    "Write",
+    "Edit",
+    "MultiEdit"
+   ],
+   "trigger": "a write to a wall path (.github/workflows, ops/bin/suites.sh, probes.py, laneconf.py, the hook registry and engine) without a grant of lever class wall; or a wall grant writing a non-wall code path",
+   "evidence": "an open grant of lever class wall leading the command; the session touches wall paths only",
+   "gate": "wall_write",
+   "engine": false,
+   "escape": "grant",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_wall_paths_need_a_wall_grant_and_a_wall_grant_touches_only_the_wall"
+   ]
   }
  ],
  "engine": "ops/devlane/hooks/claude/engine.py evaluates rows with engine: true at the event they bind to; rows with engine: false are still carried by matrix.py's code and are declared here so a class nobody declared cannot refuse",
@@ -398,5 +418,11 @@
   "Stop": [
    "always"
   ]
+ },
+ "escapes": {
+  "none": "no grant lifts the row; the refusal stands",
+  "grant": "an open hand grant leading the command whose scope covers the path lifts it",
+  "unscoped-grant": "an open grant with no scope lifts it",
+  "ask": "the row answers ask instead of deny: the harness puts the action in front of the owner, and only the owner's click passes it (owner, 2026-09-12: hard rows stay refused for agents; a hard action is authorized by a harness approval click)"
  }
 }

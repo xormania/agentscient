@@ -33,7 +33,7 @@ REPO = HOOKS.parents[2]
 MATRIX = HOOKS / "claude" / "matrix.py"
 REGISTRY = HOOKS / "boundaries.json"
 FIELDS = ("class", "boundary", "actor", "trigger", "evidence", "gate", "tests", "escape", "event", "tools")
-ESCAPES = {"none", "grant", "unscoped-grant"}
+ESCAPES = {"none", "grant", "unscoped-grant", "ask"}
 BOUNDARIES = {"write", "search", "test-run", "dispatch", "branch", "pr", "commit", "publish"}
 
 

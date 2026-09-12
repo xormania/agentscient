@@ -54,6 +54,11 @@ row that cannot look refuses: "could not look" is not a pass.
                     trunk or the release branch, or a push whose
                     refspec targets them; no grant escape (owner,
                     2026-09-12: "one branch per session")
+    wall-write      a write to the CI and test machinery          the path, the grant's
+                    (.github/workflows, suites.sh, probes.py,     lever class
+                    laneconf.py, the hook registry and engine)
+                    without a grant of lever class wall; or a
+                    wall grant writing anything else (isolation)
     pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
                     system verifies: a ## Proof section naming   at the head, gh run list
                     corpus rows that exist at the PR head, the
@@ -152,6 +157,14 @@ HEREDOC_OPEN = re.compile(
 HEREDOC_TOKEN = re.compile(r"^(?:(\d+))?<<-?(.*)$")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
+# Owner, 2026-09-12: "i have the right to issue a hand grant to change CI and
+# tests - but i'm willing to make that something that can only be done in
+# isolation". The wall is the machinery that contains everyone's mistakes;
+# it is written only under a grant of lever class `wall`, and a session
+# holding one writes nothing else.
+WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+              "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
+              "ops/devlane/hooks/claude/engine.py")
 
 
 BOUNDARIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "boundaries.json")
@@ -170,12 +183,19 @@ def declared_boundaries():
 
 
 def deny(klass, expected, found, needed):
-    if klass not in declared_boundaries():
+    rows = declared_boundaries()
+    if klass not in rows:
         raise RuntimeError(f"undeclared gate: {klass} has no row in ops/devlane/hooks/boundaries.json")
+    # Owner, 2026-09-12 (four answers): a hard row stays refused for an
+    # agent; the owner authorizes the action, when wanted, by a harness
+    # approval click. A row whose escape is `ask` answers ask, and the
+    # harness puts that one action in front of the owner; nothing an
+    # agent writes can click it.
+    decision = "ask" if rows[klass].get("escape") == "ask" else "deny"
     line = f"{klass}: expected {expected}; found {found}; needed {needed}"
     return {"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
+        "permissionDecision": decision,
         "permissionDecisionReason": f"[matrix:{klass}] {line}",
     }}
 
@@ -203,6 +223,30 @@ def relative(path, cwd):
     if root is None:
         return None, None
     return root, os.path.relpath(absolute, root)
+
+
+def is_wall(rel):
+    if rel is None or rel.startswith(".."):
+        return False
+    return any(rel == w or rel.startswith(w) for w in WALL_PATHS)
+
+
+def wall_write(what, path, rel, grant):
+    """The wall-write row: a wall path needs a wall-class grant; a wall
+    grant touches only wall paths. None when neither applies."""
+    wall_grant = grant is not None and len(grant) > 2 and grant[2] == "wall"
+    if is_wall(rel) and not wall_grant:
+        holder = "no grant" if grant is None else f"grant {grant[0]} of class {grant[2] if len(grant) > 2 else 'other'}"
+        return deny("wall-write", "a grant of lever class wall leading the command (CI and test machinery "
+                                  "is changed only in a session whose deliverable is the wall)",
+                    f"{what} writing {path} under {holder}",
+                    "python3 ops/conductor/tools/hand.py declare '<what>' '<why>' wall; lead the command with "
+                    "HAND_GRANT=<id>; touch only wall paths in that session (owner, 2026-09-12)")
+    if wall_grant and is_code(rel) and not is_wall(rel):
+        return deny("wall-write", "a wall session touching only wall paths (isolation)",
+                    f"{what} writing {path} under wall grant {grant[0]}",
+                    "land the wall work first; other work goes in its own session under its own grant")
+    return None
 
 
 def is_code(rel):
@@ -242,14 +286,14 @@ def open_grant(text, lane):
     try:
         connection = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         row = connection.execute(
-            "SELECT status, scope FROM handwork WHERE id = ?", (grant_id,)
+            "SELECT status, scope, lever_class FROM handwork WHERE id = ?", (grant_id,)
         ).fetchone()
         connection.close()
     except sqlite3.Error:
         return None
     if row is None or row[0] != "open":
         return None
-    return grant_id, (row[1] or "")
+    return grant_id, (row[1] or ""), (row[2] or "other")
 
 
 def grant_covers(grant, rel):
@@ -1220,6 +1264,11 @@ def check_text(text, cwd, depth=0):
     lane = conf.get("LANE_NAME")
     grant = open_grant(text, lane)
     for path in python_written_paths(text):
+        if path != UNRESOLVED_WRITE:
+            _, rel = relative(path, cwd)
+            refusal = wall_write("a script", path, rel, grant)
+            if refusal:
+                return refusal
         if path == UNRESOLVED_WRITE:
             if grant is None:
                 return deny("hand-write", "a write target the row can resolve (a literal path, Path('...'), "
@@ -1255,6 +1304,9 @@ def check_text(text, cwd, depth=0):
                                 "the landing lever (land.py), or HAND_GRANT=<open id> declared first")
                 continue
             _, rel = relative(target, cwd)
+            refusal = wall_write(base(toks[0]), target, rel, grant)
+            if refusal:
+                return refusal
             if is_code(rel) and not grant_covers(grant, rel):
                 return deny("hand-write", "code changed through the ladder (freeze)", f"{base(toks[0])} writing {target}",
                             "the ladder, or HAND_GRANT=<open id> whose scope names the path (grants are for landing and merge resolution)")
@@ -1297,6 +1349,9 @@ def decide(payload):
     path = tool_input.get("file_path") or tool_input.get("relative_path") or ""
     if path:
         _, rel = relative(path, cwd)
+        refusal = wall_write(tool, path, rel, None)
+        if refusal:
+            return refusal
         if is_code(rel):
             return deny("hand-write", "code changed through the ladder (freeze)", f"{tool} on {path}",
                         "the ladder; a granted hand change goes through Bash with HAND_GRANT=<open id> leading the command")

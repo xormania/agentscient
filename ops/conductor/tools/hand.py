@@ -33,6 +33,7 @@ LEVERS = {
     "amend": None,
     "worktree": None,
     "log-tooling": None,
+    "wall": None,  # CI and test machinery work, in its own session (owner, 2026-09-12)
     "other": None,
 }
 IDENTITY = re.compile(r"[^<>\n]+ <[^<>\s@]+@[^<>\s]+>")
