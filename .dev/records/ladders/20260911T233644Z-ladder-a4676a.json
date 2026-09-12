@@ -100,6 +100,7 @@
         "exported": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/ops/conductor/findings/findings.jsonl",
         "imported": true
       },
+      "minutes": 12.422186,
       "name": "check-tests",
       "outcome": "ok",
       "record": "20260911T235531Z-check-tests-codex-28d56c",
