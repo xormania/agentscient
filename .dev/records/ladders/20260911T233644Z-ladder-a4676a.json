@@ -186,23 +186,7 @@
       "stage": null
     }
   ],
-  "status": "stopped",
-  "stopped": {
-    "keys": [
-      "20260911T235531Z-check-tests-codex-28d56c#1",
-      "20260911T235531Z-check-tests-codex-28d56c#2",
-      "20260911T235531Z-check-tests-codex-28d56c#3",
-      "20260911T235531Z-check-tests-codex-28d56c#4",
-      "20260911T235531Z-check-tests-codex-28d56c#5",
-      "20260911T235531Z-check-tests-codex-28d56c#6",
-      "20260911T235531Z-check-tests-codex-28d56c#7",
-      "20260911T235531Z-check-tests-codex-28d56c#8",
-      "20260911T235531Z-check-tests-codex-28d56c#9"
-    ],
-    "reason": "undisposed",
-    "record": "none",
-    "stage": "tests-fix",
-    "verdict": null
-  },
+  "status": "running",
+  "stopped": null,
   "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911"
 }
