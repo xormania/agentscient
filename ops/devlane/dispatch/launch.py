@@ -588,6 +588,216 @@ def _effort_argv(harness, effort):
     return ["--reasoning-effort", effort]
 
 
+LANE_MCP_SERVER = "agentscient-lane"
+LANE_MCP_KEY = "agentscient_lane"
+LANE_MCP_TOOLS = ("lane_brief", "lane_jobs", "lane_changes", "lane_findings",
+                  "lane_record", "lane_alerts", "lane_usage")
+LANE_MCP_REL = Path("ops/conductor/tools/lane_mcp.py")
+LANE_MCP_ABSENT = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}
+BRIEF_MARK = "== what exists (measured at launch) =="
+BRIEF_CAP = 8000
+REUSE_RE = re.compile(r"reused:\s*(.+)", re.DOTALL)
+REUSE_CLAUSE = (
+    "Before building anything, look up what exists: the list above, and the lane "
+    f"MCP server `{LANE_MCP_SERVER}` (tools: {', '.join(LANE_MCP_TOOLS)}; read "
+    "lane_brief first, then lane_jobs, lane_changes and lane_findings for the "
+    "records this work follows). A capability that exists is reused, never "
+    "rebuilt. In the envelope's `note` write `reused: <what you reused>` or "
+    "`reused: nothing applied`; a write envelope without that line is invalid "
+    "(owner, 2026-09-12: \"stop you or other agents from going outside the "
+    "architecture, duplicating, or worse - ignoring\")."
+)
+
+
+def _same_unit_records(repo, unit, exclude):
+    """Newest-first record ids on the same unit, from the repo's own records."""
+    found = []
+    root = repo / ".dev/records/dispatches"
+    if not unit or not root.is_dir():
+        return found
+    for path in sorted(root.glob("*.json"), reverse=True):
+        if path.stem == exclude:
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(data, dict) and data.get("unit") == unit and isinstance(data.get("id"), str):
+            found.append(data["id"])
+    return found
+
+
+def _lane_mcp(job_dir, snapshot, job_id, repo, unit, follows):
+    """Write the lane MCP v2 config for this dispatch; return (record meta, server argv)."""
+    tool = Path(snapshot) / LANE_MCP_REL
+    if not tool.is_file():
+        return dict(LANE_MCP_ABSENT), None
+    ids = []
+    named = follows if isinstance(follows, (list, tuple)) else ([follows] if follows else [])
+    for candidate in [str(item) for item in named if item] + _same_unit_records(repo, unit, job_id):
+        if candidate and candidate not in ids and len(ids) < 20:
+            ids.append(candidate)
+    cfg = Path(job_dir) / "lane-mcp.json"
+    cfg.write_text(json.dumps({
+        "version": 2, "dispatch_store": str(Path(job_dir).resolve().parent),
+        "job_ids": ids, "monitor_state": None, "consumer": job_id,
+        "usage_rollout": None, "job_registry": str(JOBS_PATH),
+    }, indent=1) + "\n", encoding="utf-8")
+    server = ["python3", "-B", str(tool.resolve()), "--config", str(cfg.resolve()), "serve"]
+    return {"config": str(cfg.resolve()), "sha256": _sha(cfg), "job_ids": ids,
+            "server": server, "tools": list(LANE_MCP_TOOLS)}, server
+
+
+def _mcp_argv(harness, server, job_dir):
+    """The argv tokens that hand a harness the lane MCP server; [] for none."""
+    if not server:
+        return []
+    if harness == "claude":
+        path = Path(job_dir) / "mcp.json"
+        path.write_text(json.dumps({"mcpServers": {LANE_MCP_SERVER: {
+            "command": server[0], "args": server[1:]}}}, indent=1) + "\n", encoding="utf-8")
+        return ["--mcp-config", str(path.resolve())]
+    if harness == "codex":
+        return ["-c", f'mcp_servers.{LANE_MCP_KEY}.command="{server[0]}"',
+                "-c", f"mcp_servers.{LANE_MCP_KEY}.args={json.dumps(server[1:])}"]
+    return []
+
+
+def _grok_mcp_config(home, server):
+    """Grok reads MCP servers from $GROK_HOME/config.toml (measured 2026-09-12)."""
+    if not server or not home:
+        return None
+    path = Path(home) / "config.toml"
+    args = ",\n".join("    " + json.dumps(token) for token in server[1:])
+    block = (f"[mcp_servers.{LANE_MCP_KEY}]\ncommand = {json.dumps(server[0])}\n"
+             f"args = [\n{args},\n]\nenabled = true\n")
+    prior = path.read_text(encoding="utf-8") if path.is_file() else ""
+    if f"[mcp_servers.{LANE_MCP_KEY}]" not in prior:
+        path.write_text(prior + ("\n" if prior and not prior.endswith("\n") else "") + block,
+                        encoding="utf-8")
+    return str(path)
+
+
+def _mcp_calls(stream, harness):
+    """Count the lane MCP calls a worker made, from its own store; the
+    proof at the dispatch boundary (owner, 2026-09-12: "not just proof at
+    PR - proof for every dispatch"). Shapes measured on 2026-09-12 from
+    live probes: claude `tool_use` named `mcp__<server>__<tool>`; codex
+    `event_msg` items of type `McpToolCall` on the server's TOML key; grok
+    assistant `tool_calls` whose arguments name `<key>__<tool>` (the
+    server name and key are LANE_MCP_SERVER and LANE_MCP_KEY). None when
+    the store cannot be read."""
+    if not stream:
+        return None
+    path = Path(stream)
+    if path.name == "summary.json":
+        path = path.parent / "chat_history.jsonl"
+    if not path.is_file():
+        return None
+    tools = []
+    prefix_dash = f"mcp__{LANE_MCP_SERVER}__"
+    prefix_us = f"{LANE_MCP_KEY}__"
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        if LANE_MCP_KEY not in line and LANE_MCP_SERVER not in line:
+            continue
+        try:
+            item = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(item, dict):
+            continue
+        if harness == "claude":
+            content = ((item.get("message") or {}).get("content")
+                       if isinstance(item.get("message"), dict) else None)
+            for part in content if isinstance(content, list) else []:
+                if isinstance(part, dict) and part.get("type") == "tool_use" \
+                        and str(part.get("name", "")).startswith(prefix_dash):
+                    tools.append(str(part["name"])[len(prefix_dash):])
+        elif harness == "codex":
+            payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            call = payload.get("item") if isinstance(payload.get("item"), dict) else {}
+            if call.get("type") == "McpToolCall" and call.get("server") == LANE_MCP_KEY:
+                tools.append(str(call.get("tool")))
+        elif harness == "grok":
+            for call in item.get("tool_calls") if isinstance(item.get("tool_calls"), list) else []:
+                args = call.get("arguments") if isinstance(call, dict) else None
+                if isinstance(args, str) and prefix_us in args:
+                    try:
+                        name = json.loads(args).get("tool_name", "")
+                    except ValueError:
+                        name = ""
+                    if str(name).startswith(prefix_us):
+                        tools.append(str(name)[len(prefix_us):])
+    return tools
+
+
+def _first_doc_line(path):
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    for quote in ('"""', "\'\'\'"):
+        start = text.find(quote)
+        if 0 <= start < 400:
+            body = text[start + 3:]
+            line = body.split("\n", 1)[0].strip().strip(quote).strip()
+            return line
+    return ""
+
+
+def _what_exists(snapshot, jobs, mcp_meta):
+    """A bounded, measured list of what the tree already has; absence declared."""
+    root = Path(snapshot)
+    lines = [BRIEF_MARK]
+    tools = sorted(root.glob("ops/conductor/tools/*.py"))
+    lines.append("levers: absent" if not tools else "levers (ops/conductor/tools):")
+    for tool in tools[:80]:
+        doc = _first_doc_line(tool)
+        lines.append(f"  {tool.name} — {doc}" if doc else f"  {tool.name}")
+    skills = sorted(p.name for p in root.glob(".claude/skills/*") if p.is_dir())
+    lines.append("skills (.claude/skills): " + ", ".join(skills) if skills else "skills: absent")
+    conf = root / "ops/lane.conf"
+    if conf.is_file():
+        keys = [line.split("=", 1)[0] for line in conf.read_text(encoding="utf-8", errors="replace").splitlines()
+                if line and not line.startswith("#") and "=" in line]
+        lines.append("lane.conf keys: " + ", ".join(keys))
+    else:
+        lines.append("lane.conf: absent")
+    names = [f"{name} ({spec.get('role') or 'direct'})" for name, spec in (jobs or {}).items()
+             if isinstance(spec, dict)]
+    lines.append("jobs (the catalogue): " + ", ".join(names) if names else "jobs: absent")
+    ideas = sorted(p.stem for p in root.glob("ops/conductor/ideas/I-*.md"))
+    lines.append("ideas (ops/conductor/ideas): " + ", ".join(ideas[-40:]) if ideas else "ideas: absent")
+    handoffs = sorted(root.glob("ops/conductor/handoff/HANDOFF-*.md"))
+    corrections = []
+    if handoffs:
+        text = handoffs[-1].read_text(encoding="utf-8", errors="replace")
+        marker = "## Corrections to retain"
+        if marker in text:
+            section = text.split(marker, 1)[1]
+            section = section.split("\n## ", 1)[0]
+            corrections = [line for line in section.splitlines() if line.strip()]
+    if corrections:
+        lines.append(f"corrections to retain ({handoffs[-1].name}):")
+        lines.extend("  " + line for line in corrections[:30])
+    else:
+        lines.append("corrections: absent")
+    if mcp_meta and mcp_meta.get("server"):
+        lines.append(f"lane MCP: server `{LANE_MCP_SERVER}`, tools {', '.join(LANE_MCP_TOOLS)}; "
+                     f"records in reach: {', '.join(mcp_meta.get('job_ids') or []) or 'none'}")
+    else:
+        lines.append(f"lane MCP: absent ({LANE_MCP_ABSENT['unresolved']}); tools would be "
+                     + ", ".join(LANE_MCP_TOOLS))
+    text = "\n".join(lines)
+    if len(text) > BRIEF_CAP:
+        text = text[:BRIEF_CAP] + "\n  … (brief cut at the cap; the rest is in the tree)"
+    return text + "\n\n" + REUSE_CLAUSE
+
+
 def _turns_argv(harness, turns):
     """The exact argv tokens that carry a turn cap; [] where the harness
     has no such flag (codex exec, agy: measured 2026-09-12, `--help` names
@@ -628,9 +838,16 @@ def _resolve_turns(job_caps):
 
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
           project_allow=(), project_deny=(), writable_out=False, executable=None,
-          turns=None):
+          turns=None, mcp=None):
+    if mcp and name == "claude":
+        project_allow = (*project_allow, f"mcp__{LANE_MCP_SERVER}")
     argv = _argv_base(name, model, effort, session, prompt, flags, sandbox, resume,
                       project_allow, project_deny, writable_out, executable)
+    extra = _mcp_argv(name, mcp, Path(prompt).parent)
+    if name == "codex" and argv and argv[-1] == "-":
+        argv = [*argv[:-1], *extra, "-"]
+    else:
+        argv = [*argv, *extra]
     return [*argv, *_turns_argv(name, turns)]
 
 
@@ -1280,7 +1497,8 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                  resume, project_allow, project_deny,
                  writable_out=rec["role"] == "read",
                  executable=rec["harness"].get("worker", {}).get("executable"),
-                 turns=(rec.get("caps") or {}).get("turns"))
+                 turns=(rec.get("caps") or {}).get("turns"),
+                 mcp=((rec.get("brief") or {}).get("mcp") or {}).get("server"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
@@ -1596,6 +1814,9 @@ def _launch(args):
               "out": str((job_dir / "out").resolve()),
               "inputs": " ".join(item["path"] for item in copied), "scope": args.scope or ""}
     prompt_text = _render(job["prompt"], values)
+    mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
+                                     args.follows)
+    prompt_text += "\n\n" + _what_exists(snapshot, jobs, mcp_meta)
     # Dispatch names its copies even when the shared template omits inputs.
     if copied:
         prompt_text += "\n\nInput files: " + values["inputs"]
@@ -1612,6 +1833,10 @@ def _launch(args):
     prompt = job_dir / "prompt.txt"
     prompt.write_text(prompt_text)
     _iso_env, _flags, sandbox, containment, isolation_data = _harness_meta(args.harness, role, job_dir, os.environ)
+    if args.harness == "grok":
+        grok_config = _grok_mcp_config(_iso_env.get("GROK_HOME"), mcp_server)
+        if grok_config:
+            mcp_meta["grok_config"] = grok_config
     if args.harness == "codex" and role == "read":
         sandbox = "workspace-write"  # LD-14: OS containment, out/ writable
     permissions = None
@@ -1642,13 +1867,14 @@ def _launch(args):
                                   project_allow, project_deny,
                                   writable_out=role == "read",
                                   executable=worker["executable"],
-                                  turns=turns)},
+                                  turns=turns, mcp=mcp_server)},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
         "session": {"id": session, "stream": None, "stream_sha256_at_close": None},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,
+                  "mcp": mcp_meta,
                   **({"graft": graft_metadata} if graft_metadata is not None else {})},
         "caps": {"cap-out": wires.budget(role), "source": "wires.py",
                  "turns": turns, "turns_source": turns_source,
@@ -2128,8 +2354,35 @@ def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
     elif role == "write":
         _git(repo, "-c", "core.logAllRefUpdates=always", "fetch",
              "--no-write-fetch-head", str(snapshot), f"{head}:refs/dispatch/{job_id}")
+    if role == "write":
+        declared = REUSE_RE.search(str(env.get("note") or ""))
+        if declared is None and env.get("status") == "ok":
+            _invalidate_envelope(env, "reuse-undeclared: a write envelope's note carries "
+                                      "`reused: <what>` or `reused: nothing applied`")
+    wired = bool(((rec.get("brief") or {}).get("mcp") or {}).get("server"))
+    # The record holds the store path with its snapshot segment made
+    # portable; the reader needs the real path (_absolute_paths inverts it).
+    real_stream = _absolute_paths({"snapshot": rec.get("snapshot"),
+                                   "session": rec.get("session")})["session"].get("stream")
+    calls = _mcp_calls(real_stream, rec["harness"]["name"]) if wired else None
+    if wired and env.get("status") == "ok":
+        if calls is None:
+            _invalidate_envelope(env, "framework-unproven: the worker's store could not be read, "
+                                      "so no lane MCP call is proven; could not look is not a pass")
+        elif not calls:
+            _invalidate_envelope(env, "framework-unused: the worker made no lane MCP call; the brief "
+                                      "named the server and its tools")
     rec["result"] = {"head": head, "changed_paths": changed,
                      "residual_paths": residual, "envelope": env}
+    rec["result"]["proof"] = {
+        "mcp_wired": wired,
+        "mcp_calls": None if calls is None else len(calls),
+        "mcp_tools": sorted(set(calls)) if calls else [],
+        "store": real_stream,
+        **({"unresolved": "no readable store"} if wired and calls is None else {}),
+    }
+    if role == "write":
+        rec["result"]["reuse"] = declared.group(1).strip() if declared else "undeclared"
     if residual_patch:
         rec["result"]["residual_patch"] = residual_patch
     cause = prior_cause if preserve_cause else _cause(rec, job_dir, env)

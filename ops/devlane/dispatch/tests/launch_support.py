@@ -341,6 +341,33 @@ if write_stream and stores_path:
             grok_home=home,
         )
 
+mcp_calls = int(os.environ.get("TASK_LAUNCH_MCP_CALLS") or "0")
+if write_stream and stores_path and exe == "grok":
+    # a live grok always writes chat_history.jsonl beside summary.json
+    grok_home = Path(os.environ.get("GROK_HOME") or Path(os.environ.get("HOME", "")) / ".grok")
+    for p in grok_home.rglob("summary.json"):
+        (p.parent / "chat_history.jsonl").touch()
+if write_stream and stores_path and mcp_calls:
+    home = os.environ.get("HOME") or ""
+    if exe == "claude":
+        files = list((Path(home) / ".claude" / "projects").rglob("*.jsonl"))
+        line = json.dumps({"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_fake", "name": "mcp__agentscient-lane__lane_jobs", "input": {}}]}})
+    elif exe == "codex":
+        files = list(Path(os.environ.get("CODEX_HOME") or Path(home) / ".codex").rglob("rollout-*.jsonl"))
+        line = json.dumps({"timestamp": "2023-11-14T22:13:21.000Z", "type": "event_msg", "payload": {
+            "type": "item_completed", "item": {"type": "McpToolCall", "id": "exec-fake",
+                                               "server": "agentscient_lane", "tool": "lane_jobs", "arguments": {}}}})
+    else:
+        grok_home = Path(os.environ.get("GROK_HOME") or Path(home) / ".grok")
+        files = [p.parent / "chat_history.jsonl" for p in grok_home.rglob("summary.json")]
+        line = json.dumps({"type": "assistant", "content": "", "tool_calls": [{"id": "call-fake", "name": "use_tool",
+                           "arguments": json.dumps({"tool_name": "agentscient_lane__lane_jobs", "tool_input": {}})}]})
+    for target in files:
+        with target.open("a", encoding="utf-8") as fh:
+            for _ in range(mcp_calls):
+                fh.write(line + "\n")
+
 note = os.environ.get("TASK_LAUNCH_NOTE")
 if note == "":
     note = None
@@ -766,6 +793,7 @@ class _TempLaunch(unittest.TestCase):
                 "PATH", "HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME",
                 "WF_AGENT", "GRAFT_INSTALL", "DISPATCH_JOBS", "DISPATCH_STREAM_GRACE",
                 "DISPATCH_TIMEOUT", "TASK_LAUNCH_WITNESS", "TASK_LAUNCH_DONE",
+                "TASK_LAUNCH_MCP_CALLS",
                 "TASK_LAUNCH_SLEEP", "TASK_LAUNCH_STDOUT",
                 "TASK_LAUNCH_TOKEN", "TASK_LAUNCH_JOB",
                 "TASK_LAUNCH_VERDICT", "TASK_LAUNCH_STATUS",
@@ -1017,7 +1045,14 @@ class _TempLaunch(unittest.TestCase):
         launch = self.load_launch()
         out, err = io.StringIO(), io.StringIO()
         cwd = cwd or self.repo
-        old = os.getcwd()
+        try:
+            old = os.getcwd()
+        except FileNotFoundError:
+            # A predecessor test left the process inside a directory it then
+            # removed (2026-09-12: every test of the next module erroring at
+            # getcwd in suite order). Stand on the repository root instead.
+            old = str(Path(__file__).resolve().parents[4])
+            os.chdir(old)
         try:
             os.chdir(cwd)
             with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -1059,7 +1094,22 @@ class _TempLaunch(unittest.TestCase):
     def dispatch(self, argv=None, **kwargs):
         if argv is None:
             argv = self.argv_for(**kwargs)
-        return self.run_main(argv)
+        # A write envelope must declare reuse (launch.py, grant 158); the
+        # fixture default declares none unless a test plants its own note.
+        planted = False
+        if "TASK_LAUNCH_NOTE" not in os.environ and argv:
+            try:
+                spec = json.loads(self.jobs_file.read_text(encoding="utf-8")).get(argv[0]) or {}
+            except (OSError, ValueError):
+                spec = {}
+            if spec.get("role") == "write":
+                os.environ["TASK_LAUNCH_NOTE"] = "reused: nothing applied (fixture default)"
+                planted = True
+        try:
+            return self.run_main(argv)
+        finally:
+            if planted:
+                os.environ.pop("TASK_LAUNCH_NOTE", None)
 
     def combined(self, out, err):
         return (out or "") + (err or "")

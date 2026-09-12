@@ -483,6 +483,16 @@ def _literal_exempt(rel: str, line: str, needle: str) -> bool:
                 "ops/conductor/tools/lane_mcp.py",
                 '"serverInfo": {"name": "agentscient-lane", "version": "1"},',
             ),
+            # The launcher hands workers that same fixed protocol identity
+            # (grant 158, 2026-09-12): the server name and its TOML key.
+            (
+                "ops/devlane/dispatch/launch.py",
+                'LANE_MCP_SERVER = "agentscient-lane"',
+            ),
+            (
+                "ops/devlane/dispatch/launch.py",
+                'LANE_MCP_KEY = "agentscient_lane"',
+            ),
         }
     if rel == "ops/devlane/dispatch/record.py" and needle == '"dev"':
         return stripped in {
