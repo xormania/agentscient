@@ -6,13 +6,14 @@ job catalogue, not the driver.
 
 Item 1: check-tests delivers the JSON envelope on stdout, artifacts
 empty, no file written; the prompt asks for exactly that. Item 2: each
-finding is a quotation pair; the prompt carries the claim grammar.
+finding is a quotation pair; the prompt asks for both quotes.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 import unittest
 
 import support
@@ -82,6 +83,27 @@ CONSTRAINTS = ["read only", "do not edit the snapshot"]
 # Item 1 near-miss: the D1 paragraph plus a leftover {out} write.
 ITEM1_OUT_MUTANT = D1_PROMPT + " " + OLD_PROMPT_SENTENCE
 
+# Item 1 near-miss: prescribed paragraph plus a differently named file write.
+# Survived the first frozen set (skeptic 20260911T235531Z, P2).
+ITEM1_EXTRA_FILE_MUTANT = (
+    D1_PROMPT + " " + SPEND_TO_THE_LAUNCHER + " " + ENVELOPE_CLAUSE
+    + " Save the report to report.md"
+)
+
+_NEGATIONS = ("not", "no", "never", "don't", "do not", "without", "nothing")
+_PATH_SHAPED = re.compile(
+    r"\{out\}"
+    r"|[\w.{}/-]*\/[\w.{}/-]+"
+    r"|`[^`]+\.(?:md|txt|json|py|log)`"
+    r"|\b[\w-]+\.(?:md|txt|json|py|log)\b"
+)
+_SENTENCE_SPLIT = re.compile(r"[.;!?\n]+")
+_SUFFIX = re.compile(r"\.(md|txt|json|py|log)\b", re.IGNORECASE)
+_WRITE_VERB = re.compile(
+    r"\b(?:write|save|create|store|emit|put|append|dump)\b",
+    re.IGNORECASE,
+)
+
 
 def _load_jobs() -> dict:
     raw = JOBS_PATH.read_text(encoding="utf-8")
@@ -97,12 +119,48 @@ def _others_digest(jobs: dict) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _positive_write_to_path(text: str) -> str | None:
+    """First sentence that is a positive write instruction to a path.
+
+    Item 1: the prompt asks for the envelope on stdout and no file.
+    Recognition is by instruction shape (a write verb and a path-shaped
+    token, negated sentences excluded), not by a list of forbidden words.
+    """
+    protected = _SUFFIX.sub(r"·\1", text)
+    for raw in _SENTENCE_SPLIT.split(protected):
+        sent = raw.replace("·", ".").strip()
+        if not sent:
+            continue
+        for verb_m in _WRITE_VERB.finditer(sent):
+            path_m = _PATH_SHAPED.search(sent, verb_m.end())
+            if path_m is None:
+                continue
+            between = sent[verb_m.end() : path_m.start()].lower()
+            before = sent[max(0, verb_m.start() - 24) : verb_m.start()].lower()
+            if any(re.search(rf"\b{re.escape(token)}\b", between) for token in _NEGATIONS):
+                continue
+            if any(re.search(rf"\b{re.escape(token)}\b", before) for token in _NEGATIONS):
+                continue
+            return sent
+    return None
+
+
 def _item1_prompt_holds(prompt: str) -> bool:
     if "{out}" in prompt:
         return False
     if OLD_PROMPT_SENTENCE in prompt:
         return False
-    if D1_PROMPT not in prompt:
+    if _positive_write_to_path(prompt) is not None:
+        return False
+    if "envelope on stdout" not in prompt:
+        return False
+    if (
+        "empty object" not in prompt
+        and "artifacts is empty" not in prompt
+        and "`artifacts` empty" not in prompt
+    ):
+        return False
+    if "write no file" not in prompt.lower() and "no file written" not in prompt.lower():
         return False
     if SPEND_TO_THE_LAUNCHER not in prompt:
         return False
@@ -190,8 +248,32 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
             "item 1: the D1 paragraph plus a leftover {out} write "
             "must not hold",
         )
+        prompt = self.spec.get("prompt")
+        self.assertIsInstance(prompt, str)
+        self.assertNotIn(
+            "{out}",
+            prompt,
+            "item 1: the live check-tests prompt still names {out}",
+        )
+        self.assertNotIn(
+            OLD_PROMPT_SENTENCE,
+            prompt,
+            "item 1: the live prompt still instructs a SKEPTIC.md write",
+        )
 
     def test_the_prompt_drops_out_and_asks_for_no_file(self):
+        planted = ITEM1_EXTRA_FILE_MUTANT
+        self.assertIn("Save the report to report.md", planted)
+        self.assertNotIn("{out}", planted)
+        self.assertNotIn(OLD_PROMPT_SENTENCE, planted)
+        self.assertIsNotNone(
+            _positive_write_to_path(planted),
+            "plant must land: Save the report to report.md is a file write",
+        )
+        self.assertFalse(
+            _item1_prompt_holds(planted),
+            "item 1: a prompt that appends a file write must not hold",
+        )
         prompt = self.spec.get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertTrue(prompt.strip(), "check-tests prompt is empty")
@@ -205,10 +287,15 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
             prompt,
             "item 1: the prompt must not instruct a SKEPTIC.md write",
         )
+        self.assertIsNone(
+            _positive_write_to_path(prompt),
+            "item 1: the prompt asks for no file; found "
+            f"{_positive_write_to_path(prompt)!r}",
+        )
         self.assertTrue(
             _item1_prompt_holds(prompt),
-            "item 1: prompt must be the D1 paragraph, spend and envelope "
-            f"clauses, no {{out}}; found {prompt[:240]!r}",
+            "item 1: prompt must ask for the envelope on stdout, "
+            f"artifacts empty, no file; found {prompt[:240]!r}",
         )
 
     def test_the_prompt_keeps_ref_inputs_and_scope(self):
@@ -219,17 +306,25 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
 
     def test_the_prompt_carries_the_quotation_pair_grammar(self):
         mutant = "every finding is prose naming a contract item"
-        self.assertNotIn("declared (<location>):", mutant)
+        self.assertNotIn("quotation pair", mutant)
+        self.assertNotIn("declared", mutant)
         prompt = self.spec.get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertIn(
-            "declared (<location>):",
+            "quotation pair",
             prompt,
-            "item 2: the prompt carries the quotation-pair claim grammar",
+            "item 2: the prompt asks for quotation-pair findings",
         )
-        self.assertIn("; practiced: ", prompt)
-        self.assertIn("; misses: ", prompt)
-        self.assertIn("quotation pair", prompt)
+        self.assertIn(
+            "declared",
+            prompt,
+            "item 2: the prompt asks for the declared words with location",
+        )
+        self.assertIn(
+            "practiced",
+            prompt,
+            "item 2: the prompt asks for the practiced evidence with location",
+        )
 
     def test_the_prompt_keeps_the_spend_and_envelope_clauses(self):
         prompt = self.spec.get("prompt")
@@ -248,6 +343,18 @@ class CheckTestsDeliverable(_JobsPin):
             _item1_deliverable_holds(mutant),
             "item 1: a SKEPTIC.md path is not the envelope on stdout",
         )
+        cell = self.spec.get("deliverable")
+        self.assertIsInstance(cell, str)
+        self.assertNotIn(
+            "SKEPTIC.md",
+            cell,
+            "item 1: the live deliverable still names SKEPTIC.md",
+        )
+        self.assertNotEqual(
+            cell,
+            OLD_DELIVERABLE,
+            "item 1: the live deliverable is still the SKEPTIC.md form",
+        )
 
     def test_the_deliverable_is_the_envelope_on_stdout_with_no_file(self):
         cell = self.spec.get("deliverable")
@@ -256,14 +363,13 @@ class CheckTestsDeliverable(_JobsPin):
         self.assertIn("the JSON envelope on stdout", cell)
         self.assertIn("quotation pair", cell)
         self.assertTrue(
+            _item1_deliverable_holds(D1_DELIVERABLE),
+            "plant: the item-1 deliverable sentence must itself hold",
+        )
+        self.assertTrue(
             _item1_deliverable_holds(cell),
             "item 1: deliverable is the envelope on stdout, artifacts "
             f"empty, no file written; found {cell!r}",
-        )
-        self.assertEqual(
-            cell,
-            D1_DELIVERABLE,
-            "item 1: jobs.json deliverable is the D1 sentence",
         )
 
 
