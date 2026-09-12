@@ -14,7 +14,7 @@ and lint duty apply as written here.
 
 ## Instrument
 
-`ops/bin/ladder.sh SCOPE BRANCH [PLAN] [--input PATH]...` starts a
+`ops/bin/ladder.sh SCOPE BRANCH [PLAN] [--input PATH]... [--stage-set CLASS --because TEXT]` starts a
 ladder in the worktree that owns `BRANCH`. Each `--input PATH` names a
 file handed to every stage beside the scope and plan, so the work order a
 scope sentence cites reaches every worker as a supplied input; each is
@@ -29,6 +29,8 @@ is never rescoped. `--rescope` with nothing changed refuses `arguments`. Every l
 that worktree's `ops/bin/dispatch.sh --detach`; every wait, landing,
 ledger update, push, and PR action uses that same worktree.
 
+`check-envelope` `PATH|-` reads a check-tests dispatch record or bare envelope from a path or stdin; malformed input refuses with exit 2, one stderr line `envelope: expected …; found …; needed …`, and stdout empty.
+
 An implementation run covers at most one declared S bucket. Multiple
 S buckets are separate implementation stages, each landed and green
 before the next. The skeptic runs once on the first tests, never again
@@ -41,11 +43,32 @@ security re-audit also run once for the batch.
 The table is data in the driver. Models and efforts are resolved by the
 dispatcher from the lane configuration, never carried in this table.
 
+**The stage set is chosen per work order** (scope-stage-set-20260912,
+owner 2026-09-12). `ops/conductor/stage-sets.json`, the owner's tracked
+table, maps a risk class to the stages of this table it runs, in this
+order; the driver reads it at start, records its path and digest beside
+the conf, and refuses `stage-set` when it is absent, malformed, names an
+unknown stage, or breaks the floor: `tests` and `check-tests` are never
+dropped, `code` never runs without `security` or `adversarial`, the fix
+round is `fix-tests` and `fix-code` together or neither, and `security-re`
+only with them. The plan names the class on its slice line
+(`slice<TAB>name<TAB>S|M<TAB>class`); a class not in the table refuses
+`plan`. `--stage-set CLASS --because TEXT` overrides the plan's class for
+one run and is recorded with its reason, the agent and the time; the flag
+without its reason refuses `arguments`. A ladder with no class anywhere
+runs `lane`, the declared default, recorded as such. A stage not in the
+set is present on the record as `outcome: skipped` with condition `not in
+stage set <class>`. When the set has no fix round and an audit says
+`changes`, the ladder stops at that audit with exit 1, as `security-re`
+does. `ladder.py stage-sets PATH` validates a table on the wire. The seed
+table holds `contract` (tests, check-tests, tests-fix, code, adversarial)
+and `lane` (all nine).
+
 | stage | job | harness | stage flag | input | condition |
 |---|---|---|---|---|---|
 | `tests` | `author-tests` | grok | `tests` | scope, plan | always |
 | `check-tests` | `check-tests` | codex | `check-tests` | scope, plan, tests envelope | always |
-| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, skeptic envelope and `SKEPTIC.md` | skeptic says `changes` |
+| `tests-fix` | `author-tests` | grok | `tests` | scope, plan, `skeptic-findings.md` written by the driver from the validated check-tests envelope; dispatch with one `--answers KEY` per skeptic finding, since the launcher classifies a write job that follows the check-tests record as a correction (LD-23) | skeptic says `changes` |
 | `code` | `implement` | codex | `code` | scope, plan, derived test command | once per S bucket |
 | `security` | `security-audit` | codex | `review` | scope, plan | after the final bucket |
 | `adversarial` | `adversarial-review` | grok | `review` | scope, plan | after the final bucket |
@@ -97,7 +120,8 @@ one stderr line, stdout empty, and exit 2.
 | `identity` | `WF_AGENT` and the worktree git identity are not full `Name <address>` values | supply both identities |
 | `gh-missing` | `gh` cannot be executed | install or expose the GitHub CLI |
 | `job` | a stage's named job is absent from the registry | restore the job declaration |
-| `record` | the named resume record is absent or invalid, or a recorded scope, plan or input changed without `--rescope` | choose or repair the record, or resume with `--rescope` |
+| `record` | the named resume record is absent or invalid, or a recorded scope, plan, input or stage-set table changed without `--rescope` | choose or repair the record, or resume with `--rescope` |
+| `stage-set` | the stage-set table is absent, malformed, names an unknown stage or breaks the floor; or `--stage-set` names a class the table does not hold | repair `ops/conductor/stage-sets.json` or choose a declared class |
 
 ## Stops, retries, and exits
 
@@ -106,8 +130,10 @@ one stderr line, stdout empty, and exit 2.
 | 0 | draft PR opened | ladder id and PR URL |
 | 1 | `security-re` still says `changes` | `stopped stage=security-re record=<id> verdict=changes` |
 | 2 | a precondition refuses | the refusal wire |
+| 2 | `envelope` — check-tests returned a malformed field | exit 2, one stderr line `envelope: expected …; found …; needed …`, stdout empty; recorded stop `reason=envelope` |
+| 2 | `custody` — an input target is a symlink or outside the inputs directory | exit 2, one stderr line `custody: expected …; found …; needed …`, stdout empty; recorded stop `reason=custody`; refuses to write through a symlink or outside the inputs directory |
 | 3 | a stage refuses, trips, dies, records an invalid envelope, violates a guarantee, or an invoked write aborts | the last reading, then `stopped stage=<stage> record=<id-or-none> reason=<class>` |
-| 3 | any audit finding remains undisposed before `fix-tests` or `fix-code` | `undisposed keys: <k1> <k2> …`, then `stopped stage=fix-tests record=none reason=undisposed` or `stopped stage=fix-code record=none reason=undisposed` |
+| 3 | any skeptic finding remains undisposed before `tests-fix`, or any audit finding before `fix-tests` or `fix-code` | `undisposed keys: <k1> <k2> …`, then `stopped stage=tests-fix record=none reason=undisposed`, `stopped stage=fix-tests record=none reason=undisposed` or `stopped stage=fix-code record=none reason=undisposed` |
 
 A stage has at most two attempts. Resume uses the requested ladder id,
 never the newest record by implication. If its stopped dispatch record
@@ -120,8 +146,12 @@ own doing rather than the worker's; the grant is written on the stage row
 `launch.py collect` as its remedy; the driver never collects on its own.
 No second fix round and no second skeptic run exist.
 
-Before either fix stage, the driver checks every finding key with the ledger's
-`cited` read. The driver never writes dispositions itself. On `resume`, it
+### The check-tests stop
+
+Before the ladder advances, the driver validates that findings is a list of item 2 shapes, counts agree with findings, verdict agrees with item 2, and artifacts is empty. A malformed envelope records the failed field and is never retried as a flake; `--retry` is the only further attempt. On resume, a schema-accepted check-tests envelope that fails item 2 is not consumed and landed, and an envelope-class stop does not relaunch as a flake. The driver writes the validated envelope to `skeptic-findings.md` as a regular file under the ladder inputs directory and records its path and digest.
+
+Before `tests-fix` and before either fix stage, the driver checks every finding
+key with the ledger's `cited` read. The driver never writes dispositions itself. On `resume`, it
 re-runs the check at the same place; `resume` continues once rows exist.
 
 ## Record
@@ -136,11 +166,15 @@ under `.dev/records/ladders/<id>/`, as `ladder: record <id>`, with
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
   and PR result; `keys` in the ladder record's `stopped` object list every
   undisposed finding key;
+- `stage_set` (the class, its stages, the source `plan`, `override` or
+  `default`, and for an override the reason, agent and time) and
+  `stage_sets`, the table's path and digest;
 - scope, optional plan, start inputs, and conf paths with SHA-256 digests,
   and `rescoped` events for any of the first three accepted on resume;
 - ordered stage rows naming job, harness, attempt, input path and
   digest, custody proof, dispatch record, dispatched and recorded model
-  and effort, outcome, landed shas, and ledger import/export state;
+  and effort, outcome, landed shas, ledger import/export state, and an
+  envelope failure as `{"field": "<dotted field>", "refusal": "<line>"}`;
 - for every slice, the plan's declared bucket beside measured files,
   tests, lines, stage minutes, and findings per stage.
 

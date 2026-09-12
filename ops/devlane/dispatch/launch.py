@@ -66,6 +66,7 @@ CORRECTION = _module(
     APP.parent.parent / "conductor" / "tools" / "correction.py",
 )
 ENVELOPE = _module("envelope", APP.parent / "task" / "envelope.py")
+WRITE_PATH = _module("write_path", APP.parent / "task" / "write_path.py")
 ENVELOPE_SCHEMA_JSON = json.dumps(ENVELOPE.ENVELOPE_SCHEMA, separators=(",", ":"))
 
 
@@ -362,6 +363,19 @@ def _inside(path, root):
         return True
     except ValueError:
         return False
+
+
+def _dotdot_input(path, jobs_root):
+    """A `..` component in an input that lies under the jobs root once
+    collapsed: the gate classifies the collapsed path, so the spelling
+    is refused rather than trusted (hand review of 7b7979b, 2026-09-11)."""
+    candidate = Path(path)
+    candidate = candidate if candidate.is_absolute() else Path.cwd() / candidate
+    if ".." not in candidate.parts:
+        return False
+    collapsed = Path(os.path.normpath(str(candidate)))
+    root = Path(jobs_root).absolute()
+    return collapsed == root or root in collapsed.parents
 
 
 def _symlinked_input(path, jobs_root):
@@ -1358,6 +1372,23 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     return code
 
 
+def _read_role_write_guard(name, job):
+    """Item 31 item 5 (amended 2026-09-11): a read-role prompt may not instruct a
+    write to a path it does not declare in its outputs array. Judged on the
+    template before any directory, record or home exists; refuses `role` on the
+    founding wire through the correction seam."""
+    sentence = WRITE_PATH.check_job(name, job)
+    if sentence is None:
+        return None
+    CORRECTION.refuse(
+        "role",
+        "a read-role prompt with no instruction to write an undeclared path",
+        f'job {name}: "{sentence}"',
+        "drop the sentence, declare the output in the job's outputs array, or declare the job a write role",
+    )
+    return None
+
+
 def _launch(args):
     worker = _worker(args.harness)
     lane = _lane_values(
@@ -1391,6 +1422,7 @@ def _launch(args):
         _refuse("job", "a harness job in jobs.json", args.job, "name a dispatchable job")
     job = jobs[args.job]
     role = job.get("role")
+    _read_role_write_guard(args.job, job)
     stage = args.stage or ("code" if role == "write" else "review")
     if not args.model:
         _refuse("model", "a model", "none", "pass --model")
@@ -1472,6 +1504,13 @@ def _launch(args):
         repo,
     )
     for source in args.input:
+        if _dotdot_input(source, _jobs_root()):
+            CORRECTION.refuse(
+                "input",
+                "an input path without .. components under the jobs root",
+                f".. in {source}",
+                "spell the input path plainly",
+            )
         if _symlinked_input(source, _jobs_root()):
             CORRECTION.refuse(
                 "input",

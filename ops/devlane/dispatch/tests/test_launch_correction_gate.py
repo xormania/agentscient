@@ -905,6 +905,50 @@ class CorrectionShape(_CorrectionLaunch):
         self.assertIn(secret, outside.read_text(encoding="utf-8"))
         self.assert_target_not_copied_under_jobs(secret)
 
+    def plant_dotdot_review_artifact(self):
+        """A review artifact spelled through another record's out/ and `..`."""
+        self.plant_record(REVIEW, "adversarial-review")
+        self.plant_record(PLAN, "plan")
+        artifact = self.jobs_root / REVIEW / "out" / "review.md"
+        self.plant_new_file(artifact, "review-artifact\n", must_contain="review-artifact")
+        (self.jobs_root / PLAN / "out").mkdir(parents=True, exist_ok=True)
+        spelled = self.jobs_root / PLAN / "out" / ".." / ".." / REVIEW / "out" / "review.md"
+        self.assertTrue(spelled.is_file(), "plant: the spelled path reads the review artifact")
+        self.planted_job_ids.update({REVIEW, PLAN})
+        return spelled
+
+    def test_dotdot_out_input_without_answers_is_a_correction(self):
+        spelled = self.plant_dotdot_review_artifact()
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(
+            self.write_argv(extra=["--input", str(spelled)]),
+        )
+        line = self.assert_wire_line(code, out, err, "correction")
+        self.assert_no_mint()
+        self.assert_expected_before_stamp(line, STAMP)
+        found = self.found_clause(line)
+        self.assertIn("no --answers key named", found)
+        self.assertIn(REVIEW, found)
+        self.assertIn("adversarial-review", found)
+
+    def test_dotdot_out_input_with_answers_is_not_a_readable_input(self):
+        spelled = self.plant_dotdot_review_artifact()
+        self.import_records()
+        key = f"{REVIEW}#1"
+        self.dispose(key, "fixed", VALID_EVIDENCE)
+        self.set_disposed_at(key, PAST)
+        self.force_stamp(STAMP)
+        code, out, err = self.dispatch(self.write_argv(extra=[
+            "--follows", REVIEW,
+            "--answers", key,
+            "--input", str(spelled),
+        ]))
+        line = self.assert_wire_line(code, out, err, "input")
+        self.assert_no_mint()
+        found = self.found_clause(line)
+        self.assertIn(str(spelled), found)
+        self.assertIn("..", found)
+
     def test_author_tests_following_check_tests_is_a_correction(self):
         self.plant_record(CHECK, "check-tests")
         self.force_stamp(STAMP)

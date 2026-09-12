@@ -10,6 +10,7 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -42,6 +43,89 @@ REVIEW_STAGES = frozenset(
 WITHHELD_STAGES = frozenset(
     {"tests", "check-tests", "tests-fix", "fix-tests"}
 )
+# The stage set is chosen per work order (scope-stage-set-20260912, owner
+# 2026-09-12): the owner's tracked table maps a risk class to the stages
+# above it runs; the floor lives in load_stage_sets, not in the table.
+STAGE_SETS_REL = Path("ops") / "conductor" / "stage-sets.json"
+DEFAULT_STAGE_SET = "lane"
+STAGE_ORDER = tuple(row[0] for row in DISPATCH_STAGES)
+FIX_ROUND = ("fix-tests", "fix-code")
+
+
+def load_stage_sets(path: Path) -> dict[str, list[str]]:
+    """The owner's table, validated; every failure refuses `stage-set`."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as error:
+        refuse("stage-set", f"a readable stage-set table at {path}", str(error),
+               "restore ops/conductor/stage-sets.json")
+    except json.JSONDecodeError as error:
+        refuse("stage-set", f"valid JSON in {path}", str(error), "repair the table")
+    if not isinstance(raw, dict) or not raw:
+        refuse("stage-set", "an object of class name to stage list", repr(raw)[:80],
+               "declare at least one class")
+    table: dict[str, list[str]] = {}
+    for name, stages in raw.items():
+        if (not isinstance(name, str) or not name.strip() or not isinstance(stages, list)
+                or not all(isinstance(item, str) for item in stages)):
+            refuse("stage-set", f"class {name!r} as a list of stage names", repr(stages)[:80],
+                   "repair the row")
+        unknown = [item for item in stages if item not in STAGE_ORDER]
+        if unknown:
+            refuse("stage-set", f"stages of class {name} from " + ", ".join(STAGE_ORDER),
+                   ", ".join(unknown), "name driver stages only")
+        if len(set(stages)) != len(stages):
+            refuse("stage-set", f"each stage once in class {name}", ", ".join(stages),
+                   "drop the duplicate")
+        chosen = [item for item in STAGE_ORDER if item in stages]
+        for needed in ("tests", "check-tests"):
+            if needed not in chosen:
+                refuse("stage-set", f"class {name} keeping {needed} (the floor)",
+                       ", ".join(chosen), f"add {needed}")
+        if "code" in chosen and not ({"security", "adversarial"} & set(chosen)):
+            refuse("stage-set", f"class {name} reviewing code (the floor)", ", ".join(chosen),
+                   "add security or adversarial")
+        fix = [item for item in FIX_ROUND if item in chosen]
+        if len(fix) == 1:
+            refuse("stage-set", f"class {name} naming the fix round whole", ", ".join(chosen),
+                   "name fix-tests and fix-code together or neither")
+        if "security-re" in chosen and not fix:
+            refuse("stage-set", f"class {name} naming security-re only with the fix round",
+                   ", ".join(chosen), "add the fix round or drop security-re")
+        table[name] = chosen
+    return table
+
+
+def choose_stage_set(
+    table: dict[str, list[str]],
+    slices: list[dict],
+    override: tuple[str, str] | None,
+    agent: str,
+) -> dict:
+    """The set this ladder runs: the override, else the plan's class, else the declared default."""
+    at = utc_stamp()
+    if override is not None:
+        name, because = override
+        if name not in table:
+            refuse("stage-set", "a class of the table: " + ", ".join(table), name,
+                   "choose a declared class or add it to the table")
+        return {"name": name, "stages": list(table[name]), "source": "override",
+                "because": because, "by": agent, "at": at}
+    classes = sorted({item["class"] for item in slices if item.get("class")})
+    if len(classes) > 1:
+        refuse("plan", "one stage-set class across the plan's slice lines", ", ".join(classes),
+               "one class per ladder")
+    if classes:
+        name = classes[0]
+        if name not in table:
+            refuse("plan", "a slice class of the table: " + ", ".join(table), name,
+                   "choose a declared class or add it to the table")
+        return {"name": name, "stages": list(table[name]), "source": "plan", "at": at}
+    if DEFAULT_STAGE_SET not in table:
+        refuse("stage-set", f"the declared default class {DEFAULT_STAGE_SET} in the table",
+               ", ".join(table), "declare it")
+    return {"name": DEFAULT_STAGE_SET, "stages": list(table[DEFAULT_STAGE_SET]),
+            "source": "default", "at": at}
 CONF_KEYS = (
     "LANE_NAME",
     "TRUNK_BRANCH",
@@ -86,7 +170,9 @@ class Stopped(Exception):
         detail: str | None = None,
         exit_code: int = 3,
         keys: list[str] | None = None,
+        wire: str | None = None,
     ) -> None:
+        self.wire = wire
         self.stage = stage
         self.record_id = record_id
         self.reason = reason
@@ -214,6 +300,114 @@ def configuration() -> dict[str, str]:
     except laneconf.ConfigError as error:
         kind = "conf-key" if error.kind == "key" else error.kind
         refuse(kind, error.expected, error.found, error.needed)
+
+
+SEVERITIES = ("p1", "p2", "p3")
+FINDING_FIELDS = ("severity", "where", "claim", "reproduce")
+
+
+class EnvelopeRefused(Refused):
+    """A malformed check-tests envelope; ``field`` is the dotted field named."""
+
+    def __init__(self, field: str, expected: str, found: str, needed: str) -> None:
+        self.field = field
+        super().__init__("envelope", expected, found, needed)
+
+
+def _short(value: object, limit: int = 120) -> str:
+    text = value if isinstance(value, str) else json.dumps(value, sort_keys=True, default=str)
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def validate_check_tests(envelope: object) -> None:
+    """Item 31 items 2 and 3: the skeptic's findings on the wire, or EnvelopeRefused.
+
+    Checked in this order: artifacts, findings is a list, each finding's
+    fields, severity, where, claim, reproduce, counts, verdict.
+    """
+    if not isinstance(envelope, dict):
+        raise EnvelopeRefused("envelope", "a check-tests envelope object", _short(envelope),
+                              "an envelope on stdout")
+    artifacts = envelope.get("artifacts")
+    if artifacts != {}:
+        raise EnvelopeRefused("artifacts", "artifacts {} on check-tests (no file is written)",
+                              f"artifacts {_short(artifacts)}", "an envelope on stdout and no file")
+    findings = envelope.get("findings")
+    if not isinstance(findings, list):
+        raise EnvelopeRefused("findings", "findings as a list of quotation pairs",
+                              f"findings {_short(findings)}", "a list, empty when nothing was refuted")
+    for index, finding in enumerate(findings):
+        name = f"findings[{index}]"
+        if not isinstance(finding, dict):
+            raise EnvelopeRefused(name, f"{name} as an object with the fields " + ", ".join(FINDING_FIELDS),
+                                  f"{name} {_short(finding)}", "a quotation pair")
+        extra = sorted(set(finding) - set(FINDING_FIELDS))
+        missing = [field for field in FINDING_FIELDS if field not in finding]
+        if extra or missing:
+            raise EnvelopeRefused(name, f"{name} with exactly the fields " + ", ".join(FINDING_FIELDS),
+                                  f"{name} with extra {extra} and missing {missing}",
+                                  "the four fields and no other")
+        if finding["severity"] not in SEVERITIES:
+            raise EnvelopeRefused(f"{name}.severity", f"{name}.severity one of " + ", ".join(SEVERITIES),
+                                  f"{name}.severity {_short(finding['severity'])}", "p1, p2 or p3")
+        where = finding["where"]
+        if (not isinstance(where, str) or not where or any(ch.isspace() for ch in where)
+                or not ("/" in where or "." in where)):
+            raise EnvelopeRefused(f"{name}.where", f"{name}.where as the practiced location, no whitespace, a / or .",
+                                  f"{name}.where {_short(where)}", "the test file and line")
+        claim = finding["claim"]
+        if not isinstance(claim, str) or not _quotation_pair(claim):
+            raise EnvelopeRefused(f"{name}.claim",
+                                  f"{name}.claim as declared (<location>): <words>; practiced: <evidence>; misses: <implementation>",
+                                  f"{name}.claim {_short(claim)}",
+                                  "both quotes, the declared location and the missed implementation")
+        reproduce = finding["reproduce"]
+        if not isinstance(reproduce, str) or not reproduce.strip():
+            raise EnvelopeRefused(f"{name}.reproduce", f"{name}.reproduce as a command",
+                                  f"{name}.reproduce {_short(reproduce)}",
+                                  "a reproduce command (a finding without one is an opinion)")
+    tally = {key: sum(1 for finding in findings if finding["severity"] == key) for key in SEVERITIES}
+    tally["opinions"] = 0
+    if envelope.get("counts") != tally:
+        raise EnvelopeRefused("counts", f"counts equal to the tally of findings {tally}",
+                              f"counts {_short(envelope.get('counts'))}", "counts recomputed from findings")
+    verdict = envelope.get("verdict")
+    wanted = "changes" if findings else "approve"
+    if verdict != wanted:
+        raise EnvelopeRefused("verdict", f"verdict {wanted} with {len(findings)} finding(s)",
+                              f"verdict {_short(verdict)}", "verdict changes exactly when findings is non-empty")
+
+
+def _quotation_pair(claim: str) -> bool:
+    head, sep, tail = claim.partition("; practiced: ")
+    if not sep:
+        return False
+    practiced, sep2, misses = tail.rpartition("; misses: ")
+    if not sep2:
+        return False
+    if not head.startswith("declared (") or "): " not in head:
+        return False
+    location, _, words = head[len("declared ("):].partition("): ")
+    if not location.strip() or "(" in location or ")" in location:
+        return False
+    return all(part.strip() for part in (words, practiced, misses))
+
+
+def check_envelope_source(raw: str) -> None:
+    """The check-envelope verb: a dispatch record or a bare envelope as JSON."""
+    if not raw.strip():
+        raise EnvelopeRefused("envelope", "a check-tests dispatch record or envelope as JSON on stdin",
+                              "empty stdin", "pipe the record JSON or name its path")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise EnvelopeRefused("envelope", "a check-tests dispatch record or envelope as JSON",
+                              f"invalid JSON: {error}", "pipe the record JSON or name its path") from error
+    envelope = data
+    if isinstance(data, dict) and isinstance(data.get("result"), dict) and "envelope" in data["result"]:
+        envelope = data["result"]["envelope"]
+    validate_check_tests(envelope)
 
 
 def run(argv: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -374,7 +568,11 @@ def parse_plan(plan: Path | None) -> tuple[list[dict], list[dict]]:
         for raw in plan.read_text(encoding="utf-8").splitlines():
             fields = raw.split("\t")
             if len(fields) >= 3 and fields[0] == "slice":
-                slices.append({"name": fields[1], "declared": fields[2]})
+                slices.append({
+                    "name": fields[1],
+                    "declared": fields[2],
+                    "class": fields[3].strip() if len(fields) >= 4 and fields[3].strip() else None,
+                })
             elif len(fields) >= 4 and fields[0] == "bucket":
                 buckets.append(
                     {
@@ -454,6 +652,7 @@ class Driver:
         agent: str,
         record: dict | None = None,
         inputs: list[Path] | None = None,
+        stage_set: tuple[str, str] | None = None,
     ) -> None:
         self.worktree = worktree
         self.branch = branch
@@ -464,6 +663,13 @@ class Driver:
         self.conf = conf
         self.agent = agent
         self.start_inputs: list[Path] = list(inputs or [])
+        self.buckets, self.slices = parse_plan(plan)
+        self.stage_sets_path = worktree / STAGE_SETS_REL
+        self.stage_sets = load_stage_sets(self.stage_sets_path)
+        if record is not None and isinstance(record.get("stage_set"), dict):
+            self.stage_set = record["stage_set"]
+        else:
+            self.stage_set = choose_stage_set(self.stage_sets, self.slices, stage_set, agent)
         self.record = record or self.new_record()
         self.record_path = (
             worktree
@@ -481,12 +687,15 @@ class Driver:
         self.stage_by_name = {
             row["name"]: row for row in self.record.get("stages", [])
         }
-        self.buckets, self.slices = parse_plan(plan)
         self.implementation_markers: list[str] = self.normalize_markers(
             self.record.get("implementation_markers") or []
         )
         self.correction_follows: list[str] = []
         self.correction_answers: list[str] = []
+        # LD-23: one key per skeptic finding, named on tests-fix, which
+        # the launcher classifies as a correction of the check-tests
+        # record it follows.
+        self.skeptic_answers: list[str] = []
 
     def new_record(self) -> dict:
         suffix = hashlib.sha256(
@@ -506,6 +715,10 @@ class Driver:
             }
             for name, job, harness, flag in DISPATCH_STAGES
         ]
+        for row in stages:
+            if row["name"] not in self.stage_set["stages"]:
+                row["outcome"] = "skipped"
+                row["condition"] = f"not in stage set {self.stage_set['name']}"
         stages.append(
             {
                 "name": "pr",
@@ -540,6 +753,11 @@ class Driver:
                 "path": str(self.worktree / "ops" / "lane.conf"),
                 "sha256": digest(self.worktree / "ops" / "lane.conf"),
             },
+            "stage_sets": {
+                "path": str(self.stage_sets_path),
+                "sha256": digest(self.stage_sets_path),
+            },
+            "stage_set": self.stage_set,
             "stages": stages,
             "calibration": [],
             "implementation_markers": [],
@@ -640,10 +858,64 @@ class Driver:
         return self.make_input(f"{audit}-envelope", body)
 
     def make_input(self, name: str, body: str) -> Path:
+        """Write one stage input under the inputs directory, or refuse `custody`.
+
+        Item 31 item 4: a bare name, no symlinked component between the
+        worktree and the inputs directory, no symlink or non-regular file at
+        the target, O_NOFOLLOW on open, and a resolved path under the
+        resolved inputs directory after the write.
+        """
+        if "/" in name or name in ("", ".", ".."):
+            refuse("custody", "a bare input name", repr(name), "name the input without a path")
         self.inputs_dir.mkdir(parents=True, exist_ok=True)
+        probe = self.worktree
+        for part in self.inputs_dir.relative_to(self.worktree).parts:
+            probe = probe / part
+            if probe.is_symlink():
+                refuse("custody", f"a regular directory at {probe}",
+                       f"{probe} is a symlink to {os.readlink(probe)}", "remove the symlink and resume")
         path = self.inputs_dir / f"{name}.md"
-        path.write_text(body.rstrip() + "\n", encoding="utf-8")
+        if path.is_symlink():
+            refuse("custody", f"a regular file under {self.inputs_dir}",
+                   f"{path} is a symlink to {os.readlink(path)}", "remove the symlink and resume")
+        if path.exists() and not stat.S_ISREG(path.lstat().st_mode):
+            refuse("custody", f"a regular file under {self.inputs_dir}",
+                   f"{path} is not a regular file", "remove it and resume")
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o644)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(body.rstrip() + "\n")
+        if not stat.S_ISREG(path.lstat().st_mode):
+            refuse("custody", f"a regular file at {path}", "not a regular file after the write",
+                   "remove it and resume")
+        try:
+            path.resolve().relative_to(self.inputs_dir.resolve())
+        except ValueError:
+            refuse("custody", f"a file under {self.inputs_dir}", f"{path} resolves to {path.resolve()}",
+                   "remove the link and resume")
         return path
+
+    def skeptic_input(self, record_id: str) -> Path:
+        """Item 31 item 4: tests-fix reads a file the driver wrote from the validated envelope."""
+        record_path = self.worktree / ".dev" / "records" / "dispatches" / f"{record_id}.json"
+        try:
+            payload = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        envelope = ((payload.get("result") or {}).get("envelope")) or {}
+        try:
+            validate_check_tests(envelope)
+        except EnvelopeRefused as refusal:
+            raise Stopped("check-tests", record_id, "envelope", exit_code=2, wire=refusal.line()) from refusal
+        body = (
+            f"check-tests envelope, record {record_id}\n\n"
+            + json.dumps(envelope, indent=2, sort_keys=True)
+        )
+        try:
+            return self.make_input("skeptic-findings", body)
+        except Refused as refusal:
+            if refusal.kind != "custody":
+                raise
+            raise Stopped("tests-fix", reason="custody", exit_code=2, wire=refusal.line()) from refusal
 
     def dispatch_args(
         self,
@@ -678,6 +950,9 @@ class Driver:
             for record_id in self.correction_follows:
                 argv.extend(("--follows", record_id))
             for key in self.correction_answers:
+                argv.extend(("--answers", key))
+        if name == "tests-fix":
+            for key in self.skeptic_answers:
                 argv.extend(("--answers", key))
         return argv
 
@@ -794,7 +1069,8 @@ class Driver:
                 detail="dispatch record absent",
             )
         row["dispatch_record"] = record_id
-        row["record"] = record_id
+        # The row names the record it first minted; dispatch_record follows a retry.
+        row.setdefault("record", record_id)
         row["outcome"] = "launched"
         self.commit(record_path)
         try:
@@ -1109,6 +1385,15 @@ class Driver:
         else:
             dispatch_record, envelope = already_closed
             self.commit(pending.record_path)
+        if pending.name == "check-tests":
+            try:
+                validate_check_tests(envelope)
+            except EnvelopeRefused as refusal:
+                row = self.row(pending.name)
+                row["envelope"] = {"field": refusal.field, "refusal": refusal.line()}
+                raise Stopped(
+                    pending.name, pending.record_id, "envelope", exit_code=2, wire=refusal.line()
+                ) from refusal
         if pending.name in REVIEW_STAGES:
             self.ledger_result(pending, envelope)
         else:
@@ -1132,22 +1417,7 @@ class Driver:
         if name == "check-tests" and "tests" in records:
             inputs.append(dispatch_dir / f"{records['tests']}.json")
         elif name == "tests-fix" and "check-tests" in records:
-            record_path = dispatch_dir / f"{records['check-tests']}.json"
-            inputs.append(record_path)
-            try:
-                payload = json.loads(record_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                payload = {}
-            artifacts = (
-                (((payload.get("result") or {}).get("envelope") or {}).get("artifacts"))
-                or {}
-            )
-            if isinstance(artifacts, dict):
-                for value in artifacts.values():
-                    if isinstance(value, str):
-                        artifact = Path(value)
-                        if artifact.name == "SKEPTIC.md" and artifact.is_file():
-                            inputs.append(artifact)
+            inputs.append(self.skeptic_input(records["check-tests"]))
         elif name == "code" or name.startswith("code-"):
             inputs.append(self.scope)
             if command_file is not None:
@@ -1196,13 +1466,19 @@ class Driver:
                 pending, _dispatch_record, envelope = existing
                 records[name] = pending.record_id
                 return envelope, pending.record_id
-            existing = self.existing_result(name)
+            retried = (
+                row.get("reason") == "envelope"
+                and self.retry is not None
+                and self.retry[0] == name
+                and self.retry_granted(name)
+            )
+            existing = None if retried else self.existing_result(name)
             if existing is not None:
                 pending, dispatch_record, envelope = existing
                 result = self.finish(pending, already_closed=(dispatch_record, envelope))
                 records[name] = pending.record_id
                 return result, pending.record_id
-            if int(row.get("attempt") or 0) >= 2 and not self.retry_granted(name):
+            if int(row.get("attempt") or 0) >= 2 and not retried and not self.retry_granted(name):
                 raise Stopped(
                     name,
                     str(row.get("dispatch_record") or "none"),
@@ -1214,6 +1490,8 @@ class Driver:
             records[name] = pending.record_id
             return self.finish(pending), pending.record_id
         except Stopped as stopped:
+            if stopped.wire:
+                raise
             if resume and int(self.row(name).get("attempt") or 0) >= 2:
                 detail = "\n".join(
                     part
@@ -1248,6 +1526,9 @@ class Driver:
             "from_attempt": int(row.get("attempt") or 0),
         }
         return True
+
+    def in_stage_set(self, name: str) -> bool:
+        return name in self.stage_set["stages"]
 
     def mark_skipped(self, name: str, condition: str) -> None:
         row = self.row(name)
@@ -1456,6 +1737,7 @@ class Driver:
             {
                 "name": item["name"],
                 "declared": item["declared"],
+                "stage_set": self.stage_set["name"],
                 "measured": {
                     "files": files,
                     "tests": test_count,
@@ -1589,41 +1871,66 @@ class Driver:
             check_envelope, previous = self.execute(
                 "check-tests", records, None, previous, resume=resume
             )
+            in_set = self.in_stage_set
             if check_envelope.get("verdict") == "changes":
                 if self.has_leak(check_envelope):
                     raise Stopped("tests-fix", reason="withheld")
+                if not in_set("tests-fix"):
+                    raise Stopped("check-tests", previous, verdict="changes", exit_code=1)
+                self.skeptic_answers = [
+                    f"{records.get('check-tests', previous)}#{number}"
+                    for number, _finding in enumerate(
+                        check_envelope.get("findings") or [], start=1
+                    )
+                ]
+                self.require_cited("tests-fix", self.skeptic_answers)
                 _fixed, previous = self.execute(
                     "tests-fix", records, None, previous, resume=resume
                 )
-            else:
+            elif in_set("tests-fix"):
                 self.mark_skipped("tests-fix", "skeptic did not request changes")
-            command_file = self.derive_command(tests_envelope)
-            for index, _bucket in enumerate(self.buckets, 1):
-                name = "code" if index == 1 else f"code-{index}"
-                _coded, previous = self.execute(
+            command_file: Path | None = None
+            if in_set("code"):
+                command_file = self.derive_command(tests_envelope)
+                for index, _bucket in enumerate(self.buckets, 1):
+                    name = "code" if index == 1 else f"code-{index}"
+                    _coded, previous = self.execute(
+                        name, records, command_file, previous, resume=resume
+                    )
+            audits: dict[str, dict] = {}
+            if in_set("security") and in_set("adversarial"):
+                security, adversarial, previous = self.audit_pair(
+                    records, command_file, previous, resume=resume
+                )
+                audits = {"security": security, "adversarial": adversarial}
+            elif in_set("security") or in_set("adversarial"):
+                name = "security" if in_set("security") else "adversarial"
+                envelope, previous = self.execute(
                     name, records, command_file, previous, resume=resume
                 )
-            security, adversarial, previous = self.audit_pair(
-                records, command_file, previous, resume=resume
-            )
-            self.correction_follows = [records["security"], records["adversarial"]]
+                audits = {name: envelope}
+            self.correction_follows = [records[name] for name in audits if name in records]
             self.correction_answers = [
                 f"{records[name]}#{number}"
-                for name, envelope in (
-                    ("security", security),
-                    ("adversarial", adversarial),
-                )
+                for name, envelope in audits.items()
                 for number, _finding in enumerate(
                     envelope.get("findings") or [], start=1
                 )
             ]
-            changes = (
-                security.get("verdict") == "changes"
-                or adversarial.get("verdict") == "changes"
+            changes = any(
+                envelope.get("verdict") == "changes" for envelope in audits.values()
             )
             if changes:
-                if self.has_leak(security) or self.has_leak(adversarial):
+                if any(self.has_leak(envelope) for envelope in audits.values()):
                     raise Stopped("fix-tests", reason="withheld")
+                if not in_set("fix-tests"):
+                    last = [
+                        name for name, envelope in audits.items()
+                        if envelope.get("verdict") == "changes"
+                    ][-1]
+                    raise Stopped(
+                        last, records.get(last, previous), verdict="changes", exit_code=1
+                    )
                 self.require_cited("fix-tests", self.correction_answers)
                 _test_fix, previous = self.execute(
                     "fix-tests", records, command_file, previous, resume=resume
@@ -1632,19 +1939,21 @@ class Driver:
                 _code_fix, previous = self.execute(
                     "fix-code", records, command_file, previous, resume=resume
                 )
-                security_re, previous = self.execute(
-                    "security-re", records, command_file, previous, resume=resume
-                )
-                if security_re.get("verdict") == "changes":
-                    raise Stopped(
-                        "security-re",
-                        previous,
-                        verdict="changes",
-                        exit_code=1,
+                if in_set("security-re"):
+                    security_re, previous = self.execute(
+                        "security-re", records, command_file, previous, resume=resume
                     )
+                    if security_re.get("verdict") == "changes":
+                        raise Stopped(
+                            "security-re",
+                            previous,
+                            verdict="changes",
+                            exit_code=1,
+                        )
             else:
                 for name in ("fix-tests", "fix-code", "security-re"):
-                    self.mark_skipped(name, "audits did not request changes")
+                    if in_set(name):
+                        self.mark_skipped(name, "audits did not request changes")
             return self.open_pr()
         except Stopped as stopped:
             self.stop(stopped)
@@ -1774,7 +2083,7 @@ def dry_run(driver: Driver) -> int:
             ],
         }
     )
-    print(json.dumps({"stages": stages}, indent=2))
+    print(json.dumps({"stage_set": driver.stage_set, "stages": stages}, indent=2))
     return 0
 
 
@@ -1801,19 +2110,60 @@ def split_inputs(args: list[str]) -> tuple[list[str], list[str]]:
     return positionals, inputs
 
 
+def split_options(args: list[str]) -> tuple[list[str], list[str], tuple[str, str] | None]:
+    """Positionals, --input paths, and the --stage-set CLASS --because TEXT override."""
+    positionals: list[str] = []
+    inputs: list[str] = []
+    cls: str | None = None
+    because: str | None = None
+    rest: list[str] = []
+    items = list(args)
+    while items:
+        item = items.pop(0)
+        if item in ("--stage-set", "--because"):
+            if not items:
+                refuse("arguments", f"{item} with a value", item, "name the class or the reason")
+            value = items.pop(0)
+            if item == "--stage-set":
+                cls = value
+            else:
+                because = value
+        else:
+            rest.append(item)
+    positionals, inputs = split_inputs(rest)
+    if (cls is None) != (because is None):
+        refuse("arguments", "--stage-set CLASS together with --because TEXT",
+               " ".join(args), "name both the class and the reason")
+    if cls is not None and not because.strip():
+        refuse("arguments", "a non-empty --because", repr(because), "say why this run overrides the plan")
+    return positionals, inputs, (cls, because) if cls is not None else None
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     try:
         if not args:
             refuse(
                 "arguments",
-                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]",
+                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]; the start form also takes --stage-set CLASS --because TEXT, and stage-sets PATH validates a table",
                 "no arguments",
                 "choose one documented form",
             )
         cwd = Path.cwd().resolve()
         agent = os.environ.get("WF_AGENT", "")
         resume = args[0] == "resume"
+        if args[0] == "check-envelope":
+            if len(args) != 2:
+                refuse("arguments", "check-envelope PATH|-", " ".join(args), "name the record file or -")
+            raw = sys.stdin.read() if args[1] == "-" else Path(args[1]).read_text(encoding="utf-8")
+            check_envelope_source(raw)
+            return 0
+        if args[0] == "stage-sets":
+            if len(args) != 2:
+                refuse("arguments", "stage-sets PATH", " ".join(args), "name the table file")
+            print(json.dumps(load_stage_sets(Path(args[1])), indent=2))
+            return 0
+        override: tuple[str, str] | None = None
         if resume:
             rescope_flag, retry = resume_options(args)
             worktree, record = record_worktree(cwd, args[1])
@@ -1842,6 +2192,8 @@ def main(argv: list[str] | None = None) -> int:
                 for item in (record.get("inputs") or [])
             ]
             recorded_file(worktree, record.get("conf"), "conf")
+            if record.get("stage_sets"):
+                recorded_file(worktree, record.get("stage_sets"), "stage-set table", rescope=changes)
             if rescope_flag:
                 if not changes:
                     refuse(
@@ -1860,7 +2212,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
         else:
             dry = args[0] == "--dry-run"
-            positionals, input_args = split_inputs(args[1:] if dry else args)
+            positionals, input_args, override = split_options(args[1:] if dry else args)
             if len(positionals) not in {2, 3}:
                 refuse(
                     "arguments",
@@ -1892,7 +2244,9 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             ),
         )
-        driver = Driver(worktree, branch, scope, plan, conf, agent, record, start_inputs)
+        driver = Driver(
+            worktree, branch, scope, plan, conf, agent, record, start_inputs, override
+        )
         if resume:
             driver.retry = retry
         if not resume and args[0] == "--dry-run":
@@ -1904,6 +2258,9 @@ def main(argv: list[str] | None = None) -> int:
         print(error.line(), file=sys.stderr)
         return 2
     except Stopped as error:
+        if error.wire:
+            print(error.wire, file=sys.stderr)
+            return 2
         if error.detail:
             print(error.detail)
         print(error.line())
