@@ -1303,6 +1303,8 @@ class ATrippedRunLeavesNothingBehind(unittest.TestCase):
         run._remember_group(proc)
         child = int(proc.stdout.readline().strip())
         proc.wait()
+        proc.stdout.close()
+        assert proc.stdout.closed, "the orphan maker's pipe stays open"
         return proc, child
 
     @staticmethod
