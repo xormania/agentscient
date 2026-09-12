@@ -194,6 +194,34 @@ class CorpusRefusals(_Fixture):
         self.rows("p.jsonl", [dict(SERVE, serve="git show HEAD:notes.md | rg alpha")])
         self.assert_refusal(self.run_tool("run"), "corpus")
 
+    def test_an_rg_option_that_spawns_a_process_refuses_before_any_row_runs(self):
+        """Codex review of PR #158 (2026-09-12): `rg --pre COMMAND` searches
+        the output of `COMMAND PATH`, spawning it for every file, so a
+        nominally read-only row could run a writer on the self-hosted
+        runner; `--pre-glob` and `-z`/`--search-zip` spawn the same way."""
+        witness = self.root / "witness"
+        pre = self.root / "pre.sh"
+        pre.write_text("#!/bin/sh\ntouch witness\ncat \"$1\"\n")
+        pre.chmod(0o755)
+        for command in ("rg --pre ./pre.sh alpha notes.md",
+                        "rg --pre=./pre.sh alpha notes.md",
+                        "rg --pre ./pre.sh --pre-glob '*.md' alpha notes.md",
+                        "rg -z alpha notes.md",
+                        "rg -cz alpha notes.md",
+                        "rg --search-zip alpha notes.md"):
+            self.rows("p.jsonl", [dict(SERVE, serve=command, expect="alpha")])
+            line = self.assert_refusal(self.run_tool("run"), "corpus")
+            self.assertIn("P-T-serve", line)
+            self.assertIn("spawn", line)
+            self.assertFalse(witness.exists(), command)
+
+    def test_rg_options_that_only_read_stay_allowed(self):
+        self.rows("p.jsonl", [dict(ABSENT, absent="rg -c -eomega notes.md"),
+                              dict(SERVE, id="P-T-fixed", serve="rg -F -n alpha -- notes.md",
+                                   expect="alpha")])
+        doc = self.report(self.run_tool("run"))
+        self.assertEqual(doc["counts"], {"pass": 2, "fail": 0, "unreachable": 0})
+
     def test_duplicate_id_refuses(self):
         self.rows("p.jsonl", [SERVE, dict(SERVE)])
         line = self.assert_refusal(self.run_tool("run"), "corpus")
