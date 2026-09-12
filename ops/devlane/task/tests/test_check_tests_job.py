@@ -30,11 +30,11 @@ OTHER_JOBS = (
     "sweep",
     "verify",
 )
-# Canonical dump of the eight entries other than check-tests at dev
-# dd4d554 (the plan prompt changed there, stage-set); re-pinned by the
-# implementer under grant 149, said in the commit.
+# Canonical dump of the eight entries other than check-tests; re-pinned by
+# the implementer under grant 149 after the plan and adjudicate entries
+# declared their outputs (item 5 as amended), said in the commit.
 OTHERS_SHA256 = (
-    "7a612b094192fa42a435dab2f124ee64d4830e322f0e81fb897221726204b65b"
+    "c4a0da7e05d5aa4bf1d21e4527ce4f58c166ed6e2d1fd08664d6702e33978235"
 )
 
 D1_PROMPT = (
