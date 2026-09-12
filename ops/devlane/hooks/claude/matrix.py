@@ -896,7 +896,7 @@ def deliverable(toks, cwd, lane):
     return None
 
 
-PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.M)
+PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
 PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
 PROBES_DIR = "ops/conductor/handoff/probes/"
 CI_WORKFLOW = "ci"
@@ -908,7 +908,7 @@ def proof_ids(body):
     if match is None:
         return None
     section = body[match.end():]
-    nxt = re.search(r"^##\s", section, re.M)
+    nxt = re.search(r"^##\s", section, re.MULTILINE)
     if nxt:
         section = section[:nxt.start()]
     ids = []

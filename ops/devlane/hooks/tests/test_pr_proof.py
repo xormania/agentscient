@@ -22,7 +22,6 @@ and the row; the second producer is absent by the owner's word.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -55,10 +54,12 @@ class PrProofTests(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="pr-proof-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"; self.home.mkdir()
-        self.bin = self.tmp / "bin"; self.bin.mkdir()
-        self.fix = self.tmp / "fix"; self.fix.mkdir()
-        self.repo = self.tmp / "repo"; self.repo.mkdir()
+        self.home = self.tmp / "home"
+        self.bin = self.tmp / "bin"
+        self.fix = self.tmp / "fix"
+        self.repo = self.tmp / "repo"
+        for directory in (self.home, self.bin, self.fix, self.repo):
+            directory.mkdir()
         support.plant_executable(self.bin / "gh", FAKE_GH)
         support.plant_executable(self.bin / "cue", "#!/bin/sh\nexit 0\n")
         self.env = support.isolated_env(self.home, extra_path=self.bin,
@@ -101,7 +102,8 @@ class PrProofTests(unittest.TestCase):
         self.assertEqual(out["permissionDecision"], "deny")
         reason = out["permissionDecisionReason"]
         self.assertTrue(reason.startswith("[matrix:pr-proof] pr-proof: expected "), reason)
-        self.assertIn("; found ", reason); self.assertIn("; needed ", reason)
+        self.assertIn("; found ", reason)
+        self.assertIn("; needed ", reason)
         return reason
 
     def allowed(self, proc):
