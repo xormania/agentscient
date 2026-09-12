@@ -74,6 +74,12 @@ IMPLEMENT_LINE = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
 IMPLEMENT_BODY = "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers"
 TEST_ALPHA = "ops/conductor/tests/test_alpha.py"
 TEST_BETA = "ops/conductor/tests/test_beta.py"
+# The owner's seed table of risk class to stage set (scope-stage-set-20260912).
+STAGE_SETS_JSON = json.dumps({
+    "contract": ["tests", "check-tests", "tests-fix", "code", "adversarial"],
+    "lane": ["tests", "check-tests", "tests-fix", "code", "security",
+             "adversarial", "fix-tests", "fix-code", "security-re"],
+}, indent=2) + "\n"
 TEST_RELAY = "packages/relay/spec/test_relay.py"
 SKEPTIC_MD = "ops/conductor/tests/SKEPTIC.md"
 SKEPTIC_BODY = "SKEPTIC_MD_BODY_aa32 the skeptic report"
@@ -1049,6 +1055,10 @@ class _LadderFixture(unittest.TestCase):
         scope = SCOPE_FIRST + "\nrest of the scope for the ladder slice\n"
         self._plant_bytes(dest / "scope.md", scope.encode("utf-8"))
         self._plant_bytes(dest / "plan.md", DEFAULT_PLAN.encode("utf-8"))
+        self._plant_bytes(
+            dest / "ops" / "conductor" / "stage-sets.json",
+            STAGE_SETS_JSON.encode("utf-8"),
+        )
         self.assertEqual(
             (dest / "scope.md").read_text(encoding="utf-8").splitlines()[0],
             SCOPE_FIRST,
