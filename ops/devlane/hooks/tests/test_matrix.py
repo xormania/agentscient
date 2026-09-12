@@ -629,6 +629,38 @@ class MatrixHookTests(unittest.TestCase):
                     self.run_bash(f"echo x > {target}"), "hand-write"
                 )
 
+    def test_hand_write_follows_a_name_bound_to_a_path(self):
+        """LD-26 (owner, 2026-09-12: "so hand grant isn't actually enforced?"):
+        a python heredoc that binds Path('ops/...') to a name and writes
+        through the name passed this row with no grant, while sed -i and
+        the Write tool on the same file were refused."""
+        bound = ("python3 - <<'PY'\nfrom pathlib import Path\n"
+                 "p = Path('ops/conductor/tools/x.py'); s = p.read_text(); assert 'a' in s\n"
+                 "p.write_text(s.replace('a', 'b', 1))\nPY")
+        joined = ("python3 - <<'PY'\nfrom pathlib import Path\n"
+                  "wt = Path('.')\n(wt / 'ops/devlane/dispatch/launch.py').write_text('x')\nPY")
+        aliased = ("python3 - <<'PY'\nimport pathlib\n"
+                   "target = pathlib.Path('docs/wire.md')\nout = target\nout.write_bytes(b'x')\nPY")
+        for cmd in (bound, joined, aliased):
+            with self.subTest(cmd=cmd[:60]):
+                proc = self.run_bash(cmd)
+                self.assert_denied(proc, "hand-write")
+
+    def test_hand_write_refuses_a_write_it_cannot_resolve_unless_granted(self):
+        """A write whose target the row cannot resolve is could-not-look:
+        refused without an open grant, allowed with one."""
+        opaque = ("python3 - <<'PY'\nfrom pathlib import Path\n"
+                  "p = Path(__import__('os').environ['X'])\np.write_text('x')\nPY")
+        proc = self.run_bash(opaque)
+        self.assert_denied(proc, "hand-write")
+        self.assertIn("cannot resolve", proc.stdout)
+        self.assert_allowed(self.run_bash(f"HAND_GRANT={GRANT_OPEN} {opaque}"))
+
+    def test_hand_write_allows_a_bound_name_outside_code_roots(self):
+        cmd = ("python3 - <<'PY'\nfrom pathlib import Path\n"
+               "p = Path('/tmp/notes.md')\np.write_text('x')\nPY")
+        self.assert_allowed(self.run_bash(cmd))
+
     def test_hand_write_allows_non_code_paths(self):
         self.assertGreater(len(NOT_CODE_WRITES), 0)
         for cmd in NOT_CODE_WRITES:
