@@ -32,9 +32,10 @@ OTHER_JOBS = (
 )
 # Canonical dump of the eight entries other than check-tests; re-pinned by
 # the implementer under grant 149 after the plan and adjudicate entries
-# declared their outputs (item 5 as amended), said in the commit.
+# declared their outputs (item 5 as amended), and again under grant 155
+# (2026-09-12) after caps.turns joined five entries, said in the commit.
 OTHERS_SHA256 = (
-    "c4a0da7e05d5aa4bf1d21e4527ce4f58c166ed6e2d1fd08664d6702e33978235"
+    "830a676b4d8059bff78ff437fda029bca473f2cf9de2c2aa14b9f46e30fcae7c"
 )
 
 D1_PROMPT = (
