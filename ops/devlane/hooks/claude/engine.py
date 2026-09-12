@@ -322,9 +322,12 @@ def wire_line(klass, expected, found, needed):
     return f"[engine:{klass}] {klass}: expected {expected}; found {found}; needed {needed}"
 
 
-def emit_refusal(event, line):
+def emit_refusal(event, line, decision="deny"):
+    """deny, or ask when the row's escape is `ask`: the harness then puts
+    the action in front of the owner, the one click no agent can make
+    (owner, 2026-09-12)."""
     if event == "PreToolUse":
-        return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+        return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": decision,
                                        "permissionDecisionReason": line}}
     if event in ("PostToolUse", "Stop"):
         return {"decision": "block", "reason": line}
@@ -355,7 +358,8 @@ def decide(payload):
         refuse = row.get("refuse") or {}
         line = wire_line(row.get("class", "unnamed"), refuse.get("expected", "the row's expectation"),
                          found, refuse.get("needed", "the row's needed half"))
-        return emit_refusal(ctx.event, line), row.get("class")
+        decision = "ask" if row.get("escape") == "ask" else "deny"
+        return emit_refusal(ctx.event, line, decision), row.get("class")
     if contexts:
         return {"hookSpecificOutput": {"hookEventName": ctx.event, "additionalContext": "\n".join(contexts)}}, None
     return None, None

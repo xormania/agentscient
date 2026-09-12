@@ -29,6 +29,7 @@ SCOPE_CAP = 64
 GRANT_SCOPED = 11
 GRANT_OPEN = 22
 GRANT_SETTLED = 33
+GRANT_WALL = 44
 
 HANDWORK_DDL = """CREATE TABLE handwork(
     id INTEGER PRIMARY KEY, ts TEXT NOT NULL, session TEXT NOT NULL,
@@ -286,6 +287,24 @@ class MatrixHookTests(unittest.TestCase):
                 None,
             ),
             (
+                GRANT_WALL,
+                "2026-09-12T00:00:03Z",
+                "s1",
+                "tester",
+                "wall work",
+                "the wall is changed in isolation",
+                "wall",
+                None,
+                "wall",
+                None,
+                1800,
+                "open",
+                None,
+                None,
+                0,
+                None,
+            ),
+            (
                 GRANT_SETTLED,
                 "2026-09-04T00:00:02Z",
                 "s1",
@@ -323,6 +342,7 @@ class MatrixHookTests(unittest.TestCase):
                 (GRANT_SCOPED, "open", "docs/"),
                 (GRANT_OPEN, "open", None),
                 (GRANT_SETTLED, "settled", "docs/"),
+                (GRANT_WALL, "open", None),
             ],
             "INVALID: planted handwork rows did not land",
         )
@@ -623,11 +643,14 @@ class MatrixHookTests(unittest.TestCase):
         for cmd in HAND_WRITE_SPELLINGS:
             with self.subTest(spelling=cmd):
                 self.assert_denied(self.run_bash(cmd), "hand-write")
+        wall = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+                "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
+                "ops/devlane/hooks/claude/engine.py")
         for target in CODE_ROOT_TARGETS:
             with self.subTest(target=target):
-                self.assert_denied(
-                    self.run_bash(f"echo x > {target}"), "hand-write"
-                )
+                # a wall path names the more specific row (owner, 2026-09-12)
+                klass = "wall-write" if target.startswith(wall) else "hand-write"
+                self.assert_denied(self.run_bash(f"echo x > {target}"), klass)
 
     def test_hand_write_follows_a_name_bound_to_a_path(self):
         """LD-26 (owner, 2026-09-12: "so hand grant isn't actually enforced?"):
@@ -660,6 +683,29 @@ class MatrixHookTests(unittest.TestCase):
         cmd = ("python3 - <<'PY'\nfrom pathlib import Path\n"
                "p = Path('/tmp/notes.md')\np.write_text('x')\nPY")
         self.assert_allowed(self.run_bash(cmd))
+
+    def test_wall_paths_need_a_wall_grant_and_a_wall_grant_touches_only_the_wall(self):
+        """Owner, 2026-09-12: "i have the right to issue a hand grant to change
+        CI and tests - but ... only done in isolation". The wall machinery,
+        not every test file; enforced in-session."""
+        for target in (".github/workflows/ci.yml", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+                       "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
+                       "ops/devlane/hooks/claude/engine.py"):
+            with self.subTest(target=target):
+                self.assert_denied(self.run_bash(f"echo x >> {target}"), "wall-write")
+                self.assert_denied(self.run_bash(f"HAND_GRANT={GRANT_OPEN} echo x >> {target}"), "wall-write")
+                self.assert_allowed(self.run_bash(f"HAND_GRANT={GRANT_WALL} echo x >> {target}"))
+        write = self.payload_write("Write", file_path=str(self.repo / ".github" / "workflows" / "ci.yml"), content="x")
+        self.assert_denied(self.run_hook(write), "wall-write")
+        proc = self.run_bash(f"HAND_GRANT={GRANT_WALL} echo x >> ops/devlane/dispatch/launch.py")
+        self.assert_denied(proc, "wall-write")
+        self.assertIn("isolation", proc.stdout)
+        self.assert_allowed(self.run_bash(f"HAND_GRANT={GRANT_WALL} echo x >> ops/conductor/ideas/I-999.md"))
+        self.assert_allowed(self.run_bash("echo x >> ops/devlane/hooks/tests/test_engine.py") if False else self.run_bash("cat ops/bin/suites.sh"))
+        script = ("HAND_GRANT=%d python3 - <<'PY'\nfrom pathlib import Path\n"
+                  "p = Path('ops/conductor/tools/probes.py'); p.write_text('x')\nPY")
+        self.assert_denied(self.run_bash(script % GRANT_OPEN), "wall-write")
+        self.assert_allowed(self.run_bash(script % GRANT_WALL))
 
     def test_hand_write_allows_non_code_paths(self):
         self.assertGreater(len(NOT_CODE_WRITES), 0)
