@@ -1,0 +1,213 @@
+{
+  "id": "20260912T001007Z-tests-grok-a76b8a",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/item31-slice2-skeptic-driver-20260911",
+  "lineage": {
+    "branch": "lane/item31-slice2-skeptic-driver-20260911",
+    "base_sha": "87bf47eaeedf6c685ab3bbe3b65aa8d195887a36"
+  },
+  "follows": [
+    "20260911T235531Z-check-tests-codex-28d56c"
+  ],
+  "answers": [
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#1",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "4",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#2",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "1",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#3",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "1",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#4",
+      "disposition": "fix-round",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "1",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#5",
+      "disposition": "ruled",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "2",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#6",
+      "disposition": "ruled",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "2",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#7",
+      "disposition": "deferred",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "7",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#8",
+      "disposition": "ruled",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "3",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    },
+    {
+      "key": "20260911T235531Z-check-tests-codex-28d56c#9",
+      "disposition": "ruled",
+      "disposed_at": "2026-09-12T00:09:45Z",
+      "citation": {
+        "item": "4",
+        "path": ".dev/ladder-inputs/scope-item31-20260911.md"
+      }
+    }
+  ],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-12T00:10:07Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "87bf47eaeedf6c685ab3bbe3b65aa8d195887a36",
+    "ref_sha": "87bf47eaeedf6c685ab3bbe3b65aa8d195887a36",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "3b296117-5145-44db-b863-26be8e316d9b",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "xhigh",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/prompt.txt"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "xhigh",
+    "effort_argv": [
+      "--reasoning-effort",
+      "xhigh"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "3b296117-5145-44db-b863-26be8e316d9b",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/ops/devlane/task/jobs.json",
+      "sha256": "c1d18c6c5f03b028176e3bfba17b01744e32b40fd1972fdc86f7caa3e49d4b61"
+    },
+    "scope": "Work order: the skeptic's report on the wire, the driver in custody (item 31). The requirements are the eight numbered Contract items of .dev/ladder-inputs/scope-item31-20260911.md, tracked in this snapshot at the ref; read it and .dev/ladder-inputs/scope-discipline.md WHOLE from the snapshot tree (both are also supplied under in/). Nothing else is a requirement. The check-tests job returns its findings as the JSON envelope on stdout, each a quotation pair, and writes no file; the driver validates that envelope at the check-tests stop, refuses class envelope on a malformed field, and itself writes the fix-tests input under the ladder's inputs directory; a read-role prompt carrying a write instruction for a file it does not declare is refused at render. Boundaries as listed there; do not widen them.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/in/plan-item31-slice2-20260911.md",
+        "sha256": "79510c5be52e2402287adacf385a37fdc6a7d7751390d74df997dfc65c01b046"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/in/scope-item31-20260911.md",
+        "sha256": "23bd606c542162a0e222d9207f3c01a0bf8ec67e6f1977d0f76c8f513b14b6cf"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/in/scope-discipline.md",
+        "sha256": "450e7ffddbefbaa159194623e7b6b94c7c64edfb6f2becce5d6a3e4d6c8f59f3"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/in/20260911T235531Z-check-tests-codex-28d56c.json",
+        "sha256": "6f154a266a8182b72145207b5aa7ae727d4141aadeeed2d854f67cbf8025ffe1"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/in/SKEPTIC.md",
+        "sha256": "ab81c3b0608d36c4e739be174119ee3eca9af7f46f3678c3b3a72a9f2665e7ce"
+      }
+    ],
+    "sha256": "ce00830b466cade3b7afa5d4fb756ab9597a19cfb0fe4f964cda12703cac9049",
+    "bytes": 3791,
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py"
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
