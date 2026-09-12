@@ -14,7 +14,7 @@ and lint duty apply as written here.
 
 ## Instrument
 
-`ops/bin/ladder.sh SCOPE BRANCH [PLAN] [--input PATH]...` starts a
+`ops/bin/ladder.sh SCOPE BRANCH [PLAN] [--input PATH]... [--stage-set CLASS --because TEXT]` starts a
 ladder in the worktree that owns `BRANCH`. Each `--input PATH` names a
 file handed to every stage beside the scope and plan, so the work order a
 scope sentence cites reaches every worker as a supplied input; each is
@@ -42,6 +42,27 @@ security re-audit also run once for the batch.
 
 The table is data in the driver. Models and efforts are resolved by the
 dispatcher from the lane configuration, never carried in this table.
+
+**The stage set is chosen per work order** (scope-stage-set-20260912,
+owner 2026-09-12). `ops/conductor/stage-sets.json`, the owner's tracked
+table, maps a risk class to the stages of this table it runs, in this
+order; the driver reads it at start, records its path and digest beside
+the conf, and refuses `stage-set` when it is absent, malformed, names an
+unknown stage, or breaks the floor: `tests` and `check-tests` are never
+dropped, `code` never runs without `security` or `adversarial`, the fix
+round is `fix-tests` and `fix-code` together or neither, and `security-re`
+only with them. The plan names the class on its slice line
+(`slice<TAB>name<TAB>S|M<TAB>class`); a class not in the table refuses
+`plan`. `--stage-set CLASS --because TEXT` overrides the plan's class for
+one run and is recorded with its reason, the agent and the time; the flag
+without its reason refuses `arguments`. A ladder with no class anywhere
+runs `lane`, the declared default, recorded as such. A stage not in the
+set is present on the record as `outcome: skipped` with condition `not in
+stage set <class>`. When the set has no fix round and an audit says
+`changes`, the ladder stops at that audit with exit 1, as `security-re`
+does. `ladder.py stage-sets PATH` validates a table on the wire. The seed
+table holds `contract` (tests, check-tests, tests-fix, code, adversarial)
+and `lane` (all nine).
 
 | stage | job | harness | stage flag | input | condition |
 |---|---|---|---|---|---|
@@ -99,7 +120,8 @@ one stderr line, stdout empty, and exit 2.
 | `identity` | `WF_AGENT` and the worktree git identity are not full `Name <address>` values | supply both identities |
 | `gh-missing` | `gh` cannot be executed | install or expose the GitHub CLI |
 | `job` | a stage's named job is absent from the registry | restore the job declaration |
-| `record` | the named resume record is absent or invalid, or a recorded scope, plan or input changed without `--rescope` | choose or repair the record, or resume with `--rescope` |
+| `record` | the named resume record is absent or invalid, or a recorded scope, plan, input or stage-set table changed without `--rescope` | choose or repair the record, or resume with `--rescope` |
+| `stage-set` | the stage-set table is absent, malformed, names an unknown stage or breaks the floor; or `--stage-set` names a class the table does not hold | repair `ops/conductor/stage-sets.json` or choose a declared class |
 
 ## Stops, retries, and exits
 
@@ -144,6 +166,9 @@ under `.dev/records/ladders/<id>/`, as `ladder: record <id>`, with
 - `id`, lane, branch, worktree, `base_sha`, status, and a nullable stop
   and PR result; `keys` in the ladder record's `stopped` object list every
   undisposed finding key;
+- `stage_set` (the class, its stages, the source `plan`, `override` or
+  `default`, and for an override the reason, agent and time) and
+  `stage_sets`, the table's path and digest;
 - scope, optional plan, start inputs, and conf paths with SHA-256 digests,
   and `rescoped` events for any of the first three accepted on resume;
 - ordered stage rows naming job, harness, attempt, input path and
