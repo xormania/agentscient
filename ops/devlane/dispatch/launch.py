@@ -682,10 +682,11 @@ def _mcp_calls(stream, harness):
     """Count the lane MCP calls a worker made, from its own store; the
     proof at the dispatch boundary (owner, 2026-09-12: "not just proof at
     PR - proof for every dispatch"). Shapes measured on 2026-09-12 from
-    live probes: claude `tool_use` named `mcp__agentscient-lane__<tool>`;
-    codex `event_msg` items of type `McpToolCall` with server
-    `agentscient_lane`; grok assistant `tool_calls` whose arguments name
-    `agentscient_lane__<tool>`. None when the store cannot be read."""
+    live probes: claude `tool_use` named `mcp__<server>__<tool>`; codex
+    `event_msg` items of type `McpToolCall` on the server's TOML key; grok
+    assistant `tool_calls` whose arguments name `<key>__<tool>` (the
+    server name and key are LANE_MCP_SERVER and LANE_MCP_KEY). None when
+    the store cannot be read."""
     if not stream:
         return None
     path = Path(stream)
