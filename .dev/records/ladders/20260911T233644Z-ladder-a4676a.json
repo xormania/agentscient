@@ -82,6 +82,7 @@
         "effort": "xhigh",
         "model": "gpt-5.6-sol"
       },
+      "findings": 9,
       "harness": "codex",
       "input": {
         "path": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/.dev/records/dispatches/20260911T233646Z-tests-grok-a5fdd4.json",
@@ -95,10 +96,20 @@
         "sha256": "c02e980ed7985fd424717ef1304ff70bfda42b234527b96852fd3c1dc8f4664e"
       },
       "job": "check-tests",
+      "ledger": {
+        "exported": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911/ops/conductor/findings/findings.jsonl",
+        "imported": true
+      },
       "name": "check-tests",
-      "outcome": "launched",
+      "outcome": "ok",
       "record": "20260911T235531Z-check-tests-codex-28d56c",
-      "stage": "check-tests"
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "gpt-5.6-sol",
+        "model_requested": "gpt-5.6-sol"
+      },
+      "stage": "check-tests",
+      "verdict": "changes"
     },
     {
       "attempt": 0,
