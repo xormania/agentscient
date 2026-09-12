@@ -38,6 +38,20 @@ row that cannot look refuses: "could not look" is not a pass.
                     branches, a new worktree or branch, a
                     dispatch, a ladder start or a PR creation
                     aimed at any other branch; no grant escape
+    claim-unmeasured a commit message, PR body or comment, or a   the text, paragraph by
+                    record or law page written by heredoc, with  paragraph
+                    a paragraph that claims (enforced, done,
+                    landed, merged, green, impossible, verified,
+                    fixed) and carries no reading (sha, record
+                    id, P- row, #PR, run id, "Ran N tests") nor
+                    the words not measured; quoted words are not
+                    the writer's claim; no grant escape (owner,
+                    2026-09-12: "stops you from lie-ing")
+    trunk-commit    git commit, merge, cherry-pick, rebase,       git symbolic-ref of the
+                    revert or am while the directory is on the   directory; push refspecs
+                    trunk or the release branch, or a push whose
+                    refspec targets them; no grant escape (owner,
+                    2026-09-12: "one branch per session")
     pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
                     system verifies: a ## Proof section naming   at the head, gh run list
                     corpus rows that exist at the PR head, the
@@ -1034,6 +1048,154 @@ def pr_proof(toks, cwd):
     return None
 
 
+CLAIM_WORDS = re.compile(
+    r"\b(enforced|in force|is done|are done|now done|landed|merged|green|complete|completed|"
+    r"impossible|verified|proven|proved|passes|passing|works|wired|consumed|settled|holds|fixed)\b",
+    re.IGNORECASE)
+READING_TOKENS = re.compile(
+    r"\b[0-9a-f]{7,40}\b|\d{8}T\d{6}Z-[a-z-]+-[0-9a-f]{6}|\bP-[A-Z0-9]+-\d{8}-[\w-]+|#\d+|\brun \d+|"
+    r"\bRan \d+ tests|\b\d+ of \d+\b|\b\d+ (?:OK|red|failures?|errors?)\b|\bexit(?:=| )\d|"
+    r"\bnot measured\b|\bunmeasured\b|\bunresolved\b|\bnot verified\b|\bnot enforced\b|\bnot yet\b",
+    re.IGNORECASE)
+PUBLISH_PATHS = re.compile(r"(^|/)(ops/conductor/|\.claude/skills/|docs/)|(^|/)(AGENTS|CONTRIB|ops/README)\.md$")
+HEREDOC_WRITE = re.compile(
+    r"(?:cat|tee)(?:\s+-a)?\s*>{1,2}\s*(\S+)\s*<<-?\s*(['\"]?)(\w+)\2[^\n]*\n(.*?)\n\3(?:\n|$)", re.DOTALL)
+QUOTED = re.compile(r'"[^"\n]*"|“[^”\n]*”')
+
+
+def unmeasured_claim(text):
+    """The first line that claims without a reading in its paragraph, or None.
+    Quoted spans are somebody else's words and are not the writer's claim;
+    a paragraph opening with `>` is a quotation."""
+    for paragraph in re.split(r"\n\s*\n", text or ""):
+        lines = [line for line in paragraph.splitlines() if line.strip()]
+        if not lines or lines[0].lstrip().startswith(">"):
+            continue
+        stripped = QUOTED.sub("", paragraph)
+        if READING_TOKENS.search(stripped):
+            continue
+        for line in lines:
+            if CLAIM_WORDS.search(QUOTED.sub("", line)):
+                return line.strip()
+    return None
+
+
+def published_texts(toks, text, cwd):
+    """(surface, text) pairs a statement publishes: a commit message, a PR
+    body or comment, a record or law page written by heredoc."""
+    found = []
+    if toks and base(toks[0]) == "git":
+        sub, rest, _ = _git_subcommand(toks, cwd)
+        if sub == "commit":
+            for i, tok in enumerate(rest):
+                if tok in ("-m", "--message") and i + 1 < len(rest):
+                    found.append(("commit message", rest[i + 1]))
+                elif tok.startswith("-m") and len(tok) > 2:
+                    found.append(("commit message", tok[2:]))
+                elif tok in ("-F", "--file") and i + 1 < len(rest):
+                    body = read_text(os.path.normpath(os.path.join(cwd, os.path.expanduser(rest[i + 1]))))
+                    if body is not None:
+                        found.append((f"commit message {rest[i + 1]}", body))
+    if toks and base(toks[0]) == "gh" and len(toks) > 2 and toks[1] in ("pr", "issue"):
+        for i, tok in enumerate(toks):
+            if tok == "--body" and i + 1 < len(toks):
+                found.append((f"gh {toks[1]} {toks[2]} --body", toks[i + 1]))
+            elif tok == "--body-file" and i + 1 < len(toks):
+                body = read_text(os.path.normpath(os.path.join(cwd, os.path.expanduser(toks[i + 1]))))
+                if body is not None:
+                    found.append((f"gh {toks[1]} {toks[2]} --body-file {toks[i + 1]}", body))
+    return found
+
+
+def heredoc_records(text, cwd):
+    """(path, body) for every heredoc written onto a publishing surface."""
+    found = []
+    for match in HEREDOC_WRITE.finditer(text or ""):
+        target = match.group(1).strip("'\"")
+        _, rel = relative(os.path.normpath(os.path.join(cwd, os.path.expanduser(target))), cwd)
+        if PUBLISH_PATHS.search(rel or target):
+            found.append((target, match.group(4)))
+    return found
+
+
+def claim_unmeasured(surface, body):
+    line = unmeasured_claim(body)
+    if line is None:
+        return None
+    return deny("claim-unmeasured",
+                "every paragraph that claims (enforced, done, landed, merged, green, impossible, verified, "
+                "fixed, ...) to carry its reading beside the claim: a sha, a record id, a P- row, #PR, a run "
+                "id, \"Ran N tests\", or the words not measured",
+                f"in the {surface}: \"{line[:140]}\"",
+                "measure it and cite the reading in the same paragraph, or write that it is not measured; "
+                "no grant lifts this row (owner, 2026-09-12: \"you have to enforce it before you state it as "
+                "fact - with evidence\")")
+
+
+TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
+TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
+
+
+def _git_subcommand(toks, cwd):
+    """(subcommand, rest, directory) for a git statement, honouring -C and -c."""
+    args = toks[1:]
+    directory = cwd
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        if tok == "-C" and i + 1 < len(args):
+            directory = os.path.normpath(os.path.join(cwd, os.path.expanduser(args[i + 1])))
+            i += 2
+            continue
+        if tok.startswith("-C") and len(tok) > 2:
+            directory = os.path.normpath(os.path.join(cwd, os.path.expanduser(tok[2:])))
+            i += 1
+            continue
+        if tok in ("-c", "--git-dir", "--work-tree") and i + 1 < len(args):
+            i += 2
+            continue
+        if tok.startswith("-"):
+            i += 1
+            continue
+        break
+    rest = args[i:]
+    return (rest[0] if rest else None), rest[1:], directory
+
+
+def trunk_commit(toks, cwd, conf):
+    """Owner, 2026-09-12: "one branch per session - lets try it" and "you
+    have to enforce it before you state it as fact - with evidence". A
+    session never commits on the trunk or the release branch, and never
+    pushes to them: its work and its records ride its session branch and
+    land through one draft PR. Merges into the trunk happen on the forge.
+    No grant lifts this row."""
+    if not toks or base(toks[0]) != "git":
+        return None
+    protected = {b for b in (conf.get("TRUNK_BRANCH"), conf.get("RELEASE_BRANCH")) if b}
+    if not protected:
+        return None
+    sub, rest, directory = _git_subcommand(toks, cwd)
+    needed = ("cut the session branch and commit there: git worktree add ../wt/ag-session-<date>-<id> "
+              "-b lane/session-<date>-<id> origin/<trunk>; python3 ops/conductor/tools/deliverable.py add "
+              "lane/session-<date>-<id> --why '<the owner's words>'; one draft PR at close. No grant lifts this row")
+    if sub == "push":
+        operands = [t for t in rest if not t.startswith("-")]
+        for spec in operands[1:]:
+            dst = spec.split(":", 1)[1] if ":" in spec else spec
+            dst = dst.lstrip("+")
+            dst = dst.removeprefix("refs/heads/")
+            if dst in protected:
+                return deny("trunk-commit", "a push to a session branch (lane/session-<date>-<id>)",
+                            f"git push to {dst}", needed)
+        return None
+    if sub in TRUNK_WRITES:
+        branch = branch_of(directory)
+        if branch in protected:
+            return deny("trunk-commit", "a commit on a session branch (lane/session-<date>-<id>)",
+                        f"git {sub} on {branch} in {directory}", needed)
+    return None
+
+
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
@@ -1044,10 +1206,19 @@ def check_text(text, cwd, depth=0):
         if is_code(rel) and not grant_covers(grant, rel):
             return deny("hand-write", "code changed through the ladder (freeze)",
                         f"a script writing {path}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
+    if depth == 0:
+        for target, body in heredoc_records(text, cwd):
+            refusal = claim_unmeasured(f"record {target}", body)
+            if refusal:
+                return refusal
     for statement in commands(text):
         toks = tokens_of(statement)
         if not toks:
             continue
+        for surface, body in published_texts(toks, text, cwd):
+            refusal = claim_unmeasured(surface, body)
+            if refusal:
+                return refusal
         for target in prune_targets(toks, cwd, conf):
             return deny("prune", "data kept (never prune)", f"rm -r {target}", "leave it; move it under .dev/tmp with a note if it is in the way")
         if depth == 0 and GRAFT_LEVER.rsplit("/", 1)[-1] in " ".join(toks) and "query" in toks:
@@ -1072,6 +1243,11 @@ def check_text(text, cwd, depth=0):
             if is_code(rel) and not grant_covers(grant, rel):
                 return deny("hand-write", "code changed through the ladder (freeze)", f"{base(toks[0])} writing {target}",
                             "the ladder, or HAND_GRANT=<open id> whose scope names the path (grants are for landing and merge resolution)")
+        # after hand-write, so a patch applied by hand on the trunk names the
+        # older row the tests pin; every other trunk write names this one
+        refusal = trunk_commit(toks, cwd, conf)
+        if refusal:
+            return refusal
         kind, flags = dispatch_args(toks)
         if kind:
             refusal = check_dispatch(kind, flags, cwd, text, grant)
