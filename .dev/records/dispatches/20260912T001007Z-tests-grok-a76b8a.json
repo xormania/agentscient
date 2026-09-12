@@ -98,7 +98,7 @@
   "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
   "at": {
     "launched": "2026-09-12T00:10:07Z",
-    "closed": null
+    "closed": "2026-09-12T00:33:47Z"
   },
   "snapshot": {
     "mode": "whole",
@@ -158,14 +158,22 @@
       "--reasoning-effort",
       "xhigh"
     ],
-    "ran": null,
-    "read_from": null,
-    "note": "no stream found"
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/home/grok-stream/sessions/<snapshot-encoded>/3b296117-5145-44db-b863-26be8e316d9b/summary.json"
   },
   "session": {
     "id": "3b296117-5145-44db-b863-26be8e316d9b",
-    "stream": null,
-    "stream_sha256_at_close": null
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/home/grok-stream/sessions/<snapshot-encoded>/3b296117-5145-44db-b863-26be8e316d9b/summary.json",
+    "stream_sha256_at_close": "b5cb5d7d7c355714fd8413bd27eda94171913cf74a5a3b5248aeae3268f4f270",
+    "spend": {
+      "input": 7649521,
+      "cached": 7279744,
+      "output": 83013,
+      "total": 7732534,
+      "cost_usd_ticks": 19462504400,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260912T001007Z-tests-grok-a76b8a/home/grok-stream/sessions/<snapshot-encoded>/3b296117-5145-44db-b863-26be8e316d9b/summary.json",
+      "messages": 393
+    }
   },
   "brief": {
     "template": {
@@ -204,10 +212,66 @@
   },
   "caps": {
     "cap-out": 500000,
-    "source": "wires.py"
+    "source": "wires.py",
+    "timeout": 1500.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
   },
   "overrides": [],
-  "attempts": [],
-  "result": null,
-  "status": "launched"
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-12T00:10:08Z",
+      "ended": "2026-09-12T00:33:47Z",
+      "exit": 0,
+      "tripped": false
+    }
+  ],
+  "result": {
+    "head": "71376f8f9f79a3998de349142d08812b393f3d63",
+    "changed_paths": [
+      "ops/conductor/tests/test_ladder_check_envelope_verb.py",
+      "ops/conductor/tests/test_ladder_lever.py",
+      "ops/conductor/tests/test_ladder_skeptic_custody.py",
+      "ops/conductor/tests/test_ladder_skeptic_envelope.py",
+      "ops/devlane/task/tests/test_check_tests_job.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "test_check_tests_job": "ops/devlane/task/tests/test_check_tests_job.py",
+        "test_ladder_skeptic_envelope": "ops/conductor/tests/test_ladder_skeptic_envelope.py",
+        "test_ladder_skeptic_custody": "ops/conductor/tests/test_ladder_skeptic_custody.py",
+        "test_ladder_check_envelope_verb": "ops/conductor/tests/test_ladder_check_envelope_verb.py",
+        "test_ladder_lever": "ops/conductor/tests/test_ladder_lever.py"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 7732534,
+        "out": 83013,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "87bf47eaeedf6c685ab3bbe3b65aa8d195887a36",
+        "started": null,
+        "ended": null
+      },
+      "note": "Slice 2 tests rewritten from the eight numbered contract items. Each module was red on its own assertion at the stamped ref (live prompt still names {out}/SKEPTIC.md; driver advances on a malformed envelope; no driver-written inputs-dir file; no class-envelope registry row; planted file symlink is not class custody). Helper-only mutants now also read the live spec; extra file-write plants fail item 1; quotation-pair checks require both non-empty halves and a location, not a misses delimiter or whitespace ban; envelope stops require class envelope naming the field as the stop reason, not an envelope sub-object; custody is discovered by content under the inputs directory with path and digest, and the symlink trap keeps the inputs directory a real directory so a record-commit crash is not the assertion; item 7 is a hermetic envelope registry row, not a frozen check-envelope verb. Commits 8ae3627 534307c 3ca8945 f931ebf 71376f8."
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-12T00:33:45.689Z"
+    }
+  },
+  "status": "closed"
 }
