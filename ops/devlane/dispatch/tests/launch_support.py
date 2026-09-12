@@ -1017,7 +1017,14 @@ class _TempLaunch(unittest.TestCase):
         launch = self.load_launch()
         out, err = io.StringIO(), io.StringIO()
         cwd = cwd or self.repo
-        old = os.getcwd()
+        try:
+            old = os.getcwd()
+        except FileNotFoundError:
+            # A predecessor test left the process inside a directory it then
+            # removed (2026-09-12: every test of the next module erroring at
+            # getcwd in suite order). Stand on the repository root instead.
+            old = str(Path(__file__).resolve().parents[4])
+            os.chdir(old)
         try:
             os.chdir(cwd)
             with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
@@ -1059,7 +1066,22 @@ class _TempLaunch(unittest.TestCase):
     def dispatch(self, argv=None, **kwargs):
         if argv is None:
             argv = self.argv_for(**kwargs)
-        return self.run_main(argv)
+        # A write envelope must declare reuse (launch.py, grant 158); the
+        # fixture default declares none unless a test plants its own note.
+        planted = False
+        if "TASK_LAUNCH_NOTE" not in os.environ and argv:
+            try:
+                spec = json.loads(self.jobs_file.read_text(encoding="utf-8")).get(argv[0]) or {}
+            except (OSError, ValueError):
+                spec = {}
+            if spec.get("role") == "write":
+                os.environ["TASK_LAUNCH_NOTE"] = "reused: nothing applied (fixture default)"
+                planted = True
+        try:
+            return self.run_main(argv)
+        finally:
+            if planted:
+                os.environ.pop("TASK_LAUNCH_NOTE", None)
 
     def combined(self, out, err):
         return (out or "") + (err or "")
