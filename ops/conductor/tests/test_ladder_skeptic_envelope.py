@@ -28,6 +28,10 @@ from test_ladder_lever import (  # noqa: E402
 
 ZERO_COUNTS = {"p1": 0, "p2": 0, "p3": 0, "opinions": 0}
 PROSE_CLAIM = "Contract item 9 requires a fresh check"
+EMPTY_PAIR_CLAIM = (
+    "declared (ops/devlane/task/CONTRACT.md): ; "
+    "practiced: ; misses: x"
+)
 
 
 def _finding(**overrides):
@@ -62,11 +66,12 @@ class _EnvelopeFixture(_LadderFixture):
         rec_id = self.record_id_for("check-tests")
         row = self.stage_row(self.ladder_record(), "check-tests")
         self.assertEqual(row.get("reason"), "envelope", row)
-        payload = row.get("envelope")
-        self.assertIsInstance(payload, dict, row)
-        self.assertEqual(payload.get("field"), field, payload)
-        refusal = payload.get("refusal") or ""
-        self.assertIn(line, refusal)
+        stopped = (self.ladder_record().get("stopped") or {})
+        self.assertEqual(
+            stopped.get("reason") or row.get("reason"),
+            "envelope",
+            self.ladder_record(),
+        )
         self.assertEqual(
             self.dispatch_names().count("check-tests"),
             dispatches,
@@ -93,12 +98,13 @@ class WellFormedChangesAdvances(_EnvelopeFixture):
         self.assertIn("tests-fix", names, names)
         verbs = [row[0] if row else "" for row in self.findings_argvs()]
         self.assertIn("import", verbs, self.findings_argvs())
-        path = self.skeptic_findings_path()
+        path = self.driver_written_envelope_input()
         self.assertTrue(
             path.is_file(),
-            "item 4: the driver writes skeptic-findings.md from the "
-            f"validated envelope; missing {path}",
+            "item 4: the driver writes a regular file under the ladder "
+            f"inputs directory from the validated envelope; missing {path}",
         )
+        self.assertFalse(path.is_symlink(), path)
 
 
 class MalformedFieldStops(_EnvelopeFixture):
@@ -150,9 +156,9 @@ class MalformedFieldStops(_EnvelopeFixture):
         proc = self.run_ladder()
         self.assert_envelope_refusal(proc, "findings[0].severity")
 
-    def test_whitespace_in_where_stops_naming_where(self):
-        planted_where = "ops/conductor/tests/test_alpha.py: 1"
-        self.assertIn(" ", planted_where)
+    def test_an_empty_where_stops_naming_where(self):
+        planted_where = ""
+        self.assertEqual(planted_where, "")
         self.plant_check_tests(
             verdict="changes",
             findings=[_finding(where=planted_where)],
@@ -164,6 +170,7 @@ class MalformedFieldStops(_EnvelopeFixture):
 
     def test_a_prose_claim_stops_naming_claim(self):
         self.assertNotIn("declared (", PROSE_CLAIM)
+        self.assertNotIn("practiced:", PROSE_CLAIM)
         self.plant_check_tests(
             verdict="changes",
             findings=[_finding(claim=PROSE_CLAIM)],
@@ -174,12 +181,11 @@ class MalformedFieldStops(_EnvelopeFixture):
         line = self.assert_envelope_refusal(proc, "findings[0].claim")
         self.assertIn(PROSE_CLAIM, line)
 
-    def test_a_claim_missing_misses_stops_naming_claim(self):
-        claim = (
-            "declared (ops/devlane/task/CONTRACT.md): "
-            "the JSON envelope on stdout; practiced: evidence only"
-        )
-        self.assertNotIn("; misses: ", claim)
+    def test_a_claim_with_empty_quote_halves_stops_naming_claim(self):
+        claim = EMPTY_PAIR_CLAIM
+        self.assertIn("; practiced:", claim)
+        self.assertIn("; misses:", claim)
+        self.assertRegex(claim, r"declared \([^)]+\):\s*;")
         self.plant_check_tests(
             verdict="changes",
             findings=[_finding(claim=claim)],
