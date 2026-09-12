@@ -42,6 +42,89 @@ REVIEW_STAGES = frozenset(
 WITHHELD_STAGES = frozenset(
     {"tests", "check-tests", "tests-fix", "fix-tests"}
 )
+# The stage set is chosen per work order (scope-stage-set-20260912, owner
+# 2026-09-12): the owner's tracked table maps a risk class to the stages
+# above it runs; the floor lives in load_stage_sets, not in the table.
+STAGE_SETS_REL = Path("ops") / "conductor" / "stage-sets.json"
+DEFAULT_STAGE_SET = "lane"
+STAGE_ORDER = tuple(row[0] for row in DISPATCH_STAGES)
+FIX_ROUND = ("fix-tests", "fix-code")
+
+
+def load_stage_sets(path: Path) -> dict[str, list[str]]:
+    """The owner's table, validated; every failure refuses `stage-set`."""
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as error:
+        refuse("stage-set", f"a readable stage-set table at {path}", str(error),
+               "restore ops/conductor/stage-sets.json")
+    except json.JSONDecodeError as error:
+        refuse("stage-set", f"valid JSON in {path}", str(error), "repair the table")
+    if not isinstance(raw, dict) or not raw:
+        refuse("stage-set", "an object of class name to stage list", repr(raw)[:80],
+               "declare at least one class")
+    table: dict[str, list[str]] = {}
+    for name, stages in raw.items():
+        if (not isinstance(name, str) or not name.strip() or not isinstance(stages, list)
+                or not all(isinstance(item, str) for item in stages)):
+            refuse("stage-set", f"class {name!r} as a list of stage names", repr(stages)[:80],
+                   "repair the row")
+        unknown = [item for item in stages if item not in STAGE_ORDER]
+        if unknown:
+            refuse("stage-set", f"stages of class {name} from " + ", ".join(STAGE_ORDER),
+                   ", ".join(unknown), "name driver stages only")
+        if len(set(stages)) != len(stages):
+            refuse("stage-set", f"each stage once in class {name}", ", ".join(stages),
+                   "drop the duplicate")
+        chosen = [item for item in STAGE_ORDER if item in stages]
+        for needed in ("tests", "check-tests"):
+            if needed not in chosen:
+                refuse("stage-set", f"class {name} keeping {needed} (the floor)",
+                       ", ".join(chosen), f"add {needed}")
+        if "code" in chosen and not ({"security", "adversarial"} & set(chosen)):
+            refuse("stage-set", f"class {name} reviewing code (the floor)", ", ".join(chosen),
+                   "add security or adversarial")
+        fix = [item for item in FIX_ROUND if item in chosen]
+        if len(fix) == 1:
+            refuse("stage-set", f"class {name} naming the fix round whole", ", ".join(chosen),
+                   "name fix-tests and fix-code together or neither")
+        if "security-re" in chosen and not fix:
+            refuse("stage-set", f"class {name} naming security-re only with the fix round",
+                   ", ".join(chosen), "add the fix round or drop security-re")
+        table[name] = chosen
+    return table
+
+
+def choose_stage_set(
+    table: dict[str, list[str]],
+    slices: list[dict],
+    override: tuple[str, str] | None,
+    agent: str,
+) -> dict:
+    """The set this ladder runs: the override, else the plan's class, else the declared default."""
+    at = utc_stamp()
+    if override is not None:
+        name, because = override
+        if name not in table:
+            refuse("stage-set", "a class of the table: " + ", ".join(table), name,
+                   "choose a declared class or add it to the table")
+        return {"name": name, "stages": list(table[name]), "source": "override",
+                "because": because, "by": agent, "at": at}
+    classes = sorted({item["class"] for item in slices if item.get("class")})
+    if len(classes) > 1:
+        refuse("plan", "one stage-set class across the plan's slice lines", ", ".join(classes),
+               "one class per ladder")
+    if classes:
+        name = classes[0]
+        if name not in table:
+            refuse("plan", "a slice class of the table: " + ", ".join(table), name,
+                   "choose a declared class or add it to the table")
+        return {"name": name, "stages": list(table[name]), "source": "plan", "at": at}
+    if DEFAULT_STAGE_SET not in table:
+        refuse("stage-set", f"the declared default class {DEFAULT_STAGE_SET} in the table",
+               ", ".join(table), "declare it")
+    return {"name": DEFAULT_STAGE_SET, "stages": list(table[DEFAULT_STAGE_SET]),
+            "source": "default", "at": at}
 CONF_KEYS = (
     "LANE_NAME",
     "TRUNK_BRANCH",
@@ -374,7 +457,11 @@ def parse_plan(plan: Path | None) -> tuple[list[dict], list[dict]]:
         for raw in plan.read_text(encoding="utf-8").splitlines():
             fields = raw.split("\t")
             if len(fields) >= 3 and fields[0] == "slice":
-                slices.append({"name": fields[1], "declared": fields[2]})
+                slices.append({
+                    "name": fields[1],
+                    "declared": fields[2],
+                    "class": fields[3].strip() if len(fields) >= 4 and fields[3].strip() else None,
+                })
             elif len(fields) >= 4 and fields[0] == "bucket":
                 buckets.append(
                     {
@@ -454,6 +541,7 @@ class Driver:
         agent: str,
         record: dict | None = None,
         inputs: list[Path] | None = None,
+        stage_set: tuple[str, str] | None = None,
     ) -> None:
         self.worktree = worktree
         self.branch = branch
@@ -464,6 +552,13 @@ class Driver:
         self.conf = conf
         self.agent = agent
         self.start_inputs: list[Path] = list(inputs or [])
+        self.buckets, self.slices = parse_plan(plan)
+        self.stage_sets_path = worktree / STAGE_SETS_REL
+        self.stage_sets = load_stage_sets(self.stage_sets_path)
+        if record is not None and isinstance(record.get("stage_set"), dict):
+            self.stage_set = record["stage_set"]
+        else:
+            self.stage_set = choose_stage_set(self.stage_sets, self.slices, stage_set, agent)
         self.record = record or self.new_record()
         self.record_path = (
             worktree
@@ -481,7 +576,6 @@ class Driver:
         self.stage_by_name = {
             row["name"]: row for row in self.record.get("stages", [])
         }
-        self.buckets, self.slices = parse_plan(plan)
         self.implementation_markers: list[str] = self.normalize_markers(
             self.record.get("implementation_markers") or []
         )
@@ -510,6 +604,10 @@ class Driver:
             }
             for name, job, harness, flag in DISPATCH_STAGES
         ]
+        for row in stages:
+            if row["name"] not in self.stage_set["stages"]:
+                row["outcome"] = "skipped"
+                row["condition"] = f"not in stage set {self.stage_set['name']}"
         stages.append(
             {
                 "name": "pr",
@@ -544,6 +642,11 @@ class Driver:
                 "path": str(self.worktree / "ops" / "lane.conf"),
                 "sha256": digest(self.worktree / "ops" / "lane.conf"),
             },
+            "stage_sets": {
+                "path": str(self.stage_sets_path),
+                "sha256": digest(self.stage_sets_path),
+            },
+            "stage_set": self.stage_set,
             "stages": stages,
             "calibration": [],
             "implementation_markers": [],
@@ -1256,6 +1359,9 @@ class Driver:
         }
         return True
 
+    def in_stage_set(self, name: str) -> bool:
+        return name in self.stage_set["stages"]
+
     def mark_skipped(self, name: str, condition: str) -> None:
         row = self.row(name)
         row["condition"] = condition
@@ -1463,6 +1569,7 @@ class Driver:
             {
                 "name": item["name"],
                 "declared": item["declared"],
+                "stage_set": self.stage_set["name"],
                 "measured": {
                     "files": files,
                     "tests": test_count,
@@ -1596,9 +1703,12 @@ class Driver:
             check_envelope, previous = self.execute(
                 "check-tests", records, None, previous, resume=resume
             )
+            in_set = self.in_stage_set
             if check_envelope.get("verdict") == "changes":
                 if self.has_leak(check_envelope):
                     raise Stopped("tests-fix", reason="withheld")
+                if not in_set("tests-fix"):
+                    raise Stopped("check-tests", previous, verdict="changes", exit_code=1)
                 self.skeptic_answers = [
                     f"{records.get('check-tests', previous)}#{number}"
                     for number, _finding in enumerate(
@@ -1609,35 +1719,50 @@ class Driver:
                 _fixed, previous = self.execute(
                     "tests-fix", records, None, previous, resume=resume
                 )
-            else:
+            elif in_set("tests-fix"):
                 self.mark_skipped("tests-fix", "skeptic did not request changes")
-            command_file = self.derive_command(tests_envelope)
-            for index, _bucket in enumerate(self.buckets, 1):
-                name = "code" if index == 1 else f"code-{index}"
-                _coded, previous = self.execute(
+            command_file: Path | None = None
+            if in_set("code"):
+                command_file = self.derive_command(tests_envelope)
+                for index, _bucket in enumerate(self.buckets, 1):
+                    name = "code" if index == 1 else f"code-{index}"
+                    _coded, previous = self.execute(
+                        name, records, command_file, previous, resume=resume
+                    )
+            audits: dict[str, dict] = {}
+            if in_set("security") and in_set("adversarial"):
+                security, adversarial, previous = self.audit_pair(
+                    records, command_file, previous, resume=resume
+                )
+                audits = {"security": security, "adversarial": adversarial}
+            elif in_set("security") or in_set("adversarial"):
+                name = "security" if in_set("security") else "adversarial"
+                envelope, previous = self.execute(
                     name, records, command_file, previous, resume=resume
                 )
-            security, adversarial, previous = self.audit_pair(
-                records, command_file, previous, resume=resume
-            )
-            self.correction_follows = [records["security"], records["adversarial"]]
+                audits = {name: envelope}
+            self.correction_follows = [records[name] for name in audits if name in records]
             self.correction_answers = [
                 f"{records[name]}#{number}"
-                for name, envelope in (
-                    ("security", security),
-                    ("adversarial", adversarial),
-                )
+                for name, envelope in audits.items()
                 for number, _finding in enumerate(
                     envelope.get("findings") or [], start=1
                 )
             ]
-            changes = (
-                security.get("verdict") == "changes"
-                or adversarial.get("verdict") == "changes"
+            changes = any(
+                envelope.get("verdict") == "changes" for envelope in audits.values()
             )
             if changes:
-                if self.has_leak(security) or self.has_leak(adversarial):
+                if any(self.has_leak(envelope) for envelope in audits.values()):
                     raise Stopped("fix-tests", reason="withheld")
+                if not in_set("fix-tests"):
+                    last = [
+                        name for name, envelope in audits.items()
+                        if envelope.get("verdict") == "changes"
+                    ][-1]
+                    raise Stopped(
+                        last, records.get(last, previous), verdict="changes", exit_code=1
+                    )
                 self.require_cited("fix-tests", self.correction_answers)
                 _test_fix, previous = self.execute(
                     "fix-tests", records, command_file, previous, resume=resume
@@ -1646,19 +1771,21 @@ class Driver:
                 _code_fix, previous = self.execute(
                     "fix-code", records, command_file, previous, resume=resume
                 )
-                security_re, previous = self.execute(
-                    "security-re", records, command_file, previous, resume=resume
-                )
-                if security_re.get("verdict") == "changes":
-                    raise Stopped(
-                        "security-re",
-                        previous,
-                        verdict="changes",
-                        exit_code=1,
+                if in_set("security-re"):
+                    security_re, previous = self.execute(
+                        "security-re", records, command_file, previous, resume=resume
                     )
+                    if security_re.get("verdict") == "changes":
+                        raise Stopped(
+                            "security-re",
+                            previous,
+                            verdict="changes",
+                            exit_code=1,
+                        )
             else:
                 for name in ("fix-tests", "fix-code", "security-re"):
-                    self.mark_skipped(name, "audits did not request changes")
+                    if in_set(name):
+                        self.mark_skipped(name, "audits did not request changes")
             return self.open_pr()
         except Stopped as stopped:
             self.stop(stopped)
@@ -1788,7 +1915,7 @@ def dry_run(driver: Driver) -> int:
             ],
         }
     )
-    print(json.dumps({"stages": stages}, indent=2))
+    print(json.dumps({"stage_set": driver.stage_set, "stages": stages}, indent=2))
     return 0
 
 
@@ -1815,19 +1942,54 @@ def split_inputs(args: list[str]) -> tuple[list[str], list[str]]:
     return positionals, inputs
 
 
+def split_options(args: list[str]) -> tuple[list[str], list[str], tuple[str, str] | None]:
+    """Positionals, --input paths, and the --stage-set CLASS --because TEXT override."""
+    positionals: list[str] = []
+    inputs: list[str] = []
+    cls: str | None = None
+    because: str | None = None
+    rest: list[str] = []
+    items = list(args)
+    while items:
+        item = items.pop(0)
+        if item in ("--stage-set", "--because"):
+            if not items:
+                refuse("arguments", f"{item} with a value", item, "name the class or the reason")
+            value = items.pop(0)
+            if item == "--stage-set":
+                cls = value
+            else:
+                because = value
+        else:
+            rest.append(item)
+    positionals, inputs = split_inputs(rest)
+    if (cls is None) != (because is None):
+        refuse("arguments", "--stage-set CLASS together with --because TEXT",
+               " ".join(args), "name both the class and the reason")
+    if cls is not None and not because.strip():
+        refuse("arguments", "a non-empty --because", repr(because), "say why this run overrides the plan")
+    return positionals, inputs, (cls, because) if cls is not None else None
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     try:
         if not args:
             refuse(
                 "arguments",
-                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]",
+                "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]; the start form also takes --stage-set CLASS --because TEXT, and stage-sets PATH validates a table",
                 "no arguments",
                 "choose one documented form",
             )
         cwd = Path.cwd().resolve()
         agent = os.environ.get("WF_AGENT", "")
         resume = args[0] == "resume"
+        if args[0] == "stage-sets":
+            if len(args) != 2:
+                refuse("arguments", "stage-sets PATH", " ".join(args), "name the table file")
+            print(json.dumps(load_stage_sets(Path(args[1])), indent=2))
+            return 0
+        override: tuple[str, str] | None = None
         if resume:
             rescope_flag, retry = resume_options(args)
             worktree, record = record_worktree(cwd, args[1])
@@ -1856,6 +2018,8 @@ def main(argv: list[str] | None = None) -> int:
                 for item in (record.get("inputs") or [])
             ]
             recorded_file(worktree, record.get("conf"), "conf")
+            if record.get("stage_sets"):
+                recorded_file(worktree, record.get("stage_sets"), "stage-set table", rescope=changes)
             if rescope_flag:
                 if not changes:
                     refuse(
@@ -1874,7 +2038,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
         else:
             dry = args[0] == "--dry-run"
-            positionals, input_args = split_inputs(args[1:] if dry else args)
+            positionals, input_args, override = split_options(args[1:] if dry else args)
             if len(positionals) not in {2, 3}:
                 refuse(
                     "arguments",
@@ -1906,7 +2070,9 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             ),
         )
-        driver = Driver(worktree, branch, scope, plan, conf, agent, record, start_inputs)
+        driver = Driver(
+            worktree, branch, scope, plan, conf, agent, record, start_inputs, override
+        )
         if resume:
             driver.retry = retry
         if not resume and args[0] == "--dry-run":
