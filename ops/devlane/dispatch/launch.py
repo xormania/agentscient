@@ -678,6 +678,42 @@ def _grok_mcp_config(home, server):
     return str(path)
 
 
+def _relocate_mcp(rec, job_dir, relocated_from):
+    """A retained job moved to another dispatch store keeps an MCP config on
+    disk that names the old store, so a resumed server reports prior records
+    missing while any call still counts as proof (Codex review of PR #158,
+    2026-09-12). Rewrite lane-mcp.json, the record's server argv and grok's
+    config.toml to the bound job; the record's own paths were rebased by
+    _bind_record."""
+    mcp = (rec.get("brief") or {}).get("mcp")
+    if not isinstance(mcp, dict) or not mcp.get("config"):
+        return
+    job_dir = Path(job_dir)
+    cfg = job_dir / "lane-mcp.json"
+    if cfg.is_file():
+        try:
+            data = json.loads(cfg.read_text(encoding="utf-8"))
+        except ValueError:
+            data = None
+        if isinstance(data, dict):
+            data["dispatch_store"] = str(job_dir.resolve().parent)
+            data["job_registry"] = str(JOBS_PATH)
+            cfg.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+        mcp["config"] = str(cfg.resolve())
+        mcp["sha256"] = _sha(cfg)
+    server = mcp.get("server")
+    if isinstance(server, list):
+        mcp["server"] = [tok.replace(relocated_from, str(job_dir)) if isinstance(tok, str) else tok
+                         for tok in server]
+    grok_config = mcp.get("grok_config")
+    if isinstance(grok_config, str):
+        toml = Path(grok_config.replace(relocated_from, str(job_dir)))
+        if toml.is_file():
+            toml.write_text(toml.read_text(encoding="utf-8").replace(relocated_from, str(job_dir)),
+                            encoding="utf-8")
+        mcp["grok_config"] = str(toml)
+
+
 def _mcp_calls(stream, harness):
     """Count the lane MCP calls a worker made, from its own store; the
     proof at the dispatch boundary (owner, 2026-09-12: "not just proof at
@@ -1465,6 +1501,7 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
             relocated_from, str(job_dir))
         prompt.write_text(prompt_text, encoding="utf-8")
         rec["brief"].update(sha256=_sha(prompt), bytes=prompt.stat().st_size)
+        _relocate_mcp(rec, job_dir, relocated_from)
     iso_env = rec["harness"]["isolation"].get("env", {})
     flags = rec["harness"]["isolation"].get("flags", [])
     project_allow = project_deny = ()

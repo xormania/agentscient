@@ -1088,6 +1088,18 @@ def pr_number(toks):
     return None
 
 
+def gh_repo(toks):
+    """The repository a gh command selects with -R/--repo, or None."""
+    for i, tok in enumerate(toks):
+        if tok in ("-R", "--repo") and i + 1 < len(toks):
+            return toks[i + 1]
+        if tok.startswith("--repo="):
+            return tok.split("=", 1)[1]
+        if tok.startswith("-R") and len(tok) > 2:
+            return tok[2:]
+    return None
+
+
 def pr_proof(toks, cwd):
     """Owner, 2026-09-12: "it has to be impossible to not do the work".
     A PR is marked ready or merged only against proof the system verifies
@@ -1101,7 +1113,11 @@ def pr_proof(toks, cwd):
     number = pr_number(toks)
     if number is None:
         return deny("pr-proof", f"{verb} naming the PR number", "no number", "name the PR number")
-    view = subprocess.run(["gh", "pr", "view", number, "--json", "body,headRefOid,headRefName"],  # noqa: S603,S607 - PATH gh; a read
+    # -R/--repo selects another repository; the proof is read there (Codex
+    # review of PR #158, 2026-09-12), never from this repository's PR N.
+    selected = gh_repo(toks)
+    at = ["-R", selected] if selected else []
+    view = subprocess.run(["gh", "pr", "view", number, *at, "--json", "body,headRefOid,headRefName"],  # noqa: S603,S607 - PATH gh; a read
                           cwd=cwd, capture_output=True, text=True, timeout=60, check=False)
     if view.returncode != 0:
         return deny("pr-proof", f"a readable PR #{number}",
@@ -1132,7 +1148,7 @@ def pr_proof(toks, cwd):
     if missing:
         return deny("pr-proof", f"every Proof row present in {PROBES_DIR} at {head[:8]}",
                     f"absent: {', '.join(missing)}", needed_proof)
-    runs = subprocess.run(["gh", "run", "list", "--commit", head, "--json", "name,workflowName,status,conclusion,headSha"],  # noqa: S603,S607 - PATH gh; a read
+    runs = subprocess.run(["gh", "run", "list", *at, "--commit", head, "--json", "name,workflowName,status,conclusion,headSha"],  # noqa: S603,S607 - PATH gh; a read
                           cwd=cwd, capture_output=True, text=True, timeout=60, check=False)
     if runs.returncode != 0:
         return deny("pr-proof", f"the ci runs on {head[:8]}",
