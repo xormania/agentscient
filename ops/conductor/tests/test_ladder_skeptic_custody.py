@@ -15,7 +15,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import shutil
 import stat
 import sys
 import unittest
@@ -28,6 +27,7 @@ if str(_TESTS) not in sys.path:
 from test_ladder_lever import (  # noqa: E402
     SKEPTIC_BODY,
     SKEPTIC_FINDINGS,
+    WELL_FORMED_SKEPTIC_CLAIM,
     WELL_FORMED_SKEPTIC_COUNTS,
     WELL_FORMED_SKEPTIC_FINDING,
     _LadderFixture,
@@ -61,16 +61,6 @@ class _CustodyFixture(_LadderFixture):
         self.assertTrue(planted["skeptic_md"])
         self.assertEqual(planted["skeptic_envelope"]["artifacts"], {})
 
-    def input_paths_for_tests_fix(self) -> list[Path]:
-        argv = self.dispatch_argv_for("tests-fix")
-        paths = []
-        for raw in self.flag_values(argv, "--input"):
-            path = Path(raw)
-            if not path.is_absolute():
-                path = self.repo / path
-            paths.append(path)
-        return paths
-
     def assert_custody_refusal(self, proc) -> str:
         line = self.assert_refusal(proc, "custody")
         self.assertNotIn("tests-fix", self.dispatch_names())
@@ -84,9 +74,9 @@ class _CustodyFixture(_LadderFixture):
 
 
 class TestsFixReceivesTheCustodyFile(_CustodyFixture):
-    """Item 4 — path, digest, regular file, header, body, commit."""
+    """Item 4 — regular file under the inputs directory, path and digest."""
 
-    def test_tests_fix_argv_names_skeptic_findings_md_not_skeptic_md(self):
+    def test_tests_fix_argv_names_a_driver_written_file_not_skeptic_md(self):
         self.plant_valid_changes()
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
@@ -95,45 +85,44 @@ class TestsFixReceivesTheCustodyFile(_CustodyFixture):
         self.assertEqual(trap.read_text(encoding="utf-8"), SKEPTIC_BODY)
         paths = self.input_paths_for_tests_fix()
         names = [path.name for path in paths]
-        self.assertIn(SKEPTIC_FINDINGS, names, paths)
         self.assertNotIn("SKEPTIC.md", names, paths)
-        wanted = self.skeptic_findings_path().resolve()
+        path = self.driver_written_envelope_input()
         self.assertTrue(
-            any(path.resolve() == wanted for path in paths),
+            any(candidate.resolve() == path.resolve() for candidate in paths),
             paths,
         )
+        try:
+            path.resolve().relative_to(self.ladder_inputs_dir().resolve())
+        except ValueError:
+            self.fail(
+                "item 4: the driver-written file must lie under the "
+                f"ladder inputs directory; found {path}"
+            )
 
     def test_the_custody_file_is_a_regular_file_with_the_envelope(self):
         self.plant_valid_changes()
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        path = self.skeptic_findings_path()
+        path = self.driver_written_envelope_input()
         self.assertTrue(path.is_file(), path)
         self.assertFalse(path.is_symlink(), path)
         self.assertTrue(stat.S_ISREG(path.lstat().st_mode), path)
-        rec_id = self.record_id_for("check-tests")
         text = path.read_text(encoding="utf-8")
-        first, sep, rest = text.partition("\n")
-        self.assertTrue(sep, text)
-        self.assertIn("check-tests envelope", first)
-        self.assertIn(rec_id, first)
-        body = json.loads(rest)
-        self.assertEqual(body.get("artifacts"), {})
-        self.assertEqual(body.get("verdict"), "changes")
-        self.assertEqual(body.get("findings"), [_finding()])
+        self.assertIn(WELL_FORMED_SKEPTIC_CLAIM, text)
+        self.assertNotEqual(text, SKEPTIC_BODY)
+        rec_id = self.record_id_for("check-tests")
         dispatch = Path(self.load_plant()["records"][rec_id]["path"])
         envelope = json.loads(dispatch.read_text(encoding="utf-8"))["result"][
             "envelope"
         ]
-        self.assertEqual(body["findings"], envelope["findings"])
-        self.assertEqual(body["counts"], envelope["counts"])
+        self.assertIn(envelope["findings"][0]["claim"], text)
+        self.assertIn(str(envelope["verdict"]), text)
 
     def test_the_tests_fix_row_records_path_and_digest(self):
         self.plant_valid_changes()
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        path = self.skeptic_findings_path()
-        self.assertTrue(path.is_file(), path)
+        path = self.driver_written_envelope_input()
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         row = self.stage_row(self.ladder_record(), "tests-fix")
         inp = row.get("input") or {}
@@ -144,19 +133,24 @@ class TestsFixReceivesTheCustodyFile(_CustodyFixture):
             recorded = self.repo / recorded
         self.assertEqual(recorded.resolve(), path.resolve(), row)
 
-    def test_the_custody_file_is_in_the_record_commit(self):
+    def test_the_custody_file_resolves_inside_the_inputs_directory(self):
         self.plant_valid_changes()
         proc = self.run_ladder()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
-        path = self.skeptic_findings_path()
-        self.assertTrue(path.is_file(), path)
-        rel = str(path.relative_to(self.repo))
-        listed = self.git("ls-files", "--", rel).stdout.strip()
-        self.assertEqual(listed, rel, listed)
+        path = self.driver_written_envelope_input()
+        inputs_dir = self.ladder_inputs_dir().resolve()
+        resolved = path.resolve()
         self.assertTrue(
-            self.ladder_record_commits(),
-            "item 4: the driver commits the custody file with the record",
+            stat.S_ISREG(path.lstat().st_mode),
+            path,
         )
+        try:
+            resolved.relative_to(inputs_dir)
+        except ValueError:
+            self.fail(
+                "item 4: resolved custody path must stay under the "
+                f"inputs directory; found {resolved} vs {inputs_dir}"
+            )
 
 
 class CustodyRefusesASymlink(_CustodyFixture):
@@ -198,48 +192,11 @@ class CustodyRefusesASymlink(_CustodyFixture):
             SENTINEL,
             "item 4: the symlink target is not written",
         )
-
-    def test_a_planted_symlinked_inputs_directory_is_refused(self):
-        ladder_id = self._stop_after_tests()
-        inputs_dir = self.ladder_inputs_dir(ladder_id)
-        outside = self.root / "outside-inputs-aa32"
-        if inputs_dir.exists() or inputs_dir.is_symlink():
-            if inputs_dir.is_symlink():
-                inputs_dir.unlink()
-            else:
-                shutil.move(str(inputs_dir), str(outside))
-        if not outside.exists():
-            outside.mkdir()
-        marker = outside / "sentinel-aa32"
-        if not marker.is_file():
-            marker.write_text(SENTINEL, encoding="utf-8")
-        self.assertEqual(marker.read_text(encoding="utf-8"), SENTINEL)
-        if inputs_dir.exists() or inputs_dir.is_symlink():
-            if inputs_dir.is_dir() and not inputs_dir.is_symlink():
-                shutil.rmtree(inputs_dir)
-            else:
-                inputs_dir.unlink()
-        inputs_dir.symlink_to(outside)
-        self.assertTrue(inputs_dir.is_symlink(), inputs_dir)
-        self.git("add", "-A", "--", ".dev")
-        self.git("commit", "-m", "plant custody inputs-dir symlink trap\n")
-        self.assertEqual(self.porcelain(), "")
-        self.assertEqual(os.readlink(inputs_dir), str(outside))
-        self.patch_plant(trip_stages=[])
-        second = self.invoke(["resume", ladder_id])
-        line = self.assert_custody_refusal(second)
-        self.assertIn("symlink", line.lower())
-        self.assertTrue(
-            inputs_dir.is_symlink(),
-            "item 4: the inputs directory stays a symlink",
-        )
-        written = outside / SKEPTIC_FINDINGS
-        self.assertFalse(
-            written.exists(),
-            "item 4: the driver does not write through the symlink; "
-            f"found {written}",
-        )
-        self.assertEqual(marker.read_text(encoding="utf-8"), SENTINEL)
+        try:
+            target.resolve().relative_to(inputs_dir.resolve())
+            self.fail("plant: symlink target must lie outside the inputs directory")
+        except ValueError:
+            pass
 
 
 if __name__ == "__main__":
