@@ -36,6 +36,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          # the probe corpus reads records branches by name; a depth-1
+          # checkout makes every such row UNREACHABLE (2026-09-12)
+          fetch-depth: 0
       - name: the host's user toolchain on PATH (~/.local/bin)
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: term wall — tree content and paths
@@ -52,6 +55,8 @@ jobs:
         run: python3 ops/conductor/tools/laneconf.py closure
       - name: lane conf literals — no lane literal is outside the conf
         run: python3 ops/conductor/tools/laneconf.py literals
+      - name: probes — every corpus row serves; a claim without a passing row is red
+        run: python3 ops/conductor/tools/probes.py run
   app:
     runs-on: self-hosted
     # Measured 2026-09-12 over the last fifty runs: mean 6 s, max 8 s.

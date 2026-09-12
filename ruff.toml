@@ -76,6 +76,9 @@ ignore = [
 # purpose; S105/S106/S603/S607 are the fixture, not a finding.
 "ops/devlane/fixtures/*.py" = ["S105", "S106"]
 "ops/devlane/workflow/checks/*.py" = ["S603", "S607"]
+# probes.py executes corpus row commands: that is the instrument, per
+# probes-lever.md; THIS FILE ONLY, S603 is the mechanism, not a defect.
+"ops/conductor/tools/probes.py" = ["S603"]
 
 # S314 is exempted for THIS FILE ONLY. The wildcard above would have
 # exempted every present and future check, none of which carries the

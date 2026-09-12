@@ -116,6 +116,7 @@ EXTERNAL_ENV_KEYS = {
     "LANE_CONF",
     "LAUNCHER_PIN",
     "PATH",
+    "PROBES_TIMEOUT",
     "REPO",
     "REPOS",
     "SIBLINGS",

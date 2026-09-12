@@ -30,7 +30,7 @@ nothing else. Timestamps UTC.
 Read-only is enforced, never intended: a row command must begin with
 an allowlisted read form — `git` limited to `grep`, `log`, `show`,
 `rev-parse`, `rev-list`, `merge-base`, `for-each-ref`, `ls-files`;
-`gh` limited to `pr list`, `pr view`, `pr checks`; `python3
+`gh` limited to `pr list`, `pr view`, `pr checks`; `rg`; `python3
 ops/conductor/tools/<name>.py` for sibling instruments — anything
 else refuses class `corpus` before any row runs. Rows execute with
 `WF_AGENT` stripped from their environment, so a sibling's writing
@@ -48,7 +48,7 @@ non-JSON line refuses class `corpus`. Fields common to every row:
 | id | `P-` prefix, unique across the whole corpus |
 | kind | `serve`, `absent`, or `nearmiss` |
 | question | what a session under test is asked; non-empty |
-| lane | one of `register`, `ledger`, `ideas`, `git`, `forge`, `aar`, `none` |
+| lane | one of `register`, `ledger`, `ideas`, `git`, `forge`, `aar`, `record`, `seat`, `driver`, `spend`, `none` |
 
 Per kind:
 
@@ -65,7 +65,8 @@ Per kind:
 
 Commands are split with `shlex` and executed without a shell from the
 repository root; a row needing pipes or redirection is malformed
-(class `corpus`). Each row command runs under a bounded 60s timeout.
+(class `corpus`). Each row command runs under a bounded 60s timeout (`PROBES_TIMEOUT` seconds
+overrides it).
 
 ## run — arm A
 
