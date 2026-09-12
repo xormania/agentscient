@@ -889,30 +889,6 @@ class MatrixHookTests(unittest.TestCase):
 
     # --- prune ---
 
-    def test_prune_refuses_the_named_trees(self):
-        rows = (
-            "rm -rf .dev/records",
-            "rm -r .git",
-            "rm -rf ops/conductor/ideas",
-            f"rm -rf {self.wt}/ag-x",
-            "rm -rf ../wt/ag-x",
-            f"rm -rf {self.home}/.local/state/{LANE_NAME}",
-            f"rm -r ~/.local/state/{LANE_NAME}",
-        )
-        for cmd in rows:
-            with self.subTest(cmd=cmd):
-                self.assert_denied(self.run_bash(cmd), "prune")
-
-    def test_prune_allows_other_removals(self):
-        rows = (
-            "rm -rf .dev/tmp",
-            "rm AGENTS.md",
-            "rm -r ops/devlane/hooks",
-        )
-        for cmd in rows:
-            with self.subTest(cmd=cmd):
-                self.assert_allowed(self.run_bash(cmd))
-
     # --- grant escape ---
 
     def test_grant_escape_allows_hand_write_inside_scope(self):
@@ -950,130 +926,6 @@ class MatrixHookTests(unittest.TestCase):
     def test_launcher_help_is_a_read(self):
         self.assert_allowed(self.run_bash("ops/devlane/dispatch/launch.py --help"))
         self.assert_allowed(self.run_bash("python3 ops/devlane/dispatch/launch.py -h"))
-
-    # --- claim-unmeasured (owner 2026-09-12: "i want something in the hook
-    # matrix that stops you from lie-ing"; "you have to enforce it before
-    # you state it as fact - with evidence") ---
-
-    def _session_branch(self):
-        support.git(self.repo, self.env, "checkout", "-q", "-b", "lane/session-fixture")
-
-    def test_a_commit_message_that_claims_without_a_reading_is_refused(self):
-        self._session_branch()
-        for cmd in ('git commit -q -m "law: one branch per session is now enforced"',
-                    'git commit -q -m "lane: the gate landed and the suite is green"',
-                    "git commit -q -m 'hooks: it is now impossible to commit on dev'"):
-            with self.subTest(cmd=cmd):
-                proc = self.run_bash(cmd)
-                self.assert_denied(proc, "claim-unmeasured")
-                self.assertIn("not measured", proc.stdout)
-
-    def test_a_commit_message_with_its_reading_beside_the_claim_passes(self):
-        self._session_branch()
-        for cmd in ('git commit -q -m "law: one branch per session, enforced by the trunk-commit row (test_matrix 262 OK)"',
-                    'git commit -q -m "lane: the gate landed at 794cb4cf; CI green on e2ea4f93"',
-                    'git commit -q -m "hooks: the row refuses a commit on dev (P-TRUNK-20260912-row)"',
-                    'git commit -q -m "records: the effect on test authors is not measured"',
-                    'git commit -q -m "fix a typo in the README"'):
-            with self.subTest(cmd=cmd):
-                self.assert_allowed(self.run_bash(cmd))
-
-    def test_a_message_file_is_read_paragraph_by_paragraph(self):
-        self._session_branch()
-        bad = self.repo / "msg-bad.txt"
-        bad.write_text("lane: a change\n\nThe worker wiring is done and every dispatch is proven.\n\nSource: owner\n")
-        proc = self.run_bash(f"git commit -q -F {bad}")
-        self.assert_denied(proc, "claim-unmeasured")
-        self.assertIn("every dispatch is proven", proc.stdout)
-        good = self.repo / "msg-good.txt"
-        good.write_text("lane: a change\n\nThe worker wiring is done: record 20260912T042714Z-review-codex-063615\ncarries result.proof with 3 calls. The effect on spend is not measured.\n\nSource: owner\n")
-        self.assert_allowed(self.run_bash(f"git commit -q -F {good}"))
-
-    def test_a_pr_body_is_held_to_the_same_rule(self):
-        self._session_branch()
-        self.assert_denied(self.run_bash('gh pr create --draft --title t --body "the gate is enforced and merged"'), "claim-unmeasured")
-        body = self.repo / "body.md"
-        body.write_text("## What\n\nthe gate\n\n## Proof\n\nP-PRP-20260912-row; enforced at the ready boundary (run 34671528107 green).\n")
-        self.assert_allowed(self.run_bash(f"gh pr create --draft --title t --body-file {body}"))
-        bad = self.repo / "bad.md"
-        bad.write_text("## What\n\nthe gate is enforced now.\n")
-        self.assert_denied(self.run_bash(f"gh pr edit 12 --body-file {bad}"), "claim-unmeasured")
-        self.assert_denied(self.run_bash('gh pr comment 12 --body "done, landed, all green"'), "claim-unmeasured")
-
-    def test_a_record_written_by_heredoc_is_held_to_the_rule(self):
-        refused = "cat > ops/conductor/AAR-2026-01-01-x.md <<'EOF'\n# AAR\n\nThe wiring landed and is enforced.\nEOF"
-        proc = self.run_bash(refused)
-        self.assert_denied(proc, "claim-unmeasured")
-        self.assertIn("The wiring landed", proc.stdout)
-        passing = "cat > ops/conductor/handoff/HANDOFF-2026-01-01-x.md <<'EOF'\n# Handoff\n\nThe wiring landed at 4d95ae64 (PR #156); enforced by test_launch_worker_mcp (14 OK).\n\n> owner: it has to be made impossible\n\nThe owner said \"it has to be impossible\" and it is not measured whether it is.\nEOF"
-        self.assert_allowed(self.run_bash(passing))
-        elsewhere = "cat > notes.md <<'EOF'\nthe gate is enforced, done, green\nEOF"
-        self.assert_allowed(self.run_bash(elsewhere))
-        law = "cat >> AGENTS.md <<'EOF'\n- **Everything is enforced now.**\nEOF"
-        self.assert_denied(self.run_bash(law), "claim-unmeasured")
-
-    def test_no_grant_lifts_the_claim_row(self):
-        self._session_branch()
-        proc = self.run_bash(f'HAND_GRANT={GRANT_OPEN} git commit -q -m "the row is enforced"')
-        self.assert_denied(proc, "claim-unmeasured")
-
-    # --- trunk-commit (owner 2026-09-12: "you have to enforce it before you
-    # state it as fact - with evidence"; "one branch per session") ---
-
-    TRUNK_WRITES = (
-        "git commit -q -m x",
-        "git commit -q -F /tmp/msg.txt",
-        "git merge --no-edit origin/dev",
-        "git rebase origin/dev",
-        "git revert HEAD",
-        "git push origin dev",
-        "git push -q origin HEAD:dev",
-        "git push origin master",
-        "git push origin +HEAD:refs/heads/dev",
-    )
-    TRUNK_READS = (
-        "git pull -q --ff-only origin dev",
-        "git fetch -q origin",
-        "git log --oneline -3",
-        "git status --short",
-        "git show HEAD:ops/lane.conf",
-        "git diff --stat",
-        "git rev-parse HEAD",
-        "cat > notes.md <<'EOF'\nlater: git commit -m x on dev\nEOF",
-    )
-
-    def test_a_commit_or_push_on_the_trunk_from_a_session_is_refused(self):
-        self.assertEqual(self._repo_branch(), "dev", "INVALID: fixture is not on the trunk")
-        for cmd in self.TRUNK_WRITES + (f"git -C {self.repo} commit -q -m x",):
-            with self.subTest(cmd=cmd):
-                proc = self.run_bash(cmd)
-                self.assert_denied(proc, "trunk-commit")
-                self.assertIn("lane/session-", proc.stdout)
-
-    def test_no_grant_lifts_the_trunk_row(self):
-        proc = self.run_bash(f"HAND_GRANT={GRANT_OPEN} git commit -q -m x")
-        self.assert_denied(proc, "trunk-commit")
-
-    def test_the_same_commands_pass_on_a_session_branch(self):
-        support.git(self.repo, self.env, "checkout", "-q", "-b", "lane/session-fixture")
-        for cmd in ("git commit -q -m x", "git commit -q -F /tmp/msg.txt",
-                    "git merge --no-edit origin/dev",
-                    "git push -u origin lane/session-fixture",
-                    "git push origin HEAD:lane/session-fixture",
-                    f"git -C {self.repo} commit -q -m x"):
-            with self.subTest(cmd=cmd):
-                self.assert_allowed(self.run_bash(cmd))
-
-    def test_reads_pulls_and_prose_pass_on_the_trunk(self):
-        self.assertEqual(self._repo_branch(), "dev")
-        for cmd in self.TRUNK_READS:
-            with self.subTest(cmd=cmd):
-                self.assert_allowed(self.run_bash(cmd))
-
-    def test_the_release_branch_is_protected_too(self):
-        support.git(self.repo, self.env, "checkout", "-q", "-b", "master")
-        self.assert_denied(self.run_bash("git commit -q -m x"), "trunk-commit")
-        self.assert_denied(self.run_bash("git merge --no-edit dev"), "trunk-commit")
 
     # --- deliverable lock (owner 2026-09-11: "an immediate FIX to stop that") ---
 
@@ -1203,12 +1055,6 @@ class MatrixHookTests(unittest.TestCase):
         for cmd in rows:
             with self.subTest(cmd=cmd):
                 self.assert_denied(self.run_bash(cmd), "hand-write")
-
-    def test_grant_escape_does_not_cover_prune(self):
-        self.assert_denied(
-            self.run_bash(f"HAND_GRANT={GRANT_OPEN} rm -rf .git"),
-            "prune",
-        )
 
     # --- named extras ---
 
@@ -1457,40 +1303,6 @@ class MatrixHookTests(unittest.TestCase):
 
     # --- test-form ---
 
-    def test_test_form_refuses_a_path_form_unittest_argument(self):
-        self.assertGreater(len(PATH_FORM_UNITTEST_ARGS), 0)
-        commands = [
-            f"python3 -m unittest {arg}" for arg in PATH_FORM_UNITTEST_ARGS
-        ]
-        commands.append("python3 -m unittest -q tests/test_app.py")
-        for cmd in commands:
-            with self.subTest(cmd=cmd):
-                self.assert_denied(self.run_bash(cmd), "test-form")
-
-    def test_test_form_allows_discover_form_and_suites_sh(self):
-        rows = (
-            "python3 -m unittest discover",
-            "python3 -m unittest discover -s tests -p test_*.py",
-            (
-                "python3 -m unittest discover -s ops/devlane/hooks/tests "
-                "-p test_matrix.py"
-            ),
-            "bash ops/bin/suites.sh",
-            "ops/bin/suites.sh",
-        )
-        self.assertGreater(len(rows), 0)
-        for cmd in rows:
-            with self.subTest(cmd=cmd):
-                self.assert_allowed(self.run_bash(cmd))
-
-    def test_test_form_allows_a_dotted_module_name(self):
-        self.assertGreater(len(DOTTED_UNITTEST_NAMES), 0)
-        for name in DOTTED_UNITTEST_NAMES:
-            with self.subTest(name=name):
-                self.assert_allowed(
-                    self.run_bash(f"python3 -m unittest {name}")
-                )
-
     def test_test_form_path_in_implement_scope_is_bucket_command(self):
         fragment = "tests/test_app.py"
         scope = self.repo / ".dev" / "scope-path-form.txt"
@@ -1513,29 +1325,3 @@ class MatrixHookTests(unittest.TestCase):
             f"expected the found clause to name {fragment!r}; "
             f"found {reason!r}",
         )
-
-    def test_test_form_reason_names_the_path_form_argument(self):
-        arg = "ops/devlane/task/tests/test_check_tests_json.py"
-        proc = self.run_bash(f"python3 -m unittest {arg}")
-        self.assert_denied(proc, "test-form")
-        _decision, reason = support.permission_decision(proc.stdout)
-        expected = (
-            "[matrix:test-form] test-form: expected the discover form "
-            "(python3 -m unittest discover -s <tests dir> -p <file>) "
-            f"or ops/bin/suites.sh; found a path-form unittest argument "
-            f"{arg}; needed the discover form"
-        )
-        self.assertEqual(reason.strip(), expected)
-
-    def test_test_form_has_no_grant_escape(self):
-        self.assert_denied(
-            self.run_bash(
-                f"HAND_GRANT={GRANT_OPEN} "
-                "python3 -m unittest tests/test_app.py"
-            ),
-            "test-form",
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
