@@ -54,6 +54,10 @@ class _Wired(ls._TempLaunch):
         self._write("ops/lane.conf", "LANE_NAME='fixture'\nMODEL_GROK='m'\n")
         self.ref = self._commit("plant capabilities")
 
+        os.environ["TASK_LAUNCH_WRITE_STREAM"] = "1"
+        os.environ["TASK_LAUNCH_MCP_CALLS"] = "1"
+        self.addCleanup(os.environ.pop, "TASK_LAUNCH_MCP_CALLS", None)
+
     def job_dir(self, rec):
         return Path(rec["snapshot"]["root"]).parent
 
@@ -202,6 +206,48 @@ class AWriteEnvelopeMustDeclareReuse(_Wired):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         self.assertEqual(rec["result"]["envelope"]["status"], "ok")
         self.assertNotIn("reuse", rec["result"])
+
+
+class EveryDispatchCarriesProofOfLooking(_Wired):
+    """Owner, 2026-09-12: "not just proof at PR - proof for every dispatch".
+    The record's result.proof counts the worker's lane MCP calls from its
+    own store; a wired worker that never called the server has its ok
+    envelope invalidated as framework-unused."""
+
+    def test_a_worker_that_never_looked_is_invalid(self):
+        os.environ["TASK_LAUNCH_MCP_CALLS"] = "0"
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        proof = rec["result"]["proof"]
+        self.assertTrue(proof["mcp_wired"])
+        self.assertEqual(proof["mcp_calls"], 0)
+        self.assertEqual(rec["result"]["envelope"]["status"], "invalid")
+        self.assertIn("framework-unused", rec["result"]["envelope"]["note"])
+
+    def test_calls_are_counted_from_each_store(self):
+        for harness, n in (("grok", 2), ("codex", 3), ("claude", 1)):
+            with self.subTest(harness=harness):
+                self.tearDown()
+                _Wired.setUp(self)
+                os.environ["TASK_LAUNCH_MCP_CALLS"] = str(n)
+                rec, *_ = self.launch_ok(job="plan", harness=harness, stage="plan")
+                proof = rec["result"]["proof"]
+                self.assertEqual(proof["mcp_calls"], n, proof)
+                self.assertEqual(proof["mcp_tools"], ["lane_jobs"])
+                self.assertEqual(rec["result"]["envelope"]["status"], "ok")
+                # the record keeps paths portable; readers invert them
+                self.assertTrue(proof["store"].endswith((".jsonl", "summary.json")), proof)
+
+    def test_an_unwired_snapshot_records_no_gate(self):
+        plain = ls._TempLaunch
+        self.tearDown()
+        plain.setUp(self)
+        os.environ["TASK_LAUNCH_WRITE_STREAM"] = "1"
+        os.environ["TASK_LAUNCH_MCP_CALLS"] = "0"
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        proof = rec["result"]["proof"]
+        self.assertFalse(proof["mcp_wired"])
+        self.assertIsNone(proof["mcp_calls"])
+        self.assertEqual(rec["result"]["envelope"]["status"], "ok")
 
 
 if __name__ == "__main__":

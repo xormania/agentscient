@@ -1206,6 +1206,15 @@ absence is historical and must not be read as "none answered".
   "Corrections to retain", the MCP server and its tools; each absent
   section says `<name>: absent`; the whole is cut at 8000 bytes with a
   marker. It closes with the reuse clause.
+- Every settled record carries `result.proof` (owner, 2026-09-12: "not
+  just proof at PR - proof for every dispatch"): `mcp_wired`, `mcp_calls`
+  (the lane MCP calls counted from the worker's own store: claude
+  `tool_use` named `mcp__agentscient-lane__*`, codex `McpToolCall` items
+  on server `agentscient_lane`, grok `tool_calls` naming
+  `agentscient_lane__*`), `mcp_tools`, `store`. A wired worker whose `ok`
+  envelope shows no call is invalidated `framework-unused`; a store that
+  cannot be read invalidates `framework-unproven` (could not look is not
+  a pass). An unwired snapshot records `mcp_calls: null` and no gate.
 - A write role's envelope declares reuse: `note` carries
   `reused: <what>` or `reused: nothing applied`. Settlement records it as
   `result.reuse`; an `ok` write envelope without it is invalidated with

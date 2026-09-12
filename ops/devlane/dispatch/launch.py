@@ -678,6 +678,62 @@ def _grok_mcp_config(home, server):
     return str(path)
 
 
+def _mcp_calls(stream, harness):
+    """Count the lane MCP calls a worker made, from its own store; the
+    proof at the dispatch boundary (owner, 2026-09-12: "not just proof at
+    PR - proof for every dispatch"). Shapes measured on 2026-09-12 from
+    live probes: claude `tool_use` named `mcp__agentscient-lane__<tool>`;
+    codex `event_msg` items of type `McpToolCall` with server
+    `agentscient_lane`; grok assistant `tool_calls` whose arguments name
+    `agentscient_lane__<tool>`. None when the store cannot be read."""
+    if not stream:
+        return None
+    path = Path(stream)
+    if path.name == "summary.json":
+        path = path.parent / "chat_history.jsonl"
+    if not path.is_file():
+        return None
+    tools = []
+    prefix_dash = f"mcp__{LANE_MCP_SERVER}__"
+    prefix_us = f"{LANE_MCP_KEY}__"
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        if LANE_MCP_KEY not in line and LANE_MCP_SERVER not in line:
+            continue
+        try:
+            item = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(item, dict):
+            continue
+        if harness == "claude":
+            content = ((item.get("message") or {}).get("content")
+                       if isinstance(item.get("message"), dict) else None)
+            for part in content if isinstance(content, list) else []:
+                if isinstance(part, dict) and part.get("type") == "tool_use" \
+                        and str(part.get("name", "")).startswith(prefix_dash):
+                    tools.append(str(part["name"])[len(prefix_dash):])
+        elif harness == "codex":
+            payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+            call = payload.get("item") if isinstance(payload.get("item"), dict) else {}
+            if call.get("type") == "McpToolCall" and call.get("server") == LANE_MCP_KEY:
+                tools.append(str(call.get("tool")))
+        elif harness == "grok":
+            for call in item.get("tool_calls") if isinstance(item.get("tool_calls"), list) else []:
+                args = call.get("arguments") if isinstance(call, dict) else None
+                if isinstance(args, str) and prefix_us in args:
+                    try:
+                        name = json.loads(args).get("tool_name", "")
+                    except ValueError:
+                        name = ""
+                    if str(name).startswith(prefix_us):
+                        tools.append(str(name)[len(prefix_us):])
+    return tools
+
+
 def _first_doc_line(path):
     try:
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -2302,8 +2358,28 @@ def _settle(repo, record_path, rec, env, *, subject=None, preserve_cause=False):
         if declared is None and env.get("status") == "ok":
             _invalidate_envelope(env, "reuse-undeclared: a write envelope's note carries "
                                       "`reused: <what>` or `reused: nothing applied`")
+    wired = bool(((rec.get("brief") or {}).get("mcp") or {}).get("server"))
+    # The record holds the store path with its snapshot segment made
+    # portable; the reader needs the real path (_absolute_paths inverts it).
+    real_stream = _absolute_paths({"snapshot": rec.get("snapshot"),
+                                   "session": rec.get("session")})["session"].get("stream")
+    calls = _mcp_calls(real_stream, rec["harness"]["name"]) if wired else None
+    if wired and env.get("status") == "ok":
+        if calls is None:
+            _invalidate_envelope(env, "framework-unproven: the worker's store could not be read, "
+                                      "so no lane MCP call is proven; could not look is not a pass")
+        elif not calls:
+            _invalidate_envelope(env, "framework-unused: the worker made no lane MCP call; the brief "
+                                      "named the server and its tools")
     rec["result"] = {"head": head, "changed_paths": changed,
                      "residual_paths": residual, "envelope": env}
+    rec["result"]["proof"] = {
+        "mcp_wired": wired,
+        "mcp_calls": None if calls is None else len(calls),
+        "mcp_tools": sorted(set(calls)) if calls else [],
+        "store": real_stream,
+        **({"unresolved": "no readable store"} if wired and calls is None else {}),
+    }
     if role == "write":
         rec["result"]["reuse"] = declared.group(1).strip() if declared else "undeclared"
     if residual_patch:
