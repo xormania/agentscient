@@ -20,9 +20,18 @@ on:
     branches: [dev]
 permissions:
   contents: read
+# A newer commit on the same pull request cancels the run it supersedes;
+# push and merge_group runs are never cancelled, since the push run on dev
+# is the stamp the release PR relies on (owner, 2026-09-12).
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   lane:
     runs-on: self-hosted
+    # Measured 2026-09-12 over the last fifty runs: mean 122 s, max 138 s.
+    # The timeout contains a hang or a leaked worker, not the normal run.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -45,6 +54,8 @@ jobs:
         run: python3 ops/conductor/tools/laneconf.py literals
   app:
     runs-on: self-hosted
+    # Measured 2026-09-12 over the last fifty runs: mean 6 s, max 8 s.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
