@@ -20,12 +20,19 @@ boundary is not a declared, verifiable coupling.
   green. `master` is the default and release branch: a release is a
   draft PR from `dev` into `master`, opened by a session for a group
   of landed work and merged by the owner alone. No squash merges,
-  never a deleted branch. **Records commit straight to `dev`** (owner,
-  2026-09-12: "choice #2 - commit to dev for records"): ideas, hand-offs,
-  AARs, probes, the defect ledger and the findings export, under
-  `ops/conductor/`, are committed to `dev` from the main checkout the
-  hour they arrive, with their trailers; the push run on `dev` stamps
-  them. Law text, skill pages, contracts and code stay draft-first.
+  never a deleted branch. **One branch per session** (owner, 2026-09-12:
+  "one branch per session - lets try it"; "as long you account for the
+  fact that i'll have multiple sessions running soon"): a session cuts
+  `lane/session-<date>-<id>` from `dev` at its start, names it in the
+  deliverable lock (`deliverable.py add`, beside any other session's),
+  and every change and every record of the session, ideas, hand-offs,
+  AARs, probes, the defect ledger and the findings export under
+  `ops/conductor/`, commits to that branch with its trailers. One draft
+  PR from the branch into `dev` at the session's close, through the
+  proof gate. The dispatcher merges `dev` forward into the branch before
+  every launch and refuses only a conflict, so a trunk that moved is not
+  a defect. This supersedes the same day's "choice #2" of records
+  straight to `dev`, which moved the trunk under every open branch.
 - **Every commit carries its trailers**: `Source:` (original, a
   `repo@sha` pointer for adapted content, or `owner <date>`), and
   `Co-Authored-By:` naming the specific model — the credited agent,

@@ -233,6 +233,31 @@ fi
 ref=$(git -C "$worktree" rev-parse HEAD 2>/dev/null) || refuse "expected a git worktree; found $worktree without HEAD; correct the target"
 lineage=$(git -C "$worktree" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
 
+# Owner, 2026-09-12: "why are the branches always out of date - or some other
+# bullshit git issue". A worktree behind origin/<trunk> is merged forward here,
+# before the launch, so the launch sees a tree that contains the trunk; a
+# conflict refuses stale-base with the files named and the worktree as it was.
+# A dry run reports what it would do and moves nothing.
+trunk_ref="origin/$TRUNK_BRANCH"
+if git -C "$worktree" rev-parse --verify -q "$trunk_ref" >/dev/null 2>&1 \
+   && ! git -C "$worktree" merge-base --is-ancestor "$trunk_ref" HEAD 2>/dev/null; then
+    behind=$(git -C "$worktree" rev-list --count "HEAD..$trunk_ref" 2>/dev/null || echo '?')
+    if ((dry_run)); then
+        printf 'would merge: %s into %s (%s commits behind)\n' "$trunk_ref" "${lineage:-HEAD}" "$behind"
+    else
+        [[ -z $(git -C "$worktree" status --porcelain) ]] \
+            || refuse "stale-base: expected a clean worktree to merge $trunk_ref forward; found uncommitted changes in $worktree; needed commit or stash them"
+        merge_msg=$(printf 'merge %s into %s before dispatch (%s commits)\n\nSource: generated: ops/conductor/tools/dispatch.sh\nCo-Authored-By: %s\n' "$trunk_ref" "${lineage:-HEAD}" "$behind" "$agent")
+        if ! git -C "$worktree" merge --no-ff --no-edit -q -m "$merge_msg" "$trunk_ref" >/dev/null 2>&1; then
+            conflicted=$(git -C "$worktree" diff --name-only --diff-filter=U 2>/dev/null | tr '\n' ' ')
+            git -C "$worktree" merge --abort >/dev/null 2>&1 || true
+            refuse "stale-base: expected $trunk_ref to merge cleanly into ${lineage:-HEAD}; found conflicts in ${conflicted:-unnamed files}; needed resolve them in $worktree (git merge $trunk_ref), commit, then dispatch"
+        fi
+        ref=$(git -C "$worktree" rev-parse HEAD)
+        printf 'merged: %s into %s (%s commits) at %s\n' "$trunk_ref" "${lineage:-HEAD}" "$behind" "$ref"
+    fi
+fi
+
 job_key=${job^^}
 job_key=${job_key//-/_}
 model_job="MODEL_${harness^^}_${job_key}"

@@ -110,3 +110,35 @@ with the handoff, the findings export and the live-proof corpus rows.
 - Not measured: whether the brief and the reuse clause shorten a test
   author's run. The next ladder's records carry `caps.turns`,
   `result.proof` and `result.reuse`; that is the first reading.
+
+## Addendum, later the same session: one branch per session
+
+Owner, 2026-09-12: "why are the branches always out of date - or some
+other bullshit git issue - why can't it just fucking work"; "maybe we
+need to have everything merge into a branch off of dev first"; "one
+brench per session - lets try it"; "as long you account for the fact
+that i'll have multiple sessions running soon".
+
+Measured cause: dev moved 14 times in four hours (eight merges, six
+record commits), three branches ran in parallel, and the stale-base row
+refused any worktree not containing origin/dev as fetched. Two refusals
+and two merge-noise commits came from that alone.
+
+Landed on `lane/session-20260912`, the first branch of the new shape:
+
+- the law: a session cuts one branch from dev, names it in the lock with
+  the new additive `deliverable.py add` (a second session adds beside,
+  never over), commits every change and record there, and lands one
+  draft PR at close through the proof gate; this supersedes the "choice
+  #2" of records straight to dev, made earlier the same day;
+- `dispatch.sh` merges `origin/dev` forward into the worktree before
+  each launch (a dry run says "would merge"; a dirty worktree or a
+  conflict refuses with the files named and the worktree as it was);
+- the hook's stale-base row refuses only a merge that `git merge-tree`
+  reports as conflicting; behind alone passes;
+- tests first: two matrix rows, four wrapper tests, one lock-lever test,
+  red then green with the same commands; the corpus 61 of 61.
+
+Two sessions still meet at their PRs into dev; they meet once, there.
+The findings export is the likeliest conflict; it is regenerated, never
+merged by hand.

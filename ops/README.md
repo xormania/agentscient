@@ -181,11 +181,15 @@ Named so nobody infers them from silence:
   the model that actually ran; a dispatch never names a model on its
   own — the owner supplies one in `dispatch.conf`, and the run records
   it.
-- Work arrives as draft PRs; the owner ratifies and merges. Records
+- Work arrives as draft PRs; the owner ratifies and merges. A session
+  works on one branch cut from `dev` (`lane/session-<date>-<id>`, named
+  in the deliverable lock with `add`); its changes and its records
   (`ops/conductor/` ideas, hand-offs, AARs, probes, the defect ledger
-  and the findings export) commit straight to `dev` from the main
-  checkout, the hour they arrive (owner, 2026-09-12: "choice #2 -
-  commit to dev for records"). A dispatch's scope file is copied beside
-  its record, so what was asked and what happened are one record.
+  and the findings export) commit there, and one draft PR lands them at
+  the session's close (owner, 2026-09-12: "one branch per session -
+  lets try it"). `dispatch.sh` merges `origin/dev` forward into the
+  worktree before each launch and refuses `stale-base` only on a
+  conflict. A dispatch's scope file is copied beside its record, so
+  what was asked and what happened are one record.
 - Runtime residue — job captures, snapshots, isolated homes — is
   gitignored; the lane's law is tracked, its residue never is.
