@@ -70,16 +70,16 @@ def short_sha(root: Path) -> str:
 
 def rg_reads_only(options: list[str]) -> bool:
     """False when an rg option would spawn a process per file."""
-    for token in options:
-        if token == "--":
+    for option in options:
+        if option == "--":
             return True
-        if not token.startswith("-") or token == "-":
+        if not option.startswith("-") or option == "-":
             continue
-        if token.startswith("--"):
-            if token.split("=", 1)[0] in RG_SPAWNING:
+        if option.startswith("--"):
+            if option.split("=", 1)[0] in RG_SPAWNING:
                 return False
             continue
-        for letter in token[1:]:
+        for letter in option[1:]:
             if letter in RG_SHORT_SPAWNING:
                 return False
             if letter in RG_SHORT_WITH_VALUE:
