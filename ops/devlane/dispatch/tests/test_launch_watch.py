@@ -27,6 +27,13 @@ from pathlib import Path
 import launch_support as ls
 
 
+def _reap(proc):
+    """Kill and wait, so the child is reaped before the interpreter warns about it."""
+    proc.kill()
+    proc.wait(timeout=10)
+    assert proc.poll() is not None, "the child was not reaped"
+
+
 class StatusReportsDiedNeverFinished(ls._TempLaunch):
     """W1 / plan (i). Planted job dirs — status does not need a live
     harness, but it does need launch.main."""
@@ -87,7 +94,7 @@ class StatusReportsDiedNeverFinished(ls._TempLaunch):
             [sys.executable, "-c", "import time; time.sleep(60)"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
-        self.addCleanup(proc.kill)
+        self.addCleanup(_reap, proc)
         job_id = "20260826T000000Z-plan-grok-run001"
         self._plant_job(job_id, pid=proc.pid)
         os.kill(proc.pid, 0)  # plant: the pid is still alive

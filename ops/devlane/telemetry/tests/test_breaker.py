@@ -42,6 +42,13 @@ def codex_line(total, out):
             "output_tokens": out, "total_tokens": total}}}}) + "\n"
 
 
+def _reap(proc):
+    """Kill and wait, so the child is reaped before the interpreter warns about it."""
+    proc.kill()
+    proc.wait(timeout=10)
+    assert proc.poll() is not None, "the child was not reaped"
+
+
 class BreakerCase(unittest.TestCase):
     def setUp(self):
         self.dir = Path(tempfile.mkdtemp(prefix="breaker-"))
@@ -141,7 +148,7 @@ class LiveSupervision(BreakerCase):
         self.stream.write_text(claude_line("m1"))
         sleeper = subprocess.Popen([sys.executable, "-c",
                                     "import time; time.sleep(60)"])
-        self.addCleanup(sleeper.kill)
+        self.addCleanup(_reap, sleeper)
         proc = self.spawn("--pid", str(sleeper.pid),
                           "--stall", "1", "--interval", "0.2")
         try:
@@ -166,7 +173,7 @@ class LiveSupervision(BreakerCase):
         self.stream.write_text(claude_line("m1", out=900, cached=0))
         runaway = subprocess.Popen([sys.executable, "-c",
                                     "import time; time.sleep(60)"])
-        self.addCleanup(runaway.kill)
+        self.addCleanup(_reap, runaway)
         proc = self.spawn("--pid", str(runaway.pid), "--terminate",
                           "--cap", "100", "--interval", "0.2")
         _, err = proc.communicate(timeout=15)
