@@ -6,7 +6,7 @@ before acting on anything below.
 
 ## Where things stand
 
-- dev `ca36ac5`. The release draft PR #149, dev into master, is open and
+- dev `97ca65b`. The release draft PR #149, dev into master, is open and
   is the owner's to merge. Zero other open PRs; no open grants; the lock
   is cleared with this record.
 - Item 31 is on dev whole: the check-tests job on the wire, the envelope
@@ -49,9 +49,9 @@ before acting on anything below.
 - The second-producer regression tests for LD-23 and LD-24, dispatches to
   Grok after the deliverable closed; owed by the ledger's procedure, not
   dispatched under the blanket grant.
-- The three ResourceWarnings (two subprocesses, one unclosed file) and the
-  two CI hardening lines (cancel superseded PR runs, measured timeouts):
-  small, by hand, at the owner's word.
+- Done after this record was first written, at the owner's word: the three
+  ResourceWarnings (#150, 2578d55) and the two CI hardening lines (#151,
+  97ca65b), grants 150 and 151 settled.
 - The law carve-out for records in `AGENTS.md` and `ops/README.md`.
 - The end-to-end fixture work order, with Astra's first phase inside it;
   the census and per-project verdicts as a read job; the lane MCP pilot
