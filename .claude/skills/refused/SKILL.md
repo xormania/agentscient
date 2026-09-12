@@ -1,6 +1,6 @@
 ---
 name: refused
-description: What each hook and guard refusal means and the accepted spelling - hand-write, graft-first, clipped-sweep, deliverable, direct-launch, dispatch-by-hand, override, scope-cap, stale-base, test-form, prune, and the CI walls. Use the moment a refusal appears; do the needed half, never rephrase around a row.
+description: What each hook and guard refusal means and the accepted spelling - hand-write, graft-first, clipped-sweep, deliverable, pr-proof, direct-launch, dispatch-by-hand, override, scope-cap, stale-base, test-form, prune, and the CI walls. Use the moment a refusal appears; do the needed half, never rephrase around a row.
 ---
 
 # refused — the needed half, not a workaround
@@ -20,6 +20,7 @@ class, so the second refusal of a class never happens.
 | `hand-write` | a write to a code root outside the ladder | declare a grant: `python3 ops/conductor/tools/hand.py declare --scope '<paths>' --ttl <min> '<action>' '<why>' other`; then the write goes through Bash with `HAND_GRANT=<id>` as the very first token of the command (pitfall 15). The Write and Edit tools cannot carry a grant. Scope paths are relative to the repository root and match worktree paths (pitfall 16). |
 | `graft-first` | a grep, rg or git grep over a code root | a count (`grep -c`) or a file list (`grep -l`) is allowed; to read code, `sed -n`, `python3`, or `graft.py query`; `graft-stale` means the context needs `graft.py refresh --context FILE` by the conductor. |
 | `clipped-sweep` | a multi-alternation grep piped to head | one pattern per grep, `-c` first for the verdict, then a bounded view; or `ops/devlane/hooks/claude/evgrep.sh PATTERN FILE` (pitfall 8). |
+| `pr-proof` | `gh pr ready` or `gh pr merge` without proof the system verifies | put the change's corpus rows under `ops/conductor/handoff/probes/` on the branch, name their ids under a `## Proof` heading in the PR body, push, and wait for the ci run on that head; the hook reads the PR, the corpus at the head and the run list itself. No grant lifts this row (owner, 2026-09-12: "it has to be impossible to not do the work"). |
 | `deliverable` | new work aimed at a branch the lock does not name | finish the deliverable, or `python3 ops/conductor/tools/deliverable.py set <branches> --why '<text>'` if the owner has named new work. A finding on the way is a ledger row. No grant lifts this row. |
 | `direct-launch` | `launch.py` run without the dispatcher | `ops/bin/dispatch.sh`; `launch.py --help` reads with `HAND_GRANT=<id>` leading (pitfall 7); the `wait` and `status` verbs refuse from a session (LD-1). |
 | `dispatch-by-hand` | a driver job (`author-tests`, `implement`) sent straight to `dispatch.sh` | the ladder runs driver jobs. By the owner's word only: an unscoped open grant, run from the branch's own worktree, no `--model` or `--effort`, every path spelled out (pitfall 18). |

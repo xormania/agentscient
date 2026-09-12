@@ -36,6 +36,14 @@ row that cannot look refuses: "could not look" is not a pass.
                     branches, a new worktree or branch, a
                     dispatch, a ladder start or a PR creation
                     aimed at any other branch; no grant escape
+    pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
+                    system verifies: a ## Proof section naming   at the head, gh run list
+                    corpus rows that exist at the PR head, the
+                    head fetched here, a completed green ci run
+                    on that head; no grant escape (owner,
+                    2026-09-12: "proof needs to be part of the
+                    system - it has to generated and verified
+                    at boundaries")
 
 Every refusal is also logged as a miss against the skill it names
 (``miss.py``: the deliverable row names ``deliverable``, every other row
@@ -888,6 +896,131 @@ def deliverable(toks, cwd, lane):
     return None
 
 
+PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
+PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
+PROBES_DIR = "ops/conductor/handoff/probes/"
+CI_WORKFLOW = "ci"
+
+
+def proof_ids(body):
+    """The corpus row ids named under the PR body's ## Proof heading."""
+    match = PROOF_HEADING.search(body or "")
+    if match is None:
+        return None
+    section = body[match.end():]
+    nxt = re.search(r"^##\s", section, re.MULTILINE)
+    if nxt:
+        section = section[:nxt.start()]
+    ids = []
+    for found in PROOF_ID.findall(section):
+        if found not in ids:
+            ids.append(found)
+    return ids
+
+
+def corpus_ids_at(root, head):
+    """Every row id in the probes corpus at a commit; None when it cannot be read."""
+    listing = subprocess.run(["git", "-C", root, "ls-tree", "--name-only", head, "--", PROBES_DIR],  # noqa: S603,S607 - fixed argv, a read
+                             capture_output=True, text=True, timeout=30, check=False)
+    if listing.returncode != 0:
+        return None
+    ids = set()
+    for path in listing.stdout.split():
+        if not path.endswith(".jsonl"):
+            continue
+        shown = subprocess.run(["git", "-C", root, "show", f"{head}:{path}"],  # noqa: S603,S607 - fixed argv, a read
+                               capture_output=True, text=True, timeout=30, check=False)
+        if shown.returncode != 0:
+            return None
+        for line in shown.stdout.splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict) and isinstance(row.get("id"), str):
+                ids.add(row["id"])
+    return ids
+
+
+def pr_number(toks):
+    for tok in toks[3:]:
+        if tok.isdigit():
+            return tok
+        if tok.startswith("https://") and tok.rstrip("/").rsplit("/", 1)[-1].isdigit():
+            return tok.rstrip("/").rsplit("/", 1)[-1]
+    return None
+
+
+def pr_proof(toks, cwd):
+    """Owner, 2026-09-12: "it has to be impossible to not do the work".
+    A PR is marked ready or merged only against proof the system verifies
+    here: the rows the body names exist at the head, and a green ci run
+    on that head executed them. No grant escape."""
+    if not toks or base(toks[0]) != "gh" or len(toks) < 3 or toks[1] != "pr" or toks[2] not in ("ready", "merge"):
+        return None
+    verb = f"gh pr {toks[2]}"
+    needed_proof = ("add rows under ops/conductor/handoff/probes/ on the branch, name their ids under "
+                    "a `## Proof` heading in the PR body, push, and wait for the ci run on that head")
+    number = pr_number(toks)
+    if number is None:
+        return deny("pr-proof", f"{verb} naming the PR number", "no number", "name the PR number")
+    view = subprocess.run(["gh", "pr", "view", number, "--json", "body,headRefOid,headRefName"],  # noqa: S603,S607 - PATH gh; a read
+                          cwd=cwd, capture_output=True, text=True, timeout=60, check=False)
+    if view.returncode != 0:
+        return deny("pr-proof", f"a readable PR #{number}",
+                    f"gh pr view failed: {(view.stderr or view.stdout).strip().splitlines()[:1]}",
+                    "could not look is not a pass; fix gh and retry")
+    try:
+        data = json.loads(view.stdout)
+    except ValueError:
+        return deny("pr-proof", f"JSON from gh pr view {number}", "unparseable output", "fix gh and retry")
+    head = str(data.get("headRefOid") or "")
+    branch = str(data.get("headRefName") or "")
+    ids = proof_ids(str(data.get("body") or ""))
+    if not ids:
+        found = "no `## Proof` section in the PR body" if ids is None else "a `## Proof` section naming no P- row id"
+        return deny("pr-proof", f"a `## Proof` section naming corpus rows (P-... ids) that pass at head {head[:8]}",
+                    found, needed_proof)
+    root = repo_root(cwd) or cwd
+    present = subprocess.run(["git", "-C", root, "cat-file", "-e", f"{head}^{{commit}}"],  # noqa: S603,S607 - fixed argv, a read
+                             capture_output=True, text=True, timeout=30, check=False)
+    if present.returncode != 0:
+        return deny("pr-proof", f"the PR head {head[:8]} fetched here", "not a local object",
+                    f"git fetch origin {branch or '<branch>'} and retry")
+    corpus = corpus_ids_at(root, head)
+    if corpus is None:
+        return deny("pr-proof", f"the probes corpus readable at {head[:8]}", "git could not read it",
+                    "could not look is not a pass; check the head")
+    missing = [i for i in ids if i not in corpus]
+    if missing:
+        return deny("pr-proof", f"every Proof row present in {PROBES_DIR} at {head[:8]}",
+                    f"absent: {', '.join(missing)}", needed_proof)
+    runs = subprocess.run(["gh", "run", "list", "--commit", head, "--json", "name,workflowName,status,conclusion,headSha"],  # noqa: S603,S607 - PATH gh; a read
+                          cwd=cwd, capture_output=True, text=True, timeout=60, check=False)
+    if runs.returncode != 0:
+        return deny("pr-proof", f"the ci runs on {head[:8]}",
+                    f"gh run list failed: {(runs.stderr or runs.stdout).strip().splitlines()[:1]}",
+                    "could not look is not a pass; fix gh and retry")
+    try:
+        rows = json.loads(runs.stdout)
+    except ValueError:
+        rows = None
+    if not isinstance(rows, list):
+        return deny("pr-proof", f"JSON from gh run list --commit {head[:8]}", "unparseable output", "fix gh and retry")
+    ci = [r for r in rows if isinstance(r, dict) and CI_WORKFLOW in (r.get("workflowName"), r.get("name"))
+          and str(r.get("headSha") or head) == head]
+    done = [r for r in ci if r.get("status") == "completed"]
+    if not done:
+        state = ", ".join(str(r.get("status")) for r in ci) or "no ci run"
+        return deny("pr-proof", f"a completed ci run on {head[:8]} (it executes the Proof rows)",
+                    state, f"wait for it: gh run list --commit {head}")
+    if not any(r.get("conclusion") == "success" for r in done):
+        return deny("pr-proof", f"a green ci run on {head[:8]}",
+                    f"conclusion {', '.join(str(r.get('conclusion')) for r in done)}",
+                    "fix the branch until the run is green; the Proof rows are in it")
+    return None
+
+
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
@@ -910,6 +1043,9 @@ def check_text(text, cwd, depth=0):
         if refusal:
             return refusal
         refusal = deliverable(toks, cwd, lane)
+        if refusal:
+            return refusal
+        refusal = pr_proof(toks, cwd)
         if refusal:
             return refusal
         for target in redirect_targets(toks) + written_paths(toks):
