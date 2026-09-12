@@ -1,0 +1,2 @@
+{"id": "P-CLAIM-20260912-row", "kind": "serve", "lane": "forge", "question": "What refuses a published claim that carries no reading?", "serve": "rg -c 'def claim_unmeasured' ops/devlane/hooks/claude/matrix.py", "expect": "1"}
+{"id": "P-CLAIM-20260912-surfaces", "kind": "serve", "lane": "forge", "question": "Which surfaces does the claim row read?", "serve": "rg -c 'def published_texts' ops/devlane/hooks/claude/matrix.py", "expect": "1"}

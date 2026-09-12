@@ -1,0 +1,232 @@
+{
+ "schema": "agentscient.boundaries/1",
+ "law": "docs/workflow.md: every transition names its actor class, its evidence duty, its failure class and its gate",
+ "owner": "2026-09-12: \"the hook is supposed to have matrix of checks and guarantees - its a framework for verification\"; \"if its not an abstracted boundary - then we don't speak the same language\"",
+ "rows": [
+  {
+   "class": "hand-write",
+   "boundary": "write",
+   "actor": "session",
+   "trigger": "a write to a path under a code root, by a tool or a statement",
+   "evidence": "an open hand grant whose scope covers the path (the ledger row)",
+   "gate": "check_text",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_hand_write_refuses_each_spelling_and_code_root"
+   ],
+   "escape": "grant"
+  },
+  {
+   "class": "prune",
+   "boundary": "write",
+   "actor": "session",
+   "trigger": "rm -r of records, state, worktrees or .git",
+   "evidence": "none: data is kept",
+   "gate": "check_text",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_prune_refuses_the_named_trees",
+    "ops/devlane/hooks/tests/test_matrix.py::test_grant_escape_does_not_cover_prune"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "graft-first",
+   "boundary": "search",
+   "actor": "session",
+   "trigger": "a grep, rg or git grep search over a code root",
+   "evidence": "a Graft query, a count or a file list instead",
+   "gate": "graft_first",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_a_content_search_over_a_code_root_is_refused_with_the_graft_query",
+    "ops/devlane/hooks/tests/test_matrix.py::test_a_grant_does_not_escape_graft_first"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "test-form",
+   "boundary": "test-run",
+   "actor": "session",
+   "trigger": "unittest given a path instead of discovery",
+   "evidence": "the discover form",
+   "gate": "check_text",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_test_form_refuses_a_path_form_unittest_argument"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "direct-launch",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "launch.py run without the dispatcher",
+   "evidence": "the dispatcher, or a grant for a read",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_direct_launch_refuses_launch_py_as_the_command",
+    "ops/devlane/hooks/tests/test_matrix.py::test_grant_escape_allows_direct_launch_when_the_grant_is_open"
+   ],
+   "escape": "grant"
+  },
+  {
+   "class": "override",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "--model or --effort on a dispatcher call",
+   "evidence": "the lane conf's MODEL_ and EFFORT_ rows",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_override_refuses_model_or_effort_on_dispatch_or_go"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "input-absent",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "a --scope-file or --input missing or empty",
+   "evidence": "the files, present and non-empty",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_input_absent_refuses_missing_empty_or_unresolved"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "scope-cap",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "--scope-file over SCOPE_CAP",
+   "evidence": "the file's size against the conf",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_scope_cap_refuses_a_scope_file_over_the_cap"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "bucket-command",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "an implement scope naming the whole suite",
+   "evidence": "the bucket's tests named",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_bucket_command_refuses_implement_scope_with_forbidden_runners"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "walkthrough",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "a write job whose inputs carry no first-run walkthrough",
+   "evidence": "the walkthrough section in an input",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_walkthrough_refuses_author_tests_or_implement_without_the_heading_or_assumption"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "stale-base",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "a worktree whose merge-forward from the trunk would conflict",
+   "evidence": "git merge-tree clean; the dispatcher merges behind forward",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_stale_base_allows_a_worktree_the_dispatcher_can_merge_forward",
+    "ops/devlane/hooks/tests/test_matrix.py::test_stale_base_refuses_when_the_merge_forward_would_conflict"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "contract-vet",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "harness contracts do not vet as a package",
+   "evidence": "cue vet exit 0",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_contract_vet_refuses_when_cue_vet_fails"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "dispatch-env",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "a launch without LAUNCHER_PIN, DISPATCH_TIMEOUT and WF_AGENT",
+   "evidence": "the three exported in the run script",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_env_refuses_when_pin_timeout_or_agent_is_missing"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "dispatch-by-hand",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "a driver job sent straight to dispatch.sh",
+   "evidence": "the ladder, or an unscoped open grant",
+   "gate": "check_dispatch",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_by_hand_refuses_driver_jobs_from_the_session",
+    "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_by_hand_grant_escape_allows_a_driver_job"
+   ],
+   "escape": "unscoped-grant"
+  },
+  {
+   "class": "deliverable",
+   "boundary": "branch",
+   "actor": "session",
+   "trigger": "a new worktree, branch, dispatch, ladder start or PR aimed outside the lock",
+   "evidence": "the deliverable lock naming the branch",
+   "gate": "deliverable",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_a_new_worktree_or_branch_outside_the_lock_is_refused",
+    "ops/devlane/hooks/tests/test_matrix.py::test_no_grant_escapes_the_lock"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "pr-proof",
+   "boundary": "pr",
+   "actor": "session",
+   "trigger": "gh pr ready or gh pr merge",
+   "evidence": "a ## Proof section naming corpus rows present at the head and a green ci run on that head",
+   "gate": "pr_proof",
+   "tests": [
+    "ops/devlane/hooks/tests/test_pr_proof.py::test_no_proof_section_refuses",
+    "ops/devlane/hooks/tests/test_pr_proof.py::test_a_grant_is_no_escape"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "trunk-commit",
+   "boundary": "commit",
+   "actor": "session",
+   "trigger": "git commit, merge, rebase or revert on the trunk or the release branch, or a push to them",
+   "evidence": "the session branch",
+   "gate": "trunk_commit",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_a_commit_or_push_on_the_trunk_from_a_session_is_refused",
+    "ops/devlane/hooks/tests/test_matrix.py::test_no_grant_lifts_the_trunk_row"
+   ],
+   "escape": "none"
+  },
+  {
+   "class": "claim-unmeasured",
+   "boundary": "publish",
+   "actor": "session",
+   "trigger": "a commit message, PR body or comment, record or law page with a claim and no reading beside it",
+   "evidence": "a sha, a record id, a P- row, #PR, a run id, Ran N tests, or the words not measured, in the paragraph",
+   "gate": "claim_unmeasured",
+   "tests": [
+    "ops/devlane/hooks/tests/test_matrix.py::test_a_commit_message_that_claims_without_a_reading_is_refused",
+    "ops/devlane/hooks/tests/test_matrix.py::test_no_grant_lifts_the_claim_row"
+   ],
+   "escape": "none"
+  }
+ ]
+}
