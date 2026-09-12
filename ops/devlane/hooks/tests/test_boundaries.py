@@ -32,7 +32,7 @@ HOOKS = Path(__file__).resolve().parents[1]
 REPO = HOOKS.parents[2]
 MATRIX = HOOKS / "claude" / "matrix.py"
 REGISTRY = HOOKS / "boundaries.json"
-FIELDS = ("class", "boundary", "actor", "trigger", "evidence", "gate", "tests", "escape")
+FIELDS = ("class", "boundary", "actor", "trigger", "evidence", "gate", "tests", "escape", "event", "tools")
 ESCAPES = {"none", "grant", "unscoped-grant"}
 BOUNDARIES = {"write", "search", "test-run", "dispatch", "branch", "pr", "commit", "publish"}
 
@@ -53,7 +53,7 @@ class TheRegistryClosesOverTheMatrix(unittest.TestCase):
     def setUp(self):
         self.assertTrue(REGISTRY.is_file(), f"missing {REGISTRY}")
         data = json.loads(REGISTRY.read_text(encoding="utf-8"))
-        self.assertEqual(data.get("schema"), "agentscient.boundaries/1")
+        self.assertEqual(data.get("schema"), "agentscient.boundaries/2")
         self.rows = {row["class"]: row for row in data["rows"]}
         self.emitted = emitted_classes()
         self.docstring = MATRIX.read_text(encoding="utf-8").split('"""', 2)[1]
@@ -62,19 +62,35 @@ class TheRegistryClosesOverTheMatrix(unittest.TestCase):
         self.assertEqual(sorted(set(self.emitted) - set(self.rows)), [],
                          "the matrix refuses with a class the registry does not declare")
 
-    def test_every_declared_class_is_emitted_by_its_gate(self):
+    def test_every_declared_class_is_emitted_by_its_gate_or_evaluated_by_the_engine(self):
         for klass, row in self.rows.items():
             with self.subTest(klass=klass):
+                if row.get("engine"):
+                    self.assertEqual(row["gate"], "engine")
+                    self.assertIsInstance(row.get("when"), dict, "an engine row carries a when tree")
+                    self.assertTrue(row.get("refuse") or row.get("context"))
+                    self.assertNotIn(klass, self.emitted, "an engine row is not also refused by code")
+                    continue
                 self.assertIn(klass, self.emitted, "declared but the matrix never refuses with it")
                 self.assertIn(row["gate"], self.emitted[klass],
                               f"{klass} is emitted by {sorted(self.emitted[klass])}, not {row['gate']}")
+
+    def test_the_engine_lints_the_live_registry_clean(self):
+        proc = subprocess.run([sys.executable, str(HOOKS / "claude" / "engine.py"), "lint"],
+                              capture_output=True, text=True, check=False)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        report = json.loads(proc.stdout)
+        self.assertEqual(report["unknown_predicates"], [])
+        self.assertEqual(report["unknown_events"], [])
 
     def test_every_row_carries_the_declared_fields(self):
         for klass, row in self.rows.items():
             with self.subTest(klass=klass):
                 for field in FIELDS:
                     self.assertIn(field, row)
-                    self.assertTrue(row[field], f"{klass}.{field} is empty")
+                    if field != "tools":
+                        self.assertTrue(row[field], f"{klass}.{field} is empty")
+                self.assertIn(row["event"], ("PreToolUse", "PostToolUse", "SessionStart", "Stop"))
                 self.assertIn(row["boundary"], BOUNDARIES)
                 self.assertIn(row["escape"], ESCAPES)
                 self.assertEqual(row["actor"], "session")

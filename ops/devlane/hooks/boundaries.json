@@ -1,5 +1,5 @@
 {
- "schema": "agentscient.boundaries/1",
+ "schema": "agentscient.boundaries/2",
  "law": "docs/workflow.md: every transition names its actor class, its evidence duty, its failure class and its gate",
  "owner": "2026-09-12: \"the hook is supposed to have matrix of checks and guarantees - its a framework for verification\"; \"if its not an abstracted boundary - then we don't speak the same language\"",
  "rows": [
@@ -13,7 +13,15 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_hand_write_refuses_each_spelling_and_code_root"
    ],
-   "escape": "grant"
+   "escape": "grant",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash",
+    "Write",
+    "Edit",
+    "MultiEdit"
+   ],
+   "engine": false
   },
   {
    "class": "prune",
@@ -21,12 +29,23 @@
    "actor": "session",
    "trigger": "rm -r of records, state, worktrees or .git",
    "evidence": "none: data is kept",
-   "gate": "check_text",
+   "gate": "engine",
    "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_prune_refuses_the_named_trees",
-    "ops/devlane/hooks/tests/test_matrix.py::test_grant_escape_does_not_cover_prune"
+    "ops/devlane/hooks/tests/test_engine.py::test_prune_and_path_form_unittest"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": true,
+   "when": {
+    "pred": "prune_target"
+   },
+   "refuse": {
+    "expected": "data kept (never prune)",
+    "needed": "leave it; move it under .dev/tmp with a note if it is in the way"
+   }
   },
   {
    "class": "graft-first",
@@ -39,7 +58,12 @@
     "ops/devlane/hooks/tests/test_matrix.py::test_a_content_search_over_a_code_root_is_refused_with_the_graft_query",
     "ops/devlane/hooks/tests/test_matrix.py::test_a_grant_does_not_escape_graft_first"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "test-form",
@@ -47,11 +71,23 @@
    "actor": "session",
    "trigger": "unittest given a path instead of discovery",
    "evidence": "the discover form",
-   "gate": "check_text",
+   "gate": "engine",
    "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_test_form_refuses_a_path_form_unittest_argument"
+    "ops/devlane/hooks/tests/test_engine.py::test_prune_and_path_form_unittest"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": true,
+   "when": {
+    "pred": "unittest_path_form"
+   },
+   "refuse": {
+    "expected": "the discover form (python3 -m unittest discover -s <tests dir> -p <file>) or ops/bin/suites.sh",
+    "needed": "the discover form"
+   }
   },
   {
    "class": "direct-launch",
@@ -64,7 +100,12 @@
     "ops/devlane/hooks/tests/test_matrix.py::test_direct_launch_refuses_launch_py_as_the_command",
     "ops/devlane/hooks/tests/test_matrix.py::test_grant_escape_allows_direct_launch_when_the_grant_is_open"
    ],
-   "escape": "grant"
+   "escape": "grant",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "override",
@@ -76,7 +117,12 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_override_refuses_model_or_effort_on_dispatch_or_go"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "input-absent",
@@ -88,7 +134,12 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_input_absent_refuses_missing_empty_or_unresolved"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "scope-cap",
@@ -100,7 +151,12 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_scope_cap_refuses_a_scope_file_over_the_cap"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "bucket-command",
@@ -112,7 +168,12 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_bucket_command_refuses_implement_scope_with_forbidden_runners"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "walkthrough",
@@ -124,7 +185,12 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_walkthrough_refuses_author_tests_or_implement_without_the_heading_or_assumption"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "stale-base",
@@ -137,7 +203,12 @@
     "ops/devlane/hooks/tests/test_matrix.py::test_stale_base_allows_a_worktree_the_dispatcher_can_merge_forward",
     "ops/devlane/hooks/tests/test_matrix.py::test_stale_base_refuses_when_the_merge_forward_would_conflict"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "contract-vet",
@@ -149,7 +220,12 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_contract_vet_refuses_when_cue_vet_fails"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "dispatch-env",
@@ -161,7 +237,12 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_env_refuses_when_pin_timeout_or_agent_is_missing"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "dispatch-by-hand",
@@ -174,7 +255,12 @@
     "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_by_hand_refuses_driver_jobs_from_the_session",
     "ops/devlane/hooks/tests/test_matrix.py::test_dispatch_by_hand_grant_escape_allows_a_driver_job"
    ],
-   "escape": "unscoped-grant"
+   "escape": "unscoped-grant",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "deliverable",
@@ -187,7 +273,12 @@
     "ops/devlane/hooks/tests/test_matrix.py::test_a_new_worktree_or_branch_outside_the_lock_is_refused",
     "ops/devlane/hooks/tests/test_matrix.py::test_no_grant_escapes_the_lock"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "pr-proof",
@@ -200,7 +291,12 @@
     "ops/devlane/hooks/tests/test_pr_proof.py::test_no_proof_section_refuses",
     "ops/devlane/hooks/tests/test_pr_proof.py::test_a_grant_is_no_escape"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false
   },
   {
    "class": "trunk-commit",
@@ -208,12 +304,30 @@
    "actor": "session",
    "trigger": "git commit, merge, rebase or revert on the trunk or the release branch, or a push to them",
    "evidence": "the session branch",
-   "gate": "trunk_commit",
+   "gate": "engine",
    "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_a_commit_or_push_on_the_trunk_from_a_session_is_refused",
-    "ops/devlane/hooks/tests/test_matrix.py::test_no_grant_lifts_the_trunk_row"
+    "ops/devlane/hooks/tests/test_engine.py::test_git_write_on_protected_and_push_to_protected"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": true,
+   "when": {
+    "any": [
+     {
+      "pred": "git_write_on_protected"
+     },
+     {
+      "pred": "git_push_to_protected"
+     }
+    ]
+   },
+   "refuse": {
+    "expected": "a commit on a session branch (lane/session-<date>-<id>)",
+    "needed": "cut the session branch and commit there: git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/<trunk>; python3 ops/conductor/tools/deliverable.py add lane/session-<date>-<id> --why '<the owner's words>'; one draft PR at close. No grant lifts this row"
+   }
   },
   {
    "class": "claim-unmeasured",
@@ -221,12 +335,68 @@
    "actor": "session",
    "trigger": "a commit message, PR body or comment, record or law page with a claim and no reading beside it",
    "evidence": "a sha, a record id, a P- row, #PR, a run id, Ran N tests, or the words not measured, in the paragraph",
-   "gate": "claim_unmeasured",
+   "gate": "engine",
    "tests": [
-    "ops/devlane/hooks/tests/test_matrix.py::test_a_commit_message_that_claims_without_a_reading_is_refused",
-    "ops/devlane/hooks/tests/test_matrix.py::test_no_grant_lifts_the_claim_row"
+    "ops/devlane/hooks/tests/test_engine.py::test_claim_without_reading"
    ],
-   "escape": "none"
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": true,
+   "when": {
+    "pred": "claim_without_reading"
+   },
+   "refuse": {
+    "expected": "every paragraph that claims (enforced, done, landed, merged, green, impossible, verified, fixed, ...) to carry its reading beside the claim: a sha, a record id, a P- row, #PR, a run id, \"Ran N tests\", or the words not measured",
+    "needed": "measure it and cite the reading in the same paragraph, or write that it is not measured; no grant lifts this row (owner, 2026-09-12: \"you have to enforce it before you state it as fact - with evidence\")"
+   }
+  },
+  {
+   "class": "force-push",
+   "boundary": "commit",
+   "actor": "session",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "trigger": "git push with --force, --force-with-lease or -f",
+   "evidence": "a new commit on the branch; pushed history is never rewritten",
+   "gate": "engine",
+   "engine": true,
+   "escape": "none",
+   "tests": [
+    "ops/devlane/hooks/tests/test_engine.py::test_a_row_added_as_data_alone_refuses"
+   ],
+   "when": {
+    "pred": "command_matches",
+    "args": {
+     "pattern": "^git (?:-C \\S+ )?push\\b.*(?:--force\\b|--force-with-lease\\b|\\s-f\\b)"
+    }
+   },
+   "refuse": {
+    "expected": "a push that adds commits (branches are never rewritten)",
+    "needed": "push a new commit; never rewrite a pushed branch. This row exists only as data in ops/devlane/hooks/boundaries.json (owner, 2026-09-12: adding a condition is adding a row)"
+   }
   }
- ]
+ ],
+ "engine": "ops/devlane/hooks/claude/engine.py evaluates rows with engine: true at the event they bind to; rows with engine: false are still carried by matrix.py's code and are declared here so a class nobody declared cannot refuse",
+ "bindings": {
+  "note": "the session binds engine.py to these events in .claude/settings.json; a row's event names which binding evaluates it",
+  "PreToolUse": [
+   "Bash (after unsafe-command and matrix, in context-precheck.sh)",
+   "Write|Edit|MultiEdit|serena edits"
+  ],
+  "PostToolUse": [
+   "Bash",
+   "Write|Edit|MultiEdit"
+  ],
+  "SessionStart": [
+   "every source"
+  ],
+  "Stop": [
+   "always"
+  ]
+ }
 }

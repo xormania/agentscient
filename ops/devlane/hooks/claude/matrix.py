@@ -47,6 +47,8 @@ row that cannot look refuses: "could not look" is not a pass.
                     the words not measured; quoted words are not
                     the writer's claim; no grant escape (owner,
                     2026-09-12: "stops you from lie-ing")
+    force-push      git push --force, --force-with-lease or -f    the registry only: no
+                    (engine row, no code)                         code names this class
     trunk-commit    git commit, merge, cherry-pick, rebase,       git symbolic-ref of the
                     revert or am while the directory is on the   directory; push refspecs
                     trunk or the release branch, or a push whose
@@ -64,6 +66,11 @@ row that cannot look refuses: "could not look" is not a pass.
 Every refusal is also logged as a miss against the skill it names
 (``miss.py``: the deliverable row names ``deliverable``, every other row
 ``refused``), best effort, after the refusal is printed.
+
+Rows marked ``engine: true`` in ``ops/devlane/hooks/boundaries.json`` are
+not carried by this file at all: ``engine.py`` evaluates them from the
+registry at the event they bind to (trunk-commit, claim-unmeasured, prune,
+test-form, force-push). This file carries the rest until they migrate.
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
@@ -1066,7 +1073,7 @@ def pr_proof(toks, cwd):
 
 
 CLAIM_WORDS = re.compile(
-    r"\b(enforced|in force|is done|are done|now done|landed|merged|green|complete|completed|"
+    r"\b(enforced|in force|done|landed|merged|green|complete|completed|"
     r"impossible|verified|proven|proved|passes|passing|works|wired|consumed|settled|holds|fixed)\b",
     re.IGNORECASE)
 READING_TOKENS = re.compile(
@@ -1135,20 +1142,6 @@ def heredoc_records(text, cwd):
     return found
 
 
-def claim_unmeasured(surface, body):
-    line = unmeasured_claim(body)
-    if line is None:
-        return None
-    return deny("claim-unmeasured",
-                "every paragraph that claims (enforced, done, landed, merged, green, impossible, verified, "
-                "fixed, ...) to carry its reading beside the claim: a sha, a record id, a P- row, #PR, a run "
-                "id, \"Ran N tests\", or the words not measured",
-                f"in the {surface}: \"{line[:140]}\"",
-                "measure it and cite the reading in the same paragraph, or write that it is not measured; "
-                "no grant lifts this row (owner, 2026-09-12: \"you have to enforce it before you state it as "
-                "fact - with evidence\")")
-
-
 TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
 TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
 
@@ -1179,40 +1172,6 @@ def _git_subcommand(toks, cwd):
     return (rest[0] if rest else None), rest[1:], directory
 
 
-def trunk_commit(toks, cwd, conf):
-    """Owner, 2026-09-12: "one branch per session - lets try it" and "you
-    have to enforce it before you state it as fact - with evidence". A
-    session never commits on the trunk or the release branch, and never
-    pushes to them: its work and its records ride its session branch and
-    land through one draft PR. Merges into the trunk happen on the forge.
-    No grant lifts this row."""
-    if not toks or base(toks[0]) != "git":
-        return None
-    protected = {b for b in (conf.get("TRUNK_BRANCH"), conf.get("RELEASE_BRANCH")) if b}
-    if not protected:
-        return None
-    sub, rest, directory = _git_subcommand(toks, cwd)
-    needed = ("cut the session branch and commit there: git worktree add ../wt/ag-session-<date>-<id> "
-              "-b lane/session-<date>-<id> origin/<trunk>; python3 ops/conductor/tools/deliverable.py add "
-              "lane/session-<date>-<id> --why '<the owner's words>'; one draft PR at close. No grant lifts this row")
-    if sub == "push":
-        operands = [t for t in rest if not t.startswith("-")]
-        for spec in operands[1:]:
-            dst = spec.split(":", 1)[1] if ":" in spec else spec
-            dst = dst.lstrip("+")
-            dst = dst.removeprefix("refs/heads/")
-            if dst in protected:
-                return deny("trunk-commit", "a push to a session branch (lane/session-<date>-<id>)",
-                            f"git push to {dst}", needed)
-        return None
-    if sub in TRUNK_WRITES:
-        branch = branch_of(directory)
-        if branch in protected:
-            return deny("trunk-commit", "a commit on a session branch (lane/session-<date>-<id>)",
-                        f"git {sub} on {branch} in {directory}", needed)
-    return None
-
-
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
@@ -1223,21 +1182,10 @@ def check_text(text, cwd, depth=0):
         if is_code(rel) and not grant_covers(grant, rel):
             return deny("hand-write", "code changed through the ladder (freeze)",
                         f"a script writing {path}", "the ladder, or HAND_GRANT=<open id> whose scope names the path")
-    if depth == 0:
-        for target, body in heredoc_records(text, cwd):
-            refusal = claim_unmeasured(f"record {target}", body)
-            if refusal:
-                return refusal
     for statement in commands(text):
         toks = tokens_of(statement)
         if not toks:
             continue
-        for surface, body in published_texts(toks, text, cwd):
-            refusal = claim_unmeasured(surface, body)
-            if refusal:
-                return refusal
-        for target in prune_targets(toks, cwd, conf):
-            return deny("prune", "data kept (never prune)", f"rm -r {target}", "leave it; move it under .dev/tmp with a note if it is in the way")
         if depth == 0 and GRAFT_LEVER.rsplit("/", 1)[-1] in " ".join(toks) and "query" in toks:
             graft_log(lane, "query", " ".join(t for t in toks if t.startswith("graft_")) or "query")
         refusal = graft_first(toks, cwd, root, lane)
@@ -1260,20 +1208,11 @@ def check_text(text, cwd, depth=0):
             if is_code(rel) and not grant_covers(grant, rel):
                 return deny("hand-write", "code changed through the ladder (freeze)", f"{base(toks[0])} writing {target}",
                             "the ladder, or HAND_GRANT=<open id> whose scope names the path (grants are for landing and merge resolution)")
-        # after hand-write, so a patch applied by hand on the trunk names the
-        # older row the tests pin; every other trunk write names this one
-        refusal = trunk_commit(toks, cwd, conf)
-        if refusal:
-            return refusal
         kind, flags = dispatch_args(toks)
         if kind:
             refusal = check_dispatch(kind, flags, cwd, text, grant)
             if refusal:
                 return refusal
-        unittest_path = path_form_unittest(toks)
-        if unittest_path:
-            return deny("test-form", "the discover form (python3 -m unittest discover -s <tests dir> -p <file>) or ops/bin/suites.sh",
-                        f"a path-form unittest argument {unittest_path}", "the discover form")
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
                 # Triage 2026-09-11: the outer command's grant covers the

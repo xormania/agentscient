@@ -22,6 +22,11 @@ if [ -n "$refusal" ]; then
     printf '%s\n' "$refusal"
     exit 0
 fi
+refusal=$(printf '%s' "$input" | python3 "$DIR/engine.py" 2>/dev/null || true)
+if [ -n "$refusal" ]; then
+    printf '%s\n' "$refusal"
+    exit 0
+fi
 
 printf '%s' "$input" | python3 "$DIR/context-precheck.py" 2>/dev/null || true
 exit 0

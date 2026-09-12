@@ -13,7 +13,9 @@ filed under "other", the class with no lever. None of these was a lane
 defect. Each refusal states its remedy; this page is that remedy per
 class, so the second refusal of a class never happens.
 
-## Hook rows (`ops/devlane/hooks/claude/matrix.py`)
+## Hook rows (`ops/devlane/hooks/boundaries.json`, evaluated by `engine.py`; the rest still carried by `matrix.py`)
+
+A condition is a row in the registry bound to an event (PreToolUse, PostToolUse, SessionStart, Stop) with a `when` tree over the engine's predicates (`engine.py lint` lists them). Adding or removing a condition is adding or removing a row.
 
 | class | it means | do this |
 |---|---|---|
@@ -21,6 +23,7 @@ class, so the second refusal of a class never happens.
 | `graft-first` | a grep, rg or git grep over a code root | a count (`grep -c`) or a file list (`grep -l`) is allowed; to read code, `sed -n`, `python3`, or `graft.py query`; `graft-stale` means the context needs `graft.py refresh --context FILE` by the conductor. |
 | `clipped-sweep` | a multi-alternation grep piped to head | one pattern per grep, `-c` first for the verdict, then a bounded view; or `ops/devlane/hooks/claude/evgrep.sh PATTERN FILE` (pitfall 8). |
 | `claim-unmeasured` | a commit message, PR body or comment, record or law page with a paragraph that claims (enforced, done, landed, merged, green, impossible, verified, fixed) and no reading beside it | measure it and put the reading in the same paragraph: a sha, a record id, a `P-` row id, `#PR`, a run id, `Ran N tests`; or write `not measured`. Quoted words are not your claim. No grant lifts this row. |
+| `force-push` | `git push` with `--force`, `--force-with-lease` or `-f` | push a new commit; pushed history is never rewritten. A registry row only (`ops/devlane/hooks/boundaries.json`); no code names it. |
 | `trunk-commit` | a commit, merge, cherry-pick, rebase, revert or am while on dev or master, or a push to them | work on the session branch: `git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/dev`, `deliverable.py add` it, commit there; one draft PR at close. No grant lifts this row (owner, 2026-09-12: "one branch per session"). |
 | `pr-proof` | `gh pr ready` or `gh pr merge` without proof the system verifies | put the change's corpus rows under `ops/conductor/handoff/probes/` on the branch, name their ids under a `## Proof` heading in the PR body, push, and wait for the ci run on that head; the hook reads the PR, the corpus at the head and the run list itself. No grant lifts this row (owner, 2026-09-12: "it has to be impossible to not do the work"). |
 | `deliverable` | new work aimed at a branch the lock does not name | finish the deliverable, or `python3 ops/conductor/tools/deliverable.py set <branches> --why '<text>'` if the owner has named new work. A finding on the way is a ledger row. No grant lifts this row. |
