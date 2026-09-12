@@ -34,6 +34,12 @@ GIT_READS = ("grep", "log", "show", "rev-parse", "rev-list", "merge-base",
 GH_READS = (("pr", "list"), ("pr", "view"), ("pr", "checks"))
 SIBLING = re.compile(r"^ops/conductor/tools/[A-Za-z0-9_]+\.py$")
 SHELL_TOKENS = ("|", "||", "&&", ";", ">", ">>", "<", "<<", "&", "2>", "2>&1")
+# rg options that spawn a process per file (`--pre COMMAND` searches the
+# output of `COMMAND PATH`; `-z` runs a decompressor): a row carrying one
+# is not a read (Codex review of PR #158, 2026-09-12).
+RG_SPAWNING = ("--pre", "--pre-glob", "--search-zip")
+RG_SHORT_SPAWNING = "z"
+RG_SHORT_WITH_VALUE = "efgtTmABCEMrjd"
 DEFAULT_TIMEOUT = 60.0
 STATUSES = ("SERVED", "ABSENT")
 
@@ -62,6 +68,25 @@ def short_sha(root: Path) -> str:
     return out.stdout.strip()
 
 
+def rg_reads_only(options: list[str]) -> bool:
+    """False when an rg option would spawn a process per file."""
+    for option in options:
+        if option == "--":
+            return True
+        if not option.startswith("-") or option == "-":
+            continue
+        if option.startswith("--"):
+            if option.split("=", 1)[0] in RG_SPAWNING:
+                return False
+            continue
+        for letter in option[1:]:
+            if letter in RG_SHORT_SPAWNING:
+                return False
+            if letter in RG_SHORT_WITH_VALUE:
+                break
+    return True
+
+
 def allowlisted(tokens: list[str]) -> bool:
     if not tokens or any(t in SHELL_TOKENS for t in tokens):
         return False
@@ -71,7 +96,7 @@ def allowlisted(tokens: list[str]) -> bool:
     if head == "gh":
         return len(tokens) > 2 and (tokens[1], tokens[2]) in GH_READS
     if head == "rg":
-        return True
+        return rg_reads_only(tokens[1:])
     if head == "python3":
         return len(tokens) > 1 and bool(SIBLING.match(tokens[1]))
     return False
@@ -135,7 +160,8 @@ def load_corpus(root: Path) -> list[dict]:
             if not allowlisted(tokens):
                 refuse("corpus",
                        "a row command from the read allowlist (git reads, gh pr reads, "
-                       "rg, python3 ops/conductor/tools/<name>.py; no pipes)",
+                       "rg without an option that spawns a process (--pre, --pre-glob, "
+                       "-z/--search-zip), python3 ops/conductor/tools/<name>.py; no pipes)",
                        f"{command!r} at {where} ({rid})", "rewrite the row as an allowlisted read")
             rows.append({"id": rid, "kind": kind, "lane": lane, "question": row["question"],
                          "expect": row.get("expect"), "tokens": tokens})
