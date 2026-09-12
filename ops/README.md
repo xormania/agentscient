@@ -67,6 +67,11 @@ enforcement; the parallel planner owns that design and its verification.
 | `ops/bin/link-ops.sh` | makes this lane reachable from sibling package clones as a locally-excluded symlink |
 
 Delegation runs through `dispatch.sh` (or `go.sh`) and nothing else.
+Dev-lane changes go by hand under a grant at the owner's word (owner,
+2026-09-12): `hand.py declare`, one producer, red then green with the
+same command, the second producer's absence said in the commit; a bug
+met on the way is fixed in the moment and recorded in the defect
+ledger. The ladder runs prod-lane work.
 In-session sub-agents are refused by hook
 (`ops/devlane/hooks/claude/no-subagents.py`): they burn context and
 leave no record; a dispatched job leaves a snapshot, a run record, and

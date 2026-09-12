@@ -37,7 +37,12 @@ boundary is not a declared, verifiable coupling.
   found nothing" from "could not look."
 - **No producer owns two consecutive artifacts.** Whoever writes an
   implementation neither writes nor approves its tests. This binds
-  every producer, the founder included.
+  every producer, the founder included. **Dev-lane changes go by hand
+  under a grant at the owner's word** (owner, 2026-09-12: "the hand
+  grant is something that I think works for dev-lane changes"): one
+  producer, red then green measured with the same command, the second
+  producer's absence said in the commit and the record. The ladder and
+  its second producer are for prod-lane work.
 - **Refusals are the interface.** Components refuse rather than
   guess, on the wire, with expected–found–needed stated.
 - **No vendor becomes load-bearing.** Every external capability is
