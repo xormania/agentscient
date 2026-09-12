@@ -56,7 +56,11 @@ jobs:
       - name: lane conf literals — no lane literal is outside the conf
         run: python3 ops/conductor/tools/laneconf.py literals
       - name: probes — every corpus row serves; a claim without a passing row is red
-        run: python3 ops/conductor/tools/probes.py run
+        # rows read records branches by local name; the checkout has them as
+        # remote-tracking refs only, so name them locally first (offline)
+        run: |
+          git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f "$b" "origin/$b"; done
+          python3 ops/conductor/tools/probes.py run
   app:
     runs-on: self-hosted
     # Measured 2026-09-12 over the last fifty runs: mean 6 s, max 8 s.

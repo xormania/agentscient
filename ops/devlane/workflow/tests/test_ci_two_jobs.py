@@ -37,6 +37,7 @@ LANE_STEP_NEEDLES = (
     ("suites.sh",),
     ("closure",),
     ("literals",),
+    ("probes.py run",),
 )
 APP_STEP_NEEDLES = (
     ("actions/checkout",),
