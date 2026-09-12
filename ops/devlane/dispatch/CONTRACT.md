@@ -1185,6 +1185,15 @@ absence is historical and must not be read as "none answered".
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- `caps.turns` resolves the same way: `DISPATCH_TURNS` from the invoking
+  environment, else the job's own `caps.turns` in `jobs.json`, else
+  `null` — and `caps.turns_source` names the layer (`DISPATCH_TURNS`,
+  `job`, `none`). `caps.turns_argv` is the exact argv carrier:
+  `--max-turns N` on claude and grok; `[]` on codex and agy, whose CLIs
+  name no turn flag (measured 2026-09-12), with `caps.turns_note`
+  declaring that absence so the wall cap is known to govern. A
+  non-positive or non-integer cap refuses `caps` on the wire (owner,
+  2026-09-12: "hand grant - cap turns").
 - `result.envelope.spend` is filled by the launcher from resolved
   `session.spend`; the harness's zero placeholder is never the record's
   measured figure. An unresolved spend begins `UNREACHABLE:` and names

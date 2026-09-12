@@ -588,8 +588,54 @@ def _effort_argv(harness, effort):
     return ["--reasoning-effort", effort]
 
 
+def _turns_argv(harness, turns):
+    """The exact argv tokens that carry a turn cap; [] where the harness
+    has no such flag (codex exec, agy: measured 2026-09-12, `--help` names
+    none) or no cap is set."""
+    if turns is None:
+        return []
+    if harness in {"claude", "grok"}:
+        return ["--max-turns", str(turns)]
+    return []
+
+
+def _turns_note(harness, turns):
+    if turns is None or harness in {"claude", "grok"}:
+        return None
+    return (f"{harness} offers no turn-cap flag (measured 2026-09-12: "
+            f"its --help names none); caps.turns is recorded, the wall cap governs")
+
+
+def _resolve_turns(job_caps):
+    """caps.turns resolves like caps.timeout: DISPATCH_TURNS from the
+    environment, else the job's own caps.turns, else none — declared."""
+    raw = os.environ.get("DISPATCH_TURNS")
+    source = "DISPATCH_TURNS"
+    if raw is None:
+        raw = (job_caps or {}).get("turns")
+        source = "job"
+    if raw is None:
+        return None, "none"
+    try:
+        turns = int(raw)
+    except (TypeError, ValueError):
+        turns = 0
+    if isinstance(raw, bool) or turns <= 0:
+        _refuse("caps", "a positive integer turn cap", f"{source}={raw!r}",
+                "set caps.turns in jobs.json or DISPATCH_TURNS to a positive integer")
+    return turns, source
+
+
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
-          project_allow=(), project_deny=(), writable_out=False, executable=None):
+          project_allow=(), project_deny=(), writable_out=False, executable=None,
+          turns=None):
+    argv = _argv_base(name, model, effort, session, prompt, flags, sandbox, resume,
+                      project_allow, project_deny, writable_out, executable)
+    return [*argv, *_turns_argv(name, turns)]
+
+
+def _argv_base(name, model, effort, session, prompt, flags, sandbox, resume=False,
+               project_allow=(), project_deny=(), writable_out=False, executable=None):
     if executable is None:
         executable = shutil.which(name) or name
     out = str((Path(prompt).parent / "out").resolve())
@@ -1233,7 +1279,8 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                  rec["session"]["id"], prompt, flags, rec["harness"]["sandbox"],
                  resume, project_allow, project_deny,
                  writable_out=rec["role"] == "read",
-                 executable=rec["harness"].get("worker", {}).get("executable"))
+                 executable=rec["harness"].get("worker", {}).get("executable"),
+                 turns=(rec.get("caps") or {}).get("turns"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
@@ -1574,6 +1621,8 @@ def _launch(args):
     session = None if args.harness == "agy" else str(uuid.uuid4())
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
+    turns, turns_source = _resolve_turns(job.get("caps"))
+    turns_note = _turns_note(args.harness, turns)
     rec = record.build({
         "id": job_id, "lane": "dev", "stage": stage, "unit": args.unit or lineage,
         "lineage": {"branch": lineage, "base_sha": tip}, "follows": args.follows,
@@ -1592,7 +1641,8 @@ def _launch(args):
                                   prompt, _flags, sandbox, False,
                                   project_allow, project_deny,
                                   writable_out=role == "read",
-                                  executable=worker["executable"])},
+                                  executable=worker["executable"],
+                                  turns=turns)},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
@@ -1600,7 +1650,10 @@ def _launch(args):
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,
                   **({"graft": graft_metadata} if graft_metadata is not None else {})},
-        "caps": {"cap-out": wires.budget(role), "source": "wires.py"},
+        "caps": {"cap-out": wires.budget(role), "source": "wires.py",
+                 "turns": turns, "turns_source": turns_source,
+                 "turns_argv": _turns_argv(args.harness, turns),
+                 **({"turns_note": turns_note} if turns_note else {})},
         "overrides": overrides, "attempts": [], "result": None, "status": "launched"})
     if args.harness == "agy":
         rec["model"]["provider"] = {
