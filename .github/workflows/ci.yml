@@ -36,8 +36,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          # the probe corpus reads records branches by name; a depth-1
+          # checkout makes every such row UNREACHABLE (2026-09-12)
+          fetch-depth: 0
       - name: the host's user toolchain on PATH (~/.local/bin)
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: records branches by local name — the probe corpus reads them so (offline; the checkout holds them as remote-tracking refs)
+        run: git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin/records/ | while read -r b; do git branch -f "$b" "origin/$b"; done
       - name: term wall — tree content and paths
         env:
           TERM_WALL: ${{ vars.TERM_WALL }}
@@ -52,6 +57,8 @@ jobs:
         run: python3 ops/conductor/tools/laneconf.py closure
       - name: lane conf literals — no lane literal is outside the conf
         run: python3 ops/conductor/tools/laneconf.py literals
+      - name: probes — every corpus row serves; a claim without a passing row is red
+        run: python3 ops/conductor/tools/probes.py run
   app:
     runs-on: self-hosted
     # Measured 2026-09-12 over the last fifty runs: mean 6 s, max 8 s.

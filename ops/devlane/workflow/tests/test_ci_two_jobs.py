@@ -32,11 +32,13 @@ SELF_HOSTED = ["self-hosted"]
 LANE_STEP_NEEDLES = (
     ("actions/checkout",),
     ("GITHUB_PATH", ".local/bin", "user toolchain"),
+    ("records branches", "for-each-ref"),
     ("term_wall", "term wall"),
     ("ruff",),
     ("suites.sh",),
     ("closure",),
     ("literals",),
+    ("probes.py run",),
 )
 APP_STEP_NEEDLES = (
     ("actions/checkout",),
