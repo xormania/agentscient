@@ -10,6 +10,7 @@ import os
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -169,7 +170,9 @@ class Stopped(Exception):
         detail: str | None = None,
         exit_code: int = 3,
         keys: list[str] | None = None,
+        wire: str | None = None,
     ) -> None:
+        self.wire = wire
         self.stage = stage
         self.record_id = record_id
         self.reason = reason
@@ -297,6 +300,114 @@ def configuration() -> dict[str, str]:
     except laneconf.ConfigError as error:
         kind = "conf-key" if error.kind == "key" else error.kind
         refuse(kind, error.expected, error.found, error.needed)
+
+
+SEVERITIES = ("p1", "p2", "p3")
+FINDING_FIELDS = ("severity", "where", "claim", "reproduce")
+
+
+class EnvelopeRefused(Refused):
+    """A malformed check-tests envelope; ``field`` is the dotted field named."""
+
+    def __init__(self, field: str, expected: str, found: str, needed: str) -> None:
+        self.field = field
+        super().__init__("envelope", expected, found, needed)
+
+
+def _short(value: object, limit: int = 120) -> str:
+    text = value if isinstance(value, str) else json.dumps(value, sort_keys=True, default=str)
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+def validate_check_tests(envelope: object) -> None:
+    """Item 31 items 2 and 3: the skeptic's findings on the wire, or EnvelopeRefused.
+
+    Checked in this order: artifacts, findings is a list, each finding's
+    fields, severity, where, claim, reproduce, counts, verdict.
+    """
+    if not isinstance(envelope, dict):
+        raise EnvelopeRefused("envelope", "a check-tests envelope object", _short(envelope),
+                              "an envelope on stdout")
+    artifacts = envelope.get("artifacts")
+    if artifacts != {}:
+        raise EnvelopeRefused("artifacts", "artifacts {} on check-tests (no file is written)",
+                              f"artifacts {_short(artifacts)}", "an envelope on stdout and no file")
+    findings = envelope.get("findings")
+    if not isinstance(findings, list):
+        raise EnvelopeRefused("findings", "findings as a list of quotation pairs",
+                              f"findings {_short(findings)}", "a list, empty when nothing was refuted")
+    for index, finding in enumerate(findings):
+        name = f"findings[{index}]"
+        if not isinstance(finding, dict):
+            raise EnvelopeRefused(name, f"{name} as an object with the fields " + ", ".join(FINDING_FIELDS),
+                                  f"{name} {_short(finding)}", "a quotation pair")
+        extra = sorted(set(finding) - set(FINDING_FIELDS))
+        missing = [field for field in FINDING_FIELDS if field not in finding]
+        if extra or missing:
+            raise EnvelopeRefused(name, f"{name} with exactly the fields " + ", ".join(FINDING_FIELDS),
+                                  f"{name} with extra {extra} and missing {missing}",
+                                  "the four fields and no other")
+        if finding["severity"] not in SEVERITIES:
+            raise EnvelopeRefused(f"{name}.severity", f"{name}.severity one of " + ", ".join(SEVERITIES),
+                                  f"{name}.severity {_short(finding['severity'])}", "p1, p2 or p3")
+        where = finding["where"]
+        if (not isinstance(where, str) or not where or any(ch.isspace() for ch in where)
+                or not ("/" in where or "." in where)):
+            raise EnvelopeRefused(f"{name}.where", f"{name}.where as the practiced location, no whitespace, a / or .",
+                                  f"{name}.where {_short(where)}", "the test file and line")
+        claim = finding["claim"]
+        if not isinstance(claim, str) or not _quotation_pair(claim):
+            raise EnvelopeRefused(f"{name}.claim",
+                                  f"{name}.claim as declared (<location>): <words>; practiced: <evidence>; misses: <implementation>",
+                                  f"{name}.claim {_short(claim)}",
+                                  "both quotes, the declared location and the missed implementation")
+        reproduce = finding["reproduce"]
+        if not isinstance(reproduce, str) or not reproduce.strip():
+            raise EnvelopeRefused(f"{name}.reproduce", f"{name}.reproduce as a command",
+                                  f"{name}.reproduce {_short(reproduce)}",
+                                  "a reproduce command (a finding without one is an opinion)")
+    tally = {key: sum(1 for finding in findings if finding["severity"] == key) for key in SEVERITIES}
+    tally["opinions"] = 0
+    if envelope.get("counts") != tally:
+        raise EnvelopeRefused("counts", f"counts equal to the tally of findings {tally}",
+                              f"counts {_short(envelope.get('counts'))}", "counts recomputed from findings")
+    verdict = envelope.get("verdict")
+    wanted = "changes" if findings else "approve"
+    if verdict != wanted:
+        raise EnvelopeRefused("verdict", f"verdict {wanted} with {len(findings)} finding(s)",
+                              f"verdict {_short(verdict)}", "verdict changes exactly when findings is non-empty")
+
+
+def _quotation_pair(claim: str) -> bool:
+    head, sep, tail = claim.partition("; practiced: ")
+    if not sep:
+        return False
+    practiced, sep2, misses = tail.rpartition("; misses: ")
+    if not sep2:
+        return False
+    if not head.startswith("declared (") or "): " not in head:
+        return False
+    location, _, words = head[len("declared ("):].partition("): ")
+    if not location.strip() or "(" in location or ")" in location:
+        return False
+    return all(part.strip() for part in (words, practiced, misses))
+
+
+def check_envelope_source(raw: str) -> None:
+    """The check-envelope verb: a dispatch record or a bare envelope as JSON."""
+    if not raw.strip():
+        raise EnvelopeRefused("envelope", "a check-tests dispatch record or envelope as JSON on stdin",
+                              "empty stdin", "pipe the record JSON or name its path")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as error:
+        raise EnvelopeRefused("envelope", "a check-tests dispatch record or envelope as JSON",
+                              f"invalid JSON: {error}", "pipe the record JSON or name its path") from error
+    envelope = data
+    if isinstance(data, dict) and isinstance(data.get("result"), dict) and "envelope" in data["result"]:
+        envelope = data["result"]["envelope"]
+    validate_check_tests(envelope)
 
 
 def run(argv: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -747,10 +858,64 @@ class Driver:
         return self.make_input(f"{audit}-envelope", body)
 
     def make_input(self, name: str, body: str) -> Path:
+        """Write one stage input under the inputs directory, or refuse `custody`.
+
+        Item 31 item 4: a bare name, no symlinked component between the
+        worktree and the inputs directory, no symlink or non-regular file at
+        the target, O_NOFOLLOW on open, and a resolved path under the
+        resolved inputs directory after the write.
+        """
+        if "/" in name or name in ("", ".", ".."):
+            refuse("custody", "a bare input name", repr(name), "name the input without a path")
         self.inputs_dir.mkdir(parents=True, exist_ok=True)
+        probe = self.worktree
+        for part in self.inputs_dir.relative_to(self.worktree).parts:
+            probe = probe / part
+            if probe.is_symlink():
+                refuse("custody", f"a regular directory at {probe}",
+                       f"{probe} is a symlink to {os.readlink(probe)}", "remove the symlink and resume")
         path = self.inputs_dir / f"{name}.md"
-        path.write_text(body.rstrip() + "\n", encoding="utf-8")
+        if path.is_symlink():
+            refuse("custody", f"a regular file under {self.inputs_dir}",
+                   f"{path} is a symlink to {os.readlink(path)}", "remove the symlink and resume")
+        if path.exists() and not stat.S_ISREG(path.lstat().st_mode):
+            refuse("custody", f"a regular file under {self.inputs_dir}",
+                   f"{path} is not a regular file", "remove it and resume")
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o644)
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(body.rstrip() + "\n")
+        if not stat.S_ISREG(path.lstat().st_mode):
+            refuse("custody", f"a regular file at {path}", "not a regular file after the write",
+                   "remove it and resume")
+        try:
+            path.resolve().relative_to(self.inputs_dir.resolve())
+        except ValueError:
+            refuse("custody", f"a file under {self.inputs_dir}", f"{path} resolves to {path.resolve()}",
+                   "remove the link and resume")
         return path
+
+    def skeptic_input(self, record_id: str) -> Path:
+        """Item 31 item 4: tests-fix reads a file the driver wrote from the validated envelope."""
+        record_path = self.worktree / ".dev" / "records" / "dispatches" / f"{record_id}.json"
+        try:
+            payload = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = {}
+        envelope = ((payload.get("result") or {}).get("envelope")) or {}
+        try:
+            validate_check_tests(envelope)
+        except EnvelopeRefused as refusal:
+            raise Stopped("check-tests", record_id, "envelope", exit_code=2, wire=refusal.line()) from refusal
+        body = (
+            f"check-tests envelope, record {record_id}\n\n"
+            + json.dumps(envelope, indent=2, sort_keys=True)
+        )
+        try:
+            return self.make_input("skeptic-findings", body)
+        except Refused as refusal:
+            if refusal.kind != "custody":
+                raise
+            raise Stopped("tests-fix", reason="custody", exit_code=2, wire=refusal.line()) from refusal
 
     def dispatch_args(
         self,
@@ -904,7 +1069,8 @@ class Driver:
                 detail="dispatch record absent",
             )
         row["dispatch_record"] = record_id
-        row["record"] = record_id
+        # The row names the record it first minted; dispatch_record follows a retry.
+        row.setdefault("record", record_id)
         row["outcome"] = "launched"
         self.commit(record_path)
         try:
@@ -1219,6 +1385,15 @@ class Driver:
         else:
             dispatch_record, envelope = already_closed
             self.commit(pending.record_path)
+        if pending.name == "check-tests":
+            try:
+                validate_check_tests(envelope)
+            except EnvelopeRefused as refusal:
+                row = self.row(pending.name)
+                row["envelope"] = {"field": refusal.field, "refusal": refusal.line()}
+                raise Stopped(
+                    pending.name, pending.record_id, "envelope", exit_code=2, wire=refusal.line()
+                ) from refusal
         if pending.name in REVIEW_STAGES:
             self.ledger_result(pending, envelope)
         else:
@@ -1242,22 +1417,7 @@ class Driver:
         if name == "check-tests" and "tests" in records:
             inputs.append(dispatch_dir / f"{records['tests']}.json")
         elif name == "tests-fix" and "check-tests" in records:
-            record_path = dispatch_dir / f"{records['check-tests']}.json"
-            inputs.append(record_path)
-            try:
-                payload = json.loads(record_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                payload = {}
-            artifacts = (
-                (((payload.get("result") or {}).get("envelope") or {}).get("artifacts"))
-                or {}
-            )
-            if isinstance(artifacts, dict):
-                for value in artifacts.values():
-                    if isinstance(value, str):
-                        artifact = Path(value)
-                        if artifact.name == "SKEPTIC.md" and artifact.is_file():
-                            inputs.append(artifact)
+            inputs.append(self.skeptic_input(records["check-tests"]))
         elif name == "code" or name.startswith("code-"):
             inputs.append(self.scope)
             if command_file is not None:
@@ -1306,13 +1466,19 @@ class Driver:
                 pending, _dispatch_record, envelope = existing
                 records[name] = pending.record_id
                 return envelope, pending.record_id
-            existing = self.existing_result(name)
+            retried = (
+                row.get("reason") == "envelope"
+                and self.retry is not None
+                and self.retry[0] == name
+                and self.retry_granted(name)
+            )
+            existing = None if retried else self.existing_result(name)
             if existing is not None:
                 pending, dispatch_record, envelope = existing
                 result = self.finish(pending, already_closed=(dispatch_record, envelope))
                 records[name] = pending.record_id
                 return result, pending.record_id
-            if int(row.get("attempt") or 0) >= 2 and not self.retry_granted(name):
+            if int(row.get("attempt") or 0) >= 2 and not retried and not self.retry_granted(name):
                 raise Stopped(
                     name,
                     str(row.get("dispatch_record") or "none"),
@@ -1324,6 +1490,8 @@ class Driver:
             records[name] = pending.record_id
             return self.finish(pending), pending.record_id
         except Stopped as stopped:
+            if stopped.wire:
+                raise
             if resume and int(self.row(name).get("attempt") or 0) >= 2:
                 detail = "\n".join(
                     part
@@ -1984,6 +2152,12 @@ def main(argv: list[str] | None = None) -> int:
         cwd = Path.cwd().resolve()
         agent = os.environ.get("WF_AGENT", "")
         resume = args[0] == "resume"
+        if args[0] == "check-envelope":
+            if len(args) != 2:
+                refuse("arguments", "check-envelope PATH|-", " ".join(args), "name the record file or -")
+            raw = sys.stdin.read() if args[1] == "-" else Path(args[1]).read_text(encoding="utf-8")
+            check_envelope_source(raw)
+            return 0
         if args[0] == "stage-sets":
             if len(args) != 2:
                 refuse("arguments", "stage-sets PATH", " ".join(args), "name the table file")
@@ -2084,6 +2258,9 @@ def main(argv: list[str] | None = None) -> int:
         print(error.line(), file=sys.stderr)
         return 2
     except Stopped as error:
+        if error.wire:
+            print(error.wire, file=sys.stderr)
+            return 2
         if error.detail:
             print(error.detail)
         print(error.line())

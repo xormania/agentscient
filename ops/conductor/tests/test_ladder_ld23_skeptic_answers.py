@@ -23,9 +23,15 @@ _TESTS = Path(__file__).resolve().parent
 if str(_TESTS) not in sys.path:
     sys.path.insert(0, str(_TESTS))
 
-from test_ladder_lever_undisposed import _finding, _UndisposedFixture  # noqa: E402
+from test_ladder_lever import WELL_FORMED_SKEPTIC_FINDING  # noqa: E402
+from test_ladder_lever_undisposed import _UndisposedFixture  # noqa: E402
 
-SKEPTIC_FINDINGS = (_finding("SKEP1"), _finding("SKEP2"))
+# Item 31: the skeptic findings are quotation pairs, validated at the stop.
+SKEPTIC_FINDINGS = tuple(
+    {**WELL_FORMED_SKEPTIC_FINDING, "where": f"ops/conductor/tests/test_alpha.py:{n}"}
+    for n in (1, 2)
+)
+SKEPTIC_COUNTS = {"p1": 0, "p2": 2, "p3": 0, "opinions": 0}
 
 
 class _SkepticFixture(_UndisposedFixture):
@@ -37,6 +43,7 @@ class _SkepticFixture(_UndisposedFixture):
             stage_findings={
                 "check-tests": [dict(row) for row in SKEPTIC_FINDINGS],
             },
+            skeptic_envelope={"counts": dict(SKEPTIC_COUNTS), "artifacts": {}},
             cited_all=cited_all,
         )
         plant = self.load_plant()
