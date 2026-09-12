@@ -134,9 +134,14 @@
       },
       "job": "author-tests",
       "name": "tests-fix",
-      "outcome": "launched",
-      "reason": "undisposed",
+      "outcome": "stopped",
+      "reason": "land",
       "record": "20260912T001007Z-tests-grok-a76b8a",
+      "recorded": {
+        "effort": "xhigh",
+        "model_ran": "grok-4.6",
+        "model_requested": "grok-4.6"
+      },
       "stage": "tests"
     },
     {
@@ -203,7 +208,12 @@
       "stage": null
     }
   ],
-  "status": "running",
-  "stopped": null,
+  "status": "stopped",
+  "stopped": {
+    "reason": "land",
+    "record": "20260912T001007Z-tests-grok-a76b8a",
+    "stage": "tests-fix",
+    "verdict": null
+  },
   "worktree": "/home/scientdb/projects/uscient/wt/ag-item31-slice2-20260911"
 }
