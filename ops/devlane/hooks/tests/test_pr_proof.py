@@ -188,6 +188,29 @@ class PrProofTests(unittest.TestCase):
         self.plant(body="## What\n\nno proof\n")
         self.refusal(self.run_bash("gh pr merge --merge 12"))
 
+    def test_a_selected_repository_is_read_for_its_proof(self):
+        """Codex review of PR #158 (2026-09-12): `-R`/`--repo` selects another
+        repository; the proof is read there, never from this repository's
+        PR of the same number."""
+        self.plant(body=self.GOOD)
+        for command, selected in (("gh pr merge 12 --repo owner/other --merge", "owner/other"),
+                                  ("gh pr ready -R owner/other 12", "owner/other"),
+                                  ("gh pr ready 12 --repo=owner/third", "owner/third")):
+            (self.fix / "calls.log").write_text("")
+            self.allowed(self.run_bash(command))
+            calls = (self.fix / "calls.log").read_text().splitlines()
+            view = [c for c in calls if c.startswith("pr view 12")]
+            runs = [c for c in calls if c.startswith("run list")]
+            self.assertEqual(len(view), 1, calls)
+            self.assertEqual(len(runs), 1, calls)
+            self.assertIn(f"-R {selected}", view[0], command)
+            self.assertIn(f"-R {selected}", runs[0], command)
+
+    def test_no_selected_repository_selects_none(self):
+        self.plant(body=self.GOOD)
+        self.allowed(self.run_bash("gh pr ready 12"))
+        self.assertNotIn("-R", (self.fix / "calls.log").read_text())
+
     def test_the_docstring_table_names_the_row(self):
         text = HOOK.read_text(encoding="utf-8")
         self.assertIn("pr-proof", text.split('"""', 2)[1])

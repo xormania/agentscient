@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import unittest
@@ -141,6 +142,59 @@ class EachHarnessCarriesTheServer(_Wired):
             self.assertIn(json.dumps(token), toml)
         self.assertEqual(rec["brief"]["mcp"]["grok_config"], str(home / "config.toml"))
         self.assertNotIn("--mcp-config", self.read_witness()["argv"])
+
+
+class ARelocatedJobIsRewiredOnResume(_Wired):
+    """Codex review of PR #158 (2026-09-12): a retained job moved to another
+    dispatch store and resumed kept a lane-mcp.json naming the old store,
+    and grok's config.toml the old server and config paths, so the resumed
+    server reported prior records missing while any call still counted."""
+
+    def relocate(self, rec):
+        old_job = self.job_dir(rec)
+        new_store = self.home / "jobs-moved"
+        new_store.mkdir()
+        shutil.move(str(old_job), str(new_store / rec["id"]))
+        self.assertFalse(old_job.exists(), "plant: the job left the old store")
+        self.assertTrue((new_store / rec["id"] / "lane-mcp.json").is_file(),
+                        "plant: the config moved with the job")
+        os.environ["DISPATCH_JOBS"] = str(new_store)
+        self.addCleanup(os.environ.__setitem__, "DISPATCH_JOBS", str(self.jobs_root))
+        self.witness.unlink(missing_ok=True)
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        return old_job, new_store / rec["id"]
+
+    def test_grok_config_and_lane_mcp_json_name_the_new_store(self):
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        old_job, new_job = self.relocate(rec)
+        cfg = new_job / "lane-mcp.json"
+        data = json.loads(cfg.read_text(encoding="utf-8"))
+        self.assertEqual(Path(data["dispatch_store"]).resolve(), new_job.parent.resolve())
+        proc = subprocess.run([sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
+                              capture_output=True, text=True, check=False)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout), {"tools": 7, "valid": True})
+        home = Path(self.read_witness()["env"]["GROK_HOME"])
+        self.assertEqual(home, new_job / "home" / "grok")
+        toml = (home / "config.toml").read_text(encoding="utf-8")
+        self.assertIn(json.dumps(str(cfg.resolve())), toml)
+        self.assertNotIn(str(old_job), toml)
+        mcp = self.read_record()["brief"]["mcp"]
+        self.assertEqual(mcp["config"], str(cfg.resolve()))
+        self.assertEqual(mcp["sha256"], ls.sha256_file(cfg))
+        self.assertEqual(mcp["grok_config"], str(home / "config.toml"))
+        self.assertNotIn(str(old_job), json.dumps(mcp))
+
+    def test_claude_mcp_json_names_the_new_store(self):
+        rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
+        old_job, new_job = self.relocate(rec)
+        argv = self.read_witness()["argv"]
+        path = Path(argv[argv.index("--mcp-config") + 1])
+        self.assertEqual(path, new_job / "mcp.json")
+        args = json.loads(path.read_text(encoding="utf-8"))["mcpServers"][SERVER]["args"]
+        self.assertIn(str((new_job / "lane-mcp.json").resolve()), args)
+        self.assertNotIn(str(old_job), json.dumps(args))
 
 
 class ASnapshotWithoutTheServerDeclaresIt(ls._TempLaunch):
