@@ -291,7 +291,7 @@
     "ops/devlane/hooks/tests/test_pr_proof.py::test_no_proof_section_refuses",
     "ops/devlane/hooks/tests/test_pr_proof.py::test_a_grant_is_no_escape"
    ],
-   "escape": "ask",
+   "escape": "none",
    "event": "PreToolUse",
    "tools": [
     "Bash"
@@ -308,7 +308,7 @@
    "tests": [
     "ops/devlane/hooks/tests/test_engine.py::test_git_write_on_protected_and_push_to_protected"
    ],
-   "escape": "ask",
+   "escape": "none",
    "event": "PreToolUse",
    "tools": [
     "Bash"
@@ -339,7 +339,7 @@
    "tests": [
     "ops/devlane/hooks/tests/test_engine.py::test_claim_without_reading"
    ],
-   "escape": "ask",
+   "escape": "none",
    "event": "PreToolUse",
    "tools": [
     "Bash"
@@ -423,6 +423,6 @@
   "none": "no grant lifts the row; the refusal stands",
   "grant": "an open hand grant leading the command whose scope covers the path lifts it",
   "unscoped-grant": "an open grant with no scope lifts it",
-  "ask": "the row answers ask instead of deny: the harness puts the action in front of the owner, and only the owner's click passes it (owner, 2026-09-12: hard rows stay refused for agents; a hard action is authorized by a harness approval click)"
+  "ask": "the row answers ask instead of deny: the harness puts the action in front of the owner, and only the owner's click passes it. Only where the action is critical, a forced push or a prune (owner, 2026-09-12: \"i don't want asks unless they're critical\"); a hard row whose remedy is the agent's own (a branch, a reading, the proof) is escape none and denies"
  }
 }

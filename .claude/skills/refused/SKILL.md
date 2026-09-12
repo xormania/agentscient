@@ -15,7 +15,7 @@ class, so the second refusal of a class never happens.
 
 ## Hook rows (`ops/devlane/hooks/boundaries.json`, evaluated by `engine.py`; the rest still carried by `matrix.py`)
 
-Five rows are hard for agents (owner, 2026-09-12): `trunk-commit`, `claim-unmeasured`, `pr-proof`, `force-push`, `prune`. They answer `ask`, not `deny`: the harness puts the action in front of the owner, and only the owner's click passes it. An agent does the needed half; it does not ask the owner to click.
+Five rows are hard for agents (owner, 2026-09-12): `trunk-commit`, `claim-unmeasured`, `pr-proof`, `force-push`, `prune`. `force-push` and `prune` answer `ask`: the harness puts the action in front of the owner, and only the owner's click passes it. The other three answer `deny` (owner, 2026-09-12: "i don't want asks unless they're critical"): the remedy is the agent's own, a branch, a reading, the proof. An agent does the needed half; it does not ask the owner to click.
 
 A condition is a row in the registry bound to an event (PreToolUse, PostToolUse, SessionStart, Stop) with a `when` tree over the engine's predicates (`engine.py lint` lists them). Adding or removing a condition is adding or removing a row.
 

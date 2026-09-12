@@ -174,7 +174,10 @@ class RowsAreDataOverPredicates(_Engine):
 
 class AHardRowAnswersAsk(_Engine):
     """Owner, 2026-09-12: a hard row stays refused for an agent; the owner
-    authorizes the action by a harness approval click. escape: ask."""
+    authorizes the action by a harness approval click. escape: ask. Later
+    that day: "i don't want asks unless they're critical", so only the two
+    rows that destroy history ask; the three whose remedy is the agent's
+    own (a branch, a reading, the proof) refuse."""
 
     def test_an_ask_row_answers_ask_with_the_wire_line(self):
         self.plant(row("hard", escape="ask", when={"pred": "command_matches", "args": {"pattern": "^git push --force"}}),
@@ -185,11 +188,13 @@ class AHardRowAnswersAsk(_Engine):
         self.assertTrue(out["permissionDecisionReason"].startswith("[engine:hard] hard: expected "))
         self.refusal(self.bash("rm -rf build"), "plain")
 
-    def test_the_live_hard_rows_are_ask_rows(self):
+    def test_only_the_history_destroying_rows_ask(self):
         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))
         escapes = {r["class"]: r["escape"] for r in data["rows"]}
-        for klass in ("trunk-commit", "claim-unmeasured", "pr-proof", "force-push", "prune"):
+        for klass in ("force-push", "prune"):
             self.assertEqual(escapes[klass], "ask", klass)
+        for klass in ("trunk-commit", "claim-unmeasured", "pr-proof"):
+            self.assertEqual(escapes[klass], "none", klass)
 
 
 class TheVocabularyCoversTheLaneRows(_Engine):

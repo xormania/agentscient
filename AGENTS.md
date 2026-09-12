@@ -62,10 +62,13 @@ boundary is not a declared, verifiable coupling.
   refused for an agent even under "get it done": a commit or push to dev
   or master, a published claim with no reading, a PR ready or merged
   without proof, a forced push or a prune; a grant covers every write
-  outside them; a hard action the owner wants anyway is authorized by a
-  harness approval click, which the hook asks for by answering `ask`
-  instead of `deny`, so only the owner's hand passes it and no agent can
-  forge it; the wall is CI, the tests and the PR gate).
+  outside them; the wall is CI, the tests and the PR gate). **An ask only
+  where it is critical** (owner, 2026-09-12: "i don't want asks unless
+  they're critical"): a forced push or a prune answers `ask`, because only
+  the owner decides to destroy history and no agent can forge that click;
+  a commit to the trunk, a claim without a reading and a ready or merge
+  without proof answer `deny`, because the remedy is the agent's own, a
+  branch, a reading, the proof. Nothing else waits on the owner's hand.
   **The wall is changed only in isolation** (owner, 2026-09-12: "i have
   the right to issue a hand grant to change CI and tests - but i'm willing
   to make that something that can only be done in isolation"): the CI
