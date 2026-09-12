@@ -447,8 +447,40 @@ def python_sources(text):
     return sources
 
 
+UNRESOLVED_WRITE = "<unresolved python write>"
+
+
+def _path_expr(node, bindings, path_names, module_names):
+    """The literal path an expression denotes, or None: a string, a
+    Path('literal') call, a name bound earlier, or a `/` join of those."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name):
+        return bindings.get(node.id)
+    if isinstance(node, ast.Call):
+        function = node.func
+        is_path = ((isinstance(function, ast.Name) and function.id in path_names) or
+                   (isinstance(function, ast.Attribute) and function.attr == "Path"
+                    and isinstance(function.value, ast.Name)
+                    and module_names.get(function.value.id) == "pathlib"))
+        if is_path and node.args:
+            parts = [_path_expr(arg, bindings, path_names, module_names) for arg in node.args]
+            return None if any(p is None for p in parts) else os.path.join(*parts)
+        return None
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        left = _path_expr(node.left, bindings, path_names, module_names)
+        right = _path_expr(node.right, bindings, path_names, module_names)
+        return None if left is None or right is None else os.path.join(left, right)
+    return None
+
+
 def python_written_paths(text):
-    """Literal paths bound to writable stdlib open calls in executed Python."""
+    """Paths bound to writable stdlib open calls in executed Python: literal
+    paths, Path('literal') calls, names bound to those (LD-26, 2026-09-12:
+    `p = Path('ops/x.py'); p.write_text(...)` passed the row with no grant),
+    and `/` joins of them. A write whose target cannot be resolved yields
+    UNRESOLVED_WRITE, which the row refuses unless a grant is open: could
+    not look is not a pass."""
     paths = []
     for source in python_sources(text):
         try:
@@ -458,6 +490,7 @@ def python_written_paths(text):
         module_names = {}
         open_names = {"open"}
         path_names = set()
+        bindings = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for item in node.names:
@@ -470,30 +503,39 @@ def python_written_paths(text):
                         open_names.add(local)
                     elif item.name == "Path" and node.module == "pathlib":
                         path_names.add(local)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                resolved = _path_expr(node.value, bindings, path_names, module_names)
+                if resolved is not None:
+                    bindings[node.targets[0].id] = resolved
         for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
             function = call.func
             if (isinstance(function, ast.Name) and function.id in open_names) or (
                     isinstance(function, ast.Attribute) and function.attr == "open"
                     and isinstance(function.value, ast.Name)
                     and module_names.get(function.value.id) in ("builtins", "io")):
-                path = literal_arg(call, 0, "file")
                 mode = literal_arg(call, 1, "mode", "r")
-                if path and mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+"):
-                    paths.append(path)
+                if not (mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+")):
+                    continue
+                target = call.args[0] if call.args else next((k.value for k in call.keywords if k.arg == "file"), None)
+                path = _path_expr(target, bindings, path_names, module_names) if target is not None else None
+                paths.append(path if path is not None else UNRESOLVED_WRITE)
                 continue
             if not isinstance(function, ast.Attribute) or function.attr not in ("open", "write_text", "write_bytes"):
                 continue
             owner = function.value
-            if not isinstance(owner, ast.Call) or not (
-                    (isinstance(owner.func, ast.Name) and owner.func.id in path_names) or
-                    (isinstance(owner.func, ast.Attribute) and owner.func.attr == "Path"
-                     and isinstance(owner.func.value, ast.Name)
-                     and module_names.get(owner.func.value.id) == "pathlib")):
-                continue
-            path = literal_arg(owner, 0, "")
+            path = _path_expr(owner, bindings, path_names, module_names)
             mode = literal_arg(call, 0, "mode", "r") if function.attr == "open" else "w"
-            if path and mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+"):
+            if not (mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+")):
+                continue
+            if path is not None:
                 paths.append(path)
+                continue
+            # a method named open/write_text/write_bytes on something that is
+            # not a path we can see: a file object's .write is not here (it is
+            # `write`), so this is a Path-like owner the row cannot resolve
+            if isinstance(owner, (ast.Name, ast.Call, ast.BinOp, ast.Attribute)):
+                paths.append(UNRESOLVED_WRITE)
     return paths
 
 
@@ -1178,6 +1220,14 @@ def check_text(text, cwd, depth=0):
     lane = conf.get("LANE_NAME")
     grant = open_grant(text, lane)
     for path in python_written_paths(text):
+        if path == UNRESOLVED_WRITE:
+            if grant is None:
+                return deny("hand-write", "a write target the row can resolve (a literal path, Path('...'), "
+                                          "a name bound to one, or a / join of those)",
+                            "a python write whose target the hook cannot resolve",
+                            "spell the path so the row can read it, or HAND_GRANT=<open id> declared first "
+                            "(LD-26: could not look is not a pass)")
+            continue
         _, rel = relative(path, cwd)
         if is_code(rel) and not grant_covers(grant, rel):
             return deny("hand-write", "code changed through the ladder (freeze)",
