@@ -9,7 +9,8 @@ checks registered (pitfall 22) and three capabilities were recorded as
 done with no reading that any dispatch consumed them.
 
 The row: `gh pr ready N` and `gh pr merge N` refuse class `pr-proof`
-(answering ask, so only the owner's click passes) unless the PR body carries a `## Proof` section naming corpus row ids
+(a deny: the remedy, the proof, is the agent's own; owner, 2026-09-12:
+"i don't want asks unless they're critical") unless the PR body carries a `## Proof` section naming corpus row ids
 (`P-...`) that all exist in `ops/conductor/handoff/probes/` at the PR
 head, the head is a fetched object here, and a `ci` run on that head has
 completed with success (the run executed those rows). No grant escape.
@@ -99,9 +100,9 @@ class PrProofTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertTrue(proc.stdout.strip(), "hook let the call through")
         out = json.loads(proc.stdout)["hookSpecificOutput"]
-        # pr-proof is a hard row: it answers ask, and the harness puts the
-        # action in front of the owner (owner, 2026-09-12)
-        self.assertEqual(out["permissionDecision"], "ask")
+        # pr-proof is a hard row with no grant escape; it denies, because
+        # the proof is the agent's to add (owner, 2026-09-12)
+        self.assertEqual(out["permissionDecision"], "deny")
         reason = out["permissionDecisionReason"]
         self.assertTrue(reason.startswith("[matrix:pr-proof] pr-proof: expected "), reason)
         self.assertIn("; found ", reason)
