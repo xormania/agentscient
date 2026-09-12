@@ -12,7 +12,7 @@ dependencies = [
 fixture-python-service = "service.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest==8.3.3"]
+dev = ["pytest==9.0.3"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
