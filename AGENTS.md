@@ -20,7 +20,12 @@ boundary is not a declared, verifiable coupling.
   green. `master` is the default and release branch: a release is a
   draft PR from `dev` into `master`, opened by a session for a group
   of landed work and merged by the owner alone. No squash merges,
-  never a deleted branch.
+  never a deleted branch. **Records commit straight to `dev`** (owner,
+  2026-09-12: "choice #2 - commit to dev for records"): ideas, hand-offs,
+  AARs, probes, the defect ledger and the findings export, under
+  `ops/conductor/`, are committed to `dev` from the main checkout the
+  hour they arrive, with their trailers; the push run on `dev` stamps
+  them. Law text, skill pages, contracts and code stay draft-first.
 - **Every commit carries its trailers**: `Source:` (original, a
   `repo@sha` pointer for adapted content, or `owner <date>`), and
   `Co-Authored-By:` naming the specific model — the credited agent,

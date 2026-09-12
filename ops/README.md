@@ -171,13 +171,16 @@ Named so nobody infers them from silence:
 ## The rules the lane binds
 
 - One line of work, one worktree (`../wt/ag-<slug>`); the main
-  checkout belongs to nobody; branches are never deleted.
+  checkout belongs to nobody but records; branches are never deleted.
 - Workers commit with `Source:` and `Co-Authored-By:` trailers naming
   the model that actually ran; a dispatch never names a model on its
   own — the owner supplies one in `dispatch.conf`, and the run records
   it.
-- Work arrives as draft PRs; the owner ratifies and merges. A
-  dispatch's scope file is copied beside its record, so what was asked
-  and what happened are one record.
+- Work arrives as draft PRs; the owner ratifies and merges. Records
+  (`ops/conductor/` ideas, hand-offs, AARs, probes, the defect ledger
+  and the findings export) commit straight to `dev` from the main
+  checkout, the hour they arrive (owner, 2026-09-12: "choice #2 -
+  commit to dev for records"). A dispatch's scope file is copied beside
+  its record, so what was asked and what happened are one record.
 - Runtime residue — job captures, snapshots, isolated homes — is
   gitignored; the lane's law is tracked, its residue never is.
