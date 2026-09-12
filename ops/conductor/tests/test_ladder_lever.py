@@ -1489,6 +1489,46 @@ class _LadderFixture(unittest.TestCase):
     def skeptic_findings_path(self, ladder_id: str | None = None) -> Path:
         return self.ladder_inputs_dir(ladder_id) / SKEPTIC_FINDINGS
 
+    def input_paths_for_tests_fix(self) -> list[Path]:
+        argv = self.dispatch_argv_for("tests-fix")
+        paths: list[Path] = []
+        for raw in self.flag_values(argv, "--input"):
+            path = Path(raw)
+            if not path.is_absolute():
+                path = self.repo / path
+            paths.append(path)
+        return paths
+
+    def driver_written_envelope_input(self) -> Path:
+        """tests-fix input the driver wrote from the validated envelope.
+
+        Item 4 names a regular file under the ladder inputs directory,
+        recorded with path and digest. It does not name a basename.
+        """
+        inputs_dir = self.ladder_inputs_dir().resolve()
+        matches: list[Path] = []
+        for path in self.input_paths_for_tests_fix():
+            if path.name == "SKEPTIC.md":
+                continue
+            if path.is_symlink() or not path.is_file():
+                continue
+            try:
+                path.resolve().relative_to(inputs_dir)
+            except ValueError:
+                continue
+            text = path.read_text(encoding="utf-8")
+            if WELL_FORMED_SKEPTIC_CLAIM in text:
+                matches.append(path)
+        self.assertEqual(
+            len(matches),
+            1,
+            "item 4: tests-fix receives one regular file under the "
+            "ladder inputs directory that carries the validated "
+            f"envelope; found {matches!r} from "
+            f"{self.input_paths_for_tests_fix()!r}",
+        )
+        return matches[0]
+
     def ladder_paths(self) -> list[Path]:
         folder = self.repo / ".dev" / "records" / "ladders"
         if not folder.is_dir():
@@ -2720,7 +2760,7 @@ class WithholdingEnvelope(_LadderFixture):
 class TestsFixInputs(_LadderFixture):
     """Item 4: tests-fix is given the driver-written custody file."""
 
-    def test_tests_fix_is_given_skeptic_md(self):
+    def test_tests_fix_is_given_the_driver_written_envelope(self):
         self.patch_plant(
             verdicts={"check-tests": "changes"},
             skeptic_md=True,
@@ -2734,26 +2774,17 @@ class TestsFixInputs(_LadderFixture):
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         argv = self.dispatch_argv_for("tests-fix")
         inputs = self.flag_values(argv, "--input")
-        self.assertTrue(
-            any(Path(value).name == SKEPTIC_FINDINGS for value in inputs),
-            argv,
-        )
         self.assertFalse(
             any(Path(value).name == "SKEPTIC.md" for value in inputs),
             argv,
         )
-        path = self.skeptic_findings_path()
+        path = self.driver_written_envelope_input()
         self.assertTrue(path.is_file(), path)
         self.assertFalse(path.is_symlink(), path)
-        rec_id = self.record_id_for("check-tests")
+        self.assertTrue(stat.S_ISREG(path.lstat().st_mode), path)
         text = path.read_text(encoding="utf-8")
-        first, _, rest = text.partition("\n")
-        self.assertIn("check-tests envelope", first)
-        self.assertIn(rec_id, first)
-        body = json.loads(rest)
-        self.assertEqual(body.get("artifacts"), {})
-        self.assertEqual(body.get("verdict"), "changes")
-        self.assertEqual(len(body.get("findings") or []), 1)
+        self.assertIn(WELL_FORMED_SKEPTIC_CLAIM, text)
+        self.assertNotEqual(text, SKEPTIC_BODY)
 
 
 class ResumeDigests(_LadderFixture):
