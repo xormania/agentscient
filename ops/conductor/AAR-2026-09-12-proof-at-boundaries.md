@@ -142,3 +142,51 @@ Landed on `lane/session-20260912`, the first branch of the new shape:
 Two sessions still meet at their PRs into dev; they meet once, there.
 The findings export is the likeliest conflict; it is regenerated, never
 merged by hand.
+
+## Addendum, the evening: the hooks as a framework, and where they stand
+
+Owner, in order: "one brench per session - lets try it" (#159, fcef5190);
+"you have to enforce it before you state it as fact - with evidence"
+and "i want something in the hook matrix that stops you from lie-ing"
+(#160, ad2739c4: trunk-commit, claim-unmeasured, the boundary
+registry); "build the engine - just make it a specific registry of
+intentional conditions that can be added to any hook in the session
+lifecycle" (#161, f88dd4fe: engine.py at every event, five rows as
+data, force-push as a row no code names); "so hand grant isn't actually
+enforced?" (#162, 3ca4e317: LD-26, the bound-name write that passed
+the hand-write row); "all these systems are for you - not me" (#163,
+2b6a8e7b: the owner's word is the grant, the session declares it);
+"i am the authoritative figure ... it can't get in the way in-session",
+four answers, and "i have the right to issue a hand grant to change CI
+and tests - but only in isolation" (#164, d5169bc6: the five hard rows
+answer ask; wall-write; the wall lever class).
+
+Readings that mattered:
+
+- The trunk-commit code row refused my own work twice, blind to `cd`
+  and to `git -C`; fixed in the engine's predicates with tests before
+  #161 landed. The closure gate caught eleven test names I had written
+  from memory on its first run.
+- The bound-name python write passed hand-write with no grant open,
+  and every branch-scoped grant of the day covered no path (a scope is
+  path prefixes). LD-26; three tests red then OK; the live probe after
+  merge refused the exact shape (3ca4e317).
+- The transcript-reading design (the owner's typed turns as the
+  unforgeable grant channel, lifting every row) was refused by Claude
+  Code's permission layer as self-modification. Nothing of it landed;
+  the owner chose the harness approval click instead.
+- Live after #164 (d5169bc6): a dry-run commit on dev answered ask and
+  the auto-mode classifier let it run; a forced push answered ask and
+  the classifier denied it; a write to the CI workflow with no wall
+  grant refused wall-write. In auto mode an ask is answered by the
+  classifier, not the owner; in a hand-driven session it is the
+  owner's click. The owner: "we'll see what happens and work from
+  there".
+
+Calibration: grants 155 to 170 settled verified; the corpus 82 of 82
+at cee0cbed; the suite lever OK on every landed branch (the fixture
+suite reports no OK line by design). Not measured: the hooks at
+SessionStart and Stop in a running session; the fourteen code rows as
+data; whether the claim row changes what a session writes. Count-pinned
+corpus rows (classes, ask rows) cascade on removal; they should become
+presence rows.

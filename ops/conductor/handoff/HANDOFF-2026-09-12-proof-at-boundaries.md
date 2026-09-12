@@ -89,3 +89,30 @@ outputs, edit scripts, CI logs).
   `findings.py export --write` after the merge instead of resolving by
   hand.
 - First use: this branch, `lane/session-20260912`, PR into dev at close.
+
+## Addendum, the evening (dev at d5169bc6 before this record)
+
+- Every session: cut `lane/session-<date>-<id>` from dev, `deliverable.py add` it,
+  commit everything there, one draft PR at close through the gate. A commit on
+  dev from a session is a hard row.
+- Hooks: `engine.py` at every event reads `ops/devlane/hooks/boundaries.json`;
+  20 rows, 5 as data (trunk-commit, claim-unmeasured, prune, test-form,
+  force-push), 15 still as matrix code. Adding or removing a condition is a
+  row, and the registry and engine are wall paths: a grant of lever class
+  `wall`, in a session that touches only the wall.
+- The five hard rows answer `ask`. In a hand-driven session that is the
+  owner's click. In auto mode the classifier answers it (measured d5169bc6:
+  it let a dry-run commit on dev run and denied a forced push). If that is
+  not wanted, the rows go back to `escape: none`; the owner has not decided.
+- The owner's word is the grant: declare it unscoped the moment it is given;
+  a scope is path prefixes, never a branch name (LD-26). A python write the
+  row cannot resolve needs an open grant.
+- Corpus rows that pin counts (`"class":` 20, ask rows 5, UNRESOLVED_WRITE 6)
+  break on any removal; rewrite them as presence rows next.
+- Left open: the fourteen code rows as data; a live reading of SessionStart
+  and Stop; the claim row's effect on what sessions write; release PR #158
+  (dev into master, #150 to #157) for the owner; #159 to #164 go in the next.
+- Worktrees this session created, all clean and pushed: `ag-session-20260912`
+  and `-b` to `-g`, `ag-effort-turns-20260912`, `ag-probes-runner-20260912`,
+  `ag-worker-mcp-brief-20260912`, `ag-pr-proof-gate-20260912`,
+  `ag-live-proof-20260912`.
