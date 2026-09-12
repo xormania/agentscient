@@ -2,7 +2,7 @@
 
 - recorded: 2026-09-12, in session, while measuring token waste
 - source: owner, verbatim below; measurements by Claude Fable 5.1 against dev `7ca8886`
-- disposition: open; the owner asked for "close enough to functioning" between hooks and MCP; proposed as the next hand change after the effort and turn-cap change (grant 155)
+- disposition: done the same day: PR #156 (4d95ae64) wired the lane MCP into every worker, the brief into every prompt and the reuse line into write envelopes, with `result.proof` counting the calls; PR #157 (794cb4cf) gates ready and merge on proof; the first live dispatch after the merge read lane_brief, lane_changes and lane_jobs (record 20260912T042714Z-review-codex-063615)
 
 ## In the owner's words
 > do you see the issue? every work-order works in isolation from the rest of the code - its doesn't use any previous work, it works blind.
