@@ -65,11 +65,11 @@
  },
  "check-tests": {
   "adapter": "harness",
-  "deliverable": "a skeptic's report at the job's out/SKEPTIC.md; verdict changes when any test is refuted",
+  "deliverable": "the skeptic's findings on the wire: the JSON envelope on stdout, verdict `changes` exactly when any finding exists, each finding a quotation pair; artifacts empty; no file written",
   "role": "read",
   "snapshot": "whole",
   "caps": {"timeout": 1800},
-  "prompt": "Adopt the role card at ops/process/roles/test-skeptic.md in the tree at {ref}. Judge the tests at {inputs} against the contract named here: {scope}. Do not read any implementation. Refute by default: a test survives only when you can name the broken implementation it would catch. Every refuted or weak test is a finding carrying a reproduce command; verdict is changes when any finding exists and approve otherwise. Write the report to {out}/SKEPTIC.md and name that path in artifacts. Review only — do not edit.\nInputs named by the brief are files under in/, a sibling of out/; read them whole before working.\nLeave `spend` as `{\"harness\": \"<harness>\", \"total\": 0, \"out\": 0, \"runs\": 0}`; the launcher fills it from the session store. Do not read the store.\nAnswer with a single JSON object and nothing else, carrying exactly these keys: job, status, verdict, counts, findings, artifacts, spend, stamp, note.",
+  "prompt": "Adopt the role card at ops/process/roles/test-skeptic.md in the tree at {ref}. Judge the tests at {inputs} against the contract named here: {scope}. Do not read any implementation. Refute by default: a test survives only when you can name the broken implementation it would catch. Every refuted or weak test is one finding, a quotation pair: where is the test file and line; claim is `declared (<location>): <the contract or test words, verbatim>; practiced: <the test's evidence, verbatim>; misses: <the broken implementation the test would not catch>`; reproduce is a command against the tree. Verdict is changes exactly when findings is non-empty and approve otherwise; counts are the tally of findings. Write no file: artifacts is an empty object and the envelope on stdout is the whole deliverable. Review only — do not edit.\nInputs named by the brief are files under in/, a sibling of out/; read them whole before working.\nLeave `spend` as `{\"harness\": \"<harness>\", \"total\": 0, \"out\": 0, \"runs\": 0}`; the launcher fills it from the session store. Do not read the store.\nAnswer with a single JSON object and nothing else, carrying exactly these keys: job, status, verdict, counts, findings, artifacts, spend, stamp, note.",
   "constraints": [
    "read only",
    "do not edit the snapshot"
