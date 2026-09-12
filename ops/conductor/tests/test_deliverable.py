@@ -42,6 +42,31 @@ class TheLockLever(unittest.TestCase):
         self.assertEqual(shown.returncode, 0)
         self.assertIn("lane/a", shown.stdout)
 
+    def test_add_names_another_session_branch_beside_the_first(self):
+        """Owner, 2026-09-12: "as long you account for the fact that i'll
+        have multiple sessions running soon". Two sessions on one host share
+        this lock; the second adds its branch, it does not replace the
+        first's."""
+        self.run_lever("set", "lane/session-a", "--why", "session a")
+        proc = self.run_lever("add", "lane/session-b", "--why", "session b")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        data = json.loads(self.lock.read_text())
+        self.assertEqual(data["branches"], ["lane/session-a", "lane/session-b"])
+        self.assertIn("session a", data["why"])
+        self.assertIn("session b", data["why"])
+        again = self.run_lever("add", "lane/session-b", "--why", "session b")
+        self.assertEqual(again.returncode, 0, again.stderr)
+        self.assertEqual(json.loads(self.lock.read_text())["branches"],
+                         ["lane/session-a", "lane/session-b"], "add is idempotent")
+        fresh = self.run_lever("clear")
+        self.assertEqual(fresh.returncode, 0)
+        proc = self.run_lever("add", "lane/session-c", "--why", "session c")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(self.lock.read_text())["branches"], ["lane/session-c"],
+                         "add on no lock sets it")
+        self.assertEqual(self.run_lever("add", "--why", "x").returncode, 2)
+        self.assertEqual(self.run_lever("add", "lane/d").returncode, 2)
+
     def test_clear_removes_it_and_show_says_no_lock(self):
         self.run_lever("set", "lane/a", "--why", "x")
         proc = self.run_lever("clear")
@@ -50,7 +75,7 @@ class TheLockLever(unittest.TestCase):
         self.assertEqual(self.run_lever("show", identity=False).stdout.strip(), "no lock")
 
     def test_writes_need_identity_and_refuse_on_the_wire(self):
-        for args in (("set", "lane/a", "--why", "x"), ("clear",)):
+        for args in (("set", "lane/a", "--why", "x"), ("add", "lane/a", "--why", "x"), ("clear",)):
             with self.subTest(args=args):
                 proc = self.run_lever(*args, identity=False)
                 self.assertEqual(proc.returncode, 2)

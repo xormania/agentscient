@@ -21,7 +21,9 @@ row that cannot look refuses: "could not look" is not a pass.
     scope-cap       --scope-file over SCOPE_CAP                   size, lane conf
     bucket-command  an implement scope naming the whole suite     scope text
     walkthrough     a write job whose inputs carry no walkthrough input text
-    stale-base      --worktree behind the trunk                   git merge-base
+    stale-base      --worktree whose merge-forward from the       git merge-tree
+                    trunk would conflict (behind alone is merged
+                    by the dispatcher before the launch)
     contract-vet    harness contracts do not vet as a package     cue vet
     dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
                     worktree, DISPATCH_TIMEOUT and WF_AGENT       text
@@ -36,10 +38,44 @@ row that cannot look refuses: "could not look" is not a pass.
                     branches, a new worktree or branch, a
                     dispatch, a ladder start or a PR creation
                     aimed at any other branch; no grant escape
+    claim-unmeasured a commit message, PR body or comment, or a   the text, paragraph by
+                    record or law page written by heredoc, with  paragraph
+                    a paragraph that claims (enforced, done,
+                    landed, merged, green, impossible, verified,
+                    fixed) and carries no reading (sha, record
+                    id, P- row, #PR, run id, "Ran N tests") nor
+                    the words not measured; quoted words are not
+                    the writer's claim; no grant escape (owner,
+                    2026-09-12: "stops you from lie-ing")
+    force-push      git push --force, --force-with-lease or -f    the registry only: no
+                    (engine row, no code)                         code names this class
+    trunk-commit    git commit, merge, cherry-pick, rebase,       git symbolic-ref of the
+                    revert or am while the directory is on the   directory; push refspecs
+                    trunk or the release branch, or a push whose
+                    refspec targets them; no grant escape (owner,
+                    2026-09-12: "one branch per session")
+    wall-write      a write to the CI and test machinery          the path, the grant's
+                    (.github/workflows, suites.sh, probes.py,     lever class
+                    laneconf.py, the hook registry and engine)
+                    without a grant of lever class wall; or a
+                    wall grant writing anything else (isolation)
+    pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
+                    system verifies: a ## Proof section naming   at the head, gh run list
+                    corpus rows that exist at the PR head, the
+                    head fetched here, a completed green ci run
+                    on that head; no grant escape (owner,
+                    2026-09-12: "proof needs to be part of the
+                    system - it has to generated and verified
+                    at boundaries")
 
 Every refusal is also logged as a miss against the skill it names
 (``miss.py``: the deliverable row names ``deliverable``, every other row
 ``refused``), best effort, after the refusal is printed.
+
+Rows marked ``engine: true`` in ``ops/devlane/hooks/boundaries.json`` are
+not carried by this file at all: ``engine.py`` evaluates them from the
+registry at the event they bind to (trunk-commit, claim-unmeasured, prune,
+test-form, force-push). This file carries the rest until they migrate.
 
 The only escape is a declared, open grant: ``HAND_GRANT=<id>`` leading the
 command, the id an open row of the hand ledger whose scope covers the
@@ -121,13 +157,45 @@ HEREDOC_OPEN = re.compile(
 HEREDOC_TOKEN = re.compile(r"^(?:(\d+))?<<-?(.*)$")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
+# Owner, 2026-09-12: "i have the right to issue a hand grant to change CI and
+# tests - but i'm willing to make that something that can only be done in
+# isolation". The wall is the machinery that contains everyone's mistakes;
+# it is written only under a grant of lever class `wall`, and a session
+# holding one writes nothing else.
+WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
+              "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
+              "ops/devlane/hooks/claude/engine.py")
+
+
+BOUNDARIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "boundaries.json")
+
+
+def declared_boundaries():
+    """The registry every row of this matrix is declared in (owner,
+    2026-09-12: "a framework for verification"). One row per refusal
+    class: boundary, actor, trigger, evidence duty, gate, tests, escape.
+    A class not declared here cannot be refused with: deny() raises, and
+    the hook reports hook-error, so an undeclared gate is itself a
+    finding, never a silent rule."""
+    with open(BOUNDARIES_PATH, encoding="utf-8") as fh:
+        data = json.load(fh)
+    return {row["class"]: row for row in data["rows"]}
 
 
 def deny(klass, expected, found, needed):
+    rows = declared_boundaries()
+    if klass not in rows:
+        raise RuntimeError(f"undeclared gate: {klass} has no row in ops/devlane/hooks/boundaries.json")
+    # Owner, 2026-09-12 (four answers): a hard row stays refused for an
+    # agent; the owner authorizes the action, when wanted, by a harness
+    # approval click. A row whose escape is `ask` answers ask, and the
+    # harness puts that one action in front of the owner; nothing an
+    # agent writes can click it.
+    decision = "ask" if rows[klass].get("escape") == "ask" else "deny"
     line = f"{klass}: expected {expected}; found {found}; needed {needed}"
     return {"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
-        "permissionDecision": "deny",
+        "permissionDecision": decision,
         "permissionDecisionReason": f"[matrix:{klass}] {line}",
     }}
 
@@ -155,6 +223,30 @@ def relative(path, cwd):
     if root is None:
         return None, None
     return root, os.path.relpath(absolute, root)
+
+
+def is_wall(rel):
+    if rel is None or rel.startswith(".."):
+        return False
+    return any(rel == w or rel.startswith(w) for w in WALL_PATHS)
+
+
+def wall_write(what, path, rel, grant):
+    """The wall-write row: a wall path needs a wall-class grant; a wall
+    grant touches only wall paths. None when neither applies."""
+    wall_grant = grant is not None and len(grant) > 2 and grant[2] == "wall"
+    if is_wall(rel) and not wall_grant:
+        holder = "no grant" if grant is None else f"grant {grant[0]} of class {grant[2] if len(grant) > 2 else 'other'}"
+        return deny("wall-write", "a grant of lever class wall leading the command (CI and test machinery "
+                                  "is changed only in a session whose deliverable is the wall)",
+                    f"{what} writing {path} under {holder}",
+                    "python3 ops/conductor/tools/hand.py declare '<what>' '<why>' wall; lead the command with "
+                    "HAND_GRANT=<id>; touch only wall paths in that session (owner, 2026-09-12)")
+    if wall_grant and is_code(rel) and not is_wall(rel):
+        return deny("wall-write", "a wall session touching only wall paths (isolation)",
+                    f"{what} writing {path} under wall grant {grant[0]}",
+                    "land the wall work first; other work goes in its own session under its own grant")
+    return None
 
 
 def is_code(rel):
@@ -194,14 +286,14 @@ def open_grant(text, lane):
     try:
         connection = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         row = connection.execute(
-            "SELECT status, scope FROM handwork WHERE id = ?", (grant_id,)
+            "SELECT status, scope, lever_class FROM handwork WHERE id = ?", (grant_id,)
         ).fetchone()
         connection.close()
     except sqlite3.Error:
         return None
     if row is None or row[0] != "open":
         return None
-    return grant_id, (row[1] or "")
+    return grant_id, (row[1] or ""), (row[2] or "other")
 
 
 def grant_covers(grant, rel):
@@ -399,8 +491,40 @@ def python_sources(text):
     return sources
 
 
+UNRESOLVED_WRITE = "<unresolved python write>"
+
+
+def _path_expr(node, bindings, path_names, module_names):
+    """The literal path an expression denotes, or None: a string, a
+    Path('literal') call, a name bound earlier, or a `/` join of those."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.Name):
+        return bindings.get(node.id)
+    if isinstance(node, ast.Call):
+        function = node.func
+        is_path = ((isinstance(function, ast.Name) and function.id in path_names) or
+                   (isinstance(function, ast.Attribute) and function.attr == "Path"
+                    and isinstance(function.value, ast.Name)
+                    and module_names.get(function.value.id) == "pathlib"))
+        if is_path and node.args:
+            parts = [_path_expr(arg, bindings, path_names, module_names) for arg in node.args]
+            return None if any(p is None for p in parts) else os.path.join(*parts)
+        return None
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        left = _path_expr(node.left, bindings, path_names, module_names)
+        right = _path_expr(node.right, bindings, path_names, module_names)
+        return None if left is None or right is None else os.path.join(left, right)
+    return None
+
+
 def python_written_paths(text):
-    """Literal paths bound to writable stdlib open calls in executed Python."""
+    """Paths bound to writable stdlib open calls in executed Python: literal
+    paths, Path('literal') calls, names bound to those (LD-26, 2026-09-12:
+    `p = Path('ops/x.py'); p.write_text(...)` passed the row with no grant),
+    and `/` joins of them. A write whose target cannot be resolved yields
+    UNRESOLVED_WRITE, which the row refuses unless a grant is open: could
+    not look is not a pass."""
     paths = []
     for source in python_sources(text):
         try:
@@ -410,6 +534,7 @@ def python_written_paths(text):
         module_names = {}
         open_names = {"open"}
         path_names = set()
+        bindings = {}
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
                 for item in node.names:
@@ -422,30 +547,39 @@ def python_written_paths(text):
                         open_names.add(local)
                     elif item.name == "Path" and node.module == "pathlib":
                         path_names.add(local)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                resolved = _path_expr(node.value, bindings, path_names, module_names)
+                if resolved is not None:
+                    bindings[node.targets[0].id] = resolved
         for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
             function = call.func
             if (isinstance(function, ast.Name) and function.id in open_names) or (
                     isinstance(function, ast.Attribute) and function.attr == "open"
                     and isinstance(function.value, ast.Name)
                     and module_names.get(function.value.id) in ("builtins", "io")):
-                path = literal_arg(call, 0, "file")
                 mode = literal_arg(call, 1, "mode", "r")
-                if path and mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+"):
-                    paths.append(path)
+                if not (mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+")):
+                    continue
+                target = call.args[0] if call.args else next((k.value for k in call.keywords if k.arg == "file"), None)
+                path = _path_expr(target, bindings, path_names, module_names) if target is not None else None
+                paths.append(path if path is not None else UNRESOLVED_WRITE)
                 continue
             if not isinstance(function, ast.Attribute) or function.attr not in ("open", "write_text", "write_bytes"):
                 continue
             owner = function.value
-            if not isinstance(owner, ast.Call) or not (
-                    (isinstance(owner.func, ast.Name) and owner.func.id in path_names) or
-                    (isinstance(owner.func, ast.Attribute) and owner.func.attr == "Path"
-                     and isinstance(owner.func.value, ast.Name)
-                     and module_names.get(owner.func.value.id) == "pathlib")):
-                continue
-            path = literal_arg(owner, 0, "")
+            path = _path_expr(owner, bindings, path_names, module_names)
             mode = literal_arg(call, 0, "mode", "r") if function.attr == "open" else "w"
-            if path and mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+"):
+            if not (mode and set(mode) <= set("rwaxtb+") and any(c in mode for c in "wax+")):
+                continue
+            if path is not None:
                 paths.append(path)
+                continue
+            # a method named open/write_text/write_bytes on something that is
+            # not a path we can see: a file object's .write is not here (it is
+            # `write`), so this is a Path-like owner the row cannot resolve
+            if isinstance(owner, (ast.Name, ast.Call, ast.BinOp, ast.Attribute)):
+                paths.append(UNRESOLVED_WRITE)
     return paths
 
 
@@ -673,10 +807,21 @@ def check_dispatch(kind, flags, cwd, text, grant):
         probe = subprocess.run(["git", "-C", root, "merge-base", "--is-ancestor", f"origin/{trunk}", "HEAD"],  # noqa: S603, S607 - PATH git; root is a path this hook resolved
                                capture_output=True, text=True, check=False)
         if probe.returncode == 1:
-            behind = subprocess.run(["git", "-C", root, "rev-list", "--count", f"HEAD..origin/{trunk}"],  # noqa: S603, S607 - PATH git; range is a branch name from the conf
-                                    capture_output=True, text=True, check=False).stdout.strip() or "?"
-            return deny("stale-base", f"{worktree} to contain origin/{trunk} as fetched",
-                        f"HEAD behind by {behind} commits", f"git merge origin/{trunk} in the worktree before dispatch")
+            # Owner, 2026-09-12: "why are the branches always out of date".
+            # Behind is the dispatcher's job: it merges origin/<trunk> in
+            # before the launch. Only a merge that would conflict refuses.
+            trial = subprocess.run(["git", "-C", root, "merge-tree", "--write-tree", "--name-only",  # noqa: S603, S607 - PATH git; a dry merge, no ref moves
+                                    "HEAD", f"origin/{trunk}"],
+                                   capture_output=True, text=True, check=False)
+            if trial.returncode == 1:
+                files = [line for line in trial.stdout.splitlines()[1:] if line.strip()]
+                return deny("stale-base", f"origin/{trunk} to merge cleanly into {worktree}",
+                            f"conflicts in {', '.join(files) or 'unnamed files'}",
+                            f"resolve them in the worktree (git merge origin/{trunk}), commit, then dispatch")
+            if trial.returncode > 1:
+                return deny("stale-base", f"a dry merge of origin/{trunk} from {worktree}",
+                            (trial.stderr.strip().splitlines() or ["no answer"])[-1],
+                            "a worktree the hook can read")
         if probe.returncode > 1:
             return deny("stale-base", f"a git answer from {worktree}", probe.stderr.strip().splitlines()[-1:] or "no answer",
                         "a worktree the hook can read")
@@ -888,12 +1033,266 @@ def deliverable(toks, cwd, lane):
     return None
 
 
+PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
+PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
+PROBES_DIR = "ops/conductor/handoff/probes/"
+CI_WORKFLOW = "ci"
+
+
+def proof_ids(body):
+    """The corpus row ids named under the PR body's ## Proof heading."""
+    match = PROOF_HEADING.search(body or "")
+    if match is None:
+        return None
+    section = body[match.end():]
+    nxt = re.search(r"^##\s", section, re.MULTILINE)
+    if nxt:
+        section = section[:nxt.start()]
+    ids = []
+    for found in PROOF_ID.findall(section):
+        if found not in ids:
+            ids.append(found)
+    return ids
+
+
+def corpus_ids_at(root, head):
+    """Every row id in the probes corpus at a commit; None when it cannot be read."""
+    listing = subprocess.run(["git", "-C", root, "ls-tree", "--name-only", head, "--", PROBES_DIR],  # noqa: S603,S607 - fixed argv, a read
+                             capture_output=True, text=True, timeout=30, check=False)
+    if listing.returncode != 0:
+        return None
+    ids = set()
+    for path in listing.stdout.split():
+        if not path.endswith(".jsonl"):
+            continue
+        shown = subprocess.run(["git", "-C", root, "show", f"{head}:{path}"],  # noqa: S603,S607 - fixed argv, a read
+                               capture_output=True, text=True, timeout=30, check=False)
+        if shown.returncode != 0:
+            return None
+        for line in shown.stdout.splitlines():
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict) and isinstance(row.get("id"), str):
+                ids.add(row["id"])
+    return ids
+
+
+def pr_number(toks):
+    for tok in toks[3:]:
+        if tok.isdigit():
+            return tok
+        if tok.startswith("https://") and tok.rstrip("/").rsplit("/", 1)[-1].isdigit():
+            return tok.rstrip("/").rsplit("/", 1)[-1]
+    return None
+
+
+def gh_repo(toks):
+    """The repository a gh command selects with -R/--repo, or None."""
+    for i, tok in enumerate(toks):
+        if tok in ("-R", "--repo") and i + 1 < len(toks):
+            return toks[i + 1]
+        if tok.startswith("--repo="):
+            return tok.split("=", 1)[1]
+        if tok.startswith("-R") and len(tok) > 2:
+            return tok[2:]
+    return None
+
+
+def pr_proof(toks, cwd):
+    """Owner, 2026-09-12: "it has to be impossible to not do the work".
+    A PR is marked ready or merged only against proof the system verifies
+    here: the rows the body names exist at the head, and a green ci run
+    on that head executed them. No grant escape."""
+    if not toks or base(toks[0]) != "gh" or len(toks) < 3 or toks[1] != "pr" or toks[2] not in ("ready", "merge"):
+        return None
+    verb = f"gh pr {toks[2]}"
+    needed_proof = ("add rows under ops/conductor/handoff/probes/ on the branch, name their ids under "
+                    "a `## Proof` heading in the PR body, push, and wait for the ci run on that head")
+    number = pr_number(toks)
+    if number is None:
+        return deny("pr-proof", f"{verb} naming the PR number", "no number", "name the PR number")
+    # -R/--repo selects another repository; the proof is read there (Codex
+    # review of PR #158, 2026-09-12), never from this repository's PR N.
+    selected = gh_repo(toks)
+    at = ["-R", selected] if selected else []
+    view = subprocess.run(["gh", "pr", "view", number, *at, "--json", "body,headRefOid,headRefName"],  # noqa: S603,S607 - PATH gh; a read
+                          cwd=cwd, capture_output=True, text=True, timeout=60, check=False)
+    if view.returncode != 0:
+        return deny("pr-proof", f"a readable PR #{number}",
+                    f"gh pr view failed: {(view.stderr or view.stdout).strip().splitlines()[:1]}",
+                    "could not look is not a pass; fix gh and retry")
+    try:
+        data = json.loads(view.stdout)
+    except ValueError:
+        return deny("pr-proof", f"JSON from gh pr view {number}", "unparseable output", "fix gh and retry")
+    head = str(data.get("headRefOid") or "")
+    branch = str(data.get("headRefName") or "")
+    ids = proof_ids(str(data.get("body") or ""))
+    if not ids:
+        found = "no `## Proof` section in the PR body" if ids is None else "a `## Proof` section naming no P- row id"
+        return deny("pr-proof", f"a `## Proof` section naming corpus rows (P-... ids) that pass at head {head[:8]}",
+                    found, needed_proof)
+    root = repo_root(cwd) or cwd
+    present = subprocess.run(["git", "-C", root, "cat-file", "-e", f"{head}^{{commit}}"],  # noqa: S603,S607 - fixed argv, a read
+                             capture_output=True, text=True, timeout=30, check=False)
+    if present.returncode != 0:
+        return deny("pr-proof", f"the PR head {head[:8]} fetched here", "not a local object",
+                    f"git fetch origin {branch or '<branch>'} and retry")
+    corpus = corpus_ids_at(root, head)
+    if corpus is None:
+        return deny("pr-proof", f"the probes corpus readable at {head[:8]}", "git could not read it",
+                    "could not look is not a pass; check the head")
+    missing = [i for i in ids if i not in corpus]
+    if missing:
+        return deny("pr-proof", f"every Proof row present in {PROBES_DIR} at {head[:8]}",
+                    f"absent: {', '.join(missing)}", needed_proof)
+    runs = subprocess.run(["gh", "run", "list", *at, "--commit", head, "--json", "name,workflowName,status,conclusion,headSha"],  # noqa: S603,S607 - PATH gh; a read
+                          cwd=cwd, capture_output=True, text=True, timeout=60, check=False)
+    if runs.returncode != 0:
+        return deny("pr-proof", f"the ci runs on {head[:8]}",
+                    f"gh run list failed: {(runs.stderr or runs.stdout).strip().splitlines()[:1]}",
+                    "could not look is not a pass; fix gh and retry")
+    try:
+        rows = json.loads(runs.stdout)
+    except ValueError:
+        rows = None
+    if not isinstance(rows, list):
+        return deny("pr-proof", f"JSON from gh run list --commit {head[:8]}", "unparseable output", "fix gh and retry")
+    ci = [r for r in rows if isinstance(r, dict) and CI_WORKFLOW in (r.get("workflowName"), r.get("name"))
+          and str(r.get("headSha") or head) == head]
+    done = [r for r in ci if r.get("status") == "completed"]
+    if not done:
+        state = ", ".join(str(r.get("status")) for r in ci) or "no ci run"
+        return deny("pr-proof", f"a completed ci run on {head[:8]} (it executes the Proof rows)",
+                    state, f"wait for it: gh run list --commit {head}")
+    if not any(r.get("conclusion") == "success" for r in done):
+        return deny("pr-proof", f"a green ci run on {head[:8]}",
+                    f"conclusion {', '.join(str(r.get('conclusion')) for r in done)}",
+                    "fix the branch until the run is green; the Proof rows are in it")
+    return None
+
+
+CLAIM_WORDS = re.compile(
+    r"\b(enforced|in force|done|landed|merged|green|complete|completed|"
+    r"impossible|verified|proven|proved|passes|passing|works|wired|consumed|settled|holds|fixed)\b",
+    re.IGNORECASE)
+READING_TOKENS = re.compile(
+    r"\b[0-9a-f]{7,40}\b|\d{8}T\d{6}Z-[a-z-]+-[0-9a-f]{6}|\bP-[A-Z0-9]+-\d{8}-[\w-]+|#\d+|\brun \d+|"
+    r"\bRan \d+ tests|\b\d+ of \d+\b|\b\d+ (?:OK|red|failures?|errors?)\b|\bexit(?:=| )\d|"
+    r"\bnot measured\b|\bunmeasured\b|\bunresolved\b|\bnot verified\b|\bnot enforced\b|\bnot yet\b",
+    re.IGNORECASE)
+PUBLISH_PATHS = re.compile(r"(^|/)(ops/conductor/|\.claude/skills/|docs/)|(^|/)(AGENTS|CONTRIB|ops/README)\.md$")
+HEREDOC_WRITE = re.compile(
+    r"(?:cat|tee)(?:\s+-a)?\s*>{1,2}\s*(\S+)\s*<<-?\s*(['\"]?)(\w+)\2[^\n]*\n(.*?)\n\3(?:\n|$)", re.DOTALL)
+QUOTED = re.compile(r'"[^"\n]*"|“[^”\n]*”')
+
+
+def unmeasured_claim(text):
+    """The first line that claims without a reading in its paragraph, or None.
+    Quoted spans are somebody else's words and are not the writer's claim;
+    a paragraph opening with `>` is a quotation."""
+    for paragraph in re.split(r"\n\s*\n", text or ""):
+        lines = [line for line in paragraph.splitlines() if line.strip()]
+        if not lines or lines[0].lstrip().startswith(">"):
+            continue
+        stripped = QUOTED.sub("", paragraph)
+        if READING_TOKENS.search(stripped):
+            continue
+        for line in lines:
+            if CLAIM_WORDS.search(QUOTED.sub("", line)):
+                return line.strip()
+    return None
+
+
+def published_texts(toks, text, cwd):
+    """(surface, text) pairs a statement publishes: a commit message, a PR
+    body or comment, a record or law page written by heredoc."""
+    found = []
+    if toks and base(toks[0]) == "git":
+        sub, rest, _ = _git_subcommand(toks, cwd)
+        if sub == "commit":
+            for i, tok in enumerate(rest):
+                if tok in ("-m", "--message") and i + 1 < len(rest):
+                    found.append(("commit message", rest[i + 1]))
+                elif tok.startswith("-m") and len(tok) > 2:
+                    found.append(("commit message", tok[2:]))
+                elif tok in ("-F", "--file") and i + 1 < len(rest):
+                    body = read_text(os.path.normpath(os.path.join(cwd, os.path.expanduser(rest[i + 1]))))
+                    if body is not None:
+                        found.append((f"commit message {rest[i + 1]}", body))
+    if toks and base(toks[0]) == "gh" and len(toks) > 2 and toks[1] in ("pr", "issue"):
+        for i, tok in enumerate(toks):
+            if tok == "--body" and i + 1 < len(toks):
+                found.append((f"gh {toks[1]} {toks[2]} --body", toks[i + 1]))
+            elif tok == "--body-file" and i + 1 < len(toks):
+                body = read_text(os.path.normpath(os.path.join(cwd, os.path.expanduser(toks[i + 1]))))
+                if body is not None:
+                    found.append((f"gh {toks[1]} {toks[2]} --body-file {toks[i + 1]}", body))
+    return found
+
+
+def heredoc_records(text, cwd):
+    """(path, body) for every heredoc written onto a publishing surface."""
+    found = []
+    for match in HEREDOC_WRITE.finditer(text or ""):
+        target = match.group(1).strip("'\"")
+        _, rel = relative(os.path.normpath(os.path.join(cwd, os.path.expanduser(target))), cwd)
+        if PUBLISH_PATHS.search(rel or target):
+            found.append((target, match.group(4)))
+    return found
+
+
+TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
+TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
+
+
+def _git_subcommand(toks, cwd):
+    """(subcommand, rest, directory) for a git statement, honouring -C and -c."""
+    args = toks[1:]
+    directory = cwd
+    i = 0
+    while i < len(args):
+        tok = args[i]
+        if tok == "-C" and i + 1 < len(args):
+            directory = os.path.normpath(os.path.join(cwd, os.path.expanduser(args[i + 1])))
+            i += 2
+            continue
+        if tok.startswith("-C") and len(tok) > 2:
+            directory = os.path.normpath(os.path.join(cwd, os.path.expanduser(tok[2:])))
+            i += 1
+            continue
+        if tok in ("-c", "--git-dir", "--work-tree") and i + 1 < len(args):
+            i += 2
+            continue
+        if tok.startswith("-"):
+            i += 1
+            continue
+        break
+    rest = args[i:]
+    return (rest[0] if rest else None), rest[1:], directory
+
+
 def check_text(text, cwd, depth=0):
     root = repo_root(cwd)
     conf = lane_conf(root)
     lane = conf.get("LANE_NAME")
     grant = open_grant(text, lane)
     for path in python_written_paths(text):
+        if path != UNRESOLVED_WRITE:
+            _, rel = relative(path, cwd)
+            refusal = wall_write("a script", path, rel, grant)
+            if refusal:
+                return refusal
+        if path == UNRESOLVED_WRITE:
+            if grant is None:
+                return deny("hand-write", "a write target the row can resolve (a literal path, Path('...'), "
+                                          "a name bound to one, or a / join of those)",
+                            "a python write whose target the hook cannot resolve",
+                            "spell the path so the row can read it, or HAND_GRANT=<open id> declared first "
+                            "(LD-26: could not look is not a pass)")
+            continue
         _, rel = relative(path, cwd)
         if is_code(rel) and not grant_covers(grant, rel):
             return deny("hand-write", "code changed through the ladder (freeze)",
@@ -902,14 +1301,15 @@ def check_text(text, cwd, depth=0):
         toks = tokens_of(statement)
         if not toks:
             continue
-        for target in prune_targets(toks, cwd, conf):
-            return deny("prune", "data kept (never prune)", f"rm -r {target}", "leave it; move it under .dev/tmp with a note if it is in the way")
         if depth == 0 and GRAFT_LEVER.rsplit("/", 1)[-1] in " ".join(toks) and "query" in toks:
             graft_log(lane, "query", " ".join(t for t in toks if t.startswith("graft_")) or "query")
         refusal = graft_first(toks, cwd, root, lane)
         if refusal:
             return refusal
         refusal = deliverable(toks, cwd, lane)
+        if refusal:
+            return refusal
+        refusal = pr_proof(toks, cwd)
         if refusal:
             return refusal
         for target in redirect_targets(toks) + written_paths(toks):
@@ -920,6 +1320,9 @@ def check_text(text, cwd, depth=0):
                                 "the landing lever (land.py), or HAND_GRANT=<open id> declared first")
                 continue
             _, rel = relative(target, cwd)
+            refusal = wall_write(base(toks[0]), target, rel, grant)
+            if refusal:
+                return refusal
             if is_code(rel) and not grant_covers(grant, rel):
                 return deny("hand-write", "code changed through the ladder (freeze)", f"{base(toks[0])} writing {target}",
                             "the ladder, or HAND_GRANT=<open id> whose scope names the path (grants are for landing and merge resolution)")
@@ -928,10 +1331,6 @@ def check_text(text, cwd, depth=0):
             refusal = check_dispatch(kind, flags, cwd, text, grant)
             if refusal:
                 return refusal
-        unittest_path = path_form_unittest(toks)
-        if unittest_path:
-            return deny("test-form", "the discover form (python3 -m unittest discover -s <tests dir> -p <file>) or ops/bin/suites.sh",
-                        f"a path-form unittest argument {unittest_path}", "the discover form")
         if depth == 0 and base(toks[0]) in ("bash", "sh", "source", ".") and len(toks) > 1:
             if toks[1] == "-c" and len(toks) > 2:
                 # Triage 2026-09-11: the outer command's grant covers the
@@ -966,6 +1365,9 @@ def decide(payload):
     path = tool_input.get("file_path") or tool_input.get("relative_path") or ""
     if path:
         _, rel = relative(path, cwd)
+        refusal = wall_write(tool, path, rel, None)
+        if refusal:
+            return refusal
         if is_code(rel):
             return deny("hand-write", "code changed through the ladder (freeze)", f"{tool} on {path}",
                         "the ladder; a granted hand change goes through Bash with HAND_GRANT=<open id> leading the command")

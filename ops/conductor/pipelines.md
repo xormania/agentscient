@@ -129,9 +129,15 @@ pipeline, and this session it did exactly that twice.
 - **A launch prints its record id at mint.** This closes the earlier A-1
   finding: a detached caller can identify the run immediately, then use
   `launch.py wait ID` for its terminal result.
-- **Effort is per-harness.** codex takes `-c model_reasoning_effort="xhigh"`,
-  not `--reasoning-effort`; the launcher forwards the dial through each
-  harness adapter.
+- **Effort is per harness and job.** `EFFORT_<HARNESS>_<JOB>` in
+  `ops/lane.conf` beats `EFFORT_<HARNESS>` (PR #20); the policy since
+  2026-09-12 is plan at xhigh (or max), every other job at high (owner:
+  "xhigh or max is ok for the initial planing - but that's it. Everything
+  else should be high"). codex takes `-c model_reasoning_effort="..."`,
+  not `--reasoning-effort`; the launcher forwards the value through each
+  harness adapter. Turns are capped per job too: `caps.turns` in
+  `jobs.json` becomes `--max-turns` on claude and grok; codex has no such
+  flag and the record says so.
 - **Landing is** `git fetch -q <dispatch>/snapshot HEAD && git cherry-pick -x
   FETCH_HEAD`.
 - **Paired dispatches take a byte-identical scope.** Take the sha when you write

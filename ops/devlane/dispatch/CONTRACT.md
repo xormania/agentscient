@@ -1185,6 +1185,49 @@ absence is historical and must not be read as "none answered".
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- `brief.mcp` is the lane MCP handed to the worker (owner, 2026-09-12:
+  "enforce usage - not doc it"): `config` is `<job>/lane-mcp.json`, a
+  version-2 lane MCP config with `consumer` = the record id, `job_ids` =
+  the `--follows` records then the newest records on the same unit (at
+  most 20), `job_registry` = the launcher's jobs.json; `server` is the
+  exact argv (`python3 -B <snapshot>/ops/conductor/tools/lane_mcp.py
+  --config <config> serve`). Claude receives `--mcp-config <job>/mcp.json`
+  and the allowed-tool rule `mcp__agentscient-lane` beside
+  `--strict-mcp-config`; Codex receives two `-c mcp_servers.agentscient_lane.*`
+  overrides; Grok reads `[mcp_servers.agentscient_lane]` from
+  `$GROK_HOME/config.toml`, written into the isolated home and named in
+  `brief.mcp.grok_config`. A snapshot without the tool records
+  `brief.mcp = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}`
+  and wires nothing. Measured live on 2026-09-12: all three harnesses
+  answered `JOBS=9` through this wiring.
+- Every prompt ends with `== what exists (measured at launch) ==`: the
+  snapshot's levers with their first docstring line, skills, lane.conf
+  keys, the job catalogue, the ideas index, the newest handoff's
+  "Corrections to retain", the MCP server and its tools; each absent
+  section says `<name>: absent`; the whole is cut at 8000 bytes with a
+  marker. It closes with the reuse clause.
+- Every settled record carries `result.proof` (owner, 2026-09-12: "not
+  just proof at PR - proof for every dispatch"): `mcp_wired`, `mcp_calls`
+  (the lane MCP calls counted from the worker's own store: claude
+  `tool_use` named `mcp__agentscient-lane__*`, codex `McpToolCall` items
+  on server `agentscient_lane`, grok `tool_calls` naming
+  `agentscient_lane__*`), `mcp_tools`, `store`. A wired worker whose `ok`
+  envelope shows no call is invalidated `framework-unused`; a store that
+  cannot be read invalidates `framework-unproven` (could not look is not
+  a pass). An unwired snapshot records `mcp_calls: null` and no gate.
+- A write role's envelope declares reuse: `note` carries
+  `reused: <what>` or `reused: nothing applied`. Settlement records it as
+  `result.reuse`; an `ok` write envelope without it is invalidated with
+  `reuse-undeclared`. Read roles are recorded without the field.
+- `caps.turns` resolves the same way: `DISPATCH_TURNS` from the invoking
+  environment, else the job's own `caps.turns` in `jobs.json`, else
+  `null` — and `caps.turns_source` names the layer (`DISPATCH_TURNS`,
+  `job`, `none`). `caps.turns_argv` is the exact argv carrier:
+  `--max-turns N` on claude and grok; `[]` on codex and agy, whose CLIs
+  name no turn flag (measured 2026-09-12), with `caps.turns_note`
+  declaring that absence so the wall cap is known to govern. A
+  non-positive or non-integer cap refuses `caps` on the wire (owner,
+  2026-09-12: "hand grant - cap turns").
 - `result.envelope.spend` is filled by the launcher from resolved
   `session.spend`; the harness's zero placeholder is never the record's
   measured figure. An unresolved spend begins `UNREACHABLE:` and names

@@ -67,6 +67,11 @@ enforcement; the parallel planner owns that design and its verification.
 | `ops/bin/link-ops.sh` | makes this lane reachable from sibling package clones as a locally-excluded symlink |
 
 Delegation runs through `dispatch.sh` (or `go.sh`) and nothing else.
+Dev-lane changes go by hand under a grant at the owner's word (owner,
+2026-09-12): `hand.py declare`, one producer, red then green with the
+same command, the second producer's absence said in the commit; a bug
+met on the way is fixed in the moment and recorded in the defect
+ledger. The ladder runs prod-lane work.
 In-session sub-agents are refused by hook
 (`ops/devlane/hooks/claude/no-subagents.py`): they burn context and
 leave no record; a dispatched job leaves a snapshot, a run record, and
@@ -171,13 +176,20 @@ Named so nobody infers them from silence:
 ## The rules the lane binds
 
 - One line of work, one worktree (`../wt/ag-<slug>`); the main
-  checkout belongs to nobody; branches are never deleted.
+  checkout belongs to nobody but records; branches are never deleted.
 - Workers commit with `Source:` and `Co-Authored-By:` trailers naming
   the model that actually ran; a dispatch never names a model on its
   own — the owner supplies one in `dispatch.conf`, and the run records
   it.
-- Work arrives as draft PRs; the owner ratifies and merges. A
-  dispatch's scope file is copied beside its record, so what was asked
-  and what happened are one record.
+- Work arrives as draft PRs; the owner ratifies and merges. A session
+  works on one branch cut from `dev` (`lane/session-<date>-<id>`, named
+  in the deliverable lock with `add`); its changes and its records
+  (`ops/conductor/` ideas, hand-offs, AARs, probes, the defect ledger
+  and the findings export) commit there, and one draft PR lands them at
+  the session's close (owner, 2026-09-12: "one branch per session -
+  lets try it"). `dispatch.sh` merges `origin/dev` forward into the
+  worktree before each launch and refuses `stale-base` only on a
+  conflict. A dispatch's scope file is copied beside its record, so
+  what was asked and what happened are one record.
 - Runtime residue — job captures, snapshots, isolated homes — is
   gitignored; the lane's law is tracked, its residue never is.

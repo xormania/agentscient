@@ -33,6 +33,7 @@ from pathlib import Path
 import support
 
 MATRIX = support.CLAUDE_DIR / "matrix.py"
+ENGINE = support.CLAUDE_DIR / "engine.py"  # carries test-form since the registry (2026-09-12)
 UNSAFE = support.CLAUDE_DIR / "unsafe-command.py"
 NO_SUBAGENTS = support.CLAUDE_DIR / "no-subagents.py"
 REPO = Path(__file__).resolve().parents[4]
@@ -95,12 +96,12 @@ class _MissFixture(unittest.TestCase):
         return {"tool_name": "Bash", "cwd": str(self.repo),
                 "tool_input": {"command": command}}
 
-    def assert_denied(self, proc, klass):
+    def assert_denied(self, proc, klass, hook="matrix"):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         data = json.loads(proc.stdout)
         reason = data["hookSpecificOutput"]["permissionDecisionReason"]
         self.assertEqual(data["hookSpecificOutput"]["permissionDecision"], "deny")
-        self.assertIn(f"[matrix:{klass}]", reason)
+        self.assertIn(f"[{hook}:{klass}]", reason)
         return reason
 
 
@@ -138,8 +139,8 @@ class MatrixRefusalsLogAMiss(_MissFixture):
     def test_without_an_identity_the_hook_signs_as_itself(self):
         env = dict(self.env)
         env.pop("WF_AGENT")
-        proc = self.run_hook(MATRIX, self.bash("python3 -m unittest ops/tests/test_x.py"), env=env)
-        self.assert_denied(proc, "test-form")
+        proc = self.run_hook(ENGINE, self.bash("python3 -m unittest ops/tests/test_x.py"), env=env)
+        self.assert_denied(proc, "test-form", hook="engine")
         rows = self.events()
         self.assertEqual(len(rows), 1, rows)
         self.assertEqual(rows[0][0], "refused")
@@ -148,8 +149,8 @@ class MatrixRefusalsLogAMiss(_MissFixture):
 
     def test_the_refusal_stands_when_the_registry_cannot_be_written(self):
         self.lever.unlink()
-        proc = self.run_hook(MATRIX, self.bash("python3 -m unittest ops/tests/test_x.py"))
-        self.assert_denied(proc, "test-form")
+        proc = self.run_hook(ENGINE, self.bash("python3 -m unittest ops/tests/test_x.py"))
+        self.assert_denied(proc, "test-form", hook="engine")
         self.assertEqual(self.events(), [])
 
     def test_a_skill_missing_from_the_registry_does_not_break_the_refusal(self):
@@ -157,8 +158,8 @@ class MatrixRefusalsLogAMiss(_MissFixture):
         con.execute("DELETE FROM skills")
         con.commit()
         con.close()
-        proc = self.run_hook(MATRIX, self.bash("python3 -m unittest ops/tests/test_x.py"))
-        self.assert_denied(proc, "test-form")
+        proc = self.run_hook(ENGINE, self.bash("python3 -m unittest ops/tests/test_x.py"))
+        self.assert_denied(proc, "test-form", hook="engine")
         self.assertEqual(self.events(), [])
 
 

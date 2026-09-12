@@ -26,6 +26,14 @@ Three rules that must survive any summary:
   from could not be retired because over a thousand contract citations
   pointed at it.
 
+**Dev-lane changes go by hand under a grant at the owner's word**
+(owner, 2026-09-12: "the hand grant is something that I think works for
+dev-lane changes"): declare the grant, do the change with one producer,
+prove red then green with the same command, say in the commit that the
+second producer is absent, open the draft PR, merge on green checks on
+the head. The ladder below is for prod-lane work and for a dev-lane
+change the owner sends to it.
+
 Scope is settled in session with the owner; the plan is not. State
 *what* and the boundaries, and leave *how* to the planner. Review goes
 to two harnesses, not one, so the rule holds whoever is driving — and a

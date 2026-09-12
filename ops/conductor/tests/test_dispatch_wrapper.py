@@ -21,6 +21,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import shutil
 import signal
 import stat
 import subprocess
@@ -2071,6 +2072,110 @@ class ProvisionalWrapperThreeHarnessUnchanged(_WorkerWrapperFixture):
         self.assert_no_launch()
 
 
+class MergeForwardBeforeLaunch(unittest.TestCase):
+    """Owner, 2026-09-12: "why are the branches always out of date - or some
+    other bullshit git issue"; "one branch per session - lets try it". A
+    worktree behind origin/<trunk> is merged forward by the dispatcher
+    before the launch, not refused; a conflict refuses stale-base with the
+    worktree left as it was; a dry run merges nothing.
+
+    One producer (Claude Fable 5.1) under hand grant 161; the second
+    producer is absent by the owner's word."""
+
+    def setUp(self):
+        self.fixture = RowAgentIdentity("test_agent_flag_beats_exported_wf_agent")
+        self.fixture.setUp()
+        self.addCleanup(self.fixture.tearDown)
+        self.tmp = Path(tempfile.mkdtemp(prefix="merge-forward-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.repo = self.tmp / "wt"
+        self.repo.mkdir()
+        env = self.fixture.env()
+        self.git_env = dict(env, GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1")
+
+        def git(*args, expect=0):
+            proc = subprocess.run(["git", "-C", str(self.repo), *args], env=self.git_env,
+                                  capture_output=True, text=True, check=False)
+            if expect is not None:
+                self.assertEqual(proc.returncode, expect, proc.stdout + proc.stderr)
+            return proc
+        self.git = git
+        git("-c", "init.defaultBranch=dev", "init", "-q")
+        git("config", "user.email", "fixture@example.invalid")
+        git("config", "user.name", "Fixture")
+        git("config", "commit.gpgsign", "false")
+        (self.repo / "seed.txt").write_text("seed\n")
+        git("add", "-A")
+        git("commit", "-q", "-m", "seed")
+        self.seed = git("rev-parse", "HEAD").stdout.strip()
+        git("checkout", "-q", "-b", "lane/session-fixture")
+
+    def advance_trunk(self, name="theirs.txt", content="theirs\n"):
+        """origin/dev gains one commit the worktree does not have."""
+        self.git("checkout", "-q", "dev")
+        (self.repo / name).write_text(content)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "trunk moved")
+        new = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("update-ref", "refs/remotes/origin/dev", new)
+        self.git("checkout", "-q", "lane/session-fixture")
+        behind = self.git("merge-base", "--is-ancestor", "origin/dev", "HEAD", expect=None)
+        self.assertEqual(behind.returncode, 1, "plant: the worktree is behind origin/dev")
+        return new
+
+    def flags(self, dry_run):
+        return self.fixture.full_flags(dry_run=dry_run, worktree=str(self.repo), omit=("follows",))
+
+    def test_a_behind_worktree_is_merged_forward_and_launched_at_the_merge(self):
+        trunk = self.advance_trunk()
+        before = self.git("rev-parse", "HEAD").stdout.strip()
+        proc = self.fixture.invoke(self.flags(dry_run=False))
+        self.assertEqual(proc.returncode, 0, self.fixture.combined(proc))
+        head = self.git("rev-parse", "HEAD").stdout.strip()
+        self.assertNotEqual(head, before)
+        parents = self.git("rev-list", "--parents", "-n", "1", "HEAD").stdout.split()[1:]
+        self.assertEqual(set(parents), {before, trunk}, "a merge commit of the trunk into the branch")
+        self.assertEqual(self.git("merge-base", "--is-ancestor", "origin/dev", "HEAD", expect=None).returncode, 0)
+        self.assertIn("merged: origin/dev into lane/session-fixture", proc.stdout)
+        argv, _env = self.fixture.parse_dry_run(proc)
+        self.assertEqual(argv[argv.index("--ref") + 1], head, "the launch names the merged head")
+        message = self.git("log", "-1", "--format=%B").stdout
+        self.assertIn("Source: generated: ops/conductor/tools/dispatch.sh", message)
+        self.assertIn("Co-Authored-By:", message)
+        self.assertEqual(self.git("status", "--porcelain").stdout, "")
+
+    def test_a_dry_run_merges_nothing(self):
+        self.advance_trunk()
+        before = self.git("rev-parse", "HEAD").stdout.strip()
+        proc = self.fixture.invoke(self.flags(dry_run=True))
+        self.assertEqual(proc.returncode, 0, self.fixture.combined(proc))
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), before)
+        self.assertIn("would merge: origin/dev", proc.stdout)
+
+    def test_a_conflict_refuses_stale_base_and_leaves_the_worktree_as_it_was(self):
+        (self.repo / "same.txt").write_text("ours\n")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "ours")
+        before = self.git("rev-parse", "HEAD").stdout.strip()
+        self.advance_trunk(name="same.txt", content="theirs\n")
+        proc = self.fixture.invoke(self.flags(dry_run=False))
+        # the wrapper's refusals exit 3 with its own prefix (wrapper contract)
+        self.assertEqual(proc.returncode, 3, self.fixture.combined(proc))
+        self.assertEqual(proc.stdout, "")
+        self.assertRegex(proc.stderr.strip(), r"stale-base: expected .*; found .*; needed .*$")
+        self.assertIn("same.txt", proc.stderr)
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), before)
+        self.assertEqual(self.git("status", "--porcelain").stdout, "")
+        self.assertFalse(self.fixture.marker.exists(), "nothing launched")
+
+    def test_a_level_worktree_is_launched_untouched(self):
+        self.git("update-ref", "refs/remotes/origin/dev", self.seed)
+        before = self.git("rev-parse", "HEAD").stdout.strip()
+        proc = self.fixture.invoke(self.flags(dry_run=False))
+        self.assertEqual(proc.returncode, 0, self.fixture.combined(proc))
+        self.assertEqual(self.git("rev-parse", "HEAD").stdout.strip(), before)
+        self.assertNotIn("merged:", proc.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
-

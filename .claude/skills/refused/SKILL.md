@@ -1,6 +1,6 @@
 ---
 name: refused
-description: What each hook and guard refusal means and the accepted spelling - hand-write, graft-first, clipped-sweep, deliverable, direct-launch, dispatch-by-hand, override, scope-cap, stale-base, test-form, prune, and the CI walls. Use the moment a refusal appears; do the needed half, never rephrase around a row.
+description: What each hook and guard refusal means and the accepted spelling - hand-write, graft-first, clipped-sweep, deliverable, pr-proof, trunk-commit, claim-unmeasured, direct-launch, dispatch-by-hand, override, scope-cap, stale-base, test-form, prune, and the CI walls. Use the moment a refusal appears; do the needed half, never rephrase around a row.
 ---
 
 # refused — the needed half, not a workaround
@@ -13,20 +13,29 @@ filed under "other", the class with no lever. None of these was a lane
 defect. Each refusal states its remedy; this page is that remedy per
 class, so the second refusal of a class never happens.
 
-## Hook rows (`ops/devlane/hooks/claude/matrix.py`)
+## Hook rows (`ops/devlane/hooks/boundaries.json`, evaluated by `engine.py`; the rest still carried by `matrix.py`)
+
+Five rows are hard for agents (owner, 2026-09-12): `trunk-commit`, `claim-unmeasured`, `pr-proof`, `force-push`, `prune`. `force-push` and `prune` answer `ask`: the harness puts the action in front of the owner, and only the owner's click passes it. The other three answer `deny` (owner, 2026-09-12: "i don't want asks unless they're critical"): the remedy is the agent's own, a branch, a reading, the proof. An agent does the needed half; it does not ask the owner to click.
+
+A condition is a row in the registry bound to an event (PreToolUse, PostToolUse, SessionStart, Stop) with a `when` tree over the engine's predicates (`engine.py lint` lists them). Adding or removing a condition is adding or removing a row.
 
 | class | it means | do this |
 |---|---|---|
-| `hand-write` | a write to a code root outside the ladder | declare a grant: `python3 ops/conductor/tools/hand.py declare --scope '<paths>' --ttl <min> '<action>' '<why>' other`; then the write goes through Bash with `HAND_GRANT=<id>` as the very first token of the command (pitfall 15). The Write and Edit tools cannot carry a grant. Scope paths are relative to the repository root and match worktree paths (pitfall 16). |
+| `hand-write` | a write to a code root outside the ladder, or a python write whose target the row cannot resolve | the protocol is the session's, never the owner's (owner, 2026-09-12: "all these systems are for you - not me - they can't get in MY way"): when the owner says hand grant, the session declares it unscoped that moment and leads the command. `python3 ops/conductor/tools/hand.py declare '<action>' '<why>' other --scope 'ops/devlane/ ops/conductor/' --ttl 60`; the scope is path prefixes relative to the repository root, and a grant declared with no `--scope` is the blanket form that covers every path (a branch name is not a path: the branch-scoped grants of 2026-09-12 covered nothing, LD-26). Then the write goes through Bash with `HAND_GRANT=<id>` as the very first token (pitfall 15); the Write and Edit tools cannot carry a grant. A python write the row cannot resolve (a path built at run time) needs an open grant of any scope. Settle with `hand.py settle <id> --evidence <sha or record>`. |
 | `graft-first` | a grep, rg or git grep over a code root | a count (`grep -c`) or a file list (`grep -l`) is allowed; to read code, `sed -n`, `python3`, or `graft.py query`; `graft-stale` means the context needs `graft.py refresh --context FILE` by the conductor. |
 | `clipped-sweep` | a multi-alternation grep piped to head | one pattern per grep, `-c` first for the verdict, then a bounded view; or `ops/devlane/hooks/claude/evgrep.sh PATTERN FILE` (pitfall 8). |
+| `claim-unmeasured` | a commit message, PR body or comment, record or law page with a paragraph that claims (enforced, done, landed, merged, green, impossible, verified, fixed) and no reading beside it | measure it and put the reading in the same paragraph: a sha, a record id, a `P-` row id, `#PR`, a run id, `Ran N tests`; or write `not measured`. Quoted words are not your claim. No grant lifts this row. |
+| `force-push` | `git push` with `--force`, `--force-with-lease` or `-f` | push a new commit; pushed history is never rewritten. A registry row only (`ops/devlane/hooks/boundaries.json`); no code names it. |
+| `trunk-commit` | a commit, merge, cherry-pick, rebase, revert or am while on dev or master, or a push to them | work on the session branch: `git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/dev`, `deliverable.py add` it, commit there; one draft PR at close. No grant lifts this row (owner, 2026-09-12: "one branch per session"). |
+| `wall-write` | a write to the CI and test machinery (.github/workflows, ops/bin/suites.sh, probes.py, laneconf.py, the hook registry and engine) without a grant of lever class `wall`, or a wall grant writing anything else | wall work is its own session: `hand.py declare '<what>' '<why>' wall`, lead the command with `HAND_GRANT=<id>`, touch only wall paths, land it, then other work under its own grant. |
+| `pr-proof` | `gh pr ready` or `gh pr merge` without proof the system verifies | put the change's corpus rows under `ops/conductor/handoff/probes/` on the branch, name their ids under a `## Proof` heading in the PR body, push, and wait for the ci run on that head; the hook reads the PR, the corpus at the head and the run list itself. No grant lifts this row (owner, 2026-09-12: "it has to be impossible to not do the work"). |
 | `deliverable` | new work aimed at a branch the lock does not name | finish the deliverable, or `python3 ops/conductor/tools/deliverable.py set <branches> --why '<text>'` if the owner has named new work. A finding on the way is a ledger row. No grant lifts this row. |
 | `direct-launch` | `launch.py` run without the dispatcher | `ops/bin/dispatch.sh`; `launch.py --help` reads with `HAND_GRANT=<id>` leading (pitfall 7); the `wait` and `status` verbs refuse from a session (LD-1). |
 | `dispatch-by-hand` | a driver job (`author-tests`, `implement`) sent straight to `dispatch.sh` | the ladder runs driver jobs. By the owner's word only: an unscoped open grant, run from the branch's own worktree, no `--model` or `--effort`, every path spelled out (pitfall 18). |
 | `override` | `--model` or `--effort` on a dispatcher call | remove it; models come from `MODEL_*` in `ops/lane.conf` (pitfall 4). |
 | `scope-cap` | a scope file over the cap | `wc -c` the scope, trim it; detail goes in a brief passed as `--input` (pitfall 2). |
 | `input-absent` | a `--scope-file` or `--input` missing or empty | spell the path from the worktree and check it exists before the call. |
-| `stale-base` | the worktree is behind dev | `git merge origin/dev` in the worktree, resolve, push, then dispatch. |
+| `stale-base` | merging dev forward into the worktree would conflict (behind alone is merged by the dispatcher before the launch, 2026-09-12) | `git merge origin/dev` in the worktree, resolve the named files, commit, then dispatch. |
 | `test-form` | unittest given a path | `python3 -m unittest discover -s <dir> -p '<file>'`. |
 | `prune` | `rm -r` of records, state, worktrees or `.git` | never. Branches are never deleted; worktrees are listed in the handoff. |
 | `bucket-command`, `walkthrough`, `contract-vet`, `dispatch-env` | the scope names the whole suite; a write job carries no walkthrough; harness contracts do not vet; a launch without the launcher pin | read the row's needed half in the refusal; each names the exact file or token to change. |

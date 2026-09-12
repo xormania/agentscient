@@ -20,7 +20,19 @@ boundary is not a declared, verifiable coupling.
   green. `master` is the default and release branch: a release is a
   draft PR from `dev` into `master`, opened by a session for a group
   of landed work and merged by the owner alone. No squash merges,
-  never a deleted branch.
+  never a deleted branch. **One branch per session** (owner, 2026-09-12:
+  "one branch per session - lets try it"; "as long you account for the
+  fact that i'll have multiple sessions running soon"): a session cuts
+  `lane/session-<date>-<id>` from `dev` at its start, names it in the
+  deliverable lock (`deliverable.py add`, beside any other session's),
+  and every change and every record of the session, ideas, hand-offs,
+  AARs, probes, the defect ledger and the findings export under
+  `ops/conductor/`, commits to that branch with its trailers. One draft
+  PR from the branch into `dev` at the session's close, through the
+  proof gate. The dispatcher merges `dev` forward into the branch before
+  every launch and refuses only a conflict, so a trunk that moved is not
+  a defect. This supersedes the same day's "choice #2" of records
+  straight to `dev`, which moved the trunk under every open branch.
 - **Every commit carries its trailers**: `Source:` (original, a
   `repo@sha` pointer for adapted content, or `owner <date>`), and
   `Co-Authored-By:` naming the specific model — the credited agent,
@@ -32,7 +44,38 @@ boundary is not a declared, verifiable coupling.
   found nothing" from "could not look."
 - **No producer owns two consecutive artifacts.** Whoever writes an
   implementation neither writes nor approves its tests. This binds
-  every producer, the founder included.
+  every producer, the founder included. **Dev-lane changes go by hand
+  under a grant at the owner's word** (owner, 2026-09-12: "the hand
+  grant is something that I think works for dev-lane changes"): one
+  producer, red then green measured with the same command, the second
+  producer's absence said in the commit and the record. The ladder and
+  its second producer are for prod-lane work.
+  **The owner never runs the grant lever** (owner, 2026-09-12: "all these
+  systems are for you - not me - they can't get in MY way"): the owner's
+  word, "hand grant" or "get it done", is the grant; the session declares
+  it that moment, unscoped and long-lived, and leads its writes with the
+  id. The owner types nothing.
+  **The owner is the authority; the hooks are for agents** (owner,
+  2026-09-12: "i am the authoritative figure - my words and by extension,
+  the system, only exists to support me and my decisions. And it can't get
+  in the way in-session"; then, asked four questions: the hard rows stay
+  refused for an agent even under "get it done": a commit or push to dev
+  or master, a published claim with no reading, a PR ready or merged
+  without proof, a forced push or a prune; a grant covers every write
+  outside them; the wall is CI, the tests and the PR gate). **An ask only
+  where it is critical** (owner, 2026-09-12: "i don't want asks unless
+  they're critical"): a forced push or a prune answers `ask`, because only
+  the owner decides to destroy history and no agent can forge that click;
+  a commit to the trunk, a claim without a reading and a ready or merge
+  without proof answer `deny`, because the remedy is the agent's own, a
+  branch, a reading, the proof. Nothing else waits on the owner's hand.
+  **The wall is changed only in isolation** (owner, 2026-09-12: "i have
+  the right to issue a hand grant to change CI and tests - but i'm willing
+  to make that something that can only be done in isolation"): the CI
+  workflow, the suite lever, the corpus runner, the closure levers, the
+  hook registry and engine are written only under a grant of lever class
+  `wall`, in a session whose deliverable is the wall and which writes
+  nothing else; test files stay with the code they test.
 - **Refusals are the interface.** Components refuse rather than
   guess, on the wire, with expected–found–needed stated.
 - **No vendor becomes load-bearing.** Every external capability is
