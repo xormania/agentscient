@@ -27,6 +27,15 @@ POLICY_CAPS = {
     "implement": 3600,
 }
 COMMIT_ON_RED = "Commit each test file as soon as its red is proven"
+POLICY_TURNS = {
+    "author-tests": 200,
+    "check-tests": 150,
+    "adversarial-review": 150,
+    "security-audit": 150,
+    "implement": 200,
+}
+JOB_TURNS = 37
+ENV_TURNS = 21
 JOB_TIMEOUT = 42
 ENV_TIMEOUT = 123.5
 LOOP_TIMEOUT = 0.3
@@ -188,3 +197,155 @@ class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
         )
         pid = self.read_start_witness()["pid"]
         self.assertFalse(ls.pid_is_alive(pid))
+
+
+def plant_job_turns(test, job, turns):
+    """Write ``caps.turns`` (beside a timeout) onto one job in the fixture."""
+    path = test.jobs_file
+    before_obj = json.loads(path.read_text(encoding="utf-8"))
+    test.assertIn(job, before_obj)
+    prior = (before_obj.get(job) or {}).get("caps")
+    test.assertNotEqual(
+        None if not isinstance(prior, dict) else prior.get("turns"), turns,
+        f"plant {job} turns={turns} was already the fixture",
+    )
+
+    def mutate(raw):
+        jobs = json.loads(raw)
+        spec = dict(jobs[job])
+        spec["caps"] = {"timeout": JOB_TIMEOUT, "turns": turns}
+        jobs[job] = spec
+        return (json.dumps(jobs, indent=2) + "\n").encode("utf-8")
+
+    ls.plant_bytes(
+        path,
+        mutate,
+        expect="grow",
+        recognisable=lambda after: (
+            job.encode("utf-8") in after and b'"turns"' in after
+        ),
+    )
+    landed = json.loads(path.read_text(encoding="utf-8"))
+    test.assertEqual(landed[job]["caps"]["turns"], turns)
+    test.ref = test._commit(f"plant {job} caps.turns={turns}")
+    return turns
+
+
+def _turn_caps(test, rec):
+    caps = _caps(test, rec)
+    for key in ("turns", "turns_source", "turns_argv"):
+        test.assertIn(key, caps, f"caps has no {key}")
+    test.assertIsInstance(caps["turns_argv"], list)
+    test.assertIsInstance(caps["turns_source"], str)
+    return caps
+
+
+def _max_turns_value(test, argv):
+    test.assertIn("--max-turns", argv, argv)
+    idx = argv.index("--max-turns")
+    test.assertLess(idx + 1, len(argv), argv)
+    test.assertEqual(argv.count("--max-turns"), 1, argv)
+    return argv[idx + 1]
+
+
+class JobTurnCapReachesTheGrokArgvAndTheRecord(ls._TempLaunch):
+    """Owner, 2026-09-12: "hand grant - cap turns". Grok takes --max-turns N;
+    the record carries caps.turns, its source and the exact argv tokens.
+    One producer (Claude Fable 5.1) wrote this test and the change under
+    a hand grant; no second producer."""
+
+    def test_grok_gets_max_turns_from_the_job_cap(self):
+        self.assertNotIn("DISPATCH_TURNS", os.environ)
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertEqual(caps["turns_source"], "job")
+        self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
+        witness = self.read_start_witness()
+        self.assertEqual(_max_turns_value(self, witness["argv"]), str(JOB_TURNS))
+        self.assertEqual(rec["harness"]["argv"][-len(witness["argv"]) + 1:],
+                         witness["argv"][1:])
+
+
+class JobTurnCapReachesTheClaudeArgv(ls._TempLaunch):
+    """Claude's print mode takes --max-turns N the same way."""
+
+    def test_claude_gets_max_turns_from_the_job_cap(self):
+        self.assertNotIn("DISPATCH_TURNS", os.environ)
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
+        witness = self.read_start_witness()
+        self.assertEqual(_max_turns_value(self, witness["argv"]), str(JOB_TURNS))
+
+
+class CodexHasNoTurnFlagAndTheRecordSaysSo(ls._TempLaunch):
+    """`codex exec --help | grep -c turn` is 0 on this host (2026-09-12):
+    the cap is recorded, no flag is forged, and the record declares the
+    absence rather than staying silent."""
+
+    def test_codex_records_the_cap_with_empty_argv_and_a_note(self):
+        self.assertNotIn("DISPATCH_TURNS", os.environ)
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertEqual(caps["turns_source"], "job")
+        self.assertEqual(caps["turns_argv"], [])
+        self.assertIn("codex", caps.get("turns_note", ""))
+        self.assertNotIn("--max-turns", self.read_start_witness()["argv"])
+
+
+class NoTurnCapIsDeclaredNotInferred(ls._TempLaunch):
+    """A job with no caps.turns and no env records turns None, source none."""
+
+    def test_no_job_turns_and_no_env_records_none(self):
+        self.assertNotIn("DISPATCH_TURNS", os.environ)
+        jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
+        self.assertNotIn("caps", jobs["plan"])
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertIsNone(caps["turns"])
+        self.assertEqual(caps["turns_source"], "none")
+        self.assertEqual(caps["turns_argv"], [])
+        self.assertNotIn("--max-turns", self.read_start_witness()["argv"])
+
+
+class EnvTurnsWinOverTheJobCap(ls._TempLaunch):
+    """DISPATCH_TURNS from the invoking environment wins; source names it."""
+
+    def test_dispatch_turns_beats_the_job_cap(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        os.environ["DISPATCH_TURNS"] = str(ENV_TURNS)
+        self.addCleanup(os.environ.pop, "DISPATCH_TURNS", None)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], ENV_TURNS)
+        self.assertEqual(caps["turns_source"], "DISPATCH_TURNS")
+        self.assertEqual(_max_turns_value(self, self.read_start_witness()["argv"]),
+                         str(ENV_TURNS))
+
+
+class JobsJsonCarriesTheTurnPolicy(unittest.TestCase):
+    """The five capped jobs carry caps.turns: author-tests 200, implement
+    200, check-tests 150, adversarial-review 150, security-audit 150.
+    Chosen 2026-09-12 from the store's message counts (Grok author-tests:
+    median 229, p90 325, max 500 messages); the harness turn unit is not
+    the store's message unit, so the first ladder under the cap re-measures."""
+
+    def test_the_capped_jobs_carry_the_named_turns(self):
+        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
+        carrying = {
+            name: spec["caps"]["turns"]
+            for name, spec in jobs.items()
+            if isinstance(spec, dict) and isinstance(spec.get("caps"), dict)
+            and "turns" in spec["caps"]
+        }
+        self.assertEqual(carrying, POLICY_TURNS)
+        for name, turns in carrying.items():
+            self.assertIsInstance(turns, int, name)
+            self.assertNotIsInstance(turns, bool, name)
+            self.assertGreater(turns, 0, name)

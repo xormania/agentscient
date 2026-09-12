@@ -96,6 +96,13 @@ checked after is the record that was wrong today.
 - A count of "second-producer tests" or "regression tests" that is not
   matched one to one against PR numbers in step 2.
 - A close without the export in step 5 committed.
+- A capability written as done, wired, or in use without the reading that
+  shows it consumed: the dispatch record id whose argv or brief carries
+  it, or the dispatcher dry-run argv pasted in. Built and tested is not
+  done (owner, 2026-09-12: "you can't take any agents word on anything -
+  you need proof, evidence"; measured that day: the per-job effort key,
+  the lane MCP and the onboard brief were each recorded as done and
+  never consumed by a worker).
 
 Record the use: `python3 ops/conductor/tools/skills.py log-use close "<record written>"`
 with `WF_AGENT` set.
