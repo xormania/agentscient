@@ -147,7 +147,24 @@ PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
 
 
+BOUNDARIES_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "boundaries.json")
+
+
+def declared_boundaries():
+    """The registry every row of this matrix is declared in (owner,
+    2026-09-12: "a framework for verification"). One row per refusal
+    class: boundary, actor, trigger, evidence duty, gate, tests, escape.
+    A class not declared here cannot be refused with: deny() raises, and
+    the hook reports hook-error, so an undeclared gate is itself a
+    finding, never a silent rule."""
+    with open(BOUNDARIES_PATH, encoding="utf-8") as fh:
+        data = json.load(fh)
+    return {row["class"]: row for row in data["rows"]}
+
+
 def deny(klass, expected, found, needed):
+    if klass not in declared_boundaries():
+        raise RuntimeError(f"undeclared gate: {klass} has no row in ops/devlane/hooks/boundaries.json")
     line = f"{klass}: expected {expected}; found {found}; needed {needed}"
     return {"hookSpecificOutput": {
         "hookEventName": "PreToolUse",
