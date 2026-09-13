@@ -140,6 +140,19 @@ that copy skills.py staging the shared module beside it (grant 211).
   re-run ("cannot be retried"), a close-and-reopen re-triggered only
   the ci workflow, and the check-run rerequest answered 404. A records
   commit, this paragraph, moved the head so the analysis ran again.
+- That push also landed inside the outage: on `2a0b7e0a` the ci run
+  (34748625233) ended `startup_failure` and the CodeQL run (34748624693)
+  sat queued with no jobs from 08:52Z, refusing cancel ("completed") and
+  re-run ("cannot be retried"). Measured at 10:40Z: no checks on the
+  head, dev requiring no status checks (no protection rule, no
+  ruleset), CodeQL as GitHub's default setup with no workflow file to
+  dispatch. The ci run was re-run at 10:41Z; a second records commit,
+  this paragraph, moved the head so the default-setup analysis starts.
+- The owner changed this session's model to Claude Opus 5 (1M context)
+  before "finish PR 196"; commits from this paragraph on carry that
+  trailer. Session agentscient-5e reported the owner had given it #196
+  at 10:38Z; the owner gave it back here ("its yours"), the other
+  session stood down and reported it ran nothing.
 
 ### Calibration
 
