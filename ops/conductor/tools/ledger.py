@@ -31,7 +31,7 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, emit, git, identity, now, refuse
+    from instrument import Refusal, conf, emit, git, identity, now, refuse
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -75,19 +75,52 @@ def repo_root() -> Path:
     return Path(proc.stdout.strip())
 
 
+def trunk_ref(root: Path) -> str | None:
+    """origin/<trunk> after a bounded fetch, or None when the repository
+    has no such remote ref (a scratch repository, an offline host). The
+    fetch is said on stderr, never on stdout, so a caller reading the id
+    reads only the id. Owner, 2026-09-13 ("minimize parallel work
+    conflicts"): a session minting from its own tree alone re-mints an id
+    another session already pushed."""
+    trunk = conf("TRUNK_BRANCH")
+    ref = f"origin/{trunk}"
+    if git("remote", "get-url", "origin", cwd=root).returncode != 0:
+        return None
+    fetched = git("fetch", "-q", "origin", trunk, cwd=root, timeout=20)
+    if fetched.returncode == 0:
+        print(f"fetched {ref}", file=sys.stderr)
+    if git("rev-parse", "--verify", "-q", ref, cwd=root).returncode != 0:
+        return None
+    return ref
+
+
 def highest(root: Path, spec: dict[str, object]) -> int:
+    """One past this is the next id: the highest over the page's table and
+    the rows directory, in the working tree and on origin/<trunk>."""
     prefix = re.escape(str(spec["prefix"]))
+    table = re.compile(rf"^\| {prefix}(\d+) \|", re.MULTILINE)
+    entry = re.compile(rf"{prefix}(\d+)\.md$")
     top = 0
     page = root / spec["page"]
     if page.is_file():
-        found = re.findall(rf"^\| {prefix}(\d+) \|", page.read_text(encoding="utf-8"), re.MULTILINE)
-        top = max([int(n) for n in found] + [top])
+        top = max([int(n) for n in table.findall(page.read_text(encoding="utf-8"))] + [top])
     rows = root / spec["rows"]
     if rows.is_dir():
-        for entry in os.listdir(rows):
-            m = re.fullmatch(rf"{prefix}(\d+)\.md", entry)
+        for name in os.listdir(rows):
+            m = entry.fullmatch(name)
             if m:
                 top = max(top, int(m.group(1)))
+    ref = trunk_ref(root)
+    if ref is not None:
+        shown = git("show", f"{ref}:{spec['page'].as_posix()}", cwd=root)
+        if shown.returncode == 0:
+            top = max([int(n) for n in table.findall(shown.stdout)] + [top])
+        listed = git("ls-tree", "--name-only", ref, f"{spec['rows'].as_posix()}/", cwd=root)
+        if listed.returncode == 0:
+            for line in listed.stdout.splitlines():
+                m = entry.search(line.strip())
+                if m:
+                    top = max(top, int(m.group(1)))
     return top
 
 

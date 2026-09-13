@@ -81,11 +81,15 @@ branch, a dispatch, a ladder start or a PR.
 The `close` skill first, then:
 
 ```sh
-python3 ops/conductor/tools/deliverable.py clear
+python3 ops/conductor/tools/deliverable.py remove lane/session-<date>-<id>
 ```
 
-The lock is lifted by its lever when the work has landed on dev, never
-by a grant, and never before the close measurements are pasted.
+`remove` lifts this session's branches and leaves every other session's
+in place; the last branch removed lifts the lock. `clear` wipes every
+session's entry at once and is for a host with one session. The lock is
+lifted by its lever when the work has landed on dev, never by a grant,
+and never before the close measurements are pasted (owner, 2026-09-13:
+"minimize parallel work conflicts"; LD-28 closed).
 
 Record the use: `python3 ops/conductor/tools/skills.py log-use deliverable "<branches>"`
 with `WF_AGENT` set.

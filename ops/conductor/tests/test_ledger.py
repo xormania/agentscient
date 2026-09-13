@@ -109,6 +109,39 @@ class TheLedgerLever(unittest.TestCase):
         self.assertEqual([l.split()[0] for l in listed.stdout.strip().splitlines()], ["LD-36", "LD-37"])
         self.assert_wire(self.run_lever("show", "defects", "LD-99", identity=False), "absent")
 
+    def test_next_counts_the_trunk_rows_a_branch_has_not_merged(self):
+        """Owner, 2026-09-13 ("minimize parallel work conflicts"): a session
+        that mints from its own tree alone re-mints an id another session
+        already pushed to the trunk; the lever also reads origin/<trunk>."""
+        self.git("config", "user.email", "fixture@example.invalid")
+        self.git("config", "user.name", "Fixture")
+        self.git("config", "commit.gpgsign", "false")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "seed")
+        origin = self.tmp / "origin.git"
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "dev", str(origin)], env=self.env, check=True)
+        self.git("remote", "add", "origin", str(origin))
+        self.git("push", "-q", "origin", "dev")
+        self.git("checkout", "-q", "-b", "lane/b")
+        # another session lands pitfall 30 on the trunk; this branch never merges it
+        other = self.tmp / "other"
+        subprocess.run(["git", "clone", "-q", str(origin), str(other)], env=self.env, check=True)
+        for k, v in (("user.email", "fixture@example.invalid"), ("user.name", "Fixture"), ("commit.gpgsign", "false")):
+            subprocess.run(["git", "-C", str(other), "config", k, v], env=self.env, check=True)
+        env = dict(self.env, WF_AGENT="Other <other@example.test>")
+        proc = subprocess.run([sys.executable, str(LEVER), "add", "pitfalls", "--what-bit", "a", "--do-instead", "b"],
+                              env=env, cwd=str(other), capture_output=True, text=True, check=False)
+        self.assertEqual(proc.stdout.split()[0], "30", proc.stderr)
+        subprocess.run(["git", "-C", str(other), "add", "-A"], env=self.env, check=True)
+        subprocess.run(["git", "-C", str(other), "commit", "-q", "-m", "other: 30"], env=self.env, check=True)
+        subprocess.run(["git", "-C", str(other), "push", "-q", "origin", "dev"], env=self.env, check=True)
+        # this branch, unmerged, mints past what the trunk holds
+        proc = self.run_lever("next", "pitfalls", identity=False)
+        self.assertEqual(proc.stdout.strip(), "31", "the trunk's row 30 counts even though this tree lacks it")
+        proc = self.run_lever("add", "pitfalls", "--what-bit", "c", "--do-instead", "d")
+        self.assertEqual(proc.stdout.split()[0], "31", proc.stderr)
+        self.assertIn("fetched origin/dev", proc.stderr, "the fetch is said on stderr, never on stdout")
+
     def test_two_sessions_pitfall_rows_merge_as_two_additions(self):
         self.git("config", "user.email", "fixture@example.invalid")
         self.git("config", "user.name", "Fixture")
