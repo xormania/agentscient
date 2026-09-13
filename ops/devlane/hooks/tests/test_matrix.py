@@ -1108,6 +1108,17 @@ class MatrixHookTests(unittest.TestCase):
         self.assert_allowed(self.run_bash("grep -rn dependabot ops/conductor/handoff/x.md ops/conductor/ideas/y.md"))
         self.assert_denied(self.run_bash("rg -n cap_out ops/devlane/dispatch/launch.py ops/devlane/telemetry/breaker.py"), "graft-first")
 
+    def test_a_combined_short_flag_carrying_l_or_c_is_a_file_list_or_a_count(self):
+        # owner, 2026-09-13 ("hand grant ok'd to fix"): the refusal text says a
+        # count or a file list stays allowed, but the row matched -l and -c
+        # only as whole tokens; grep -rl refused three times in one session,
+        # each a whole-context turn (LD-33). A combined short flag is split.
+        self.assert_allowed(self.run_bash("grep -rl token-thrift ops/conductor/"))
+        self.assert_allowed(self.run_bash("grep -rlc token-thrift ops/conductor/"))
+        self.assert_allowed(self.run_bash("rg -nl cap_out ops/devlane/dispatch/ ops/devlane/telemetry/"))
+        self.assert_allowed(self.run_bash("grep -rnc cap_out ops/devlane/dispatch/"))
+        self.assert_denied(self.run_bash("grep -rn cap_out ops/devlane/dispatch/"), "graft-first")
+
     def test_a_graft_query_is_allowed_and_logged(self):
         self.assert_allowed(self.run_bash(
             "python3 ops/devlane/harness/graft.py query --context c.json graft_find_code '{\"query\": \"foo\"}'"
