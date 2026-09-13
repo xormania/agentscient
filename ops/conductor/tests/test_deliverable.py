@@ -92,6 +92,40 @@ class TheLockLever(unittest.TestCase):
         self.assertEqual(self.run_lever("add", "--why", "x").returncode, 2)
         self.assertEqual(self.run_lever("add", "lane/d").returncode, 2)
 
+    def test_writers_wait_for_the_lock_file_so_parallel_sessions_lose_no_entry(self):
+        """Code review 20260913T105222Z-review-grok-00b782 (Grok), finding 2 on
+        PR #197: set, add, remove and clear read, change and write one
+        host-wide file with no lock, and a concurrent remove and add lost
+        lane/b in 3 of 60 trials at bdf8cf0c. Every writer holds an exclusive
+        flock on deliverable.json.lock beside the lock while it reads and
+        writes, so a writer that starts while another holds it waits."""
+        import contextlib
+        import fcntl
+
+        self.run_lever("set", "lane/a", "--why", "a")
+        before = self.lock.read_text()
+        guard = self.lock.with_name("deliverable.json.lock")
+        env = dict(self.env, WF_AGENT="Owner <owner@example.test>")
+        for args in (("add", "lane/b", "--why", "b"), ("remove", "lane/a")):
+            with self.subTest(args=args):
+                held = open(guard, "a+")  # noqa: SIM115 - held across the child's start
+                fcntl.flock(held, fcntl.LOCK_EX)
+                proc = subprocess.Popen([sys.executable, str(LEVER), *args], env=env,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                try:
+                    with contextlib.suppress(subprocess.TimeoutExpired):
+                        proc.wait(timeout=1.0)
+                    waited = proc.poll() is None
+                    unchanged = self.lock.read_text() == before
+                finally:
+                    held.close()
+                    _out, err = proc.communicate(timeout=30)
+                self.assertTrue(waited, "the writer went ahead while another process held the lock")
+                self.assertTrue(unchanged, "the lock changed while another process held it")
+                self.assertEqual(proc.returncode, 0, err)
+                before = self.lock.read_text()
+        self.assertEqual(json.loads(self.lock.read_text())["branches"], ["lane/b"])
+
     def test_clear_removes_it_and_show_says_no_lock(self):
         self.run_lever("set", "lane/a", "--why", "x")
         proc = self.run_lever("clear")

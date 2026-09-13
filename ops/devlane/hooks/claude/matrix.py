@@ -944,7 +944,12 @@ def graft_first(toks, cwd, root, lane):
     if pattern is None:
         return None
     if len(targets) == 1 and not targets[0].endswith("/") and "." in base(targets[0]):
-        return None  # one named file is a read, not navigation
+        _, single = relative(targets[0], cwd)
+        # A dotted name that is a directory (.github, .claude) is a walk, not
+        # one file (Grok, dispatch 20260913T105222Z-review-grok-00b782, finding 1).
+        walk = (single is not None and f"{single}/" in CODE_ROOTS) or os.path.isdir(os.path.join(cwd, targets[0]))
+        if not walk:
+            return None  # one named file is a read, not navigation
     hits = []
     for target in targets:
         _, rel = relative(target, cwd)

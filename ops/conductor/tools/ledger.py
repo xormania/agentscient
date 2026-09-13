@@ -138,6 +138,13 @@ def parse_fields(spec: dict[str, object], args: list[str]) -> dict[str, str]:
             continue
         refuse("arguments", "add LEDGER " + " ".join(f"--{f} TEXT" for f in fields) + " [--observed DATE]",
                a, "name each field by its flag")
+    # A line break in a value writes a field line of its own, which list then
+    # reads as the row's (security audit 20260913T104919Z-review-codex-9126d3,
+    # finding 5): every value stays on its one line.
+    broken = [f for f, value in got.items() if "\n" in value or "\r" in value]
+    if broken:
+        refuse("arguments", "each field's text on one line", "a line break in " + " ".join("--" + f for f in broken),
+               "join the text onto one line")
     missing = [f for f in fields if not got.get(f, "").strip()]
     if missing:
         refuse("arguments", "every field non-empty: " + " ".join("--" + f for f in fields),
@@ -145,15 +152,28 @@ def parse_fields(spec: dict[str, object], args: list[str]) -> dict[str, str]:
     return got
 
 
+def contain(root: Path, target: Path, shown: Path) -> None:
+    """Refuse a write whose target resolves outside the repository. A symlink
+    at the rows directory sent a row file anywhere the link pointed (security
+    audit 20260913T104919Z-review-codex-9126d3, finding 3)."""
+    inside = root.resolve()
+    resolved = target.resolve()
+    if not resolved.is_relative_to(inside):
+        refuse("containment", f"{shown} inside the repository {inside}", f"it resolves to {resolved}",
+               f"replace the symlink at {shown} with a directory of the repository")
+
+
 def do_add(root: Path, name: str, args: list[str]) -> int:
     spec = ledger(name)
     by = identity()
     fields = parse_fields(spec, args)
     observed = fields.get("observed") or now().strftime("%Y-%m-%d")
-    ident = f"{spec['prefix']}{highest(root, spec) + 1}"
     rows = root / spec["rows"]
+    contain(root, rows, spec["rows"])
+    ident = f"{spec['prefix']}{highest(root, spec) + 1}"
     rows.mkdir(parents=True, exist_ok=True)
     path = rows / f"{ident}.md"
+    contain(root, path, spec["rows"] / path.name)
     lines = [f"# {spec['heading']}{ident}", "", "| field | value |", "|---|---|", f"| observed | {observed} |"]
     lines += [f"| {f} | {fields[f]} |" for f in spec["fields"]]
     lines += [f"| by | {by} |", ""]

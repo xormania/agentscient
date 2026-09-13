@@ -18,6 +18,8 @@ line, exit 2, stdout empty.
 
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import os
 import sys
@@ -38,10 +40,32 @@ except ModuleNotFoundError:
     raise SystemExit(2) from None
 
 LOCK = "deliverable.json"
+GUARD = "deliverable.json.lock"
 
 
 def lock_path():
     return state_dir() / LOCK
+
+
+@contextlib.contextmanager
+def held():
+    """The lock's path, with an exclusive flock held on deliverable.json.lock
+    beside it. Sessions on one host share the lock, and every writer reads,
+    changes and writes it inside this, so two writers never interleave: a
+    concurrent remove and add lost a branch in 3 of 60 trials without it
+    (Grok, dispatch 20260913T105222Z-review-grok-00b782, finding 2)."""
+    path = lock_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path.with_name(GUARD), "a+", encoding="utf-8") as guard:
+        fcntl.flock(guard, fcntl.LOCK_EX)
+        yield path
+
+
+def write(path, data):
+    """Replace the lock whole, so a reader never sees half a file."""
+    part = path.with_name(path.name + ".part")
+    part.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    os.replace(part, path)
 
 
 def do_set(args):
@@ -56,11 +80,10 @@ def do_set(args):
     if not why.strip():
         refuse("arguments", "a non-empty --why", repr(why), "say what the deliverable is")
     by = identity()
-    path = lock_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
     data = {"branches": branches, "why": why, "by": by,
             "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    with held() as path:
+        write(path, data)
     print(f"locked {' '.join(branches)}")
     return 0
 
@@ -80,22 +103,21 @@ def do_add(args):
     if not why.strip():
         refuse("arguments", "a non-empty --why", repr(why), "say what this session's deliverable is")
     by = identity()
-    path = lock_path()
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        data = {"branches": [], "why": ""}
-    named = [str(b) for b in data.get("branches") or []]
-    for branch in branches:
-        if branch not in named:
-            named.append(branch)
-    reasons = [r for r in [str(data.get("why") or ""), why] if r.strip()]
-    if data.get("why") and why in data["why"]:
-        reasons = [str(data["why"])]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    data = {"branches": named, "why": " | ".join(reasons), "by": by,
-            "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    with held() as path:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {"branches": [], "why": ""}
+        named = [str(b) for b in data.get("branches") or []]
+        for branch in branches:
+            if branch not in named:
+                named.append(branch)
+        reasons = [r for r in [str(data.get("why") or ""), why] if r.strip()]
+        if data.get("why") and why in data["why"]:
+            reasons = [str(data["why"])]
+        data = {"branches": named, "why": " | ".join(reasons), "by": by,
+                "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
+        write(path, data)
     print(f"locked {' '.join(named)}")
     return 0
 
@@ -108,23 +130,23 @@ def do_remove(args):
     if not branches:
         refuse("arguments", "remove BRANCH...", " ".join(args) or "no branches", "name the branches to lift")
     identity()
-    path = lock_path()
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        data = {}
-    named = [str(b) for b in (data.get("branches") if isinstance(data, dict) else None) or []]
-    missing = [b for b in branches if b not in named]
-    if missing:
-        refuse("absent", f"branches the lock names ({', '.join(named) or 'none'})", ", ".join(missing),
-               "deliverable.py show; remove only what is named")
-    left = [b for b in named if b not in branches]
-    if not left:
-        path.unlink()
-        print(f"removed {' '.join(branches)}; no lock")
-        return 0
-    data["branches"] = left
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    with held() as path:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        named = [str(b) for b in (data.get("branches") if isinstance(data, dict) else None) or []]
+        missing = [b for b in branches if b not in named]
+        if missing:
+            refuse("absent", f"branches the lock names ({', '.join(named) or 'none'})", ", ".join(missing),
+                   "deliverable.py show; remove only what is named")
+        left = [b for b in named if b not in branches]
+        if not left:
+            path.unlink()
+            print(f"removed {' '.join(branches)}; no lock")
+            return 0
+        data["branches"] = left
+        write(path, data)
     print(f"removed {' '.join(branches)}; locked {' '.join(left)}")
     return 0
 
@@ -140,12 +162,12 @@ def do_show(_args):
 
 def do_clear(_args):
     identity()
-    path = lock_path()
-    try:
-        path.unlink()
-    except FileNotFoundError:
-        print("no lock")
-        return 0
+    with held() as path:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            print("no lock")
+            return 0
     print("cleared")
     return 0
 
