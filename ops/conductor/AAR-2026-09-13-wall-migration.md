@@ -170,3 +170,20 @@ open was removed once it merged.
 - **Two commits, two grants, test first.** The test is a wall path; the
   hook, the row and the pages are not. The red commit precedes the
   green one in history.
+
+## Close
+
+- Two PRs from one branch, each merged by the owner on green checks and
+  a ready note: #192 (`eaf73b98`), #194 (`268065a3`). The gate went from
+  17 migrated tools to 19; the registry gained four pages and a hook.
+- Grants this session: 201, 202, 204, 205, 208, 209, 212; two settled
+  unverified on prose evidence before pitfall 32 was written, the rest
+  verified against bare shas.
+- Parallel sessions: -h and -k landed #190, #191, #193 during this
+  session; every file list went to the peer before the first edit and
+  no hunk conflicted; dev was merged forward twice (`2e7dec62`,
+  `d413f0b5`).
+- Calibration: tokens not measured. Hook refusals: 10 (graft-first 2,
+  clipped-sweep 6, hand-write 2), 0 wrong. Suite runs that read red
+  from the change: 1 (the fixture copy lists, fixed); from the tree's
+  state: 0. Corpus at close: 156 pass at `d413f0b5`.
