@@ -42,6 +42,7 @@ AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 
 # Tools that import the shared module and carry none of its helpers.
 MIGRATED: tuple[str, ...] = (
+    "ci.py",
     "decisions.py",
     "deliverable.py",
     "findings.py",
@@ -54,7 +55,6 @@ MIGRATED: tuple[str, ...] = (
 # tuple in the commit that migrates it.
 PENDING: tuple[str, ...] = (
     "branches.py",
-    "ci.py",
     "co_doc.py",
     "control.py",
     "correction.py",
