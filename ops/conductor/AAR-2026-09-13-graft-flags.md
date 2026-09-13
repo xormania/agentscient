@@ -44,8 +44,13 @@ the wall paths".
 - **Two grants for the wall extension**: the enforcing hook is the main
   checkout's matrix.py, whose list at `37750dd0` did not name matrix.py,
   so a wall grant (189) refused it as non-wall code and an ordinary grant
-  (190) wrote it and its test; 189 wrote boundaries.json. LD-34 leaves
-  the self-extension open: the next extension takes the same two grants.
+  (190) wrote it and its test; 189 wrote boundaries.json.
+- **LD-34 closed on a reading, not a code change** (owner: "close the open
+  thing, in LD-34"): with #180 on dev at `23a30592`, the enforcing hook
+  lists matrix.py and the hooks tests, so the next extension of the list
+  writes only wall paths under one wall grant. Four live readings under
+  grant 192, in the ledger row; the fourth, a wall grant refused on
+  launch.py, is the isolation rule working, not a gap.
 
 ## What went wrong
 
@@ -67,4 +72,5 @@ the wall paths".
 - `worth.py waste` for this session at 05:31Z: 590,764 tokens, 11 turns,
   mean context 53k; at write time unmetered, roughly 30 turns.
 - Corpus: 108 pass, 0 fail, 0 unreachable, from the tree at `2c983635`.
-- Corpus: 111 pass, 0 fail, 0 unreachable, from the tree at `5a9e123e`.
+- Corpus: 111 pass, 0 fail, 0 unreachable, from the tree at `5a9e123e`;
+  112 at the close, run from the tree at `23a30592` plus the closing row.
