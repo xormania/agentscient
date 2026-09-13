@@ -25,6 +25,7 @@ from __future__ import annotations
 import ast
 import importlib.util
 import io
+import json
 import os
 import subprocess
 import sys
@@ -40,43 +41,42 @@ TOOLS = REPO / "ops" / "conductor" / "tools"
 MODULE = TOOLS / "instrument.py"
 AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 
-# Tools that import the shared module and carry none of its helpers.
-MIGRATED: tuple[str, ...] = (
-    "branches.py",
-    "ci.py",
-    "correction.py",
-    "decisions.py",
-    "defects.py",
-    "deliverable.py",
-    "findings.py",
-    "hand.py",
-    "ladder.py",
-    "land.py",
-    "lane_mcp.py",
-    "lane_read.py",
-    "ledger.py",
-    "monitor.py",
-    "onboard.py",
-    "watch.py",
-    "watchdog.py",
-)
+# Owner, 2026-09-13 ("minimize parallel work conflicts"): the three
+# placements were sorted tuples here, and every session that migrated a
+# tool inserted into the same lines. Each tool now declares its placement
+# in its own file, ops/conductor/placement/<tool>.py.json, as
+# {"placement": "migrated" | "pending" | "no-wire"}: a new tool adds a
+# file, a migration edits one, and no two sessions touch the same line.
+# The gate closes both ways: a tool with no file is a failure naming the
+# tool, a file with no tool a failure naming the file, a file with any
+# other placement a failure naming the field.
+PLACEMENT_DIR = REPO / "ops" / "conductor" / "placement"
+PLACEMENTS = ("migrated", "pending", "no-wire")
 
-# Tools still carrying private copies, named so their absence from
-# MIGRATED is a declaration and not an oversight. Each one leaves this
-# tuple in the commit that migrates it.
-PENDING: tuple[str, ...] = (
-    "co_doc.py",
-    "control.py",
-    "laneconf.py",
-    "probes.py",
-    "skills.py",
-)
 
-# Tools that speak no refusal wire and carry no copy: nothing to import,
-# nothing private to define. lane_refs.py returns outcomes, never refuses.
-NO_WIRE: tuple[str, ...] = (
-    "lane_refs.py",
-)
+def placements() -> dict[str, list[str]]:
+    """The declared placement of every tool, read from the directory:
+    migrated (imports the shared module, carries none of its helpers),
+    pending (still carrying private copies, named so the absence is a
+    declaration), no-wire (returns outcomes, never refuses, nothing to
+    import). Malformed files are reported by the gate's closure test."""
+    found: dict[str, list[str]] = {k: [] for k in PLACEMENTS}
+    if PLACEMENT_DIR.is_dir():
+        for path in sorted(PLACEMENT_DIR.glob("*.py.json")):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except ValueError:
+                continue
+            place = data.get("placement") if isinstance(data, dict) else None
+            if place in found:
+                found[place].append(path.name[: -len(".json")])
+    return found
+
+
+PLACED = placements()
+MIGRATED: tuple[str, ...] = tuple(PLACED["migrated"])
+PENDING: tuple[str, ...] = tuple(PLACED["pending"])
+NO_WIRE: tuple[str, ...] = tuple(PLACED["no-wire"])
 
 # A migrated or no-wire tool defines none of these at module level.
 PRIVATE_NAMES = frozenset({
@@ -385,8 +385,21 @@ class TheConsolidationGate(unittest.TestCase):
         )
         self.assertEqual(
             sorted(placed), self.tools(),
-            "each tool under ops/conductor/tools/ is named in exactly one list",
+            "each tool under ops/conductor/tools/ has one file under ops/conductor/placement/",
         )
+
+    def test_placement_files_close_both_ways_and_name_one_of_three(self):
+        """A file for no tool names the file; a file whose placement is not
+        one of the three names the field; the directory holds nothing else."""
+        self.assertTrue(PLACEMENT_DIR.is_dir(), "ops/conductor/placement/ exists")
+        tools = set(self.tools())
+        for path in sorted(PLACEMENT_DIR.iterdir()):
+            with self.subTest(file=path.name):
+                self.assertTrue(path.name.endswith(".py.json"), f"{path.name}: not <tool>.py.json")
+                self.assertIn(path.name[: -len(".json")], tools, f"{path.name}: no such tool")
+                data = json.loads(path.read_text(encoding="utf-8"))
+                self.assertEqual(sorted(data), ["placement"], f"{path.name}: exactly one field, placement")
+                self.assertIn(data["placement"], PLACEMENTS, f"{path.name}: placement not one of {PLACEMENTS}")
 
     def test_a_no_wire_tool_defines_no_private_copy_and_refuses_nowhere(self):
         for name in NO_WIRE:
