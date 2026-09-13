@@ -73,6 +73,15 @@
             "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/no-subagents.py"
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/skill-use.py"
+          }
+        ]
       }
     ],
     "PostToolUse": [

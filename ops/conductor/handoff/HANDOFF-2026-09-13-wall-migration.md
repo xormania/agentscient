@@ -31,6 +31,33 @@ Record by Claude Fable 5.1 on `lane/session-20260913-i`, written at
 - Worktree `../wt/ag-session-20260913-i`.
 - Dispatches: none run. Ladders: none. Findings: none produced.
 
+## Second thread: search, handwrite, claim, and the skill-use hook
+
+Owner, 2026-09-13: "hand grant ok'd for new skills #1-4 - do them in
+one PR". Grants 208 and 209. Commits on the branch over `eaf73b98`
+(#192): `21d50dc8`, the hook's test (wall); `85dfe597`, the three
+pages, the hook, its settings row, the skills page sentence, six
+corpus rows; then the records commit carrying this section.
+
+- PR: opened as a draft after the records commit; number, head and
+  checks in the ready note. Ready waits on the check set green, merge
+  state clean, and `## Proof` naming the `P-SKILLS-20260913-*` rows.
+- **What the next session must read first**: after the merge, the
+  first Skill call in a session run from a checkout carrying the
+  settings row writes an `invoked` row with agent `Claude ...` or
+  `skill-use hook <skill-use@agentscient>`; `skills.py report` then
+  measures uses. Until that row exists the hook is built and tested,
+  not consumed (the close page's rule); name the row id when it
+  appears.
+- The measure of the three pages is the next window of misses:
+  `sqlite3 ~/.local/state/agentscient/skills.db "select substr(ts,1,10),
+  count(*) from skill_events where event='miss' group by 1"`; the
+  baseline is 21, 55, 94 for the 11th, 12th, 13th.
+- Session ids on events read `unknown` on all 170 rows;
+  `CLAUDE_SESSION_ID` is not in the hook's environment. Per-session
+  rates need it; not this thread's, named here.
+- Grants 208 and 209: settled with bare shas after the records commit.
+
 ## The explain skill
 
 Owner, 2026-09-13, after the three-tool summary: "the way you explain

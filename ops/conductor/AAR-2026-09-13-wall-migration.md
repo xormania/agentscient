@@ -113,3 +113,60 @@ session; its substance is in the handoff's next thread.
 - Tokens: not measured this session.
 - Hook refusals: 8 (`graft-first` 2, `clipped-sweep` 4, `hand-write` 2), 0 wrong.
 - Corpus at the records commit: pass 145, fail 0, unreachable 0; the six `P-WALL-20260913-*` rows of this session PASS.
+
+## Second thread: the skills registry and four items against the friction
+
+Owner, 2026-09-13, after #192 merged at `eaf73b98`: "let's look at the
+skill registry - are the being used? are there any possible new skills
+to smooth the friction?", then "hand grant ok'd for new skills #1-4 -
+do them in one PR". Grants 208 (pages, hook, settings, records) and
+209 (the hook's test, a wall path). Same branch, fast-forwarded to
+`eaf73b98` first; a second branch named in the lock while #192 was
+open was removed once it merged.
+
+- The reading that decided the four: `skills.py report` and the
+  `skill_events` table at 08:1xZ: 170 misses, 156 of them guard
+  refusals against `refused`, 21, 55 and 94 per day over three days;
+  graft-first 45, hand-write 28, clipped-sweep 18, claim-unmeasured 18,
+  trunk-commit 9; 31 of the 45 graft-first rows were `grep` over a
+  directory; every row carried one agent and the session id unknown.
+  Uses were hand-logged only: 12 close, 7 deliverable, 6 dev-lane, 6
+  onboard, zero for thirteen skills, and no hook on the Skill tool
+  (`.claude/settings.json` matchers: Bash, Write/Edit, Agent, compact).
+- `search`, `handwrite`, `claim`: one page per refusal class, the shape
+  that keeps the guard quiet, each opening with the count that demanded
+  it and closing with the worked shapes from the refusal log. Commit
+  `85dfe597`.
+- `skill-use.py`: PreToolUse on the Skill tool, the shape of `miss.py`;
+  logs `invoked` with the arguments as the detail; always allows;
+  signs as itself with the lane's name when no `WF_AGENT` is inherited.
+  Bound by one settings row with matcher `Skill`. The skills page
+  sentence that said "until wired, log by hand" now says what the hook
+  does. Same commit.
+- Red first: `python3 -m unittest discover -s ops/devlane/hooks/tests
+  -p test_skill_use.py` at `eaf73b98` with the test staged: Ran 8,
+  seven on the absent hook, one on the missing settings row (commit
+  `21d50dc8`, grant 209). Green, same command, at `85dfe597`: Ran 8
+  OK. Whole hooks suite Ran 290 OK. `ruff check` on the hook and the
+  test: clean. `skills.py sync`: 26 on disk, 27 rows.
+- Corpus: `probes.py run` at `85dfe597`: pass 152, fail 0, unreachable 0; the six `P-SKILLS-20260913-*` rows PASS.
+- `ops/bin/suites.sh` at `85dfe597`: dispatch 618, harness 155, task 351, telemetry 227, hooks 290, fixtures 221 (skipped=6), workflow 48, conductor 1071, pr-overview 8, all OK, exit 0.
+- Not measured: the hook consumed by a live session. This session runs
+  from the main checkout on dev, where the settings row does not exist
+  until the merge; the first live `invoked` row written by the hook,
+  not by hand, is the reading the next session takes and names.
+
+### Decisions
+
+- **Pages before levers.** Each of the three pages is the accepted
+  spelling the `refused` page already names, moved ahead of the
+  refusal; a lever that rewrites commands was not asked for and would
+  hide the shape from the session. If the miss counts do not fall in
+  the next window, the lever is the next step, measured.
+- **One event, two writers.** The hook writes the same `invoked` event
+  the hand command writes, so `report` needs no new column; a hand log
+  after a hook log double-counts, and the skills page now says when
+  to log by hand.
+- **Two commits, two grants, test first.** The test is a wall path; the
+  hook, the row and the pages are not. The red commit precedes the
+  green one in history.
