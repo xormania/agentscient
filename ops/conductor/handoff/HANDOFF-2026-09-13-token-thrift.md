@@ -34,8 +34,16 @@ board, PRs and grants are re-measured by `onboard.py`, not taken from here.
 - Grants 178 to 183 open, settle against the merge of #175. The lock names
   `lane/session-20260912-l` (landed, #174) and `-n`; the next session
   `set`s its own branch alone (LD-28, no remove verb).
-- Worktree: `../wt/ag-session-20260912-n`, clean and pushed at the head
-  named in PR #175's last ready note.
+- Worktree: `../wt/ag-session-20260912-n`, clean and pushed.
+- After #175 (merged 4fdc6d0e): PR #177 carries I-029 (the owner intends
+  to formalize the PR process as MCP tools, with GitHub issues and
+  discussions for agent coordination), this AAR and this handoff's
+  update; ready when mergeable, the merge the owner's. Grant 185 settles
+  against it. Dev moved to 92d28d13 with #176 (session -l's records).
+- Owner, 2026-09-13, at the close: start a new session for what follows.
+  A mid-turn instruction "don't continue on the slices, another PR is
+  inbound that reduced token waste" was the owner's, sent to the wrong
+  session ("my bad"); the plan's reading with the owner stays the thread.
 
 ## Retrieval
 
