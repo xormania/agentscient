@@ -134,6 +134,13 @@ that copy skills.py staging the shared module beside it (grant 211).
   tree, and the four fixture scratch trees linted under the app's
   rules. Both fixed in the commit after the records, under grant 213.
 
+- The two CodeQL jobs on #196 at `af18b72f` failed at "Uploading
+  results" during GitHub's outage at 08:46Z (the same minute `gh pr
+  edit` answered "GraphQL: Something went wrong"); the run refused a
+  re-run ("cannot be retried"), a close-and-reopen re-triggered only
+  the ci workflow, and the check-run rerequest answered 404. A records
+  commit, this paragraph, moved the head so the analysis ran again.
+
 ### Calibration
 
 - Red then green with the same commands, at `25b48ed5` then `9950d14d`
