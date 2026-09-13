@@ -27,6 +27,15 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "watch.py"
+# The tool imports these beside itself (instrument-conventions.md §The
+# shared implementation); a staged copy run from a scratch directory
+# needs them staged too, or it refuses `tooling` before the contract.
+SIBLINGS = ("instrument.py", "laneconf.py")
+# The staged reader has no tracked conf beside it. These cases read the
+# tracked conf's CHECK_NAMES, as the copy did through the working
+# directory before, so the tracked file is the one named; the cases that
+# plant their own conf name it through `extra`.
+TRACKED_CONF = REPO / "ops" / "lane.conf"
 
 PR = "91"
 INTERVAL = "5"
@@ -103,6 +112,10 @@ class _WatchFixture(unittest.TestCase):
             self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
             self.assertEqual(len(landed), len(data))
             self.assertNotEqual(landed, ABSENT_STUB)
+            for name in SIBLINGS:
+                sibling = TOOL.with_name(name)
+                if sibling.is_file():
+                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
         else:
             self.staged.write_bytes(ABSENT_STUB)
             landed = self.staged.read_bytes()
@@ -187,6 +200,7 @@ class _WatchFixture(unittest.TestCase):
             "PYTHONDONTWRITEBYTECODE": "1",
             # Test apparatus: one virtual second of the 5s grid is 20ms real.
             "WATCH_TICK_SCALE": "0.02",
+            "LANE_CONF": str(TRACKED_CONF),
         }
         if agent is not None:
             env["WF_AGENT"] = agent
