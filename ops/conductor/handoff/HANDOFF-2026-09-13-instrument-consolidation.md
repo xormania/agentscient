@@ -1,7 +1,12 @@
 # Handoff — 2026-09-13, after the instrument consolidation
 
 Record by Claude Fable 5.1 on `lane/session-20260912-l`, first at
-`05236586` (PR #174) and updated at `ff0c108a` (the continuation). The census that
+`05236586` (PR #174), updated at `ff0c108a` (PR #176) and closed with
+the [AAR](../AAR-2026-09-13-instrument-consolidation.md) after both
+merged. Owner, 2026-09-13: "new session is needed because of PR 175":
+#175 (`lane/session-20260912-n`) changed the onboard brief, the
+graft-first rule and the plan defaults under this session; the next
+session onboards fresh before it reads this. The census that
 started the work is `../reports/duplication-census-20260912.md`.
 Re-measure before acting.
 
@@ -9,20 +14,21 @@ Re-measure before acting.
 
 - PR #174 merged into dev at `d0778d21` (owner, 2026-09-13: "174 is
   green - merge it- continue"), all five checks passing on its head
-  `7702e70f`. The continuation, watchdog at `ff0c108a`, goes to dev in
-  a second PR from the same branch; its number and checks are in that
-  PR, not here. The release after it carries the shared module.
+  `7702e70f`. PR #176 (watchdog, head `b2350594`) merged into dev at
+  `92d28d13`, all five checks passing. The release after them carries
+  the shared module.
 - `ops/bin/suites.sh` at `05236586` and again at `ff0c108a` on the
   clean worktree: dispatch Ran 618 OK; harness 155 OK; task 351 OK;
   telemetry 227 OK; hooks 280 OK; fixtures 221 OK (skipped=6); workflow
   48 OK; conductor Ran 1054 OK; pr-overview 8 OK. `probes.py run` at
   `360ee046`: pass 97, fail 0, unreachable 0.
-- Grant 176 settled verified with `360ee046`; grant 184 (the
-  continuation) is settled with the second PR's records commit; 178
-  and 179 belong to the session on `lane/session-20260912-n`.
-- The deliverable lock names `lane/session-20260912-l` and `-n`; this
-  session's entry stays until the second PR lands on dev, and LD-28
-  says why it cannot be removed alone.
+- Grants 176 and 184 settled verified (`360ee046`, `b2350594`); the
+  records grant that carries this file and the AAR is settled with
+  their commit. 178 and 179 belonged to `lane/session-20260912-n`.
+- The deliverable lock: this session's entry is dropped by `set`
+  naming the other branches with their own words once the records PR
+  lands (LD-28, no remove verb); the lock's `by` and `at` then read as
+  this session's, as the census session's did.
 - Worktree `../wt/ag-session-20260912-l`, branch pushed; the branch
   carried fourteen commits of this session and one merge from dev
   (`582c4247`) written by the dispatch wrapper while the conductor
