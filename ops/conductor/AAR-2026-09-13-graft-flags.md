@@ -1,12 +1,17 @@
 # AAR — 2026-09-13, the token question; LD-33, LD-34; the ledgers' shape; the dispatcher tests' tree
 
-Session record by Claude Fable 5.1 on `lane/session-20260913-b` (#179,
+Session record by Claude Fable 5.1, closed at the owner's word ("AAR and
+handoff - good job"). Eight branches cut from dev, all merged: `-b` (#179
 `37750dd0`), `-c` (#180 `23a30592`, #182 `e7e0d41e`), `-d` (#184
 `39cf7d81`), `-e` (#185 `1c7fd5ee`), `-f` (#186 `d8eec5c7`), `-g` (#188
-`c2d7347f`) and `-h`, all cut from dev. Measured at write time: `-h` at
-`32710253`, its PR not yet open; grants 188 to 198 settled, 200 open; the
-lock names `-a` (the other session's, closed) and `-h`. The
-[handoff](handoff/HANDOFF-2026-09-13-graft-flags.md) carries the next thread.
+`c2d7347f`), `-h` (#190 `c7245c6c`), and `-j` for this close. Measured at
+close, dev `c7245c6c`: no open PR; grants 188 to 200 settled (185 too,
+the previous session's); the lock names `-i` (the new session's) and
+`-j`; every worktree of this session merged, pushed and clean, one
+test leftover (`untracked.txt` in `-e`, from the red run of the fixture
+test) removed at close. The
+[handoff](handoff/HANDOFF-2026-09-13-graft-flags.md) carries what stays
+open.
 
 ## Request and outcome
 
@@ -23,7 +28,8 @@ agents need to work in parallel"; "So are the issues sorted out for parallel
 work?"; "i'd get minimize parallel work conflicts - hand grant ok'd for
 fixing"; "make sure to co-ordinate with other session to de-conflict";
 "other session lifecycle done - new session took over handoff - co-ordinate
-to de-conflict - give it a minute to onboard properly".
+to de-conflict - give it a minute to onboard properly"; "AAR and handoff -
+good job".
 
 - Answer given at `cb716534`: thrift 2, 3 and 4 landed in #175 (`4fdc6d0e`);
   class 1, context churn, has no code countermeasure, its remedy is the
@@ -81,6 +87,7 @@ to de-conflict - give it a minute to onboard properly".
   it both ways. Red 2 of 34 then 34 OK; three of the other session's
   corpus rows moved from the tuples to the files, told; suites.sh 2981
   tests, exit 0; corpus 139 pass, exit 0 read from the process.
+  #190 merged `c7245c6c`; the lock lifted of `-h` by the remove verb.
 - Session agentscient-5e, asked first, held branch `-a`, grant 193 and #183
   and said neither issue was in its scope; agentscient-8e did not answer.
 
@@ -139,6 +146,14 @@ to de-conflict - give it a minute to onboard properly".
 
 ## Calibration
 
+- This session, `worth.py waste` at 07:34Z over the window from 05:00Z:
+  49.1M tokens, 196,647 out, 247 turns, mean context 198k; hook refusals
+  counted by the report: 0 (the report does not see them; this record
+  counts 3 graft-first, 5 clipped-sweep, 1 deliverable, 1 hand-write,
+  3 claim-unmeasured, 1 stale push, 2 wall-write readings taken on
+  purpose). Against the three sessions before the thrift change at 200.6M,
+  45.7M and 14.9M with mean context 465k, 309k, 243k: one session, eight
+  PRs, under a quarter of the largest, at under half its mean context.
 - `worth.py waste` for this session at 05:31Z: 590,764 tokens, 11 turns,
   mean context 53k; at write time unmetered, roughly 30 turns.
 - Corpus: 108 pass, 0 fail, 0 unreachable, from the tree at `2c983635`.
