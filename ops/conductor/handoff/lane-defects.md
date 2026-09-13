@@ -9,6 +9,15 @@ and a regression test dispatched afterwards to a harness other than the
 fixer's. Product code and contract guarantees are not repaired this way.
 Reliability is the count below trending to zero per ladder.
 
+Rows LD-1 to LD-35 sit in the table below and the table is frozen there.
+From LD-36 a row is its own file under `lane-defects/`, written by
+`python3 ops/conductor/tools/defects.py add --where W --defect D --repair R --tests T`
+and read by `defects.py list` and `defects.py show LD-NN`: two sessions'
+rows then merge as two additions instead of conflicting on this table
+(three of five merge-forwards since 2026-09-11 conflicted here). The only
+conflict left is the same id minted by two sessions before either lands,
+an add/add on one file that git names.
+
 | id | observed | where | defect | repair | tests |
 |---|---|---|---|---|---|
 | LD-1 | 2026-09-10 | matrix guard vs `ops/README.md` | README says the launcher's `wait ID` verb waits for closure; the guard refuses it as `direct-launch`. Documented verb, unusable by a session. | blocked: the session's edit to the guard was denied as self-modification (grant 59, no change); three-line fix handed to the owner, worktree `ag-matrix-read-verbs-20260910` | — |

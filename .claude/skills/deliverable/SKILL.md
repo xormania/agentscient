@@ -68,7 +68,7 @@ its ledger and the session goes back to the deliverable:
 
 | what was found | where it goes |
 |---|---|
-| a stop or refusal not caused by the change under test | a row in `ops/conductor/handoff/lane-defects.md`. It gets a `repair/` branch named into the lock only when it blocks the deliverable; otherwise the row waits. |
+| a stop or refusal not caused by the change under test | a row written by `python3 ops/conductor/tools/defects.py add`, one file under `ops/conductor/handoff/lane-defects/`. It gets a `repair/` branch named into the lock only when it blocks the deliverable; otherwise the row waits. |
 | a reviewer finding on the deliverable's own change | the findings ledger, imported from its record; disposed with a contract citation before any correction is dispatched. |
 | a design, a lever that should exist, a bigger repair | `ops/conductor/ideas/`, or `skills.py wish <name> '<what>'` for a skill. |
 | a command shape the guards refused | the `refused` skill; a class it does not list is a pitfall row. |
