@@ -71,7 +71,7 @@ its ledger and the session goes back to the deliverable:
 | a stop or refusal not caused by the change under test | a row written by `python3 ops/conductor/tools/defects.py add`, one file under `ops/conductor/handoff/lane-defects/`. It gets a `repair/` branch named into the lock only when it blocks the deliverable; otherwise the row waits. |
 | a reviewer finding on the deliverable's own change | the findings ledger, imported from its record; disposed with a contract citation before any correction is dispatched. |
 | a design, a lever that should exist, a bigger repair | `ops/conductor/ideas/`, or `skills.py wish <name> '<what>'` for a skill. |
-| a command shape the guards refused | the `refused` skill; a class it does not list is a pitfall row. |
+| a command shape the guards refused | the `refused` skill; a class it does not list is a pitfall row: `python3 ops/conductor/tools/ledger.py add pitfalls --what-bit TEXT --do-instead TEXT`. |
 
 A finding is evidence. It is never, while the deliverable is open, a
 branch, a dispatch, a ladder start or a PR.
