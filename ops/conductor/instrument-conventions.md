@@ -84,9 +84,11 @@ through `LANE_CONF`; the module carries no lane-name literal and no
 name stands in for an absent conf. An instrument that finds no
 `instrument.py` beside itself refuses `tooling`. The gate in
 `ops/conductor/tests/test_instrument.py`
-names every instrument as migrated or pending, so an instrument
-carrying its own `refuse`, `identity`, clock or lane-name reader is a
-failure naming it, and a new instrument must be placed in one list.
+names every instrument as migrated, pending, or no-wire (a tool that
+returns outcomes and never refuses, with nothing to import), so an
+instrument carrying its own `refuse`, `identity`, clock or lane-name
+reader is a failure naming it, and a new instrument must be placed in
+one list.
 The census that demanded this is
 `ops/conductor/reports/duplication-census-20260912.md`.
 

@@ -52,6 +52,8 @@ MIGRATED: tuple[str, ...] = (
     "hand.py",
     "ladder.py",
     "land.py",
+    "lane_mcp.py",
+    "lane_read.py",
     "monitor.py",
     "onboard.py",
     "watch.py",
@@ -64,15 +66,18 @@ MIGRATED: tuple[str, ...] = (
 PENDING: tuple[str, ...] = (
     "co_doc.py",
     "control.py",
-    "lane_mcp.py",
-    "lane_read.py",
-    "lane_refs.py",
     "laneconf.py",
     "probes.py",
     "skills.py",
 )
 
-# A migrated tool defines none of these at module level.
+# Tools that speak no refusal wire and carry no copy: nothing to import,
+# nothing private to define. lane_refs.py returns outcomes, never refuses.
+NO_WIRE: tuple[str, ...] = (
+    "lane_refs.py",
+)
+
+# A migrated or no-wire tool defines none of these at module level.
 PRIVATE_NAMES = frozenset({
     "refuse", "Refused", "Refusal", "identity", "IDENTITY", "IDENTITY_RE",
     "AGENT_FORM", "now", "stamp", "parse_stamp", "lane_name", "conf_value",
@@ -372,12 +377,39 @@ class TheConsolidationGate(unittest.TestCase):
         )
 
     def test_every_tool_is_migrated_or_declared_pending(self):
-        placed = set(MIGRATED) | set(PENDING)
-        self.assertEqual(set(MIGRATED) & set(PENDING), set(), "a tool in both lists")
+        lists = (MIGRATED, PENDING, NO_WIRE)
+        placed = set().union(*lists)
+        self.assertEqual(
+            sum(len(t) for t in lists), len(placed), "a tool in two lists"
+        )
         self.assertEqual(
             sorted(placed), self.tools(),
             "each tool under ops/conductor/tools/ is named in exactly one list",
         )
+
+    def test_a_no_wire_tool_defines_no_private_copy_and_refuses_nowhere(self):
+        for name in NO_WIRE:
+            with self.subTest(tool=name):
+                tree = ast.parse((TOOLS / name).read_text(encoding="utf-8"))
+                defined = {
+                    node.name
+                    for node in tree.body
+                    if isinstance(node, (ast.FunctionDef, ast.ClassDef))
+                } | {
+                    target.id
+                    for node in tree.body if isinstance(node, ast.Assign)
+                    for target in node.targets if isinstance(target, ast.Name)
+                }
+                self.assertEqual(
+                    sorted(defined & PRIVATE_NAMES), [],
+                    f"{name} still defines a private copy",
+                )
+                called = {
+                    node.func.id
+                    for node in ast.walk(tree)
+                    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                }
+                self.assertNotIn("refuse", called, f"{name} refuses; it belongs in MIGRATED")
 
     def test_a_migrated_tool_imports_the_module_and_defines_no_private_copy(self):
         for name in MIGRATED:
