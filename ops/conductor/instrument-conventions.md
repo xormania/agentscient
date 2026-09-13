@@ -75,11 +75,15 @@ directory and the lane conf through `laneconf.py`, and `run()` and
 `identity` and `refuse CLASS EXPECTED FOUND NEEDED`, give shell levers
 the same wire.
 
-An instrument imports it beside itself. A copy of an instrument that a
-test stages elsewhere finds the module through the invoking checkout
-when the instrument appends `ops/conductor/tools` of the working
-directory to `sys.path` before the import; a copy that finds neither
-refuses `tooling`. The gate in `ops/conductor/tests/test_instrument.py`
+An instrument appends its own directory to `sys.path` and imports the
+module, so the import resolves however the instrument was loaded: as
+the script, by path from another tool, or as a copy a test staged
+elsewhere. A suite that stages a copy of an instrument stages
+`instrument.py` and `laneconf.py` beside it and names a lane conf
+through `LANE_CONF`; the module carries no lane-name literal and no
+name stands in for an absent conf. An instrument that finds no
+`instrument.py` beside itself refuses `tooling`. The gate in
+`ops/conductor/tests/test_instrument.py`
 names every instrument as migrated or pending, so an instrument
 carrying its own `refuse`, `identity`, clock or lane-name reader is a
 failure naming it, and a new instrument must be placed in one list.

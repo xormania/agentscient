@@ -21,16 +21,17 @@ import json
 import os
 import sys
 
-# A copy of this tool staged elsewhere by a test finds its siblings in
-# the invoking checkout; beside the real tool the script directory wins.
-sys.path.append(os.path.join(os.getcwd(), "ops", "conductor", "tools"))
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
     from instrument import Refusal, emit, identity, now, refuse, state_dir
 except ModuleNotFoundError:
     print(
-        "tooling: expected instrument.py beside this tool or under "
-        "ops/conductor/tools of the working directory; found neither; "
-        "needed run the tool from its checkout",
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
         file=sys.stderr,
     )
     raise SystemExit(2) from None

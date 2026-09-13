@@ -15,11 +15,12 @@ readers with a hand-rolled fallback parser each.
 The two verbs exist for shell levers, so a script speaks the same wire
 as the tools without a copy of the format string.
 
-How a tool imports it: `import instrument`, beside the tool. A copy of
-a tool staged elsewhere by a test finds this module through the
-invoking checkout when the tool appends `ops/conductor/tools` of the
-working directory to sys.path before the import; a copy that can find
-neither refuses `tooling` and exits 2.
+How a tool imports it: the tool appends its own directory to sys.path
+and imports `instrument`, so the import resolves however the tool was
+loaded: as the script, by path from another tool (launch.py loads
+correction.py, which loads findings.py), or as a copy a test staged
+with this module and laneconf.py beside it. A tool that finds no
+instrument.py beside itself refuses `tooling` and exits 2.
 """
 
 from __future__ import annotations
