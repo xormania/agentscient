@@ -147,6 +147,17 @@ class _CorrectionLaunch(ls._TempLaunch):
         dest.write_bytes(data)
         landed = dest.read_bytes()
         self.assertEqual(landed, data, "copy-findings-bytes did not land intact")
+        # findings.py imports these beside itself (instrument-conventions.md
+        # §The shared implementation); the staged copy needs them staged
+        # too, and a lane conf where the staged reader looks by default,
+        # two directories up, since nothing here names LANE_CONF.
+        for name in ("instrument.py", "laneconf.py"):
+            sibling = FINDINGS.with_name(name)
+            if sibling.is_file():
+                dest.with_name(name).write_bytes(sibling.read_bytes())
+        (self.repo / "ops" / "lane.conf").write_text(
+            "LANE_NAME='agentscient'\n", encoding="utf-8",
+        )
         return dest
 
     def findings_invoke(self, argv: list[str]):

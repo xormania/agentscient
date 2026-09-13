@@ -9,16 +9,23 @@ import os
 import re
 import sqlite3
 import sys
-from datetime import UTC, datetime
-from pathlib import Path
 
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    import laneconf
+    from instrument import Refusal, emit, identity, refuse, stamp, state_dir
 except ModuleNotFoundError:
-    laneconf = None
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
 
 ID_RE = re.compile(r"^D-[A-Z0-9]+-[0-9]+$")
-IDENTITY_RE = re.compile(r"^.+ <[^<>]+>$")
 HARNESS_ADDRESSES = (
     "<noreply@anthropic.com>",
     "<noreply@openai.com>",
@@ -54,56 +61,6 @@ CREATE TABLE IF NOT EXISTS events (
 """
 
 
-class Refusal(Exception):
-    """A contract-level refusal that should be reported to the caller."""
-
-
-def refuse(kind: str, expected: str, found: str, needed: str) -> None:
-    raise Refusal(
-        f"{kind}: expected {expected}; found {found}; needed {needed}"
-    )
-
-
-def lane_name() -> str:
-    if laneconf is not None:
-        try:
-            return laneconf.get("LANE_NAME")
-        except laneconf.ConfigError as error:
-            kind = "conf-key" if error.kind == "key" else error.kind
-            refuse(kind, error.expected, error.found, error.needed)
-    path = Path(
-        os.environ.get(
-            "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"
-        )
-    )
-    if "LANE_CONF" not in os.environ and not path.is_file():
-        return "agentscient"
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as error:
-        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
-    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
-    if match is None:
-        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
-    return match.group(1)
-
-
-def stamp() -> str:
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
-
-
-def identity() -> str:
-    agent = os.environ.get("WF_AGENT", "")
-    if not IDENTITY_RE.fullmatch(agent):
-        refuse(
-            "identity",
-            "WF_AGENT matching '.+ <addr>'",
-            repr(agent) if agent else "unset",
-            "set WF_AGENT to 'Name <address>'",
-        )
-    return agent
-
-
 def validate_id(value: str) -> None:
     if not ID_RE.fullmatch(value):
         refuse(
@@ -115,9 +72,7 @@ def validate_id(value: str) -> None:
 
 
 def connect(*, write: bool, absent_ok: bool = False) -> sqlite3.Connection:
-    db_path = (
-        Path.home() / ".local" / "state" / lane_name() / "decisions.db"
-    )
+    db_path = state_dir() / "decisions.db"
     if write:
         db_path.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(db_path)
@@ -421,8 +376,7 @@ def main() -> int:
         else:
             report()
     except Refusal as error:
-        print(error, file=sys.stderr)
-        return 2
+        return emit(error)
     return 0
 
 

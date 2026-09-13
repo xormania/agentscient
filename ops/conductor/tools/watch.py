@@ -10,8 +10,22 @@ import shutil
 import subprocess
 import sys
 import time
-from pathlib import Path
 from typing import NoReturn
+
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, conf, emit, refuse
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
 
 PASS_STATES = {"SUCCESS"}
 FAIL_STATES = {
@@ -23,15 +37,6 @@ FAIL_STATES = {
     "STARTUP_FAILURE",
 }
 SKIP_STATES = {"SKIPPED", "NEUTRAL"}
-
-
-def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
-    """One line, the lane's refusal wire, exit with the Rejection code."""
-    print(
-        f"{kind}: expected {expected}; found {found}; needed {needed}",
-        file=sys.stderr,
-    )
-    raise SystemExit(2)
 
 
 class Parser(argparse.ArgumentParser):
@@ -105,37 +110,16 @@ def counts(checks: list[tuple[str, str]]) -> dict[str, int]:
 
 
 def configured_check_names() -> tuple[str, ...]:
-    """Read CHECK_NAMES through the shared reader, including staged copies."""
-    here = Path(__file__).resolve()
-    for tools in (here.parent, Path.cwd() / "ops" / "conductor" / "tools"):
-        if not (tools / "laneconf.py").is_file():
-            continue
-        if str(tools) not in sys.path:
-            sys.path.insert(0, str(tools))
-        try:
-            import laneconf
-        except ImportError as error:
-            refuse(
-                "conf-key",
-                "CHECK_NAMES in the lane conf",
-                str(error),
-                "define CHECK_NAMES in the lane conf",
-            )
-        try:
-            return tuple(laneconf.get("CHECK_NAMES").split())
-        except laneconf.ConfigError as error:
-            refuse(
-                "conf-key",
-                "CHECK_NAMES in the lane conf",
-                str(error),
-                "define CHECK_NAMES in the lane conf",
-            )
-    refuse(
-        "conf-key",
-        "the lane conf reader beside this file or the working directory",
-        "neither",
-        "run from the repository root or keep laneconf.py beside this file",
-    )
+    """Read CHECK_NAMES through the shared reader; any absence is conf-key."""
+    try:
+        return tuple(conf("CHECK_NAMES").split())
+    except Refusal as error:
+        refuse(
+            "conf-key",
+            "CHECK_NAMES in the lane conf",
+            str(error),
+            "define CHECK_NAMES in the lane conf",
+        )
 
 
 def watch(args: argparse.Namespace) -> int:
@@ -239,7 +223,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main() -> int:
-    return watch(parse_args())
+    try:
+        return watch(parse_args())
+    except Refusal as refusal:
+        return emit(refusal)
 
 
 if __name__ == "__main__":

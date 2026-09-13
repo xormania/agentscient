@@ -2942,7 +2942,7 @@ def main(argv=None):
                     "collect": _collect, "wait": _wait,
                     "brief": _brief}[args.verb](args)
         return _launch(_launch_parser().parse_args(argv))
-    except CORRECTION.Refused as exc:
+    except CORRECTION.Refusal as exc:
         print(exc.line(), file=sys.stderr)
         return 2
     except Refused as exc:

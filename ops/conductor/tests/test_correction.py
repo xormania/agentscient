@@ -24,6 +24,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 CORRECTION = REPO / "ops" / "conductor" / "tools" / "correction.py"
 FINDINGS = REPO / "ops" / "conductor" / "tools" / "findings.py"
+# findings.py imports these beside itself (instrument-conventions.md §The
+# shared implementation); a staged copy run from a scratch directory
+# needs them staged too, or it refuses `tooling` before the contract.
+SIBLINGS = ("instrument.py", "laneconf.py")
 REGISTRY = REPO / "ops" / "conductor" / "registry" / "correction.py.json"
 LIVE_STORE = Path.home() / ".local" / "state" / "agentscient" / "findings.db"
 AGENT = "Correction Tester <correction-tester@example.invalid>"
@@ -191,6 +195,14 @@ class _GateFixture(unittest.TestCase):
         landed = self.findings.read_bytes()
         self.assertEqual(landed, data, "copy-findings-bytes did not land intact")
         self.assertNotEqual(landed, ABSENT_STUB)
+        for name in SIBLINGS:
+            sibling = FINDINGS.with_name(name)
+            if sibling.is_file():
+                self.findings.with_name(name).write_bytes(sibling.read_bytes())
+        # The staged copy has no tracked conf beside its reader; the
+        # fixture names one, so the lane under HOME is the one asserted.
+        self.conf = self.findings.with_name("lane.conf")
+        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
 
     def _correction_tool(self) -> Path:
         dest = self.repo / "ops" / "conductor" / "tools" / "correction.py"
@@ -219,6 +231,7 @@ class _GateFixture(unittest.TestCase):
             "LANG": "C",
             "PYTHONDONTWRITEBYTECODE": "1",
             "WF_AGENT": AGENT,
+            "LANE_CONF": str(self.conf),
         }
 
     def findings_invoke(self, argv: list[str]):

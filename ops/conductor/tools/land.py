@@ -6,34 +6,33 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from typing import NoReturn
 
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    import laneconf
-except ModuleNotFoundError:
-    laneconf = None
-
-IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<email>[^<>\s@]+@[^<>\s]+)>")
-GIT = shutil.which("git") or "git"
-
-
-def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
-    """One line, the lane's refusal wire, exit with the Rejection code."""
-    flat = " ".join(
-        f"{kind}: expected {expected}; found {found}; needed {needed}".split()
+    from instrument import (
+        IDENTITY,
+        Refusal,
+        conf,
+        emit,
+        git,
+        identity_parts,
+        refuse,
+        state_dir,
     )
-    print(flat, file=sys.stderr)
-    raise SystemExit(2)
-
-
-def git(*args: str) -> subprocess.CompletedProcess[str]:
-    """Run git without involving a shell."""
-    return subprocess.run([GIT, *args], capture_output=True, text=True, check=False)
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
 
 
 def git_value(kind: str, expected: str, needed: str, *args: str) -> str:
@@ -44,50 +43,8 @@ def git_value(kind: str, expected: str, needed: str, *args: str) -> str:
     return result.stdout.strip()
 
 
-def state_root() -> Path:
-    configured = os.environ.get("XDG_STATE_HOME")
-    base = Path(configured) if configured else Path.home() / ".local" / "state"
-    return base / conf_value("LANE_NAME") / "dispatch"
-
-
-def conf_value(name: str) -> str:
-    if laneconf is not None:
-        try:
-            return laneconf.get(name)
-        except laneconf.ConfigError as error:
-            kind = "conf-key" if error.kind == "key" else error.kind
-            refuse(kind, error.expected, error.found, error.needed)
-    path = Path(
-        os.environ.get(
-            "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"
-        )
-    )
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as error:
-        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
-    match = re.search(rf"(?m)^{re.escape(name)}='([^']*)'\s*$", text)
-    if match is None:
-        refuse(
-            "conf-key",
-            f"{name} declared in the lane conf",
-            f"no {name} in {path}",
-            f"define {name} in {path}",
-        )
-    return match.group(1)
-
-
-def identity() -> tuple[str, str]:
-    value = os.environ.get("WF_AGENT", "")
-    match = IDENTITY.fullmatch(value)
-    if match is None:
-        refuse(
-            "identity",
-            "WF_AGENT in the Name <address> form",
-            value or "unset",
-            "export WF_AGENT='Your Model Name <noreply@vendor>'",
-        )
-    return match.group("name"), match.group("email")
+def dispatch_root() -> Path:
+    return state_dir() / "dispatch"
 
 
 def option_identity(value: str, kind: str) -> tuple[str, str]:
@@ -100,7 +57,7 @@ def option_identity(value: str, kind: str) -> tuple[str, str]:
             value or "empty",
             f"pass --{kind} 'Name <address>'",
         )
-    return match.group("name"), match.group("email")
+    return match.group("name"), match.group("address")
 
 
 def record_exit(record: Path) -> tuple[bool, str]:
@@ -180,7 +137,7 @@ def validated_collection(data: dict, ref_head: str) -> bool:
 def preconditions(
     record_id: str, no_fetch: bool
 ) -> tuple[list[str], str, str, str, str, str]:
-    lane_author = conf_value("LANE_AUTHOR")
+    lane_author = conf("LANE_AUTHOR")
     match = IDENTITY.fullmatch(lane_author)
     if match is None:
         refuse(
@@ -189,9 +146,9 @@ def preconditions(
             repr(lane_author),
             "correct LANE_AUTHOR in the lane conf",
         )
-    author_name, author_email = match.group("name"), match.group("email")
-    name, email = identity()
-    record = state_root() / record_id
+    author_name, author_email = match.group("name"), match.group("address")
+    name, email = identity_parts()
+    record = dispatch_root() / record_id
     if not record.is_dir():
         refuse(
             "record",
@@ -439,7 +396,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    return land(parse_args())
+    try:
+        return land(parse_args())
+    except Refusal as refusal:
+        return emit(refusal)
 
 
 if __name__ == "__main__":
