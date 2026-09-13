@@ -1036,7 +1036,8 @@ class MatrixHookTests(unittest.TestCase):
                 proc = self.run_bash(cmd)
                 self.assert_denied(proc, "deliverable")
                 self.assertIn("lane/one, lane/two", proc.stdout)
-                self.assertIn("deliverable.py clear", proc.stdout)
+                self.assertIn("deliverable.py add", proc.stdout)
+                self.assertNotIn("deliverable.py clear", proc.stdout)
 
     def test_the_named_branches_stay_open_in_parallel(self):
         self._lock("lane/one", "lane/two")
