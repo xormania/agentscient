@@ -76,7 +76,7 @@ page (or against `deliverable` for its row) in the skills registry, so
 ## The rule
 
 A refusal is the wire. Do its needed half. A refusal that is wrong is a
-lane defect: a row in `ops/conductor/handoff/lane-defects.md`, never a
+lane defect: a row written by `python3 ops/conductor/tools/defects.py add` (one file under `ops/conductor/handoff/lane-defects/`), never a
 rephrasing that gets past the row. The same class refusing twice in one
 session is a miss on this page: `skills.py log-miss refused "<class>"`.
 
