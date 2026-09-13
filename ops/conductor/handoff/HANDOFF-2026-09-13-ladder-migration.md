@@ -1,7 +1,9 @@
-# Handoff — 2026-09-13, after the ladder migration
+# Handoff — 2026-09-13, after the ladder and monitor migrations
 
-Record by Claude Fable 5.1 on `lane/session-20260913-a`, written at
-`ba4ad806` and committed in the records commit that follows it. The
+Record by Claude Fable 5.1 on `lane/session-20260913-a`, first written at
+`ba4ad806` (PR #181, merged at `ed109e17`) and extended at `b00b23aa` for
+the monitor thread (PR #183); §Second thread below is the current state,
+the sections after it are the ladder thread's record as written. The
 owner's words that opened the work, after this session reported the
 instrument-consolidation handoff's next thread: "do it - hand grant
 ok'd" (2026-09-13). Onboarded fresh first, as that handoff required
@@ -9,7 +11,48 @@ ok'd" (2026-09-13). Onboarded fresh first, as that handoff required
 [AAR](../AAR-2026-09-13-ladder-migration.md) carries the readings.
 Re-measure before acting.
 
-## Where things stand
+## Second thread: monitor.py
+
+Owner, 2026-09-13: "181 is merged - continue, monitor.py". Grant 193,
+same branch, same worktree, fast-forwarded to `ed109e17` first.
+
+- PR #183, draft, `lane/session-20260913-a` into dev from `b00b23aa`;
+  the records commit and the merge of `origin/dev` at `e7e0d41e` (#182)
+  follow it. Ready waits on the full check set green on the final head
+  and a clean `suites.sh` on that head, both in the ready note.
+- Commit `b00b23aa`: `monitor.py` imports `Refusal`, `identity`,
+  `lane_name`, `refuse`, `state_root` and `now as utc_now` from the
+  shared module; gone are its ValueError-based `Refusal`, `refuse()`,
+  `IDENTITY_RE`, `_identity()`, the laneconf import and the XDG
+  expression. `test_monitor.py` stages `instrument.py` beside its copy.
+  Gate red at `ed109e17` naming three copies, green at `b00b23aa`
+  (Ran 32); monitor suites Ran 73 OK before and after; lane MCP suites
+  Ran 50 OK before and after.
+- **The ValueError reading the previous handoff asked for**, by AST over
+  `ed109e17`: fourteen `try` statements name ValueError in a handler;
+  the three whose bodies can refuse (lines 123, 195, 1160) each carry
+  an `except Refusal: raise` ahead of it; the other eleven bodies call
+  nothing in the closure of functions that call `refuse()`. No handler
+  changed. The same reading is the shape to take for `lane_read.py`
+  (nine `except ValueError` sites, with `lane_mcp.py` and
+  `lane_refs.py` importing its class), the next thread.
+- Wire differences, stated: the shared identity regex needs an `@`
+  address; an absent `laneconf.py` refuses `conf-file` not `conf-key`;
+  an empty refusal field reads as empty text, not the word "empty".
+- `suites.sh` at `b00b23aa` with the untracked corpus file in the
+  worktree and dev moved to `e7e0d41e`: eight OK, conductor 11 failures,
+  ten of them the wrapper tests refusing `stale-base` on the untracked
+  file and one `test_probes` reading the untracked row before the AAR
+  carried its phrase. Pitfall 24's shape from the other side: an
+  untracked file is enough. Commit records before `suites.sh`.
+- Eight tools remain in `PENDING`: `laneconf.py`, `probes.py` (wall);
+  `lane_read.py`, `lane_mcp.py`, `lane_refs.py` (the ValueError reading
+  per site, then one commit for the three, since the other two import
+  lane_read's class); `skills.py`, `co_doc.py`, `control.py` (the
+  owner's ruling on adopting the wire). The monitor is absent from the
+  conformance registry before and after; a fact, not changed.
+
+## Where things stand (ladder thread, as written at `ba4ad806`)
 
 - PR #181, draft, `lane/session-20260913-a` into dev, head `ba4ad806`
   at write time, `mergeable: MERGEABLE`. Checks at write time: app

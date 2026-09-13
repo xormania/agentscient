@@ -51,6 +51,7 @@ MIGRATED: tuple[str, ...] = (
     "hand.py",
     "ladder.py",
     "land.py",
+    "monitor.py",
     "onboard.py",
     "watch.py",
     "watchdog.py",
@@ -66,7 +67,6 @@ PENDING: tuple[str, ...] = (
     "lane_read.py",
     "lane_refs.py",
     "laneconf.py",
-    "monitor.py",
     "probes.py",
     "skills.py",
 )
