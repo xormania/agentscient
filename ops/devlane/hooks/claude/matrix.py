@@ -56,7 +56,8 @@ row that cannot look refuses: "could not look" is not a pass.
                     2026-09-12: "one branch per session")
     wall-write      a write to the CI and test machinery          the path, the grant's
                     (.github/workflows, suites.sh, probes.py,     lever class
-                    laneconf.py, the hook registry and engine)
+                    laneconf.py, the hook registry, rows, engine
+                    and the hooks tests)
                     without a grant of lever class wall; or a
                     wall grant writing anything else (isolation)
     pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
@@ -168,8 +169,14 @@ STATE_DIR = os.path.expanduser("~/.local/state")
 # isolation". The wall is the machinery that contains everyone's mistakes;
 # it is written only under a grant of lever class `wall`, and a session
 # holding one writes nothing else.
+# Owner, 2026-09-13 ("Add matrix.py and the hooks test directory to the
+# wall paths"): the rows guard the file that defines them. Until then two
+# commits (cc04f7d9, 2c983635) changed the rows under an ordinary grant and
+# said so; the wall list is extended from the enforcing checkout, so the
+# extension itself went the same way (LD-34).
 WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
               "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
+              "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
               "ops/devlane/hooks/claude/engine.py")
 
 

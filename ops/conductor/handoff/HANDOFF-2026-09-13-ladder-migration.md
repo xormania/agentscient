@@ -25,6 +25,12 @@ Re-measure before acting.
   corpus rows, pitfalls 28 and 29, the deliverable skill page), and
   `ba4ad806`, a merge of `origin/dev` at `37750dd0` (#179) written by
   the dispatch wrapper while the first `suites.sh` ran (LD-29).
+  After the records commit `0a38531d`, #180 (`23a30592`) landed on dev
+  and #181 read CONFLICTING on `lane-defects.md` (LD-34 from that
+  branch and LD-35 from this one, both after LD-33); the merge of
+  `origin/dev` at `23a30592` that follows this commit keeps both, LD-34
+  first, under a grant of its own. The checks on that head were not
+  read by this session.
 - Grant 187 (`other`, unscoped, "migrate ladder.py onto instrument.py;
   the session records"): settled with the records commit's sha after
   this file is committed. Grants 185 (`lane/session-20260912-n`), 189
