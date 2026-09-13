@@ -42,6 +42,31 @@ class TheLockLever(unittest.TestCase):
         self.assertEqual(shown.returncode, 0)
         self.assertIn("lane/a", shown.stdout)
 
+    def test_remove_lifts_one_session_branch_and_leaves_the_others(self):
+        """Owner, 2026-09-13 ("minimize parallel work conflicts"; LD-28): a
+        session that lands removes its own branch; the lock kept naming
+        every landed branch because clear was the only exit and clear wipes
+        every session's entry at once."""
+        self.run_lever("set", "lane/session-a", "--why", "session a")
+        self.run_lever("add", "lane/session-b", "--why", "session b")
+        proc = self.run_lever("remove", "lane/session-a")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "removed lane/session-a; locked lane/session-b")
+        data = json.loads(self.lock.read_text())
+        self.assertEqual(data["branches"], ["lane/session-b"])
+        self.assertIn("session b", data["why"])
+        again = self.run_lever("remove", "lane/session-a")
+        self.assertEqual(again.returncode, 2, again.stdout)
+        self.assertRegex(again.stderr.strip(), r"^absent: expected .+; found .+; needed .+$")
+        last = self.run_lever("remove", "lane/session-b")
+        self.assertEqual(last.returncode, 0, last.stderr)
+        self.assertEqual(last.stdout.strip(), "removed lane/session-b; no lock")
+        self.assertFalse(self.lock.exists(), "the last branch removed lifts the lock")
+        self.assertEqual(self.run_lever("show", identity=False).stdout.strip(), "no lock")
+        no_identity = self.run_lever("remove", "lane/session-b", identity=False)
+        self.assertEqual(no_identity.returncode, 2)
+        self.assertRegex(no_identity.stderr.strip(), r"^identity: ")
+
     def test_add_names_another_session_branch_beside_the_first(self):
         """Owner, 2026-09-12: "as long you account for the fact that i'll
         have multiple sessions running soon". Two sessions on one host share

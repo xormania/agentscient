@@ -4,7 +4,8 @@
     deliverable.py set BRANCH... --why TEXT     name the branches work may aim at
     deliverable.py add BRANCH... --why TEXT     name more beside the ones named (a second session)
     deliverable.py show                          print the lock, or "no lock"
-    deliverable.py clear                         lift it
+    deliverable.py remove BRANCH...              lift this session's branches; the last one lifts the lock
+    deliverable.py clear                         lift it whole, every session's entry at once
 
 Owner, 2026-09-11: "i want an immediate FIX to stop that - right fucking
 now." While the lock names branches, the check matrix refuses any new
@@ -99,6 +100,35 @@ def do_add(args):
     return 0
 
 
+def do_remove(args):
+    """Owner, 2026-09-13 ("minimize parallel work conflicts"; LD-28): a
+    session that lands lifts its own branches and leaves every other
+    session's in place; clear was the only exit and wiped them all."""
+    branches = [a for a in args if not a.startswith("--")]
+    if not branches:
+        refuse("arguments", "remove BRANCH...", " ".join(args) or "no branches", "name the branches to lift")
+    identity()
+    path = lock_path()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = {}
+    named = [str(b) for b in (data.get("branches") if isinstance(data, dict) else None) or []]
+    missing = [b for b in branches if b not in named]
+    if missing:
+        refuse("absent", f"branches the lock names ({', '.join(named) or 'none'})", ", ".join(missing),
+               "deliverable.py show; remove only what is named")
+    left = [b for b in named if b not in branches]
+    if not left:
+        path.unlink()
+        print(f"removed {' '.join(branches)}; no lock")
+        return 0
+    data["branches"] = left
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(f"removed {' '.join(branches)}; locked {' '.join(left)}")
+    return 0
+
+
 def do_show(_args):
     path = lock_path()
     try:
@@ -120,13 +150,13 @@ def do_clear(_args):
     return 0
 
 
-VERBS = {"set": do_set, "add": do_add, "show": do_show, "clear": do_clear}
+VERBS = {"set": do_set, "add": do_add, "show": do_show, "remove": do_remove, "clear": do_clear}
 
 
 def main(argv):
     try:
         if len(argv) < 2 or argv[1] not in VERBS:
-            refuse("arguments", "one of set, add, show, clear", argv[1] if len(argv) > 1 else "no verb", "name a verb")
+            refuse("arguments", "one of set, add, show, remove, clear", argv[1] if len(argv) > 1 else "no verb", "name a verb")
         return VERBS[argv[1]](argv[2:])
     except Refusal as error:
         return emit(error)

@@ -80,7 +80,7 @@ checked after is the record that was wrong today.
    python3 ops/conductor/tools/deliverable.py show
    ```
 
-   Every grant settled with evidence; the lock cleared when the
+   Every grant settled with evidence; this session's branches removed from the lock (`deliverable.py remove`) when the
    deliverable has landed, or left set with the reason in the handoff.
 
 7. **Then write.** Every "merged", "complete", "green", "settled" in
