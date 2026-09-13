@@ -61,6 +61,31 @@ Repo `ruff.toml` governs. An instrument that must shell out earns a
 THIS-FILE-ONLY per-file row with the reason stated, or stays clean —
 never a wildcard.
 
+## The shared implementation
+
+`ops/conductor/tools/instrument.py` is these conventions as code, and
+an instrument imports it instead of carrying a copy: `Refusal` and
+`refuse()` for the wire, `emit()` at the CLI boundary (one stderr line,
+return 2), `identity()` and `identity_parts()` for `WF_AGENT`, `now()`,
+`stamp()` and `parse_stamp()` for UTC stamps ending in `Z`,
+`state_root()`, `lane_name()`, `state_dir()` and `conf()` for the state
+directory and the lane conf through `laneconf.py`, and `run()` and
+`git()` for one bounded, shell-less subprocess call that refuses
+`<name>-error` on a timeout or a missing executable. Its two CLI verbs,
+`identity` and `refuse CLASS EXPECTED FOUND NEEDED`, give shell levers
+the same wire.
+
+An instrument imports it beside itself. A copy of an instrument that a
+test stages elsewhere finds the module through the invoking checkout
+when the instrument appends `ops/conductor/tools` of the working
+directory to `sys.path` before the import; a copy that finds neither
+refuses `tooling`. The gate in `ops/conductor/tests/test_instrument.py`
+names every instrument as migrated or pending, so an instrument
+carrying its own `refuse`, `identity`, clock or lane-name reader is a
+failure naming it, and a new instrument must be placed in one list.
+The census that demanded this is
+`ops/conductor/reports/duplication-census-20260912.md`.
+
 ## The conformance gate
 
 `ops/conductor/tests/test_instrument_conventions.py` holds a registry
