@@ -1,9 +1,37 @@
 # AAR — 2026-09-13, the ladder, monitor and lane-read migrations
 
 Session `lane/session-20260913-a`, Claude Fable 5.1, by hand under
-grants 187, 193 and 197. Written at `ba4ad806`, extended at `b00b23aa`
-and at `374e6e0f`; the readings below name the sha each was taken at.
-The lane-read thread is the last section.
+grants 187, 193, 197 and 199. Written at `ba4ad806`, extended at
+`b00b23aa` and at `374e6e0f`, closed after #187 merged at `48639a71`;
+the readings below name the sha each was taken at. §Close sums the
+session; the thread sections follow.
+
+## Close
+
+- Three PRs from one branch, each merged by the owner on green checks
+  and a ready note: #181 (`ed109e17`, ladder.py), #183 (`4b66b31e`,
+  monitor.py), #187 (`48639a71`, lane_read.py, lane_mcp.py,
+  lane_refs.py). The gate went from 11 migrated tools to 17 migrated
+  and 1 no-wire; five stay pending, none of them a copy removal.
+- The method that held across all three: the gate red first with the
+  tool placed; every `except` naming ValueError read by AST for whether
+  its body can reach `refuse()`, not by eye; the suites that stage a
+  copy of a tool given the two siblings; corpus rows written from the
+  record's own text and pinning one list entry.
+- Parallel sessions: three others landed six PRs on dev during this
+  session (#179, #180, #182, #184, #185, #186). Two merges conflicted on
+  one hunk each (a ledger row, a sorted list) and both resolved by
+  keeping both sides. From the owner's word onward the file list went
+  to the peer before the first edit, and the peer's insert that broke
+  one of this session's corpus rows was fixed on their side before
+  this session merged.
+- Calibration for the session: tokens not measured (LD-30: the
+  launcher's Claude store path does not exist, and `worth.py` was not
+  run). Hook refusals: 10 across the session, 1 wrong (LD-35), 2 from a
+  page defect since corrected (pitfall 29). Suite runs that read red
+  from the tree's own state rather than the change: 3 (the wrapper
+  merge, the untracked file, a row's spelling), each rerun clean.
+  Corpus at close: 133 pass at `374e6e0f`.
 
 ## The request, in the owner's words
 

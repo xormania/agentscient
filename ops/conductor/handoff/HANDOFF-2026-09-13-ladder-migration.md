@@ -1,11 +1,42 @@
-# Handoff — 2026-09-13, after the ladder, monitor and lane-read migrations
+# Handoff — 2026-09-13, the ladder, monitor and lane-read migrations, closed
 
 Record by Claude Fable 5.1 on `lane/session-20260913-a`, first written at
 `ba4ad806` (PR #181, merged at `ed109e17`), extended at `b00b23aa` for
-the monitor thread (PR #183, merged at `4b66b31e`), and again at
-`374e6e0f` for the lane-read family (PR #187); §Third thread below is
-the current state, the sections after it are the earlier threads'
-records as written. The
+the monitor thread (PR #183, merged at `4b66b31e`), again at `374e6e0f`
+for the lane-read family (PR #187, merged at `48639a71`), and closed
+after that merge (owner, 2026-09-13: "its merged - create AAR and
+handoff"). §Close is the board as measured at the close; the thread
+sections after it are the records as written. The next session
+onboards fresh and re-measures before acting.
+
+## Close, measured at `48639a71`
+
+| what | reading |
+|---|---|
+| worktree `../wt/ag-session-20260913-a` | branch `lane/session-20260913-a`, fast-forwarded to dev at `48639a71`; 0 uncommitted; the close records commit is pushed with this file |
+| PRs from this branch | #181 MERGED `ed109e17`; #183 MERGED `4b66b31e`; #187 MERGED `48639a71` (`gh pr list --state all --head lane/session-20260913-a`) |
+| open PRs in the repository | none (`gh pr list --state open`) |
+| grants | 187, 191, 193, 197 settled verified with their shas; 199 (this close) settled with this commit; 198 open, session f7's (`hand.py open`) |
+| the lock | names eight branches, `lane/session-20260912-n` and `lane/session-20260913-a` through `-g`; this session's entry stays because the lever has no remove verb (LD-28); f7 is adding `remove BRANCH` under grant 198, else the next session `set`s the branches still open |
+| findings | 7 open on `20260913T023636Z-review-codex-bdbe55`, a review dispatched before this session began; not this session's to dispose; `findings.py export --write` re-run at close, see the commit |
+| dispatches | none running (`subs.py`: no dispatch snapshots) |
+| ladders | none run or resumed |
+| the gate | 17 tools in MIGRATED, 1 in NO_WIRE (`lane_refs.py`), 5 in PENDING: `laneconf.py`, `probes.py` (wall files, a wall session); `skills.py`, `co_doc.py`, `control.py` (each a shape change, the owner's ruling) |
+| corpus | `probes.py run` at `374e6e0f`: pass 133, fail 0, unreachable 0 |
+
+### Next thread
+
+The consolidation has no copy removal left. What remains is a
+decision, then work: (1) the owner rules whether `skills.py`,
+`co_doc.py` and `control.py` adopt the wire (each changes what a caller
+sees on refusal: skills exits 1 with a sentence, co_doc reports through
+an object, control refuses through `need()`); (2) a wall session, its
+deliverable the wall and nothing else, migrates `laneconf.py` and
+`probes.py`; (3) session f7 moves the gate's three sorted tuples into
+per-tool registry files (their PR, after #187; this session chose that
+order so #187 landed unchanged). A new instrument is placed in the
+gate in the commit that lands it, as `ledger.py` was in #186.
+ The
 owner's words that opened the work, after this session reported the
 instrument-consolidation handoff's next thread: "do it - hand grant
 ok'd" (2026-09-13). Onboarded fresh first, as that handoff required
