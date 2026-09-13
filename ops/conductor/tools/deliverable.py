@@ -19,46 +19,27 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
-from datetime import datetime, timezone
-from pathlib import Path
 
-IDENTITY = re.compile(r"[^<>\n]+ <[^<>\s@]+@[^<>\s]+>")
+# A copy of this tool staged elsewhere by a test finds its siblings in
+# the invoking checkout; beside the real tool the script directory wins.
+sys.path.append(os.path.join(os.getcwd(), "ops", "conductor", "tools"))
+try:
+    from instrument import Refusal, emit, identity, now, refuse, state_dir
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool or under "
+        "ops/conductor/tools of the working directory; found neither; "
+        "needed run the tool from its checkout",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 LOCK = "deliverable.json"
 
 
-class Refused(Exception):
-    pass
-
-
-def refuse(kind, expected, found, needed):
-    raise Refused(f"{kind}: expected {expected}; found {found}; needed {needed}")
-
-
-def lane_name():
-    path = Path(os.environ.get("LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"))
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as error:
-        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
-    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
-    if match is None:
-        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
-    return match.group(1)
-
-
 def lock_path():
-    state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local/state")
-    return Path(state) / lane_name() / LOCK
-
-
-def identity():
-    value = os.environ.get("WF_AGENT", "")
-    if not IDENTITY.fullmatch(value):
-        refuse("identity", "WF_AGENT in the Name <address> form", value or "unset",
-               "export WF_AGENT='Your Model Name <noreply@vendor>'")
-    return value
+    return state_dir() / LOCK
 
 
 def do_set(args):
@@ -76,7 +57,7 @@ def do_set(args):
     path = lock_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {"branches": branches, "why": why, "by": by,
-            "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+            "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     print(f"locked {' '.join(branches)}")
     return 0
@@ -111,7 +92,7 @@ def do_add(args):
         reasons = [str(data["why"])]
     path.parent.mkdir(parents=True, exist_ok=True)
     data = {"branches": named, "why": " | ".join(reasons), "by": by,
-            "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+            "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     print(f"locked {' '.join(named)}")
     return 0
@@ -146,9 +127,8 @@ def main(argv):
         if len(argv) < 2 or argv[1] not in VERBS:
             refuse("arguments", "one of set, add, show, clear", argv[1] if len(argv) > 1 else "no verb", "name a verb")
         return VERBS[argv[1]](argv[2:])
-    except Refused as error:
-        print(str(error), file=sys.stderr)
-        return 2
+    except Refusal as error:
+        return emit(error)
 
 
 if __name__ == "__main__":

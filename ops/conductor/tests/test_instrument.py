@@ -42,6 +42,7 @@ AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 
 # Tools that import the shared module and carry none of its helpers.
 MIGRATED: tuple[str, ...] = (
+    "deliverable.py",
     "hand.py",
 )
 
@@ -55,7 +56,6 @@ PENDING: tuple[str, ...] = (
     "control.py",
     "correction.py",
     "decisions.py",
-    "deliverable.py",
     "findings.py",
     "ladder.py",
     "land.py",
