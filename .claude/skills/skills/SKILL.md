@@ -26,8 +26,10 @@ observations, the non-authoritative-mirror rule. Recording an event needs
 
 ## Standing telemetry duties (any session, not only when invoked)
 
-- `log-use NAME [DETAIL]` — a skill was invoked. (A PreToolUse hook on
-  the Skill tool can make this mechanical; until wired, log by hand.)
+- `log-use NAME [DETAIL]` — a skill was invoked. Since 2026-09-13 the
+  PreToolUse hook `ops/devlane/hooks/claude/skill-use.py` records every
+  Skill call with its arguments; log by hand only for a use the tool
+  did not carry (a page read directly, a skill followed from memory).
 - `log-fail NAME DETAIL` — an invocation broke; DETAIL carries the
   error's own words, never a summary of them.
 - `log-miss NAME DETAIL` — a failed potential use: work was done another
