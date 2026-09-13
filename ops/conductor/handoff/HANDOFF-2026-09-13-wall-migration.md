@@ -20,8 +20,11 @@ Record by Claude Fable 5.1 on `lane/session-20260913-i`, written at
 - The consolidation gate at `15bea6a3`: 19 migrated, 1 no-wire
   (`lane_refs.py`), 3 pending (`skills.py`, `co_doc.py`, `control.py`).
   Nothing pending is a copy removal.
-- Grants 201 and 202: settled with the records commit's sha after this
-  file is committed; the settlement is in `hand.py open`.
+- Grants 201 and 202: settled after `cabb9d25`, but as "claimed;
+  unverified": the evidence was prose with the sha inside it, and the
+  lever verifies a bare object id only; a settled grant cannot be
+  settled again. Pitfall 32. Grant 204 (this row and this line) is
+  settled with a bare sha.
 - The lock names `lane/session-20260913-i`; removed with
   `deliverable.py remove` once the PR has landed on dev, per the
   deliverable skill.
