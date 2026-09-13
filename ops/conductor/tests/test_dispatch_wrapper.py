@@ -216,7 +216,11 @@ class _WrapperFixture(unittest.TestCase):
         self.stage = "tests"
         self.follows = "20260831T000000Z-plan-grok-aaaaaa"
         self.flag_timeout = "9"
-        self.worktree = REPO
+        # Owner, 2026-09-13 ("then issue #2"): a scratch repository, never the
+        # checkout, so the checkout's lineage (a branch behind or conflicting
+        # with origin/dev, an untracked file) cannot read as a dispatcher
+        # failure; there is no origin ref in it, so nothing merges forward.
+        self.worktree = self._scratch_repository(root / "wt")
         self.ref = _head_sha(self.worktree)
         self.lineage = _lineage(self.worktree)
 
@@ -272,6 +276,24 @@ class _WrapperFixture(unittest.TestCase):
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, body, f"sentinel plant did not land: {path}")
         self.assertTrue(os.access(path, os.X_OK), f"sentinel not executable: {path}")
+
+    def _scratch_repository(self, path: Path) -> Path:
+        path.mkdir()
+        env = dict(os.environ, GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1")
+
+        def git(*args):
+            proc = subprocess.run(["git", "-C", str(path), *args], env=env,
+                                  capture_output=True, text=True, check=False)
+            self.assertEqual(proc.returncode, 0, f"plant: git {' '.join(args)}: {proc.stdout}{proc.stderr}")
+        git("-c", "init.defaultBranch=dev", "init", "-q")
+        git("config", "user.email", "fixture@example.invalid")
+        git("config", "user.name", "Fixture")
+        git("config", "commit.gpgsign", "false")
+        (path / "seed.txt").write_text("seed\n")
+        git("add", "-A")
+        git("commit", "-q", "-m", "seed")
+        git("checkout", "-q", "-b", "lane/session-fixture")
+        return path
 
     def _plant_sentinel(self, path: Path, marker: Path) -> None:
         body = (
@@ -2070,6 +2092,39 @@ class ProvisionalWrapperThreeHarnessUnchanged(_WorkerWrapperFixture):
             "wrap-model-conf-claude-read",
         )
         self.assert_no_launch()
+
+
+class FixtureDispatchesAgainstAScratchRepository(_WrapperFixture):
+    """Owner, 2026-09-13 ("then issue #2 - PR and merge"). The lane job ran
+    these tests in the live checkout: the dispatcher merged origin/dev
+    forward into the PR head before every launch, so a branch that
+    conflicted with dev (#175 at 373e06c8, #182 at ce8a18dc) or a worktree
+    with one untracked file failed a dozen dispatcher tests with stale-base
+    instead of one line about the branch. The fixture's worktree is a
+    scratch repository: no origin ref, no lineage but its own. One
+    producer (Claude Fable 5.1) under hand grant 195; the second absent.
+    """
+
+    def test_the_worktree_is_not_the_checkout_and_carries_no_trunk_ref(self):
+        self.assertNotEqual(Path(self.worktree).resolve(), REPO.resolve(),
+                            "the fixture dispatches against a scratch repository")
+        trunk = subprocess.run(["git", "-C", str(self.worktree), "rev-parse", "--verify", "-q", "origin/dev"],
+                               capture_output=True, text=True, check=False)
+        self.assertNotEqual(trunk.returncode, 0, "no origin/dev in the scratch repository, so nothing to merge forward")
+        self.assertEqual(self.lineage, "lane/session-fixture")
+        proc = self.invoke(self.full_flags(dry_run=True))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv, _env = self.parse_dry_run(proc)
+        self.assertEqual(argv[argv.index("--ref") + 1], self.ref, "the launched ref is the scratch HEAD")
+
+    def test_a_stale_checkout_does_not_reach_the_dispatcher(self):
+        """The failure class itself: the scratch worktree behind a trunk it
+        does not have is not behind anything; an untracked file in it is
+        no stale-base either, because there is no merge to do."""
+        (Path(self.worktree) / "untracked.txt").write_text("x\n")
+        proc = self.invoke(self.full_flags(dry_run=False))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertNotIn("stale-base", self.combined(proc))
 
 
 class MergeForwardBeforeLaunch(unittest.TestCase):
