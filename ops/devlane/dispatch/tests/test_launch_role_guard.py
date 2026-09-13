@@ -34,7 +34,7 @@ class RoleGuard(unittest.TestCase):
 
     def test_a_read_role_prompt_writing_an_undeclared_path_refuses_role(self):
         job = {"role": "read", "prompt": "Write the report to {out}/SKEPTIC.md and name that path in artifacts"}
-        with self.assertRaises(self.launch.CORRECTION.Refused) as caught:
+        with self.assertRaises(self.launch.CORRECTION.Refusal) as caught:
             self.launch._read_role_write_guard("check-tests", job)
         self.assertEqual(caught.exception.kind, "role")
         line = caught.exception.line()

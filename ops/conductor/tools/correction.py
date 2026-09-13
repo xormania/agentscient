@@ -10,6 +10,21 @@ import sqlite3
 import sys
 from pathlib import Path
 
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from the launcher, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, emit, refuse, state_dir
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 ROOT = Path(__file__).resolve().parents[3]
 REVIEW_JOBS = (
     "check-tests",
@@ -38,29 +53,6 @@ def _module(path):
 
 
 FINDINGS = _module(Path(__file__).with_name("findings.py"))
-
-
-class Refused(Exception):
-    def __init__(self, kind, expected, found, needed):
-        self.kind = kind
-        self.expected = _one_line(expected)
-        self.found = _one_line(found)
-        self.needed = _one_line(needed)
-        super().__init__(self.line())
-
-    def line(self):
-        return (
-            f"{self.kind}: expected {self.expected}; found {self.found}; "
-            f"needed {self.needed}"
-        )
-
-
-def _one_line(value):
-    return " ".join(str(value).split())
-
-
-def refuse(kind, expected, found, needed):
-    raise Refused(kind, expected, found, needed)
 
 
 def _read_record(record_id, records):
@@ -353,13 +345,9 @@ def _parse(argv):
     root = Path(values.get("root", Path.cwd()))
     values.setdefault("root", str(root))
     values.setdefault("records", str(root / ".dev" / "records" / "dispatches"))
-    values.setdefault(
-        "jobs_root",
-        str(Path(os.environ.get(
-            "DISPATCH_JOBS",
-            Path.home() / ".local" / "state" / FINDINGS.lane_name() / "dispatch",
-        ))),
-    )
+    if "jobs_root" not in values:
+        explicit = os.environ.get("DISPATCH_JOBS")
+        values["jobs_root"] = explicit or str(state_dir() / "dispatch")
     return values
 
 
@@ -369,9 +357,8 @@ def main(argv):
         result = check(**values)
         print(json.dumps(result, sort_keys=True))
         return 0
-    except Refused as error:
-        print(error.line(), file=sys.stderr)
-        return 2
+    except Refusal as error:
+        return emit(error)
 
 
 if __name__ == "__main__":

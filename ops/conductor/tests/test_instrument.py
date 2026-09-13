@@ -44,6 +44,7 @@ AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 MIGRATED: tuple[str, ...] = (
     "branches.py",
     "ci.py",
+    "correction.py",
     "decisions.py",
     "deliverable.py",
     "findings.py",
@@ -59,7 +60,6 @@ MIGRATED: tuple[str, ...] = (
 PENDING: tuple[str, ...] = (
     "co_doc.py",
     "control.py",
-    "correction.py",
     "ladder.py",
     "lane_mcp.py",
     "lane_read.py",

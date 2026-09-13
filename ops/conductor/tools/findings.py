@@ -38,16 +38,7 @@ from pathlib import Path
 # with its siblings.
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    # lane_name is not used here: correction.py loads this module by path
-    # and reads FINDINGS.lane_name() until its own migration.
-    from instrument import (  # noqa: F401 - lane_name is read by correction.py
-        Refusal,
-        emit,
-        identity,
-        lane_name,
-        refuse,
-        state_dir,
-    )
+    from instrument import Refusal, emit, identity, refuse, state_dir
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
