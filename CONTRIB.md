@@ -90,6 +90,16 @@ automates it:
 | trailers on every commit | `git log --format='%h %(trailers:only)' origin/dev..HEAD` — `Source:` and `Co-Authored-By:` on each |
 | zone floor named and run | the touched zone's regression floor (coverage-zones.md), cited in the note |
 
+**Ready means mergeable now** (owner, 2026-09-13: "a draft PR should never
+be marked for review unless it can be merged immediately"). The flip is
+the merge's own gate applied early: the `## Proof` section naming corpus
+rows that pass at the head, merge state clean against the trunk, the
+complete check set green on that head, nothing queued. A PR whose merge
+would refuse on any row stays a draft. Measured the day of the ruling:
+PR #175 was flipped on green checks alone and the merge refused
+`pr-proof` an hour later, costing a push, a CI round and a second ready
+note (LD-32).
+
 ## Templates
 
 A review starts at the body, not the diff. If a heading is missing,
