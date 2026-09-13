@@ -154,7 +154,14 @@ def load_corpus(root: Path) -> list[dict]:
                 command = _text(row, "absent", where)
             else:
                 command = _text(row, "serve", where)
-                _text(row, "expect", where)
+                expect = _text(row, "expect", where)
+                if "\n" in expect:
+                    # Pitfall 30: an expect that pins two entries of a sorted
+                    # list as adjacent breaks when any session inserts a
+                    # neighbour; a row pins membership, one line.
+                    refuse("corpus", "an `expect` on one line (pin membership, one entry per row)",
+                           f"an expect spanning {expect.count(chr(10)) + 1} lines at {where} ({rid})",
+                           "split it, one row per line it pins")
                 if kind == "nearmiss":
                     _text(row, "premise_flaw", where)
             try:
