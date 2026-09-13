@@ -35,6 +35,10 @@ from live_store_guard import assert_unchanged, without_new_job_dirs
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "onboard.py"
+# The tool imports these beside itself (instrument-conventions.md §The
+# shared implementation); a staged copy run from a scratch directory
+# needs them staged too, or it refuses `tooling` before the contract.
+SIBLINGS = ("instrument.py", "laneconf.py")
 
 BRANCH = "onboard-lineage"
 REPO_USER = "Repo Config"
@@ -291,12 +295,20 @@ class _OnboardFixture(unittest.TestCase):
             self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
             self.assertEqual(len(landed), len(data))
             self.assertNotEqual(landed, ABSENT_STUB)
+            for name in SIBLINGS:
+                sibling = TOOL.with_name(name)
+                if sibling.is_file():
+                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
         else:
             self.staged.write_bytes(ABSENT_STUB)
             landed = self.staged.read_bytes()
             self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
             self.assertEqual(len(landed), len(ABSENT_STUB))
         self.assertTrue(self.staged.is_file())
+        # The staged copy has no tracked conf beside its reader; the
+        # fixture names one, so the lane under HOME is the one asserted.
+        self.conf = self.staged.parent.parent / "lane.conf"
+        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -761,6 +773,7 @@ class _OnboardFixture(unittest.TestCase):
             "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_TERMINAL_PROMPT": "0",
             "GIT_OPTIONAL_LOCKS": "0",
+            "LANE_CONF": str(self.conf),
         }
         self.assertNotIn("WF_AGENT", env)
         if xdg is not None:

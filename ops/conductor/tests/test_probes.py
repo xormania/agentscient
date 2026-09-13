@@ -231,6 +231,18 @@ class CorpusRefusals(_Fixture):
         (self.root / CORPUS_DIR / "p.jsonl").write_text(json.dumps(SERVE) + "\n\nnot json\n")
         self.assert_refusal(self.run_tool("run"), "corpus")
 
+    def test_an_expect_that_spans_lines_refuses(self):
+        """Pitfall 30 (2026-09-13): an expect pinning two entries of a sorted
+        list as adjacent breaks when any session inserts a neighbour. The
+        corpus refuses the shape; a row pins one line."""
+        for row in (dict(SERVE, expect="alpha lives here\nthe sky is blue"),
+                    dict(NEARMISS, expect="the sky is blue\n")):
+            with self.subTest(id=row["id"]):
+                self.rows("p.jsonl", [row])
+                line = self.assert_refusal(self.run_tool("run"), "corpus")
+                self.assertIn(row["id"], line)
+                self.assertIn("one line", line)
+
     def test_missing_field_for_kind_refuses(self):
         row = dict(NEARMISS)
         del row["premise_flaw"]

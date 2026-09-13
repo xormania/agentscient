@@ -44,6 +44,7 @@ REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "monitor.py"
 EXAMPLE = REPO / "ops" / "conductor" / "monitor.example.json"
 LANECONF = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
+INSTRUMENT = REPO / "ops" / "conductor" / "tools" / "instrument.py"
 
 AGENT = "Monitor Tester <monitor-tester@example.invalid>"
 BAD_AGENT = "JustAName"
@@ -191,11 +192,12 @@ class _MonitorFixture(unittest.TestCase):
             self.assertEqual(landed, ABSENT_STUB, "stub plant did not land")
             self.assertEqual(len(landed), len(ABSENT_STUB))
         self.assertTrue(self.staged.is_file())
-        if LANECONF.is_file():
-            dest = self.staged.parent / LANECONF.name
-            payload = LANECONF.read_bytes()
-            dest.write_bytes(payload)
-            self.assertEqual(dest.read_bytes(), payload)
+        for sibling in (LANECONF, INSTRUMENT):
+            if sibling.is_file():
+                dest = self.staged.parent / sibling.name
+                payload = sibling.read_bytes()
+                dest.write_bytes(payload)
+                self.assertEqual(dest.read_bytes(), payload)
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

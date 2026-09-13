@@ -53,7 +53,7 @@ read.
    its evening undoing.
 
 5. **Route it:** a lane class is a row in
-   `ops/conductor/handoff/lane-defects.md` with the record id; a content
+   the defect ledger (`python3 ops/conductor/tools/defects.py add`, one file under `ops/conductor/handoff/lane-defects/`) with the record id; a content
    class is the finding, imported into the ledger from the record.
 
 Record the use: `python3 ops/conductor/tools/skills.py log-use dead-dispatch "<record id> <class>"`

@@ -56,7 +56,8 @@ row that cannot look refuses: "could not look" is not a pass.
                     2026-09-12: "one branch per session")
     wall-write      a write to the CI and test machinery          the path, the grant's
                     (.github/workflows, suites.sh, probes.py,     lever class
-                    laneconf.py, the hook registry and engine)
+                    laneconf.py, the hook registry, rows, engine
+                    and the hooks tests)
                     without a grant of lever class wall; or a
                     wall grant writing anything else (isolation)
     pr-proof        gh pr ready / gh pr merge without proof the   gh pr view, the corpus
@@ -121,7 +122,13 @@ DISPATCHERS = ("dispatch.sh", "go.sh")
 # code with greps all day and called Graft zero times. A content search over
 # a code root refuses with the Graft query as the remedy. Counts (-c), file
 # lists (-l/-L), a grep reading a pipe, and records paths are not searches.
+# Narrowed (owner, 2026-09-13, token thrift #3; measured: 17 graft-first
+# refusals in one session, each a whole-context turn): one named file is a
+# read, and a conf, json, yaml, markdown or log target is data Graft never
+# indexed; neither is navigation.
 SEARCHERS = ("grep", "egrep", "fgrep", "rg", "ugrep", "evgrep.sh")
+DATA_SUFFIXES = (".json", ".jsonl", ".yaml", ".yml", ".md", ".conf", ".txt", ".toml",
+                 ".cue", ".log", ".lock", ".cfg", ".ini", ".example", ".csv")
 SEARCH_COUNT_FLAGS = {"-c", "--count", "-l", "--files-with-matches", "-L", "--files-without-match"}
 GRAFT_LEVER = "ops/devlane/harness/graft.py"
 GRAFT_LOG = "graft-first.log"
@@ -162,8 +169,14 @@ STATE_DIR = os.path.expanduser("~/.local/state")
 # isolation". The wall is the machinery that contains everyone's mistakes;
 # it is written only under a grant of lever class `wall`, and a session
 # holding one writes nothing else.
+# Owner, 2026-09-13 ("Add matrix.py and the hooks test directory to the
+# wall paths"): the rows guard the file that defines them. Until then two
+# commits (cc04f7d9, 2c983635) changed the rows under an ordinary grant and
+# said so; the wall list is extended from the enforcing checkout, so the
+# extension itself went the same way (LD-34).
 WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
               "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
+              "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
               "ops/devlane/hooks/claude/engine.py")
 
 
@@ -893,7 +906,7 @@ def search_targets(toks):
         args = toks[2:]
     elif word not in SEARCHERS:
         return None, []
-    if any(a in SEARCH_COUNT_FLAGS for a in args):
+    if any(a in SEARCH_COUNT_FLAGS for a in _split_short_flags(args)):
         return None, []
     positional = []
     skip = False
@@ -913,13 +926,35 @@ def search_targets(toks):
     return positional[0], positional[1:]
 
 
+def _split_short_flags(args):
+    """Every flag as it reads: a combined short flag (-rl, -rnc) yields each
+    letter as its own flag, so -l and -c are seen inside one (LD-33, owner
+    2026-09-13); long flags and positionals pass through unchanged."""
+    out = []
+    for a in args:
+        if len(a) > 2 and a[0] == "-" and a[1] != "-":
+            out.extend("-" + ch for ch in a[1:])
+        else:
+            out.append(a)
+    return out
+
+
 def graft_first(toks, cwd, root, lane):
     pattern, targets = search_targets(toks)
     if pattern is None:
         return None
+    if len(targets) == 1 and not targets[0].endswith("/") and "." in base(targets[0]):
+        _, single = relative(targets[0], cwd)
+        # A dotted name that is a directory (.github, .claude) is a walk, not
+        # one file (Grok, dispatch 20260913T105222Z-review-grok-00b782, finding 1).
+        walk = (single is not None and f"{single}/" in CODE_ROOTS) or os.path.isdir(os.path.join(cwd, targets[0]))
+        if not walk:
+            return None  # one named file is a read, not navigation
     hits = []
     for target in targets:
         _, rel = relative(target, cwd)
+        if rel is not None and rel.lower().endswith(DATA_SUFFIXES):
+            continue  # data Graft never indexed
         # a directory target normalises without its slash ("docs/" -> "docs")
         if is_code(rel) or (rel is not None and is_code(rel + "/")):
             hits.append(target)
@@ -1029,7 +1064,8 @@ def deliverable(toks, cwd, lane):
                         f"(locked {lock.get('at', '?')} by {lock.get('by', '?')}: {lock.get('why', '')})",
                         f"{what} {branch}",
                         "finish the deliverable; record what you found in the ledger; "
-                        "python3 ops/conductor/tools/deliverable.py clear lifts the lock when it lands")
+                        "python3 ops/conductor/tools/deliverable.py add <branch> names a new "
+                        "session's branch beside these, and remove lifts it when its work lands")
     return None
 
 

@@ -4,7 +4,8 @@
     deliverable.py set BRANCH... --why TEXT     name the branches work may aim at
     deliverable.py add BRANCH... --why TEXT     name more beside the ones named (a second session)
     deliverable.py show                          print the lock, or "no lock"
-    deliverable.py clear                         lift it
+    deliverable.py remove BRANCH...              lift this session's branches; the last one lifts the lock
+    deliverable.py clear                         lift it whole, every session's entry at once
 
 Owner, 2026-09-11: "i want an immediate FIX to stop that - right fucking
 now." While the lock names branches, the check matrix refuses any new
@@ -17,48 +18,54 @@ line, exit 2, stdout empty.
 
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import os
-import re
 import sys
-from datetime import datetime, timezone
-from pathlib import Path
 
-IDENTITY = re.compile(r"[^<>\n]+ <[^<>\s@]+@[^<>\s]+>")
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, emit, identity, now, refuse, state_dir
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 LOCK = "deliverable.json"
-
-
-class Refused(Exception):
-    pass
-
-
-def refuse(kind, expected, found, needed):
-    raise Refused(f"{kind}: expected {expected}; found {found}; needed {needed}")
-
-
-def lane_name():
-    path = Path(os.environ.get("LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"))
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as error:
-        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
-    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
-    if match is None:
-        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
-    return match.group(1)
+GUARD = "deliverable.json.lock"
 
 
 def lock_path():
-    state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local/state")
-    return Path(state) / lane_name() / LOCK
+    return state_dir() / LOCK
 
 
-def identity():
-    value = os.environ.get("WF_AGENT", "")
-    if not IDENTITY.fullmatch(value):
-        refuse("identity", "WF_AGENT in the Name <address> form", value or "unset",
-               "export WF_AGENT='Your Model Name <noreply@vendor>'")
-    return value
+@contextlib.contextmanager
+def held():
+    """The lock's path, with an exclusive flock held on deliverable.json.lock
+    beside it. Sessions on one host share the lock, and every writer reads,
+    changes and writes it inside this, so two writers never interleave: a
+    concurrent remove and add lost a branch in 3 of 60 trials without it
+    (Grok, dispatch 20260913T105222Z-review-grok-00b782, finding 2)."""
+    path = lock_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path.with_name(GUARD), "a+", encoding="utf-8") as guard:
+        fcntl.flock(guard, fcntl.LOCK_EX)
+        yield path
+
+
+def write(path, data):
+    """Replace the lock whole, so a reader never sees half a file."""
+    part = path.with_name(path.name + ".part")
+    part.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    os.replace(part, path)
 
 
 def do_set(args):
@@ -73,11 +80,10 @@ def do_set(args):
     if not why.strip():
         refuse("arguments", "a non-empty --why", repr(why), "say what the deliverable is")
     by = identity()
-    path = lock_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
     data = {"branches": branches, "why": why, "by": by,
-            "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+            "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
+    with held() as path:
+        write(path, data)
     print(f"locked {' '.join(branches)}")
     return 0
 
@@ -97,23 +103,51 @@ def do_add(args):
     if not why.strip():
         refuse("arguments", "a non-empty --why", repr(why), "say what this session's deliverable is")
     by = identity()
-    path = lock_path()
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        data = {"branches": [], "why": ""}
-    named = [str(b) for b in data.get("branches") or []]
-    for branch in branches:
-        if branch not in named:
-            named.append(branch)
-    reasons = [r for r in [str(data.get("why") or ""), why] if r.strip()]
-    if data.get("why") and why in data["why"]:
-        reasons = [str(data["why"])]
-    path.parent.mkdir(parents=True, exist_ok=True)
-    data = {"branches": named, "why": " | ".join(reasons), "by": by,
-            "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
-    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    with held() as path:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {"branches": [], "why": ""}
+        named = [str(b) for b in data.get("branches") or []]
+        for branch in branches:
+            if branch not in named:
+                named.append(branch)
+        reasons = [r for r in [str(data.get("why") or ""), why] if r.strip()]
+        if data.get("why") and why in data["why"]:
+            reasons = [str(data["why"])]
+        data = {"branches": named, "why": " | ".join(reasons), "by": by,
+                "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
+        write(path, data)
     print(f"locked {' '.join(named)}")
+    return 0
+
+
+def do_remove(args):
+    """Owner, 2026-09-13 ("minimize parallel work conflicts"; LD-28): a
+    session that lands lifts its own branches and leaves every other
+    session's in place; clear was the only exit and wiped them all."""
+    branches = [a for a in args if not a.startswith("--")]
+    if not branches:
+        refuse("arguments", "remove BRANCH...", " ".join(args) or "no branches", "name the branches to lift")
+    identity()
+    with held() as path:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = {}
+        named = [str(b) for b in (data.get("branches") if isinstance(data, dict) else None) or []]
+        missing = [b for b in branches if b not in named]
+        if missing:
+            refuse("absent", f"branches the lock names ({', '.join(named) or 'none'})", ", ".join(missing),
+                   "deliverable.py show; remove only what is named")
+        left = [b for b in named if b not in branches]
+        if not left:
+            path.unlink()
+            print(f"removed {' '.join(branches)}; no lock")
+            return 0
+        data["branches"] = left
+        write(path, data)
+    print(f"removed {' '.join(branches)}; locked {' '.join(left)}")
     return 0
 
 
@@ -128,27 +162,26 @@ def do_show(_args):
 
 def do_clear(_args):
     identity()
-    path = lock_path()
-    try:
-        path.unlink()
-    except FileNotFoundError:
-        print("no lock")
-        return 0
+    with held() as path:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            print("no lock")
+            return 0
     print("cleared")
     return 0
 
 
-VERBS = {"set": do_set, "add": do_add, "show": do_show, "clear": do_clear}
+VERBS = {"set": do_set, "add": do_add, "show": do_show, "remove": do_remove, "clear": do_clear}
 
 
 def main(argv):
     try:
         if len(argv) < 2 or argv[1] not in VERBS:
-            refuse("arguments", "one of set, add, show, clear", argv[1] if len(argv) > 1 else "no verb", "name a verb")
+            refuse("arguments", "one of set, add, show, remove, clear", argv[1] if len(argv) > 1 else "no verb", "name a verb")
         return VERBS[argv[1]](argv[2:])
-    except Refused as error:
-        print(str(error), file=sys.stderr)
-        return 2
+    except Refusal as error:
+        return emit(error)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,10 @@
 
 Owner-issued plans are authority. Native hooks restrict conductor tools;
 this controller reserves actions before spawning and validates actual evidence.
+The refusal class names what refused (owner, 2026-09-13, ruling 3):
+`arguments`, `identity`, `plan`, `json`, `binding`, `state`, `admission`,
+`seat`; the wire and the identity check come from instrument.py beside
+this file.
 """
 import argparse
 import contextlib
@@ -21,6 +25,17 @@ import unittest
 from datetime import datetime
 from pathlib import Path
 
+sys.path.append(str(Path(__file__).resolve().parent))
+try:
+    from instrument import Refusal, emit, identity, refuse
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 HERE = Path(__file__).resolve()
 HOOK = HERE.parents[2] / 'devlane/hooks/conductor-control.py'
 LIMIT = 8 * 1024 * 1024
@@ -29,15 +44,9 @@ PLAN_KEYS = {'version', 'repo', 'branch', 'scope', 'scope_sha256', 'expires_at',
 ACTION_KEYS = {'id', 'kind', 'argv', 'timeout', 'requires', 'tests', 'producer'}
 
 
-class Refusal(Exception):
-    def __init__(self, found, expected='valid owner declaration', needed='inspect status and correct the owner plan', kind='control'):
-        self.line = f'{kind}: expected {expected}; found {found}; needed {needed}'
-        super().__init__(self.line)
-
-
-def need(condition, found, **kw):
+def need(condition, found, expected='valid owner declaration', needed='inspect status and correct the owner plan', kind='state'):
     if not condition:
-        raise Refusal(found, **kw)
+        refuse(kind, expected, found, needed)
 
 
 def digest(data):
@@ -52,17 +61,17 @@ def strict(data):
     def pairs(items):
         result = {}
         for key, value in items:
-            need(key not in result, 'duplicate JSON key')
+            need(key not in result, 'duplicate JSON key', kind='json')
             result[key] = value
         return result
     return json.loads(data, object_pairs_hook=pairs,
-                      parse_constant=lambda _: (_ for _ in ()).throw(Refusal('nonfinite JSON number')))
+                      parse_constant=lambda _: refuse('json', 'valid owner declaration', 'nonfinite JSON number', 'inspect status and correct the owner plan'))
 
 
 def relative(value):
-    need(isinstance(value, str) and value and not value.startswith('-'), 'invalid relative path')
+    need(isinstance(value, str) and value and not value.startswith('-'), 'invalid relative path', kind='plan')
     p = Path(value)
-    need(not p.is_absolute() and '..' not in p.parts and p.as_posix() == value and value != '.', 'unnormalized relative path')
+    need(not p.is_absolute() and '..' not in p.parts and p.as_posix() == value and value != '.', 'unnormalized relative path', kind='plan')
     return p
 
 
@@ -150,12 +159,6 @@ def locked(state):
         yield
 
 
-def identity():
-    who = os.environ.get('WF_AGENT', '')
-    need(re.fullmatch(r'[^\n<>]+ <[^<>\s@]+@[^<>\s]+>', who), 'missing writing identity', expected='WF_AGENT as Name <address>', needed='set the caller identity', kind='identity')
-    return who
-
-
 def initialize(source, state, who):
     raw = source.read_bytes()
     need(len(raw) <= 1024 * 1024, 'oversize plan', kind='plan')
@@ -209,10 +212,10 @@ def ancestors(plan, action):
 
 def admit(data, action):
     records = data['actions_state']
-    need(action['id'] not in records, 'action already reserved')
-    need(not any(r['status'] == 'running' for r in records.values()), 'another action still running')
+    need(action['id'] not in records, 'action already reserved', kind='admission')
+    need(not any(r['status'] == 'running' for r in records.values()), 'another action still running', kind='admission')
     need(all(records.get(key, {}).get('status') == 'completed' for key in action['requires']), 'unmet prerequisites', kind='admission')
-    need('seat' not in data or data['seat']['status'] == 'running', 'conductor seat already stopped')
+    need('seat' not in data or data['seat']['status'] == 'running', 'conductor seat already stopped', kind='admission')
     chain = ancestors(data['plan'], action)
     needed = {'fixture': ['tests'], 'red': ['tests', 'fixture'],
               'test-review': ['tests', 'fixture', 'red'],
@@ -342,11 +345,11 @@ def run_action(state, key, who):
         data = load(state)
         plan = data['plan']
         choices = [a for a in plan['actions'] if a['id'] == key]
-        need(len(choices) == 1, 'unknown action id')
+        need(len(choices) == 1, 'unknown action id', kind='admission')
         action = choices[0]
         rows, sealed, phases = admit(data, action)
         allowance = min(action['timeout'], plan['max_seconds'] - data['cumulative_time'], expiry(plan) - time.time())
-        need(allowance > 0, 'expired or exhausted plan')
+        need(allowance > 0, 'expired or exhausted plan', kind='admission')
         entry = dict(status='running', exit_code=None, caller=who, tests=rows, tests_sha256=sealed,
                      stdout_path=str(state / f'{key}.stdout'), stderr_path=str(state / f'{key}.stderr'),
                      stdout_sha256=digest(b''), stderr_sha256=digest(b''))
@@ -382,7 +385,7 @@ def run_action(state, key, who):
                 rc = 0 if verdict == expected else 1
     except Refusal as exc:
         rc = 3
-        result['reason'] = exc.line
+        result['reason'] = exc.line()
     except (OSError, ValueError, KeyError, TypeError):
         rc = 1
         result['reason'] = 'invalid execution evidence'
@@ -396,17 +399,17 @@ def run_action(state, key, who):
 
 
 def seat(state, argv, who):
-    need(bool(argv), 'missing conductor argv')
+    need(bool(argv), 'missing conductor argv', kind='arguments')
     with locked(state):
         data = load(state)
-        need('seat' not in data, 'conductor seat already reserved')
+        need('seat' not in data, 'conductor seat already reserved', kind='admission')
         allowance = min(data['plan']['max_seconds'] - data['cumulative_time'], expiry(data['plan']) - time.time())
-        need(allowance > 0, 'expired or exhausted plan')
+        need(allowance > 0, 'expired or exhausted plan', kind='admission')
     host = Path(argv[0]).name
     host_env = {}
     worker_environment = {}
     profile_pins = []
-    need(host != 'agy', 'agy has no verified native conductor hook', needed='use a guarded conductor; agy may run only as a fixed bounded worker action')
+    need(host != 'agy', 'agy has no verified native conductor hook', needed='use a guarded conductor; agy may run only as a fixed bounded worker action', kind='seat')
     if host == 'codex':
         # This automation vets the exact hook bytes above before using Codex's
         # documented per-invocation hook trust mechanism. The model cannot
@@ -415,7 +418,7 @@ def seat(state, argv, who):
         for index, value in enumerate(argv[1:], 1):
             if value in ('-c', '--config') and index + 1 < len(argv):
                 overrides.append(argv[index + 1].split('=', 1)[0])
-        need('exec' in argv and '--dangerously-bypass-hook-trust' not in argv and not any(key.startswith(('hooks', 'features.hooks')) for key in overrides), 'unsupported Codex seat options', needed='use codex exec with ordinary model and prompt options')
+        need('exec' in argv and '--dangerously-bypass-hook-trust' not in argv and not any(key.startswith(('hooks', 'features.hooks')) for key in overrides), 'unsupported Codex seat options', needed='use codex exec with ordinary model and prompt options', kind='seat')
         host_home = state / 'codex-home'
         host_home.mkdir(mode=0o700, exist_ok=True)
         (host_home / 'hooks.json').write_bytes((state / 'native-hooks.json').read_bytes())
@@ -432,10 +435,10 @@ def seat(state, argv, who):
         argv = argv[:1] + ['--dangerously-bypass-hook-trust'] + [x for x in argv[1:] if x != '--ignore-user-config']
     elif host == 'claude':
         forbidden = ('--settings', '--setting-sources', '--bare', '--safe-mode')
-        need(any(x in argv for x in ('-p', '--print')) and not any(x.split('=', 1)[0] in forbidden for x in argv[1:]) and not any(os.environ.get(x) for x in ('CLAUDE_CODE_SIMPLE', 'CLAUDE_CODE_SAFE_MODE')), 'unsupported Claude seat options', needed='use claude print without hook-disabling settings or environment')
+        need(any(x in argv for x in ('-p', '--print')) and not any(x.split('=', 1)[0] in forbidden for x in argv[1:]) and not any(os.environ.get(x) for x in ('CLAUDE_CODE_SIMPLE', 'CLAUDE_CODE_SAFE_MODE')), 'unsupported Claude seat options', needed='use claude print without hook-disabling settings or environment', kind='seat')
         argv = argv[:1] + ['--setting-sources', '', '--settings', str(state / 'native-hooks.json')] + argv[1:]
     elif host == 'grok':
-        need(any(x in argv for x in ('-p', '--single', '--prompt-file', '--prompt-json')), 'unsupported Grok seat options', needed='use a headless Grok prompt')
+        need(any(x in argv for x in ('-p', '--single', '--prompt-file', '--prompt-json')), 'unsupported Grok seat options', needed='use a headless Grok prompt', kind='seat')
         host_home = state / 'grok-home'
         (host_home / 'hooks').mkdir(mode=0o700, parents=True, exist_ok=True)
         hook_file = host_home / 'hooks/conductor.json'
@@ -449,7 +452,7 @@ def seat(state, argv, who):
         profile_pins = [hook_file]
     with locked(state):
         data = load(state)
-        need('seat' not in data, 'conductor seat already reserved')
+        need('seat' not in data, 'conductor seat already reserved', kind='admission')
         data['seat'] = dict(status='running', caller=who)
         if worker_environment:
             # Worker commands must not inherit the conductor-only hook profile.
@@ -483,7 +486,7 @@ def unittest_runner(args):
 
 class Parser(argparse.ArgumentParser):
     def error(self, message):
-        raise Refusal('invalid command arguments', needed='run control.py --help')
+        refuse('arguments', 'a verb with its arguments', 'invalid command arguments', 'run control.py --help')
 
 
 def main():
@@ -516,8 +519,7 @@ if __name__ == '__main__':
     try:
         sys.exit(main())
     except Refusal as exc:
-        print(exc.line, file=sys.stderr)
-        sys.exit(2)
+        sys.exit(emit(exc))
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
-        print('control: expected readable valid control state; found unavailable or malformed data; needed inspect owner plan and permission doctor', file=sys.stderr)
+        print('state: expected readable valid control state; found unavailable or malformed data; needed inspect owner plan and permission doctor', file=sys.stderr)
         sys.exit(2)

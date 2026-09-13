@@ -53,7 +53,10 @@ non-JSON line refuses class `corpus`. Fields common to every row:
 Per kind:
 
 - **serve** — `serve`: a command string; `expect`: a non-empty literal
-  substring that must appear in its stdout.
+  substring, on one line, that must appear in its stdout. An `expect`
+  spanning lines refuses class `corpus`: a row that pinned two entries
+  of a sorted list as adjacent broke when another session inserted a
+  neighbour (pitfall 30, 2026-09-13); a row pins membership, one line.
 - **absent** — `absent`: a command string whose clean empty run proves
   the record does not carry the content. The secret appears only
   inside the search pattern, never as a stated answer; a pattern that
@@ -143,7 +146,7 @@ is computable when `run` exits 0 over the manifest the session wrote.
 | refusal | fires when |
 |---|---|
 | arguments | unknown verb, missing FILE, any extra argument or flag |
-| corpus | no corpus file exists; a non-JSON or blank line; a missing or invalid field for the row's kind; a duplicate id; a command string that is empty or fails to split |
+| corpus | no corpus file exists; a non-JSON or blank line; a missing or invalid field for the row's kind; an `expect` that spans lines; a duplicate id; a command string that is empty or fails to split |
 | answers | grade's FILE missing or unreadable; a non-JSON line; a duplicate or unknown id; a status outside SERVED/ABSENT |
 
 ## Exits

@@ -229,11 +229,12 @@ class _LaneMcpFixture(unittest.TestCase):
             self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
             self.assertEqual(len(landed), len(data))
             self.assertNotEqual(landed, ABSENT_STUB)
-            if READ.is_file():
-                sibling = self.scratch / "lane_read.py"
-                raw = READ.read_bytes()
-                sibling.write_bytes(raw)
-                self.assertEqual(sibling.read_bytes(), raw)
+            for source in (READ, READ.with_name("instrument.py")):
+                if source.is_file():
+                    sibling = self.scratch / source.name
+                    raw = source.read_bytes()
+                    sibling.write_bytes(raw)
+                    self.assertEqual(sibling.read_bytes(), raw)
         else:
             self.staged.write_bytes(ABSENT_STUB)
             landed = self.staged.read_bytes()

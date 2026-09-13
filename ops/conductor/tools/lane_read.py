@@ -15,6 +15,21 @@ from pathlib import Path
 from typing import NoReturn
 from urllib.parse import quote
 
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, imported by lane_mcp.py and lane_refs.py beside it, or as
+# a copy a test staged with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, refuse
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 sys.dont_write_bytecode = True
 
 SCHEMA = "agentscient.lane/v1"
@@ -55,31 +70,6 @@ EVENT_COLUMNS = (
     "observed_at",
     "delivery",
 )
-
-
-class Refusal(ValueError):
-    """A domain refusal in the lane wire shape."""
-
-    def __init__(self, kind: str, expected: object, found: object, needed: object):
-        self.kind = kind
-        self.expected = _one_line(expected)
-        self.found = _one_line(found)
-        self.needed = _one_line(needed)
-        super().__init__(self.line())
-
-    def line(self) -> str:
-        return (
-            f"{self.kind}: expected {self.expected}; found {self.found}; "
-            f"needed {self.needed}"
-        )
-
-
-def _one_line(value: object) -> str:
-    return " ".join(str(value).split()) or "empty"
-
-
-def refuse(kind: str, expected: object, found: object, needed: object) -> NoReturn:
-    raise Refusal(kind, expected, found, needed)
 
 
 def _pairs(kind: str):
@@ -231,7 +221,7 @@ def load_config(path: Path) -> dict[str, object]:
             v3 = v3 or (isinstance(parsed, dict) and parsed.get('version') == 3)
             if v3:
                 return validate_discovery_config(parsed, Path(os.path.abspath(path)).parent)
-        except (ValueError, TypeError, KeyError, UnicodeError, RecursionError):
+        except (Refusal, ValueError, TypeError, KeyError, UnicodeError, RecursionError):
             if v3:
                 discovery_config_refusal()
     return _load_legacy_config(path, status, raw)

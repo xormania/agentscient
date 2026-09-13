@@ -28,13 +28,15 @@ is what a session does so the refusal never fires.
    A branch or PR already carrying the same repair means this session
    reads it, and does not start a second one.
 
-2. **The session branch, then the lock.** One branch per session
-   (owner, 2026-09-12): cut `lane/session-<date>-<id>` from `origin/dev`
-   in its own worktree, and name it beside any other session's:
+2. **The lock, then the session branch.** One branch per session
+   (owner, 2026-09-12): name `lane/session-<date>-<id>` in the lock
+   beside any other session's, then cut it from `origin/dev` in its own
+   worktree. The hook refuses the worktree add of a branch the lock
+   does not yet name (pitfall 29, 2026-09-13):
 
    ```sh
-   git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/dev
    python3 ops/conductor/tools/deliverable.py add lane/session-<date>-<id> --why '<the owner's words, dated>'
+   git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/dev
    ```
 
    Every change and record of the session commits there; the dispatcher
@@ -66,10 +68,10 @@ its ledger and the session goes back to the deliverable:
 
 | what was found | where it goes |
 |---|---|
-| a stop or refusal not caused by the change under test | a row in `ops/conductor/handoff/lane-defects.md`. It gets a `repair/` branch named into the lock only when it blocks the deliverable; otherwise the row waits. |
+| a stop or refusal not caused by the change under test | a row written by `python3 ops/conductor/tools/defects.py add`, one file under `ops/conductor/handoff/lane-defects/`. It gets a `repair/` branch named into the lock only when it blocks the deliverable; otherwise the row waits. |
 | a reviewer finding on the deliverable's own change | the findings ledger, imported from its record; disposed with a contract citation before any correction is dispatched. |
 | a design, a lever that should exist, a bigger repair | `ops/conductor/ideas/`, or `skills.py wish <name> '<what>'` for a skill. |
-| a command shape the guards refused | the `refused` skill; a class it does not list is a pitfall row. |
+| a command shape the guards refused | the `refused` skill; a class it does not list is a pitfall row: `python3 ops/conductor/tools/ledger.py add pitfalls --what-bit TEXT --do-instead TEXT`. |
 
 A finding is evidence. It is never, while the deliverable is open, a
 branch, a dispatch, a ladder start or a PR.
@@ -79,11 +81,15 @@ branch, a dispatch, a ladder start or a PR.
 The `close` skill first, then:
 
 ```sh
-python3 ops/conductor/tools/deliverable.py clear
+python3 ops/conductor/tools/deliverable.py remove lane/session-<date>-<id>
 ```
 
-The lock is lifted by its lever when the work has landed on dev, never
-by a grant, and never before the close measurements are pasted.
+`remove` lifts this session's branches and leaves every other session's
+in place; the last branch removed lifts the lock. `clear` wipes every
+session's entry at once and is for a host with one session. The lock is
+lifted by its lever when the work has landed on dev, never by a grant,
+and never before the close measurements are pasted (owner, 2026-09-13:
+"minimize parallel work conflicts"; LD-28 closed).
 
 Record the use: `python3 ops/conductor/tools/skills.py log-use deliverable "<branches>"`
 with `WF_AGENT` set.

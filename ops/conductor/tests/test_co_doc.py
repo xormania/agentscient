@@ -98,6 +98,11 @@ class DoctorFixture(unittest.TestCase):
         self.assertTrue(src.is_file(), f"missing tool at {src}")
         self.tool = tools / CO_DOC
         _copy_unread(src, self.tool)
+        # The tool imports instrument.py beside itself, which loads
+        # laneconf.py beside it (instrument-conventions.md §The shared
+        # implementation); a staged copy carries both.
+        for sibling in ("instrument.py", "laneconf.py"):
+            _copy_unread(src_dir / sibling, tools / sibling)
         sh = src_dir / "dispatch.sh"
         if sh.is_file():
             _copy_unread(sh, tools / "dispatch.sh")
@@ -166,6 +171,9 @@ class DoctorFixture(unittest.TestCase):
             "PYTHONIOENCODING": "utf-8",
             "TMPDIR": str(self.scratch),
             "XDG_STATE_HOME": str(self.home / ".local" / "state"),
+            # The tool imports instrument.py beside itself; the interpreter's
+            # bytecode cache is not the doctor writing a file.
+            "PYTHONDONTWRITEBYTECODE": "1",
         }
         if agent is not None:
             env["WF_AGENT"] = agent
@@ -183,6 +191,16 @@ class DoctorFixture(unittest.TestCase):
         )
         out = (proc.stdout or "") + (proc.stderr or "")
         return proc, out
+
+    def test_an_unknown_argument_refuses_arguments_on_the_wire(self):
+        """instrument-conventions.md §The refusal wire: one stderr line,
+        exit 2, stdout empty; the class token leads."""
+        proc, _ = self._run("--bogus")
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertEqual(proc.stdout, "")
+        lines = proc.stderr.splitlines()
+        self.assertEqual(len(lines), 1, proc.stderr)
+        self.assertRegex(lines[0], r"^arguments: expected .+; found .+; needed .+$")
 
     def _write_settings(self, path: Path, payload) -> bytes:
         before = path.read_bytes() if path.exists() else b""

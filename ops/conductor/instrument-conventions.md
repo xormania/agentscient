@@ -61,6 +61,39 @@ Repo `ruff.toml` governs. An instrument that must shell out earns a
 THIS-FILE-ONLY per-file row with the reason stated, or stays clean —
 never a wildcard.
 
+## The shared implementation
+
+`ops/conductor/tools/instrument.py` is these conventions as code, and
+an instrument imports it instead of carrying a copy: `Refusal` and
+`refuse()` for the wire, `emit()` at the CLI boundary (one stderr line,
+return 2), `identity()` and `identity_parts()` for `WF_AGENT`, `now()`,
+`stamp()` and `parse_stamp()` for UTC stamps ending in `Z`,
+`state_root()`, `lane_name()`, `state_dir()` and `conf()` for the state
+directory and the lane conf through `laneconf.py`, and `run()` and
+`git()` for one bounded, shell-less subprocess call that refuses
+`<name>-error` on a timeout or a missing executable. Its two CLI verbs,
+`identity` and `refuse CLASS EXPECTED FOUND NEEDED`, give shell levers
+the same wire.
+
+An instrument appends its own directory to `sys.path` and imports the
+module, so the import resolves however the instrument was loaded: as
+the script, by path from another tool, or as a copy a test staged
+elsewhere. A suite that stages a copy of an instrument stages
+`instrument.py` and `laneconf.py` beside it and names a lane conf
+through `LANE_CONF`; the module carries no lane-name literal and no
+name stands in for an absent conf. An instrument that finds no
+`instrument.py` beside itself refuses `tooling`. Every instrument declares its placement in its own file,
+`ops/conductor/placement/<tool>.py.json`, as migrated, pending, or
+no-wire (a tool that returns outcomes and never refuses, with nothing to
+import); the gate in `ops/conductor/tests/test_instrument.py` reads the
+directory and closes it both ways, so an instrument carrying its own
+`refuse`, `identity`, clock or lane-name reader is a failure naming it,
+a new instrument must add its file, and no two sessions edit the same
+line to place a tool (owner, 2026-09-13: "minimize parallel work
+conflicts").
+The census that demanded this is
+`ops/conductor/reports/duplication-census-20260912.md`.
+
 ## The conformance gate
 
 `ops/conductor/tests/test_instrument_conventions.py` holds a registry
@@ -68,6 +101,7 @@ of instruments that declare this inheritance, each with one hermetic
 refusal-provoking invocation, and asserts the wire on every one: exit
 2, a single non-empty stderr line, class token, expected / found /
 needed, empty stdout. A new instrument joins the registry in the PR
-that lands it. Instruments predating this document (skills.py,
-co_doc.py) join as they adopt the wire; until then their absence from
-the registry is recorded fact, not compliance.
+that lands it. The two instruments that predated this document,
+skills.py and co_doc.py, joined on 2026-09-13 when they adopted the
+wire (owner rulings 1 and 2); no tool under ops/conductor/tools/ is
+placed as pending.

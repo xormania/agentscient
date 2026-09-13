@@ -688,9 +688,13 @@ class MatrixHookTests(unittest.TestCase):
         """Owner, 2026-09-12: "i have the right to issue a hand grant to change
         CI and tests - but ... only done in isolation". The wall machinery,
         not every test file; enforced in-session."""
+        # owner, 2026-09-13 ("Add matrix.py and the hooks test directory to
+        # the wall paths"): the rows and their tests guard the file that
+        # defines them.
         for target in (".github/workflows/ci.yml", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
                        "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
-                       "ops/devlane/hooks/claude/engine.py"):
+                       "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/test_matrix.py",
+                       "ops/devlane/hooks/tests/test_engine.py", "ops/devlane/hooks/claude/engine.py"):
             with self.subTest(target=target):
                 self.assert_denied(self.run_bash(f"echo x >> {target}"), "wall-write")
                 self.assert_denied(self.run_bash(f"HAND_GRANT={GRANT_OPEN} echo x >> {target}"), "wall-write")
@@ -1032,7 +1036,8 @@ class MatrixHookTests(unittest.TestCase):
                 proc = self.run_bash(cmd)
                 self.assert_denied(proc, "deliverable")
                 self.assertIn("lane/one, lane/two", proc.stdout)
-                self.assertIn("deliverable.py clear", proc.stdout)
+                self.assertIn("deliverable.py add", proc.stdout)
+                self.assertNotIn("deliverable.py clear", proc.stdout)
 
     def test_the_named_branches_stay_open_in_parallel(self):
         self._lock("lane/one", "lane/two")
@@ -1063,7 +1068,7 @@ class MatrixHookTests(unittest.TestCase):
         return self.home / ".local" / "state" / LANE_NAME / "graft-first.log"
 
     def test_a_content_search_over_a_code_root_is_refused_with_the_graft_query(self):
-        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        proc = self.run_bash("grep -rn 'def foo' docs/")
         self.assert_denied(proc, "graft-first")
         self.assertIn("graft_find_code", proc.stdout)
         self.assertIn("def foo", proc.stdout)
@@ -1077,7 +1082,7 @@ class MatrixHookTests(unittest.TestCase):
                    / f"{hashlib.sha256(root.encode()).hexdigest()}.context.json")
         context.parent.mkdir(parents=True)
         context.write_text("{}")
-        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        proc = self.run_bash("grep -rn 'def foo' docs/")
         self.assert_denied(proc, "graft-first")
         self.assertIn(f"--context {context}", proc.stdout)
         self.assertNotIn("prepare --root", proc.stdout)
@@ -1095,9 +1100,39 @@ class MatrixHookTests(unittest.TestCase):
 
     def test_a_grant_does_not_escape_graft_first(self):
         self.assert_denied(
-            self.run_bash(f"HAND_GRANT={GRANT_OPEN} grep -n foo docs/README.md"),
+            self.run_bash(f"HAND_GRANT={GRANT_OPEN} grep -rn foo docs/"),
             "graft-first",
         )
+
+    def test_a_single_file_grep_and_a_data_file_grep_are_reads_not_navigation(self):
+        # owner, 2026-09-13 (token thrift #3): a refused turn costs the whole
+        # context; one file is a read, and Graft indexes no conf, json or md.
+        self.assert_allowed(self.run_bash("grep -n 'def foo' docs/README.md"))
+        self.assert_allowed(self.run_bash("grep -n MODEL ops/lane.conf"))
+        self.assert_allowed(self.run_bash("rg -n plan ops/devlane/task/jobs.json ops/conductor/stage-sets.json"))
+        self.assert_allowed(self.run_bash("grep -rn dependabot ops/conductor/handoff/x.md ops/conductor/ideas/y.md"))
+        self.assert_denied(self.run_bash("rg -n cap_out ops/devlane/dispatch/launch.py ops/devlane/telemetry/breaker.py"), "graft-first")
+
+    def test_a_bare_code_root_directory_is_navigation_not_a_single_file(self):
+        # Code review 20260913T105222Z-review-grok-00b782 (Grok), finding 1 on
+        # PR #197: the one-named-file exemption read any basename with a dot as
+        # a file, so `rg pattern .github` walked a code root while `.github/`
+        # refused. A target that names a code-root directory is navigation.
+        self.assert_denied(self.run_bash("rg pattern .github"), "graft-first")
+        self.assert_denied(self.run_bash("grep -rn foo .claude"), "graft-first")
+        self.assert_allowed(self.run_bash("grep -n MODEL ops/lane.conf"))
+        self.assert_allowed(self.run_bash("grep -n 'def foo' docs/README.md"))
+
+    def test_a_combined_short_flag_carrying_l_or_c_is_a_file_list_or_a_count(self):
+        # owner, 2026-09-13 ("hand grant ok'd to fix"): the refusal text says a
+        # count or a file list stays allowed, but the row matched -l and -c
+        # only as whole tokens; grep -rl refused three times in one session,
+        # each a whole-context turn (LD-33). A combined short flag is split.
+        self.assert_allowed(self.run_bash("grep -rl token-thrift ops/conductor/"))
+        self.assert_allowed(self.run_bash("grep -rlc token-thrift ops/conductor/"))
+        self.assert_allowed(self.run_bash("rg -nl cap_out ops/devlane/dispatch/ ops/devlane/telemetry/"))
+        self.assert_allowed(self.run_bash("grep -rnc cap_out ops/devlane/dispatch/"))
+        self.assert_denied(self.run_bash("grep -rn cap_out ops/devlane/dispatch/"), "graft-first")
 
     def test_a_graft_query_is_allowed_and_logged(self):
         self.assert_allowed(self.run_bash(

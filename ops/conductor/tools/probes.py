@@ -22,7 +22,17 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import NoReturn
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, emit, refuse
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
 
 CORPUS = Path("ops/conductor/handoff/probes")
 GIT = shutil.which("git") or "git"
@@ -42,11 +52,6 @@ RG_SHORT_SPAWNING = "z"
 RG_SHORT_WITH_VALUE = "efgtTmABCEMrjd"
 DEFAULT_TIMEOUT = 60.0
 STATUSES = ("SERVED", "ABSENT")
-
-
-def refuse(klass: str, expected: str, found: str, needed: str) -> NoReturn:
-    sys.stderr.write(f"{klass}: expected {expected}; found {found}; needed {needed}\n")
-    sys.exit(2)
 
 
 def repo_root() -> Path:
@@ -149,7 +154,14 @@ def load_corpus(root: Path) -> list[dict]:
                 command = _text(row, "absent", where)
             else:
                 command = _text(row, "serve", where)
-                _text(row, "expect", where)
+                expect = _text(row, "expect", where)
+                if "\n" in expect:
+                    # Pitfall 30: an expect that pins two entries of a sorted
+                    # list as adjacent breaks when any session inserts a
+                    # neighbour; a row pins membership, one line.
+                    refuse("corpus", "an `expect` on one line (pin membership, one entry per row)",
+                           f"an expect spanning {expect.count(chr(10)) + 1} lines at {where} ({rid})",
+                           "split it, one row per line it pins")
                 if kind == "nearmiss":
                     _text(row, "premise_flaw", where)
             try:
@@ -279,15 +291,17 @@ def verb_grade(root: Path, file: str) -> int:
 
 
 def main(argv: list[str]) -> int:
-    if argv == ["run"]:
-        return verb_run(repo_root())
-    if argv == ["ask"]:
-        return verb_ask(repo_root())
-    if len(argv) == 2 and argv[0] == "grade":
-        return verb_grade(repo_root(), argv[1])
-    refuse("arguments", "run | ask | grade FILE", " ".join(argv) or "nothing",
-           "choose one verb with exactly its arguments")
-    return 2
+    try:
+        if argv == ["run"]:
+            return verb_run(repo_root())
+        if argv == ["ask"]:
+            return verb_ask(repo_root())
+        if len(argv) == 2 and argv[0] == "grade":
+            return verb_grade(repo_root(), argv[1])
+        refuse("arguments", "run | ask | grade FILE", " ".join(argv) or "nothing",
+               "choose one verb with exactly its arguments")
+    except Refusal as refusal:
+        return emit(refusal)
 
 
 if __name__ == "__main__":
