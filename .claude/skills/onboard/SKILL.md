@@ -15,10 +15,15 @@ F1), and this skill exists so a session never starts on it.
 
 1. Run `python3 ops/conductor/tools/onboard.py` from the repo root
    and read the whole brief.
-2. **`== law`** — read every `OK` file you have not read this session,
-   in table order; AGENTS.md and the instrument conventions before
-   anything else. An `ABSENT` line is a finding: name it to the owner,
-   do not shrug it.
+2. **`== law`** — read, in table order, the `OK` files you have not read
+   this session among AGENTS.md, CONTRIB.md, the instrument conventions,
+   the stack and the coverage zones; AGENTS.md and the instrument
+   conventions before anything else. The discovery lever and the
+   conductor start plan (112 KB together, about 30k tokens, an unbuilt
+   command) are read only when the task touches discovery or `conduct`
+   (owner, 2026-09-13: token thrift #2; measured: the seven files are
+   146 KB and every session re-read them into every later turn). An
+   `ABSENT` line is a finding: name it to the owner, do not shrug it.
 3. **`== state`** — treat these lines as the only current truth about
    register, ledger, PRs, and dispatches. What you remember about any
    of them is stale by definition; what the brief measured is the

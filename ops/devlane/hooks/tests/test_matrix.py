@@ -1063,7 +1063,7 @@ class MatrixHookTests(unittest.TestCase):
         return self.home / ".local" / "state" / LANE_NAME / "graft-first.log"
 
     def test_a_content_search_over_a_code_root_is_refused_with_the_graft_query(self):
-        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        proc = self.run_bash("grep -rn 'def foo' docs/")
         self.assert_denied(proc, "graft-first")
         self.assertIn("graft_find_code", proc.stdout)
         self.assertIn("def foo", proc.stdout)
@@ -1077,7 +1077,7 @@ class MatrixHookTests(unittest.TestCase):
                    / f"{hashlib.sha256(root.encode()).hexdigest()}.context.json")
         context.parent.mkdir(parents=True)
         context.write_text("{}")
-        proc = self.run_bash("grep -n 'def foo' docs/README.md")
+        proc = self.run_bash("grep -rn 'def foo' docs/")
         self.assert_denied(proc, "graft-first")
         self.assertIn(f"--context {context}", proc.stdout)
         self.assertNotIn("prepare --root", proc.stdout)
@@ -1095,9 +1095,18 @@ class MatrixHookTests(unittest.TestCase):
 
     def test_a_grant_does_not_escape_graft_first(self):
         self.assert_denied(
-            self.run_bash(f"HAND_GRANT={GRANT_OPEN} grep -n foo docs/README.md"),
+            self.run_bash(f"HAND_GRANT={GRANT_OPEN} grep -rn foo docs/"),
             "graft-first",
         )
+
+    def test_a_single_file_grep_and_a_data_file_grep_are_reads_not_navigation(self):
+        # owner, 2026-09-13 (token thrift #3): a refused turn costs the whole
+        # context; one file is a read, and Graft indexes no conf, json or md.
+        self.assert_allowed(self.run_bash("grep -n 'def foo' docs/README.md"))
+        self.assert_allowed(self.run_bash("grep -n MODEL ops/lane.conf"))
+        self.assert_allowed(self.run_bash("rg -n plan ops/devlane/task/jobs.json ops/conductor/stage-sets.json"))
+        self.assert_allowed(self.run_bash("grep -rn dependabot ops/conductor/handoff/x.md ops/conductor/ideas/y.md"))
+        self.assert_denied(self.run_bash("rg -n cap_out ops/devlane/dispatch/launch.py ops/devlane/telemetry/breaker.py"), "graft-first")
 
     def test_a_graft_query_is_allowed_and_logged(self):
         self.assert_allowed(self.run_bash(
