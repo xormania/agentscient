@@ -85,6 +85,7 @@ LANE_COPY_PATHS = (
     "ops/bin/suites.sh",
     "ops/bin/dispatch.sh",
     "ops/conductor/tools/dispatch.sh",
+    "ops/conductor/tools/instrument.py",
     "ops/conductor/tools/laneconf.py",
     "ops/devlane/dispatch/launch.py",
     "ops/lane.conf",
