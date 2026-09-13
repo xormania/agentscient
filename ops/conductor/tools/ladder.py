@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 import os
 import re
@@ -15,13 +14,27 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
-from types import ModuleType
 from typing import NoReturn
 from urllib.parse import urlsplit
 
-IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<email>[^<>\s@]+@[^<>\s]+)>")
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings. `Refused` is this driver's name for the shared
+# refusal class; its suites and Stopped's callers keep the name.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import IDENTITY, now, refuse
+    from instrument import Refusal as Refused
+    from instrument import conf as conf_value
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
 RECORD_ID = re.compile(r"^record:\s+(\S+)\s*$", re.MULTILINE)
 LANDED = re.compile(r"^LANDED\t([0-9a-f]{40})\t", re.MULTILINE)
 RECORD_ID_SHAPE = re.compile(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$")
@@ -141,23 +154,6 @@ CONF_KEYS = (
 )
 
 
-class Refused(Exception):
-    """A pre-act rejection on the shared refusal wire."""
-
-    def __init__(self, kind: str, expected: str, found: str, needed: str) -> None:
-        self.kind = kind
-        self.expected = expected
-        self.found = found
-        self.needed = needed
-        super().__init__(self.line())
-
-    def line(self) -> str:
-        return " ".join(
-            f"{self.kind}: expected {self.expected}; found {self.found}; "
-            f"needed {self.needed}".split()
-        )
-
-
 class Stopped(Exception):
     """A mid-act stop after the ladder has a durable record."""
 
@@ -204,13 +200,6 @@ class Pending:
     started: float
 
 
-_LANECONF: ModuleType | None = None
-
-
-def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
-    raise Refused(kind, expected, found, needed)
-
-
 RESUME_FORM = "resume LADDER_ID [--rescope] [--retry STAGE --because TEXT]"
 
 
@@ -252,54 +241,12 @@ def resume_options(args: list[str]) -> tuple[bool, tuple[str, str] | None]:
     return rescope, (stage, because)
 
 
-def _load_laneconf() -> ModuleType:
-    global _LANECONF  # noqa: PLW0603 - one lazily loaded sibling module
-    if _LANECONF is not None:
-        return _LANECONF
-    candidates = (
-        Path(__file__).resolve().with_name("laneconf.py"),
-        Path.cwd() / "ops" / "conductor" / "tools" / "laneconf.py",
-    )
-    for path in candidates:
-        if not path.is_file():
-            continue
-        spec = importlib.util.spec_from_file_location("ladder_laneconf", path)
-        if spec is None or spec.loader is None:
-            continue
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        _LANECONF = module
-        return module
-    refuse(
-        "conf-file",
-        "the lane conf reader beside the driver or in the invoking checkout",
-        "laneconf.py absent",
-        "restore ops/conductor/tools/laneconf.py",
-    )
-
-
-def conf_value(name: str) -> str:
-    module = _load_laneconf()
-    try:
-        return module.get(name)
-    except module.ConfigError as error:
-        kind = "conf-key" if error.kind == "key" else error.kind
-        refuse(kind, error.expected, error.found, error.needed)
-
-
 def configuration() -> dict[str, str]:
     """Read every driver-owned required key through the shared reader."""
-    laneconf = _load_laneconf()
-    try:
-        return {
-            "WORKTREE_ROOT": laneconf.get("WORKTREE_ROOT"),
-            "ADDRESS_GROK": laneconf.get("ADDRESS_GROK"),
-            "ADDRESS_CODEX": laneconf.get("ADDRESS_CODEX"),
-            "ADDRESS_CLAUDE": laneconf.get("ADDRESS_CLAUDE"),
-        }
-    except laneconf.ConfigError as error:
-        kind = "conf-key" if error.kind == "key" else error.kind
-        refuse(kind, error.expected, error.found, error.needed)
+    return {
+        key: conf_value(key)
+        for key in ("WORKTREE_ROOT", "ADDRESS_GROK", "ADDRESS_CODEX", "ADDRESS_CLAUDE")
+    }
 
 
 SEVERITIES = ("p1", "p2", "p3")
@@ -504,7 +451,7 @@ def digest(path: Path) -> str:
 
 
 def utc_stamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return now().strftime("%Y%m%dT%H%M%SZ")
 
 
 def full_identity(value: str, label: str) -> str:
@@ -699,7 +646,7 @@ class Driver:
 
     def new_record(self) -> dict:
         suffix = hashlib.sha256(
-            f"{os.getpid()}:{datetime.now(timezone.utc).timestamp()}".encode()
+            f"{os.getpid()}:{now().timestamp()}".encode()
         ).hexdigest()[:6]
         ladder_id = f"{utc_stamp()}-ladder-{suffix}"
         base_sha = git_out(self.worktree, "rev-parse", "HEAD")
