@@ -29,7 +29,7 @@ from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import Refusal, emit, identity, now, refuse
+    from instrument import GIT, Refusal, emit, identity, now, refuse
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -42,12 +42,12 @@ PAGE = Path("ops/conductor/handoff/lane-defects.md")
 ROWS = Path("ops/conductor/handoff/lane-defects")
 FIELDS = ("where", "defect", "repair", "tests")
 ID = re.compile(r"^LD-(\d+)$")
-TABLE_ID = re.compile(r"^\| LD-(\d+) \|", re.M)
+TABLE_ID = re.compile(r"^\| LD-(\d+) \|", re.MULTILINE)
 FILE_ID = re.compile(r"^LD-(\d+)\.md$")
 
 
 def repo_root() -> Path:
-    proc = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False)
+    proc = subprocess.run([GIT, "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False)
     if proc.returncode != 0 or not proc.stdout.strip():
         refuse("repository", "a git repository at the working directory", os.getcwd(),
                "run the lever from inside the repository whose ledger it writes")
@@ -134,7 +134,7 @@ def do_list(root: Path) -> int:
                 entries.append((int(m.group(1)), entry))
     for _, entry in sorted(entries):
         text = (rows / entry).read_text(encoding="utf-8")
-        field = dict(re.findall(r"^\| (\w+) \| (.*) \|$", text, re.M))
+        field = dict(re.findall(r"^\| (\w+) \| (.*) \|$", text, re.MULTILINE))
         print(f"{entry[:-3]} {field.get('observed', '?')} {field.get('where', '?')}")
     return 0
 
