@@ -1113,6 +1113,16 @@ class MatrixHookTests(unittest.TestCase):
         self.assert_allowed(self.run_bash("grep -rn dependabot ops/conductor/handoff/x.md ops/conductor/ideas/y.md"))
         self.assert_denied(self.run_bash("rg -n cap_out ops/devlane/dispatch/launch.py ops/devlane/telemetry/breaker.py"), "graft-first")
 
+    def test_a_bare_code_root_directory_is_navigation_not_a_single_file(self):
+        # Code review 20260913T105222Z-review-grok-00b782 (Grok), finding 1 on
+        # PR #197: the one-named-file exemption read any basename with a dot as
+        # a file, so `rg pattern .github` walked a code root while `.github/`
+        # refused. A target that names a code-root directory is navigation.
+        self.assert_denied(self.run_bash("rg pattern .github"), "graft-first")
+        self.assert_denied(self.run_bash("grep -rn foo .claude"), "graft-first")
+        self.assert_allowed(self.run_bash("grep -n MODEL ops/lane.conf"))
+        self.assert_allowed(self.run_bash("grep -n 'def foo' docs/README.md"))
+
     def test_a_combined_short_flag_carrying_l_or_c_is_a_file_list_or_a_count(self):
         # owner, 2026-09-13 ("hand grant ok'd to fix"): the refusal text says a
         # count or a file list stays allowed, but the row matched -l and -c
