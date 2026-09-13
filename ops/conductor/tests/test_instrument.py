@@ -54,6 +54,7 @@ MIGRATED: tuple[str, ...] = (
     "land.py",
     "lane_mcp.py",
     "lane_read.py",
+    "ledger.py",
     "monitor.py",
     "onboard.py",
     "watch.py",

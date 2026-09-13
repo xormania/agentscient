@@ -12,7 +12,8 @@ Reliability is the count below trending to zero per ladder.
 Rows LD-1 to LD-35 sit in the table below and the table is frozen there.
 From LD-36 a row is its own file under `lane-defects/`, written by
 `python3 ops/conductor/tools/defects.py add --where W --defect D --repair R --tests T`
-and read by `defects.py list` and `defects.py show LD-NN`: two sessions'
+(a shim over `ledger.py add defects`) and read by `defects.py list` and
+`defects.py show LD-NN`: two sessions'
 rows then merge as two additions instead of conflicting on this table
 (three of five merge-forwards since 2026-09-11 conflicted here). The only
 conflict left is the same id minted by two sessions before either lands,

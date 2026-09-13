@@ -1,10 +1,10 @@
-# AAR — 2026-09-13, the token question; LD-33, LD-34; the ledger's shape; the dispatcher tests' tree
+# AAR — 2026-09-13, the token question; LD-33, LD-34; the ledgers' shape; the dispatcher tests' tree
 
 Session record by Claude Fable 5.1 on `lane/session-20260913-b` (#179,
 `37750dd0`), `-c` (#180 `23a30592`, #182 `e7e0d41e`), `-d` (#184
-`39cf7d81`) and `-e`, all cut from dev. Measured at write time: `-e` at
-`7d7e3714`, its PR not yet open; grants 188 to 194 settled, 195 open; the
-lock names `-n`, `-a`, `-b`, `-c`, `-d`, `-e`. The
+`39cf7d81`), `-e` (#185 `1c7fd5ee`) and `-f`, all cut from dev. Measured
+at write time: `-f` at `725109a5`, its PR not yet open; grants 188 to 195
+settled, 196 open; the lock names `-n`, `-a`, `-b` to `-f`. The
 [handoff](handoff/HANDOFF-2026-09-13-graft-flags.md) carries the next thread.
 
 ## Request and outcome
@@ -16,7 +16,9 @@ issue"; "hand grant ok'd - Add matrix.py and the hooks test directory to
 the wall paths"; "hand grant ok'd close the open thing, in LD-34"; "re: other
 session #181 - is that an issue? should we fix it?"; "can you communicate with
 other claude session - verify that its not fixing those issues first. If its
-not, hand grant - fix issue #1 - PR and merge, then issue #2 - PR and merge".
+not, hand grant - fix issue #1 - PR and merge, then issue #2 - PR and merge";
+"hand grant ok'd fix the pitfalls page - in fact anything similar - fix it -
+agents need to work in parallel".
 
 - Answer given at `cb716534`: thrift 2, 3 and 4 landed in #175 (`4fdc6d0e`);
   class 1, context churn, has no code countermeasure, its remedy is the
@@ -43,11 +45,18 @@ not, hand grant - fix issue #1 - PR and merge, then issue #2 - PR and merge".
   (next, add, show, list) writes one file per row under `lane-defects/`
   from LD-36; the table is frozen at LD-35. Red 6 then 6 OK; conventions
   gate 18 OK; the consolidation gate named the new tool and gained it.
-- **Issue 2, the CI signal** (`7d7e3714`): the dispatcher wrapper tests
+- **Issue 2, the CI signal** (#185, merged `1c7fd5ee`): the dispatcher wrapper tests
   dispatched against the live checkout, so a branch behind or conflicting
   with dev failed a dozen of them with stale-base (#175, #182). The fixture
   builds a scratch repository with no origin ref. Red 1 of 2 then 2 OK;
   the four wrapper suites 100 OK; suites.sh 2972 tests, exit 0.
+- **Anything similar** (`-f`, `725109a5`): measured since 2026-09-11, only
+  the pitfalls page shared the appended-table shape (4 commits, one
+  conflict); ideas are one file each, the other ledgers SQLite. ledger.py
+  names each ledger as data (defects, pitfalls); defects.py is a shim over
+  it; pitfalls from row 30 are files. Red 5 then 5 OK; test_defects 6 OK
+  through the shim; conventions 18 OK; consolidation 32 OK; corpus 128
+  pass. Pitfall 30 is the first row through the lever.
 - Session agentscient-5e, asked first, held branch `-a`, grant 193 and #183
   and said neither issue was in its scope; agentscient-8e did not answer.
 
@@ -78,6 +87,11 @@ not, hand grant - fix issue #1 - PR and merge, then issue #2 - PR and merge".
 - **#182's lane job failed on the very defect it was recording**: #181 had
   landed LD-35 in the same table; resolved by merging dev forward at
   `47c3a540`.
+- **A neighbour's corpus row broke on my insert**: suites.sh at `67643ad0`
+  had one red, session -a's P-MON-20260913-gate pinning two entries of the
+  sorted MIGRATED list as adjacent; ledger.py landed between them. Narrowed
+  to membership at `725109a5`, the other session told; my own P-LEDGER row
+  had pinned a moving count the same way and was pinned to row 30.
 - **A push refused stale**: dev moved five commits (#183) between my
   commit and the push on `-d`; merged forward at `4dfd968b`, no conflict.
 - **One unbounded read of my own**: `probes.py run` prints one JSON line
@@ -102,3 +116,6 @@ not, hand grant - fix issue #1 - PR and merge, then issue #2 - PR and merge".
   112 at the close, run from the tree at `23a30592` plus the closing row.
 - Corpus: 119 pass at `f6494db0`; suites.sh on `-e` at `7d7e3714`: 2972
   tests, exit 0; ruff over ops/conductor: all checks passed.
+- suites.sh on `-f` at `67643ad0`: 2977 tests, one red (the corpus row
+  above); corpus 128 pass and test_probes 22 OK at `725109a5`; the whole
+  suite not re-run on the host after that commit, CI is the reading.
