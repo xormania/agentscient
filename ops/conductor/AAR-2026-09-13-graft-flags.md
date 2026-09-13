@@ -2,10 +2,11 @@
 
 Session record by Claude Fable 5.1 on `lane/session-20260913-b` (#179,
 `37750dd0`), `-c` (#180 `23a30592`, #182 `e7e0d41e`), `-d` (#184
-`39cf7d81`), `-e` (#185 `1c7fd5ee`) and `-f`, all cut from dev. Measured
-at write time: `-f` at `725109a5`, its PR not yet open; grants 188 to 195
-settled, 196 open; the lock names `-n`, `-a`, `-b` to `-f`. The
-[handoff](handoff/HANDOFF-2026-09-13-graft-flags.md) carries the next thread.
+`39cf7d81`), `-e` (#185 `1c7fd5ee`), `-f` (#186 `d8eec5c7`) and `-g`, all
+cut from dev. Measured at write time: `-g` at `5975dabe`, its PR not yet
+open; grants 188 to 196 settled, 198 open; the lock names `-n`, `-a`, `-b`
+to `-g`. The [handoff](handoff/HANDOFF-2026-09-13-graft-flags.md) carries
+the next thread.
 
 ## Request and outcome
 
@@ -18,7 +19,9 @@ session #181 - is that an issue? should we fix it?"; "can you communicate with
 other claude session - verify that its not fixing those issues first. If its
 not, hand grant - fix issue #1 - PR and merge, then issue #2 - PR and merge";
 "hand grant ok'd fix the pitfalls page - in fact anything similar - fix it -
-agents need to work in parallel".
+agents need to work in parallel"; "So are the issues sorted out for parallel
+work?"; "i'd get minimize parallel work conflicts - hand grant ok'd for
+fixing"; "make sure to co-ordinate with other session to de-conflict".
 
 - Answer given at `cb716534`: thrift 2, 3 and 4 landed in #175 (`4fdc6d0e`);
   class 1, context churn, has no code countermeasure, its remedy is the
@@ -56,7 +59,18 @@ agents need to work in parallel".
   names each ledger as data (defects, pitfalls); defects.py is a shim over
   it; pitfalls from row 30 are files. Red 5 then 5 OK; test_defects 6 OK
   through the shim; conventions 18 OK; consolidation 32 OK; corpus 128
-  pass. Pitfall 30 is the first row through the lever.
+  pass. Pitfall 30 is the first row through the lever. #186 merged `d8eec5c7`.
+- **Parallel conflicts, the four standing items** (answered at `d8eec5c7`):
+  the lock only grows (LD-28); sorted placement lists in the consolidation
+  gate; the same ledger id minted twice; corpus rows pinning neighbours.
+  On `-g` (`5975dabe`): `deliverable.py remove` (red 1 then OK, lever suite
+  6 OK; LD-28 closed) and ledger.py minting past origin/<trunk> after a
+  bounded fetch (red '30' != '31' then OK; test_ledger 6 OK). suites.sh
+  2979 tests, exit 0; corpus 131 pass. The placement lists are the other
+  session's file in flight: agentscient-5e chose to land #187 first and
+  leave the move to registry files to this session after it. The
+  neighbour-pinning class is practice (pitfall 30); a corpus-shape rule in
+  probes.py is a wall change, not done.
 - Session agentscient-5e, asked first, held branch `-a`, grant 193 and #183
   and said neither issue was in its scope; agentscient-8e did not answer.
 
@@ -116,6 +130,7 @@ agents need to work in parallel".
   112 at the close, run from the tree at `23a30592` plus the closing row.
 - Corpus: 119 pass at `f6494db0`; suites.sh on `-e` at `7d7e3714`: 2972
   tests, exit 0; ruff over ops/conductor: all checks passed.
+- suites.sh on `-g` at `5975dabe`: 2979 tests, exit 0; corpus 131 pass.
 - suites.sh on `-f` at `67643ad0`: 2977 tests, one red (the corpus row
   above); corpus 128 pass and test_probes 22 OK at `725109a5`; the whole
   suite not re-run on the host after that commit, CI is the reading.
