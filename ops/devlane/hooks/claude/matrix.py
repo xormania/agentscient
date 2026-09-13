@@ -1059,7 +1059,8 @@ def deliverable(toks, cwd, lane):
                         f"(locked {lock.get('at', '?')} by {lock.get('by', '?')}: {lock.get('why', '')})",
                         f"{what} {branch}",
                         "finish the deliverable; record what you found in the ledger; "
-                        "python3 ops/conductor/tools/deliverable.py clear lifts the lock when it lands")
+                        "python3 ops/conductor/tools/deliverable.py add <branch> names a new "
+                        "session's branch beside these, and remove lifts it when its work lands")
     return None
 
 
