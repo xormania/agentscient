@@ -23,13 +23,12 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    from instrument import GIT, Refusal, emit, identity, now, refuse
+    from instrument import Refusal, emit, git, identity, now, refuse
 except ModuleNotFoundError:
     print(
         "tooling: expected instrument.py beside this tool; found absent; "
@@ -47,7 +46,7 @@ FILE_ID = re.compile(r"^LD-(\d+)\.md$")
 
 
 def repo_root() -> Path:
-    proc = subprocess.run([GIT, "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False)
+    proc = git("rev-parse", "--show-toplevel")
     if proc.returncode != 0 or not proc.stdout.strip():
         refuse("repository", "a git repository at the working directory", os.getcwd(),
                "run the lever from inside the repository whose ledger it writes")
