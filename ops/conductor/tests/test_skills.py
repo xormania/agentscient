@@ -13,6 +13,7 @@ XDG_STATE_HOME; `sync` reads the repository's own .claude/skills/.
 from __future__ import annotations
 
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -114,6 +115,33 @@ class TheStore(_Fixture):
         proc = self.run_tool("sync")
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("synced:", proc.stdout)
+
+
+class TheDetail(_Fixture):
+    """Security audit 20260913T104919Z-review-codex-9126d3 (Daybreak), finding 4:
+    the skill-use hook hands every Skill call's arguments to `log-use`, and
+    the lever stored them verbatim, so a secret typed into a skill's
+    arguments entered a durable log. The lever is the one place a detail
+    enters the store, for the hook and the hand command alike."""
+
+    def stored(self, sql):
+        with sqlite3.connect(self.state / "agentscient" / "skills.db") as con:
+            return [row[0] or "" for row in con.execute(sql)]
+
+    def test_secret_shaped_values_never_reach_the_store(self):
+        self.assertEqual(self.run_tool("add", "planned", "a planned skill").returncode, 0)
+        token = "ghp_" + "A" * 36
+        detail = f"password=hunter2 token: {token} api_key=abc123 keep this"
+        proc = self.run_tool("log-use", "planned", detail)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = self.run_tool("wish", "absent", f"needs secret={token}")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        stored = " ".join(self.stored("SELECT detail FROM skill_events")
+                          + self.stored("SELECT description FROM skills WHERE name='absent'"))
+        for secret in ("hunter2", token, "abc123"):
+            self.assertNotIn(secret, stored)
+        self.assertIn("keep this", stored)
+        self.assertIn("[redacted]", stored)
 
 
 if __name__ == "__main__":

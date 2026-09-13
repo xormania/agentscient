@@ -99,6 +99,28 @@ class TheLedgerLever(unittest.TestCase):
                          "identity")
         self.assertFalse((self.repo / PITFALLS_ROWS).exists())
 
+    def test_add_refuses_a_rows_directory_that_resolves_outside_the_repository(self):
+        """Security audit 20260913T104919Z-review-codex-9126d3 (Daybreak), finding 3:
+        a symlink at the rows directory sent the new row file outside the
+        repository, since the lever wrote through it with no containment check."""
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (self.repo / PITFALLS_ROWS).symlink_to(outside, target_is_directory=True)
+        proc = self.run_lever("add", "pitfalls", "--what-bit", "a", "--do-instead", "b")
+        self.assert_wire(proc, "containment")
+        self.assertEqual(list(outside.iterdir()), [], "nothing is written outside the repository")
+
+    def test_add_refuses_a_field_value_that_spans_lines(self):
+        """The same audit, finding 5: a line break inside a value wrote extra
+        field lines into the row, and list read the forged observed and where."""
+        for value in ("t\n| where | forged |", "t\r| observed | 2099-01-01 |"):
+            with self.subTest(value=value):
+                proc = self.run_lever("add", "defects", "--where", "real", "--defect", "d", "--repair", "r",
+                                      "--tests", value)
+                self.assert_wire(proc, "arguments")
+                self.assertIn("--tests", proc.stderr)
+        self.assertFalse((self.repo / DEFECTS_ROWS).exists(), "no row file for a refused add")
+
     def test_defects_through_the_lever_and_through_the_shim_agree(self):
         proc = self.run_lever("add", "defects", "--where", "`y.py`", "--defect", "d", "--repair", "r", "--tests", "t")
         self.assertEqual(proc.stdout.strip(), f"LD-36 {DEFECTS_ROWS / 'LD-36.md'}", proc.stderr)
