@@ -1,11 +1,17 @@
 # Handoff — 2026-09-13, LD-33, LD-34, the ledgers' shape, the dispatcher tests' tree
 
 Record by Claude Fable 5.1 on `lane/session-20260913-b` (#179), `-c`
-(#180, #182), `-d` (#184), `-e` (#185), `-f` (#186), `-g` (#188) and `-h`. The board, PRs and grants are re-measured by
+(#180, #182), `-d` (#184), `-e` (#185), `-f` (#186), `-g` (#188), `-h` (#190)
+and `-j` (this close). Closed at the owner's word, dev `c7245c6c`. The
+board, PRs and grants are re-measured by
 `onboard.py`, not taken from here.
 
 ## Where things stand
 
+- Closed: every branch of this session merged; no open PR; grants 185 and
+  188 to 200 settled, 203 settles against this close's PR; the lock names
+  `-i` (the new session, wall grants 201 and 202, laneconf.py and probes.py
+  onto instrument.py) and `-j`. Nothing of this session's is in flight.
 - PR #179 (`2c983635`), draft: graft-first splits combined short flags so
   `-rl` and `-rnc` read as a file list or a count, as the refusal text
   promised. LD-33 in the defect ledger; three corpus rows in
@@ -45,9 +51,13 @@ Record by Claude Fable 5.1 on `lane/session-20260913-b` (#179), `-c`
   gate reads the directory. Not in the registry files, since the
   conventions gate refuses empty rows and a no-wire tool has none. Still
   open, both wall changes for a wall session: a corpus-shape rule against
-  expects that span lines (probes.py; pitfall 30 is the practice), and the
-  hook's deliverable remedy that still says `clear` (matrix.py, one line).
-- Grants 185 and 188 to 198 settled; 200 settles against the PR from `-h`.
+  expects that span lines (probes.py; pitfall 30 is the practice; offered
+  to the new session, which is in probes.py under grant 201, to take or
+  leave), and the hook's deliverable remedy that still says `clear`
+  (matrix.py, one line). Also open, not wall: suites.sh runs no ruff on
+  the host while the lane job does (two CI reds today); a fetch before a
+  ledger id is done, the same-id window is now the fetch's age.
+- Grants 185 and 188 to 200 settled; 203 settles against the PR from `-j`.
   Worktrees `../wt/ag-session-20260913-{b,c,d,e,f,g,h}`; every landed branch
   lifted from the lock with `deliverable.py remove`. The other session
   closed (-a, #189 `a93379ca`) and a fresh one onboarded from its handoff;
@@ -56,13 +66,16 @@ Record by Claude Fable 5.1 on `lane/session-20260913-b` (#179), `-c`
   Worktrees `../wt/ag-session-20260913-b` and `-c`.
 - The test kit plan's reading with the owner (HANDOFF-2026-09-13-token-thrift
   §Where things stand) is untouched by this session and stays the thread
-  for the session the owner opens for it.
+  for the session the owner opens for it. The rules that landed today for
+  parallel sessions: defects and pitfalls through the ledger levers; a tool's
+  placement as its own file; `deliverable.py add` before the worktree and
+  `remove` at close; one entry per corpus row.
 
 ## Retrieval
 
 ```sh
 git show dev:ops/conductor/handoff/HANDOFF-2026-09-13-graft-flags.md
-gh pr list --state all --head lane/session-20260913-h --json number,state,mergeCommit
+gh pr list --state all --head lane/session-20260913-j --json number,state,mergeCommit
 ls ops/conductor/placement/
 python3 ops/conductor/tools/ledger.py ledgers
 python3 ops/conductor/tools/hand.py open
