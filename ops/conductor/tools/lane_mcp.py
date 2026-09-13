@@ -8,19 +8,29 @@ sys.dont_write_bytecode = True
 import json  # noqa: E402
 from pathlib import Path  # noqa: E402
 
+# The refusal wire comes from the shared module beside this file and
+# lane_read.py; the script's own directory is already first on sys.path.
+try:
+    from instrument import Refusal, refuse
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 from lane_read import (  # noqa: E402
     DIGEST_RE,
     DISCOVERY_ID_RE,
     DISCOVERY_QUERIES,
     JOB_NAME_RE,
-    Refusal,
     canonical,
     check_result,
     decode_object,
     discovery_arguments,
     load_config,
     matches,
-    refuse,
     strict_json,
 )
 from lane_read import (  # noqa: E402

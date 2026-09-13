@@ -64,7 +64,7 @@ def os_reason(error):
     return 'unreadable'
 
 
-def identity(info):
+def inode_identity(info):
     return info.st_dev, info.st_ino
 
 
@@ -88,7 +88,7 @@ class Anchors:
                 for component in path[1:].split('/'):
                     child = os.open(component, DIR_FLAGS, dir_fd=fd)
                     self.owned.append(child)
-                    self.links.append((fd, component, identity(os.fstat(child))))
+                    self.links.append((fd, component, inode_identity(os.fstat(child))))
                     fd = child
                 info = os.fstat(fd)
                 self.fds[name] = fd
@@ -101,7 +101,7 @@ class Anchors:
         for parent, component, pinned in self.links:
             try:
                 info = os.stat(component, dir_fd=parent, follow_symlinks=False)
-                if not stat.S_ISDIR(info.st_mode) or identity(info) != pinned:
+                if not stat.S_ISDIR(info.st_mode) or inode_identity(info) != pinned:
                     raise Unavailable('changed-during-read')
             except OSError as error:
                 raise Unavailable('changed-during-read') from error
@@ -141,7 +141,7 @@ class Files:
                 raise Unavailable(os_reason(error)) from error
             self.owned.append(child)
             info = os.fstat(child)
-            self.links.append((fd, component, identity(info), stat.S_IFMT(info.st_mode)))
+            self.links.append((fd, component, inode_identity(info), stat.S_IFMT(info.st_mode)))
             if flags == FILE_FLAGS and not stat.S_ISREG(info.st_mode):
                 raise Unavailable('object-type')
             fd = child
@@ -189,7 +189,7 @@ class Files:
         for parent, component, pinned, kind in self.links:
             try:
                 info = os.stat(component, dir_fd=parent, follow_symlinks=False)
-                if identity(info) != pinned or stat.S_IFMT(info.st_mode) != kind:
+                if inode_identity(info) != pinned or stat.S_IFMT(info.st_mode) != kind:
                     raise Unavailable('changed-during-read')
             except OSError as error:
                 raise Unavailable('changed-during-read') from error
@@ -290,7 +290,7 @@ class GitObjects:
                 raise Unavailable('malformed') from error
             if target != declared[self.common]:
                 raise Unavailable('repository-mismatch')
-        elif identity(os.fstat(self.files.anchors.fds[self.gitdir])) != identity(os.fstat(self.files.anchors.fds[self.common])):
+        elif inode_identity(os.fstat(self.files.anchors.fds[self.gitdir])) != inode_identity(os.fstat(self.files.anchors.fds[self.common])):
             raise Unavailable('repository-mismatch')
         # Verify .git as data, never as a redirection to open.
         try:
@@ -300,7 +300,7 @@ class GitObjects:
                 raise Unavailable('unsafe-path')
             if stat.S_ISDIR(info.st_mode):
                 fd = self.files.open('repo', '.git', True)
-                if identity(os.fstat(fd)) != identity(os.fstat(self.files.anchors.fds[self.gitdir])):
+                if inode_identity(os.fstat(fd)) != inode_identity(os.fstat(self.files.anchors.fds[self.gitdir])):
                     raise Unavailable('repository-mismatch')
             elif stat.S_ISREG(info.st_mode):
                 raw = self.files.read('repo', '.git', 4096)

@@ -1,15 +1,61 @@
-# Handoff — 2026-09-13, after the ladder and monitor migrations
+# Handoff — 2026-09-13, after the ladder, monitor and lane-read migrations
 
 Record by Claude Fable 5.1 on `lane/session-20260913-a`, first written at
-`ba4ad806` (PR #181, merged at `ed109e17`) and extended at `b00b23aa` for
-the monitor thread (PR #183); §Second thread below is the current state,
-the sections after it are the ladder thread's record as written. The
+`ba4ad806` (PR #181, merged at `ed109e17`), extended at `b00b23aa` for
+the monitor thread (PR #183, merged at `4b66b31e`), and again at
+`374e6e0f` for the lane-read family (PR #187); §Third thread below is
+the current state, the sections after it are the earlier threads'
+records as written. The
 owner's words that opened the work, after this session reported the
 instrument-consolidation handoff's next thread: "do it - hand grant
 ok'd" (2026-09-13). Onboarded fresh first, as that handoff required
 (`onboard.py` at `cb716534`: brief complete, exit 0). The
 [AAR](../AAR-2026-09-13-ladder-migration.md) carries the readings.
 Re-measure before acting.
+
+## Third thread: lane_read.py, lane_mcp.py, lane_refs.py
+
+Owner, 2026-09-13: "sync with dev branch branch - then hand grant ok'd
+to start lane_read", then "just make sure to co-ordinate with other
+active claude session - so you don't overlap work". Grant 197. Session
+f7 (`lane/session-20260913-d/e/f`, PRs #184, #185, #186) was told the
+file list before the first edit and confirmed none of it was theirs but
+one adjacent line in the gate's MIGRATED list, which merged as one hunk
+(`374e6e0f`).
+
+- PR #187, draft, `lane/session-20260913-a` into dev, head `374e6e0f`
+  at write time (the records commit after this file moves it). Ready
+  waits on the full check set green on the final head; the ready note
+  carries the readings.
+- Commit `15404f6d`: `lane_read.py` imports `Refusal` and `refuse` from
+  the shared module; `lane_mcp.py` takes the same two from instrument
+  with its own tooling fallback ahead of the lane_read import;
+  `lane_refs.py` refuses nowhere, so the gate gained `NO_WIRE` (tools
+  that return outcomes and never refuse, nothing to import) and its
+  inode helper `identity` became `inode_identity` (nine sites).
+  `instrument-conventions.md` names the third placement. The one
+  handler that caught a Refusal as ValueError, `load_config` line 229,
+  names `Refusal` in its tuple, so the v3 config path refuses as before.
+- Readings: gate red at `1c7fd5ee` (Ran 33, failures=3, one per file),
+  green at `15404f6d` (Ran 33 OK); lane MCP suites Ran 50 OK before and
+  after; `suites.sh` at `374e6e0f` all nine OK (conductor Ran 1068);
+  `probes.py run` at `374e6e0f` pass 133, fail 0, unreachable 0.
+- The AST reading across the three files: thirteen `try` statements
+  name ValueError; two catch `Refusal` first; one reached `refuse()`
+  through `validate_discovery_config`, `_consumer`, `_source_path`;
+  ten reach nothing that refuses. `lane_refs` imports no refusing name
+  from `lane_read`; the instrument-consolidation handoff's sentence
+  that it imported `Refusal` and `refuse` was not a measurement.
+- Corpus rows pin one list entry, never two neighbours: f7's `ledger.py`
+  landed between `land.py` and `monitor.py` and broke
+  `P-MON-20260913-gate` (narrowed by f7 in #186, pitfall 30 there);
+  `P-LADDER-20260913-gate` narrowed here in `15404f6d`.
+- Five tools remain in `PENDING`: `laneconf.py`, `probes.py` (wall
+  files, a wall session); `skills.py`, `co_doc.py`, `control.py` (the
+  owner's ruling on adopting the wire; each is a shape change, not a
+  copy removal). Nothing else in the consolidation is a copy removal.
+- Records from now on: defects through `defects.py add`, pitfalls from
+  row 30 through `ledger.py add pitfalls` (f7, #184 and #186).
 
 ## Second thread: monitor.py
 

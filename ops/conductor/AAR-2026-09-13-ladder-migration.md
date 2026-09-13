@@ -1,9 +1,9 @@
-# AAR — 2026-09-13, the ladder and monitor migrations
+# AAR — 2026-09-13, the ladder, monitor and lane-read migrations
 
 Session `lane/session-20260913-a`, Claude Fable 5.1, by hand under
-grants 187 and 193. Written at `ba4ad806` and extended at `b00b23aa`;
-the readings below name the sha each was taken at. The monitor thread
-is the last section.
+grants 187, 193 and 197. Written at `ba4ad806`, extended at `b00b23aa`
+and at `374e6e0f`; the readings below name the sha each was taken at.
+The lane-read thread is the last section.
 
 ## The request, in the owner's words
 
@@ -123,3 +123,33 @@ at `ed109e17`). Grant 193. PR #183.
   quoted word "merged"; the merge sha now sits beside it.
 - Calibration: tokens not measured. Hook refusals this thread: 1
   (claim-unmeasured on a quotation), 0 wrong.
+
+## Third thread: the lane_read family
+
+Owner, 2026-09-13: "sync with dev branch branch - then hand grant ok'd
+to start lane_read". Grant 197. PR #187.
+
+- Coordination, at the owner's word: the file list went to session f7
+  before the first edit; f7 named one adjacent line and two record
+  conventions (defects.py, ledger.py); the one hunk merged at
+  `374e6e0f`. Two sessions inserting into one sorted list is the shape
+  to expect on every consolidation commit; a corpus row that pins two
+  neighbours in such a list breaks on the other session's insert.
+- The AST reading paid for itself a second time: it found the one
+  handler (`load_config` 229) that swallowed a Refusal as ValueError,
+  which a line-by-line read of 2,060 lines would have had to find by
+  eye, and it showed the previous handoff's claim about `lane_refs`
+  importing the refusal class to be wrong (it imports nine names, none
+  refusing). A tool that never refuses needed a third gate placement,
+  not a fake import.
+- Red at `1c7fd5ee` (Ran 33, failures=3), green at `15404f6d` (Ran 33
+  OK); lane MCP Ran 50 OK before and after; `suites.sh` at `374e6e0f`
+  nine suites OK, conductor Ran 1068; corpus pass 133 at `374e6e0f`.
+- What went wrong: ruff wanted the instrument import ahead of the
+  lane_read import, which would have lost the one-line tooling refusal;
+  the fix was lane_mcp's own fallback block, checked by hand (a copy
+  with no instrument.py beside it exits 2 with the line). The first
+  `suites.sh` at `15404f6d` read one red, `P-MON-20260913-gate`, my own
+  row broken by my own insert into the list; the fix was already on dev
+  from f7 and came in with the merge.
+- Calibration: tokens not measured. Hook refusals this thread: 0.
