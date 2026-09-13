@@ -40,6 +40,10 @@ from live_store_guard import assert_unchanged
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "watchdog.py"
+# The tool imports these beside itself (instrument-conventions.md §The
+# shared implementation); a staged copy run from a scratch directory
+# needs them staged too, or it refuses `tooling` before the contract.
+SIBLINGS = ("instrument.py", "laneconf.py")
 CATALOGUE = REPO / "ops" / "devlane" / "task" / "jobs.json"
 
 HARNESS = "watchdog-harness-aa31"
@@ -306,6 +310,13 @@ class _WatchdogFixture(unittest.TestCase):
         self.staged = self.scratch / "watchdog.py"
         self._workers: list[subprocess.Popen] = []
         self._stage_tool_bytes()
+        # The staged copy has no tracked conf beside its reader; the
+        # fixture names one, so the lane under XDG_STATE_HOME is the one
+        # asserted.
+        self.conf = self.staged.parent.parent / "lane.conf"
+        self.conf.write_text(
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n", encoding="utf-8",
+        )
         self.assertFalse(
             self.argv_log.exists(), "plant: argv log must start absent"
         )
@@ -334,6 +345,10 @@ class _WatchdogFixture(unittest.TestCase):
             self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
             self.assertEqual(len(landed), len(data))
             self.assertNotEqual(landed, ABSENT_STUB)
+            for name in SIBLINGS:
+                sibling = TOOL.with_name(name)
+                if sibling.is_file():
+                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
         else:
             self.staged.write_bytes(ABSENT_STUB)
             landed = self.staged.read_bytes()
@@ -672,6 +687,7 @@ class _WatchdogFixture(unittest.TestCase):
             "LC_ALL": "C",
             "LANG": "C",
             "PYTHONDONTWRITEBYTECODE": "1",
+            "LANE_CONF": str(self.conf),
             "PYTHONUNBUFFERED": "1",
         }
         self.assertNotIn("WF_AGENT", env)

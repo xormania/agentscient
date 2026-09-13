@@ -30,6 +30,21 @@ import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, conf, emit, now, parse_stamp, refuse
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 HERE = Path(__file__).resolve()
 JOBS_JSON_CANDIDATES = (
     HERE.parents[2] / "devlane" / "task" / "jobs.json",
@@ -79,45 +94,8 @@ CHECK_BUCKETS = {"pass", "fail", "pending", "skipping", "cancel"}
 SHA_RE = re.compile(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})\Z")
 
 
-def _laneconf():
-    """The conf reader beside this file, or beside the working directory
-    when this file runs as a staged copy; None when neither holds it."""
-    for tools in (HERE.parent, Path.cwd() / "ops" / "conductor" / "tools"):
-        if (tools / "laneconf.py").is_file():
-            if str(tools) not in sys.path:
-                sys.path.insert(0, str(tools))
-            try:
-                import laneconf
-            except ImportError:
-                return None
-            return laneconf
-    return None
-
-
-def conf_value(key):
-    """A key through the conf reader; a missing key is refusal class
-    conf-key, never a literal here."""
-    reader = _laneconf()
-    if reader is not None:
-        try:
-            return reader.get(key)
-        except reader.ConfigError as error:
-            refuse("conf-key", f"{key} in the lane conf", str(error), "define it")
-    refuse("conf-key", "the lane conf reader beside this file or the working directory", "neither", "run from the repository root or set LANE_CONF and keep laneconf.py beside the conf")
-    return None
-
-
-def refuse(cls, expected, found, needed):
-    print(f"{cls}: expected {expected}; found {found}; needed {needed}", file=sys.stderr)
-    sys.exit(2)
-
-
 def say(line):
     print(line, flush=True)
-
-
-def now():
-    return datetime.now(timezone.utc)
 
 
 def store_root(explicit):
@@ -129,17 +107,16 @@ def store_root(explicit):
         return Path(os.environ["DISPATCH_JOBS"])
     state = os.environ.get("XDG_STATE_HOME")
     base = Path(state) if state else Path(os.environ.get("HOME", "")) / ".local/state"
-    return base / conf_value("LANE_NAME") / "dispatch"
+    return base / conf("LANE_NAME") / "dispatch"
 
 
-def parse_stamp(value):
-    if not isinstance(value, str) or not value:
-        return None
+def stamp_or_none(value):
+    """The watchdog reads stamps from files it does not own: a malformed
+    or missing one is None, never a refusal."""
     try:
-        stamp = datetime.fromisoformat(value)
-    except ValueError:
+        return parse_stamp(value)
+    except (TypeError, ValueError):
         return None
-    return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
 
 
 def stamp_of(name):
@@ -373,8 +350,8 @@ class Entry:
         self.summary_envelope = envelope.get("status")
         self.summary_changed = len(changed) if isinstance(changed, list) else "unknown"
         at = rec.get("at") if isinstance(rec.get("at"), dict) else {}
-        self.launched = parse_stamp(at.get("launched")) or stamp_of(self.name)
-        self.closed_at = parse_stamp(at.get("closed"))
+        self.launched = stamp_or_none(at.get("launched")) or stamp_of(self.name)
+        self.closed_at = stamp_or_none(at.get("closed"))
         job = rec.get("job")
         self.job = job.get("name") if isinstance(job, dict) else job
         harness = rec.get("harness")
@@ -876,7 +853,7 @@ def deliverable_lock():
     stopping (stall), so the owner does not have to watch the conductor."""
     state = os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local/state")
     try:
-        lane = conf_value("LANE_NAME")
+        lane = conf("LANE_NAME")
     except Exception:
         return None
     data = read_json(Path(state) / lane / DELIVERABLE_LOCK)
@@ -899,7 +876,7 @@ class Watch:
     def __init__(self, args):
         self.args = args
         self.caps = job_caps()
-        self.trunk = conf_value("TRUNK_BRANCH")
+        self.trunk = conf("TRUNK_BRANCH")
         self.tick = 0
         self.reported = set()
         self.settling_since = {}
@@ -1020,16 +997,16 @@ class Watch:
         if lock is None:
             return
         branches = lock["branches"]
-        since = parse_stamp(lock["at"]) if isinstance(lock.get("at"), str) else None
+        since = stamp_or_none(lock["at"]) if isinstance(lock.get("at"), str) else None
         latest = {}
         for e in all_entries:
             if e.kind in ("error", "no-copy"):
                 continue
             branch = record_branch(e.rec)
-            launched = parse_stamp(e.rec.get("at", {}).get("launched")) if isinstance(e.rec.get("at"), dict) else None
+            launched = stamp_or_none(e.rec.get("at", {}).get("launched")) if isinstance(e.rec.get("at"), dict) else None
             if branch in branches:
                 stamp = e.rec.get("at", {}).get("closed") if e.kind == "closed" else None
-                when = parse_stamp(stamp) if isinstance(stamp, str) else None
+                when = stamp_or_none(stamp) if isinstance(stamp, str) else None
                 if e.kind != "closed":
                     latest[branch] = ("running", e.name, None)
                 elif latest.get(branch, (None,))[0] != "running":
@@ -1304,6 +1281,13 @@ def parse_args(argv):
 
 
 def main(argv=None):
+    try:
+        return _main(argv)
+    except Refusal as refusal:
+        return emit(refusal)
+
+
+def _main(argv=None):
     args = parse_args(sys.argv[1:] if argv is None else argv)
     args.store = store_root(args.store)
     if not args.store.is_dir():
