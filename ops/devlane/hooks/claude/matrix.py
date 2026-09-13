@@ -121,7 +121,13 @@ DISPATCHERS = ("dispatch.sh", "go.sh")
 # code with greps all day and called Graft zero times. A content search over
 # a code root refuses with the Graft query as the remedy. Counts (-c), file
 # lists (-l/-L), a grep reading a pipe, and records paths are not searches.
+# Narrowed (owner, 2026-09-13, token thrift #3; measured: 17 graft-first
+# refusals in one session, each a whole-context turn): one named file is a
+# read, and a conf, json, yaml, markdown or log target is data Graft never
+# indexed; neither is navigation.
 SEARCHERS = ("grep", "egrep", "fgrep", "rg", "ugrep", "evgrep.sh")
+DATA_SUFFIXES = (".json", ".jsonl", ".yaml", ".yml", ".md", ".conf", ".txt", ".toml",
+                 ".cue", ".log", ".lock", ".cfg", ".ini", ".example", ".csv")
 SEARCH_COUNT_FLAGS = {"-c", "--count", "-l", "--files-with-matches", "-L", "--files-without-match"}
 GRAFT_LEVER = "ops/devlane/harness/graft.py"
 GRAFT_LOG = "graft-first.log"
@@ -917,9 +923,13 @@ def graft_first(toks, cwd, root, lane):
     pattern, targets = search_targets(toks)
     if pattern is None:
         return None
+    if len(targets) == 1 and not targets[0].endswith("/") and "." in base(targets[0]):
+        return None  # one named file is a read, not navigation
     hits = []
     for target in targets:
         _, rel = relative(target, cwd)
+        if rel is not None and rel.lower().endswith(DATA_SUFFIXES):
+            continue  # data Graft never indexed
         # a directory target normalises without its slash ("docs/" -> "docs")
         if is_code(rel) or (rel is not None and is_code(rel + "/")):
             hits.append(target)

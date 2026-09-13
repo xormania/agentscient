@@ -21,7 +21,7 @@ REPO = Path(__file__).resolve().parents[3]
 CONF = REPO / "ops" / "lane.conf"
 WRAPPER = REPO / "ops" / "conductor" / "tools" / "dispatch.sh"
 DECL_RE = re.compile(r"^([A-Z][A-Z0-9_]*)='([^']*)'\s*$")
-PLAN_EFFORTS = {"xhigh", "max"}
+PLAN_EFFORTS = {"high"}  # owner, 2026-09-13: token thrift #4; xhigh/max only by --effort at dispatch
 FLOOR = "high"
 
 
