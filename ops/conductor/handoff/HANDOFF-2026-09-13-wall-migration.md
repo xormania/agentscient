@@ -1,9 +1,47 @@
-# Handoff — 2026-09-13, after the wall migration of laneconf.py and probes.py
+# Handoff — 2026-09-13, the wall migration, the explain skill, the skills against the friction, closed
 
-Record by Claude Fable 5.1 on `lane/session-20260913-i`, written at
-`2e7dec62`. The board, PRs and grants are re-measured by
-`onboard.py`, not taken from here. The
-[AAR](../AAR-2026-09-13-wall-migration.md) carries the readings.
+Record by Claude Fable 5.1 on `lane/session-20260913-i`. §Close is the
+board as measured after #194 merged (owner, 2026-09-13: "194 merged -");
+the thread sections after it are the records as written. The next
+session onboards fresh and re-measures before acting.
+
+## Close, measured at `268065a3`
+
+| what | reading |
+|---|---|
+| worktree `../wt/ag-session-20260913-i` | branch `lane/session-20260913-i`, fast-forwarded to dev at `268065a3`; 0 uncommitted; the close records commit is pushed with this file |
+| PRs from this branch | #192 MERGED `eaf73b98` (laneconf.py and probes.py onto instrument.py, the fixture copy lists, the explain skill); #194 MERGED `268065a3` (search, handwrite, claim, the skill-use hook) — `gh pr list --state all --head lane/session-20260913-i` |
+| open PRs in the repository | none (`gh pr list --state open`) at write time; the close records PR from this branch follows this commit |
+| grants | 201, 202 settled unverified (prose evidence, pitfall 32); 204, 205, 208, 209 settled verified; 212 (this close) settled with this commit's sha after it exists; 211 is session -k's, open (`hand.py open`) |
+| the lock | names `lane/session-20260913-i` and `lane/session-20260913-k`; this session's entry is removed with `deliverable.py remove` once this commit is pushed |
+| findings | none produced by this session; `findings.py export --write` re-run at close, 807 rows, tree unchanged |
+| dispatches | none run or running (`subs.py`: no dispatch snapshots) |
+| ladders | none run or resumed |
+| the gate | 19 migrated, 1 no-wire, 3 pending: `skills.py`, `co_doc.py`, `control.py` (placement files at `268065a3`) |
+| corpus | `probes.py run` at `d413f0b5`: pass 156, fail 0, unreachable 0 |
+| the registry | `skills.py report` after the merge: explain 4 uses; search, handwrite, claim 0 uses, 0 misses (new); refused 166 misses (10 this session after the reading of 156); the main checkout on dev is 16 commits behind `origin/dev` and does not carry the Skill settings row, so no hook-written use exists yet |
+
+### Next thread
+
+1. **The first live reading of the hook.** A session run from a checkout
+   at or past `268065a3` makes one Skill call and reads
+   `skills.py report`: a use whose event was written by the hook, not by
+   hand, is the reading that closes "built, not consumed". The main
+   checkout needs `git pull --ff-only` on dev first, by the owner or by
+   whoever owns it; this session did not write there.
+2. **The owner's ruling** on `skills.py`, `co_doc.py`, `control.py`
+   adopting the wire; the decision brief is in the explain thread of
+   this session (skills.py first, control.py second, co_doc.py's
+   argument refusal along, the report format a separate decision).
+3. **The measure of the three pages**: the next window's daily miss
+   count against 21, 55, 94.
+4. Session ids on registry events read `unknown`; per-session rates
+   need `CLAUDE_SESSION_ID` in the hook's environment.
+
+
+## First thread, as written at `2e7dec62`
+
+The [AAR](../AAR-2026-09-13-wall-migration.md) carries the readings.
 
 ## Where things stand
 
