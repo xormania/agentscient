@@ -688,9 +688,13 @@ class MatrixHookTests(unittest.TestCase):
         """Owner, 2026-09-12: "i have the right to issue a hand grant to change
         CI and tests - but ... only done in isolation". The wall machinery,
         not every test file; enforced in-session."""
+        # owner, 2026-09-13 ("Add matrix.py and the hooks test directory to
+        # the wall paths"): the rows and their tests guard the file that
+        # defines them.
         for target in (".github/workflows/ci.yml", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
                        "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
-                       "ops/devlane/hooks/claude/engine.py"):
+                       "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/test_matrix.py",
+                       "ops/devlane/hooks/tests/test_engine.py", "ops/devlane/hooks/claude/engine.py"):
             with self.subTest(target=target):
                 self.assert_denied(self.run_bash(f"echo x >> {target}"), "wall-write")
                 self.assert_denied(self.run_bash(f"HAND_GRANT={GRANT_OPEN} echo x >> {target}"), "wall-write")
