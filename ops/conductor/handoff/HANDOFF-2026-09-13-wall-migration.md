@@ -31,6 +31,21 @@ Record by Claude Fable 5.1 on `lane/session-20260913-i`, written at
 - Worktree `../wt/ag-session-20260913-i`.
 - Dispatches: none run. Ladders: none. Findings: none produced.
 
+## The explain skill
+
+Owner, 2026-09-13, after the three-tool summary: "the way you explain
+something - sucks. What I need is a brief summary of the overall -
+background info - then the specifics named in such a way that I can
+both understand and have enough info to make a decision (you're
+suggestions are welcome) - ending in something that proves you actually
+verified everything"; then "its not a wish - hand grant ok'd to write
+the skill `explain`". Grant 205. `.claude/skills/explain/SKILL.md`
+carries the shape: background, one block per item (what it is, who
+depends on it, what changes, cost, recommendation), then the proof. The
+registry row `explain` is active (`skills.py sync`); the session's own
+wish row `decision-brief` is retired with the reason. Every explaining
+reply from here loads it first.
+
 ## Corrections to retain
 
 - **A wall grant writes wall paths only.** The placement files and the
