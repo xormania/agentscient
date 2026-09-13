@@ -46,6 +46,7 @@ MIGRATED: tuple[str, ...] = (
     "ci.py",
     "correction.py",
     "decisions.py",
+    "defects.py",
     "deliverable.py",
     "findings.py",
     "hand.py",
