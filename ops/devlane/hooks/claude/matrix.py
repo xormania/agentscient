@@ -899,7 +899,7 @@ def search_targets(toks):
         args = toks[2:]
     elif word not in SEARCHERS:
         return None, []
-    if any(a in SEARCH_COUNT_FLAGS for a in args):
+    if any(a in SEARCH_COUNT_FLAGS for a in _split_short_flags(args)):
         return None, []
     positional = []
     skip = False
@@ -917,6 +917,19 @@ def search_targets(toks):
     if len(positional) < 2:
         return None, []  # a pipe filter or a pattern with no path is not code navigation
     return positional[0], positional[1:]
+
+
+def _split_short_flags(args):
+    """Every flag as it reads: a combined short flag (-rl, -rnc) yields each
+    letter as its own flag, so -l and -c are seen inside one (LD-33, owner
+    2026-09-13); long flags and positionals pass through unchanged."""
+    out = []
+    for a in args:
+        if len(a) > 2 and a[0] == "-" and a[1] != "-":
+            out.extend("-" + ch for ch in a[1:])
+        else:
+            out.append(a)
+    return out
 
 
 def graft_first(toks, cwd, root, lane):
