@@ -1,7 +1,7 @@
-# Handoff — 2026-09-13, LD-33, LD-34, the ledger's shape, the dispatcher tests' tree
+# Handoff — 2026-09-13, LD-33, LD-34, the ledgers' shape, the dispatcher tests' tree
 
 Record by Claude Fable 5.1 on `lane/session-20260913-b` (#179), `-c`
-(#180, #182), `-d` (#184) and `-e`. The board, PRs and grants are re-measured by
+(#180, #182), `-d` (#184), `-e` (#185) and `-f`. The board, PRs and grants are re-measured by
 `onboard.py`, not taken from here.
 
 ## Where things stand
@@ -21,11 +21,15 @@ Record by Claude Fable 5.1 on `lane/session-20260913-b` (#179), `-c`
 - Defect rows from LD-36 are files under `ops/conductor/handoff/lane-defects/`,
   written by `python3 ops/conductor/tools/defects.py add --where W --defect D
   --repair R --tests T` (#184, `39cf7d81`); the page's table is frozen at
-  LD-35. The pitfalls page keeps the appended-table shape and conflicted
-  once; the same treatment is open for it. A fetch before minting the id
-  would narrow the same-id window and is not done.
+  LD-35. From `-f` (`725109a5`) the shape is `ledger.py`, one lever over
+  every appended register: `ledger.py add pitfalls --what-bit T --do-instead T`
+  for pitfalls from row 30 (the table stops at 29), `ledger.py ledgers` for
+  the list; defects.py is a shim over it. A fetch before minting the id
+  would narrow the same-id window and is not done. A corpus row that
+  pins neighbours in a sorted list breaks on any session's insert
+  (pitfall 30): pin membership.
 - The dispatcher wrapper tests dispatch against a scratch repository
-  (`7d7e3714`, PR from `-e`); a branch's lineage no longer reads as their
+  (#185, `1c7fd5ee`); a branch's lineage no longer reads as their
   failure. suites.sh runs no ruff on the host; the lane job does, so a
   local green can still be a CI red on lint.
 - Token thrift: items 2, 3, 4 landed at `4fdc6d0e` (#175). Item 1, context
@@ -33,8 +37,8 @@ Record by Claude Fable 5.1 on `lane/session-20260913-b` (#179), `-c`
   window of `python3 ops/devlane/telemetry/worth.py waste --repo
   /home/scientdb/projects/uscient/agentscient --since 2026-09-13T05:00:00Z`;
   the early reading (05:31Z) is in the AAR.
-- Grants 185, 188 to 192 and 194 settled; 195 settles against the PR from
-  `-e`. Worktrees `../wt/ag-session-20260913-{b,c,d,e}`. The lock names `-n` (landed), `-a` (the instrument
+- Grants 185 and 188 to 195 settled; 196 settles against the PR from `-f`.
+  Worktrees `../wt/ag-session-20260913-{b,c,d,e,f}`. The lock names `-n` (landed), `-a` (the instrument
   session, grant 187, running beside this one), `-b` (landed) and `-c`.
   Worktrees `../wt/ag-session-20260913-b` and `-c`.
 - The test kit plan's reading with the owner (HANDOFF-2026-09-13-token-thrift
@@ -45,7 +49,8 @@ Record by Claude Fable 5.1 on `lane/session-20260913-b` (#179), `-c`
 
 ```sh
 git show dev:ops/conductor/handoff/HANDOFF-2026-09-13-graft-flags.md
-gh pr list --state all --head lane/session-20260913-e --json number,state,mergeCommit
+gh pr list --state all --head lane/session-20260913-f --json number,state,mergeCommit
+python3 ops/conductor/tools/ledger.py ledgers
 python3 ops/conductor/tools/hand.py open
 ```
 
