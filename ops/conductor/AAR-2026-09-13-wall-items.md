@@ -72,3 +72,63 @@ One commit of code, `2f21512f`, both items:
 - `suites.sh` at the records commit: in the ready note.
 - One producer wrote tests and code by hand under grant 206; no second
   producer.
+
+## Second thread: the four rulings, one PR
+
+Owner, 2026-09-13, after the explain of five rulings: "#1- #4 hand grant
+ok'd get them done in one PR". Grants 210 (other) and 211 (wall). The
+same branch, fast-forwarded to dev `25b48ed5` (#193), then dev merged
+forward at `268065a3` (#194, the other session's skill-use hook) before
+the commits.
+
+Two commits: `9950d14d`, the three tools on the wire and instrument.py
+(grant 210); `2bd810e2`, suites.sh running ruff and the two hook tests
+that copy skills.py staging the shared module beside it (grant 211).
+
+### What was decided and why
+
+- **The class token names what refused, not the tool.** control.py's
+  one token for every refusal became eight; the registry row for it
+  reads `state`. No caller matched the old token: the conductor-control
+  hook allows argument shapes and reads no stderr; no test named it.
+- **The report is not a refusal.** co_doc.py's exit 2 with a report on
+  stdout for an invalid probe is its outcome contract
+  (permission-surface.md) and is untouched; only the unknown-argument
+  path moved to the wire.
+- **skills.py gained its first test file** before its shape changed;
+  the tests were red at the base on the exit code and on the store's
+  location, which now honours XDG_STATE_HOME through `state_dir()`.
+- **One PR carries a wall commit and a non-wall commit**, each under its
+  own grant and said in each message, at the owner's word; the wall
+  grant also wrote the two hook tests (wall paths) that stage the
+  module beside the copied lever.
+- **A lint the host cannot run is not a green lint**: suites.sh reads
+  ABSENT and not OK without ruff, rather than skipping.
+
+### What went wrong
+
+- The first migration dropped `import re` from skills.py while
+  `frontmatter()` still used it; ruff named it and `sync` failed; one
+  fix before any commit.
+- The co_doc read-only test read the interpreter's bytecode cache for
+  the imported module as the doctor writing a file; the test's
+  environment now sets PYTHONDONTWRITEBYTECODE, the conformance gate's
+  precedent.
+- Two hook tests copy skills.py alone into a fake repository and read
+  the `tooling` refusal once it imported instrument.py; the shape
+  probes.py and monitor.py already handled in their own tests.
+
+### Calibration
+
+- Red then green with the same commands, at `25b48ed5` then `9950d14d`
+  or `2bd810e2`: test_skills 17 failures of 9 then OK; test_co_doc -k
+  unknown_argument 9 failures then Ran 21 OK; test_control -k
+  refusal_classes 1 failure then Ran 8 OK; test_instrument 3 failures
+  then Ran 34 OK; test_instrument_conventions 3 failures then Ran 18 OK;
+  test_suites_ruff 3 failures then OK; test_miss_log 9 failures at
+  `9950d14d` then Ran 9 OK; test_skill_use Ran 8 OK; test_conductor_enforce
+  Ran 11 OK.
+- `ruff check .` clean at `2bd810e2`. `probes.py run` at `2bd810e2` with
+  the seven `P-WIRE-20260913-*` rows: pass 163, fail 0, unreachable 0.
+- `suites.sh` at the records commit: in the ready note.
+- One producer wrote tests and code by hand; no second producer.

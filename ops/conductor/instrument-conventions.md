@@ -101,6 +101,7 @@ of instruments that declare this inheritance, each with one hermetic
 refusal-provoking invocation, and asserts the wire on every one: exit
 2, a single non-empty stderr line, class token, expected / found /
 needed, empty stdout. A new instrument joins the registry in the PR
-that lands it. Instruments predating this document (skills.py,
-co_doc.py) join as they adopt the wire; until then their absence from
-the registry is recorded fact, not compliance.
+that lands it. The two instruments that predated this document,
+skills.py and co_doc.py, joined on 2026-09-13 when they adopted the
+wire (owner rulings 1 and 2); no tool under ops/conductor/tools/ is
+placed as pending.
