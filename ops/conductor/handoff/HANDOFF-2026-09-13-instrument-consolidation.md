@@ -1,51 +1,57 @@
 # Handoff — 2026-09-13, after the instrument consolidation
 
-Record by Claude Fable 5.1 on `lane/session-20260912-l` at `05236586`
-plus the records commit that carries this file. The census that
+Record by Claude Fable 5.1 on `lane/session-20260912-l`, first at
+`05236586` (PR #174) and updated at `ff0c108a` (the continuation). The census that
 started the work is `../reports/duplication-census-20260912.md`.
 Re-measure before acting.
 
 ## Where things stand
 
-- PR #174, draft, `lane/session-20260912-l` into dev, head `05236586`
-  before the records commit; checks not yet read at the time of
-  writing (the PR was opened minutes before this record). The release
-  after it carries the shared module.
-- `ops/bin/suites.sh` at `05236586` on the clean worktree: dispatch
-  Ran 618 OK; harness 155 OK; task 351 OK; telemetry 227 OK; hooks 280
-  OK; fixtures 221 OK (skipped=6); workflow 48 OK; conductor Ran 1054
-  OK; pr-overview 8 OK. `probes.py run` at `05236586`: pass 93, fail 0,
-  unreachable 0, before the rows this record adds.
-- Grant 176 (this session, unscoped, 480 min) is settled with this
-  record's sha as evidence when it lands; 178 and 179 belong to the
-  sessions on `lane/session-20260912-n`.
-- The deliverable lock names `lane/session-20260912-l`, `-n` and `-o`;
-  this session's entry stays until #174 lands on dev, and LD-28 says
-  why it cannot be removed alone.
+- PR #174 merged into dev at `d0778d21` (owner, 2026-09-13: "174 is
+  green - merge it- continue"), all five checks passing on its head
+  `7702e70f`. The continuation, watchdog at `ff0c108a`, goes to dev in
+  a second PR from the same branch; its number and checks are in that
+  PR, not here. The release after it carries the shared module.
+- `ops/bin/suites.sh` at `05236586` and again at `ff0c108a` on the
+  clean worktree: dispatch Ran 618 OK; harness 155 OK; task 351 OK;
+  telemetry 227 OK; hooks 280 OK; fixtures 221 OK (skipped=6); workflow
+  48 OK; conductor Ran 1054 OK; pr-overview 8 OK. `probes.py run` at
+  `360ee046`: pass 97, fail 0, unreachable 0.
+- Grant 176 settled verified with `360ee046`; grant 184 (the
+  continuation) is settled with the second PR's records commit; 178
+  and 179 belong to the session on `lane/session-20260912-n`.
+- The deliverable lock names `lane/session-20260912-l` and `-n`; this
+  session's entry stays until the second PR lands on dev, and LD-28
+  says why it cannot be removed alone.
 - Worktree `../wt/ag-session-20260912-l`, branch pushed; the branch
-  carries fourteen commits of this session and one merge from dev
+  carried fourteen commits of this session and one merge from dev
   (`582c4247`) written by the dispatch wrapper while the conductor
-  suite ran, LD-29.
+  suite ran, LD-29, into #174; the owner merged dev into it once more
+  (`7702e70f`) before the merge.
 
 ## What landed on the branch
 
-Ten of twenty-one conductor tools import `instrument.py`: hand,
+Eleven of twenty-one conductor tools import `instrument.py`: hand,
 deliverable, findings, land, decisions, ci, branches, onboard, watch,
-correction. Eleven are named in `PENDING` in
+correction, and watchdog (`ff0c108a`, after #174 merged at `d0778d21`;
+owner, 2026-09-13: "174 is green - merge it- continue", grant 184).
+Ten are named in `PENDING` in
 `ops/conductor/tests/test_instrument.py`, and the gate refuses a tool
 named in neither list:
 
 - `laneconf.py` and `probes.py` are wall files (owner, 2026-09-12: the
   wall is changed only in isolation); a wall session migrates them.
-- `watchdog.py` (1331 lines), `monitor.py` (1377), `ladder.py` (2271)
-  and `lane_read.py` (2060, with `lane_mcp.py` and `lane_refs.py`
-  importing its `Refusal` and `refuse`) each need their own commit;
-  watchdog's in-loop refusals exit the process today and would be
-  caught by the tick's own `except Exception` once they raise, which
-  is a behaviour change to decide, not to slip in.
+- `monitor.py` (1377 lines) and `lane_read.py` (2060, with `lane_mcp.py`
+  and `lane_refs.py` importing its `Refusal` and `refuse`) base their
+  refusal class on ValueError, and lane_read has nine `except
+  ValueError` sites; moving them onto the shared Exception-based class
+  changes which handler sees a refusal at each site, a reading per
+  site before a commit, not a copy removal. `ladder.py` (2271) reads
+  `error.kind` on its `Refused` in two places and needs its own commit.
 - `co_doc.py` reports through a Report object, `control.py` refuses
-  through `need()`, and `skills.py` predates the wire; each is a shape
-  change, not a copy removal.
+  through `need()`, and `skills.py` predates the wire (`sys.exit` with a
+  "refusing:" sentence, exit 1); each is a shape change the owner
+  rules on, not a copy removal.
 
 The census after ten migrations (`python3
 ops/conductor/reports/duplication-census.py ops` at `05236586`): files
@@ -85,8 +91,8 @@ record.
 
 ## Next thread
 
-The next tool is `watchdog.py` or `monitor.py`, one per commit, with
-the gate red first (add the name to `MIGRATED`), the tool's suites and
-the dispatch suite after, and the behaviour question above decided in
-the commit body. `lane_read.py` goes with `lane_mcp.py` and
-`lane_refs.py` in one commit, since they import its refusal class.
+The next tool is `ladder.py`, one commit, with the gate red first (add
+the name to `MIGRATED`), its ladder suites and the dispatch suite
+after. `monitor.py` and the `lane_read.py` family wait on the
+ValueError reading above; `skills.py`, `co_doc.py` and `control.py`
+wait on a ruling about adopting the wire.

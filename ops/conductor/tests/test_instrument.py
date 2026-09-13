@@ -52,6 +52,7 @@ MIGRATED: tuple[str, ...] = (
     "land.py",
     "onboard.py",
     "watch.py",
+    "watchdog.py",
 )
 
 # Tools still carrying private copies, named so their absence from
@@ -68,7 +69,6 @@ PENDING: tuple[str, ...] = (
     "monitor.py",
     "probes.py",
     "skills.py",
-    "watchdog.py",
 )
 
 # A migrated tool defines none of these at module level.
