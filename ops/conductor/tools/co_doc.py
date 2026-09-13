@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Read-only probes for the conductor permission surface."""
+"""Read-only probes for the conductor permission surface.
+
+Inherits ops/conductor/instrument-conventions.md for the wire: an
+argument it does not know refuses class `arguments`, one line on
+stderr, exit 2, stdout empty (owner, 2026-09-13, ruling 2). The report
+is the tool's outcome, not a refusal, and keeps its shape.
+"""
 
 import hashlib
 import json
@@ -12,6 +18,17 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import IDENTITY, Refusal, emit, refuse, state_root
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 PROBES = (
     "P-SET-1", "P-PERM-1", "P-PERM-2", "P-HOOK-1", "P-HOOK-2",
     "P-LEV-1", "P-ID-1", "P-WF-1", "P-DB-1",
@@ -22,9 +39,8 @@ SETTINGS = (
     ROOT / ".claude" / "settings.local.json",
     Path.home() / ".claude" / "settings.json",
 )
-STATE = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
+STATE = state_root()
 DBS = (STATE / "agentscient" / "handwork.db", STATE / "agentscient" / "skills.db")
-AGENT_FORM = re.compile(r"^.+ <[^<>@\s]+@[^<>\s]+>$")
 ABSOLUTE = re.compile(r"(?<![\w$])(/[^\s)'\";,]+)")
 
 
@@ -247,13 +263,13 @@ def levers(report):
                        "repoint it at the measured current target and record the measurement")
 
 
-def identity(report):
+def identity_probe(report):
     agent = os.environ.get("WF_AGENT")
     if agent is None:
         report.add("Finding", "P-ID-1", "WF_AGENT in Name <address> form when recording",
                    "unset (reads need no identity)",
                    "export WF_AGENT='Your Model Name <noreply@vendor>' before recording")
-    elif not AGENT_FORM.fullmatch(agent):
+    elif IDENTITY.fullmatch(agent) is None:
         report.add("Rejection", "P-ID-1", "WF_AGENT in Name <address> form",
                    repr(agent), "export WF_AGENT='Your Model Name <noreply@vendor>'")
 
@@ -351,19 +367,26 @@ def ledgers(report):
 
 
 def main():
-    if sys.argv[1:] == ["--list-probes"]:
+    try:
+        return probe(sys.argv[1:])
+    except Refusal as refusal:
+        return emit(refusal)
+
+
+def probe(argv):
+    if argv == ["--list-probes"]:
         print("\n".join(PROBES))
         return 0
-    if sys.argv[1:]:
-        print("usage: co_doc.py [--list-probes]", file=sys.stderr)
-        return 2
+    if argv:
+        refuse("arguments", "no argument, or --list-probes", shlex.join(argv),
+               "run co_doc.py alone, or with --list-probes")
     report = Report()
     loaded = load_settings(report)
     permission_rules(report, loaded)
     hooks(report, loaded)
     control_context(report)
     levers(report)
-    identity(report)
+    identity_probe(report)
     workflow(report)
     ledgers(report)
     print("\n".join((*report.notes, *report.lines)))
