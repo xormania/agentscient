@@ -49,6 +49,7 @@ MIGRATED: tuple[str, ...] = (
     "findings.py",
     "hand.py",
     "land.py",
+    "onboard.py",
 )
 
 # Tools still carrying private copies, named so their absence from
@@ -64,7 +65,6 @@ PENDING: tuple[str, ...] = (
     "lane_refs.py",
     "laneconf.py",
     "monitor.py",
-    "onboard.py",
     "probes.py",
     "skills.py",
     "watch.py",

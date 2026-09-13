@@ -9,12 +9,21 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import NoReturn
 
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 try:
-    import laneconf
+    from instrument import Refusal, emit, lane_name, refuse
 except ModuleNotFoundError:
-    laneconf = None
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
 
 TIMEOUT = 5
 LAW = (
@@ -32,39 +41,6 @@ LAW = (
     ("ops/conductor/discovery-lever.md", "profile discovery, source custody, and uncertainty"),
     ("ops/conductor/conductor-start-plan.md", "the conductor startup sequence and admission boundaries"),
 )
-
-
-def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
-    """Print one refusal-wire line and exit with the Rejection code."""
-    print(
-        f"{kind}: expected {expected}; found {found}; needed {needed}",
-        file=sys.stderr,
-    )
-    raise SystemExit(2)
-
-
-def lane_name() -> str:
-    if laneconf is not None:
-        try:
-            return laneconf.get("LANE_NAME")
-        except laneconf.ConfigError as error:
-            kind = "conf-key" if error.kind == "key" else error.kind
-            refuse(kind, error.expected, error.found, error.needed)
-    path = Path(
-        os.environ.get(
-            "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"
-        )
-    )
-    if "LANE_CONF" not in os.environ and not path.is_file():
-        return "agentscient"
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as error:
-        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
-    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
-    if match is None:
-        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
-    return match.group(1)
 
 
 def run(
@@ -268,6 +244,13 @@ def calibration(root: Path) -> tuple[list[str], bool]:
 
 
 def main() -> int:
+    try:
+        return brief()
+    except Refusal as refusal:
+        return emit(refusal)
+
+
+def brief() -> int:
     if len(sys.argv) != 1:
         refuse(
             "arguments",
