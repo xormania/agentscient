@@ -2,11 +2,11 @@
 
 Session record by Claude Fable 5.1 on `lane/session-20260913-b` (#179,
 `37750dd0`), `-c` (#180 `23a30592`, #182 `e7e0d41e`), `-d` (#184
-`39cf7d81`), `-e` (#185 `1c7fd5ee`), `-f` (#186 `d8eec5c7`) and `-g`, all
-cut from dev. Measured at write time: `-g` at `5975dabe`, its PR not yet
-open; grants 188 to 196 settled, 198 open; the lock names `-n`, `-a`, `-b`
-to `-g`. The [handoff](handoff/HANDOFF-2026-09-13-graft-flags.md) carries
-the next thread.
+`39cf7d81`), `-e` (#185 `1c7fd5ee`), `-f` (#186 `d8eec5c7`), `-g` (#188
+`c2d7347f`) and `-h`, all cut from dev. Measured at write time: `-h` at
+`32710253`, its PR not yet open; grants 188 to 198 settled, 200 open; the
+lock names `-a` (the other session's, closed) and `-h`. The
+[handoff](handoff/HANDOFF-2026-09-13-graft-flags.md) carries the next thread.
 
 ## Request and outcome
 
@@ -21,7 +21,9 @@ not, hand grant - fix issue #1 - PR and merge, then issue #2 - PR and merge";
 "hand grant ok'd fix the pitfalls page - in fact anything similar - fix it -
 agents need to work in parallel"; "So are the issues sorted out for parallel
 work?"; "i'd get minimize parallel work conflicts - hand grant ok'd for
-fixing"; "make sure to co-ordinate with other session to de-conflict".
+fixing"; "make sure to co-ordinate with other session to de-conflict";
+"other session lifecycle done - new session took over handoff - co-ordinate
+to de-conflict - give it a minute to onboard properly".
 
 - Answer given at `cb716534`: thrift 2, 3 and 4 landed in #175 (`4fdc6d0e`);
   class 1, context churn, has no code countermeasure, its remedy is the
@@ -70,7 +72,15 @@ fixing"; "make sure to co-ordinate with other session to de-conflict".
   session's file in flight: agentscient-5e chose to land #187 first and
   leave the move to registry files to this session after it. The
   neighbour-pinning class is practice (pitfall 30); a corpus-shape rule in
-  probes.py is a wall change, not done.
+  probes.py is a wall change, not done. #188 merged `c2d7347f`; the lock
+  lifted of seven landed branches by the new verb.
+- **The placement lists** (`-h`, `32710253`, after agentscient-5e's #187
+  landed at `48639a71` by its choice): each tool declares migrated, pending
+  or no-wire in `ops/conductor/placement/<tool>.py.json`, 23 files written
+  from the tuples at `c2d7347f`; the gate reads the directory and closes
+  it both ways. Red 2 of 34 then 34 OK; three of the other session's
+  corpus rows moved from the tuples to the files, told; suites.sh 2981
+  tests, exit 0; corpus 139 pass, exit 0 read from the process.
 - Session agentscient-5e, asked first, held branch `-a`, grant 193 and #183
   and said neither issue was in its scope; agentscient-8e did not answer.
 
@@ -93,6 +103,12 @@ fixing"; "make sure to co-ordinate with other session to de-conflict".
 
 ## What went wrong
 
+- **Two commit messages on `-h` overclaimed a corpus reading** (`466b8792`,
+  `ae1ad1b9`): the run and the commit sat in one command, so the message
+  was written before the output existed; the first run had been refused
+  (cat is not an allowlisted read), the second printed 3 fails. Corrected
+  at `32710253`; pitfall 31, the run in one command and the commit in the
+  next.
 - **Two ruff rounds on #184**: suites.sh on the host runs no ruff, so the
   local run at `f6494db0` could not see six findings the lane job found;
   the first fix commit `d814a547` said ruff passed with one finding left,
@@ -130,6 +146,7 @@ fixing"; "make sure to co-ordinate with other session to de-conflict".
   112 at the close, run from the tree at `23a30592` plus the closing row.
 - Corpus: 119 pass at `f6494db0`; suites.sh on `-e` at `7d7e3714`: 2972
   tests, exit 0; ruff over ops/conductor: all checks passed.
+- suites.sh on `-h` at `32710253`: 2981 tests, exit 0; corpus 139 pass.
 - suites.sh on `-g` at `5975dabe`: 2979 tests, exit 0; corpus 131 pass.
 - suites.sh on `-f` at `67643ad0`: 2977 tests, one red (the corpus row
   above); corpus 128 pass and test_probes 22 OK at `725109a5`; the whole

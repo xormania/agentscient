@@ -82,13 +82,15 @@ elsewhere. A suite that stages a copy of an instrument stages
 `instrument.py` and `laneconf.py` beside it and names a lane conf
 through `LANE_CONF`; the module carries no lane-name literal and no
 name stands in for an absent conf. An instrument that finds no
-`instrument.py` beside itself refuses `tooling`. The gate in
-`ops/conductor/tests/test_instrument.py`
-names every instrument as migrated, pending, or no-wire (a tool that
-returns outcomes and never refuses, with nothing to import), so an
-instrument carrying its own `refuse`, `identity`, clock or lane-name
-reader is a failure naming it, and a new instrument must be placed in
-one list.
+`instrument.py` beside itself refuses `tooling`. Every instrument declares its placement in its own file,
+`ops/conductor/placement/<tool>.py.json`, as migrated, pending, or
+no-wire (a tool that returns outcomes and never refuses, with nothing to
+import); the gate in `ops/conductor/tests/test_instrument.py` reads the
+directory and closes it both ways, so an instrument carrying its own
+`refuse`, `identity`, clock or lane-name reader is a failure naming it,
+a new instrument must add its file, and no two sessions edit the same
+line to place a tool (owner, 2026-09-13: "minimize parallel work
+conflicts").
 The census that demanded this is
 `ops/conductor/reports/duplication-census-20260912.md`.
 
