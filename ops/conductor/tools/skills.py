@@ -19,36 +19,42 @@
 The skills table syncs from disk, which stays the source of truth for what
 exists; events are observations (the non-authoritative-mirror rule).
 Reading needs no identity; recording an event does: set WF_AGENT
-('Name <address>'), the same contract wf enforces. Refusals name what was
-expected, found, and needed.
+('Name <address>'), the same contract wf enforces. Inherits
+ops/conductor/instrument-conventions.md: a refusal is one line on
+stderr, `class: expected ...; found ...; needed ...`, exit 2, stdout
+empty (owner, 2026-09-13, ruling 1: exit 1 with a sentence read as the
+Finding class). The store lives under the lane's state directory.
 """
 import os
 import re
 import sqlite3
 import sys
-import time
 from pathlib import Path
 
-DB = os.path.expanduser("~/.local/state/agentscient/skills.db")
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, emit, identity, refuse, stamp, state_dir
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 REPO = Path(__file__).resolve().parents[3]
 SKILLS_DIR = REPO / ".claude" / "skills"
 KINDS = ("project", "conductor", "process", "personal")
-AGENT_FORM = re.compile(r".+ <[^<>@\s]+@[^<>\s]+>$")
 
-def now():
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
-def agent_or_refuse():
-    agent = os.environ.get("WF_AGENT", "")
-    if not AGENT_FORM.match(agent):
-        sys.exit("refusing: recording needs an identity; found "
-                 f"WF_AGENT={agent!r}, expected 'Name <address>' — "
-                 "export WF_AGENT='Your Model Name <noreply@vendor>'")
-    return agent
+def db_path():
+    return state_dir() / "skills.db"
+
 
 def con_():
-    os.makedirs(os.path.dirname(DB), exist_ok=True)
-    con = sqlite3.connect(DB)
+    path = db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(path)
     con.execute("""CREATE TABLE IF NOT EXISTS skills(
         name TEXT PRIMARY KEY, kind TEXT NOT NULL, path TEXT,
         description TEXT, status TEXT NOT NULL DEFAULT 'active',
@@ -83,8 +89,8 @@ def frontmatter(path):
 
 def sync(_):
     if not SKILLS_DIR.is_dir():
-        sys.exit(f"refusing: {SKILLS_DIR} is not a directory — cannot scan; "
-                 "an unperformed scan is not an empty result")
+        refuse("scan", f"a skills directory at {SKILLS_DIR}", "not a directory",
+               "restore .claude/skills/; an unperformed scan is not an empty result")
     con = con_()
     seen = set()
     for d in sorted(p for p in SKILLS_DIR.iterdir() if p.is_dir()):
@@ -100,7 +106,7 @@ def sync(_):
         if row is None:
             con.execute("INSERT INTO skills(name, kind, path, description,"
                         " status, created_ts, updated_ts) VALUES (?,?,?,?,?,?,?)",
-                        (name, "project", str(d), desc, "active", now(), now()))
+                        (name, "project", str(d), desc, "active", stamp(), stamp()))
             print(f"new: {name}")
         else:
             if row[0] == "wished":
@@ -108,13 +114,13 @@ def sync(_):
             con.execute("UPDATE skills SET path=?, description=?, updated_ts=?,"
                         " status=CASE WHEN status IN ('missing','wished')"
                         " THEN 'active' ELSE status END WHERE name=?",
-                        (str(d), desc, now(), name))
+                        (str(d), desc, stamp(), name))
     gone = [r[0] for r in con.execute(
         "SELECT name FROM skills WHERE path IS NOT NULL"
         " AND status NOT IN ('missing','retired','wished')") if r[0] not in seen]
     for name in gone:
         con.execute("UPDATE skills SET status='missing', updated_ts=?"
-                    " WHERE name=?", (now(), name))
+                    " WHERE name=?", (stamp(), name))
         print(f"MISSING (dir gone, row kept): {name}")
     con.commit()
     n = con.execute("SELECT COUNT(*) FROM skills").fetchone()[0]
@@ -122,20 +128,22 @@ def sync(_):
 
 def add(argv):
     if len(argv) < 2:
-        sys.exit("refusing: add needs NAME DESCRIPTION")
+        refuse("arguments", "add NAME DESCRIPTION", " ".join(argv) or "nothing",
+               "name the skill and describe it")
     name, desc = argv[0], argv[1]
     kind = next((a.split("=", 1)[1] for a in argv if a.startswith("--kind=")),
                 "project")
     status = next((a.split("=", 1)[1] for a in argv
                    if a.startswith("--status=")), "draft")
     if kind not in KINDS:
-        sys.exit(f"refusing: kind {kind!r}; expected one of {KINDS}")
+        refuse("kind", f"a kind in {KINDS}", repr(kind), "name one of them with --kind=")
     con = con_()
     if con.execute("SELECT 1 FROM skills WHERE name=?", (name,)).fetchone():
-        sys.exit(f"refusing: {name!r} exists; `note` or `sync` updates it")
+        refuse("exists", "a name with no row", f"{name!r} already has one",
+               "`note` or `sync` updates it")
     con.execute("INSERT INTO skills(name, kind, description, status,"
                 " created_ts, updated_ts) VALUES (?,?,?,?,?,?)",
-                (name, kind, desc, status, now(), now()))
+                (name, kind, desc, status, stamp(), stamp()))
     con.commit()
     print(f"added {name} [{kind}/{status}]")
 
@@ -157,14 +165,14 @@ def list_(argv):
 
 def show(argv):
     if not argv:
-        sys.exit("refusing: show needs NAME")
+        refuse("arguments", "show NAME", "no name", "name the skill")
     con = con_()
     row = con.execute("SELECT name, kind, path, description, status,"
                       " created_ts, updated_ts, retire_reason, notes"
                       " FROM skills WHERE name=?", (argv[0],)).fetchone()
     if row is None:
-        sys.exit(f"refusing: no skill {argv[0]!r}; `list` shows rows,"
-                 " `add`/`wish` create them")
+        refuse("skill", "a registered skill", f"no row for {argv[0]!r}",
+               "`list` shows rows; `add` or `wish` create them")
     for k, v in zip(("name", "kind", "path", "description", "status",
                      "created", "updated", "retire_reason", "notes"), row,
                     strict=True):
@@ -178,23 +186,24 @@ def show(argv):
 
 def note(argv):
     if len(argv) < 2:
-        sys.exit("refusing: note needs NAME TEXT")
+        refuse("arguments", "note NAME TEXT", " ".join(argv) or "nothing",
+               "name the skill and the note")
     con = con_()
     if con.execute("UPDATE skills SET notes=?, updated_ts=? WHERE name=?",
-                   (argv[1], now(), argv[0])).rowcount == 0:
-        sys.exit(f"refusing: no skill {argv[0]!r}")
+                   (argv[1], stamp(), argv[0])).rowcount == 0:
+        refuse("skill", "a registered skill", f"no row for {argv[0]!r}", "`list` shows rows")
     con.commit()
     print("noted")
 
 def retire(argv):
     if len(argv) < 2:
-        sys.exit("refusing: retire needs NAME REASON — nothing leaves"
-                 " without one")
+        refuse("arguments", "retire NAME REASON", " ".join(argv) or "nothing",
+               "give the reason; nothing leaves without one")
     con = con_()
     if con.execute("UPDATE skills SET status='retired', retire_reason=?,"
                    " updated_ts=? WHERE name=?",
-                   (argv[1], now(), argv[0])).rowcount == 0:
-        sys.exit(f"refusing: no skill {argv[0]!r}")
+                   (argv[1], stamp(), argv[0])).rowcount == 0:
+        refuse("skill", "a registered skill", f"no row for {argv[0]!r}", "`list` shows rows")
     con.commit()
     print(f"retired {argv[0]} (row kept, reason recorded)")
 
@@ -202,29 +211,29 @@ def _event(kind):
     def go(argv):
         if not argv or (kind != "invoked" and len(argv) < 2):
             need = "NAME [DETAIL]" if kind == "invoked" else "NAME DETAIL"
-            sys.exit(f"refusing: needs {need} — an event without its story"
-                     " is a count wearing a claim's clothes")
-        agent = agent_or_refuse()
+            refuse("arguments", need, " ".join(argv) or "nothing",
+                   "give the event its story; a count without one wears a claim's clothes")
+        agent = identity()
         name = argv[0]
         detail = argv[1] if len(argv) > 1 else None
         con = con_()
         known = con.execute("SELECT status FROM skills WHERE name=?",
                             (name,)).fetchone()
         if not known and kind != "wish":
-            sys.exit(f"refusing: no skill {name!r} — for a skill that should"
-                     " exist, use `wish`; for one on disk, run `sync` first")
+            refuse("skill", "a registered skill", f"no row for {name!r}",
+                   "`wish` for a skill that should exist; `sync` first for one on disk")
         # A row whose status is still 'wished' is accumulated demand, not an
         # existing skill: wishing it again ranks it higher.
         if known and kind == "wish" and known[0] != "wished":
-            sys.exit(f"refusing: {name!r} already exists — a wish is for the"
-                     " absent; use log-miss if it existed and was not used")
+            refuse("exists", "a wish for an absent skill", f"{name!r} already exists",
+                   "log-miss if it existed and was not used")
         if not known:
             con.execute("INSERT INTO skills(name, kind, description, status,"
                         " created_ts, updated_ts) VALUES (?,?,?,?,?,?)",
-                        (name, "project", detail, "wished", now(), now()))
+                        (name, "project", detail, "wished", stamp(), stamp()))
         con.execute("INSERT INTO skill_events(ts, session, agent, skill,"
                     " event, detail) VALUES (?,?,?,?,?,?)",
-                    (now(), os.environ.get("CLAUDE_SESSION_ID", "unrecorded"),
+                    (stamp(), os.environ.get("CLAUDE_SESSION_ID", "unrecorded"),
                      agent, name, kind, detail))
         con.commit()
         print(f"{kind}: {name}")
@@ -261,9 +270,14 @@ def main():
             "log-fail": _event("failed"), "log-miss": _event("miss"),
             "wish": _event("wish"), "report": report}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds:
-        sys.exit(f"usage: skills.py {{{'|'.join(cmds)}}} ...;"
-                 " the module doc has details")
+        refuse("arguments", "one of " + "|".join(cmds), " ".join(sys.argv[1:]) or "no verb",
+               "name a verb; the module doc has details")
     cmds[sys.argv[1]](sys.argv[2:])
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        raise SystemExit(main())
+    except Refusal as refusal:
+        raise SystemExit(emit(refusal)) from None

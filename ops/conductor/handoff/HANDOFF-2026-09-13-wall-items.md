@@ -36,20 +36,51 @@ Nothing of the wall stays open from session -h's list. Left as found,
 not wall and not this session's: `deliverable.py`'s usage line lists
 `clear` (the verb exists, for a host with one session).
 
+## Second thread: the four rulings (grants 210, 211)
+
+- Commits over dev `268065a3` (#194): `9950d14d` (skills.py, co_doc.py,
+  control.py on the wire; grant 210) and `2bd810e2` (suites.sh runs ruff;
+  test_miss_log.py and test_skill_use.py stage instrument.py and
+  laneconf.py beside their copied lever; grant 211, wall); then the
+  records commit with this section, the AAR's second thread, seven
+  corpus rows and the conventions page sentence; then the fix commit
+  (grant 213) after `suites.sh` read red at `a20ffde9`:
+  `test_skills_registry.py` stages instrument.py, laneconf.py and a
+  lane conf beside its copy, and the four fixture app tests write the
+  lane contract as a nested `ops/ruff.toml` in their scratch.
+- PR: a draft from this branch after the records commit; number, head
+  and checks in the ready note and `gh pr list`. Ready waits on the full
+  check set green, merge state clean, `suites.sh` on the head, and
+  `## Proof` naming the `P-WIRE-20260913-*` rows. The owner merges.
+- The consolidation gate: 22 migrated, 1 no-wire, 0 pending. Nothing of
+  the instrument consolidation is left.
+- What a caller sees differently: `skills.py` refuses at exit 2 with one
+  line (was exit 1 and a sentence); its store honours XDG_STATE_HOME;
+  `co_doc.py --anything` refuses `arguments` on the wire (was a usage
+  line); `control.py` refusals lead with `arguments`, `identity`, `plan`,
+  `json`, `binding`, `state`, `admission` or `seat` (was `control` for
+  all); `suites.sh` prints `== ruff` first and is not OK on a lint fault
+  or without ruff on the host.
+- The `ledger.py` fetch before minting was already in place (its
+  `trunk_ref`, line 89); the previous handoff's line saying it was not
+  done was stale.
+
 ## Next thread
 
-Unchanged from session -i's handoff: the owner's ruling on
-`skills.py`, `co_doc.py` and `control.py` adopting the wire (each a
-shape change with callers to read first); the test kit plan reading
-with the owner (record `20260913T034513Z-plan-claude-892490`, six p3
-findings not imported); `suites.sh` running no ruff on the host while
-the lane job does; a fetch before `ledger.py` mints an id.
+The test kit plan reading with the owner (record
+`20260913T034513Z-plan-claude-892490`; ruling 5 in this session's
+explain: approve slices 1 and 2, rule on the kit as wall before slice 5,
+import the six findings, dispose the seven census rows with the plan as
+citation). The other session's handoff names the first hook-written
+skill use once a checkout at or past `268065a3` runs a session, and the
+miss-count baseline its three pages are measured against.
 
 ## Retrieval
 
 ```sh
 git show dev:ops/conductor/handoff/HANDOFF-2026-09-13-wall-items.md
 gh pr list --state all --head lane/session-20260913-k --json number,state,mergeCommit
+python3 -m unittest discover -s ops/conductor/tests -p test_instrument.py
 python3 ops/conductor/tools/probes.py run
 python3 ops/conductor/tools/hand.py open
 ```

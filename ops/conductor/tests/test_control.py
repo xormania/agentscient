@@ -135,6 +135,24 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(r.stdout, "")
         self.assertRegex(r.stderr, r"^[a-z]+: expected .+; found .+; needed .+\n$")
 
+    def test_refusal_classes_name_what_refused(self):
+        """Owner, 2026-09-13 (ruling 3): the class token names the refusal,
+        not the tool. arguments for the parser, identity for WF_AGENT,
+        state for a missing control directory, plan for a bad declaration."""
+        r = self.cp("bogus", "--state", str(self.state))
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("arguments: "), r.stderr)
+        r = self.cp("run", "missing", "--state", "/dev/null", agent=None)
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("identity: "), r.stderr)
+        r = self.cp("run", "missing", "--state", "/dev/null")
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("state: "), r.stderr)
+        self.plan_path.write_text(json.dumps({"version": 2}))
+        r = self.cp("init", str(self.plan_path), "--state", str(self.state))
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("plan: "), r.stderr)
+
     def tdd(self, review=REVIEW, producers=(AUTHOR, REVIEWER, CODER)):
         a, rv, c = producers
         return [
