@@ -75,6 +75,15 @@ class SkillsFixture(unittest.TestCase):
         self.tool = self.repo / "ops" / "conductor" / "tools" / SKILLS_PY
         _copy_unread(src, self.tool)
         self.assertGreater(self.tool.stat().st_size, 0)
+        # The tool imports instrument.py beside itself, which loads
+        # laneconf.py beside it and reads ops/lane.conf two levels up
+        # (instrument-conventions.md §The shared implementation); the
+        # throwaway tree carries both and a conf naming the lane.
+        for sibling in ("instrument.py", "laneconf.py"):
+            _copy_unread(TOOLS / sibling, self.tool.parent / sibling)
+        (self.repo / "ops" / "lane.conf").write_text(
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n", encoding="utf-8"
+        )
 
     def tearDown(self):
         try:

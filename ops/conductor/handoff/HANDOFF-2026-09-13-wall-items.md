@@ -43,7 +43,11 @@ not wall and not this session's: `deliverable.py`'s usage line lists
   test_miss_log.py and test_skill_use.py stage instrument.py and
   laneconf.py beside their copied lever; grant 211, wall); then the
   records commit with this section, the AAR's second thread, seven
-  corpus rows and the conventions page sentence.
+  corpus rows and the conventions page sentence; then the fix commit
+  (grant 213) after `suites.sh` read red at `a20ffde9`:
+  `test_skills_registry.py` stages instrument.py, laneconf.py and a
+  lane conf beside its copy, and the four fixture app tests write the
+  lane contract as a nested `ops/ruff.toml` in their scratch.
 - PR: a draft from this branch after the records commit; number, head
   and checks in the ready note and `gh pr list`. Ready waits on the full
   check set green, merge state clean, `suites.sh` on the head, and

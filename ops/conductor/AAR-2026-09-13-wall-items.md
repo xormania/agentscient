@@ -95,9 +95,20 @@ that copy skills.py staging the shared module beside it (grant 211).
   stdout for an invalid probe is its outcome contract
   (permission-surface.md) and is untouched; only the unknown-argument
   path moved to the wire.
-- **skills.py gained its first test file** before its shape changed;
-  the tests were red at the base on the exit code and on the store's
-  location, which now honours XDG_STATE_HOME through `state_dir()`.
+- **skills.py's wire tests were written before its shape changed**
+  (`test_skills.py`), red at the base on the exit code and on the
+  store's location, which now honours XDG_STATE_HOME through
+  `state_dir()`. The explain and the commit `9950d14d` said skills.py
+  had no test file; it had one, `test_skills_registry.py` (23 tests),
+  which a search for the name `test_skills.py` alone did not find. A
+  recollection wearing a reading; corrected here, not in the commit.
+- **Two lint contracts in one scratch tree.** The fixture app tests copy
+  the lane into a scratch app and run `suites.sh` there; with ruff in
+  it, the lane copies read red under the app's own rules, and a lane
+  `ruff.toml` at the scratch root shadowed the app's config and its
+  planted faults. The lane contract rides as a nested `ops/ruff.toml`
+  in the scratch, keys re-rooted, which ruff applies to the copies
+  alone; the copy lists are unchanged.
 - **One PR carries a wall commit and a non-wall commit**, each under its
   own grant and said in each message, at the owner's word; the wall
   grant also wrote the two hook tests (wall paths) that stage the
@@ -117,6 +128,11 @@ that copy skills.py staging the shared module beside it (grant 211).
 - Two hook tests copy skills.py alone into a fake repository and read
   the `tooling` refusal once it imported instrument.py; the shape
   probes.py and monitor.py already handled in their own tests.
+
+- `suites.sh` at `a20ffde9` read fixtures 2 red and conductor 21 red:
+  `test_skills_registry.py` copies skills.py alone into a throwaway
+  tree, and the four fixture scratch trees linted under the app's
+  rules. Both fixed in the commit after the records, under grant 213.
 
 ### Calibration
 

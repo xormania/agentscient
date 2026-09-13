@@ -68,6 +68,22 @@ EXPECTED_KIND_VISIBLE = {
 }
 LAYOUT_FILES = ("README.md", "ruff.toml")
 LAYOUT_DIRS = ("tool", "tests", "probes", "fixes")
+
+
+def _lint_the_lane_copies_under_the_lane_contract(made: Path) -> None:
+    """suites.sh runs `ruff check .` since 2026-09-13, as the CI lane job
+    does. The scratch holds two lint contracts: the app's own, at its root,
+    whose planted faults (FAULT-KINDS.md) its calibration relies on, and
+    the lane's for the copies under ops/. A lane ruff.toml at the scratch
+    root would shadow the app's (ruff reads ruff.toml before
+    pyproject.toml), so the lane contract rides as the nested
+    ops/ruff.toml, which ruff's hierarchical discovery applies to the
+    copies alone; its per-file keys are re-rooted from ops/."""
+    source = REPO / "ruff.toml"
+    text = source.read_text(encoding="utf-8")
+    if text.count('"ops/') < 1:
+        raise AssertionError("the repository ruff.toml keys its rows under ops/")
+    (made / "ops" / "ruff.toml").write_text(text.replace('"ops/', '"'), encoding="utf-8")
 PACKAGING_NAMES = (
     "pyproject.toml",
     "setup.py",
@@ -933,6 +949,7 @@ class PythonToolingMakeProve(_RepoFreeze):
 
     def test_scratch_runs_suites_and_dispatch_dry_run(self):
         made = self.made_app("portable")
+        _lint_the_lane_copies_under_the_lane_contract(made)
         self.assertTrue((made / "ops/bin/suites.sh").is_file())
         self.assertTrue((made / "ops/bin/dispatch.sh").is_file())
         self.assertTrue((made / "ops/devlane/dispatch/launch.py").is_file())
