@@ -99,6 +99,7 @@ class TheLockLever(unittest.TestCase):
         lane/b in 3 of 60 trials at bdf8cf0c. Every writer holds an exclusive
         flock on deliverable.json.lock beside the lock while it reads and
         writes, so a writer that starts while another holds it waits."""
+        import contextlib
         import fcntl
 
         self.run_lever("set", "lane/a", "--why", "a")
@@ -112,10 +113,8 @@ class TheLockLever(unittest.TestCase):
                 proc = subprocess.Popen([sys.executable, str(LEVER), *args], env=env,
                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                 try:
-                    try:
+                    with contextlib.suppress(subprocess.TimeoutExpired):
                         proc.wait(timeout=1.0)
-                    except subprocess.TimeoutExpired:
-                        pass
                     waited = proc.poll() is None
                     unchanged = self.lock.read_text() == before
                 finally:
