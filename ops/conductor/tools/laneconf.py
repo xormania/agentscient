@@ -52,6 +52,17 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, emit
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 DEFAULT_CONF = Path(__file__).resolve().parents[2] / "lane.conf"
 LOCAL_NAME = "lane.local.conf"
 NAME_KEYS = {
@@ -158,27 +169,17 @@ DEFERRED_LITERAL_PATHS = {
 }
 
 
-class ConfigError(Exception):
-    """A refusal that can be projected onto either CLI wire."""
+class ConfigError(Refusal):
+    """The shared refusal, under the name its seven consumers catch.
 
-    def __init__(
-        self,
-        kind: str,
-        expected: str,
-        found: str,
-        needed: str,
-    ) -> None:
-        self.kind = kind
-        self.expected = expected
-        self.found = found
-        self.needed = needed
-        super().__init__(self.line())
+    `line(kind)` projects the same refusal under a caller's class token
+    (the launcher and the spend meter rename `key` for their own wire);
+    the format string lives in instrument.py alone."""
 
     def line(self, kind: str | None = None) -> str:
-        return (
-            f"{kind or self.kind}: expected {self.expected}; "
-            f"found {self.found}; needed {self.needed}"
-        )
+        if kind is None or kind == self.kind:
+            return super().line()
+        return Refusal(kind, self.expected, self.found, self.needed).line()
 
 
 def conf_path() -> Path:
@@ -556,8 +557,7 @@ def main(argv: list[str] | None = None) -> int:
             "choose one documented verb",
         )
     except ConfigError as exc:
-        print(exc.line(), file=sys.stderr)
-        return 2
+        return emit(exc)
 
 
 if __name__ == "__main__":
