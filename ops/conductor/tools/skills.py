@@ -43,6 +43,32 @@ except ModuleNotFoundError:
     raise SystemExit(2) from None
 
 REPO = Path(__file__).resolve().parents[3]
+
+# A secret-shaped value never enters the store: the skill-use hook hands a
+# Skill call's arguments here verbatim (security audit
+# 20260913T104919Z-review-codex-9126d3, finding 4). The token shapes are
+# those of ops/devlane/workflow/checks/secret_scan.py; the assignment form
+# covers a password or token typed as a named value.
+SECRET_SHAPES = (
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b"),
+    re.compile(r"\bxox[abpsr]-[A-Za-z0-9-]{10,}\b"),
+    re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
+)
+SECRET_ASSIGNMENT = re.compile(
+    r"(?i)\b(password|passwd|secret|token|api[_-]?key|access[_-]?key)\b(\s*[=:]\s*)(\S+)")
+REDACTED = "[redacted]"
+
+
+def redact(text):
+    """The text with every secret-shaped value replaced; None stays None."""
+    if text is None:
+        return None
+    text = SECRET_ASSIGNMENT.sub(lambda m: f"{m.group(1)}{m.group(2)}{REDACTED}", text)
+    for shape in SECRET_SHAPES:
+        text = shape.sub(REDACTED, text)
+    return text
 SKILLS_DIR = REPO / ".claude" / "skills"
 KINDS = ("project", "conductor", "process", "personal")
 
@@ -215,7 +241,7 @@ def _event(kind):
                    "give the event its story; a count without one wears a claim's clothes")
         agent = identity()
         name = argv[0]
-        detail = argv[1] if len(argv) > 1 else None
+        detail = redact(argv[1]) if len(argv) > 1 else None
         con = con_()
         known = con.execute("SELECT status FROM skills WHERE name=?",
                             (name,)).fetchone()
