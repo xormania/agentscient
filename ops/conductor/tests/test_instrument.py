@@ -41,7 +41,9 @@ MODULE = TOOLS / "instrument.py"
 AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 
 # Tools that import the shared module and carry none of its helpers.
-MIGRATED: tuple[str, ...] = ()
+MIGRATED: tuple[str, ...] = (
+    "hand.py",
+)
 
 # Tools still carrying private copies, named so their absence from
 # MIGRATED is a declaration and not an oversight. Each one leaves this
@@ -55,7 +57,6 @@ PENDING: tuple[str, ...] = (
     "decisions.py",
     "deliverable.py",
     "findings.py",
-    "hand.py",
     "ladder.py",
     "land.py",
     "lane_mcp.py",
@@ -234,6 +235,29 @@ class TheStateRootAndTheConf(unittest.TestCase):
         env = {"LANE_CONF": str(conf), "XDG_STATE_HOME": str(self.tmp / "xdg")}
         with mock.patch.dict(os.environ, env):
             self.assertEqual(self.m.state_dir(), self.tmp / "xdg" / "testlane")
+
+    def test_lane_name_stands_in_only_when_nothing_names_a_conf(self):
+        """A copy of the module staged beside a copy of a tool has no
+        tracked conf beside it; the lane's own name stands in, as the
+        four lane-name readers this replaces had it. A named LANE_CONF
+        that is absent still refuses conf-file."""
+        staged = self.tmp / "staged"
+        staged.mkdir()
+        for name in ("instrument.py", "laneconf.py"):
+            (staged / name).write_bytes((TOOLS / name).read_bytes())
+        spec = importlib.util.spec_from_file_location("instrument_staged", staged / "instrument.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        env = {k: v for k, v in os.environ.items() if k not in ("LANE_CONF", "LANE_NAME")}
+        with mock.patch.dict(os.environ, env, clear=True):
+            self.assertEqual(module.lane_name(), "agentscient")
+        env["LANE_CONF"] = str(self.tmp / "absent.conf")
+        with (
+            mock.patch.dict(os.environ, env, clear=True),
+            self.assertRaises(module.Refusal) as caught,
+        ):
+            module.lane_name()
+        self.assertEqual(caught.exception.kind, "conf-file")
 
     def test_a_missing_key_refuses_conf_key(self):
         conf = self.tmp / "lane.conf"

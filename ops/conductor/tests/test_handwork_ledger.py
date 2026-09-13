@@ -29,6 +29,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "hand.py"
+# The tool imports these beside itself (instrument-conventions.md §The
+# shared implementation); a staged copy run from a scratch directory
+# needs them staged too, or it refuses `tooling` before the contract.
+SIBLINGS = ("instrument.py", "laneconf.py")
 # Captured at import, before any test mutates a subprocess HOME.
 LIVE_STORE = Path.home() / ".local" / "state" / "agentscient" / "handwork.db"
 
@@ -130,6 +134,10 @@ class _LedgerFixture(unittest.TestCase):
             self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
             self.assertEqual(len(landed), len(data))
             self.assertNotEqual(landed, ABSENT_STUB)
+            for name in SIBLINGS:
+                sibling = TOOL.with_name(name)
+                if sibling.is_file():
+                    (self.staged.with_name(name)).write_bytes(sibling.read_bytes())
         else:
             self.staged.write_bytes(ABSENT_STUB)
             landed = self.staged.read_bytes()
