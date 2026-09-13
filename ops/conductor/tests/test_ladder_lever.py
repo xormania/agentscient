@@ -845,6 +845,8 @@ class _LadderFixture(unittest.TestCase):
             self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
             self.assertEqual(len(landed), len(data))
             self.assertNotEqual(landed, ABSENT_STUB)
+            for sibling in ("instrument.py", "laneconf.py"):
+                self.staged.with_name(sibling).write_bytes(TOOL.with_name(sibling).read_bytes())
         else:
             self.staged.write_bytes(ABSENT_STUB)
             landed = self.staged.read_bytes()
