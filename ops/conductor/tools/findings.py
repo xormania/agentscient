@@ -32,10 +32,28 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+# A copy of this tool staged elsewhere by a test finds its siblings in
+# the invoking checkout; beside the real tool the script directory wins.
+sys.path.append(os.path.join(os.getcwd(), "ops", "conductor", "tools"))
 try:
-    import laneconf
+    # lane_name is not used here: correction.py loads this module by path
+    # and reads FINDINGS.lane_name() until its own migration.
+    from instrument import (  # noqa: F401 - lane_name is read by correction.py
+        Refusal,
+        emit,
+        identity,
+        lane_name,
+        refuse,
+        state_dir,
+    )
 except ModuleNotFoundError:
-    laneconf = None
+    print(
+        "tooling: expected instrument.py beside this tool or under "
+        "ops/conductor/tools of the working directory; found neither; "
+        "needed run the tool from its checkout",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
 
 ROOT = Path(__file__).resolve().parents[3]
 RECORDS = ROOT / ".dev/records/dispatches"
@@ -43,7 +61,6 @@ REVIEW_JOBS = (
     "check-tests", "security-audit", "adversarial-review", "adjudicate", "sweep"
 )
 DISPOSITIONS = ("open", "fixed", "addressed", "deferred", "ruled", "fix-round", "opinion")
-IDENTITY = re.compile(r"^[^<>]+ <[^<>@\s]+@[^<>@\s]+>$")
 CITATION = re.compile(
     r"contract item (?P<item>[1-9][0-9]*) of (?P<path>[^\s:;,]+)"
 )
@@ -73,46 +90,8 @@ CALIBRATION_CLASSES = ("caught", "missed", "false-positive", "unmatched", "unloc
 CALIBRATION_COLUMNS = ("record", "app", "fault_id", "finding_key", "class", "harness", "model", "claim")
 
 
-class Refused(Exception):
-    pass
-
-
-def refuse(kind, expected, found, needed):
-    raise Refused(f"{kind}: expected {expected}; found {found}; needed {needed}")
-
-
-def lane_name():
-    if laneconf is not None:
-        try:
-            return laneconf.get("LANE_NAME")
-        except laneconf.ConfigError as error:
-            kind = "conf-key" if error.kind == "key" else error.kind
-            refuse(kind, error.expected, error.found, error.needed)
-    path = Path(os.environ.get(
-        "LANE_CONF", Path(__file__).resolve().parents[2] / "lane.conf"))
-    if "LANE_CONF" not in os.environ and not path.is_file():
-        return "agentscient"
-    try:
-        text = path.read_text(encoding="utf-8")
-    except OSError as error:
-        refuse("conf-file", f"a readable lane conf at {path}", str(error), "restore it")
-    match = re.search(r"(?m)^LANE_NAME='([^']*)'\s*$", text)
-    if match is None:
-        refuse("conf-key", "LANE_NAME declared in the lane conf", f"no LANE_NAME in {path}", "define it")
-    return match.group(1)
-
-
-def identity():
-    value = os.environ.get("WF_AGENT", "")
-    if not IDENTITY.fullmatch(value):
-        refuse("identity", "WF_AGENT in the Name <address> form", value or "unset",
-               "export WF_AGENT='Your Model Name <noreply@vendor>'")
-    return value
-
-
 def database_path():
-    state = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
-    return state / lane_name() / "findings.db"
+    return state_dir() / "findings.db"
 
 
 def parse_citation(evidence):
@@ -488,9 +467,8 @@ def main(argv):
         if verb not in VERBS:
             refuse("arguments", "one of " + ", ".join(VERBS), verb or "no verb", "name a verb")
         return VERBS[verb](argv[2:])
-    except Refused as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
+    except Refusal as exc:
+        return emit(exc)
 
 
 if __name__ == "__main__":

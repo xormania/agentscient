@@ -41,7 +41,6 @@ EXIT_ABORT = 3
 
 IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<address>[^<>\s@]+@[^<>\s]+)>")
 IDENTITY_NEEDED = "export WF_AGENT='Your Model Name <noreply@vendor>'"
-DEFAULT_LANE = "agentscient"
 GIT = shutil.which("git") or "git"
 
 
@@ -142,14 +141,11 @@ def conf(name: str) -> str:
 
 
 def lane_name() -> str:
-    """LANE_NAME through the lane conf reader. With no LANE_CONF
-    named and no tracked conf beside the reader, the lane's own name
-    stands in, as the ledger, lock, register and brief levers each had
-    it before this module: a tool run outside a checkout still finds
-    ~/.local/state/agentscient/. A LANE_CONF that is named and absent
-    refuses conf-file; the default never covers a named file."""
-    if "LANE_CONF" not in os.environ and not _laneconf().conf_path().is_file():
-        return DEFAULT_LANE
+    """LANE_NAME through the lane conf reader: LANE_CONF when named,
+    else the tracked conf beside the reader. No name stands in for an
+    absent conf; the ledger, lock, register and brief levers each
+    carried one as a deferred literal, and a copy of a tool run away
+    from its checkout names its conf through LANE_CONF instead."""
     return conf("LANE_NAME")
 
 

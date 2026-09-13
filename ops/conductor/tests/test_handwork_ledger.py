@@ -110,6 +110,10 @@ class _LedgerFixture(unittest.TestCase):
         )
         self.staged = self.scratch / "hand.py"
         self._stage_tool_bytes()
+        # The staged copy has no tracked conf beside its reader; the
+        # fixture names one, so the lane under HOME is the one asserted.
+        self.conf = root / "lane.conf"
+        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
 
     def tearDown(self):
         try:
@@ -159,6 +163,7 @@ class _LedgerFixture(unittest.TestCase):
             "GIT_CONFIG_GLOBAL": os.devnull,
             "GIT_CONFIG_SYSTEM": os.devnull,
             "GIT_CONFIG_NOSYSTEM": "1",
+            "LANE_CONF": str(self.conf),
         }
         if agent is not None:
             env["WF_AGENT"] = agent

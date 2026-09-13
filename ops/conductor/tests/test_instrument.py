@@ -43,6 +43,7 @@ AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 # Tools that import the shared module and carry none of its helpers.
 MIGRATED: tuple[str, ...] = (
     "deliverable.py",
+    "findings.py",
     "hand.py",
 )
 
@@ -56,7 +57,6 @@ PENDING: tuple[str, ...] = (
     "control.py",
     "correction.py",
     "decisions.py",
-    "findings.py",
     "ladder.py",
     "land.py",
     "lane_mcp.py",
@@ -236,11 +236,11 @@ class TheStateRootAndTheConf(unittest.TestCase):
         with mock.patch.dict(os.environ, env):
             self.assertEqual(self.m.state_dir(), self.tmp / "xdg" / "testlane")
 
-    def test_lane_name_stands_in_only_when_nothing_names_a_conf(self):
+    def test_a_staged_copy_names_its_conf_or_refuses_conf_file(self):
         """A copy of the module staged beside a copy of a tool has no
-        tracked conf beside it; the lane's own name stands in, as the
-        four lane-name readers this replaces had it. A named LANE_CONF
-        that is absent still refuses conf-file."""
+        tracked conf beside it. No name stands in: with nothing named
+        it refuses conf-file, and a LANE_CONF names the conf it reads.
+        The module itself carries no lane-name literal."""
         staged = self.tmp / "staged"
         staged.mkdir()
         for name in ("instrument.py", "laneconf.py"):
@@ -249,15 +249,20 @@ class TheStateRootAndTheConf(unittest.TestCase):
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         env = {k: v for k, v in os.environ.items() if k not in ("LANE_CONF", "LANE_NAME")}
-        with mock.patch.dict(os.environ, env, clear=True):
-            self.assertEqual(module.lane_name(), "agentscient")
-        env["LANE_CONF"] = str(self.tmp / "absent.conf")
         with (
             mock.patch.dict(os.environ, env, clear=True),
             self.assertRaises(module.Refusal) as caught,
         ):
             module.lane_name()
         self.assertEqual(caught.exception.kind, "conf-file")
+        conf = self.tmp / "named.conf"
+        conf.write_text("LANE_NAME='namedlane'\n", encoding="utf-8")
+        env["LANE_CONF"] = str(conf)
+        with mock.patch.dict(os.environ, env, clear=True):
+            self.assertEqual(module.lane_name(), "namedlane")
+        source = MODULE.read_text(encoding="utf-8")
+        self.assertNotIn("'agentscient'", source)
+        self.assertNotIn('"agentscient"', source)
 
     def test_a_missing_key_refuses_conf_key(self):
         conf = self.tmp / "lane.conf"
