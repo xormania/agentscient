@@ -54,6 +54,11 @@ class _Fixture(unittest.TestCase):
         self.lever = self.repo / "ops" / "conductor" / "tools" / "skills.py"
         self.lever.parent.mkdir(parents=True)
         self.lever.write_bytes(SKILLS_TOOL.read_bytes())
+        # The lever imports instrument.py beside itself, which loads
+        # laneconf.py beside it and reads ops/lane.conf two levels up:
+        # the fake repository's conf above (instrument-conventions.md).
+        for sibling in ("instrument.py", "laneconf.py"):
+            (self.lever.parent / sibling).write_bytes((SKILLS_TOOL.parent / sibling).read_bytes())
         self.env = support.isolated_env(self.home, extra={"WF_AGENT": AGENT})
         self.skills("add", "onboard", "planted onboard")
         self.assertEqual(self.events(), [], "plant: the registry starts with no events")
