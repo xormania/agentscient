@@ -1,8 +1,9 @@
-# AAR — 2026-09-13, the ladder migration
+# AAR — 2026-09-13, the ladder and monitor migrations
 
 Session `lane/session-20260913-a`, Claude Fable 5.1, by hand under
-grant 187. Written at `ba4ad806`; the readings below name the sha each
-was taken at.
+grants 187 and 193. Written at `ba4ad806` and extended at `b00b23aa`;
+the readings below name the sha each was taken at. The monitor thread
+is the last section.
 
 ## The request, in the owner's words
 
@@ -88,3 +89,37 @@ had changed the brief; done first.
 - Hooks: 9 refusals in the session, 1 of them wrong (LD-35), 2 of them
   a page defect (pitfall 29).
 - Corpus: 109 rows pass at `fef8b1cd`.
+
+## Second thread: monitor.py
+
+Owner, 2026-09-13: "181 is merged - continue, monitor.py" (#181 merged
+at `ed109e17`). Grant 193. PR #183.
+
+- The handoff's open question, which handler sees a refusal once the
+  class leaves ValueError, was answered by measurement, not by reading
+  1,377 lines: an AST pass over `ed109e17` computed the closure of
+  functions that call `refuse()` (28 of them) and listed every `try`
+  with a ValueError handler (14). The three whose bodies reach the
+  closure (`_path` 123, `load_config` 195, `digest` 1160) each have an
+  `except Refusal` handler first; the other eleven bodies never reach
+  it. The change is neutral for every handler. Twenty lines of script,
+  one reading, and the shape to reuse for `lane_read.py`.
+- Red at `ed109e17` (gate Ran 32, 1 failure naming `IDENTITY_RE`,
+  `Refusal`, `refuse`), green at `b00b23aa` (Ran 32 OK); monitor Ran
+  73 OK before and after; lane MCP Ran 50 OK before and after; ruff
+  clean; no lane-name literal.
+- Decisions: `now` imported as `utc_now` because `main()` binds a local
+  `now`; `_identity()` replaced at its two call sites rather than kept
+  as a call-through; the ID_RE check on the lane name and the
+  confinement of the state directory stay the monitor's own; the
+  conformance-registry gap stays recorded, not filled, in a migration
+  commit.
+- What went wrong: `suites.sh` was run with the new corpus rows still
+  untracked, and dev moved (#182) during the run; the ten wrapper tests
+  that run the real dispatcher refused `stale-base` on the untracked
+  file, and `test_probes` graded the untracked nearmiss row before this
+  AAR carried its phrase: 11 reds from the tree's state. The
+  claim-unmeasured hook refused the commit message once for the owner's
+  quoted word "merged"; the merge sha now sits beside it.
+- Calibration: tokens not measured. Hook refusals this thread: 1
+  (claim-unmeasured on a quotation), 0 wrong.

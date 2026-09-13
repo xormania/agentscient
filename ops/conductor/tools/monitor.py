@@ -19,10 +19,26 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings. The clock is imported as utc_now because main()
+# binds a local named now.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, identity, lane_name, refuse, state_root
+    from instrument import now as utc_now
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 HERE = Path(__file__).resolve()
 DEFAULT_CONFIG = HERE.parent.parent / "monitor.example.json"
 ID_RE = re.compile(r"[a-z][a-z0-9_-]{0,63}")
-IDENTITY_RE = re.compile(r".+ <[^<>]+>")
 BUCKETS = ("core", "graphql", "search")
 LOCAL_JSON_BYTES = 1_048_576
 PROCESS_OUTPUT_BYTES = 1_048_576
@@ -33,30 +49,6 @@ MAX_METRIC_INTEGER = 9_223_372_036_854_775_807
 READING_KEYS = {
     "subject", "state", "metrics", "generation", "observed_at", "evidence", "reason"
 }
-
-
-class Refusal(ValueError):
-    def __init__(self, kind: str, expected: str, found: object, needed: str):
-        self.kind = kind
-        self.expected = expected
-        self.found = found
-        self.needed = needed
-        super().__init__(self.line())
-
-    @staticmethod
-    def _one_line(value: object) -> str:
-        return " ".join(str(value).split()) or "empty"
-
-    def line(self) -> str:
-        return (
-            f"{self.kind}: expected {self._one_line(self.expected)}; "
-            f"found {self._one_line(self.found)}; "
-            f"needed {self._one_line(self.needed)}"
-        )
-
-
-def refuse(kind: str, expected: str, found: object, needed: str) -> None:
-    raise Refusal(kind, expected, found, needed)
 
 
 def _pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -1200,12 +1192,6 @@ def digest(state: Path, consumer: str, limit: int, max_bytes: int, ack: bool) ->
         conn.close()
 
 
-def _identity() -> None:
-    value = os.environ.get("WF_AGENT", "")
-    if IDENTITY_RE.fullmatch(value) is None:
-        refuse("identity", "WF_AGENT in Name <address> form", value or "unset", "export the acting identity")
-
-
 def _integer(value: str, option: str, minimum: int, maximum: int) -> int:
     try:
         number = int(value)
@@ -1252,21 +1238,10 @@ def _global(argv: list[str]) -> tuple[Path, Path | None, str, list[str]]:
 def _state_path(explicit: Path | None) -> Path:
     if explicit is not None:
         return explicit
-    tools = HERE.parent
-    if str(tools) not in sys.path:
-        sys.path.insert(0, str(tools))
-    try:
-        import laneconf
-
-        lane = laneconf.get("LANE_NAME")
-    except (ImportError, AttributeError) as exc:
-        refuse("conf-key", "LANE_NAME through laneconf", type(exc).__name__, "keep laneconf.py beside monitor.py")
-    except laneconf.ConfigError as exc:
-        refuse("conf-key", "LANE_NAME in the lane conf", exc.kind, "define the lane setting")
+    lane = lane_name()
     if ID_RE.fullmatch(lane) is None:
         refuse("conf-key", f"LANE_NAME matching {ID_RE.pattern}", repr(lane), "use a namespace identifier")
-    base = Path(os.environ["XDG_STATE_HOME"]) if os.environ.get("XDG_STATE_HOME") else Path.home() / ".local" / "state"
-    base = Path(os.path.abspath(base))
+    base = Path(os.path.abspath(state_root()))
     target = base / lane / "monitor"
     if not _inside(target.resolve(strict=False), base.resolve(strict=False)):
         refuse("state", "default monitor state confined below XDG state", str(target), "remove escaping symlinks")
@@ -1333,13 +1308,13 @@ def main(argv: list[str] | None = None) -> int:
         if verb == "digest":
             consumer, limit, max_bytes, ack = _parse_digest(args)
             if ack:
-                _identity()
+                identity()
             state = _validate_state(_state_path(explicit_state), config_path, config)
             sys.stdout.buffer.write(digest(state, consumer, limit, max_bytes, ack))
             return 0
         loop, injected = _parse_run(args)
-        _identity()
-        once_now = _clock(injected) if injected else datetime.now(timezone.utc)
+        identity()
+        once_now = _clock(injected) if injected else utc_now()
         state = _validate_state(_state_path(explicit_state), config_path, config)
         if not loop:
             counts, events = run_once(config, state, once_now)
@@ -1350,13 +1325,13 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         # Persist epoch-shaped deadlines, but advance the live clock only by
         # monotonic elapsed time. A restart translates them through wall time.
-        wall_anchor = datetime.now(timezone.utc).timestamp()
+        wall_anchor = utc_now().timestamp()
         monotonic_anchor = time.monotonic()
         while True:
             try:
                 cycle = load_config(config_path)
                 _validate_state(state, config_path, cycle)
-                now = datetime.now(timezone.utc)
+                now = utc_now()
                 live_epoch = wall_anchor + time.monotonic() - monotonic_anchor
                 counts, events = run_once(cycle, state, now, clock_epoch=live_epoch)
                 for event in events:
