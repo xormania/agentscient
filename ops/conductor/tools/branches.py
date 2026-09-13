@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -15,12 +14,25 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import NoReturn
 
-GIT = shutil.which("git") or "git"
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, emit, identity, refuse, state_dir
+    from instrument import git as bounded_git
+    from instrument import run as bounded_run
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 GH = shutil.which("gh") or "gh"
 TIMEOUT_S = 30
-IDENTITY_RE = re.compile(r"^.+ <[^<>\s@]+@[^<>\s]+>$")
-class Refusal(Exception):
-    """A contract-level rejection."""
 
 
 @dataclass(frozen=True)
@@ -47,34 +59,13 @@ class Transport:
     closed: bool
 
 
-def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
-    """Raise a one-line refusal on the lane wire."""
-    message = f"{kind}: expected {expected}; found {found}; needed {needed}"
-    raise Refusal(" ".join(message.split()))
-
-
 def run(executable: str, *args: str) -> subprocess.CompletedProcess[str]:
     """Run one bounded command without a shell."""
-    try:
-        return subprocess.run(
-            [executable, *args],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=TIMEOUT_S,
-        )
-    except subprocess.TimeoutExpired:
-        name = Path(executable).name
-        refuse(
-            f"{name}-error",
-            f"{name} completing within {TIMEOUT_S}s",
-            "timeout",
-            f"restore {name} access and retry",
-        )
+    return bounded_run([executable, *args], timeout=TIMEOUT_S)
 
 
 def git(*args: str) -> subprocess.CompletedProcess[str]:
-    return run(GIT, *args)
+    return bounded_git(*args, timeout=TIMEOUT_S)
 
 
 def git_value(*args: str) -> str:
@@ -107,21 +98,8 @@ def positive(raw: str) -> int:
     return value
 
 
-def state_root() -> Path:
-    configured = os.environ.get("XDG_STATE_HOME")
-    base = Path(configured) if configured else Path.home() / ".local" / "state"
-    return base / "agentscient" / "dispatch"
-
-
-def identity() -> None:
-    value = os.environ.get("WF_AGENT", "")
-    if not IDENTITY_RE.fullmatch(value):
-        refuse(
-            "identity",
-            "WF_AGENT in the Name <address> form",
-            value or "unset",
-            "export WF_AGENT='Your Model Name <noreply@vendor>'",
-        )
+def dispatch_root() -> Path:
+    return state_dir() / "dispatch"
 
 
 def ref_rows(prefix: str) -> list[tuple[str, str]]:
@@ -321,7 +299,7 @@ def transports(window: int) -> list[Transport]:
     rows: list[Transport] = []
     for ref, sha in ref_rows("refs/dispatch"):
         record_id = ref.removeprefix("refs/dispatch/")
-        exit_file = state_root() / record_id / "exit"
+        exit_file = dispatch_root() / record_id / "exit"
         closed = exit_file.is_file()
         if closed:
             closed_at = datetime.fromtimestamp(exit_file.stat().st_mtime, UTC)
@@ -420,8 +398,7 @@ def main() -> int:
         }
         return handlers[args.verb](args)
     except Refusal as error:
-        print(error, file=sys.stderr)
-        return 2
+        return emit(error)
 
 
 if __name__ == "__main__":

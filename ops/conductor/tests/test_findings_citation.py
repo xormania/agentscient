@@ -26,6 +26,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "findings.py"
+# The tool imports these beside itself (instrument-conventions.md §The
+# shared implementation); a staged copy run from a scratch directory
+# needs them staged too, or it refuses `tooling` before the contract.
+SIBLINGS = ("instrument.py", "laneconf.py")
 LIVE_STORE = Path.home() / ".local" / "state" / "agentscient" / "findings.db"
 AGENT = "Citation Tester <citation-tester@example.invalid>"
 REC = "20260901T000000Z-review-grok-aaaaaa"
@@ -117,6 +121,10 @@ class _CitationFixture(unittest.TestCase):
         self.home.mkdir()
         self.scratch.mkdir()
         self.records.mkdir(parents=True)
+        # The staged copy has no tracked conf beside its reader; the
+        # fixture names one, so the lane under HOME is the one asserted.
+        self.conf = root / "lane.conf"
+        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
         self.staged = self.repo / "ops" / "conductor" / "tools" / "findings.py"
         self.store = (
             self.home / ".local" / "state" / "agentscient" / "findings.db"
@@ -150,6 +158,10 @@ class _CitationFixture(unittest.TestCase):
         landed = self.staged.read_bytes()
         self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
         self.assertNotEqual(landed, ABSENT_STUB)
+        for name in SIBLINGS:
+            sibling = TOOL.with_name(name)
+            if sibling.is_file():
+                self.staged.with_name(name).write_bytes(sibling.read_bytes())
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -165,6 +177,7 @@ class _CitationFixture(unittest.TestCase):
             "LANG": "C",
             "PYTHONDONTWRITEBYTECODE": "1",
             "WF_AGENT": AGENT,
+            "LANE_CONF": str(self.conf),
         }
         if extra:
             env.update(extra)

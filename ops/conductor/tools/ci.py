@@ -7,16 +7,29 @@ import argparse
 import json
 import math
 import os
-import re
 import shutil
 import sqlite3
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import Any
 
-IDENTITY_RE = re.compile(r"^.+ <[^<>]+>$")
+# The shared instrument module sits beside this file; its directory goes
+# on the path so the import resolves however this file was loaded: as
+# the script, by path from another tool, or as a copy a test staged
+# with its siblings.
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+try:
+    from instrument import Refusal, emit, identity, refuse, stamp, state_dir
+except ModuleNotFoundError:
+    print(
+        "tooling: expected instrument.py beside this tool; found absent; "
+        "needed restore ops/conductor/tools/instrument.py beside it",
+        file=sys.stderr,
+    )
+    raise SystemExit(2) from None
+
 GH_TIMEOUT_S = 30
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS runs(
@@ -37,35 +50,8 @@ CREATE TABLE IF NOT EXISTS checks(
 """
 
 
-class Refusal(Exception):
-    """A contract-level rejection."""
-
-
-def refuse(kind: str, expected: str, found: str, needed: str) -> NoReturn:
-    message = f"{kind}: expected {expected}; found {found}; needed {needed}"
-    raise Refusal(" ".join(message.split()))
-
-
 def store_path() -> Path:
-    configured = os.environ.get("XDG_STATE_HOME")
-    base = Path(configured) if configured else Path.home() / ".local" / "state"
-    return base / "agentscient" / "ci.db"
-
-
-def stamp() -> str:
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
-
-
-def identity() -> str:
-    value = os.environ.get("WF_AGENT", "")
-    if not IDENTITY_RE.fullmatch(value):
-        refuse(
-            "identity",
-            "WF_AGENT matching '.+ <addr>'",
-            repr(value) if value else "unset",
-            "set WF_AGENT to 'Name <address>'",
-        )
-    return value
+    return state_dir() / "ci.db"
 
 
 def positive(value: str, option: str) -> int:
@@ -341,8 +327,7 @@ def main() -> int:
             return 0
         return run_report(args.verb, args.days)
     except Refusal as error:
-        print(error, file=sys.stderr)
-        return 2
+        return emit(error)
 
 
 if __name__ == "__main__":
