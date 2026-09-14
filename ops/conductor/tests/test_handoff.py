@@ -177,6 +177,20 @@ class TakingAThread(_Scratch):
             f"taken T-1 on {BRANCH}", f"taken T-2 on {BRANCH}", f"taken T-3 on {BRANCH}",
         ])
 
+    def test_take_of_a_handoff_holds_every_thread_since_one_moment(self):
+        """T-9: one transaction for the package, so every thread carries
+        the same held-since stamp and the same take marking stamp."""
+        self.a_handoff("first", "second", "third")
+        self.lock(BRANCH)
+        self.ok("take", "H-1", "--branch", BRANCH, identity=OTHER)
+        stamps = set()
+        for tid in ("T-1", "T-2", "T-3"):
+            shown = self.ok("show", tid, identity=None)
+            take_lines = [ln for ln in shown.splitlines() if " take open -> taken " in ln]
+            self.assertEqual(len(take_lines), 1, shown)
+            stamps.add(take_lines[0].split()[0])
+        self.assertEqual(len(stamps), 1, stamps)
+
     def test_take_of_a_handoff_with_a_thread_held_by_another_claims_nothing(self):
         self.a_handoff("first", "second")
         self.lock(BRANCH, OTHER_BRANCH)

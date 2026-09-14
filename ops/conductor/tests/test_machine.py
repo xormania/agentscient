@@ -256,6 +256,36 @@ class TheSubjects(_Scratch):
         self.assertEqual(row["place"], "done")
         self.assertEqual(row["holder"], AGENT)
 
+    def test_move_many_moves_every_subject_in_one_transaction_or_none(self):
+        """T-9 (2026-09-14): a package take moved each thread in its own
+        transaction, so two sessions taking one package could split it.
+        move_many takes a list, or a callable that chooses the ids under
+        the write lock, and either every subject moves at one stamp or
+        none does."""
+        first = self.machine.create(self.conn, self.probe, AGENT)
+        second = self.machine.create(self.conn, self.probe, AGENT)
+        third = self.machine.create(self.conn, self.probe, AGENT)
+        self.machine.move(self.conn, self.probe, second, "take", OTHER, note="lane/y")
+        with self.assertRaises(self.machine.Refusal) as caught:
+            self.machine.move_many(self.conn, self.probe, [first, second, third], "take", AGENT, note="lane/x")
+        self.assertEqual(caught.exception.kind, "taken")
+        for sid in (first, third):
+            self.assertEqual(self.machine.subject(self.conn, self.probe, sid)["place"], "open")
+            self.assertEqual(len(self.machine.history(self.conn, self.probe, sid)), 1)
+        rows = self.machine.move_many(
+            self.conn, self.probe,
+            lambda conn: [r["id"] for r in conn.execute(
+                "SELECT id FROM subjects WHERE place = 'open' ORDER BY id")],
+            "take", AGENT, note="lane/x",
+        )
+        self.assertEqual([r["subject"] for r in rows], [first, third])
+        self.assertEqual(len({r["at"] for r in rows}), 1, "one stamp for one transaction")
+        for sid in (first, third):
+            row = self.machine.subject(self.conn, self.probe, sid)
+            self.assertEqual((row["place"], row["holder"], row["holder_note"]), ("taken", AGENT, "lane/x"))
+        self.assertEqual(self.machine.subject(self.conn, self.probe, second)["holder"], OTHER)
+        self.assertEqual(self.machine.move_many(self.conn, self.probe, [], "take", AGENT), [])
+
     def test_release_clears_the_holder(self):
         sid = self.machine.create(self.conn, self.probe, AGENT)
         self.machine.move(self.conn, self.probe, sid, "take", AGENT)
