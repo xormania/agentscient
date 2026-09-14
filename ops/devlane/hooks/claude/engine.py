@@ -33,6 +33,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -170,13 +171,54 @@ def _statements_with_dirs(ctx):
         yield toks, directory
 
 
+def _git_read(directory, *args):
+    """exit code of a bounded git read in ``directory``; a git that cannot
+    run reads as failure, never as a pass."""
+    try:
+        proc = subprocess.run(["git", "-C", directory, *args],  # noqa: S603,S607 - fixed argv, a read
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return 1
+    return proc.returncode
+
+
+def _fast_forward_of_the_trunk(rest, directory, branch):
+    """True for a merge on the trunk that git reports as a fast-forward of
+    the trunk's own remote-tracking ref (LD-38, 2026-09-14): exactly one
+    operand, ``<remote>/<trunk>`` that exists, no ``--no-ff``, and either
+    ``--ff-only`` (git makes no commit or refuses) or HEAD an ancestor of
+    the ref with merge.ff not false. Everything else on the trunk is the
+    trunk commit the row refuses."""
+    flags = [t for t in rest if t.startswith("-")]
+    operands = [t for t in rest if not t.startswith("-")]
+    if len(operands) != 1 or "--no-ff" in flags:
+        return False
+    ref = operands[0]
+    if not ref.endswith("/" + branch) or ref.count("/") != 1:
+        return False
+    if _git_read(directory, "rev-parse", "--verify", "--quiet", f"refs/remotes/{ref}") != 0:
+        return False
+    if "--ff-only" in flags:
+        return True
+    if _git_read(directory, "merge-base", "--is-ancestor", "HEAD", ref) != 0:
+        return False
+    try:
+        proc = subprocess.run(["git", "-C", directory, "config", "--get", "merge.ff"],  # noqa: S603,S607 - a read
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.stdout.strip() != "false"
+
+
 def p_git_write_on_protected(ctx):
     protected = _protected(ctx)
     for toks, cwd in _statements_with_dirs(ctx):
-        sub, _rest, directory = matrix._git_subcommand(toks, cwd)
+        sub, rest, directory = matrix._git_subcommand(toks, cwd)
         if sub in matrix.TRUNK_WRITES:
             branch = matrix.branch_of(directory)
             if branch in protected:
+                if sub == "merge" and _fast_forward_of_the_trunk(rest, directory, branch):
+                    continue
                 return f"git {sub} on {branch} in {directory}"
     return None
 
@@ -193,6 +235,52 @@ def p_git_push_to_protected(ctx):
             dst = dst.lstrip("+").removeprefix("refs/heads/")
             if dst in protected:
                 return f"git push to {dst}"
+    return None
+
+
+STORE_SUFFIXES = (".json", ".jsonl", ".ndjson", ".txt", ".md", ".csv", ".yaml", ".yml", ".toml", ".conf")
+PLACEMENT_DIR = "ops/conductor/placement/"
+DECLARES_FILE = re.compile(r'"engine"\s*:\s*"file"')
+
+
+def _state_dir(ctx):
+    return os.path.join(matrix.STATE_DIR, ctx.lane) if ctx.lane else matrix.STATE_DIR
+
+
+def _is_file_store(path, ctx):
+    absolute = os.path.normpath(os.path.join(ctx.cwd, os.path.expanduser(path)))
+    return absolute.startswith(_state_dir(ctx) + os.sep) and absolute.endswith(STORE_SUFFIXES)
+
+
+def _declares_file(path, body, ctx):
+    _, rel = matrix.relative(path, ctx.cwd)
+    return bool(rel and rel.startswith(PLACEMENT_DIR) and DECLARES_FILE.search(body or ""))
+
+
+def p_file_state_store(ctx):
+    """T-5 (owner, 2026-09-13: "i need to prevent future default to files
+    when SQLite is better option"): a JSON or text store written under the
+    lane's state directory, or a placement file declaring state.engine
+    file. A tool writing its own store is not seen here; a .db, a log, a
+    read and a file in the tree pass. The CI wall is
+    ops/conductor/tests/test_state_placement.py; this is the same rule at
+    the write."""
+    for key in ("file_path", "relative_path", "path"):
+        path = ctx.input.get(key)
+        if not path:
+            continue
+        if _is_file_store(path, ctx):
+            return f"a file store {path} under the state directory"
+        body = ctx.input.get("content") or ctx.input.get("new_string") or ""
+        if _declares_file(path, body, ctx):
+            return f'{path} declaring "engine": "file"'
+    for toks in ctx.statements:
+        for path in matrix.redirect_targets(toks) + matrix.written_paths(toks):
+            if path != "." and _is_file_store(path, ctx):
+                return f"a file store {path} under the state directory"
+    for target, body in matrix.heredoc_records(ctx.text, ctx.cwd):
+        if _declares_file(target, body, ctx):
+            return f'{target} declaring "engine": "file"'
     return None
 
 
@@ -232,6 +320,7 @@ PREDICATES = {
     "file_written_under": p_file_written_under,
     "git_write_on_protected": p_git_write_on_protected,
     "git_push_to_protected": p_git_push_to_protected,
+    "file_state_store": p_file_state_store,
     "claim_without_reading": p_claim_without_reading,
     "prune_target": p_prune_target,
     "unittest_path_form": p_unittest_path_form,

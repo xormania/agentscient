@@ -45,6 +45,11 @@ or a sibling `.db`, declared `sqlite` the same way.
 
 ## What the gate refuses
 
+In session, before the wall: the engine row `file-state` (`ops/devlane/hooks/boundaries.json`) refuses at the write a JSON or text
+store under the lane's state directory and a placement file declaring
+`"engine": "file"`; its needed half names this page, and no grant lifts
+it (T-5, 2026-09-14). The wall is the gate below.
+
 `ops/conductor/tests/test_state_placement.py`, one line per failure:
 
 | the line says | do this |

@@ -145,6 +145,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/trunk-forward.py"
+          },
+          {
+            "type": "command",
             "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/engine.py"
           }
         ]
