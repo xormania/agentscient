@@ -74,6 +74,13 @@ An instrument declares its machine as data and calls the engine:
   source in the `WHERE` clause, so a concurrent mover that lost the
   race reads the winner's place and refuses the same way, and the
   marking row is written. Any refusal rolls the transaction back.
+- `move_many(conn, machine, ids, transition, agent, ...)`: several
+  subjects through one transition in one `BEGIN IMMEDIATE` transaction
+  at one stamp, the same checks per subject as `move`; `ids` is a list or
+  a callable given the connection under the write lock, so the choice and
+  the moves see one state. Any refusal rolls every move back; an empty
+  choice moves nothing. The handoff manager's package take is the first
+  caller (T-9, 2026-09-14).
 - `subject`, `history`, `lapsed`, `history_line`: reads.
 
 ## Refusals

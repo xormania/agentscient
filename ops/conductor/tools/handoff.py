@@ -291,10 +291,15 @@ def do_take(rest):
     with writer() as conn:
         if kind == "T":
             require_thread(conn, number)
-            targets = [number]
-        else:
-            require_handoff(conn, number)
-            rows = thread_rows(conn, hid=number)
+            machine.move(conn, THREAD, number, "take", agent, note=branch, ttl_s=ttl_s)
+            print(f"taken T-{number} on {branch}")
+            return
+        require_handoff(conn, number)
+
+        def open_threads(locked):
+            """The package as read under the write lock: another holder on
+            any thread refuses before anything moves (T-9)."""
+            rows = thread_rows(locked, hid=number)
             for row in rows:
                 if row["place"] == "taken" and row["holder"] != agent:
                     refuse(
@@ -304,10 +309,10 @@ def do_take(rest):
                         f"since {row['held_since']}",
                         "take the open threads one by one, or wait for the holder's ttl",
                     )
-            targets = [row["id"] for row in rows if row["place"] == "open"]
-        for tid in targets:
-            machine.move(conn, THREAD, tid, "take", agent, note=branch, ttl_s=ttl_s)
-            print(f"taken T-{tid} on {branch}")
+            return [row["id"] for row in rows if row["place"] == "open"]
+
+        for marking in machine.move_many(conn, THREAD, open_threads, "take", agent, note=branch, ttl_s=ttl_s):
+            print(f"taken T-{marking['subject']} on {branch}")
 
 
 def do_release(rest):

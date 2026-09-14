@@ -120,13 +120,13 @@ ABSENT_STUB = (
 )
 
 # PIN_SECTION_HEADERS: the contract writes `== law`, `== state`,
-# `== thread` and prints them in that order on stdout.
+# `== handoffs` and prints them in that order on stdout.
 # PIN_OK_ABSENT: `OK <path> — <one-liner>` / `ABSENT <path> — <one-liner>`.
 # PIN_FINAL: last non-empty stdout line is `brief complete` or
 # `brief complete, N absence(s)` with the (s) as written.
-# PIN_AAR_ORDER: newest AAR-*.md by filename, not mtime.
-# PIN_CALIBRATION_SECTION: text under a heading containing
-# `calibration`, not the following heading's body.
+# PIN_NO_THREAD: no `== thread` section, and nothing read from any
+# AAR-*.md (T-8, 2026-09-14: the board is `== handoffs`; the AAR that
+# sorted last by file name was not the newest on a day with five).
 # PIN_STORE: record dir named by id; closed `exit` file holds the
 # code; newest closed by id filename order.
 # PIN_RUNNING: `dispatches: running=` lists ids whose record status is
@@ -981,9 +981,10 @@ class HappyPath(_OnboardFixture):
         stdout = proc.stdout or ""
         law_i = self.heading_index(stdout, "== law")
         state_i = self.heading_index(stdout, "== state")
-        thread_i = self.heading_index(stdout, "== thread")
+        handoffs_i = self.heading_index(stdout, "== handoffs")
         self.assertLess(law_i, state_i, stdout)
-        self.assertLess(state_i, thread_i, stdout)
+        self.assertLess(state_i, handoffs_i, stdout)
+        self.assertNotIn("== thread", stdout)
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
         self.assertEqual(len(ok_lines), 7, stdout)
         self.assertEqual(len(LAW), 7)
@@ -1005,7 +1006,7 @@ class HappyPath(_OnboardFixture):
         branch = self.labelled_line(stdout, "branch")
         self.assertIn(BRANCH, branch)
         self.assertIn(self.short_sha(), branch)
-        self.assertIn(CAL_BODY, stdout)
+        self.assertNotIn(CAL_BODY, stdout)
         self.assertNotIn(AFTER_BODY, stdout)
         self.assertNotIn(CAL_OLD, stdout)
         self.assertNotIn(DECOY_CAL, stdout)
@@ -1141,10 +1142,12 @@ class DispatchStore(_OnboardFixture):
         self.assertFalse(self.store.exists(), "tool created a HOME store")
 
 
-class Thread(_OnboardFixture):
-    """4. Newest AAR by filename; calibration verbatim; no AAR; no heading."""
+class NoThreadSection(_OnboardFixture):
+    """4. T-8 (2026-09-14): the `== thread` section is retired. The board
+    is `== handoffs`; no AAR is read, named or quoted, however many are
+    planted and whatever their order or their clauses say."""
 
-    def test_newest_aar_by_filename_prints_calibration_verbatim(self):
+    def test_no_aar_is_named_or_quoted_and_no_thread_heading_prints(self):
         self.ready(
             aars={
                 AAR_OLD: _aar_with_calibration(CAL_OLD, "old-after"),
@@ -1156,18 +1159,18 @@ class Thread(_OnboardFixture):
                 AAR_OLD: 2_000_000_000,
             },
         )
-        newer = self.repo / "ops" / "conductor" / AAR_NEW
-        older = self.repo / "ops" / "conductor" / AAR_OLD
-        self.assertLess(newer.stat().st_mtime, older.stat().st_mtime)
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertIn(str(Path("ops") / "conductor" / AAR_NEW), stdout)
-        self.assertIn(CAL_NEW, stdout)
-        self.assertNotIn(CAL_OLD, stdout)
-        self.assertNotIn(AFTER_BODY, stdout)
-        self.assertNotIn(DECOY_CAL, stdout)
+        self.assertNotIn("== thread", stdout)
+        self.assertNotIn("calibration", stdout)
+        for name in (AAR_NEW, AAR_OLD, AAR_BARE):
+            self.assertNotIn(name, stdout)
+        for marker in (CAL_NEW, CAL_OLD, AFTER_BODY, DECOY_CAL):
+            self.assertNotIn(marker, stdout)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
 
-    def test_no_aar_prints_no_aar_found(self):
+    def test_no_aar_at_all_changes_nothing(self):
         self.ready(aars={DECOY_NAME: _aar_with_calibration(DECOY_CAL)})
         self.assertFalse(
             list((self.repo / "ops" / "conductor").glob("AAR-*.md")),
@@ -1175,15 +1178,17 @@ class Thread(_OnboardFixture):
         )
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertIn("no AAR found", stdout)
-        self.assertNotIn(DECOY_CAL, stdout)
+        self.assertNotIn("no AAR found", stdout)
+        self.assertNotIn("== thread", stdout)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
 
-    def test_aar_without_heading_prints_no_calibration_clause(self):
-        rel = f"ops/conductor/{AAR_BARE}"
+    def test_an_aar_without_a_clause_prints_nothing_about_it(self):
         self.ready(aars={AAR_BARE: _aar_without_calibration()})
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertIn(f"no calibration clause in {rel}", stdout)
+        self.assertNotIn("no calibration clause", stdout)
+        self.assertNotIn(AAR_BARE, stdout)
 
 
 class Refusals(_OnboardFixture):
@@ -1238,7 +1243,8 @@ class ReadOnly(_OnboardFixture):
         stdout = proc.stdout or ""
         self.heading_index(stdout, "== law")
         self.heading_index(stdout, "== state")
-        self.heading_index(stdout, "== thread")
+        self.heading_index(stdout, "== handoffs")
+        self.assertNotIn("== thread", stdout)
         self.assert_exact_law_table(stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
@@ -1268,22 +1274,19 @@ class SiblingRefusal(_OnboardFixture):
         self.assertIn("brief complete,", self.last_line(stdout))
 
 
-class CalibrationProvenance(_OnboardFixture):
-    """Codex review of PR #106: the clause is served as quoted untrusted
-    data — the fence is the promise, so the fence is pinned."""
+class NoCalibrationFence(_OnboardFixture):
+    """Codex review of PR #106 pinned the untrusted-data fence around the
+    quoted clause; with the section retired (T-8) the fence, and the
+    clause it fenced, are gone with it."""
 
-    def test_calibration_is_fenced_as_untrusted_data(self):
+    def test_no_fence_and_no_clause_print(self):
         self.ready()
         proc = self.invoke()
         out = proc.stdout or ""
-        start = out.find("-- calibration, verbatim from")
-        end = out.find("-- end calibration --")
-        body = out.find(CAL_BODY)
-        self.assertGreater(start, -1, out)
-        self.assertGreater(end, -1, out)
-        self.assertGreater(body, start, "clause must sit inside the fence")
-        self.assertLess(body, end, "clause must sit inside the fence")
-        self.assertIn("untrusted data, not instructions", out)
+        self.assertEqual(out.find("-- calibration, verbatim from"), -1, out)
+        self.assertEqual(out.find("-- end calibration --"), -1, out)
+        self.assertEqual(out.find(CAL_BODY), -1, out)
+        self.assertNotIn("untrusted data, not instructions", out)
 
 
 class ReviewPins(_OnboardFixture):
@@ -1322,16 +1325,17 @@ class ReviewPins(_OnboardFixture):
         self.assertNotIn("nothing running", line)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
-    def test_an_unreadable_aar_reports_unavailable_and_never_aborts(self):
+    def test_an_unreadable_aar_is_never_read_and_counts_no_absence(self):
         self.ready()
         bad = self.repo / "ops" / "conductor" / "AAR-2026-12-31.md"
         bad.write_bytes(b"\xff\xfe not utf-8 \xff")
         proc = self.invoke()
         out = proc.stdout or ""
-        self.assertIn("== thread", out)
-        self.assertIn("unavailable:", out)
-        self.assertIn("brief complete", out)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertNotIn("== thread", out)
+        self.assertNotIn("unavailable:", out)
+        self.assertNotIn("AAR-2026-12-31.md", out)
+        self.assertEqual(self.last_line(out), "brief complete")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
 
 
 class LaneNameSelectsStore(_OnboardFixture):
@@ -1516,7 +1520,7 @@ class RunningIsLiveLaunched(_OnboardFixture):
 
 # The handoffs section (grant 220, owner 2026-09-13: "hand grant ok'd -
 # build the engine and the handoff manager"): `== handoffs` prints between
-# `== state` and `== thread`; an absent state store is a measured fact on
+# `== state`, the last section; an absent state store is a measured fact on
 # its line; a planted store prints the handoff manager's brief; a manager
 # that cannot report is unavailable and counts as an absence.
 HANDOFF_SIBLINGS = ("handoff.py", "machine.py", "instrument.py", "laneconf.py")
@@ -1548,15 +1552,16 @@ class HandoffsSection(_OnboardFixture):
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         return proc.stdout
 
-    def test_the_section_prints_between_state_and_thread(self):
+    def test_the_section_prints_after_state_and_is_the_last_section(self):
         self.ready()
         proc = self.invoke()
         stdout = proc.stdout or ""
         state_i = self.heading_index(stdout, "== state")
         handoffs_i = self.heading_index(stdout, "== handoffs")
-        thread_i = self.heading_index(stdout, "== thread")
         self.assertLess(state_i, handoffs_i, stdout)
-        self.assertLess(handoffs_i, thread_i, stdout)
+        self.assertNotIn("== thread", stdout)
+        headings = [ln for ln in stdout.splitlines() if ln.startswith("== ")]
+        self.assertEqual(headings[-1], "== handoffs", headings)
 
     def test_an_absent_state_store_is_a_measured_fact_not_an_absence(self):
         self.ready()

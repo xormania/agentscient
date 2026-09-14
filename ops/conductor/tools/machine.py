@@ -29,7 +29,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import timedelta
 from typing import NamedTuple
 
@@ -263,6 +263,58 @@ def _check_actor(t: Transition, row: sqlite3.Row, agent: str) -> None:
     refuse("holder", f"the holder {row['holder']} for {t.name}", agent, remedy)
 
 
+def _move_locked(
+    conn: sqlite3.Connection,
+    machine: Machine,
+    t: Transition,
+    sid: int,
+    agent: str,
+    moment: str,
+    *,
+    evidence: str | None,
+    note: str | None,
+    gate: Callable[[sqlite3.Row], None] | None,
+    ttl_s: int | None,
+) -> int:
+    """One subject through ``t`` inside a transaction the caller holds;
+    returns the marking row id. Every check reads the row under the
+    write lock; a refusal propagates and the caller rolls back."""
+    row = subject(conn, machine, sid)
+    if row is None:
+        refuse("unknown", f"a subject of machine {machine.name}", str(sid),
+               "an id shown by the instrument's list")
+    if row["place"] != t.source:
+        _wrong_place(t, row)
+    _check_actor(t, row, agent)
+    if t.evidence == "required" and not (evidence or "").strip():
+        refuse("evidence", f"evidence for {t.name}", "none",
+               "name the sha, record id, row id or reason the move rests on")
+    if gate is not None:
+        gate(row)
+    if t.hold == "take":
+        holder, holder_note, held_since = agent, note, moment
+        ttl = ttl_s if ttl_s is not None else machine.ttl_s
+    elif t.hold == "clear":
+        holder, holder_note, held_since, ttl = None, None, None, None
+    else:
+        holder, holder_note, held_since, ttl = (
+            row["holder"], row["holder_note"], row["held_since"], row["ttl_s"]
+        )
+    moved = conn.execute(
+        "UPDATE subjects SET place = ?, holder = ?, holder_note = ?, held_since = ?, ttl_s = ? "
+        "WHERE id = ? AND machine = ? AND place = ?",
+        (t.target, holder, holder_note, held_since, ttl, sid, machine.name, t.source),
+    )
+    if moved.rowcount != 1:
+        _wrong_place(t, subject(conn, machine, sid))
+    cursor = conn.execute(
+        "INSERT INTO marking(machine, subject, transition, source, target, agent, at, evidence, note) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (machine.name, sid, t.name, t.source, t.target, agent, moment, evidence, note),
+    )
+    return cursor.lastrowid
+
+
 def move(
     conn: sqlite3.Connection,
     machine: Machine,
@@ -282,45 +334,48 @@ def move(
     t = machine.transition(transition)
     conn.execute("BEGIN IMMEDIATE")
     try:
-        row = subject(conn, machine, sid)
-        if row is None:
-            refuse("unknown", f"a subject of machine {machine.name}", str(sid),
-                   "an id shown by the instrument's list")
-        if row["place"] != t.source:
-            _wrong_place(t, row)
-        _check_actor(t, row, agent)
-        if t.evidence == "required" and not (evidence or "").strip():
-            refuse("evidence", f"evidence for {t.name}", "none",
-                   "name the sha, record id, row id or reason the move rests on")
-        if gate is not None:
-            gate(row)
-        moment = stamp()
-        if t.hold == "take":
-            holder, holder_note, held_since = agent, note, moment
-            ttl = ttl_s if ttl_s is not None else machine.ttl_s
-        elif t.hold == "clear":
-            holder, holder_note, held_since, ttl = None, None, None, None
-        else:
-            holder, holder_note, held_since, ttl = (
-                row["holder"], row["holder_note"], row["held_since"], row["ttl_s"]
-            )
-        moved = conn.execute(
-            "UPDATE subjects SET place = ?, holder = ?, holder_note = ?, held_since = ?, ttl_s = ? "
-            "WHERE id = ? AND machine = ? AND place = ?",
-            (t.target, holder, holder_note, held_since, ttl, sid, machine.name, t.source),
-        )
-        if moved.rowcount != 1:
-            _wrong_place(t, subject(conn, machine, sid))
-        cursor = conn.execute(
-            "INSERT INTO marking(machine, subject, transition, source, target, agent, at, evidence, note) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (machine.name, sid, t.name, t.source, t.target, agent, moment, evidence, note),
-        )
+        marking_id = _move_locked(conn, machine, t, sid, agent, stamp(),
+                                  evidence=evidence, note=note, gate=gate, ttl_s=ttl_s)
         conn.execute("COMMIT")
     except BaseException:
         conn.execute("ROLLBACK")
         raise
-    return conn.execute("SELECT * FROM marking WHERE id = ?", (cursor.lastrowid,)).fetchone()
+    return conn.execute("SELECT * FROM marking WHERE id = ?", (marking_id,)).fetchone()
+
+
+def move_many(
+    conn: sqlite3.Connection,
+    machine: Machine,
+    sids: Sequence[int] | Callable[[sqlite3.Connection], Sequence[int]],
+    transition: str,
+    agent: str,
+    *,
+    evidence: str | None = None,
+    note: str | None = None,
+    gate: Callable[[sqlite3.Row], None] | None = None,
+    ttl_s: int | None = None,
+) -> list[sqlite3.Row]:
+    """Several subjects through one transition in one transaction, at one
+    stamp: every subject moves or none does (T-9, 2026-09-14: a package
+    take that moved each thread on its own could be split by a second
+    session). ``sids`` is a list, or a callable given the connection under
+    the write lock so the choice and the moves see one state. An empty
+    choice moves nothing and returns []."""
+    t = machine.transition(transition)
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        chosen = list(sids(conn)) if callable(sids) else list(sids)
+        moment = stamp()
+        ids = [
+            _move_locked(conn, machine, t, sid, agent, moment,
+                         evidence=evidence, note=note, gate=gate, ttl_s=ttl_s)
+            for sid in chosen
+        ]
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    return [conn.execute("SELECT * FROM marking WHERE id = ?", (i,)).fetchone() for i in ids]
 
 
 def history_line(row: sqlite3.Row) -> str:
