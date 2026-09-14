@@ -1,10 +1,14 @@
 # AAR — 2026-09-13, the two wall items: one-line expects, the remedy that said clear
 
-Session record by Claude Fable 5.1 on `lane/session-20260913-k`, cut from
-dev `eaf73b98` (#192). Written at `2f21512f`, the wall commit; the records
-commit carrying this file follows. The
-[handoff](handoff/HANDOFF-2026-09-13-wall-items.md) carries the board at
-close. Grants 206 (wall) and 207 (records).
+Session record on `lane/session-20260913-k`, cut from dev `eaf73b98`
+(#192): Claude Fable 5.1 until the owner changed the model, Claude Opus 5
+(1M context) from then to the close. Written at `2f21512f` for the first
+thread, extended for the second, and closed on 2026-09-14 at the owner's
+word ("AAR and handoff") after #196 merged at `bdf8cf0c`; §Close is the
+board measured at 00:16Z that day. The
+[handoff](handoff/HANDOFF-2026-09-13-wall-items.md) carries the next
+thread. Grants 206, 207, 210, 211, 213, 215 and 216 settled; 219 for the
+close records.
 
 ## Request and outcome
 
@@ -168,3 +172,45 @@ that copy skills.py staging the shared module beside it (grant 211).
   the seven `P-WIRE-20260913-*` rows: pass 163, fail 0, unreachable 0.
 - `suites.sh` at the records commit: in the ready note.
 - One producer wrote tests and code by hand; no second producer.
+
+## Close, measured 2026-09-14T00:16Z
+
+The owner's words after the second thread, in order: "as soon as CI
+green - merge to dev"; "finish PR 196"; "its yours"; "AAR and handoff".
+
+| what | reading |
+|---|---|
+| PRs from this branch | #193 MERGED `25b48ed5`; #196 MERGED `bdf8cf0c` at 2026-09-13T10:47:18Z, by this session (`gh pr list --state all`) |
+| #196 at its merge | head `5ea006ac`; CodeQL, Analyze (actions), Analyze (javascript-typescript), lane and app pass; ci run 34752566609; the ready note on the PR |
+| dev now | `8acab9aa` (#199); after #196 came #198 `51c17eb8` (the release review fixes), #199 `8acab9aa`, and the release #197, dev into master, `d3a9e8a6` at 21:15:15Z |
+| this session's files after #196 | `skills.py` redacts secret-shaped event details before the store (`06240f98`, #198); its refusal calls are untouched in that diff |
+| worktree `../wt/ag-session-20260913-k` | fast-forwarded to `8acab9aa`; 0 uncommitted before the close records |
+| grants | 206, 207, 210, 211, 213, 215, 216 settled, verified against `2f21512f`, `962c835a`, `a20ffde9`, `2bd810e2`, `dd748e82`, `2a0b7e0a`, `bdf8cf0c` (the handwork store); 219 open for the close records |
+| the lock | names `lane/session-20260913-k` alone, re-added for the close records |
+| dispatches, ladders | none run by this session; none running (`subs.py`); no record from 2026-09-13 reads launched |
+| findings | 7 open on `20260913T023636Z-review-codex-bdbe55`, a review from before this session; none produced here; the two release review records have none open |
+| spend | `worth.py waste --since 2026-09-13T07:30:00Z` at 00:16Z: transcript `9050e60f` (this session's scratchpad) 32,439,455 tokens, 145 turns, mean context 222,575; transcript `8da23616` (where this session's background tasks wrote) 7,188,779 tokens, 20 turns, mean context 358,787. The owner's /context after the merge read 328.9k of 1M |
+
+### What went wrong at the close
+
+- **A wait with no deadline** (pitfall 34). The check wait armed after
+  the `2a0b7e0a` push polled `gh pr checks` for a state that could not
+  arrive: the head had no checks (ci run 34748625233, startup_failure),
+  so it sat silent from 08:52Z to 10:40Z. In that window the owner gave
+  #196 to session agentscient-5e (its report: 10:38Z), then back here.
+  The replacement wait carried a 30-minute deadline and required the
+  check names on the head; it read COMPLETE at 10:46:06Z.
+- **The ready note claimed the merge before it happened.** The
+  claim-unmeasured row refused posting a note on #196 whose last
+  paragraph said the PR was merged by this session; reworded to cite
+  ci run 34752566609 and to say the sha was not measured, then posted;
+  the merge followed at `bdf8cf0c`.
+- **A heads-up built on a stale board.** The first message of this close
+  to the release session assumed a release PR in flight; the next
+  reading showed #197 merged at `d3a9e8a6` the evening before, and a
+  correction followed within the minute.
+- **One producer, no review.** The four rulings (#196) carry tests and
+  code by one producer and no dispatched review; the two questions its
+  PR body asks, the default class of control.py's `need()` across 58
+  sites and co_doc.py's report at exit 2, are unanswered (not measured
+  by any reviewer).
