@@ -2,10 +2,10 @@
 """trunk-forward.py -- SessionStart: fast-forward the main checkout's trunk.
 
 LD-38 (2026-09-14): every hook in .claude/settings.json runs from the main
-checkout through CLAUDE_PROJECT_DIR, nothing moved that checkout's dev
-when a PR landed, and it sat 44 commits behind origin/dev with a stale
-matrix and settings while the trunk-commit row refused the fast-forward
-to every agent. Owner, 2026-09-13: "i'll do options 1 and 2 on next
+checkout through CLAUDE_PROJECT_DIR, nothing moved that checkout's trunk
+when a PR landed, and it sat 44 commits behind the remote trunk with a
+stale matrix and settings while the trunk-commit row refused the
+fast-forward to every agent. Owner, 2026-09-13: "i'll do options 1 and 2 on next
 session". This is option 1.
 
 At every session start it fetches the trunk from origin and fast-forwards
