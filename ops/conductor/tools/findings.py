@@ -1,8 +1,8 @@
 """findings.py — the findings ledger: every review-stage finding, with its disposition.
 
 The run records under .dev/records/dispatches/ are the source: each
-check-tests, security-audit or adversarial-review record carries the
-reviewer's envelope with its findings verbatim. This instrument keeps a
+check-tests, security-audit, adversarial-review, adjudicate, sweep or
+plan record carries the reviewer's envelope with its findings verbatim. This instrument keeps a
 SQLite store under ~/.local/state/agentscient/findings.db (the lane's
 pattern: the handwork ledger, the skills registry and the register keep
 theirs beside it) and a tracked export, ops/conductor/findings/findings.jsonl,
@@ -50,7 +50,8 @@ except ModuleNotFoundError:
 ROOT = Path(__file__).resolve().parents[3]
 RECORDS = ROOT / ".dev/records/dispatches"
 REVIEW_JOBS = (
-    "check-tests", "security-audit", "adversarial-review", "adjudicate", "sweep"
+    "check-tests", "security-audit", "adversarial-review", "adjudicate", "sweep",
+    "plan",  # a plan job's findings against the tree and against itself (T-1, 2026-09-14)
 )
 DISPOSITIONS = ("open", "fixed", "addressed", "deferred", "ruled", "fix-round", "opinion")
 CITATION = re.compile(
