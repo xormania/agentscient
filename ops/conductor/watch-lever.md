@@ -23,18 +23,22 @@ time. The suite sets it to 0.02; nothing else does.
 A pull request's checks are **settled** when the check table has at
 least one row, no row is pending, **and the same table has been
 observed on two consecutive polls**. Zero rows is NOT settled — it
-means *not yet reported* and the watch continues. Registration is not
+means *not yet reported* and the watch continues. gh reports that table
+as an error, not as an empty array: in the seconds after a push
+`gh pr checks N --json name,state` prints `no checks reported on the
+'<branch>' branch` on stderr and exits 1 (gh 2.99.0; the error returns
+before the JSON write). The watch reads exactly that exit with that text
+as zero rows (LD-37). Registration is not
 atomic either: one fast check can report before the rest of the table
 exists, so a settled-looking observation is a candidate, confirmed only
 when the next poll reports the identical table (Codex security review
 of PR #102). A skipped row counts as a row, and neither passes nor
 fails.
 
-When the caller names the expected checks (`--expect-names`), settling
-also requires every named check to have reported. watch.py never
-derives the expected set itself — that authority stays at one
-derivation point (`pr_overview.py`'s `expected_checks()` today; the
-forge status surface when it lands), and the caller injects it.
+Settling also requires every expected check to have reported. The
+expected set is `--expect-names` when given, otherwise `CHECK_NAMES`
+through the shared conf reader (the environment's value before the lane
+conf's); with neither, the watch refuses `conf-key`.
 
 ## Verb
 
@@ -47,7 +51,7 @@ forge status surface when it lands), and the caller injects it.
 - `--expect-min N` — refuse to settle while rows < N (default 1); a
   repo whose required checks are known can demand them all.
 - `--expect-names LIST` — comma-separated check names that must all
-  have reported before settling; the caller derives them (see the
+  have reported before settling; they replace `CHECK_NAMES` (see the
   pinned reading). A name never reported keeps the watch polling and
   the wall bounds it.
 
@@ -90,7 +94,9 @@ the lane's refusal wire):
 | interval | `--interval` under 5 seconds |
 | tick-scale | `WATCH_TICK_SCALE` is set and is not a positive number |
 | gh-missing | `gh` is not on PATH |
-| gh-error | gh exits nonzero (its stderr is quoted in found) |
+| arguments | the arguments do not parse, or `--expect-min` is under 1 |
+| conf-key | no `--expect-names` and no `CHECK_NAMES` to read |
+| gh-error | gh exits nonzero, other than exit 1 with `no checks reported on the` (its stderr is quoted in found) |
 | json | gh's output is not the JSON shape asked for |
 
 ## Identity
