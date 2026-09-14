@@ -83,6 +83,27 @@ checked after is the record that was wrong today.
    Every grant settled with evidence; this session's branches removed from the lock (`deliverable.py remove`) when the
    deliverable has landed, or left set with the reason in the handoff.
 
+6b. **Handoffs.** What this branch still has claimed, then the package for
+   whoever comes next, both in the state engine's store and never in a
+   file (`handoff-lever.md`; owner, 2026-09-13: "a new branch/PR per
+   session handoff is excessive"):
+
+   ```sh
+   python3 ops/conductor/tools/handoff.py held --branch <branch>
+   python3 ops/conductor/tools/handoff.py open '<title>' --summary '<the owner's register>' --branch <branch> --prs '#n #m'
+   python3 ops/conductor/tools/handoff.py thread H-<n> '<title>' --body '<where to pick it up: record ids, PRs, files>' [--to <role or session>]
+   ```
+
+   `held` prints `none held` with exit 0 before the session calls
+   itself finished; a thread it took is closed with `done T-n
+   --evidence <sha, #PR, record id or P- row>` or given back with
+   `release T-n --why`. Every open thread of the session is a `thread`
+   row; the next session reads them at onboard (`== handoffs`) and
+   claims with `take`. No row needs the merge sha, so no records PR
+   trails the work: the AAR, when one is written, rides the session's
+   own PR, and what went wrong goes to the pitfalls and defects
+   ledgers.
+
 7. **Then write.** Every "merged", "complete", "green", "settled" in
    the AAR or handoff names the sha, PR number, record id or grant id
    from the lines above. What was not measured is written as "not
