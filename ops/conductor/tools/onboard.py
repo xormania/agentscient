@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print the repository law, live state, and newest calibration thread."""
+"""Print the repository law, live state, the handoff board, and the newest calibration thread."""
 
 from __future__ import annotations
 
@@ -198,6 +198,23 @@ def dispatches_line() -> tuple[str, bool]:
     return f"dispatches: running={active}; newest-closed={newest}", True
 
 
+def handoffs_lines(root: Path) -> tuple[list[str], bool]:
+    """The handoff manager's brief, or a measured absence. The store is
+    checked before the sibling runs: a read must never create it."""
+    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    store = state_home / lane_name() / "state.db"
+    if not store.is_file():
+        return [f"handoffs: ABSENT {store} (none recorded)"], True
+    tool = root / "ops/conductor/tools/handoff.py"
+    output, reason = run([sys.executable, str(tool), "brief"], root)
+    if output is None:
+        return [f"handoffs: unavailable: {reason}"], False
+    lines = output.splitlines()
+    if not lines or not lines[0].startswith("handoffs:"):
+        return ["handoffs: invalid report: the brief does not open with handoffs:"], False
+    return lines, True
+
+
 def branch_line(root: Path) -> tuple[str, bool]:
     branch, branch_reason = run(["git", "rev-parse", "--abbrev-ref", "HEAD"], root)
     sha, sha_reason = run(["git", "rev-parse", "--short", "HEAD"], root)
@@ -279,6 +296,12 @@ def brief() -> int:
     for line, measured in state_lines:
         print(line)
         absences += not measured
+
+    print("== handoffs")
+    handoff_lines, handoffs_measured = handoffs_lines(root)
+    for line in handoff_lines:
+        print(line)
+    absences += not handoffs_measured
 
     print("== thread")
     thread_lines, thread_measured = calibration(root)

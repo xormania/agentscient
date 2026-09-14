@@ -1513,5 +1513,94 @@ class RunningIsLiveLaunched(_OnboardFixture):
         self.assertEqual(listed, [LIVE_RUN_ID])
 
 
+
+# The handoffs section (grant 220, owner 2026-09-13: "hand grant ok'd -
+# build the engine and the handoff manager"): `== handoffs` prints between
+# `== state` and `== thread`; an absent state store is a measured fact on
+# its line; a planted store prints the handoff manager's brief; a manager
+# that cannot report is unavailable and counts as an absence.
+HANDOFF_SIBLINGS = ("handoff.py", "machine.py", "instrument.py", "laneconf.py")
+THREAD_TITLE = "HANDOFF_THREAD_TITLE_UNIQUE_c220"
+HANDOFF_TITLE = "HANDOFF_PACKAGE_TITLE_UNIQUE_c220"
+HANDOFF_AGENT = "Closing Session <noreply@example.test>"
+
+
+class HandoffsSection(_OnboardFixture):
+    def state_store(self) -> Path:
+        return self.store.parent / "state.db"
+
+    def plant_handoff_tools(self) -> Path:
+        tools = self.repo / "ops" / "conductor" / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        for name in HANDOFF_SIBLINGS:
+            source = TOOL.parent / name
+            self.assertTrue(source.is_file(), f"INVALID: sibling absent: {source}")
+            self._plant_bytes(tools / name, source.read_bytes())
+        return tools
+
+    def run_handoff(self, tools: Path, *argv: str):
+        env = self.env()
+        env["WF_AGENT"] = HANDOFF_AGENT
+        proc = subprocess.run(
+            [sys.executable, str(tools / "handoff.py"), *argv],
+            cwd=str(self.repo), env=env, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        return proc.stdout
+
+    def test_the_section_prints_between_state_and_thread(self):
+        self.ready()
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        state_i = self.heading_index(stdout, "== state")
+        handoffs_i = self.heading_index(stdout, "== handoffs")
+        thread_i = self.heading_index(stdout, "== thread")
+        self.assertLess(state_i, handoffs_i, stdout)
+        self.assertLess(handoffs_i, thread_i, stdout)
+
+    def test_an_absent_state_store_is_a_measured_fact_not_an_absence(self):
+        self.ready()
+        self.assertFalse(self.state_store().exists(), "INVALID: state store planted")
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertIn("ABSENT", line)
+        self.assertIn(str(self.state_store()), line)
+        self.assertIn("(none recorded)", line)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertFalse(self.state_store().exists(), "the brief created the state store")
+
+    def test_a_planted_store_prints_the_managers_brief(self):
+        self.ready()
+        tools = self.plant_handoff_tools()
+        self.run_handoff(tools, "open", HANDOFF_TITLE, "--summary", "what was left")
+        self.run_handoff(tools, "thread", "H-1", THREAD_TITLE, "--body", "pick it up",
+                         "--to", "next session")
+        self.assertTrue(self.state_store().is_file(), "INVALID: store not planted")
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertEqual(line, "handoffs: open=1 taken=0 done=0")
+        self.assertIn(HANDOFF_TITLE, stdout)
+        self.assertIn(f"T-1 open [H-1] {THREAD_TITLE}", stdout)
+        self.assertIn("to next session", stdout)
+        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_a_manager_that_cannot_report_is_unavailable_and_counted(self):
+        self.ready()
+        self.state_store().parent.mkdir(parents=True, exist_ok=True)
+        self._plant_bytes(self.state_store(), b"")
+        tools = self.repo / "ops" / "conductor" / "tools"
+        self._plant_py_stub(tools / "handoff.py", stderr="HANDOFF_STUB_FAIL_MARKER", exit_code=1)
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertIn("unavailable", line)
+        self.assertIn("HANDOFF_STUB_FAIL_MARKER", line)
+        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
+        self.assertEqual(proc.returncode, 1, self.combined(proc))
+
 if __name__ == "__main__":
     unittest.main()

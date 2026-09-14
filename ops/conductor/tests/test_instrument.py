@@ -398,7 +398,9 @@ class TheConsolidationGate(unittest.TestCase):
                 self.assertTrue(path.name.endswith(".py.json"), f"{path.name}: not <tool>.py.json")
                 self.assertIn(path.name[: -len(".json")], tools, f"{path.name}: no such tool")
                 data = json.loads(path.read_text(encoding="utf-8"))
-                self.assertEqual(sorted(data), ["placement"], f"{path.name}: exactly one field, placement")
+                self.assertEqual(sorted(data), ["placement", "state"],
+                                 f"{path.name}: exactly two fields, placement and state "
+                                 "(test_state_placement.py reads state)")
                 self.assertIn(data["placement"], PLACEMENTS, f"{path.name}: placement not one of {PLACEMENTS}")
 
     def test_a_no_wire_tool_defines_no_private_copy_and_refuses_nowhere(self):
