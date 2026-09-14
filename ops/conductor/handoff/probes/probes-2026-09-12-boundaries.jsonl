@@ -1,2 +1,2 @@
-{"id": "P-BND-20260912-registry", "kind": "serve", "lane": "forge", "question": "Where is every check-matrix row declared with its boundary, evidence, gate, tests and escape?", "serve": "rg -c '\"class\":' ops/devlane/hooks/boundaries.json", "expect": "20"}
+{"id": "P-BND-20260912-registry", "kind": "serve", "lane": "forge", "question": "Where is every check-matrix row declared with its boundary, evidence, gate, tests and escape?", "serve": "rg -c '\"class\":' ops/devlane/hooks/boundaries.json", "expect": "21"}
 {"id": "P-BND-20260912-closure", "kind": "serve", "lane": "forge", "question": "What refuses a matrix row that the registry does not declare?", "serve": "rg -c -F 'raise RuntimeError(f\"undeclared gate:' ops/devlane/hooks/claude/matrix.py", "expect": "1"}

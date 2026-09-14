@@ -141,7 +141,9 @@ anything outward; refuse when refs moved), `context-boundary.sh`
 (record and warn when the ground moves), `test-guard-hook.sh`
 (advisory: a planted fault without its proof), `ruff-after-edit.sh`
 (advisory lint at the edit), `no-subagents.py` (refuse in-session
-delegation). Present, not armed: `conductor-enforce.py` (a stricter
+delegation), `trunk-forward.py` (fast-forward the main checkout's
+trunk at every session start when it is clean, on the trunk and behind
+its remote, one line with the old and new sha, LD-38). Present, not armed: `conductor-enforce.py` (a stricter
 posture that forbids hand investigation entirely) and `pr-feedback.sh`.
 Arming either is a reviewable change to `.claude/settings.json`.
 
