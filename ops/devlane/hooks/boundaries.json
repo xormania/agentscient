@@ -302,11 +302,12 @@
    "class": "trunk-commit",
    "boundary": "commit",
    "actor": "session",
-   "trigger": "git commit, merge, rebase or revert on the trunk or the release branch, or a push to them",
+   "trigger": "git commit, merge, cherry-pick, rebase, revert or am on the trunk or the release branch, or a push to them; a merge of <remote>/<trunk> that git reports as a fast-forward (--ff-only, or HEAD an ancestor of it) creates no commit and passes (LD-38)",
    "evidence": "the session branch",
    "gate": "engine",
    "tests": [
-    "ops/devlane/hooks/tests/test_engine.py::test_git_write_on_protected_and_push_to_protected"
+    "ops/devlane/hooks/tests/test_engine.py::test_git_write_on_protected_and_push_to_protected",
+    "ops/devlane/hooks/tests/test_engine.py::test_a_fast_forward_of_the_trunk_from_its_remote_is_allowed_and_a_merge_commit_is_refused"
    ],
    "escape": "none",
    "event": "PreToolUse",
@@ -326,7 +327,7 @@
    },
    "refuse": {
     "expected": "a commit on a session branch (lane/session-<date>-<id>)",
-    "needed": "cut the session branch and commit there: git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/<trunk>; python3 ops/conductor/tools/deliverable.py add lane/session-<date>-<id> --why '<the owner's words>'; one draft PR at close. No grant lifts this row"
+    "needed": "cut the session branch and commit there: git worktree add ../wt/ag-session-<date>-<id> -b lane/session-<date>-<id> origin/<trunk>; python3 ops/conductor/tools/deliverable.py add lane/session-<date>-<id> --why '<the owner's words>'; one draft PR at close. No grant lifts this row; on the main checkout, git merge --ff-only origin/<trunk> alone passes, and trunk-forward.py runs it at every session start"
    }
   },
   {
@@ -378,6 +379,33 @@
    "refuse": {
     "expected": "a push that adds commits (branches are never rewritten)",
     "needed": "push a new commit; never rewrite a pushed branch. This row exists only as data in ops/devlane/hooks/boundaries.json (owner, 2026-09-12: adding a condition is adding a row)"
+   }
+  },
+  {
+   "class": "file-state",
+   "boundary": "write",
+   "actor": "session",
+   "trigger": "a write creating a JSON or text store under the lane's state directory, or a placement file declaring state.engine file",
+   "evidence": "rows in state.db through the state engine (ops/conductor/tools/machine.py); a file only as a record or apparatus a tool writes from its rows, declared in its placement file",
+   "gate": "engine",
+   "tests": [
+    "ops/devlane/hooks/tests/test_engine.py::test_a_file_store_under_the_state_directory_or_a_placement_declaring_file_is_refused"
+   ],
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash",
+    "Write",
+    "Edit",
+    "MultiEdit"
+   ],
+   "engine": true,
+   "when": {
+    "pred": "file_state_store"
+   },
+   "refuse": {
+    "expected": "state as rows in state.db through the state engine (ops/conductor/tools/machine.py); under the state directory only a .db, or a record a tool writes from its rows",
+    "needed": "declare the machine as data in the tool and write through machine.py create and move (the state skill, .claude/skills/state/SKILL.md); a placement declaring file needs the owner's word and a row in FILE_BACKED in ops/conductor/tests/test_state_placement.py. No grant lifts this row (owner, 2026-09-13: \"i need to prevent future default to files when SQLite is better option\")"
    }
   },
   {

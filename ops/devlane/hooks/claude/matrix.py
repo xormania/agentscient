@@ -54,6 +54,11 @@ row that cannot look refuses: "could not look" is not a pass.
                     trunk or the release branch, or a push whose
                     refspec targets them; no grant escape (owner,
                     2026-09-12: "one branch per session")
+    file-state      a JSON or text store written under the lane's the path, the state
+                    state directory, or a placement file          directory, the body
+                    declaring state.engine file (engine row);
+                    no grant escape (owner, 2026-09-13: "i need
+                    to prevent future default to files")
     wall-write      a write to the CI and test machinery          the path, the grant's
                     (.github/workflows, suites.sh, probes.py,     lever class
                     laneconf.py, the hook registry, rows, engine
