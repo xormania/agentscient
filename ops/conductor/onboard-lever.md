@@ -22,7 +22,7 @@ argument refuses class `arguments`). subprocess is used to run `git`,
 `gh`, and the sibling instruments; nothing else. It never writes: no
 store is created, no ref is touched.
 
-## The brief, three sections in order
+## The brief, four sections in order
 
 Instruction precedence comes from
 [AGENTS.md §Lane boundary and precedence](../../AGENTS.md#lane-boundary-and-precedence)
@@ -105,6 +105,20 @@ predates the conventions' XDG rule, and its conformance gap is
 registered) — because a sibling that creates its store on read would
 make this tool a writer. An absent dispatch store is a measured fact
 on its line, never an absence.
+
+**`== handoffs`** — the handoff board, read from the state engine's
+store (`handoff-lever.md`): the store is checked at
+`$XDG_STATE_HOME/<lane>/state.db` (else `~/.local/state/<lane>/`)
+before anything runs, because a read must never create it. Absent, the
+one line is `handoffs: ABSENT <path> (none recorded)`, a measured fact.
+Present, the section is `handoff.py brief` verbatim: a `handoffs:` line
+with the open, taken and done counts, then each handoff with live
+threads and its open and taken threads indented, holder and branch and
+age on the taken ones. A brief the manager cannot produce prints
+`handoffs: unavailable: <reason>` and counts as unmeasured. The section
+shows and never claims: a session takes a thread with
+`handoff.py take T-n --branch <its branch>` once the lock names the
+branch, at the owner's word or its own choice.
 
 **`== thread`** — the newest `AAR-*.md` under `ops/conductor/` by
 filename order: its path, then the text of its calibration section (a

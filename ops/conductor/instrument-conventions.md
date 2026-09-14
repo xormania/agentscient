@@ -105,3 +105,45 @@ that lands it. The two instruments that predated this document,
 skills.py and co_doc.py, joined on 2026-09-13 when they adopted the
 wire (owner rulings 1 and 2); no tool under ops/conductor/tools/ is
 placed as pending.
+
+## State
+
+Owner, 2026-09-13: "I don't like using files - i like something more
+deterministic and that manages states - and it can be improved over
+time"; "i'm not happy that we aren't SQLite more - this got lost
+somewhere - but i don't files as state"; "i need to prevent future
+default to files when SQLite is better option". Measured that day at
+`8acab9aa`: four SQLite stores and nine tools on them, twelve tools on
+JSON or text, the lock in a JSON file, two ledgers as one file per row,
+455 dispatch records and 23 ladders as JSON in the tree.
+
+Three kinds of thing, and only the first is state:
+
+- **State** is what one session changes and another must see now: a
+  lock, a grant, a claim, a ledger row, a disposition. State lives in
+  SQLite under the lane's state directory, through the state engine
+  (`machine-lever.md`) when it has places, in a plain table otherwise.
+  A file under a branch is invisible to every other session until it
+  merges, and a file under the state directory is a lost update waiting
+  for two writers; a row is neither.
+- **Records** are append-only evidence in git: exports the tool writes
+  from its store, never edited by hand, and the corpus rows that pin
+  them. A record carries the reading that produced it.
+- **Apparatus** is contracts, corpora, declarations and fixtures: data
+  the tools read, not state they keep.
+
+Every tool declares its engine in its placement file,
+`ops/conductor/placement/<tool>.py.json`, beside its placement:
+`"state": {"engine": "sqlite" | "none" | "file", "files": "<reason>"}`.
+`sqlite` means the tool imports sqlite3 or the engine; `none` means it
+writes no file; `file` means its state is files, with the reason and
+the date, and is the declared debt. The gate
+`ops/conductor/tests/test_state_placement.py` reads the tools by ast
+and closes the declaration both ways: a write call with no reason, a
+`none` that writes, a `sqlite` that imports neither, and a `file` outside
+the list the gate pins (`FILE_BACKED`, frozen 2026-09-13: control.py,
+deliverable.py, ladder.py, ledger.py) each fail naming the tool and the
+line. A new tool that would keep state in a file is refused by the gate
+before review sees it; the remedy is a machine on the engine, or the
+owner's word and a row in the pin. Shrinking the pin is the only edit it
+invites.
