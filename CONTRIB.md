@@ -84,7 +84,7 @@ automates it:
 | requirement | proved by, at ready time |
 |:--|:--|
 | lineage stationary | nothing queued for this branch; the head sha named in the note |
-| full check set present and green | `gh pr checks <n>` — the complete expected set, zero pending, zero red (the merge rule, applied early) |
+| full check set present and green | `python3 ops/conductor/tools/watch.py pr <n>` exits 0 — the complete expected set (`CHECK_NAMES`), zero pending, zero red, the same table on two polls (the merge rule, applied early) |
 | suites green on the merged tree | the touched zone's suite run on a merge of the head with `origin/dev`, not the branch tip |
 | body per template | the four headings filled; every evidence claim produced by a command at write time, stamped with its sha |
 | trailers on every commit | `git log --format='%h %(trailers:only)' origin/dev..HEAD` — `Source:` and `Co-Authored-By:` on each |
