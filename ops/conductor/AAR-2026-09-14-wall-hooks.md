@@ -112,3 +112,58 @@ store on this branch (`handoff.py take T-5`, `T-11`, `T-13`, each
   `stale-check-rollup` 1), 0 wrong.
 - Corpus at `95c83ef8`, before this session's rows: pass 194, fail 3
   (the three count rows above), unreachable 0.
+
+## Second thread: T-8, T-9, T-14 and the T-4 reading
+
+Owner, 2026-09-14, after #206 merged at `0afd70bb`: "merge when green -
+keep moving". Grant 226 (other). The branch was fast-forwarded to
+`0afd70bb` first; T-8, T-9, T-14 and T-4 taken from the store.
+
+- **T-8, retire `== thread`**: `onboard.py` loses the section and its
+  calibration reader; the brief ends at `== handoffs` and reads no
+  `AAR-*.md`. Twelve assertions and two test classes in
+  `test_onboard_lever.py` turned from pinning the clause to pinning its
+  absence; `onboard-lever.md` carries the retirement paragraph in the
+  section's place, the onboard skill's step 5 says the board is the
+  hand-over, `handoff-lever.md` says the section is last.
+- **T-9, one transaction per package**: `machine.move_many` moves a
+  list, or the ids a callable chooses under the write lock, in one
+  `BEGIN IMMEDIATE` at one stamp; `move`'s checks moved into
+  `_move_locked` so both share them. `handoff.py take H-n` chooses the
+  open threads and refuses another holder inside that transaction. The
+  red read three stamps for three threads at `0afd70bb`; the green reads
+  one.
+- **T-14**: the close skill's step 2 waits with `watch.py pr <number>`,
+  then `gh pr checks` as the reading.
+- **T-4, the skill-use hook's first live rows**: `skill_events` rows
+  with detail `(no arguments)` are the hook's (the hand command never
+  writes that detail): the first is row 291 at 2026-09-14T01:17:24Z
+  (`claim`), then 292 (`explain`), 298 (`close`); this session's own are
+  304, 305, 306 at 23:11:45Z (`dev-lane`, `deliverable`, `handwrite`,
+  the three Skill calls of its start). Twelve such rows at the reading.
+  Every row carries the session as `unrecorded` and the agent as the
+  lane's default identity, not `skill-use hook <...>`; a hand `log-use`
+  beside a Skill call still double-counts (`onboard` rows 302 and 314).
+
+Readings: red at `0afd70bb`, commit `43ac5963`: `test_onboard_lever.py`
+Ran 34, FAILED (failures=8); `test_machine.py` Ran 31, FAILED
+(errors=1); `test_handoff.py` Ran 34, FAILED (failures=1). Green at
+`3d65ee8e` with the same commands: Ran 34 OK, Ran 31 OK, Ran 34 OK;
+`ruff check` on the three tools clean; the live brief from the branch's
+tree ends `== handoffs` then `brief complete`, exit 0.
+`ops/bin/suites.sh` at `3d65ee8e`: dispatch 618, harness 155, task 351, telemetry 227, hooks 303, fixtures 221, workflow 51, conductor 1182, pr-overview 8, every one OK, exit 0. Corpus at
+`3d65ee8e`: pass 205, fail 0, unreachable 0; the six `P-NEXT-20260914-*` rows are read
+in the ready note.
+
+Decisions: the AAR plants stay in the onboard fixture, so the tests
+prove the retired section prints nothing from them rather than that
+nothing was planted. `move_many` takes a callable so the choice and the
+moves share one lock; a list form stays for callers that already hold
+the ids. The `taken` refusal of a package take now fires inside the
+transaction, as the contract's failure column already said.
+
+What went wrong: the onboard skill's step numbering on the branch
+differed from the main checkout's copy read at session start (the
+checkout is 14 commits behind), so one page edit was placed by a second
+script after the first asserted zero matches. Hook refusals in this
+thread: `clipped-sweep` 3, 0 wrong.
