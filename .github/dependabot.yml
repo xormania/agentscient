@@ -19,17 +19,14 @@
 #   applying to security updates.
 version: 2
 updates:
-  # The prod application's Composer manifest: version updates open on dev.
-  # Pre-1.0 packages are pinned exactly (AGENTS.md); a bump PR is the
-  # reviewable signal, merged only through the pipeline.
-  - package-ecosystem: "composer"
-    directory: "/"
-    target-branch: "dev"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "deps"
+  # The prod application's Composer manifest is paused (owner, 2026-09-13:
+  # "Pause Dependabot's composer job"). composer.json declares the path
+  # repository packages/*, which matches no package yet (packages/ holds
+  # only its README), so every update job failed resolving it: run
+  # 34783265531, "The `url` supplied for the path (packages/*) repository
+  # does not exist". Restore the entry (composer, directory "/",
+  # target-branch dev, weekly, limit 5, prefix deps) in the change that
+  # adds the first package under packages/.
 
   # The CI workflow's actions are digest-pinned; the checkout pin targets
   # Node 20 and the runner forces Node 24 (CI review, 2026-09-11). A bump
