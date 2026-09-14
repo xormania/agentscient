@@ -6,8 +6,9 @@ conversation closed `lane/session-20260913-k` (#201) before the owner's
 /clear; that close is in `AAR-2026-09-13-wall-items.md`. Closed at the
 owner's word ("Close this session") after #202 merged at `d21dfce6`;
 §Close is the board measured from 01:40Z to 01:44Z on 2026-09-14. The
-[handoff](handoff/HANDOFF-2026-09-13-github-use.md) carries the next
-thread. Grant 221.
+handoff is package H-3 in the state engine's store
+(`python3 ops/conductor/tools/handoff.py show H-3`). Grant 221, then grant 222
+for the second part of the close.
 
 ## Request and outcome
 
@@ -67,8 +68,8 @@ it, `3014cb22..cccc810b`); the stuck CodeQL run (cancel 409, force-cancel
   denied this session's own edit (below).
 - **Ledger ids.** `ledger.py` mints from origin/dev, so two sessions'
   unpushed rows get one id. agentscient-5e renumbered its two pitfalls to
-  36 and 37 by hand; this session's own pitfall (the typed sha) waits in
-  the handoff for #203 to reach dev rather than being minted around the
+  36 and 37 by hand; this session's own pitfall (the typed sha) waited
+  for #203 to reach dev (`50a3c19c`) and is pitfall 38, minted by the
   lever.
 - **Grant 221 waited for the other session's suites run,** because LD-9's
   test snapshots the live grant ledger; that session's message: suites.sh
@@ -91,8 +92,7 @@ it, `3014cb22..cccc810b`); the stuck CodeQL run (cancel 409, force-cancel
   through engine.py.
 - **A typed sha.** `gh run list --commit` with a 40-character sha invented
   past `6505f786` printed `[]`; the sha from `git rev-parse` listed ci
-  34795348058 and CodeQL 34795347239. The handoff carries it as a pitfall
-  to add.
+  34795348058 and CodeQL 34795347239. Pitfall 38.
 - **The first fetch did not run.** `git fetch origin --prune=false` is an
   invalid option; pitfall 34 was missing from the first listing of
   origin/dev until a second fetch.
@@ -119,6 +119,23 @@ it, `3014cb22..cccc810b`); the stuck CodeQL run (cancel 409, force-cancel
 - Checks on `6505f786`: ci 34795348058 and CodeQL 34795347239, success;
   `watch.py pr 202` started 01:15:56Z and settled at 01:18:57Z.
 
+## Handoff
+
+Package H-3 in the state engine's store, written at the close after #203
+(`50a3c19c`) put the handoff manager on dev. The file handoff first written
+at `d17c9ad4` is removed: the close law on dev keeps a handoff in the store
+and never in a file.
+
+Owner, 2026-09-13: "i'll do options 1 and 2 on next session - make sure to have that in the handoff when we're done here".
+
+- T-11 options 1 and 2 for the main checkout, to the next session (wall).
+- T-12 CodeQL run 34748624693, to the owner: cancel and force-cancel refused with HTTP 409, delete refused with HTTP 403 at 2026-09-14T01:40:15Z.
+- T-13 #200, the actions/checkout bump, to a wall session.
+- T-14 the close skill's line 40, which still waits with a bare `gh pr checks <number>`.
+- T-15 the first live reading of watch.py waiting through no checks reported.
+
+The lock entry is removed with `deliverable.py remove lane/session-20260913-n` once #204 is on dev.
+
 ## Close, measured 2026-09-14T01:40Z to 01:44Z
 
 | worktree | branch | head | uncommitted | unpushed |
@@ -138,8 +155,14 @@ it, `3014cb22..cccc810b`); the stuck CodeQL run (cancel 409, force-cancel
   `20260913T023636Z-review-codex-bdbe55` (7), from before this session;
   `findings.py export --write` wrote 814 rows and left the tracked file
   unchanged (`git status --short` empty).
-- Grants: 221 open at 01:41:02Z, settled after the records commit.
+- Grants: 221 open at 01:41:02Z, then settled on `d17c9ad4` (`hand.py settle`:
+  "settled 221: verified (git object)"); grant 222 declared for the second part of
+  the close after this session's suites run on the merge ended (LD-9).
 - Lock: `lane/session-20260913-m` and `lane/session-20260913-n` at
   01:41:02Z.
 - The main checkout at 01:42Z: `cccc810b`, 5 behind `d21dfce6`, with no
   hook or settings file changed between them.
+- #203 MERGED `50a3c19c` at 01:48:53Z, after the first close commit
+  `d17c9ad4`; this branch merged dev forward at `e62496f2` before #204 merges.
+- On `e62496f2`: `python3 ops/conductor/tools/probes.py run` pass 194, fail 0,
+  unreachable 0; `ops/bin/suites.sh` exit 1 at 2026-09-14T01:58:20Z: ruff "All checks passed!", 3102 tests in 9 suites, one failure: `test_dispatch_wrapper`'s tearDown saw lane/session-20260913-m's worktree HEAD move from `420affd9` to `50a3c19c` during the run (LD-39); that test alone Ran 1 OK at 02:00:28Z.
