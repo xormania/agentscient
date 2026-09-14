@@ -238,6 +238,66 @@ class TheVocabularyCoversTheLaneRows(_Engine):
         self.refusal(self.bash("python3 -m unittest ops/x/tests/test_a.py"), "form")
         self.allowed(self.bash("python3 -m unittest discover -s ops/x/tests -p 'test_a.py'"))
 
+    def test_a_fast_forward_of_the_trunk_from_its_remote_is_allowed_and_a_merge_commit_is_refused(self):
+        """LD-38 (2026-09-14): nothing moved the main checkout's dev when a
+        PR landed, and this row read the fast-forward as a trunk commit with
+        no escape. A merge of origin/<trunk> into the trunk that git reports
+        as a fast-forward (--ff-only, or HEAD an ancestor of the remote ref)
+        creates no commit and passes; every other merge on the trunk is
+        refused: --no-ff, a merge of any other ref, a bare merge, and a
+        merge onto a trunk that has diverged."""
+        self.plant(row("trunk", when={"pred": "git_write_on_protected"}))
+        bare = self.tmp / "origin.git"
+        support.git(self.tmp, self.env, "clone", "-q", "--bare", str(self.repo), str(bare))
+        support.git(self.repo, self.env, "remote", "add", "origin", str(bare))
+        ahead = self.tmp / "ahead"
+        support.git(self.tmp, self.env, "clone", "-q", str(bare), str(ahead))
+        support.configure_identity(ahead, self.env)
+        support.git(ahead, self.env, "commit", "-q", "--allow-empty", "-m", "landed on the trunk")
+        support.git(ahead, self.env, "push", "-q", "origin", "dev")
+        support.git(self.repo, self.env, "fetch", "-q", "origin")
+        self.allowed(self.bash("git merge --ff-only origin/dev"))
+        self.allowed(self.bash(f"git -C {self.repo} merge --ff-only origin/dev"))
+        self.allowed(self.bash("git fetch -q origin && git merge origin/dev"))
+        reason = self.refusal(self.bash("git merge --no-ff origin/dev"), "trunk")
+        self.assertIn("git merge on dev", reason)
+        support.git(self.repo, self.env, "branch", "-q", "lane/session-x", "origin/dev")
+        self.refusal(self.bash("git merge --ff-only lane/session-x"), "trunk")
+        self.refusal(self.bash("git merge"), "trunk")
+        support.git(self.repo, self.env, "commit", "-q", "--allow-empty", "-m", "diverged")
+        self.refusal(self.bash("git merge origin/dev"), "trunk")
+        # --ff-only on a diverged trunk: git refuses it itself and no commit can result
+        self.allowed(self.bash("git merge --ff-only origin/dev"))
+
+    def test_a_file_store_under_the_state_directory_or_a_placement_declaring_file_is_refused(self):
+        """T-5 (2026-09-13): the state gate is the CI wall; this is the same
+        rule in session. State is rows in state.db through the state engine;
+        a JSON or text file written under the lane's state directory, or a
+        placement file declaring state.engine file, is refused. A tool
+        writing its own store, a .db, a read, and a file in the tree pass."""
+        self.plant(row("state", tools=("Bash", "Write", "Edit"), when={"pred": "file_state_store"}))
+        state = self.home / ".local" / "state" / "agentscient"
+        state.mkdir(parents=True)
+        reason = self.refusal(self.bash(f"echo '{{}}' > {state}/claims.json"), "state")
+        self.assertIn("claims.json", reason)
+        self.refusal(self.bash("cat > ~/.local/state/agentscient/notes.txt <<'EOF'\nx\nEOF"), "state")
+        self.refusal(self.bash(f"cp lock.json {state}/deliverable.json"), "state")
+        self.refusal(self.bash(f"tee -a {state}/threads.jsonl < row.json"), "state")
+        self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(state / "threads.jsonl"), "content": "{}"}), "state")
+        self.allowed(self.bash("python3 ops/conductor/tools/handoff.py take T-1 --branch lane/session-x"))
+        self.allowed(self.bash(f"sqlite3 {state}/state.db .tables"))
+        self.allowed(self.bash(f"cat {state}/deliverable.json"))
+        self.allowed(self.bash(f"echo x > {self.repo}/notes.json"))
+        self.allowed(self.bash(f"echo x >> {state}/graft-first.log"))
+        placement = self.repo / "ops" / "conductor" / "placement" / "new.py.json"
+        self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(placement),
+                                                            "content": '{"placement": "migrated", "state": {"engine": "file"}}'}), "state")
+        self.refusal(self.run_event("PreToolUse", "Edit", {"file_path": str(placement), "old_string": "sqlite",
+                                                           "new_string": '"engine": "file"'}), "state")
+        self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(placement),
+                                                            "content": '{"placement": "migrated", "state": {"engine": "sqlite"}}'}))
+        self.refusal(self.bash("cat > ops/conductor/placement/new.py.json <<'EOF'\n{\"state\": {\"engine\": \"file\"}}\nEOF"), "state")
+
 
 class TheLiveRegistryIsEvaluable(unittest.TestCase):
     def test_every_engine_row_names_known_predicates_and_events(self):
