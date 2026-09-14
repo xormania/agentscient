@@ -55,7 +55,7 @@ who closed it.
 | `open TITLE --summary TEXT [--branch B] [--prs TEXT]` | a handoff; prints `handoff H-n` |
 | `thread H-n TITLE --body TEXT [--to WHO]` | a thread of it; prints `thread T-n` |
 | `take T-n --branch B [--ttl MIN]` | claims the thread for the identity on that branch; prints `taken T-n on B` |
-| `take H-n --branch B` | claims every open thread of the handoff, one line each; refuses `taken` and claims nothing when another identity holds one of them |
+| `take H-n --branch B` | claims every open thread of the handoff in one transaction at one stamp (`machine.move_many`), one line each; refuses `taken` and claims nothing when another identity holds one of them, the check made under the same write lock as the moves |
 | `release T-n --why TEXT` | gives the claim back; prints `released T-n` |
 | `done T-n --evidence READING [--note TEXT]` | closes the claim on a reading; prints `done T-n: READING` |
 | `supersede T-n --by T-m` | an open thread replaced by a newer one |
@@ -76,8 +76,9 @@ A reading for `done` is a sha (7 to 40 hex), `#N`, a dispatch record id
 
 ## Where it sits in the session
 
-- **Onboard** prints `== handoffs` from `brief` between `== state` and
-  `== thread`; an absent store is a measured fact on its line. The
+- **Onboard** prints `== handoffs` from `brief` after `== state`, the
+  last section (the `== thread` section that once followed it is retired,
+  T-8); an absent store is a measured fact on its line. The
   section shows; it never claims. A session takes a thread by the
   verb, at the owner's word or its own choice, after the lock names its
   branch.

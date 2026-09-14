@@ -37,10 +37,14 @@ checked after is the record that was wrong today.
 
    ```sh
    gh pr list --state all --limit 20 --json number,state,isDraft,headRefName,mergeCommit
+   python3 ops/conductor/tools/watch.py pr <number>
    gh pr checks <number>
    ```
 
-   "Merged" in the record is a merge commit sha from this output.
+   "Merged" in the record is a merge commit sha from this output. The
+   wait is `watch.py` (it reads gh's `no checks reported` in the seconds
+   after a push as not yet registered, LD-37); `gh pr checks` is the
+   reading once it has settled.
 
 3. **Ladders.** For each ladder record the session ran or resumed, the
    copy on dev against the copy in its worktree:

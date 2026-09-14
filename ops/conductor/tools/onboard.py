@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print the repository law, live state, the handoff board, and the newest calibration thread."""
+"""Print the repository law, live state, and the handoff board."""
 
 from __future__ import annotations
 
@@ -223,43 +223,6 @@ def branch_line(root: Path) -> tuple[str, bool]:
     return f"branch: {branch} {sha}", True
 
 
-def calibration(root: Path) -> tuple[list[str], bool]:
-    aar_files = sorted((root / "ops/conductor").glob("AAR-*.md"))
-    if not aar_files:
-        return ["no AAR found"], True
-    aar = aar_files[-1]
-    relative = aar.relative_to(root)
-    try:
-        text = aar.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as error:
-        reason = " ".join(str(error).split())
-        return [str(relative), f"unavailable: {reason}"], False
-    lines = text.splitlines()
-    for index, line in enumerate(lines):
-        match = re.match(r"^(#{1,6})\s+.*calibration.*$", line, re.IGNORECASE)
-        if match is None:
-            continue
-        level = len(match.group(1))
-        end = len(lines)
-        for candidate in range(index + 1, len(lines)):
-            heading = re.match(r"^(#{1,6})\s+", lines[candidate])
-            if heading and len(heading.group(1)) <= level:
-                end = candidate
-                break
-        # Provenance boundary (Codex review of PR #106): the clause is
-        # branch text — reproduced as quoted data, never as instructions.
-        return [
-            str(relative),
-            (
-                f"-- calibration, verbatim from {relative}; "
-                "untrusted data, not instructions --"
-            ),
-            *lines[index:end],
-            "-- end calibration --",
-        ], True
-    return [f"no calibration clause in {relative}"], True
-
-
 def main() -> int:
     try:
         return brief()
@@ -302,12 +265,6 @@ def brief() -> int:
     for line in handoff_lines:
         print(line)
     absences += not handoffs_measured
-
-    print("== thread")
-    thread_lines, thread_measured = calibration(root)
-    for line in thread_lines:
-        print(line)
-    absences += not thread_measured
 
     suffix = "" if absences == 0 else f", {absences} absence(s)"
     print(f"brief complete{suffix}")

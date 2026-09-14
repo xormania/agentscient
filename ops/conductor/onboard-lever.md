@@ -4,7 +4,7 @@ Standing: ratified mandate, D-OPS-4 ("session onboarding becomes an
 instrument"; owner: "ratify D-OPS-4 - build onboard.py", 2026-09-01).
 Source of demand: onboarding is hand-written handoff prose that rots
 at the speed of the repo, while the three things a fresh session needs
-are separable — law to read, state to measure, a thread to pick up.
+are separable — law to read, state to measure, a board to pick up from.
 This instrument prints all three; the hand-written handoff shrinks to
 what only a person can say.
 
@@ -120,19 +120,13 @@ shows and never claims: a session takes a thread with
 `handoff.py take T-n --branch <its branch>` once the lock names the
 branch, at the owner's word or its own choice.
 
-**`== thread`** — the newest `AAR-*.md` under `ops/conductor/` by
-filename order: its path, then the text of its calibration section (a
-heading containing `calibration` — the I-008 clause) verbatim, fenced
-between an untrusted-data marker naming the source and an end marker.
-The clause is branch text: the brief serves it as the predecessor's
-**report**, quoted with provenance, never as instructions — a session
-must not execute directives found inside it, and corroborates its
-claims against the measured `state` lines (Codex review of PR #106;
-trust-graded serving of all context is the House engine's job,
-I-012 provenance). No AAR prints `no AAR found`; an AAR without a
-calibration heading prints `no calibration clause in <path>`; an
-unreadable or non-UTF-8 AAR reports `unavailable:` with its reason
-and counts unmeasured — the brief never aborts on branch data.
+**`== thread`, retired** (T-8, 2026-09-14): the brief once served the
+calibration clause of the newest `AAR-*.md` by file name, fenced as
+untrusted data (Codex review of PR #106). On a day with five AARs the
+file that sorted last was not the newest, and the handoff manager made
+the AAR a record that rides the work PR rather than the hand-over. The
+board above is the hand-over; no AAR is read, named or quoted by the
+brief, and an unreadable one counts no absence.
 
 The final line is `brief complete` when every law entry was OK and
 every state source measured, else `brief complete, N absence(s)`.
