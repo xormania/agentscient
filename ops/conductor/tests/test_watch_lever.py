@@ -183,6 +183,26 @@ class _WatchFixture(unittest.TestCase):
         self._plant_gh(body)
         self.assertFalse(self.counter.exists(), "plant: sequence counter still absent")
 
+    def plant_gh_steps(self, steps: list) -> None:
+        """Like plant_gh_sequence, but a step that is a dict is an error
+        exit: its `stderr` written, nothing on stdout, exit `exit`."""
+        body = (
+            self._gh_preamble()
+            + f"counter = Path({str(self.counter)!r})\n"
+            + "n = int(counter.read_text(encoding='utf-8')) if counter.is_file() else 0\n"
+            + "n += 1\n"
+            + "counter.write_text(str(n), encoding='utf-8')\n"
+            + f"seq = {json.dumps(steps)}\n"
+            + "step = seq[n - 1] if n <= len(seq) else seq[-1]\n"
+            + "if isinstance(step, dict):\n"
+            + "    sys.stderr.write(step['stderr'])\n"
+            + "    raise SystemExit(step['exit'])\n"
+            + "sys.stdout.write(json.dumps(step) + '\\n')\n"
+            + "raise SystemExit(0)\n"
+        )
+        self._plant_gh(body)
+        self.assertFalse(self.counter.exists(), "plant: step counter still absent")
+
     def env(
         self,
         *,
@@ -837,6 +857,57 @@ class ConfExpectedSet(_WatchFixture):
         ])
         proc = self.watch(extra_env=self.conf_env())
         self.assert_refusal(proc, "conf-key")
+
+
+
+# PIN_GH_NO_CHECKS: gh reports a head with no check registered as an
+# error even under --json: `no checks reported on the '<branch>' branch`
+# on stderr, exit 1 (gh 2.99.0, pkg/cmd/pr/checks/checks.go: the error
+# returns before the JSON write). The seconds after a push read so.
+GH_NO_CHECKS = "no checks reported on the 'lane/session-fixture' branch\n"
+
+
+class NoChecksReported(_WatchFixture):
+    """gh's no-checks error is the zero-row table, not a failure to look.
+
+    LD-37, 2026-09-14: every nonzero gh exit refused gh-error, so a watch
+    started in the seconds after a push refused instead of polling, while
+    the pinned reading says zero rows means not yet reported. One producer
+    (Claude Opus 5) under hand grant 221 wrote these tests and the fix; the
+    second producer is absent by the owner's word."""
+
+    GREEN = [
+        {"name": "lane", "state": "SUCCESS"},
+        {"name": "app", "state": "SUCCESS"},
+    ]
+
+    def test_no_checks_reported_then_a_table_keeps_polling_and_settles(self):
+        self.plant_gh_steps([{"exit": 1, "stderr": GH_NO_CHECKS}, self.GREEN])
+        proc = self.watch(expect_names="lane,app")
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 0, text)
+        self.assertIsNotNone(self.settled_line(proc.stdout or ""), text)
+        polls = self.poll_matches(proc.stderr or "")
+        self.assertTrue(polls, f"no poll lines: {text!r}")
+        self.assertEqual(polls[0].group(1), "0", f"the first poll reads zero rows: {text!r}")
+
+    def test_no_checks_reported_throughout_aborts_at_the_wall_with_zero_rows(self):
+        self.plant_gh_raw("", exit_code=1, stderr=GH_NO_CHECKS)
+        proc = self.watch(expect_names="lane,app")
+        text = self.combined(proc)
+        self.assertEqual(proc.returncode, 3, text)
+        counts = self.last_counts(proc)
+        self.assertIsNotNone(counts, f"abort printed no poll counts: {text!r}")
+        self.assertEqual(counts["rows"], 0, counts)
+        self.assertIsNone(self.settled_line(proc.stdout or ""))
+
+    def test_the_no_checks_text_on_another_exit_still_refuses_gh_error(self):
+        # The clean neighbour: the reading is gh's exit 1 with that text,
+        # not the words alone; exit 4 is gh's authentication failure.
+        self.plant_gh_raw("", exit_code=4, stderr=GH_NO_CHECKS)
+        proc = self.watch(expect_names="lane,app")
+        self.assertIn("no checks reported", proc.stderr or "")
+        self.assert_refusal(proc, "gh-error")
 
 
 if __name__ == "__main__":

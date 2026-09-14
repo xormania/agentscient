@@ -37,6 +37,12 @@ FAIL_STATES = {
     "STARTUP_FAILURE",
 }
 SKIP_STATES = {"SKIPPED", "NEUTRAL"}
+# gh reports a head with no check registered as an error even under --json
+# (gh 2.99.0, pkg/cmd/pr/checks/checks.go: the error returns before the
+# JSON write). That is the zero-row table the pinned reading waits
+# through, not a failure to look (LD-37).
+NO_CHECKS_EXIT = 1
+NO_CHECKS_TEXT = "no checks reported on the "
 
 
 class Parser(argparse.ArgumentParser):
@@ -76,6 +82,8 @@ def read_checks(number: int, repo: str | None) -> list[tuple[str, str]]:
         refuse("gh-missing", "gh on PATH", "gh was not found", "install gh or add it to PATH")
     if result.returncode != 0:
         detail = result.stderr.rstrip("\n")
+        if result.returncode == NO_CHECKS_EXIT and detail.startswith(NO_CHECKS_TEXT):
+            return []
         refuse(
             "gh-error",
             "gh pr checks to exit 0",
