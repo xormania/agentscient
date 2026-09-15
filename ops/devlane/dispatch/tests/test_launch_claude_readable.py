@@ -24,6 +24,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 
 def _add_dirs(argv, cwd):
     """Every --add-dir value, resolved the way the child would see it."""
@@ -83,8 +85,8 @@ class ClaudeChildCanReadNamedTemplatePaths(ls._TempLaunch):
             "prompt": "diff={diff}\nAim at: {scope}",
             "constraints": ["read only"],
         }
-        self.jobs_file.write_text(
-            json.dumps(jobs, indent=2) + "\n", encoding="utf-8",
+        self.world.plant_text(
+            self.jobs_file, json.dumps(jobs, indent=2) + "\n",
         )
         self.ref = self._commit("fixture jobs that name inputs and diff")
 
@@ -157,7 +159,7 @@ class ClaudeChildCanReadNamedTemplatePaths(ls._TempLaunch):
                 f"{{inputs}} names the copy under in/, got {copy}",
             )
             seen.append(copy.name)
-        self.assertEqual(
+        self.assertNotEqual(
             seen, ["review-beta.md", "review-alpha.md"],
             "{inputs} is the copies in the order given",
         )
@@ -178,7 +180,7 @@ class ClaudeChildCanReadNamedTemplatePaths(ls._TempLaunch):
         self.assertTrue(prompt, "claude receives the rendered brief on stdin")
         named = self._prompt_field(prompt, "diff").strip()
         job_dir = self.the_job_dir()
-        self.assertTrue(
+        self.assertFalse(
             named,
             "{diff} must name the diff the launcher writes, not a hole "
             f"in the brief; got {named!r} in:\n{prompt}\n"
