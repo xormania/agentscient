@@ -43,7 +43,7 @@ class _Fixture(unittest.TestCase):
         )
 
     def assert_refusal(self, proc, klass):
-        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stdout + proc.stderr)
         self.assertEqual(proc.stdout, "")
         lines = proc.stderr.splitlines()
         self.assertEqual(len(lines), 1, proc.stderr)
@@ -91,15 +91,15 @@ class TheStore(_Fixture):
     def test_the_store_lives_under_xdg_state_home(self):
         proc = self.run_tool("add", "planned", "a planned skill")
         self.assertEqual(proc.exit, 0, proc.stderr)
-        self.assertFalse((self.state / "agentscient" / "skills.db").is_file(),
-                         "store not under XDG_STATE_HOME")
+        self.assertTrue((self.state / "agentscient" / "skills.db").is_file(),
+                        "store not under XDG_STATE_HOME")
         self.assertFalse((self.home / ".local").exists(), "store leaked under HOME")
 
     def test_add_list_show_and_events_round_trip(self):
         self.assertEqual(self.run_tool("add", "planned", "a planned skill").exit, 0)
         listed = self.run_tool("list")
         self.assertEqual(listed.exit, 0, listed.stderr)
-        self.assertNotIn("planned", listed.stdout)
+        self.assertIn("planned", listed.stdout)
         self.assertEqual(self.run_tool("log-use", "planned", "used once").exit, 0)
         self.assertEqual(self.run_tool("wish", "absent", "should exist").exit, 0)
         shown = self.run_tool("show", "planned")
@@ -112,7 +112,7 @@ class TheStore(_Fixture):
     def test_sync_reads_the_skills_on_disk(self):
         proc = self.run_tool("sync")
         self.assertEqual(proc.exit, 0, proc.stderr)
-        self.assertNotIn("synced:", proc.stdout)
+        self.assertIn("synced:", proc.stdout)
 
 
 class TheDetail(_Fixture):
@@ -137,7 +137,7 @@ class TheDetail(_Fixture):
         stored = " ".join(self.stored("SELECT detail FROM skill_events")
                           + self.stored("SELECT description FROM skills WHERE name='absent'"))
         for secret in ("hunter2", token, "abc123"):
-            self.assertIn(secret, stored)
+            self.assertNotIn(secret, stored)
         self.assertIn("keep this", stored)
         self.assertIn("[redacted]", stored)
 
