@@ -9,7 +9,17 @@ other way in.
 from .cases import Mutant, RefusalCase, calibrate, refusal_wire, run_table, sidebyside
 from .command import NotOnTheWire, Refusal, Result, Timeout, run
 from .fakes import Tools
-from .world import PlantFailed, Watch, World, compare
+from .world import (
+    PlantFailed,
+    Watch,
+    World,
+    compare,
+    hermetic_env,
+    make_executable,
+    plant_bytes,
+    plant_text,
+    require,
+)
 
 __all__ = [
     "Mutant",
@@ -24,7 +34,12 @@ __all__ = [
     "World",
     "calibrate",
     "compare",
+    "hermetic_env",
+    "make_executable",
+    "plant_bytes",
+    "plant_text",
     "refusal_wire",
+    "require",
     "run",
     "run_table",
     "sidebyside",
