@@ -8,29 +8,20 @@ ops/devlane/task/tests/test_write_path.py. One producer (grant 149).
 
 from __future__ import annotations
 
-import importlib.util
-import sys
+import json
 import unittest
-from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[4]
-LAUNCH = REPO / "ops" / "devlane" / "dispatch" / "launch.py"
+import launch_support as ls
 
-
-def _load():
-    if str(LAUNCH.parent) not in sys.path:
-        sys.path.insert(0, str(LAUNCH.parent))
-    spec = importlib.util.spec_from_file_location("launch_role_guard_test", LAUNCH)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["launch_role_guard_test"] = module
-    spec.loader.exec_module(module)
-    return module
+from ops.testkit import World
 
 
 class RoleGuard(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.launch = _load()
+    def setUp(self):
+        self.world = World(prefix="launch-role-guard-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
+        self.launch = ls.require_module(self, "launch")
 
     def test_a_read_role_prompt_writing_an_undeclared_path_refuses_role(self):
         job = {"role": "read", "prompt": "Write the report to {out}/SKEPTIC.md and name that path in artifacts"}
@@ -55,8 +46,7 @@ class RoleGuard(unittest.TestCase):
         self.assertIsNone(self.launch._read_role_write_guard("implement", job))
 
     def test_the_live_read_jobs_pass_the_guard(self):
-        import json
-        jobs = json.loads((REPO / "ops" / "devlane" / "task" / "jobs.json").read_text(encoding="utf-8"))
+        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
         for name, job in jobs.items():
             if job.get("role") == "read":
                 self.assertIsNone(self.launch._read_role_write_guard(name, job), name)

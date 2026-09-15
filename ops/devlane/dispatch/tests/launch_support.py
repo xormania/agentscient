@@ -24,10 +24,7 @@ import io
 import json
 import os
 import re
-import stat
-import subprocess
 import sys
-import tempfile
 import time
 import types
 import unittest
@@ -35,6 +32,9 @@ import urllib.parse
 from pathlib import Path
 
 import support
+
+from ops.testkit import PlantFailed, World, hermetic_env, run
+from ops.testkit import plant_bytes as kit_plant_bytes
 
 APP = support.APP
 REPO = support.REPO
@@ -557,10 +557,6 @@ raise SystemExit(exit_code)
 """
 
 
-class PlantFailed(Exception):
-    """A fault could not be proven to have landed intact."""
-
-
 class FakeClock:
     """Injected monotonic/sleep seam. Tests assign these onto launch.py."""
 
@@ -601,10 +597,7 @@ def plant_bytes(path, mutate, *, expect="edit", recognisable=None) -> bytes:
         raise PlantFailed(f"unknown expect={expect!r}")
     if recognisable is not None and not recognisable(after):
         raise PlantFailed(f"plant left {path} unrecognisable")
-    path.write_bytes(after)
-    landed = path.read_bytes()
-    if landed != after:
-        raise PlantFailed(f"plant did not reach disk for {path}")
+    kit_plant_bytes(path, after)
     return before
 
 
@@ -693,20 +686,7 @@ def load_path(test, path, name):
 
 
 def git_env(home: Path) -> dict:
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith("GIT_") and k != "XDG_CONFIG_HOME"}
-    env.update({
-        "HOME": str(home),
-        "GIT_AUTHOR_NAME": "launch-test",
-        "GIT_AUTHOR_EMAIL": "launch-test@example.test",
-        "GIT_COMMITTER_NAME": "launch-test",
-        "GIT_COMMITTER_EMAIL": "launch-test@example.test",
-        "GIT_CONFIG_GLOBAL": os.devnull,
-        "GIT_CONFIG_SYSTEM": os.devnull,
-        "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_TERMINAL_PROMPT": "0",
-    })
-    return env
+    return hermetic_env(home)
 
 
 def resolve_record_paths(rec):
@@ -789,77 +769,25 @@ class _TempLaunch(unittest.TestCase):
     """Throwaway repo on branch ``work``, isolated HOME, fake CLIs."""
 
     def setUp(self):
-        self._td = tempfile.TemporaryDirectory()
-        self.home = Path(self._td.name)
-        self.repo = self.home / "repo"
-        self.bin = self.home / "bin"
-        self.jobs_root = self.home / "jobs"
-        self.repo.mkdir()
-        self.bin.mkdir()
+        self.world = World(prefix="dispatch-launch-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.home = self.world.home
+        self.repo = self.world.cwd
+        self.bin = self.world.bin
+        self.jobs_root = self.world.root / "jobs"
         self.jobs_root.mkdir()
+        os.environ.update({
+            "WF_AGENT": AGENT,
+            "GRAFT_INSTALL": "",
+            "DISPATCH_JOBS": str(self.jobs_root),
+            "TASK_LAUNCH_STREAM_EPOCH": str(STREAM_EPOCH),
+            "TASK_LAUNCH_WRITE_STREAM": "1",
+            "TASK_LAUNCH_STDOUT": "envelope",
+            "TASK_LAUNCH_VERDICT": "approve",
+        })
 
-        self._orig_env = {
-            k: os.environ.get(k) for k in (
-                "PATH", "HOME", "XDG_CONFIG_HOME", "XDG_STATE_HOME",
-                "WF_AGENT", "GRAFT_INSTALL", "DISPATCH_JOBS", "DISPATCH_STREAM_GRACE",
-                "DISPATCH_TIMEOUT", "TASK_LAUNCH_WITNESS", "TASK_LAUNCH_DONE",
-                "TASK_LAUNCH_MCP_CALLS",
-                "TASK_LAUNCH_SLEEP", "TASK_LAUNCH_STDOUT",
-                "TASK_LAUNCH_TOKEN", "TASK_LAUNCH_JOB",
-                "TASK_LAUNCH_VERDICT", "TASK_LAUNCH_STATUS",
-                "TASK_LAUNCH_ENVELOPE_COMMIT", "TASK_LAUNCH_RAN_MODEL",
-                "TASK_LAUNCH_STREAM_EPOCH", "TASK_LAUNCH_STORES",
-                "TASK_LAUNCH_WRITE_STREAM", "TASK_LAUNCH_IGNORE_SESSION",
-                "TASK_LAUNCH_STREAM_ID", "TASK_LAUNCH_COMMIT",
-                "TASK_LAUNCH_EDIT", "TASK_LAUNCH_ORPHAN",
-                "TASK_LAUNCH_HEAD_COMMIT", "TASK_LAUNCH_EXIT",
-                "TASK_LAUNCH_OVER_OUT", "TASK_LAUNCH_GRANDCHILD",
-                "TASK_LAUNCH_WRAPPER", "TASK_LAUNCH_WRAPPER_FIELD",
-                "TASK_LAUNCH_WRAPPER_SUBTYPE",
-                "TASK_LAUNCH_WRAPPER_IS_ERROR",
-                "TASK_LAUNCH_WRAPPER_INVALID",
-                "TASK_LAUNCH_WRAPPER_NARRATION",
-                "TASK_LAUNCH_WRAPPER_RESULT",
-                "TASK_LAUNCH_WRAPPER_DECOY",
-                "TASK_LAUNCH_WRAPPER_DECOY_FIRST",
-                "TASK_LAUNCH_WRAPPER_USAGE",
-                "TASK_LAUNCH_WRAPPER_AGENT_NOTE", "TASK_LAUNCH_NOTE",
-                "TASK_LAUNCH_GROK_USAGE", "TASK_LAUNCH_COMMIT_MSG",
-                "TASK_LAUNCH_RENEW_AUTH",
-                "CLICOLOR_FORCE", "FORCE_COLOR",
-                "NO_COLOR", "CODEX_HOME", "GROK_HOME", "CLAUDE_CONFIG_DIR",
-                "TMPDIR",
-            )
-        }
-        self._saved_git = {k: os.environ[k] for k in list(os.environ)
-                           if k.startswith("GIT_")}
-        for k in list(self._saved_git):
-            del os.environ[k]
-        os.environ.pop("XDG_CONFIG_HOME", None)
-        os.environ.pop("CLICOLOR_FORCE", None)
-        os.environ.pop("FORCE_COLOR", None)
-        os.environ.pop("CODEX_HOME", None)
-        os.environ.pop("GROK_HOME", None)
-        os.environ.pop("CLAUDE_CONFIG_DIR", None)
-        os.environ.pop("TMPDIR", None)
-        os.environ.pop("TASK_LAUNCH_RAN_MODEL", None)
-        os.environ.pop("TASK_LAUNCH_STORES", None)
-        os.environ.pop("DISPATCH_STREAM_GRACE", None)
-        os.environ.pop("DISPATCH_TIMEOUT", None)
-
-        os.environ["HOME"] = str(self.home)
-        os.environ["PATH"] = str(self.bin) + os.pathsep + os.environ.get(
-            "PATH", ""
-        )
-        os.environ["WF_AGENT"] = AGENT
-        os.environ["GRAFT_INSTALL"] = ""
-        os.environ["DISPATCH_JOBS"] = str(self.jobs_root)
-        os.environ["TASK_LAUNCH_STREAM_EPOCH"] = str(STREAM_EPOCH)
-        os.environ["TASK_LAUNCH_WRITE_STREAM"] = "1"
-        os.environ["TASK_LAUNCH_STDOUT"] = "envelope"
-        os.environ["TASK_LAUNCH_VERDICT"] = "approve"
-
-        self.env = git_env(self.home)
+        self.env = self.world.env()
         self._git("init", "-b", "work")
         self._git("config", "user.name", "launch-test")
         self._git("config", "user.email", "launch-test@example.test")
@@ -903,9 +831,8 @@ class _TempLaunch(unittest.TestCase):
             "constraints": ["read only"],
         }
         self.jobs_file = self.repo / ".dev" / "app" / "task" / "jobs.json"
-        self.jobs_file.parent.mkdir(parents=True, exist_ok=True)
-        self.jobs_file.write_text(
-            json.dumps(jobs, indent=2) + "\n", encoding="utf-8"
+        self.world.plant_text(
+            self.jobs_file, json.dumps(jobs, indent=2) + "\n",
         )
         self._write("alpha.py", "alpha v1\n")
         self._write("README.md", "fixture tree\n")
@@ -954,10 +881,8 @@ class _TempLaunch(unittest.TestCase):
         os.environ.pop("TASK_LAUNCH_COMMIT_MSG", None)
         os.environ.pop("TASK_LAUNCH_RENEW_AUTH", None)
 
-        (self.home / ".codex").mkdir()
-        (self.home / ".codex" / "auth.json").write_text("{}\n", encoding="utf-8")
-        (self.home / ".grok").mkdir()
-        (self.home / ".grok" / "auth.json").write_text("{}\n", encoding="utf-8")
+        self.world.plant_text(self.home / ".codex" / "auth.json", "{}\n")
+        self.world.plant_text(self.home / ".grok" / "auth.json", "{}\n")
 
         self._install_cli("claude")
         self._install_cli("codex")
@@ -992,31 +917,21 @@ class _TempLaunch(unittest.TestCase):
                 )
         if self.launch is not None and self._saved_jobs_path is not None:
             self.launch.JOBS_PATH = self._saved_jobs_path
-        for k, v in self._orig_env.items():
-            if v is None:
-                os.environ.pop(k, None)
-            else:
-                os.environ[k] = v
-        for k in list(os.environ):
-            if k.startswith("GIT_"):
-                del os.environ[k]
-        os.environ.update(self._saved_git)
-        self._td.cleanup()
+        self.world.close()
 
     def _git(self, *args, repo=None):
-        r = subprocess.run(
+        r = run(
             ["git", *args], cwd=repo or self.repo, env=self.env,
-            capture_output=True, text=True)
-        if r.returncode != 0:
+            timeout=60,
+        )
+        if r.exit != 0:
             raise RuntimeError(
-                f"git {args} failed ({r.returncode}): {r.stderr}")
+                f"git {args} failed ({r.exit}): {r.stderr}")
         return r
 
     def _write(self, rel, content):
         p = self.repo / rel
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
-        return p
+        return self.world.plant_text(p, content)
 
     def _commit(self, msg):
         self._git("add", "-A")
@@ -1024,17 +939,13 @@ class _TempLaunch(unittest.TestCase):
         return self._git("rev-parse", "HEAD").stdout.strip()
 
     def _install_cli(self, name):
-        dest = self.bin / name
         script = (
             _FAKE_CLI
             .replace("@@START_WITNESS@@", json.dumps(str(self.start_witness)))
             .replace("@@RAN_MODEL@@", json.dumps(RAN_MODEL))
             .replace("@@STORES_PATH@@", json.dumps(str(STORES_PATH)))
         )
-        dest.write_text(script, encoding="utf-8")
-        dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP
-                   | stat.S_IXOTH)
-        return dest
+        return self.world.tools.plant(name, script=script)
 
     def set_grace(self, seconds):
         """External seam: DISPATCH_STREAM_GRACE, default 120 seconds."""
@@ -1394,30 +1305,27 @@ class _TempLaunch(unittest.TestCase):
             )
 
     def dispatch_reflog(self, job_id):
-        r = subprocess.run(
+        r = run(
             ["git", "reflog", "show", f"refs/dispatch/{job_id}"],
-            cwd=self.repo, env=self.env, capture_output=True, text=True,
+            cwd=self.repo, env=self.env, timeout=60,
         )
         return r.stdout
 
     def dead_pid(self):
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "import time; time.sleep(60)"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        result = run(
+            [sys.executable, "-c", "import os; print(os.getpid())"],
+            cwd=self.repo, env=self.world.env(), timeout=60, expect=0,
         )
-        pid = proc.pid
-        proc.kill()
-        proc.wait()
+        pid = int(result.stdout.strip())
         with self.assertRaises(ProcessLookupError):
             os.kill(pid, 0)
         return pid
 
     def plant_new_file(self, path, content, *, must_contain=None):
         path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
         data = content.encode("utf-8") if isinstance(content, str) else content
         self.assertTrue(data, "planted file must not be empty")
-        path.write_bytes(data)
+        self.world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, "plant did not reach disk")
         self.assertGreater(len(landed), 0)
