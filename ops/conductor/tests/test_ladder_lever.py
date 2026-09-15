@@ -1967,6 +1967,11 @@ class DerivedCommandContract(_LadderFixture):
         scope = self.implement_scope_text(argv)
         self.assertIn("python3 -m unittest discover", scope)
         self.assertIn("test_alpha.py", scope)
+        # Ruled rank 5 (record 20260915T025600Z-adjudicate-codex-68d3d9): both
+        # planted test modules of the one directory reach the command, joined.
+        self.assertIn("test_beta.py", scope)
+        self.assertIn(" && ", scope)
+        self.assertEqual(len(scope.split(" && ")), 2, scope)
         self.assertNotIn(
             SCOPE_FIRST, scope,
             "implement {scope} is the named command, not the work-order",

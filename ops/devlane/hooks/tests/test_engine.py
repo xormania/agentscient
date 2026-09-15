@@ -308,7 +308,12 @@ class TheVocabularyCoversTheLaneRows(_Engine):
         tests = self.repo / "ops" / "x" / "tests"
         tests.mkdir(parents=True)
         (tests / "test_old.py").write_text("import unittest\n")
+        # grandfathered means tracked: a file a touch made is still new
+        support.git(self.repo, self.env, "add", "-A")
+        support.git(self.repo, self.env, "commit", "-q", "-m", "an old test module")
         bare = "import unittest\n\nclass T(unittest.TestCase):\n    pass\n"
+        docstring = '"""\nfrom ops.testkit import World\n"""\nimport unittest\n'
+        late_import = ("\n" * 12) + "from ops.testkit import World\n"
         with_kit = "import unittest\n\nfrom ops.testkit import World\n\nclass T(unittest.TestCase):\n    pass\n"
         exempt = "# testkit: exempt reads a hook payload shape only\nimport unittest\n"
         late_exempt = ("\n" * 12) + "# testkit: exempt too late\nimport unittest\n"
@@ -316,7 +321,7 @@ class TheVocabularyCoversTheLaneRows(_Engine):
             with self.subTest(registry=registry):
                 env = dict(self.env)
                 if registry == "planted":
-                    self.plant(row("kit-import", tools=("Bash", "Write", "Edit"), when={"pred": "test_file_without_kit"}))
+                    self.plant(row("kit-import", tools=("Bash", "Write", "Edit", "MultiEdit"), when={"pred": "test_file_without_kit"}))
                 else:
                     env.pop("BOUNDARIES_PATH", None)
                 reason = self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_new.py"), "content": bare}, env=env), "kit-import")
@@ -330,6 +335,20 @@ class TheVocabularyCoversTheLaneRows(_Engine):
                 self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "support.py"), "content": with_kit}, env=env))
                 self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(self.repo / "ops" / "x" / "tool.py"), "content": bare}, env=env))
                 self.allowed(self.bash("cat > ops/x/tests/test_heredoc_kit.py <<'EOF'\nfrom ops.testkit import World\nEOF", env=env))
+                # Ruled rank 6 (record 20260915T025600Z-adjudicate-codex-68d3d9):
+                # a nested tests/ path, an import quoted in a docstring, an
+                # exemption without a reason, and a touch followed by a write
+                # all slipped the row; a real import after line ten passes.
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "fakes" / "test_nested.py"), "content": bare}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_docstring.py"), "content": docstring}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_no_reason.py"), "content": "# testkit: exempt\nimport unittest\n"}, env=env), "kit-import")
+                touched = tests / "test_touched.py"
+                touched.write_text("")
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(touched), "content": bare}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "Edit", {"file_path": str(touched), "old_string": "", "new_string": bare}, env=env), "kit-import")
+                self.refusal(self.run_event("PreToolUse", "MultiEdit", {"file_path": str(touched), "edits": [{"old_string": "", "new_string": bare}]}, env=env), "kit-import")
+                self.allowed(self.run_event("PreToolUse", "Edit", {"file_path": str(touched), "old_string": "", "new_string": with_kit}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_late_import.py"), "content": late_import}, env=env))
 
 
 class TheLiveRegistryIsEvaluable(unittest.TestCase):

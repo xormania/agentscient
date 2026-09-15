@@ -49,7 +49,10 @@ def test_modules(root: Path) -> list[Path]:
             continue
         for dirpath, dirnames, filenames in os.walk(base):
             dirnames[:] = [d for d in dirnames if d not in ("__pycache__", ".git", "node_modules", "vendor")]
-            if Path(dirpath).name != "tests":
+            # every directory at or below a tests/ directory (ruled rank 7,
+            # record 20260915T025600Z-adjudicate-codex-68d3d9: tests/fakes/
+            # grew the debt uncounted)
+            if "tests" not in Path(dirpath).relative_to(base).parts:
                 continue
             for name in filenames:
                 if name.endswith(".py"):

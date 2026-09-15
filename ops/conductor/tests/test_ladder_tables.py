@@ -80,6 +80,12 @@ DERIVED_COMMAND_CASES = [
     DeriveRow("two-artifacts-join-in-order", "LD-15", {"first": REL_A, "second": REL_B},
               command=f"{discover(REL_A)} && {discover(REL_B)}",
               note="test_ladder_command_names_the_tree.py and test_ladder_support_modules.py both pinned this"),
+    DeriveRow("two-artifacts-same-directory-both-run", "20260915T025600Z-adjudicate-codex-68d3d9 rank 5",
+              {"alpha": "ops/conductor/tests/test_alpha.py", "beta": "ops/conductor/tests/test_beta.py"},
+              command=f"{discover('ops/conductor/tests/test_alpha.py')} && {discover('ops/conductor/tests/test_beta.py')}",
+              names=("test_alpha.py", "test_beta.py", " && "),
+              note="the retired DerivedCommand.test_two_test_artifacts_become_joined_discover_invocations pinned this; "
+                   "M-derive-first-per-directory is its fault"),
     DeriveRow("non-py-ignored", "LD-15", {"notes": "ops/conductor/tests/notes.md", "tree": REL},
               command=discover(REL), absent=("notes.md",)),
     DeriveRow("outside-tests-ignored", "LD-15", {"tool": "ops/conductor/tools/helper.py", "tree": REL},

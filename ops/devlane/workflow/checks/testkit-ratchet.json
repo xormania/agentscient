@@ -3,7 +3,7 @@
  "counts": {
   "embedded_programs": 30,
   "home_by_hand": 57,
-  "run_without_timeout": 179
+  "run_without_timeout": 185
  },
  "files": {
   "embedded_programs": {
@@ -95,6 +95,7 @@
   },
   "run_without_timeout": {
    ".claude/skills/pr-overview/tests/support.py": 1,
+   "ops/conductor/tests/fakes/ladder_land.py": 5,
    "ops/conductor/tests/test_board_contract.py": 1,
    "ops/conductor/tests/test_branch_census.py": 10,
    "ops/conductor/tests/test_control.py": 5,
@@ -129,6 +130,7 @@
    "ops/devlane/fixtures/tests/test_rust_crate_app.py": 7,
    "ops/devlane/fixtures/tests/test_stores.py": 2,
    "ops/devlane/fixtures/tests/test_symfony_app_app.py": 7,
+   "ops/devlane/harness/tests/fakes/graft_bridge.py": 1,
    "ops/devlane/harness/tests/graft_support.py": 2,
    "ops/devlane/harness/tests/test_graft_bridge_fake.py": 1,
    "ops/devlane/harness/tests/test_isolation.py": 1,

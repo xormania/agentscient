@@ -28,6 +28,7 @@ is lifted by nothing.
 unknown predicates, unknown events. Adding a condition is adding a row.
 """
 
+import ast
 import importlib.util
 import json
 import os
@@ -297,24 +298,73 @@ def p_claim_without_reading(ctx):
     return None
 
 
-TEST_MODULE = re.compile(r"(^|/)tests/[^/]+\.py$")
+# A module under a tests/ directory at any depth (ruled rank 6, record
+# 20260915T025600Z-adjudicate-codex-68d3d9: tests/fakes/ was not one).
+TEST_MODULE = re.compile(r"(^|/)tests/(?:[^/]+/)*[^/]+\.py$")
+# The line pattern is the fallback for text that does not parse; parsed
+# text is judged by its import statements, never by words in a string.
 KIT_IMPORT = re.compile(r"^\s*(from\s+ops\.testkit(\.\w+)*\s+import\b|import\s+ops\.testkit\b)", re.MULTILINE)
-KIT_EXEMPT = "# testkit: exempt"
+# The exemption carries a reason.
+# Spaces, not any whitespace: a newline after `exempt` is no reason.
+KIT_EXEMPT = re.compile(r"^[ \t]*# testkit: exempt[ \t]+\S", re.MULTILINE)
 
 
-def _new_test_module_without_kit(path, body, ctx):
+def _imports_kit(text):
+    """True when the text carries an import statement of ops.testkit."""
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return bool(KIT_IMPORT.search(text))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module == "ops.testkit" or module.startswith("ops.testkit."):
+                return True
+        elif isinstance(node, ast.Import):
+            if any(a.name == "ops.testkit" or a.name.startswith("ops.testkit.") for a in node.names):
+                return True
+    return False
+
+
+def _tracked(rel, cwd):
+    """True when git tracks rel, False when the file is untracked, None
+    when git cannot say (no repository, no git)."""
+    try:
+        proc = subprocess.run(["git", "-C", cwd, "ls-files", "--error-unmatch", "--", rel],  # noqa: S603, S607
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode == 0:
+        return True
+    if proc.returncode == 1:
+        return False
+    return None
+
+
+def _new_test_module_without_kit(path, body, ctx, *, replaces=True):
     """The path when it is a new module under a tests/ directory whose text
-    neither imports the kit nor declares its exemption in its first ten
-    lines (docs/tests.md rule 1); None otherwise."""
+    neither imports the kit nor declares its exemption, with a reason, in
+    its first ten lines (docs/tests.md rule 1); None otherwise. A file git
+    tracks is grandfathered; one a touch or an earlier write made is still
+    new, judged on the text it will hold: ``body`` alone when the write
+    replaces the file, the disk text plus ``body`` when it edits."""
     _, rel = matrix.relative(path, ctx.cwd)
     if not TEST_MODULE.search(rel or path):
         return None
     absolute = os.path.normpath(os.path.join(ctx.cwd, os.path.expanduser(path)))
-    if os.path.exists(absolute):
-        return None
     text = body or ""
+    if os.path.exists(absolute):
+        tracked = _tracked(rel or path, ctx.cwd)
+        if tracked is None or tracked:
+            return None
+        if not replaces:
+            try:
+                with open(absolute, encoding="utf-8") as fh:
+                    text = fh.read() + "\n" + text
+            except (OSError, UnicodeDecodeError):
+                pass
     head = "\n".join(text.splitlines()[:10])
-    if KIT_IMPORT.search(text) or KIT_EXEMPT in head:
+    if _imports_kit(text) or KIT_EXEMPT.search(head):
         return None
     return path
 
@@ -331,9 +381,14 @@ def p_test_file_without_kit(ctx):
         if not path:
             continue
         body = ctx.input.get("content")
+        replaces = body is not None
         if body is None:
-            body = ctx.input.get("new_string") or ""
-        found = _new_test_module_without_kit(path, body, ctx)
+            edits = ctx.input.get("edits")
+            if isinstance(edits, list):
+                body = "\n".join(str((e or {}).get("new_string") or "") for e in edits if isinstance(e, dict))
+            else:
+                body = ctx.input.get("new_string") or ""
+        found = _new_test_module_without_kit(path, body, ctx, replaces=replaces)
         if found:
             return f"a new test module {found} without the kit"
     heredocs = [(m.group(1).strip("'\""), m.group(4)) for m in matrix.HEREDOC_WRITE.finditer(ctx.text or "")]
