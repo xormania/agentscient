@@ -12,10 +12,11 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import time
 
 import launch_support as ls
+
+from ops.testkit import run
 
 COLLECT_SUBJECT = "lane: collect the residual tree"
 COLLECT_MSG = (
@@ -426,15 +427,14 @@ class CollectAfterATrip(ls._TempLaunch):
         self._git("reset", "--soft", made, repo=snap)
         head = self._git("rev-parse", "HEAD", repo=snap).stdout.strip()
         self.assertEqual(head, made)
-        ancestor = subprocess.run(
+        ancestor = run(
             ["git", "merge-base", "--is-ancestor", ref_sha, head],
-            cwd=str(snap),
+            cwd=snap,
             env=self.env,
-            capture_output=True,
-            text=True,
+            timeout=60,
         )
         self.assertNotEqual(
-            ancestor.returncode, 0,
+            ancestor.exit, 0,
             "plant: snapshot HEAD must not descend from ref_sha",
         )
         self.assertEqual(scratch.read_text(encoding="utf-8"), scratch_body)
