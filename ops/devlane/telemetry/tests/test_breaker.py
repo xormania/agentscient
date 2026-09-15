@@ -154,7 +154,12 @@ class LiveSupervision(BreakerCase):
         try:
             _, err = proc.communicate(timeout=15)
         except subprocess.TimeoutExpired:
+            # Kill, then communicate: the child is reaped and both pipes
+            # are closed before the failure is raised (census finding 4;
+            # measured 2026-09-14: kill alone left the child and two pipes
+            # open, _reap alone left the two pipes).
             proc.kill()
+            proc.communicate()
             self.fail("the breaker never tripped on a stalled stream")
         self.assertEqual(proc.returncode, EXIT_TRIPPED, err)
         self.assertIn("stall", err)

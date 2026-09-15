@@ -298,5 +298,20 @@
   "standing": "ratified",
   "superseded_by": null,
   "supersedes": null
+ },
+ {
+  "blocked_on": null,
+  "created_at": "2026-09-14T23:27:19.169101Z",
+  "created_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "decided_at": "2026-09-14T23:27:19.210958Z",
+  "decided_by": "owner, 2026-09-14, in session, to the reading of T-1 (item 2",
+  "evidence": "owner, 2026-09-14, in session, to the reading of T-1 (item 2: rule on the kit as wall before slice 5): \"hand grant ok's - do all right now\"",
+  "home": "docs/tests.md",
+  "id": "D-TESTKIT-1",
+  "question": "The test kit is wall: ops/testkit/ is written only under a grant of class wall, in a session whose deliverable is the wall and which writes nothing else, its tests by a producer other than its author; ops/devlane/task/jobs.json joins the wall with it (plan slice 3); docs/tests.md is the contract",
+  "recorded_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "standing": "ratified",
+  "superseded_by": null,
+  "supersedes": null
  }
 ]

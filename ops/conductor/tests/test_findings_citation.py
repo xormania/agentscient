@@ -35,6 +35,7 @@ AGENT = "Citation Tester <citation-tester@example.invalid>"
 REC = "20260901T000000Z-review-grok-aaaaaa"
 ADJ_REC = "20260901T010000Z-adjudicate-grok-bbbbbb"
 SWEEP_REC = "20260901T020000Z-sweep-codex-cccccc"
+PLAN_REC = "20260901T030000Z-plan-claude-dddddd"
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
 OTHER_REL = ".dev/ladder-inputs/other-scope.md"
 DISCIPLINE_REL = ".dev/ladder-inputs/scope-discipline.md"
@@ -705,6 +706,15 @@ class ImportReviewJobs(_CitationFixture):
         proc = self.import_records()
         self.assertIn("1 finding", proc.stdout)
         self.assertIn(f"{SWEEP_REC}#1", self.store_keys())
+
+    def test_import_takes_a_plan_record(self):
+        # A plan job's findings against the tree and against itself are
+        # findings (T-1, 2026-09-14: the six p3 findings of record
+        # 20260913T034513Z-plan-claude-892490 imported to the ledger).
+        self.plant_record(PLAN_REC, "plan", "plan-marker")
+        proc = self.import_records()
+        self.assertIn("1 finding", proc.stdout)
+        self.assertIn(f"{PLAN_REC}#1", self.store_keys())
 
 
 class CitedWorkOrderScope(_CitationFixture):
