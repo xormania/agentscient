@@ -28,9 +28,6 @@ from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "hand.py"
-# Red proof: stage a missing subject so each assertion fails on its own
-# contract, not on Python's missing-file exit 2. Green points this at TOOL.
-SUBJECT = TOOL.with_name("hand.py.absent-for-red-proof")
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
@@ -108,12 +105,12 @@ class _LedgerFixture(unittest.TestCase):
         self._live.assert_unchanged(self, f"live store mutated: {LIVE_STORE}")
 
     def _stage_tool_bytes(self) -> None:
-        siblings = SIBLINGS if SUBJECT.is_file() else ()
-        self.staged = self.world.stage(SUBJECT, "hand.py", siblings=siblings)
-        if SUBJECT.is_file():
+        siblings = SIBLINGS if TOOL.is_file() else ()
+        self.staged = self.world.stage(TOOL, "hand.py", siblings=siblings)
+        if TOOL.is_file():
             self.assertEqual(
                 self.staged.read_bytes(),
-                SUBJECT.read_bytes(),
+                TOOL.read_bytes(),
                 "copy-tool-bytes did not land intact",
             )
         self.assertTrue(self.staged.is_file())
@@ -399,7 +396,7 @@ class ToolPresence(_LedgerFixture):
     """Missing tool file counts once."""
 
     def test_the_tool_file_is_present(self):
-        self.assertTrue(SUBJECT.is_file(), f"RED: tool is absent: {SUBJECT}")
+        self.assertTrue(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
 
 
 class DeclareOpen(_LedgerFixture):
