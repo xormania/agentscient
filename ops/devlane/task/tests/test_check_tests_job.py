@@ -216,13 +216,13 @@ class CheckTestsKeepsItsRole(_JobsPin):
         self.assertEqual(self.spec.get("snapshot"), "whole")
         caps = self.spec.get("caps")
         self.assertIsInstance(caps, dict, "check-tests must declare caps")
-        self.assertNotEqual(caps.get("timeout"), 1800)
+        self.assertEqual(caps.get("timeout"), 1800)
 
     def test_check_tests_keeps_adapter_harness_and_read_constraints(self):
         mutant = {"adapter": "direct", "constraints": ["write the report"]}
         self.assertNotEqual(mutant.get("adapter"), "harness")
         self.assertEqual(self.spec.get("adapter"), "harness")
-        self.assertNotEqual(self.spec.get("constraints"), CONSTRAINTS)
+        self.assertEqual(self.spec.get("constraints"), CONSTRAINTS)
 
     def test_check_tests_declares_no_outputs(self):
         mutant = {
@@ -235,7 +235,7 @@ class CheckTestsKeepsItsRole(_JobsPin):
             ]
         }
         self.assertTrue(mutant.get("outputs"))
-        self.assertIn(
+        self.assertNotIn(
             "outputs",
             self.spec,
             "item 5: check-tests declares none; an outputs array is a file",
@@ -262,7 +262,7 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
             prompt,
             "item 1: the live check-tests prompt still names {out}",
         )
-        self.assertIn(
+        self.assertNotIn(
             OLD_PROMPT_SENTENCE,
             prompt,
             "item 1: the live prompt still instructs a SKEPTIC.md write",
@@ -299,7 +299,7 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
             "item 1: the prompt asks for no file; found "
             f"{_positive_write_to_path(prompt)!r}",
         )
-        self.assertFalse(
+        self.assertTrue(
             _item1_prompt_holds(prompt),
             "item 1: prompt must ask for the envelope on stdout, "
             f"artifacts empty, no file; found {prompt[:240]!r}",
@@ -309,7 +309,7 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
         prompt = self.spec.get("prompt")
         self.assertIsInstance(prompt, str)
         for token in ("{ref}", "{inputs}", "{scope}"):
-            self.assertNotIn(token, prompt, f"check-tests prompt missing {token}")
+            self.assertIn(token, prompt, f"check-tests prompt missing {token}")
 
     def test_the_prompt_carries_the_quotation_pair_grammar(self):
         mutant = "every finding is prose naming a contract item"
@@ -327,7 +327,7 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
             prompt,
             "item 2: the prompt asks for the declared words with location",
         )
-        self.assertNotIn(
+        self.assertIn(
             "practiced",
             prompt,
             "item 2: the prompt asks for the practiced evidence with location",
@@ -337,7 +337,7 @@ class CheckTestsPromptIsTheEnvelopeOnStdout(_JobsPin):
         prompt = self.spec.get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertIn(SPEND_TO_THE_LAUNCHER, prompt)
-        self.assertNotIn(ENVELOPE_CLAUSE, prompt)
+        self.assertIn(ENVELOPE_CLAUSE, prompt)
 
 
 class CheckTestsDeliverable(_JobsPin):
@@ -357,7 +357,7 @@ class CheckTestsDeliverable(_JobsPin):
             cell,
             "item 1: the live deliverable still names SKEPTIC.md",
         )
-        self.assertEqual(
+        self.assertNotEqual(
             cell,
             OLD_DELIVERABLE,
             "item 1: the live deliverable is still the SKEPTIC.md form",
@@ -373,7 +373,7 @@ class CheckTestsDeliverable(_JobsPin):
             _item1_deliverable_holds(D1_DELIVERABLE),
             "plant: the item-1 deliverable sentence must itself hold",
         )
-        self.assertFalse(
+        self.assertTrue(
             _item1_deliverable_holds(cell),
             "item 1: deliverable is the envelope on stdout, artifacts "
             f"empty, no file written; found {cell!r}",
@@ -387,7 +387,7 @@ class OtherJobsUnchanged(_JobsPin):
         others = {name: self.jobs[name] for name in self.jobs if name != "check-tests"}
         self.assertEqual(sorted(others), sorted(OTHER_JOBS))
         digest = _others_digest(self.jobs)
-        self.assertNotEqual(
+        self.assertEqual(
             digest,
             OTHERS_SHA256,
             "item 1: the other eight jobs.json entries are byte-for-byte "
