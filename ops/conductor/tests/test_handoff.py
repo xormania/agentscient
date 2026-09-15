@@ -16,12 +16,11 @@ readings are quoted in the commit that carries it.
 
 from __future__ import annotations
 
-import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import RefusalCase, World, refusal_wire, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -35,46 +34,40 @@ OTHER_BRANCH = "lane/session-20260913-y"
 
 class _Scratch(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="handoff-"))
-        self.xdg = self.tmp / "xdg"
-        self.conf = self.tmp / "lane.conf"
-        self.conf.write_text("LANE_NAME='testlane'\n", encoding="utf-8")
+        self.world = World(prefix="handoff-")
+        self.addCleanup(self.world.close)
+        self.xdg = self.world.xdg_state
+        self.conf = self.world.plant_text(
+            "lane.conf", "LANE_NAME='testlane'\n"
+        )
         self.store = self.xdg / "testlane" / "state.db"
 
     def env(self, identity: str | None) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.tmp / "home"),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LANE_CONF": str(self.conf),
-        }
+        env = self.world.env(extra={"LANE_CONF": str(self.conf)})
         if identity:
             env["WF_AGENT"] = identity
         return env
 
     def run_tool(self, *argv: str, identity: str | None = AGENT, tool: Path = TOOL):
-        return subprocess.run(
+        return run(
             [sys.executable, str(tool), *argv],
-            env=self.env(identity), capture_output=True, text=True, check=False,
+            cwd=self.world.cwd,
+            env=self.env(identity),
+            timeout=60,
         )
 
     def ok(self, *argv: str, identity: str | None = AGENT) -> str:
         proc = self.run_tool(*argv, identity=identity)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
         self.assertEqual(proc.stderr, "")
         return proc.stdout
 
     def lock(self, *branches: str) -> None:
         proc = self.run_tool("set", *branches, "--why", "the scenario", tool=LOCK_LEVER)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
 
     def assert_refusal(self, proc, klass: str) -> str:
-        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
-        self.assertEqual(proc.stdout, "", "a refusal keeps stdout empty")
-        lines = [ln for ln in proc.stderr.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, proc.stderr)
-        self.assertRegex(lines[0], rf"^{klass}: expected .+; found .+; needed .+$")
-        return lines[0]
+        return refusal_wire(RefusalCase("fixture-refusal", (), klass), proc).line
 
     def a_handoff(self, *threads: str) -> list[str]:
         out = self.ok("open", "the session's package", "--summary", "what was left")
@@ -272,7 +265,7 @@ class ReadingTheBoard(_Scratch):
     def test_list_on_an_absent_store_says_so_and_creates_nothing(self):
         for verb in ("list", "brief"):
             proc = self.run_tool(verb, identity=None)
-            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.exit, 0, proc.stderr)
             self.assertEqual(proc.stdout.strip(), "no handoffs")
         self.assertFalse(self.store.exists(), "a read created the store")
 
@@ -281,7 +274,7 @@ class ReadingTheBoard(_Scratch):
 
     def test_held_on_an_absent_store_holds_nothing(self):
         proc = self.run_tool("held", "--branch", BRANCH, identity=None)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), "none held")
 
     def test_held_lists_the_branch_holdings_as_a_finding_until_they_close(self):
@@ -289,14 +282,14 @@ class ReadingTheBoard(_Scratch):
         self.lock(BRANCH)
         self.ok("take", "H-1", "--branch", BRANCH, identity=OTHER)
         proc = self.run_tool("held", "--branch", BRANCH, identity=None)
-        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
         self.assertEqual(proc.stderr, "")
         self.assertIn("T-1 taken", proc.stdout)
         self.assertIn("T-2 taken", proc.stdout)
         self.ok("done", "T-1", "--evidence", "#1", identity=OTHER)
         self.ok("release", "T-2", "--why", "not this session", identity=OTHER)
         proc = self.run_tool("held", "--branch", BRANCH, identity=None)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
         self.assertEqual(proc.stdout.strip(), "none held")
 
     def test_brief_counts_then_lists_open_and_taken_threads_by_handoff(self):

@@ -17,10 +17,10 @@ import json
 import os
 import shlex
 import stat
-import subprocess
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 RUNNER = REPO / "ops" / "conductor" / "tools" / "gate.sh"
@@ -47,8 +47,8 @@ class GateRunnerScenarios(unittest.TestCase):
     """One test per D-GATE-3 Given/When/Then. The runner is argv[0]."""
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix="gate-runner-")
-        self.scratch = Path(self.tmp.name)
+        self.world = World(prefix="gate-runner-")
+        self.scratch = self.world.root
         self.log_dir = self.scratch / "log"
         self.cmd_dir = self.scratch / "cmd"
         self.log_dir.mkdir()
@@ -59,11 +59,11 @@ class GateRunnerScenarios(unittest.TestCase):
     def tearDown(self):
         with contextlib.suppress(FileNotFoundError):
             self.log_dir.chmod(0o755)
-        self.tmp.cleanup()
+        self.world.close()
 
     def write_conf(self, **keys):
         body = "".join(f"{key}={value}\n" for key, value in keys.items())
-        self.conf_path.write_text(body, encoding="utf-8")
+        self.world.plant_text(self.conf_path, body)
         landed = self.conf_path.read_text(encoding="utf-8")
         self.assertEqual(landed, body, "scratch conf did not land intact")
         for key, value in keys.items():
@@ -71,18 +71,10 @@ class GateRunnerScenarios(unittest.TestCase):
         self.conf = dict(keys)
 
     def env(self):
-        env = os.environ.copy()
-        env.pop("GATE_TAIL", None)
-        env.pop("GATE_LOG_DIR", None)
-        env.update(self.conf)
-        return env
+        return self.world.env(extra=self.conf)
 
-    def command(self, name, script):
-        path = self.cmd_dir / name
-        path.write_text(script, encoding="utf-8")
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
-        landed = path.read_text(encoding="utf-8")
-        self.assertEqual(landed, script, f"{name}: scratch command did not land")
+    def command(self, name, *, stdout="", stderr="", exit=0):
+        path = self.world.tools.plant(name, stdout=stdout, stderr=stderr, exit=exit)
         self.assertTrue(os.access(path, os.X_OK), f"{name}: not executable")
         return path
 
@@ -111,25 +103,21 @@ class GateRunnerScenarios(unittest.TestCase):
     def invoke_run(self, command):
         self.assertTrue(
             RUNNER.is_file(), f"RED: runner is absent: {RUNNER}")
-        return subprocess.run(
+        return run(
             [str(RUNNER), "run", "--", str(command)],
-            capture_output=True,
-            text=True,
             cwd=str(REPO),
             env=self.env(),
-            check=False,
+            timeout=60,
         )
 
     def invoke_check(self, name):
         self.assertTrue(
             RUNNER.is_file(), f"RED: runner is absent: {RUNNER}")
-        return subprocess.run(
+        return run(
             [str(RUNNER), "check", name],
-            capture_output=True,
-            text=True,
             cwd=str(REPO),
             env=self.env(),
-            check=False,
+            timeout=60,
         )
 
     def test_exit_1_in_a_chain_does_not_run_b_and_keeps_the_failure_words(self):
@@ -138,24 +126,24 @@ class GateRunnerScenarios(unittest.TestCase):
         log file exists And contains the failure's words."""
         failing = self.command(
             "fail.sh",
-            "#!/bin/sh\n"
-            f"printf '%s\\n' '{FAILURE_WORDS}'\n"
-            "exit 1\n",
+            stdout=f"{FAILURE_WORDS}\n",
+            exit=1,
         )
-        direct = subprocess.run(
-            [str(failing)], capture_output=True, text=True, check=False,
+        direct = run(
+            [str(failing)], cwd=self.scratch, env=self.env(), timeout=60,
         )
-        self.assertEqual(direct.returncode, 1)
+        self.assertEqual(direct.exit, 1)
         self.assertIn(FAILURE_WORDS, direct.stdout)
 
         marker_path = self.scratch / "marker-ran"
-        marker = self.command(
-            "mark.sh",
-            "#!/bin/sh\n"
-            f"exec touch {shlex.quote(str(marker_path))}\n",
+        marker = self.world.tools.wrap("touch")
+        probe = run(
+            [str(marker), str(marker_path)],
+            cwd=self.scratch,
+            env=self.env(),
+            timeout=60,
         )
-        probe = subprocess.run([str(marker)], check=False)
-        self.assertEqual(probe.returncode, 0)
+        self.assertEqual(probe.exit, 0)
         self.assertTrue(
             marker_path.is_file(), "INVALID: marker plant did not land")
         marker_path.unlink()
@@ -165,15 +153,13 @@ class GateRunnerScenarios(unittest.TestCase):
 
         line = (
             f"{shlex.quote(str(RUNNER))} run -- {shlex.quote(str(failing))}"
-            f" && {shlex.quote(str(marker))}"
+            f" && {shlex.quote(str(marker))} {shlex.quote(str(marker_path))}"
         )
-        proc = subprocess.run(
+        proc = run(
             ["/bin/sh", "-c", line],
-            capture_output=True,
-            text=True,
             cwd=str(REPO),
             env=self.env(),
-            check=False,
+            timeout=60,
         )
         self.assertFalse(
             marker_path.exists(),
@@ -182,20 +168,17 @@ class GateRunnerScenarios(unittest.TestCase):
         logs = self.log_files()
         self.assertEqual(len(logs), 1, f"expected one log file, got {logs!r}")
         self.assertIn(FAILURE_WORDS, logs[0].read_text(encoding="utf-8"))
-        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(proc.exit, 1)
 
     def test_exit_0_prints_tail_log_path_and_exit_0(self):
         """2. Given a command that exits 0, Then the runner prints the
         tail, the log path, and `exit: 0`, And exits 0."""
         command = self.command(
             "ok.sh",
-            "#!/bin/sh\n"
-            "printf '%s\\n' 'OK-LINE-A'\n"
-            "printf '%s\\n' 'OK-LINE-B'\n"
-            "exit 0\n",
+            stdout="OK-LINE-A\nOK-LINE-B\n",
         )
         proc = self.invoke_run(command)
-        self.assertEqual(proc.returncode, 0, self.printed(proc))
+        self.assertEqual(proc.exit, 0, self.printed(proc))
         transcript = self.printed(proc)
         self.assertIn("OK-LINE-A", transcript)
         self.assertIn("OK-LINE-B", transcript)
@@ -213,15 +196,12 @@ class GateRunnerScenarios(unittest.TestCase):
         printed line names the path."""
         command = self.command(
             "many.py",
-            "#!/usr/bin/env python3\n"
-            "import sys\n"
-            "for i in range(1, 10001):\n"
-            "    sys.stdout.write(f'LINE-{i:05d}\\n')\n",
+            stdout="".join(f"LINE-{i:05d}\n" for i in range(1, 10001)),
         )
-        direct = subprocess.run(
-            [str(command)], capture_output=True, text=True, check=False,
+        direct = run(
+            [str(command)], cwd=self.scratch, env=self.env(), timeout=60,
         )
-        self.assertEqual(direct.returncode, 0, direct.stderr)
+        self.assertEqual(direct.exit, 0, direct.stderr)
         self.assertEqual(direct.stdout.count("\n"), 10000)
         self.assertIn("LINE-00001", direct.stdout)
         self.assertIn("LINE-10000", direct.stdout)
@@ -259,16 +239,16 @@ class GateRunnerScenarios(unittest.TestCase):
         """4. Given a command that produces no output and exits 0, Then
         the runner still prints the log path and exit line (never
         silent)."""
-        command = self.command("silent.sh", "#!/bin/sh\nexit 0\n")
-        direct = subprocess.run(
-            [str(command)], capture_output=True, text=True, check=False,
+        command = self.command("silent.sh")
+        direct = run(
+            [str(command)], cwd=self.scratch, env=self.env(), timeout=60,
         )
-        self.assertEqual(direct.returncode, 0)
+        self.assertEqual(direct.exit, 0)
         self.assertEqual(direct.stdout, "")
         self.assertEqual(direct.stderr, "")
 
         proc = self.invoke_run(command)
-        self.assertEqual(proc.returncode, 0, self.printed(proc))
+        self.assertEqual(proc.exit, 0, self.printed(proc))
         transcript = self.printed(proc)
         self.assertTrue(transcript.strip(), "runner was silent")
         self.assertIn("exit: 0", transcript)
@@ -287,7 +267,7 @@ class GateRunnerScenarios(unittest.TestCase):
             f"INVALID: {ABSENT_CHECK!r} is already a registered check",
         )
         proc = self.invoke_check(ABSENT_CHECK)
-        self.assertNotEqual(proc.returncode, 0, self.printed(proc))
+        self.assertNotEqual(proc.exit, 0, self.printed(proc))
         transcript = self.printed(proc)
         self.assertTrue(transcript.strip(), "refusal was silent")
         for name in known:
@@ -300,12 +280,9 @@ class GateRunnerScenarios(unittest.TestCase):
         self.assertIn("GATE_TAIL=3", self.conf_path.read_text(encoding="utf-8"))
 
         lines = [f"TAIL-{i:02d}" for i in range(1, 11)]
-        body = "#!/bin/sh\n" + "".join(
-            f"printf '%s\\n' '{row}'\n" for row in lines
-        ) + "exit 0\n"
-        command = self.command("ten.sh", body)
-        direct = subprocess.run(
-            [str(command)], capture_output=True, text=True, check=False,
+        command = self.command("ten.sh", stdout="\n".join(lines) + "\n")
+        direct = run(
+            [str(command)], cwd=self.scratch, env=self.env(), timeout=60,
         )
         self.assertEqual(direct.stdout.splitlines(), lines)
 
@@ -323,9 +300,7 @@ class GateRunnerScenarios(unittest.TestCase):
         payload = "UNWRITABLE-DIR-PAYLOAD"
         command = self.command(
             "ok.sh",
-            "#!/bin/sh\n"
-            f"printf '%s\\n' '{payload}'\n"
-            "exit 0\n",
+            stdout=f"{payload}\n",
         )
         self.log_dir.chmod(0o555)
         mode = stat.S_IMODE(self.log_dir.stat().st_mode)
@@ -338,7 +313,7 @@ class GateRunnerScenarios(unittest.TestCase):
         proc = self.invoke_run(command)
         transcript = self.printed(proc)
         self.assertNotEqual(
-            proc.returncode, 0,
+            proc.exit, 0,
             "unwritable log dir was not refused: " + transcript,
         )
         self.assertTrue(
