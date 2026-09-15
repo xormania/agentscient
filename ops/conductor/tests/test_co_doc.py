@@ -18,11 +18,11 @@ import json
 import os
 import re
 import sqlite3
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, make_executable, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -51,26 +51,6 @@ INERT_PATH = "/no/such/agentscient-inert-grant-9f3c1e2a"
 AGENT = "Test Author <noreply@example.invalid>"
 
 
-def _copy_unread(src: Path, dst: Path) -> None:
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    data = src.read_bytes()
-    dst.write_bytes(data)
-    if dst.read_bytes() != data:
-        raise AssertionError(f"copy of {src.name} did not land intact")
-
-
-def _tree_rel(root: Path) -> set[str]:
-    found: set[str] = set()
-    if not root.exists():
-        return found
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames.sort()
-        for name in filenames:
-            full = Path(dirpath) / name
-            found.add(str(full.relative_to(root)))
-    return found
-
-
 class DoctorFixture(unittest.TestCase):
     """Temp repo + HOME; live tree, live settings, live ledgers stay put."""
 
@@ -81,60 +61,31 @@ class DoctorFixture(unittest.TestCase):
         if self._real_state.is_dir():
             self._state_listing = frozenset(os.listdir(self._real_state))
 
-        self._tmp = tempfile.TemporaryDirectory(prefix="co-doc-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.repo = root / "repo"
-        self.scratch = root / "scratch"
-        for path in (self.home, self.repo, self.scratch):
-            path.mkdir()
-        (self.home / ".local" / "state" / "agentscient").mkdir(parents=True)
-        (self.home / ".claude").mkdir()
+        self.world = World(prefix="co-doc-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.repo = self.world.cwd
+        self.scratch = self.world.tmp
+        (self.home / ".claude").mkdir(parents=True, exist_ok=True)
+        self.state = self.world.xdg_state / "agentscient"
+        self.state.mkdir(parents=True, exist_ok=True)
 
-        src_dir = TOOLS
         tools = self.repo / "ops" / "conductor" / "tools"
-        tools.mkdir(parents=True)
-        src = src_dir / CO_DOC
-        self.assertTrue(src.is_file(), f"missing tool at {src}")
-        self.tool = tools / CO_DOC
-        _copy_unread(src, self.tool)
-        # The tool imports instrument.py beside itself, which loads
-        # laneconf.py beside it (instrument-conventions.md §The shared
-        # implementation); a staged copy carries both.
-        for sibling in ("instrument.py", "laneconf.py"):
-            _copy_unread(src_dir / sibling, tools / sibling)
-        sh = src_dir / "dispatch.sh"
-        if sh.is_file():
-            _copy_unread(sh, tools / "dispatch.sh")
-            (tools / "dispatch.sh").chmod(0o755)
-        # P-LEV-1 reports LAUNCHER_PIN / gate.sh live or inert; inert is a
-        # finding in this instrument, so a clean surface plants live ones.
-        pin = self.scratch / "launch.py"
-        pin.write_text(
-            "#!/usr/bin/env python3\nprint('launch')\n", encoding="utf-8",
+        tools.mkdir(parents=True, exist_ok=True)
+        self.tool = self._plant_subject(tools)
+
+        self.launch = self.world.tools.plant("launch", stdout="launch\n", exit=0)
+        self._plant_program("gate", tools / "gate.sh")
+        self.world.plant_text(
+            tools / "dispatch.conf",
+            f"LAUNCHER_PIN='{self.launch}'\n",
+            recognisable="LAUNCHER_PIN",
         )
-        pin.chmod(0o755)
-        gate = tools / "gate.sh"
-        gate.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-        gate.chmod(0o755)
-        conf = tools / "dispatch.conf"
-        conf.write_text(f"LAUNCHER_PIN='{pin}'\n", encoding="utf-8")
-        self.assertIn("LAUNCHER_PIN", conf.read_text(encoding="utf-8"))
-        self.assertTrue(pin.is_file() and gate.is_file())
+        self.assertTrue(self.launch.is_file() and (tools / "gate.sh").is_file())
 
         wf_dir = self.repo / "ops" / "devlane" / "workflow"
-        wf_dir.mkdir(parents=True)
-        wf_py = wf_dir / "wf.py"
-        wf_py.write_text(
-            "#!/usr/bin/env python3\n"
-            "import sys\n"
-            "print('usage: wf')\n"
-            "sys.exit(0)\n",
-            encoding="utf-8",
-        )
-        wf_py.chmod(0o755)
+        self._plant_program("wf", wf_dir / "wf.py", stdout="usage: wf\n")
 
-        self.state = self.home / ".local" / "state" / "agentscient"
         self.skills_db = self.state / "skills.db"
         self.handwork_db = self.state / "handwork.db"
         for db in (self.skills_db, self.handwork_db):
@@ -142,70 +93,62 @@ class DoctorFixture(unittest.TestCase):
             self.assertTrue(db.is_file(), f"plant: {db.name} must exist")
 
         claude = self.repo / ".claude"
-        claude.mkdir(parents=True)
+        claude.mkdir(parents=True, exist_ok=True)
         self.repo_settings = claude / "settings.json"
         self.repo_local = claude / "settings.local.json"
         self.user_settings = self.home / ".claude" / "settings.json"
         empty = "{}\n"
-        self.repo_settings.write_text(empty, encoding="utf-8")
-        self.repo_local.write_text(empty, encoding="utf-8")
-        self.user_settings.write_text(empty, encoding="utf-8")
+        for path in (self.repo_settings, self.repo_local, self.user_settings):
+            self.world.plant_text(path, empty, recognisable="{")
 
     def tearDown(self):
-        try:
-            if self._state_listing is not None:
-                self.assertEqual(
-                    frozenset(os.listdir(self._real_state)),
-                    self._state_listing,
-                    "live ~/.local/state/agentscient must be untouched",
-                )
-        finally:
-            self._tmp.cleanup()
+        if self._state_listing is not None:
+            self.assertEqual(
+                frozenset(os.listdir(self._real_state)),
+                self._state_listing,
+                "live ~/.local/state/agentscient must be untouched",
+            )
 
-    def _env(self, agent=None):
-        env = {
-            "HOME": str(self.home),
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "LANG": "C.UTF-8",
-            "LC_ALL": "C.UTF-8",
-            "PYTHONIOENCODING": "utf-8",
-            "TMPDIR": str(self.scratch),
-            "XDG_STATE_HOME": str(self.home / ".local" / "state"),
-            # The tool imports instrument.py beside itself; the interpreter's
-            # bytecode cache is not the doctor writing a file.
-            "PYTHONDONTWRITEBYTECODE": "1",
-        }
-        if agent is not None:
-            env["WF_AGENT"] = agent
-        return env
+    def _plant_subject(self, tools: Path) -> Path:
+        # RED: a stub that exits 99 with no output, so every assertion
+        # fails on its own promise rather than on a missing World.
+        del tools
+        return self.world.tools.plant("co_doc.py", stdout="", stderr="", exit=99)
+
+    def _plant_program(self, name: str, dest: Path, *, stdout: str = "",
+                       exit: int = 0) -> Path:
+        fake = self.world.tools.plant(name, stdout=stdout, exit=exit)
+        planted = self.world.plant_bytes(dest, fake.read_bytes())
+        make_executable(planted)
+        return planted
 
     def _run(self, *argv, agent=AGENT):
-        proc = subprocess.run(
+        extra = {"PYTHONIOENCODING": "utf-8"}
+        if agent is not None:
+            extra["WF_AGENT"] = agent
+        proc = run(
             [sys.executable, str(self.tool), *argv],
             cwd=str(self.repo),
-            env=self._env(agent=agent),
-            capture_output=True,
-            text=True,
+            env=self.world.env(extra=extra),
             timeout=30,
-            check=False,
         )
-        out = (proc.stdout or "") + (proc.stderr or "")
+        out = proc.stdout + proc.stderr
         return proc, out
 
     def test_an_unknown_argument_refuses_arguments_on_the_wire(self):
         """instrument-conventions.md §The refusal wire: one stderr line,
         exit 2, stdout empty; the class token leads."""
         proc, _ = self._run("--bogus")
-        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
-        self.assertEqual(proc.stdout, "")
-        lines = proc.stderr.splitlines()
-        self.assertEqual(len(lines), 1, proc.stderr)
-        self.assertRegex(lines[0], r"^arguments: expected .+; found .+; needed .+$")
+        wire = proc.refusal(exit=2)
+        self.assertEqual(wire.cls, "arguments")
+        self.assertTrue(wire.expected)
+        self.assertTrue(wire.found)
+        self.assertTrue(wire.needed)
 
     def _write_settings(self, path: Path, payload) -> bytes:
         before = path.read_bytes() if path.exists() else b""
         text = json.dumps(payload, indent=2) + "\n"
-        path.write_text(text, encoding="utf-8")
+        self.world.plant_text(path, text)
         after = path.read_bytes()
         self.assertNotEqual(after, before, f"plant did not change {path.name}")
         loaded = json.loads(after.decode("utf-8"))
@@ -218,7 +161,7 @@ class TestListProbes(DoctorFixture):
         # Broken impl that drifts from the table (missing, extra, renamed).
         self.assertEqual(len(PROBE_IDS), 9)
         proc, out = self._run("--list-probes")
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
         self.assertEqual(lines, PROBE_IDS)
 
@@ -227,33 +170,32 @@ class TestExitCodes(DoctorFixture):
     def test_exit_0_on_clean_surface(self):
         # Broken impl that exits 1 on notes, or 0 while a probe is INVALID.
         proc, out = self._run()
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
 
     def test_exit_1_when_findings_present(self):
         # Broken impl that still exits 0 after a P-HOOK-2 finding.
         self._plant_dot_star_matcher()
         proc, out = self._run()
-        self.assertEqual(proc.returncode, 1, out)
+        self.assertEqual(proc.exit, 1, out)
         self.assertIn("P-HOOK-2", out)
 
     def test_exit_2_when_any_probe_is_invalid(self):
         # Broken impl that reports unparseable settings as a finding (1)
         # rather than INVALID (2).
-        self.repo_settings.write_text("{not-json", encoding="utf-8")
+        planted = "{not-json"
+        self.world.plant_text(self.repo_settings, planted)
         self.assertNotEqual(
             self.repo_settings.read_text(encoding="utf-8").strip(),
             "{}",
             "plant: unparseable settings must differ from the clean object",
         )
         proc, out = self._run()
-        self.assertEqual(proc.returncode, 2, out)
+        self.assertEqual(proc.exit, 2, out)
         self.assertIn("P-SET-1", out)
         self.assertRegex(out, r"INVALID")
 
     def _plant_dot_star_matcher(self):
-        hook_cmd = self.scratch / "hook.sh"
-        hook_cmd.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-        hook_cmd.chmod(0o755)
+        hook_cmd = self._plant_program("hook", self.scratch / "hook.sh")
         payload = {
             "hooks": {
                 "PreToolUse": [
@@ -287,14 +229,14 @@ class TestPSet1(DoctorFixture):
 
     def test_unparseable_settings_makes_probe_invalid(self):
         planted = "this is not json {"
-        self.repo_local.write_text(planted, encoding="utf-8")
+        self.world.plant_text(self.repo_local, planted)
         self.assertEqual(
             self.repo_local.read_text(encoding="utf-8"),
             planted,
             "plant: unparseable local settings landed",
         )
         proc, out = self._run()
-        self.assertEqual(proc.returncode, 2, out)
+        self.assertEqual(proc.exit, 2, out)
         self.assertIn("P-SET-1", out)
         self.assertRegex(out, r"INVALID")
 
@@ -304,8 +246,9 @@ class TestPPerm1(DoctorFixture):
         # Broken impl that skips allow rules whose targets do not resolve,
         # or that reports a finding without naming the path.
         clean = {"permissions": {"allow": []}}
-        self.repo_settings.write_text(
-            json.dumps(clean, indent=2) + "\n", encoding="utf-8",
+        self.world.plant_text(
+            self.repo_settings,
+            json.dumps(clean, indent=2) + "\n",
         )
         before = self.repo_settings.read_bytes()
         planted = {
@@ -319,7 +262,7 @@ class TestPPerm1(DoctorFixture):
         loaded = json.loads(after.decode("utf-8"))
         self.assertEqual(loaded["permissions"]["allow"], [f"Read({INERT_PATH})"])
         proc, out = self._run()
-        self.assertEqual(proc.returncode, 1, out)
+        self.assertEqual(proc.exit, 1, out)
         self.assertIn("P-PERM-1", out)
         self.assertIn(INERT_PATH, out)
         self.assertRegex(out, r"inert", re.IGNORECASE)
@@ -328,10 +271,8 @@ class TestPPerm1(DoctorFixture):
 class TestPHook2(DoctorFixture):
     def test_hook_matcher_dot_star_yields_a_finding(self):
         # Broken impl that accepts matcher '.*' as "names the tools".
-        hook_cmd = self.scratch / "hook.sh"
-        hook_cmd.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-        hook_cmd.chmod(0o755)
-        self.repo_settings.write_text("{}\n", encoding="utf-8")
+        hook_cmd = self._plant_program("hook", self.scratch / "hook.sh")
+        self.world.plant_text(self.repo_settings, "{}\n", recognisable="{")
         before = self.repo_settings.read_bytes()
         payload = {
             "hooks": {
@@ -347,10 +288,10 @@ class TestPHook2(DoctorFixture):
         }
         after = self._write_settings(self.repo_settings, payload)
         self.assertNotEqual(after, before)
-        loaded = json.loads(after.decode("utf-8"))
+        loaded = json.loads(self.repo_settings.read_text(encoding="utf-8"))
         self.assertEqual(loaded["hooks"]["PreToolUse"][0]["matcher"], ".*")
         proc, out = self._run()
-        self.assertEqual(proc.returncode, 1, out)
+        self.assertEqual(proc.exit, 1, out)
         self.assertIn("P-HOOK-2", out)
 
 
@@ -361,8 +302,7 @@ class TestReadOnly(DoctorFixture):
         self.handwork_db.unlink()
         self.assertFalse(self.skills_db.exists(), "plant: skills.db absent")
         self.assertFalse(self.handwork_db.exists(), "plant: handwork.db absent")
-        before_home = _tree_rel(self.home)
-        before_repo = _tree_rel(self.repo)
+        watch = self.world.watch(self.home, self.repo, self.state)
         proc, _out = self._run()
         self.assertFalse(
             self.skills_db.exists(),
@@ -372,20 +312,17 @@ class TestReadOnly(DoctorFixture):
             self.handwork_db.exists(),
             "absent handwork.db must still be absent after the doctor runs",
         )
-        self.assertEqual(_tree_rel(self.home), before_home)
-        self.assertEqual(_tree_rel(self.repo), before_repo)
+        watch.assert_unchanged(self)
         # Read-only is the pin; INVALID (2) is acceptable when the ledger
         # cannot be opened. Creating a file is not.
-        self.assertIn(proc.returncode, (0, 1, 2))
+        self.assertIn(proc.exit, (0, 1, 2))
 
 
 class TestFindingShape(DoctorFixture):
     def test_finding_lines_carry_class_probe_id_and_remedy(self):
         # Broken impl that prints bare prose, omits the class, or drops
         # the remedy fragment.
-        hook_cmd = self.scratch / "hook.sh"
-        hook_cmd.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-        hook_cmd.chmod(0o755)
+        hook_cmd = self._plant_program("hook", self.scratch / "hook.sh")
         self._write_settings(
             self.repo_settings,
             {
@@ -405,7 +342,7 @@ class TestFindingShape(DoctorFixture):
             },
         )
         proc, out = self._run()
-        self.assertEqual(proc.returncode, 1, out)
+        self.assertEqual(proc.exit, 1, out)
         classified = [
             ln for ln in out.splitlines() if ln.startswith("[")
         ]
@@ -442,18 +379,16 @@ class TestPLev1(DoctorFixture):
         before = conf.read_text(encoding="utf-8")
         self.assertIn("LAUNCHER_PIN", before, "plant: default fixture pins")
         body = "# pin unset; sibling default applies\n"
-        conf.write_text(body, encoding="utf-8")
+        self.world.plant_text(conf, body)
         landed = conf.read_text(encoding="utf-8")
         self.assertEqual(landed, body, "plant: conf without pin did not land")
         self.assertNotIn("LAUNCHER_PIN=", landed)
 
     def _plant_live_sibling_launcher(self) -> Path:
         path = self._sibling_launcher()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        body = "#!/usr/bin/env python3\nprint('launch')\n"
-        path.write_text(body, encoding="utf-8")
-        path.chmod(0o755)
-        self.assertEqual(path.read_text(encoding="utf-8"), body)
+        planted = self.world.plant_bytes(path, self.launch.read_bytes())
+        make_executable(planted)
+        self.assertEqual(planted.read_bytes(), self.launch.read_bytes())
         self.assertTrue(os.access(path, os.X_OK), f"sibling not executable: {path}")
         return path
 
@@ -467,7 +402,7 @@ class TestPLev1(DoctorFixture):
             if ln.startswith("[") and "P-LEV-1" in ln and "INVALID" not in ln
         ]
         self.assertEqual(classified, [], "P-LEV-1 must not be a finding:\n" + out)
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         self.assertIn("P-LEV-1", out)
         self.assertRegex(out, r"(?i)live")
         self.assertIn("sibling default", out)
@@ -482,7 +417,7 @@ class TestPLev1(DoctorFixture):
         self.assertIn("P-LEV-1", out)
         self.assertIn(str(sibling), out)
         self.assertRegex(out, r"inert", re.IGNORECASE)
-        self.assertEqual(proc.returncode, 1, out)
+        self.assertEqual(proc.exit, 1, out)
 
 
 if __name__ == "__main__":
