@@ -1,18 +1,22 @@
 """Moved corpus for context-precheck.py, plus D2/D3 reach against real git."""
 
-import shutil
-import tempfile
 import unittest
-from pathlib import Path
 
 import corpus
 import support
+
+from ops.testkit import World
 
 
 class PrecheckCorpus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.mod = support.load_claude("context-precheck.py", "context_precheck")
+
+    def setUp(self):
+        self.world = World(prefix="precheck-corpus-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
 
     def test_the_moved_tables_are_the_tables_that_were_there(self):
         self.assertEqual(len(corpus.PRECHECK_STOPS),
@@ -86,11 +90,12 @@ class PrecheckGitState(unittest.TestCase):
     """D2 and D3 as they actually happen: a clone whose remote has moved."""
 
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="precheck-git-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
-        self.env = support.isolated_env(self.home)
+        self.world = World(prefix="precheck-git-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.env = self.world.env({
+            "TESTKIT_DIR": str(support.WORKTREE_ROOT / "ops" / "testkit"),
+        })
         self.script = support.CLAUDE_DIR / "context-precheck.py"
         self.assertTrue(
             self.script.is_file(),
