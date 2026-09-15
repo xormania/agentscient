@@ -39,17 +39,21 @@ import hashlib
 import io
 import json
 import os
+import shlex
 import signal
-import stat
-import subprocess
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import uuid
 from pathlib import Path
+from types import SimpleNamespace
 
 import support
+
+from ops.testkit import World
+from ops.testkit import run as run_command
 
 run = support.load("run")
 
@@ -60,52 +64,18 @@ import envelope  # noqa: E402
 import fileset  # noqa: E402
 import verify  # noqa: E402
 
-# A subprocess harness. Records argv/stdin, optionally sleeps, optionally
-# prints a structured envelope or prose. No network, no shell.
-_FAKE_CLI = r"""#!/usr/bin/env python3
-import json
-import os
-import sys
-import time
-from pathlib import Path
 
-record_path = os.environ.get("TASK_RUN_RECORD")
-done_path = os.environ.get("TASK_RUN_DONE")
-sleep_s = float(os.environ.get("TASK_RUN_SLEEP") or "0")
-stdout_mode = os.environ.get("TASK_RUN_STDOUT") or "envelope"
-token = os.environ.get("TASK_RUN_TOKEN") or ""
-claim = os.environ.get("TASK_RUN_CLAIM") or "the battery is never armed"
-verdict = os.environ.get("TASK_RUN_VERDICT") or "changes"
-job = os.environ.get("TASK_RUN_JOB") or "author-tests"
-
-argv = sys.argv[1:]
-prompt_file = None
-if "--prompt-file" in argv:
-    idx = argv.index("--prompt-file")
-    if idx + 1 < len(argv):
-        prompt_file = argv[idx + 1]
-
-stdin_data = sys.stdin.read()
-prompt_text = ""
-if prompt_file:
-    try:
-        prompt_text = Path(prompt_file).read_text(encoding="utf-8")
-    except OSError:
-        prompt_text = ""
-
-if record_path:
-    Path(record_path).write_text(
-        json.dumps({
-            "argv": sys.argv,
-            "cwd": os.getcwd(),
-            "stdin": stdin_data,
-            "prompt_file": prompt_file,
-            "prompt_text": prompt_text,
-        }),
-        encoding="utf-8",
-    )
-
-if stdout_mode == "envelope":
+def _fake_stdout():
+    """The fake harness answer as data for ``world.tools``."""
+    stdout_mode = os.environ.get("TASK_RUN_STDOUT") or "envelope"
+    token = os.environ.get("TASK_RUN_TOKEN") or ""
+    claim = os.environ.get("TASK_RUN_CLAIM") or "the battery is never armed"
+    verdict = os.environ.get("TASK_RUN_VERDICT") or "changes"
+    job = os.environ.get("TASK_RUN_JOB") or "author-tests"
+    if stdout_mode == "prose":
+        return "VERDICT: approve\nThe change is correct and complete.\n"
+    if stdout_mode == "token":
+        return token + "\n"
     findings = []
     if verdict != "approve":
         findings.append({
@@ -127,42 +97,10 @@ if stdout_mode == "envelope":
         "stamp": {"ref": "harness-placeholder", "started": None, "ended": None},
         "note": None,
     }
-    sys.stdout.write(json.dumps(env) + "\n")
-elif stdout_mode == "prose":
-    sys.stdout.write("VERDICT: approve\nThe change is correct and complete.\n")
-elif stdout_mode == "token":
-    sys.stdout.write(token + "\n")
-sys.stdout.flush()
-
-if sleep_s > 0:
-    time.sleep(sleep_s)
-
-if done_path:
-    Path(done_path).write_text("COMPLETED\n", encoding="utf-8")
-"""
+    return json.dumps(env) + "\n"
 
 
-def _git_env(home: Path) -> dict:
-    # GIT_DIR / GIT_WORK_TREE in the caller would aim git at the
-    # snapshot (or its parent). Fixtures must be closed worlds, and
-    # this suite must not run git against the snapshot's own repo.
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith("GIT_") and k != "XDG_CONFIG_HOME"}
-    env.update({
-        "HOME": str(home),
-        "GIT_AUTHOR_NAME": "run-test",
-        "GIT_AUTHOR_EMAIL": "run-test@example.test",
-        "GIT_COMMITTER_NAME": "run-test",
-        "GIT_COMMITTER_EMAIL": "run-test@example.test",
-        "GIT_CONFIG_GLOBAL": os.devnull,
-        "GIT_CONFIG_SYSTEM": os.devnull,
-        "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_TERMINAL_PROMPT": "0",
-    })
-    return env
-
-
-def write_codex_stream(path, *, total, out):
+def write_codex_stream(world, path, *, total, out):
     """One Codex token_count event. breaker.py reads this shape."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -177,7 +115,7 @@ def write_codex_stream(path, *, total, out):
             },
         }
     }
-    path.write_text(json.dumps(event) + "\n", encoding="utf-8")
+    world.plant_text(path, json.dumps(event) + "\n")
 
 
 def run_main(argv):
@@ -197,36 +135,18 @@ class _TempRun(unittest.TestCase):
     """A throwaway repo, HOME, PATH and fake CLIs. Never the snapshot tree."""
 
     def setUp(self):
-        self._td = tempfile.TemporaryDirectory()
-        self.home = Path(self._td.name)
-        self.repo = self.home / "repo"
-        self.bin = self.home / "bin"
+        self.world = World(prefix="task-run-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.home = self.world.home
+        self.repo = self.world.cwd / "repo"
+        self.bin = self.world.bin
         self.codex_store = self.home / ".codex" / "sessions"
         self.grok_store = self.home / ".grok" / "sessions"
         self.repo.mkdir()
-        self.bin.mkdir()
         self.codex_store.mkdir(parents=True)
         self.grok_store.mkdir(parents=True)
 
-        self._orig_env = {
-            k: os.environ.get(k) for k in (
-                "PATH", "HOME", "XDG_CONFIG_HOME",
-                "TASK_RUN_RECORD", "TASK_RUN_DONE", "TASK_RUN_SLEEP",
-                "TASK_RUN_STDOUT", "TASK_RUN_TOKEN", "TASK_RUN_CLAIM",
-                "TASK_RUN_VERDICT", "TASK_RUN_JOB",
-            )
-        }
-        self._saved_git = {k: os.environ[k] for k in list(os.environ)
-                           if k.startswith("GIT_")}
-        for k in list(self._saved_git):
-            del os.environ[k]
-        if "XDG_CONFIG_HOME" in os.environ:
-            del os.environ["XDG_CONFIG_HOME"]
-
-        os.environ["HOME"] = str(self.home)
-        os.environ["PATH"] = str(self.bin) + os.pathsep + os.environ.get("PATH", "")
-
-        self.env = _git_env(self.home)
         self._git("init")
         self._git("config", "user.name", "run-test")
         self._git("config", "user.email", "run-test@example.test")
@@ -237,8 +157,8 @@ class _TempRun(unittest.TestCase):
         self._write("alpha.py", "alpha v2\n")
         self.ref = self._commit("ref")
 
-        self.record_path = self.home / "launch-record.json"
-        os.environ["TASK_RUN_RECORD"] = str(self.record_path)
+        self.active_harness = "codex"
+        self.record_path = self.world.tools.log_path(self.active_harness)
         os.environ.pop("TASK_RUN_DONE", None)
         os.environ.pop("TASK_RUN_SLEEP", None)
         os.environ["TASK_RUN_STDOUT"] = "envelope"
@@ -284,31 +204,13 @@ class _TempRun(unittest.TestCase):
         self._unpatch()
         run.ADAPTERS = self._saved_adapters
         run.JOBS_PATH = self._saved_comm_path
-        for k, v in self._orig_env.items():
-            if v is None:
-                os.environ.pop(k, None)
-            else:
-                os.environ[k] = v
-        for k in list(os.environ):
-            if k.startswith("GIT_"):
-                del os.environ[k]
-        os.environ.update(self._saved_git)
-        self._td.cleanup()
 
     def _git(self, *args):
-        r = subprocess.run(
-            ["git", *args], cwd=self.repo, env=self.env,
-            capture_output=True, text=True)
-        if r.returncode != 0:
-            raise RuntimeError(
-                f"git {args} failed ({r.returncode}): {r.stderr}")
-        return r
+        return self.world.git(*args, cwd=self.repo, timeout=30)
 
     def _write(self, rel, content):
         p = self.repo / rel
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
-        return p
+        return self.world.plant_text(p, content)
 
     def _commit(self, msg):
         self._git("add", "-A")
@@ -335,10 +237,11 @@ class _TempRun(unittest.TestCase):
         }
 
     def _install_cli(self, name):
-        dest = self.bin / name
-        dest.write_text(_FAKE_CLI, encoding="utf-8")
-        dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        return dest
+        return self.world.tools.plant(
+            name,
+            stdout=_fake_stdout(),
+            delay=float(os.environ.get("TASK_RUN_SLEEP") or "0"),
+        )
 
     def make_adapters(self, *, sandbox=None, stream_names_cwd=True, store=None):
         sandbox = sandbox or {"read": "read-only", "write": "workspace-write"}
@@ -406,11 +309,16 @@ class _TempRun(unittest.TestCase):
         }
         if runtime:
             rt.update(runtime)
+        self.active_harness = str(rt.get("harness") or "")
+        self.record_path = self.world.tools.log_path(self.active_harness)
+        if self.active_harness in ("codex", "grok"):
+            self._install_cli(self.active_harness)
+        actual_require = require if require is not None else self.require
         try:
             env = run.run(
                 job,
                 context=context,
-                require=require if require is not None else self.require,
+                require=actual_require,
                 runtime=rt,
                 jobs=jobs if jobs is not None
                 else self.jobs,
@@ -431,7 +339,26 @@ class _TempRun(unittest.TestCase):
             self.record_path.is_file(),
             "the harness CLI must have been launched",
         )
-        return json.loads(self.record_path.read_text(encoding="utf-8"))
+        calls = self.world.tools.calls(self.active_harness)
+        self.assertTrue(calls, "the harness call log is empty")
+        call = calls[-1]
+        argv = [str(self.world.bin / self.active_harness), *call["argv"]]
+        prompt_file = None
+        prompt_text = ""
+        if "--prompt-file" in argv:
+            index = argv.index("--prompt-file")
+            if index + 1 < len(argv):
+                prompt_file = argv[index + 1]
+                prompt_path = Path(prompt_file)
+                if prompt_path.is_file():
+                    prompt_text = prompt_path.read_text(encoding="utf-8")
+        return {
+            "argv": argv,
+            "cwd": call["cwd"],
+            "stdin_sha256": call.get("stdin_sha256"),
+            "prompt_file": prompt_file,
+            "prompt_text": prompt_text,
+        }
 
     def recorded_argv(self):
         rec = self.read_record()
@@ -852,7 +779,8 @@ class StubReplaysWithoutLaunching(_TempRun):
         replay = self.home / "recorded-stream.jsonl"
         # jsonl: a spend event plus the structured envelope, so either
         # a stream parser or an envelope parser can see the recording.
-        replay.write_text(
+        self.world.plant_text(
+            replay,
             json.dumps({
                 "payload": {
                     "type": "token_count",
@@ -860,7 +788,6 @@ class StubReplaysWithoutLaunching(_TempRun):
                         "total_tokens": 11, "output_tokens": 4}},
                 }
             }) + "\n" + json.dumps(recorded) + "\n",
-            encoding="utf-8",
         )
         env = self.call_run(
             runtime={"harness": "stub", "role": "write",
@@ -898,7 +825,7 @@ class TheBatteryIsArmedWithCapOut(_TempRun):
         into = self.home / dirname
         stream = self.codex_store / f"rollout-{dirname}.jsonl"
         # 7.0M total is the measured figure. 50 output is under the cap.
-        write_codex_stream(stream, total=7000000, out=50)
+        write_codex_stream(self.world, stream, total=7000000, out=50)
         env = self.call_run(
             context=self.make_context(into=into),
             runtime={"harness": "codex", "role": "write",
@@ -934,7 +861,7 @@ class ABatteryTripIsNotACompletedRun(_TempRun):
         dirname = f"snap-{snap_id}"
         into = self.home / dirname
         stream = self.codex_store / f"rollout-{dirname}.jsonl"
-        write_codex_stream(stream, total=5000, out=5000)
+        write_codex_stream(self.world, stream, total=5000, out=5000)
         done = self.home / "completed.marker"
         os.environ["TASK_RUN_SLEEP"] = "8"
         os.environ["TASK_RUN_DONE"] = str(done)
@@ -977,9 +904,9 @@ class StreamDiscoveryNamesTheSnapshot(_TempRun):
         into = self.home / dirname
         winner = self.codex_store / f"rollout-{dirname}.jsonl"
         loser = self.codex_store / f"rollout-snap-{sibling_id}.jsonl"
-        write_codex_stream(winner, total=42, out=7)
+        write_codex_stream(self.world, winner, total=42, out=7)
         time.sleep(0.05)
-        write_codex_stream(loser, total=999, out=888)
+        write_codex_stream(self.world, loser, total=999, out=888)
         env = self.call_run(
             context=self.make_context(into=into),
             runtime={"harness": "codex", "role": "write"},
@@ -1045,7 +972,7 @@ class AbsentSpendIsNotZeroSpend(_TempRun):
         dirname = f"snap-{snap_id}"
         into = self.home / dirname
         stream = self.codex_store / f"rollout-{dirname}.jsonl"
-        write_codex_stream(stream, total=0, out=0)
+        write_codex_stream(self.world, stream, total=0, out=0)
         zero = self.call_run(
             context=self.make_context(into=into),
             runtime={"harness": "codex", "role": "write"},
@@ -1169,8 +1096,8 @@ class AnUnknownJobIsInvalid(_TempRun):
 
     def test_load_jobs_reads_a_path_it_is_given(self):
         path = self.home / "only.json"
-        path.write_text(json.dumps({"only-me": {"adapter": "direct"}}),
-                        encoding="utf-8")
+        self.world.plant_text(
+            path, json.dumps({"only-me": {"adapter": "direct"}}))
         data = run.load_jobs(path)
         self.assertIsInstance(data, dict)
         self.assertEqual(set(data), {"only-me"})
@@ -1191,12 +1118,13 @@ class MainIsACli(_TempRun):
         super().setUp()
         run.ADAPTERS = self.make_adapters()
         comm = self.home / "jobs.json"
-        comm.write_text(json.dumps(self.jobs), encoding="utf-8")
+        self.world.plant_text(comm, json.dumps(self.jobs))
         run.JOBS_PATH = comm
 
     def test_a_changes_run_prints_json_and_returns_one(self):
         into = self.home / f"cli-{uuid.uuid4().hex}"
         os.environ["TASK_RUN_VERDICT"] = "changes"
+        self._install_cli("codex")
         code, out, _err = run_main([
             "author-tests",
             "--repo", str(self.repo),
@@ -1214,6 +1142,7 @@ class MainIsACli(_TempRun):
     def test_an_approving_run_prints_json_and_returns_zero(self):
         into = self.home / f"cli-{uuid.uuid4().hex}"
         os.environ["TASK_RUN_VERDICT"] = "approve"
+        self._install_cli("codex")
         code, out, _err = run_main([
             "author-tests",
             "--repo", str(self.repo),
@@ -1264,13 +1193,28 @@ class TheHarnessReceivesTheRenderedPrompt(_TempRun):
 
     def test_the_harness_receives_the_scope_and_the_ref(self):
         scope = "SCOPE-" + uuid.uuid4().hex
+        self.world.tools.wrap("tee")
+        adapters = self.make_adapters()
+        adapters["codex"]["argv"] = [str(self.world.bin / "tee")]
+        adapters["codex"]["dials"] = {"model": []}
         env = self.call_run(
             require={"scope": scope, "constraints": ["no network"]},
+            runtime={"model": None},
+            adapters=adapters,
         )
-        rec = self.read_record()
-        blob = (rec.get("stdin") or "") + (rec.get("prompt_text") or "")
+        artifacts = env.get("artifacts") if isinstance(env.get("artifacts"), dict) else {}
+        raw = Path(artifacts.get("raw") or "")
+        if not raw.is_absolute():
+            raw = self.last_into / raw
+        self.assertTrue(
+            raw.is_file(),
+            f"the wrapped capture tool must receive stdin: env={env!r} "
+            f"calls={self.world.tools.calls('tee')!r}",
+        )
+        blob = raw.read_text(encoding="utf-8")
         self.assertIn(scope, blob)
         self.assertIn(self.ref, blob)
+        self.assertEqual(len(self.world.tools.calls("tee")), 1)
         self.assertIsInstance(env.get("status"), str)
 
     def test_render_fills_the_job_template(self):
@@ -1295,17 +1239,72 @@ class ATrippedRunLeavesNothingBehind(unittest.TestCase):
     running afterwards (Codex, PR #49).
     """
 
-    def _orphan_maker(self):
-        """A parent that exits fast, leaving one descendant behind."""
-        proc = subprocess.Popen(
-            ["sh", "-c", "sleep 60 & echo $! ; exec sleep 0.2"],
-            stdout=subprocess.PIPE, text=True, start_new_session=True)
-        run._remember_group(proc)
-        child = int(proc.stdout.readline().strip())
-        proc.wait()
-        proc.stdout.close()
-        assert proc.stdout.closed, "the orphan maker's pipe stays open"
-        return proc, child
+    @staticmethod
+    def _parent(pid):
+        try:
+            text = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+            return int(text.rsplit(")", 1)[1].split()[1])
+        except (FileNotFoundError, IndexError, OSError, ValueError):
+            return -1
+
+    @staticmethod
+    def _cmdline(pid):
+        try:
+            return Path(f"/proc/{pid}/cmdline").read_bytes() \
+                .replace(b"\0", b" ").decode(errors="replace")
+        except OSError:
+            return ""
+
+    def _orphan_maker(self, world):
+        """A kit-run parent that exits fast, leaving one descendant behind."""
+        marker = "task-run-orphan-" + uuid.uuid4().hex
+        child_path = world.root / "orphan.pid"
+        script = (
+            f"sleep 60 </dev/null >/dev/null 2>&1 & "
+            f"echo $! > {shlex.quote(str(child_path))}; "
+            f"sleep 0.2; : # {marker}"
+        )
+        outcome = {}
+
+        def launch():
+            try:
+                outcome["result"] = run_command(
+                    ["sh", "-c", script],
+                    cwd=world.cwd,
+                    env=world.env(),
+                    timeout=10,
+                )
+            except BaseException as exc:  # surfaced on the test thread
+                outcome["error"] = exc
+
+        thread = threading.Thread(target=launch, daemon=True)
+        thread.start()
+        deadline = time.monotonic() + 5
+        parent = None
+        while time.monotonic() < deadline:
+            candidates = [
+                int(pid) for pid in os.listdir("/proc") if pid.isdigit()
+                and self._parent(pid) == os.getpid()
+                and marker in self._cmdline(pid)
+            ]
+            if candidates and child_path.is_file():
+                parent = candidates[0]
+                break
+            time.sleep(0.01)
+        self.assertIsNotNone(parent, "INVALID: kit run did not launch the orphan maker")
+        proxy = SimpleNamespace(pid=parent)
+        proxy.poll = lambda: outcome.get("result").exit if "result" in outcome else None
+        proxy.wait = lambda timeout=None: proxy.poll()
+        proxy.terminate = lambda: None
+        proxy.kill = lambda: None
+        run._remember_group(proxy)
+        child = int(child_path.read_text(encoding="utf-8").strip())
+        thread.join(timeout=5)
+        self.assertFalse(thread.is_alive(), "INVALID: the orphan parent was not reaped")
+        if "error" in outcome:
+            raise outcome["error"]
+        self.assertEqual(outcome["result"].exit, 0, outcome["result"].stderr)
+        return proxy, child
 
     @staticmethod
     def _alive(pid):
@@ -1324,24 +1323,28 @@ class ATrippedRunLeavesNothingBehind(unittest.TestCase):
             return False
 
     def test_the_group_dies_even_when_the_parent_was_already_reaped(self):
-        proc, child = self._orphan_maker()
-        self.addCleanup(lambda: self._alive(child) and os.kill(child, signal.SIGKILL))
-        # the fixture must actually present the condition under test
-        self.assertIsNotNone(proc.poll(), "INVALID: parent not reaped")
-        self.assertTrue(self._alive(child), "INVALID: no orphan to clean up")
-        run._terminate(proc)
-        deadline = time.time() + 5
-        while self._alive(child) and time.time() < deadline:
-            time.sleep(0.05)
-        self.assertFalse(self._alive(child),
-                         "the descendant survived a tripped run")
+        with World(prefix="task-run-group-") as world:
+            proc, child = self._orphan_maker(world)
+            self.addCleanup(
+                lambda: self._alive(child) and os.kill(child, signal.SIGKILL))
+            # the fixture must actually present the condition under test
+            self.assertIsNotNone(proc.poll(), "INVALID: parent not reaped")
+            self.assertTrue(self._alive(child), "INVALID: no orphan to clean up")
+            run._terminate(proc)
+            deadline = time.time() + 5
+            while self._alive(child) and time.time() < deadline:
+                time.sleep(0.05)
+            self.assertFalse(self._alive(child),
+                             "the descendant survived a tripped run")
 
     def test_the_group_is_recorded_at_launch(self):
-        proc = subprocess.Popen(["sleep", "0.2"], start_new_session=True)
-        self.addCleanup(proc.wait)
-        run._remember_group(proc)
-        self.assertEqual(getattr(proc, "_task_pgid", None), proc.pid,
-                         "start_new_session makes the child its own leader")
+        with World(prefix="task-run-group-") as world:
+            proc, child = self._orphan_maker(world)
+            self.addCleanup(
+                lambda: self._alive(child) and os.kill(child, signal.SIGKILL))
+            self.assertEqual(getattr(proc, "_task_pgid", None), proc.pid,
+                             "start_new_session makes the child its own leader")
+            run._terminate(proc)
 
 
 class TheConductorsDialReachesTheHarness(unittest.TestCase):
