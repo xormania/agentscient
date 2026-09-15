@@ -31,28 +31,12 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 
 import support
+
 from ops.testkit import World
 
-# RED_STANDIN: a quiet subject so each case fails its own assertion,
-# never an import error. Flip to False (and load the real module) for green.
-_RED_STANDIN = True
-
-if _RED_STANDIN:
-    class _FilesetError(Exception):
-        pass
-
-    fileset = SimpleNamespace(
-        FilesetError=_FilesetError,
-        derive=lambda *args, **kwargs: [],
-        snapshot=lambda *args, **kwargs: {},
-        parity=lambda *args, **kwargs: (False, "", ""),
-        main=lambda argv: 0,
-    )
-else:
-    fileset = support.load("fileset")
+fileset = support.load("fileset")
 
 _META = frozenset({"FILESET.md", "FILESET.diff"})
 
