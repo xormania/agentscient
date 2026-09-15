@@ -66,20 +66,6 @@ ITEM7_EXIT_20_MUTANT = (
     "exit 20; one stderr line is not required; write two stdout lines"
 )
 
-# Kit stand-in: a Dispatch/Refusals table with no role row, so each
-# method fails its own pin rather than erroring on a missing section.
-STAND_IN = """# CONTRACT stand-in
-
-## Dispatch
-
-### Refusals
-
-| class | exit | rule |
-| --- | --- | --- |
-| isolation | exit 3 | a different class |
-"""
-
-
 def _has_wire_grammar(text: str) -> bool:
     collapsed = " ".join(text.split())
     return WIRE_GRAMMAR in collapsed or WIRE_GRAMMAR_ASCII in collapsed
@@ -187,7 +173,9 @@ class _ContractPin(unittest.TestCase):
         self.addCleanup(self.world.close)
         self.assertTrue(CONTRACT.is_file(), f"missing {CONTRACT}")
         planted = self.world.plant_text(
-            self.world.cwd / "CONTRACT.md", STAND_IN, recognisable="## Dispatch",
+            self.world.cwd / "CONTRACT.md",
+            CONTRACT.read_text(encoding="utf-8"),
+            recognisable="## Dispatch",
         )
         self.text = planted.read_text(encoding="utf-8")
         self.assertTrue(self.text.strip(), "CONTRACT.md is empty")
