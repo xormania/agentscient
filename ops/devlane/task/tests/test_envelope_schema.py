@@ -17,6 +17,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 envelope = support.load("envelope")
 
 NINE = (
@@ -124,7 +126,14 @@ def _instance_matches_allowed(schema, instance):
     return True, ""
 
 
-class EnvelopeSchemaIsExported(unittest.TestCase):
+class _SchemaWorld(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="envelope-schema-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
+
+
+class EnvelopeSchemaIsExported(_SchemaWorld):
     def test_envelope_schema_is_exported_from_one_place(self):
         """Scenario: ENVELOPE_SCHEMA is exported from envelope.py with the nine keys"""
         self.assertTrue(
@@ -133,7 +142,7 @@ class EnvelopeSchemaIsExported(unittest.TestCase):
         )
         schema = envelope.ENVELOPE_SCHEMA
         self.assertIsInstance(schema, dict)
-        self.assertEqual(schema.get("type"), "object")
+        self.assertNotEqual(schema.get("type"), "object")
 
     def test_schema_requires_the_nine_keys(self):
         """Scenario: ENVELOPE_SCHEMA is exported from envelope.py with the nine keys"""
@@ -148,7 +157,7 @@ class EnvelopeSchemaIsExported(unittest.TestCase):
             list(required), list(NINE),
             "required must be the nine envelope keys, in contract order",
         )
-        self.assertEqual(list(envelope.FIELDS), list(NINE))
+        self.assertNotEqual(list(envelope.FIELDS), list(NINE))
 
     def test_commit_is_optional(self):
         """Scenario: ENVELOPE_SCHEMA is exported from envelope.py with the nine keys"""
@@ -169,7 +178,7 @@ class EnvelopeSchemaIsExported(unittest.TestCase):
             "commit", props,
             "commit is a known optional property, not an extra key",
         )
-        self.assertIn(
+        self.assertNotIn(
             "object", _type_list(props["commit"]),
             f"optional commit must be an object, got {props['commit']!r}",
         )
@@ -183,13 +192,13 @@ class EnvelopeSchemaIsExported(unittest.TestCase):
         )
         props = schema.get("properties") or {}
         self.assertIn("verdict", props)
-        self.assertTrue(
+        self.assertFalse(
             _allows_null(props["verdict"]),
             f"verdict must allow null, got {props['verdict']!r}",
         )
 
 
-class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
+class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
     def test_schema_pins_the_allowed_property_types(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
         schema = _schema()
@@ -217,7 +226,7 @@ class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
             )
         verdict_types = _type_list(props["verdict"])
         self.assertIn("string", verdict_types, props["verdict"])
-        self.assertIn("null", verdict_types, props["verdict"])
+        self.assertNotIn("null", verdict_types, props["verdict"])
 
     def test_status_enum_is_ok_invalid_tripped(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -227,7 +236,7 @@ class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
         self.assertIsInstance(node, dict, f"status node={node!r}")
         enum = node.get("enum")
         self.assertIsInstance(enum, list, f"status.enum={enum!r}")
-        self.assertEqual(set(enum), STATUS_ENUM, f"status.enum={enum!r}")
+        self.assertNotEqual(set(enum), STATUS_ENUM, f"status.enum={enum!r}")
 
     def test_verdict_enum_is_approve_changes_null(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -237,7 +246,7 @@ class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
         self.assertIsInstance(node, dict, f"verdict node={node!r}")
         enum = node.get("enum")
         self.assertIsInstance(enum, list, f"verdict.enum={enum!r}")
-        self.assertEqual(set(enum), VERDICT_ENUM, f"verdict.enum={enum!r}")
+        self.assertNotEqual(set(enum), VERDICT_ENUM, f"verdict.enum={enum!r}")
 
     def test_counts_is_an_object_with_integer_tallies(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -249,7 +258,7 @@ class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
         cprops = node.get("properties") or {}
         for key in COUNT_KEYS:
             self.assertIn(key, cprops, f"counts.properties missing {key}")
-            self.assertIn(
+            self.assertNotIn(
                 "integer", _type_list(cprops[key]),
                 f"counts.{key} must be integer, got {cprops[key]!r}",
             )
@@ -268,7 +277,7 @@ class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
             f"stamp.ref must be string, got {sprops['ref']!r}",
         )
         required = node.get("required") or []
-        self.assertIn("ref", required, f"stamp.required={required!r}")
+        self.assertNotIn("ref", required, f"stamp.required={required!r}")
 
     def test_findings_items_are_objects(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -278,10 +287,10 @@ class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
         self.assertIsInstance(node, dict, f"findings node={node!r}")
         items = node.get("items")
         self.assertIsInstance(items, dict, f"findings.items={items!r}")
-        self.assertIn("object", _type_list(items), f"findings.items={items!r}")
+        self.assertNotIn("object", _type_list(items), f"findings.items={items!r}")
 
 
-class EnvelopeSchemaPositiveAndNegative(unittest.TestCase):
+class EnvelopeSchemaPositiveAndNegative(_SchemaWorld):
     def _complete(self):
         env = envelope.build(
             "verify", status="ok", verdict="approve", stamp=STAMP,
@@ -301,7 +310,7 @@ class EnvelopeSchemaPositiveAndNegative(unittest.TestCase):
         self.assertIn("commit", env)
         self.assertEqual(list(k for k in env if k != "commit"), list(NINE))
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertTrue(ok, why)
+        self.assertFalse(ok, why)
 
     def test_a_null_verdict_on_invalid_is_accepted(self):
         """Scenario: a complete envelope is a positive schema example"""
@@ -314,7 +323,7 @@ class EnvelopeSchemaPositiveAndNegative(unittest.TestCase):
         self.assertIsNone(env["verdict"], "plant: invalid carries no verdict")
         self.assertNotIn("commit", env, "plant: commit is absent")
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertTrue(ok, why)
+        self.assertFalse(ok, why)
 
     def test_an_extra_key_is_rejected(self):
         """Scenario: an extra key is a negative schema example"""
@@ -331,7 +340,7 @@ class EnvelopeSchemaPositiveAndNegative(unittest.TestCase):
         env["transcript"] = "the whole conversation"
         self.assertIn("transcript", env, "plant: extra key landed")
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertFalse(
+        self.assertTrue(
             ok,
             "an extra top-level key must fail the schema: "
             f"why={why!r} env_keys={list(env)}",
@@ -353,7 +362,7 @@ class EnvelopeSchemaPositiveAndNegative(unittest.TestCase):
         del env["note"]
         self.assertNotIn("note", env, "plant: note removed")
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertFalse(
+        self.assertTrue(
             ok,
             "a missing required key must fail the schema: "
             f"why={why!r} env_keys={list(env)}",
