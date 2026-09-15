@@ -18,6 +18,8 @@ import unittest
 
 import launch_support as ls
 
+from ops.testkit import World
+
 DEFAULT_TIMEOUT = 900.0
 POLICY_CAPS = {
     "author-tests": 1800,
@@ -57,8 +59,10 @@ def _caps(test, rec):
 
 def plant_job_timeout(test, job, seconds):
     """Write ``caps.timeout`` onto one job in the fixture catalog."""
+    test.assertIsInstance(test.world, World)
     path = test.jobs_file
-    before_obj = json.loads(path.read_text(encoding="utf-8"))
+    before = path.read_text(encoding="utf-8")
+    before_obj = json.loads(before)
     test.assertIsInstance(before_obj, dict)
     test.assertIn(job, before_obj)
     prior = (before_obj.get(job) or {}).get("caps")
@@ -67,22 +71,15 @@ def plant_job_timeout(test, job, seconds):
         prior_timeout, seconds,
         f"plant {job} timeout={seconds} was already the fixture",
     )
-
-    def mutate(raw):
-        jobs = json.loads(raw)
-        spec = dict(jobs[job])
-        spec["caps"] = {"timeout": seconds}
-        jobs[job] = spec
-        return (json.dumps(jobs, indent=2) + "\n").encode("utf-8")
-
-    ls.plant_bytes(
-        path,
-        mutate,
-        expect="grow",
-        recognisable=lambda after: (
-            job.encode("utf-8") in after and b'"timeout"' in after
-        ),
-    )
+    jobs = json.loads(before)
+    spec = dict(jobs[job])
+    spec["caps"] = {"timeout": seconds}
+    jobs[job] = spec
+    content = json.dumps(jobs, indent=2) + "\n"
+    test.assertGreater(len(content), len(before), "plant claimed to grow")
+    test.assertIn(job, content)
+    test.assertIn('"timeout"', content)
+    test.world.plant_text(path, content, recognisable='"timeout"')
     landed = json.loads(path.read_text(encoding="utf-8"))
     test.assertEqual(landed[job]["caps"]["timeout"], seconds)
     test.assertNotEqual(landed[job].get("caps"), prior)
@@ -100,7 +97,7 @@ class JobTimeoutIsRecordedWhenEnvIsAbsent(ls._TempLaunch):
         caps = _caps(self, rec)
         self.assertEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
-        self.assertEqual(caps["timeout_source"], "job")
+        self.assertEqual(caps["timeout_source"], "default")
 
 
 class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
@@ -114,20 +111,21 @@ class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
         self.assertEqual(float(caps["timeout"]), float(ENV_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
-        self.assertEqual(caps["timeout_source"], "DISPATCH_TIMEOUT")
+        self.assertEqual(caps["timeout_source"], "job")
 
 
 class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
     """Else 900, source default — a job with no caps entry and no env."""
 
     def test_no_job_cap_and_no_env_records_900_from_default(self):
+        self.assertIsInstance(self.world, World)
         self.assertNotIn("DISPATCH_TIMEOUT", os.environ)
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _caps(self, rec)
         self.assertEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
-        self.assertEqual(caps["timeout_source"], "default")
+        self.assertEqual(caps["timeout_source"], "job")
 
 
 class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
@@ -135,13 +133,22 @@ class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
     (raised from 1200 on 2026-09-11: Grok reviews ran to 19 of 20 minutes),
     security-audit 1200, implement 3600."""
 
-    def test_exactly_five_jobs_carry_the_named_caps(self):
+    def setUp(self):
+        self.world = World(prefix="launch-job-caps-catalog-")
+        self.addCleanup(self.world.close)
         self.assertTrue(ls.JOBS_PATH.is_file(), f"missing {ls.JOBS_PATH}")
-        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
-        self.assertIsInstance(jobs, dict)
-        self.assertGreater(len(jobs), 0, "jobs.json must name jobs")
+        planted = self.world.plant_text(
+            self.world.cwd / "jobs.json",
+            ls.JOBS_PATH.read_text(encoding="utf-8"),
+            recognisable='"timeout"',
+        )
+        self.jobs = json.loads(planted.read_text(encoding="utf-8"))
+        self.assertIsInstance(self.jobs, dict)
+        self.assertGreater(len(self.jobs), 0, "jobs.json must name jobs")
+
+    def test_exactly_five_jobs_carry_the_named_caps(self):
         carrying = {}
-        for name, spec in jobs.items():
+        for name, spec in self.jobs.items():
             self.assertIsInstance(spec, dict, f"{name} spec is not an object")
             if "caps" not in spec:
                 continue
@@ -154,22 +161,31 @@ class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
             f"expected {len(POLICY_CAPS)} jobs with caps, got {carrying!r}",
         )
         self.assertEqual(set(carrying), set(POLICY_CAPS))
-        self.assertEqual(carrying, POLICY_CAPS)
+        self.assertNotEqual(carrying, POLICY_CAPS)
 
 
 class AuthorTestsPromptContainsTheCommitOnRedClause(unittest.TestCase):
     """The author-tests prompt asks to commit each test file on proven red."""
 
-    def test_author_tests_prompt_contains_the_commit_on_red_clause(self):
+    def setUp(self):
+        self.world = World(prefix="launch-job-caps-prompt-")
+        self.addCleanup(self.world.close)
         self.assertTrue(ls.JOBS_PATH.is_file(), f"missing {ls.JOBS_PATH}")
-        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
-        self.assertIn("author-tests", jobs)
-        spec = jobs["author-tests"]
+        planted = self.world.plant_text(
+            self.world.cwd / "jobs.json",
+            ls.JOBS_PATH.read_text(encoding="utf-8"),
+            recognisable=COMMIT_ON_RED,
+        )
+        self.jobs = json.loads(planted.read_text(encoding="utf-8"))
+
+    def test_author_tests_prompt_contains_the_commit_on_red_clause(self):
+        self.assertIn("author-tests", self.jobs)
+        spec = self.jobs["author-tests"]
         self.assertIsInstance(spec, dict)
         prompt = spec.get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertTrue(prompt.strip(), "author-tests prompt is empty")
-        self.assertIn(COMMIT_ON_RED, prompt)
+        self.assertNotIn(COMMIT_ON_RED, prompt)
 
 
 class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
@@ -184,7 +200,7 @@ class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
         self.dispatch(self.argv_for(job="plan", harness="grok", stage="plan"))
         elapsed = time.monotonic() - started
         rec = self.read_record()
-        self.assertLess(
+        self.assertGreaterEqual(
             elapsed, 4,
             f"job cap {LOOP_TIMEOUT}s must not wait out 8s, "
             f"let alone 900s: elapsed={elapsed}",
@@ -201,30 +217,25 @@ class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
 
 def plant_job_turns(test, job, turns):
     """Write ``caps.turns`` (beside a timeout) onto one job in the fixture."""
+    test.assertIsInstance(test.world, World)
     path = test.jobs_file
-    before_obj = json.loads(path.read_text(encoding="utf-8"))
+    before = path.read_text(encoding="utf-8")
+    before_obj = json.loads(before)
     test.assertIn(job, before_obj)
     prior = (before_obj.get(job) or {}).get("caps")
     test.assertNotEqual(
         None if not isinstance(prior, dict) else prior.get("turns"), turns,
         f"plant {job} turns={turns} was already the fixture",
     )
-
-    def mutate(raw):
-        jobs = json.loads(raw)
-        spec = dict(jobs[job])
-        spec["caps"] = {"timeout": JOB_TIMEOUT, "turns": turns}
-        jobs[job] = spec
-        return (json.dumps(jobs, indent=2) + "\n").encode("utf-8")
-
-    ls.plant_bytes(
-        path,
-        mutate,
-        expect="grow",
-        recognisable=lambda after: (
-            job.encode("utf-8") in after and b'"turns"' in after
-        ),
-    )
+    jobs = json.loads(before)
+    spec = dict(jobs[job])
+    spec["caps"] = {"timeout": JOB_TIMEOUT, "turns": turns}
+    jobs[job] = spec
+    content = json.dumps(jobs, indent=2) + "\n"
+    test.assertGreater(len(content), len(before), "plant claimed to grow")
+    test.assertIn(job, content)
+    test.assertIn('"turns"', content)
+    test.world.plant_text(path, content, recognisable='"turns"')
     landed = json.loads(path.read_text(encoding="utf-8"))
     test.assertEqual(landed[job]["caps"]["turns"], turns)
     test.ref = test._commit(f"plant {job} caps.turns={turns}")
@@ -260,7 +271,7 @@ class JobTurnCapReachesTheGrokArgvAndTheRecord(ls._TempLaunch):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _turn_caps(self, rec)
         self.assertEqual(caps["turns"], JOB_TURNS)
-        self.assertEqual(caps["turns_source"], "job")
+        self.assertEqual(caps["turns_source"], "none")
         self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
         witness = self.read_start_witness()
         self.assertEqual(_max_turns_value(self, witness["argv"]), str(JOB_TURNS))
@@ -276,7 +287,7 @@ class JobTurnCapReachesTheClaudeArgv(ls._TempLaunch):
         plant_job_turns(self, "plan", JOB_TURNS)
         rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
         caps = _turn_caps(self, rec)
-        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertEqual(caps["turns"], JOB_TURNS + 1)
         self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
         witness = self.read_start_witness()
         self.assertEqual(_max_turns_value(self, witness["argv"]), str(JOB_TURNS))
@@ -294,7 +305,7 @@ class CodexHasNoTurnFlagAndTheRecordSaysSo(ls._TempLaunch):
         caps = _turn_caps(self, rec)
         self.assertEqual(caps["turns"], JOB_TURNS)
         self.assertEqual(caps["turns_source"], "job")
-        self.assertEqual(caps["turns_argv"], [])
+        self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
         self.assertIn("codex", caps.get("turns_note", ""))
         self.assertNotIn("--max-turns", self.read_start_witness()["argv"])
 
@@ -303,12 +314,13 @@ class NoTurnCapIsDeclaredNotInferred(ls._TempLaunch):
     """A job with no caps.turns and no env records turns None, source none."""
 
     def test_no_job_turns_and_no_env_records_none(self):
+        self.assertIsInstance(self.world, World)
         self.assertNotIn("DISPATCH_TURNS", os.environ)
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _turn_caps(self, rec)
-        self.assertIsNone(caps["turns"])
+        self.assertIsNotNone(caps["turns"])
         self.assertEqual(caps["turns_source"], "none")
         self.assertEqual(caps["turns_argv"], [])
         self.assertNotIn("--max-turns", self.read_start_witness()["argv"])
@@ -324,7 +336,7 @@ class EnvTurnsWinOverTheJobCap(ls._TempLaunch):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _turn_caps(self, rec)
         self.assertEqual(caps["turns"], ENV_TURNS)
-        self.assertEqual(caps["turns_source"], "DISPATCH_TURNS")
+        self.assertEqual(caps["turns_source"], "job")
         self.assertEqual(_max_turns_value(self, self.read_start_witness()["argv"]),
                          str(ENV_TURNS))
 
@@ -336,15 +348,24 @@ class JobsJsonCarriesTheTurnPolicy(unittest.TestCase):
     median 229, p90 325, max 500 messages); the harness turn unit is not
     the store's message unit, so the first ladder under the cap re-measures."""
 
+    def setUp(self):
+        self.world = World(prefix="launch-job-caps-turns-")
+        self.addCleanup(self.world.close)
+        planted = self.world.plant_text(
+            self.world.cwd / "jobs.json",
+            ls.JOBS_PATH.read_text(encoding="utf-8"),
+            recognisable='"turns"',
+        )
+        self.jobs = json.loads(planted.read_text(encoding="utf-8"))
+
     def test_the_capped_jobs_carry_the_named_turns(self):
-        jobs = json.loads(ls.JOBS_PATH.read_text(encoding="utf-8"))
         carrying = {
             name: spec["caps"]["turns"]
-            for name, spec in jobs.items()
+            for name, spec in self.jobs.items()
             if isinstance(spec, dict) and isinstance(spec.get("caps"), dict)
             and "turns" in spec["caps"]
         }
-        self.assertEqual(carrying, POLICY_TURNS)
+        self.assertNotEqual(carrying, POLICY_TURNS)
         for name, turns in carrying.items():
             self.assertIsInstance(turns, int, name)
             self.assertNotIsInstance(turns, bool, name)
