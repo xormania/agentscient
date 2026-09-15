@@ -29,9 +29,8 @@ REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
 TOOL = TOOLS / "handoff.py"
 LOCK_LEVER = TOOLS / "deliverable.py"
-# Absent stand-in so each method fails its own assertion (red proof).
-SUBJECT_TOOL = TOOL.with_name("no-such-handoff.py")
-SUBJECT_LOCK = LOCK_LEVER.with_name("no-such-deliverable.py")
+SUBJECT_TOOL = TOOL
+SUBJECT_LOCK = LOCK_LEVER
 # The tools import these beside themselves (instrument-conventions.md
 # §The shared implementation); a staged copy run from a scratch
 # directory needs them staged too, or it refuses `tooling`.
@@ -233,13 +232,9 @@ class TakingAThread(_Scratch):
 class FinishingAThread(_Scratch):
     def setUp(self):
         super().setUp()
-        try:
-            self.a_handoff("a thread")
-            self.lock(BRANCH)
-            self.ok("take", "T-1", "--branch", BRANCH, identity=OTHER)
-        except AssertionError:
-            if SUBJECT_TOOL.is_file():
-                raise
+        self.a_handoff("a thread")
+        self.lock(BRANCH)
+        self.ok("take", "T-1", "--branch", BRANCH, identity=OTHER)
 
     def test_done_by_another_than_the_holder_refuses_holder(self):
         line = self.assert_refusal(
