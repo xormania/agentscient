@@ -58,6 +58,24 @@ is what a session does so the refusal never fires.
    Several branches may be named for parallel work; unnamed work
    refuses. `show` reads it.
 
+   **The target** (owner, 2026-09-15, on a session that reported a
+   plan's slices all done with 210 of 226 test modules still off the
+   kit: "whatever it says - is the problem we to solve - right fucking
+   now"): when the owner's order is a measurable state of the tree,
+   the lock carries it as a measure command and the text its output
+   must carry, on the same `add` or `set`:
+
+   ```sh
+   python3 ops/conductor/tools/deliverable.py add <branch> --why '<the words>' \
+       --measure '<command that prints the reading>' --until '<the text the reading must carry>'
+   ```
+
+   `show` runs the measure and prints `met` or `short` beside the
+   target every time the lock is read; a measure that cannot run reads
+   `unreachable`, never met. A plan's slices are how the target is
+   reached, never the target: a plan that names a later item still
+   leaves the target short.
+
 3. **The estimate,** if one is asked for, is the measured rate from the
    records with its count, never the happy path.
 
@@ -78,11 +96,18 @@ branch, a dispatch, a ladder start or a PR.
 
 ## At the end
 
-The `close` skill first, then:
+The `close` skill first, then the reading, then the lift:
 
 ```sh
+python3 ops/conductor/tools/deliverable.py done lane/session-<date>-<id>
 python3 ops/conductor/tools/deliverable.py remove lane/session-<date>-<id>
 ```
+
+`done` prints the reading when the target is met and refuses `target`
+while it is short, naming the reading found; "done" in a record, a
+message or a PR is that line and nothing else. `remove` refuses a
+short target too, unless `--unmet '<the owner's words>'` says why the
+work stops short, and prints that reason with the lift.
 
 `remove` lifts this session's branches and leaves every other session's
 in place; the last branch removed lifts the lock. `clear` wipes every
