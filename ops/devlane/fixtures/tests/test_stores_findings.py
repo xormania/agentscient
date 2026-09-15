@@ -2,9 +2,10 @@
 
 import importlib.util
 import json
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 HERE = Path(__file__).resolve()
 STORES = HERE.parents[1] / "stores.py"
@@ -12,6 +13,22 @@ BASE_EPOCH = 1_787_306_400
 REPO = "/home/work/projects/uscient/agentscient"
 SESSION = "77777777-7777-4777-8777-777777777777"
 MODEL = "gpt-5-codex"
+
+# Planted missing turn_context: one session_meta rollout, no later context.
+MISSING_TURN_CONTEXT = (
+    "import json\n"
+    "from pathlib import Path\n"
+    "\n"
+    "def build_codex_store(root, *, base_timestamp, cwd, session_id, model, effort, marker):\n"
+    "    path = Path(root) / 'sessions' / 'a' / 'b' / 'c' / 'rollout-x.jsonl'\n"
+    "    path.parent.mkdir(parents=True, exist_ok=True)\n"
+    "    entry = {\n"
+    "        'type': 'session_meta',\n"
+    "        'timestamp': base_timestamp,\n"
+    "        'payload': {'id': session_id, 'cwd': cwd},\n"
+    "    }\n"
+    "    path.write_text(json.dumps(entry) + '\\n', encoding='utf-8')\n"
+)
 
 
 def load_module(testcase, path, name):
@@ -25,30 +42,35 @@ def load_module(testcase, path, name):
 
 
 class StoreFindings(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="stores-findings-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.stores_path = self.world.plant_text("stores.py", MISSING_TURN_CONTEXT)
+
     def test_b7_codex_fixture_splits_session_meta_from_later_turn_context(self):
-        with tempfile.TemporaryDirectory(prefix="stores-findings-") as temp:
-            root = Path(temp) / "codex"
-            stores = load_module(self, STORES, "agentscient_stores_findings")
-            stores.build_codex_store(
-                root,
-                base_timestamp=BASE_EPOCH,
-                cwd=REPO,
-                session_id=SESSION,
-                model=MODEL,
-                effort="high",
-                marker="FIXTUREPROMPTMARKER",
-            )
-            rollouts = list(root.glob("sessions/*/*/*/rollout-*.jsonl"))
-            self.assertEqual(
-                len(rollouts),
-                1,
-                f"the Codex builder emitted {len(rollouts)} rollout files",
-            )
-            entries = [
-                json.loads(line)
-                for line in rollouts[0].read_text().splitlines()
-                if line.strip()
-            ]
+        root = self.world.cwd / "codex"
+        stores = load_module(self, self.stores_path, "agentscient_stores_findings")
+        stores.build_codex_store(
+            root,
+            base_timestamp=BASE_EPOCH,
+            cwd=REPO,
+            session_id=SESSION,
+            model=MODEL,
+            effort="high",
+            marker="FIXTUREPROMPTMARKER",
+        )
+        rollouts = list(root.glob("sessions/*/*/*/rollout-*.jsonl"))
+        self.assertEqual(
+            len(rollouts),
+            1,
+            f"the Codex builder emitted {len(rollouts)} rollout files",
+        )
+        entries = [
+            json.loads(line)
+            for line in rollouts[0].read_text().splitlines()
+            if line.strip()
+        ]
 
         meta_indexes = [
             index
