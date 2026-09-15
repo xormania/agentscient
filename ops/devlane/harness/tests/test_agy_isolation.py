@@ -23,27 +23,6 @@ import support  # noqa: F401  (puts the harness dir on sys.path)
 
 import isolation
 
-# RED STAND-IN: empty registry and wrong seams so each method fails its
-# own pin. Removed after the red proof.
-isolation.HARNESSES = {}
-
-
-def _red_build_home(harness, root, env=None):
-    raise isolation.NotIsolated("stand-in-empty-registry")
-
-
-def _red_isolated(harness, root, env=None):
-    return {}, []
-
-
-def _red_dispatch_env(harness, home=None, env=None):
-    return {}
-
-
-isolation.build_home = _red_build_home
-isolation.isolated = _red_isolated
-isolation.dispatch_env = _red_dispatch_env
-
 
 AUTH_REL = ".gemini/antigravity-cli/antigravity-oauth-token"
 AUTH_PARENTS = (".gemini", ".gemini/antigravity-cli")
