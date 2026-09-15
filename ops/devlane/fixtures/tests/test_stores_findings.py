@@ -14,22 +14,6 @@ REPO = "/home/work/projects/uscient/agentscient"
 SESSION = "77777777-7777-4777-8777-777777777777"
 MODEL = "gpt-5-codex"
 
-# Planted missing turn_context: one session_meta rollout, no later context.
-MISSING_TURN_CONTEXT = (
-    "import json\n"
-    "from pathlib import Path\n"
-    "\n"
-    "def build_codex_store(root, *, base_timestamp, cwd, session_id, model, effort, marker):\n"
-    "    path = Path(root) / 'sessions' / 'a' / 'b' / 'c' / 'rollout-x.jsonl'\n"
-    "    path.parent.mkdir(parents=True, exist_ok=True)\n"
-    "    entry = {\n"
-    "        'type': 'session_meta',\n"
-    "        'timestamp': base_timestamp,\n"
-    "        'payload': {'id': session_id, 'cwd': cwd},\n"
-    "    }\n"
-    "    path.write_text(json.dumps(entry) + '\\n', encoding='utf-8')\n"
-)
-
 
 def load_module(testcase, path, name):
     testcase.assertTrue(path.is_file(), f"required module is missing: {path}")
@@ -46,7 +30,8 @@ class StoreFindings(unittest.TestCase):
         self.world = World(prefix="stores-findings-")
         self.addCleanup(self.world.close)
         self.world.enter()
-        self.stores_path = self.world.plant_text("stores.py", MISSING_TURN_CONTEXT)
+        self.assertTrue(STORES.is_file(), f"required module is missing: {STORES}")
+        self.stores_path = self.world.stage(STORES, "stores.py")
 
     def test_b7_codex_fixture_splits_session_meta_from_later_turn_context(self):
         root = self.world.cwd / "codex"
