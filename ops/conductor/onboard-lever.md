@@ -94,6 +94,15 @@ line (an unperformed read is named, never silent):
   unmeasured.
 - `branch:` current branch and short sha of the repository the tool
   runs from.
+- `lock:` the deliverable lock as `deliverable.py show` prints it: the
+  branches named and the owner's words on one line, then every measured
+  target on its own `target <branch>: until ...; reading ...; met|short`
+  line, the reading taken now. `lock: none` when no lock is set, a
+  measured fact; `lock: unavailable: <reason>` when the lever cannot
+  report, counted unmeasured. Owner, 2026-09-15: a brief that never
+  printed the lock let a plan's paraphrase of the order stand in for the
+  order after a compaction; the owner's words and the reading now ride
+  every brief.
 
 Sibling outputs are as the siblings' own contracts define them — the
 register's report is deterministic JSON, the ledger's report begins

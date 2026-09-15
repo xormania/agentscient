@@ -409,6 +409,29 @@
    }
   },
   {
+   "class": "done-gate",
+   "boundary": "publish",
+   "actor": "session",
+   "trigger": "at Stop, a reply that says done, complete, finished, landed, merged or solved and carries no deliverable.py line (done lane/..., the done verb's target refusal, or show's target line)",
+   "evidence": "python3 ops/conductor/tools/deliverable.py done <branch>, its line or its refusal pasted in the reply; the lock's target lines",
+   "gate": "engine",
+   "tests": [
+    "ops/devlane/hooks/tests/test_engine.py::test_a_reply_that_says_done_without_a_lock_line_is_sent_back_with_the_lock_reading",
+    "ops/devlane/hooks/tests/test_engine.py::test_three_blocks_per_session_then_the_fourth_passes_and_another_session_still_blocks"
+   ],
+   "escape": "none",
+   "event": "Stop",
+   "tools": [],
+   "engine": true,
+   "when": {
+    "pred": "reply_claims_done"
+   },
+   "refuse": {
+    "expected": "a reply that says done to carry the lock's reading: the `done <branch>: ...` line of `python3 ops/conductor/tools/deliverable.py done <branch>`, or its `target: expected the measure to read ...` refusal, or show's `target <branch>: until ...; reading ...; met|short` line (a sha or a PR number is not that reading)",
+    "needed": "run python3 ops/conductor/tools/deliverable.py done <branch> and paste its line, or its refusal with the reading; a branch with no target sets one first (deliverable.py add BRANCH --why '<the owner's words>' --measure CMD --until TEXT). Three blocks per session, then the stop passes with the reading logged (owner, 2026-09-15: \\\"I need confidence that my orders are being carried out\\\")"
+   }
+  },
+  {
    "class": "wall-write",
    "boundary": "write",
    "actor": "session",
