@@ -3,7 +3,7 @@
 Contracts (only): `ops/conductor/ci-store.md` and the inherited
 `ops/conductor/instrument-conventions.md`. The tool
 `ops/conductor/tools/ci.py` is the subject and is not read here.
-Tests invoke it as a subprocess with a stub `gh` first on PATH.
+Tests invoke it through the test kit with a data-driven `gh` first on PATH.
 
 The live store (`$XDG_STATE_HOME/agentscient/ci.db` else
 `~/.local/state/agentscient/ci.db` at import-time HOME) must stay
@@ -22,15 +22,13 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import sqlite3
-import stat
-import subprocess
 import sys
-import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "ci.py"
@@ -77,12 +75,6 @@ INGESTED_AT = "2026-09-01T00:00:00Z"
 
 GH_ERROR_L1 = "GH_ERROR_LINE1: boom"
 GH_ERROR_L2 = "GH_ERROR_LINE2: still boom"
-
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
 
 # Contract schema, adopted verbatim, used when planting a store for
 # report verbs so those reds are the query promise, not ingest.
@@ -191,14 +183,12 @@ class _CIFixture(unittest.TestCase):
 
     def setUp(self):
         self._live_before = _live_snapshot()
-        self._tmp = tempfile.TemporaryDirectory(prefix="ci-store-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.xdg = root / "xdg"
-        self.scratch = root / "scratch"
-        self.bin = root / "bin"
-        for path in (self.home, self.xdg, self.scratch, self.bin):
-            path.mkdir()
+        self.world = World(prefix="ci-store-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.xdg = self.world.xdg_state
+        self.scratch = self.world.cwd
+        self.bin = self.world.bin
         self.store = self.xdg / "agentscient" / "ci.db"
         self.home_store = (
             self.home / ".local" / "state" / "agentscient" / "ci.db"
@@ -212,78 +202,30 @@ class _CIFixture(unittest.TestCase):
             "plant: isolated HOME store must start absent",
         )
         self.gh = self.bin / "gh"
-        self.argv_log = self.scratch / "gh-argv.jsonl"
-        self.staged = self.scratch / "ci.py"
-        self._stage_tool_bytes()
+        self.argv_log = self.world.tools.log_path("gh")
+        self.staged = self.world.stage(TOOL, siblings=SIBLINGS)
+        # The staged copy has no tracked conf beside its reader; the
+        # fixture names one, so the lane under XDG_STATE_HOME is the one
+        # asserted.
+        self.conf = self.world.plant_text(
+            self.staged.parent.parent / "lane.conf",
+            "LANE_NAME='agentscient'\n",
+        )
         self.assertFalse(self.argv_log.exists(), "plant: argv log must start absent")
         self.assertFalse(self.gh.exists(), "plant: gh stub is not planted yet")
 
     def tearDown(self):
-        try:
-            self.assertEqual(
-                _live_snapshot(),
-                self._live_before,
-                f"live store mutated: {LIVE_STORES}",
-            )
-            for path in LIVE_STORES:
-                if self._live_before.get(str(path), ("absent", None))[0] == "absent":
-                    self.assertFalse(
-                        path.exists(),
-                        f"tests created the live store: {path}",
-                    )
-        finally:
-            self._tmp.cleanup()
-
-    def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
-        self.assertTrue(self.staged.is_file())
-        # The staged copy has no tracked conf beside its reader; the
-        # fixture names one, so the lane under XDG_STATE_HOME is the one
-        # asserted.
-        self.conf = self.staged.parent.parent / "lane.conf"
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
-
-    def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
-        self.assertEqual(len(landed), len(data))
-
-    def _plant_gh(self, body: str) -> None:
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        mode = self.gh.stat().st_mode
-        self.gh.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        landed = self.gh.read_text(encoding="utf-8")
-        self.assertEqual(landed, body, "gh stub plant did not land intact")
-        self.assertTrue(os.access(self.gh, os.X_OK), "gh stub is not executable")
-
-    def _gh_preamble(self) -> str:
-        return (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"log = Path({str(self.argv_log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text(prev + json.dumps(sys.argv[1:]) + '\\n', encoding='utf-8')\n"
-            "argv = sys.argv[1:]\n"
+        self.assertEqual(
+            _live_snapshot(),
+            self._live_before,
+            f"live store mutated: {LIVE_STORES}",
         )
+        for path in LIVE_STORES:
+            if self._live_before.get(str(path), ("absent", None))[0] == "absent":
+                self.assertFalse(
+                    path.exists(),
+                    f"tests created the live store: {path}",
+                )
 
     def plant_gh(
         self,
@@ -299,89 +241,53 @@ class _CIFixture(unittest.TestCase):
     ) -> None:
         runs = list(runs or [])
         checks_by_sha = dict(checks_by_sha or {})
-        body = (
-            self._gh_preamble()
-            + f"repo_slug = {repo_slug!r}\n"
-            + f"repo_view_exit = {repo_view_exit}\n"
-            + f"repo_view_stderr = {repo_view_stderr!r}\n"
-            + f"fail_exit = {fail_exit}\n"
-            + f"fail_stderr = {fail_stderr!r}\n"
-            + f"raw_stdout = {raw_stdout!r}\n"
-            + f"runs = json.loads({json.dumps(json.dumps(runs))})\n"
-            + f"checks = json.loads({json.dumps(json.dumps(checks_by_sha))})\n"
-            + "joined = ' '.join(argv)\n"
-            + "if 'repo' in argv and 'view' in argv:\n"
-            + "    sys.stderr.write(repo_view_stderr)\n"
-            + "    if repo_view_exit == 0:\n"
-            + "        if any('json' in a or 'nameWithOwner' in a for a in argv):\n"
-            + "            sys.stdout.write(json.dumps({'nameWithOwner': repo_slug}) + '\\n')\n"
-            + "        else:\n"
-            + "            sys.stdout.write(repo_slug + '\\n')\n"
-            + "    raise SystemExit(repo_view_exit)\n"
-            + "if fail_exit != 0:\n"
-            + "    sys.stderr.write(fail_stderr)\n"
-            + "    raise SystemExit(fail_exit)\n"
-            + "if raw_stdout is not None:\n"
-            + "    sys.stdout.write(raw_stdout)\n"
-            + "    raise SystemExit(0)\n"
-            + "sha = None\n"
-            + "for item in argv:\n"
-            + "    if 'commits/' in item and 'check-runs' in item:\n"
-            + "        parts = item.split('/')\n"
-            + "        if 'commits' in parts:\n"
-            + "            i = parts.index('commits')\n"
-            + "            if i + 1 < len(parts):\n"
-            + "                sha = parts[i + 1].split('?')[0]\n"
-            + "for i, item in enumerate(argv):\n"
-            + "    if item.endswith('check-runs') and i > 0 and 'commits' in argv[i - 1]:\n"
-            + "        sha = argv[i - 1].split('/')[-1]\n"
-            + "    elif item == 'check-runs' and i > 0:\n"
-            + "        sha = argv[i - 1].split('/')[-1].split('?')[0]\n"
-            + "if sha is not None or any('check-runs' in a for a in argv):\n"
-            + "    rows = checks.get(sha or '', [])\n"
-            + "    sys.stdout.write(json.dumps({'total_count': len(rows), 'check_runs': rows}) + '\\n')\n"
-            + "    raise SystemExit(0)\n"
-            + "if any('actions/runs' in a for a in argv):\n"
-            + "    sys.stdout.write(json.dumps({'total_count': len(runs), 'workflow_runs': runs}) + '\\n')\n"
-            + "    raise SystemExit(0)\n"
-            + "sys.stderr.write('unhandled gh argv: ' + joined + '\\n')\n"
-            + "raise SystemExit(1)\n"
+        responses = [{
+            "match": ["repo", "view"],
+            "stdout": json.dumps({"nameWithOwner": repo_slug}) + "\n"
+            if repo_view_exit == 0 else "",
+            "stderr": repo_view_stderr,
+            "exit": repo_view_exit,
+        }]
+        if fail_exit == 0 and raw_stdout is None:
+            responses.extend({
+                "match": ["check-runs", sha],
+                "stdout": json.dumps({
+                    "total_count": len(rows),
+                    "check_runs": rows,
+                }) + "\n",
+                "stderr": "",
+                "exit": 0,
+            } for sha, rows in checks_by_sha.items())
+            responses.append({
+                "match": ["actions/runs"],
+                "stdout": json.dumps({
+                    "total_count": len(runs),
+                    "workflow_runs": runs,
+                }) + "\n",
+                "stderr": "",
+                "exit": 0,
+            })
+        self.world.tools.plant(
+            "gh",
+            stdout=raw_stdout or "",
+            stderr=fail_stderr if fail_exit else "unhandled gh argv\n",
+            exit=fail_exit or (0 if raw_stdout is not None else 1),
+            responses=responses,
         )
-        self._plant_gh(body)
 
     def env(self, *, path: str | None = None, agent: str | None = None) -> dict[str, str]:
-        env = {
-            "PATH": path if path is not None else (
-                str(self.bin) + os.pathsep + os.environ.get("PATH", "/usr/bin:/bin")
-            ),
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "LANE_CONF": str(self.conf),
-        }
+        extra = {"LANE_CONF": str(self.conf)}
+        if path is not None:
+            extra["PATH"] = path
         if agent is not None:
-            env["WF_AGENT"] = agent
-        return env
+            extra["WF_AGENT"] = agent
+        return self.world.env(extra)
 
     def path_without_gh(self) -> str:
         empty = self.scratch / "no-gh"
         empty.mkdir(exist_ok=True)
         self.assertFalse((empty / "gh").exists(), "plant: empty PATH dir has a gh")
-        parts = [str(empty)]
-        for item in os.environ.get("PATH", "/usr/bin:/bin").split(os.pathsep):
-            if not item:
-                continue
-            if (Path(item) / "gh").exists():
-                continue
-            parts.append(item)
-        path = os.pathsep.join(parts)
-        self.assertIsNone(
-            shutil.which("gh", path=path),
-            "INVALID: gh is still on PATH",
-        )
-        return path
+        return str(empty)
 
     def invoke(
         self,
@@ -395,18 +301,12 @@ class _CIFixture(unittest.TestCase):
             self.assertNotIn("WF_AGENT", env)
         else:
             self.assertEqual(env.get("WF_AGENT"), agent)
-        try:
-            return subprocess.run(
-                [sys.executable, str(self.staged), *argv],
-                cwd=str(REPO),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"ci exceeded {RUN_CAP}s: {exc}")
+        return run(
+            [sys.executable, str(self.staged), *argv],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        )
 
     def ingest(self, extra: list[str] | None = None, *, agent: str | None = AGENT, **kw):
         argv = ["ingest", "--repo", REPO_SLUG]
@@ -426,7 +326,7 @@ class _CIFixture(unittest.TestCase):
             token in compact or spaced in err.lower(),
             f"refusal class {class_name!r} not named in stderr: {err!r}",
         )
-        self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual(proc.exit, 2, err)
         self.assertTrue(err.strip(), "refusal was silent")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -682,7 +582,7 @@ class IngestHappy(_CIFixture):
             r"ingested runs=2 checks=3 shas=2",
             f"missing ingest summary: {out!r} err={proc.stderr!r}",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertTrue(
             self.store.is_file(),
             f"ingest did not create XDG store {self.store}",
@@ -743,7 +643,7 @@ class Idempotence(_CIFixture):
         self.assertEqual(self.count("runs"), 1)
         self.assertEqual(self.count("checks"), 1)
         second = self.ingest()
-        self.assertEqual(second.returncode, 0, self.combined(second))
+        self.assertEqual(second.exit, 0, self.combined(second))
         self.assertEqual(self.count("runs"), 1)
         self.assertEqual(self.count("checks"), 1)
 
@@ -801,7 +701,7 @@ class Idempotence(_CIFixture):
             },
         )
         second = self.ingest()
-        self.assertEqual(second.returncode, 0, self.combined(second))
+        self.assertEqual(second.exit, 0, self.combined(second))
         self.assertEqual(self.count("runs"), 1)
         updated = self.run_row(101)
         self.assertIsNotNone(updated)
@@ -851,7 +751,7 @@ class Flakes(_CIFixture):
         )
         proc = self.invoke(["flakes"], agent=None)
         out = proc.stdout or ""
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertIn("new-flake", out)
         self.assertIn(SHA_A, out)
         self.assertIn("old-flake", out)
@@ -895,7 +795,7 @@ class Flakes(_CIFixture):
         )
         proc = self.invoke(["flakes"], agent=None)
         out = proc.stdout or ""
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertIn("flake-gate", out)
         self.assertNotIn("calm-gate", out)
         self.assertNotIn("skip-gate", out)
@@ -917,7 +817,7 @@ class Flakes(_CIFixture):
             f"clean-window fixture must ingest first: {self.combined(ingested)!r}",
         )
         proc = self.invoke(["flakes"], agent=None)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertNotIn(SHA_C, proc.stdout or "")
 
 
@@ -971,7 +871,7 @@ class Durations(_CIFixture):
         self.assertEqual(fast["max"], 5)
         self.assertLess(out.find("gate-slow"), out.find("gate-mid"), out)
         self.assertLess(out.find("gate-mid"), out.find("gate-fast"), out)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class Failures(_CIFixture):
@@ -1026,7 +926,7 @@ class Failures(_CIFixture):
         self.assertLess(out.find("fail-always"), out.find("fail-more"), out)
         self.assertLess(out.find("fail-more"), out.find("fail-half"), out)
         self.assertLess(out.find("fail-half"), out.find("fail-none"), out)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class Report(_CIFixture):
@@ -1091,7 +991,7 @@ class Report(_CIFixture):
             or re.search(r"\b1\s+flake", text),
             f"report must name flake count 1: {out!r}",
         )
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_report_exits_0_without_flakes_and_names_totals(self):
         now = utc_ago(1)
@@ -1123,7 +1023,7 @@ class Report(_CIFixture):
             f"report must name checks total 1: {out!r}",
         )
         self.assertIn("only-gate", out)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertNotIn("identity", (proc.stderr or "").lower())
 
 
@@ -1178,19 +1078,19 @@ class DaysWindow(_CIFixture):
         )
         seven = self.invoke(["flakes", "--days", "7"], agent=None)
         out7 = seven.stdout or ""
-        self.assertEqual(seven.returncode, 1, self.combined(seven))
+        self.assertEqual(seven.exit, 1, self.combined(seven))
         self.assertIn("gate-new", out7)
         self.assertNotIn("gate-mid", out7)
         self.assertNotIn("gate-old", out7)
         default = self.invoke(["flakes"], agent=None)
         outd = default.stdout or ""
-        self.assertEqual(default.returncode, 1, self.combined(default))
+        self.assertEqual(default.exit, 1, self.combined(default))
         self.assertIn("gate-new", outd)
         self.assertIn("gate-mid", outd)
         self.assertNotIn("gate-old", outd)
         wide = self.invoke(["flakes", "--days", "30"], agent=None)
         outw = wide.stdout or ""
-        self.assertEqual(wide.returncode, 1, self.combined(wide))
+        self.assertEqual(wide.exit, 1, self.combined(wide))
         self.assertIn("gate-new", outw)
         self.assertIn("gate-mid", outw)
         self.assertIn("gate-old", outw)
