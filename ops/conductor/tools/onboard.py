@@ -154,6 +154,12 @@ def lock_lines(root: Path) -> tuple[list[str], bool]:
     and the owner's words on one line, then every target with its live
     reading (owner, 2026-09-15: a brief that never printed the lock let a
     plan's paraphrase of the order stand in for the order)."""
+    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    lock = state_home / lane_name() / "deliverable.json"
+    if not lock.is_file():
+        # Checked before the lever runs: a read never creates the state
+        # directory (the doctor's read-only probe reads it that way).
+        return ["lock: none"], True
     tool = root / "ops/conductor/tools/deliverable.py"
     output, reason = run([sys.executable, str(tool), "show"], root)
     if output is None:

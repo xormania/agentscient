@@ -1048,8 +1048,14 @@ class TheLockLine(_OnboardFixture):
     The state section carries the lock: the branches, the owner's words,
     and every target with its live reading, from deliverable.py show."""
 
+    def plant_lock(self) -> None:
+        lock = self.store.parent / "deliverable.json"
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_text('{"branches": ["lane/session-a"], "why": "planted"}\n', encoding="utf-8")
+
     def test_the_lock_prints_with_its_why_and_every_target_reading(self):
         self.ready()
+        self.plant_lock()
         proc = self.invoke()
         stdout = proc.stdout or ""
         lock = self.labelled_line(stdout, "lock")
@@ -1064,15 +1070,19 @@ class TheLockLine(_OnboardFixture):
         self.assertLess(lock_i, handoffs_i)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
-    def test_no_lock_is_a_measured_fact(self):
-        self.ready(lock_stdout="no lock\n")
+    def test_no_lock_is_a_measured_fact_and_the_lever_is_not_run(self):
+        self.ready(lock_stdout="LEVER_RAN_UNIQUE_9c1e\n")
+        self.assertFalse((self.store.parent / "deliverable.json").exists(), "INVALID: a lock was planted")
         proc = self.invoke()
-        self.assertEqual(self.labelled_line(proc.stdout or "", "lock"), "lock: none")
+        stdout = proc.stdout or ""
+        self.assertEqual(self.labelled_line(stdout, "lock"), "lock: none")
+        self.assertNotIn("LEVER_RAN_UNIQUE_9c1e", stdout, "the lever is not run when the lock file is absent")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
     def test_a_lever_that_fails_is_unavailable_and_counts_an_absence(self):
         self.ready(lock_stdout="", lock_stderr="tooling: expected instrument.py beside this tool; found absent; needed restore it",
                    lock_exit=2)
+        self.plant_lock()
         proc = self.invoke()
         line = self.labelled_line(proc.stdout or "", "lock")
         self.assertIn("unavailable", line)
