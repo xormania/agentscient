@@ -10,20 +10,17 @@ rows stay as they are.
 from __future__ import annotations
 
 import json
-import sys
 import unittest
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
-
-from test_watchdog import (  # noqa: E402
+from test_watchdog import (
     CATALOGUE_JOB,
     HARNESS,
     _WatchdogFixture,
     utc_ago,
 )
+
+from ops.testkit import World
 
 UNOBS_ID = "20260905T020000Z-code-grok-aa3301"
 NULL_ID = "20260905T020100Z-code-grok-aa3302"
@@ -38,6 +35,11 @@ CLOSE_ID = "20260905T020800Z-code-grok-aa3309"
 
 class MissingPidUnobservable(_WatchdogFixture):
     """No usable worker PID is unobservable, not running or gone."""
+
+    def setUp(self):
+        super().setUp()
+        self.world = World(prefix="watchdog-unobs-")
+        self.addCleanup(self.world.close)
 
     def unobservable_lines(self, proc, rec_id: str) -> list[str]:
         return [
@@ -78,11 +80,8 @@ class MissingPidUnobservable(_WatchdogFixture):
 
     def test_null_pid_is_unobservable_not_gone(self):
         raw = json.dumps({"pid": None, "pgid": None}) + "\n"
-        job_dir = self.plant_job(
-            NULL_ID,
-            launched=utc_ago(3),
-            state_bytes=raw.encode("utf-8"),
-        )
+        job_dir = self.plant_job(NULL_ID, launched=utc_ago(3))
+        self.world.plant_bytes(job_dir / "state.json", raw.encode("utf-8"))
         landed = json.loads((job_dir / "state.json").read_text(encoding="utf-8"))
         self.assertIn("pid", landed)
         self.assertIsNone(landed["pid"])
@@ -96,11 +95,8 @@ class MissingPidUnobservable(_WatchdogFixture):
 
     def test_state_json_without_pid_is_unobservable(self):
         raw = json.dumps({"note": "no pid key"}) + "\n"
-        job_dir = self.plant_job(
-            KEYLESS_ID,
-            launched=utc_ago(3),
-            state_bytes=raw.encode("utf-8"),
-        )
+        job_dir = self.plant_job(KEYLESS_ID, launched=utc_ago(3))
+        self.world.plant_bytes(job_dir / "state.json", raw.encode("utf-8"))
         landed = json.loads((job_dir / "state.json").read_text(encoding="utf-8"))
         self.assertNotIn("pid", landed)
         proc = self.once(extra=["--heartbeat-every", "1"])
@@ -148,7 +144,7 @@ class MissingPidUnobservable(_WatchdogFixture):
             self.assertIn(HARNESS.encode("utf-8"), cmdline)
             payload = json.dumps({"pid": pid, "pgid": pid}) + "\n"
             state = job_dir / "state.json"
-            self._plant_bytes(state, payload.encode("utf-8"))
+            self.world.plant_bytes(state, payload.encode("utf-8"))
             landed = json.loads(state.read_text(encoding="utf-8"))
             self.assertEqual(landed["pid"], pid)
 
