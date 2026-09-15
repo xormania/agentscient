@@ -11,8 +11,9 @@ from __future__ import annotations
 
 import json
 import os
-import stat
 from pathlib import Path
+
+from ops.testkit import hermetic_env, make_executable, plant_text
 
 DEFAULT_WORKERS = ("claude", "codex", "grok")
 WORKER_NAME_RE = r"^[a-z][a-z0-9]*$"
@@ -25,8 +26,9 @@ def executable_key(name: str) -> str:
 
 
 def path_with(bindir: Path) -> str:
-    host = os.environ.get("PATH", "/usr/bin:/bin")
-    return f"{bindir}{os.pathsep}{host}"
+    # Callers plant their own bindir; World.env() prepends world.bin the
+    # same way. The home is unused: only PATH is taken.
+    return hermetic_env(Path("."), bin=bindir)["PATH"]
 
 
 def plant_executable(test, path: Path, body: str | None = None) -> Path:
@@ -36,12 +38,10 @@ def plant_executable(test, path: Path, body: str | None = None) -> Path:
     resolved target; legacy PATH lookup uses the PATH spelling
     (bindir / name) from plant_named_bins, not this return value.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
     text = body if body is not None else "#!/bin/sh\nexit 0\n"
-    path.write_text(text, encoding="utf-8")
-    path.chmod(path.stat().st_mode | stat.S_IXUSR)
-    landed = path.read_text(encoding="utf-8")
-    test.assertEqual(landed, text, f"plant did not land intact: {path}")
+    path = plant_text(path, text)
+    make_executable(path)
+    test.assertEqual(path.read_text(encoding="utf-8"), text, f"plant did not land intact: {path}")
     test.assertTrue(os.access(path, os.X_OK), f"plant not executable: {path}")
     return path.resolve()
 
@@ -49,7 +49,6 @@ def plant_executable(test, path: Path, body: str | None = None) -> Path:
 def plant_named_bins(test, root: Path, names: tuple[str, ...]) -> tuple[Path, dict[str, Path]]:
     """Plant NAME bins. Returned paths are the PATH-lookup spelling."""
     bindir = root / "bin"
-    bindir.mkdir(parents=True, exist_ok=True)
     planted: dict[str, Path] = {}
     test.assertGreater(len(names), 0, names)
     for name in names:
@@ -74,15 +73,21 @@ def parse_worker_object(test, proc, *, expect_absolute: bool | None = None) -> d
     Absolute-path checking is opt-in. Legacy PATH-miss fallback is the
     bare name, which is not absolute; override and agy cases pass
     expect_absolute=True.
+
+    ``proc`` is a kit ``Result`` (``exit``) or a CompletedProcess
+    (``returncode``); unmigrated callers still pass the latter.
     """
-    combined = f"{proc.stdout or ''}{proc.stderr or ''}"
-    test.assertEqual(proc.returncode, 0, combined)
+    code = proc.exit if hasattr(proc, "exit") else proc.returncode
+    stdout = proc.stdout or ""
+    stderr = proc.stderr or ""
+    combined = f"{stdout}{stderr}"
+    test.assertEqual(code, 0, combined)
     test.assertEqual(
-        (proc.stderr or "").strip(),
+        stderr.strip(),
         "",
         f"worker success has empty stderr: {proc.stderr!r}",
     )
-    text = proc.stdout or ""
+    text = stdout
     test.assertTrue(text.endswith("\n"), f"JSON plus one newline; got {text!r}")
     lines = text.splitlines()
     test.assertEqual(len(lines), 1, f"one JSON object line; got {text!r}")
