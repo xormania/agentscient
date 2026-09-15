@@ -2,9 +2,10 @@
 
 import importlib.util
 import json
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 HERE = Path(__file__).resolve()
 STORES = HERE.parents[1] / "stores.py"
@@ -26,9 +27,13 @@ def load_module(testcase, path, name):
 
 class StoreFindings(unittest.TestCase):
     def test_b7_codex_fixture_splits_session_meta_from_later_turn_context(self):
-        with tempfile.TemporaryDirectory(prefix="stores-findings-") as temp:
-            root = Path(temp) / "codex"
-            stores = load_module(self, STORES, "agentscient_stores_findings")
+        with World(prefix="stores-findings-") as world:
+            root = world.cwd / "codex"
+            stores = load_module(
+                self,
+                world.stage(STORES),
+                "agentscient_stores_findings",
+            )
             stores.build_codex_store(
                 root,
                 base_timestamp=BASE_EPOCH,

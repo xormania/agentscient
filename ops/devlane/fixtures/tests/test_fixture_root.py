@@ -13,6 +13,8 @@ import tomllib
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 REPO = Path(__file__).resolve().parents[4]
 RUFF = REPO / "ruff.toml"
 README = REPO / "ops" / "README.md"
@@ -21,9 +23,14 @@ TESTS_PATH = "ops/devlane/fixtures/tests"
 
 
 class RuffExclusion(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="fixture-root-ruff-")
+        self.addCleanup(self.world.close)
+        self.ruff = self.world.stage(RUFF)
+
     def test_ruff_toml_excludes_fixture_apps_with_reason(self):
-        self.assertTrue(RUFF.is_file(), f"{RUFF} is missing")
-        text = RUFF.read_text(encoding="utf-8")
+        self.assertTrue(self.ruff.is_file(), f"{RUFF} is missing")
+        text = self.ruff.read_text(encoding="utf-8")
         data = tomllib.loads(text)
         exclude = [str(item).rstrip("/") for item in data.get("extend-exclude", [])]
         self.assertIn(
@@ -46,8 +53,8 @@ class RuffExclusion(unittest.TestCase):
         )
 
     def test_ruff_toml_still_lints_lane_fixture_tests(self):
-        self.assertTrue(RUFF.is_file(), f"{RUFF} is missing")
-        data = tomllib.loads(RUFF.read_text(encoding="utf-8"))
+        self.assertTrue(self.ruff.is_file(), f"{RUFF} is missing")
+        data = tomllib.loads(self.ruff.read_text(encoding="utf-8"))
         exclude = [str(item).rstrip("/") for item in data.get("extend-exclude", [])]
         self.assertNotIn(
             TESTS_PATH,
@@ -61,9 +68,14 @@ class RuffExclusion(unittest.TestCase):
 
 
 class ReadmeLayout(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="fixture-root-readme-")
+        self.addCleanup(self.world.close)
+        self.readme = self.world.stage(README)
+
     def test_ops_readme_names_the_apps_directory(self):
-        self.assertTrue(README.is_file(), f"{README} is missing")
-        text = README.read_text(encoding="utf-8")
+        self.assertTrue(self.readme.is_file(), f"{README} is missing")
+        text = self.readme.read_text(encoding="utf-8")
         self.assertRegex(
             text,
             r"\|\s*`ops/devlane/fixtures/apps/`\s*\|",
@@ -71,8 +83,8 @@ class ReadmeLayout(unittest.TestCase):
         )
 
     def test_ops_readme_names_the_fixture_lever(self):
-        self.assertTrue(README.is_file(), f"{README} is missing")
-        text = README.read_text(encoding="utf-8")
+        self.assertTrue(self.readme.is_file(), f"{README} is missing")
+        text = self.readme.read_text(encoding="utf-8")
         self.assertRegex(
             text,
             r"\|\s*`ops/bin/fixture\.sh`\s*\|",

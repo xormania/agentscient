@@ -4,10 +4,11 @@ import hashlib
 import importlib.util
 import inspect
 import json
-import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import quote
+
+from ops.testkit import World
 
 HERE = Path(__file__).resolve()
 STORES = HERE.parents[1] / "stores.py"
@@ -103,14 +104,11 @@ USAGE_RUNS = [
 ]
 
 
-def load_module(testcase):
-    testcase.assertTrue(
-        STORES.is_file(),
-        f"{STORES} is missing; the fixture contract requires it",
-    )
+def load_module(testcase, path):
+    testcase.assertTrue(path.is_file(), f"{STORES} is missing; the fixture contract requires it")
     spec = importlib.util.spec_from_file_location(
         "agentscient_grok_usage_stores",
-        STORES,
+        path,
     )
     testcase.assertIsNotNone(spec)
     testcase.assertIsNotNone(spec.loader)
@@ -164,12 +162,10 @@ def legacy_digest(session):
 
 class GrokUsageFixture(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(
-            prefix="grok-usage-fixture-"
-        )
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
-        self.stores = load_module(self)
+        self.world = World(prefix="grok-usage-fixture-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.cwd
+        self.stores = load_module(self, self.world.stage(STORES))
 
     def assert_usage_keyword(self):
         parameter = inspect.signature(
