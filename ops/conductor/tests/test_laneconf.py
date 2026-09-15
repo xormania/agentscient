@@ -24,13 +24,12 @@ import unittest
 from pathlib import Path
 
 import worker_conf
+
 from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
-# Red proof: absent subject so World.stage plants the exit-0 stub and
-# each method fails its own assertion. Restored when green.
-TOOL = REPO / "ops" / "conductor" / "tools" / "laneconf.py.absent"
-TRACKED_CONF = REPO / "ops" / "lane.conf.absent"
+TOOL = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
+TRACKED_CONF = REPO / "ops" / "lane.conf"
 # The tool imports instrument beside itself (HANDOFF-2026-09-13-wall-migration.md).
 SIBLINGS = ("instrument.py",)
 RUN_CAP = 60
@@ -1244,7 +1243,7 @@ class TrackedConfMove(_LaneconfFixture):
             timeout=RUN_CAP,
         )
         self.assertEqual(
-            proc.exit, 1,
+            proc.exit, 0,
             proc.stderr or proc.stdout or "check-ignore did not match",
         )
         self.assertIn("lane.local.conf", proc.stdout)
