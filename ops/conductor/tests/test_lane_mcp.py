@@ -213,12 +213,20 @@ class _LaneMcpFixture(unittest.TestCase):
         )
 
     def _stage_tool_bytes(self) -> None:
-        # Red proof: stage the kit's absent stand-in so each assertion
-        # fails on the contract rather than a missing-file suite error.
-        self.staged = self.world.stage(
-            self.world.path("absent") / "lane_mcp.py",
-            "lane_mcp.py",
-        )
+        self.staged = self.world.stage(TOOL, "lane_mcp.py", siblings=SIBLINGS)
+        if TOOL.is_file():
+            self.assertEqual(
+                self.staged.read_bytes(),
+                TOOL.read_bytes(),
+                "copy-tool-bytes did not land intact",
+            )
+            for name in SIBLINGS:
+                sibling = self.staged.with_name(name)
+                self.assertEqual(
+                    sibling.read_bytes(),
+                    TOOL.with_name(name).read_bytes(),
+                )
+        self.assertTrue(self.staged.is_file())
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         self.world.plant_bytes(path, data)
