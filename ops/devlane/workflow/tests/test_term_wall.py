@@ -1,10 +1,9 @@
-import os
 import re
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 CHECK = Path(__file__).resolve().parents[1] / "checks" / "term_wall.py"
 PATTERN = "zz[q]orblat"
@@ -12,58 +11,44 @@ PLANT = "zzqorblat"
 MASK = "[forbidden name]"
 
 
-class TermWallTest(unittest.TestCase):
-    def setUp(self):
-        self.temporary_directory = tempfile.TemporaryDirectory()
-        self.root = Path(self.temporary_directory.name)
-        self._git("init", "-q")
-        self._git("config", "user.name", "Term Wall Test")
-        self._git("config", "user.email", "term-wall-test@example.invalid")
+class TermWallFixture:
+    WORLD = World
 
-    def tearDown(self):
-        self.temporary_directory.cleanup()
+    def setUp(self):
+        self.world = self.WORLD(prefix="term-wall-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.cwd
+        self._git("init", "-q")
 
     def _git(self, *arguments):
-        return subprocess.run(
+        return run(
             ["git", "-C", str(self.root), *arguments],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
+            cwd=self.root,
             env=self._environment(PATTERN),
+            timeout=60,
+            expect=0,
         )
 
     def _environment(self, pattern=PATTERN):
-        environment = {
-            "PATH": os.environ.get("PATH", os.defpath),
-            "HOME": str(self.root),
-            "LANG": "C",
-            "LC_ALL": "C",
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-        }
+        extra = {}
         if pattern is not None:
-            environment["TERM_WALL"] = pattern
-        return environment
+            extra["TERM_WALL"] = pattern
+        return self.world.env(extra)
 
     def _run(self, *arguments, pattern=PATTERN, input_text=None, cwd=None):
-        return subprocess.run(
+        return run(
             [sys.executable, str(CHECK), *map(str, arguments)],
-            cwd=str(cwd or self.root),
+            cwd=cwd or self.root,
             env=self._environment(pattern),
-            input=input_text,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
+            stdin=input_text,
+            timeout=60,
         )
 
     def _track(self, relative_path, content, binary=False):
-        path = self.root / relative_path
-        path.parent.mkdir(parents=True, exist_ok=True)
         if binary:
-            path.write_bytes(content)
+            path = self.world.plant_bytes(self.root / relative_path, content)
         else:
-            path.write_text(content, encoding="utf-8")
+            path = self.world.plant_text(self.root / relative_path, content)
         self._git("add", "--", relative_path)
         return path
 
@@ -72,14 +57,14 @@ class TermWallTest(unittest.TestCase):
         return self._git("rev-parse", "HEAD").stdout.strip()
 
     def assertClean(self, result):
-        self.assertEqual(0, result.returncode, result)
+        self.assertEqual(0, result.exit, result)
         self.assertEqual("", result.stderr)
         lines = result.stdout.splitlines()
         self.assertEqual(1, len(lines), result.stdout)
         self.assertTrue(lines[0].strip())
 
     def assertHit(self, result, surface):
-        self.assertEqual(1, result.returncode, result)
+        self.assertEqual(1, result.exit, result)
         self.assertEqual("", result.stderr)
         lines = result.stdout.splitlines()
         self.assertGreaterEqual(len(lines), 1)
@@ -89,7 +74,7 @@ class TermWallTest(unittest.TestCase):
         self.assertMasked(result)
 
     def assertRefusal(self, result, refusal_class):
-        self.assertEqual(2, result.returncode, result)
+        self.assertEqual(2, result.exit, result)
         self.assertEqual("", result.stdout)
         lines = result.stderr.splitlines()
         self.assertEqual(1, len(lines), result.stderr)
@@ -103,6 +88,8 @@ class TermWallTest(unittest.TestCase):
         self.assertNotIn(PLANT, combined)
         self.assertNotIn(PLANT.upper(), combined)
 
+
+class TermWallTest(TermWallFixture, unittest.TestCase):
     def test_clean_tree(self):
         self._track("notes.txt", "ordinary text\n")
         self.assertClean(self._run("--root", self.root))
@@ -116,13 +103,15 @@ class TermWallTest(unittest.TestCase):
         self.assertHit(self._run("--root", self.root), "path")
 
     def test_message_file_clean(self):
-        message = self.root / "message.txt"
-        message.write_text("An ordinary commit message\n", encoding="utf-8")
+        message = self.world.plant_text(
+            self.root / "message.txt", "An ordinary commit message\n"
+        )
         self.assertClean(self._run("--message-file", message))
 
     def test_message_file_planted(self):
-        message = self.root / "message.txt"
-        message.write_text(f"Mention {PLANT.upper()} here\n", encoding="utf-8")
+        message = self.world.plant_text(
+            self.root / "message.txt", f"Mention {PLANT.upper()} here\n"
+        )
         self.assertHit(self._run("--message-file", message), "message")
 
     def test_range_clean(self):
@@ -154,8 +143,9 @@ class TermWallTest(unittest.TestCase):
         self.assertRefusal(result, "range")
 
     def test_not_a_git_work_tree_refuses(self):
-        with tempfile.TemporaryDirectory() as directory:
-            result = self._run("--root", directory, cwd=directory)
+        directory = self.world.root / "not-a-git-work-tree"
+        directory.mkdir()
+        result = self._run("--root", directory, cwd=directory)
         self.assertRefusal(result, "root")
 
     def test_unset_and_empty_pattern_refuse(self):
@@ -170,9 +160,9 @@ class TermWallTest(unittest.TestCase):
                 )
 
     def test_pattern_falls_back_to_conf_file(self):
-        config = self.root / "ops" / "bin" / "term-wall.conf"
-        config.parent.mkdir(parents=True)
-        config.write_text(PATTERN + "\n", encoding="utf-8")
+        self.world.plant_text(
+            self.root / "ops" / "bin" / "term-wall.conf", PATTERN + "\n"
+        )
         self._track("notes.txt", f"configured match: {PLANT}\n")
         self.assertHit(
             self._run("--root", self.root, pattern=None),
