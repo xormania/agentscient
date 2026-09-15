@@ -22,11 +22,12 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import time
 from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import World, run
 
 OWNER_IDENT = "xormania <127287135+xormania@users.noreply.github.com>"
 OWNER_NAME = "xormania"
@@ -104,6 +105,8 @@ def _envelope_obj(job="plan", *, omit=(), extra=None):
 
 class _ParserLaunch(ls._TempLaunch):
     """Helpers for the stdout-envelope parser."""
+
+    world: World
 
     def parse_envelope(self, raw, job="plan", sha="SHA", note=None):
         launch = self.load_launch()
@@ -227,16 +230,16 @@ class SnapshotCommitIdentityIgnoresEnvOverrides(_ParserLaunch):
             self.assertEqual(os.environ[key], value)
             self.assertNotEqual(value, OWNER_NAME)
             self.assertNotEqual(value, OWNER_EMAIL)
-        author = subprocess.run(
+        author = run(
             ["git", "var", "GIT_AUTHOR_IDENT"],
-            cwd=self.repo, capture_output=True, text=True,
+            cwd=self.repo, env=self.env, timeout=60,
         )
-        committer = subprocess.run(
+        committer = run(
             ["git", "var", "GIT_COMMITTER_IDENT"],
-            cwd=self.repo, capture_output=True, text=True,
+            cwd=self.repo, env=self.env, timeout=60,
         )
-        self.assertEqual(author.returncode, 0, author.stderr)
-        self.assertEqual(committer.returncode, 0, committer.stderr)
+        self.assertEqual(author.exit, 0, author.stderr)
+        self.assertEqual(committer.exit, 0, committer.stderr)
         self.assertIn(DECOY_AUTHOR_NAME, author.stdout)
         self.assertIn(DECOY_AUTHOR_EMAIL, author.stdout)
         self.assertIn(DECOY_COMMITTER_NAME, committer.stdout)
@@ -347,8 +350,7 @@ class CloseCollectsTheHarnessStream(_ParserLaunch):
 
         session_id = "22222222-2222-4222-8222-222222222222"
         home = d / "home" / "grok"
-        home.mkdir(parents=True)
-        (home / "auth.json").write_text("{}\n", encoding="utf-8")
+        self.world.plant_text(home / "auth.json", "{}\n")
         stores = ls.load_path(self, ls.STORES_PATH, "task_launch_stores")
         stores.build_grok_store(
             home, str(snap.resolve()),
@@ -368,17 +370,15 @@ class CloseCollectsTheHarnessStream(_ParserLaunch):
         self.assertEqual(planted_model, ls.RAN_MODEL)
 
         envelope = _envelope_obj(job="plan")
-        (d / "raw.out").write_text(
-            json.dumps(envelope) + "\n", encoding="utf-8",
-        )
-        (d / "exit").write_text("0\n", encoding="utf-8")
-        (d / "prompt.txt").write_text("planted brief\n", encoding="utf-8")
+        self.world.plant_text(d / "raw.out", json.dumps(envelope) + "\n")
+        self.world.plant_text(d / "exit", "0\n")
+        self.world.plant_text(d / "prompt.txt", "planted brief\n")
         pid = self.dead_pid()
-        (d / "state.json").write_text(json.dumps({
+        self.world.plant_text(d / "state.json", json.dumps({
             "pid": pid, "pgid": pid,
             "session": {"id": session_id},
             "stream": None, "attempt": 1,
-        }) + "\n", encoding="utf-8")
+        }) + "\n")
         self.assertTrue((d / "exit").is_file(), "plant: exit is present")
         self.assertTrue(streams[0].is_file(), "plant: stream sits on disk")
 
@@ -408,8 +408,8 @@ class CloseCollectsTheHarnessStream(_ParserLaunch):
         record_path = (
             self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
         )
-        record_path.write_text(
-            json.dumps(seed, indent=2) + "\n", encoding="utf-8",
+        self.world.plant_text(
+            record_path, json.dumps(seed, indent=2) + "\n",
         )
         planted = json.loads(record_path.read_text(encoding="utf-8"))
         self.assertEqual(planted["status"], "launched")
