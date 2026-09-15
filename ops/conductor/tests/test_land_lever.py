@@ -32,9 +32,7 @@ from live_store_guard import IGNORE, TOLERATE_NEW
 from ops.testkit import Result, Timeout, World, run
 
 REPO = Path(__file__).resolve().parents[3]
-# Red proof: point at an absent path so World.stage plants the kit's
-# stand-in and test_the_tool_file_is_present fails its own assertion.
-TOOL = REPO / "ops" / "conductor" / "tools" / "land.py.absent"
+TOOL = REPO / "ops" / "conductor" / "tools" / "land.py"
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
