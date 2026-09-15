@@ -36,10 +36,9 @@ import launch_support as ls
 
 from ops.testkit import World, make_executable
 
-# Absent stand-in first: World.stage of a missing file plants the
-# family's empty stub so each assertion fails on the contract, not on a
-# missing path. Flip to ls.APP / "launch.py" after the red is proven.
-_SUBJECT = ls.APP / "launch.py.absent-stand-in"
+# World.stage copies launch.py into the world; an absent file still
+# plants the family's empty stub used to prove red.
+_SUBJECT = ls.APP / "launch.py"
 _WRAPPER = Path(__file__).resolve().parent / "fixtures" / "codex_wrapper.py"
 
 

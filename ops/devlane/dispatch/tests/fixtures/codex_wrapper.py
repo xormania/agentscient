@@ -1,5 +1,5 @@
-# testkit: exempt planted Codex wrapper; a fake CLI, not a suite
 #!/usr/bin/env python3
+# testkit: exempt planted Codex wrapper; a fake CLI, not a suite
 """Wrap the planted Codex CLI: record argv, probe writes, optional vendor reject.
 
 Placeholders __ARGV_PROBE__, __WRITE_PROBE__, __INNER__, __REJECT__ and
