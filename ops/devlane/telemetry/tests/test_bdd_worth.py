@@ -6,6 +6,8 @@ import unittest
 import test_worth as worth_contract
 import test_worth_dispatches as dispatch_meter
 
+from ops.testkit import World  # noqa: F401 - the import rule (docs/tests.md rule 1)
+
 
 class WorthScenarios(unittest.TestCase):
     def setUp(self):
