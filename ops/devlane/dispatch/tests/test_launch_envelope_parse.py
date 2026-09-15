@@ -142,7 +142,7 @@ class MidlineEnvelopeOnStdoutIsParsed(ls._TempLaunch):
             "parsed stdout is not an invalid close: "
             f"envelope={envelope!r}",
         )
-        self.assertNotEqual(
+        self.assertEqual(
             envelope.get("note"), unique_note,
             "the planted envelope must be the one on the record, not "
             f"a reconstructed stand-in: envelope={envelope!r}",
@@ -222,7 +222,7 @@ class StringStampIsNotAModelId(ls._TempLaunch):
             f"recorded stamp is an object, got {stamp!r}",
         )
         # Stated reason: a SHA labelled as a model id.
-        self.assertEqual(
+        self.assertNotEqual(
             stamp.get("model"), STRING_STAMP_SHA,
             "a string stamp that is a SHA must not be stored under "
             f"stamp.model (a SHA is not a model id): stamp={stamp!r}",
