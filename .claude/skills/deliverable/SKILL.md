@@ -76,6 +76,33 @@ is what a session does so the refusal never fires.
    reached, never the target: a plan that names a later item still
    leaves the target short.
 
+   **Shown before the first command** (owner, 2026-09-15: the target is
+   only as good as the measure the session writes from the words; row
+   P-DONEGATE-20260915-shown-line): before any work, the session says
+   one line to the owner, with the until text and the live reading from
+   `show` in it, in this shape:
+
+       I will count this done when <until>; it reads <reading> now.
+
+   A target the owner has not seen is the session's paraphrase.
+
+   **Then the owner types `/goal`** (row P-DONEGATE-20260915-goal-line).
+   Claude Code judges a typed condition after every turn with a separate
+   small model and keeps the session working until the judge reads it
+   met (`code.claude.com/docs/en/goal`, read 2026-09-15 on 2.1.272). A
+   session cannot type it for itself, so the line above ends by asking
+   for it, in this shape:
+
+       /goal deliverable.py done <branch> prints done; paste the reading every turn
+
+   The judge reads the conversation and runs nothing, so the session
+   runs `deliverable.py done <branch>` and pastes its line every turn;
+   while short, the refusal line with the reading is the status. The
+   standing form of the same check is the prompt-based Stop hook in
+   `.claude/settings.json` (grant 237, row P-DONEGATE-20260915-stop-prompt):
+   a reply that reports the deliverable done without that line pasted is
+   sent back with the reason, until the line is there.
+
 3. **The estimate,** if one is asked for, is the measured rate from the
    records with its count, never the happy path.
 

@@ -162,6 +162,16 @@
             "command": "python3 $CLAUDE_PROJECT_DIR/ops/devlane/hooks/claude/engine.py"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "done gate for the agentscient lane. Input: $ARGUMENTS. Read last_assistant_message only. Block only when BOTH hold: (a) the message reports the session's deliverable, order, task, plan or migration to the owner as done, complete, finished, landed, all done, fully migrated or ready, as a claim of completion and not as a question, a plan of what will be done, or a quotation of the owner's words; and (b) the message contains no pasted output of deliverable.py, which has exactly three shapes: a line beginning 'done lane/' (the done verb, met); a line beginning 'target: expected the measure to read' (the done verb's refusal, carrying the found reading); or a line beginning 'target lane/' and carrying '; reading ' and 'met' or 'short' (the show verb). When both hold respond exactly {\"ok\": false, \"reason\": \"done gate: the reply reports done without the lock's reading. Run python3 ops/conductor/tools/deliverable.py done <branch> for each branch this session named in the lock and paste its line verbatim into the reply; if it refuses, replace the claim with the reading and the word short; if the lock names no target for this session, paste deliverable.py show and say so.\"}. In every other case, including a message that already carries such a line, a status that says short with a reading, a message with no completion claim, or stop_hook_active true with a reading present, respond {\"ok\": true}.",
+            "timeout": 30,
+            "statusMessage": "done gate"
+          }
+        ]
       }
     ]
   }
