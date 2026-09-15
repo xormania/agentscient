@@ -20,14 +20,14 @@ producer is absent by the owner's word.
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import support
+
+from ops.testkit import World, run
 
 HOOKS = Path(__file__).resolve().parents[1]
 ENGINE = HOOKS / "claude" / "engine.py"
@@ -44,12 +44,17 @@ def row(klass, event="PreToolUse", when=None, tools=("Bash",), escape="none", **
     return base
 
 
+def _completed(result):
+    """The kit's Result in the shape the assertions below read."""
+    return SimpleNamespace(returncode=result.exit, stdout=result.stdout, stderr=result.stderr)
+
+
 class _Engine(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="engine-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
+        self.world = World(prefix="engine-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.home = self.world.home
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
         self.env = support.isolated_env(self.home)
@@ -73,8 +78,8 @@ class _Engine(unittest.TestCase):
         if tool_response is not None:
             payload["tool_response"] = tool_response
         payload.update(extra or {})
-        return subprocess.run([sys.executable, str(ENGINE)], input=json.dumps(payload), cwd=str(self.repo),
-                              env=env or self.env, capture_output=True, text=True, check=False, timeout=60)
+        return _completed(run([sys.executable, str(ENGINE)], cwd=self.repo, env=env or self.env,
+                              stdin=json.dumps(payload), timeout=60))
 
     def bash(self, command, event="PreToolUse", **kw):
         return self.run_event(event, "Bash", {"command": command}, **kw)
@@ -419,7 +424,8 @@ class TheLiveRegistryIsEvaluable(unittest.TestCase):
     def test_every_engine_row_names_known_predicates_and_events(self):
         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))
         self.assertEqual(data["schema"], "agentscient.boundaries/2")
-        proc = subprocess.run([sys.executable, str(ENGINE), "lint"], capture_output=True, text=True, check=False)
+        with World(prefix="engine-lint-") as world:
+            proc = _completed(run([sys.executable, str(ENGINE), "lint"], cwd=HOOKS, env=world.env(), timeout=60))
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         report = json.loads(proc.stdout)
         self.assertEqual(report["unknown_predicates"], [])
