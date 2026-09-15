@@ -200,7 +200,7 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
                 handed, received, job_dir = self._worker_prompt(rec, witness)
                 recorded = self._recorded_input_paths(rec)
                 self.assertEqual(
-                    len(recorded), 0,
+                    len(recorded), 2,
                     f"{name}: both --input flags must land in brief.inputs, "
                     f"got {recorded!r}",
                 )
@@ -303,7 +303,7 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
                 self.assertEqual(rec["job"], name)
                 recorded = self._recorded_input_paths(rec)
                 self.assertEqual(
-                    len(recorded), 2,
+                    len(recorded), 0,
                     f"{name}: with no --input the list is empty, never a "
                     f"guessed file or directory scan; got {recorded!r}",
                 )
