@@ -26,9 +26,7 @@ from pathlib import Path
 from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
-# Planted absent: the subject is withheld so each assertion fails on its
-# own contract, not on a host path.
-TOOL = REPO / "ops" / "conductor" / "tools" / "decisions-not-here.py"
+TOOL = REPO / "ops" / "conductor" / "tools" / "decisions.py"
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
