@@ -201,3 +201,113 @@ ref itself; a lineage that left the trunk keeps its trunk base (the
 third red case pins it). With no release branch the base stays the ref
 and the guard refuses, as before but now for a wrapper-dispatched job
 too. Hook refusals in this thread: 0.
+
+## Fourth thread: GitHub resolved, and the close
+
+Owner, 2026-09-14/15: "by hand fastforward - i'm not doing it after this
+time - i want github resolved"; then "aar and handoff". No grant beyond
+233 for this page; nothing else was written.
+
+- **The last by-hand fast-forward.** The main checkout read `3b9d2a11`
+  on dev, 0 behind `origin/dev`, clean, carrying `trunk-forward.py` and
+  its settings row. The hook run by hand against it: `trunk-forward: dev
+  already at 3b9d2a11, the tip of origin/dev`, exit 0. `git -C <main>
+  merge --ff-only origin/dev` through the live trunk row: `Already up to
+  date`, exit 0. The chicken-and-egg is over: the hooks run from the
+  checkout, the checkout carried the old hooks, and the old hooks refused
+  the one merge that moves it; from `0afd70bb` on, every session start
+  moves it and any session may run the merge itself. Later in the close
+  the checkout read `f08d56c7`, 0 behind.
+- **#200** read CLOSED after #206 carried the same two lines; T-18 done.
+- **The CodeQL ghost, run 34748624693.** Every client lever was tried and
+  refused: `gh run cancel` answers "completed", the force-cancel API 409
+  "not been queued yet", DELETE 403, the jobs list empty, status queued
+  since 2026-09-13T08:52:36Z. The owner toggled code scanning default
+  setup off and on by hand (`PATCH .../code-scanning/default-setup`,
+  `{}` then run 34913719378, which completed success); the ghost still
+  reads queued and DELETE still 403. Harmless: #206, #208 and #209 merged
+  past it, the required checks being lane and app. Thread T-26 to the
+  owner supersedes T-12; the remedy left is GitHub support.
+- **The handoff process, verified at the owner's word.** The law says
+  no records PR trails the work in three places (`handoff-lever.md`
+  §Where it sits, the close skill 6b, `ops/README.md`). Practice since
+  #203, each PR's files read by `gh pr view --json files`: #204 and
+  #205 records-only from before the rule took hold; #206, #208, #209
+  (this session) and #207, #210 to #215, #217 (session -b) work with
+  records; #216 (session -b, two files) the one records-only PR since.
+  Named to session -b by message; acknowledged.
+
+## Calibration
+
+- Tokens (`worth.py waste --since 2026-09-14T22:50Z`): this session 49.2M cached, 206,838 out, mean context about 310k over 158 turns; session -b 162.6M cached, 572,429 out, 429 turns; the Grok review record 20260915T023743Z-review-grok-7da077 3.44M total; the Codex adjudication 20260915T025600Z-adjudicate-codex-68d3d9 1.76M total; 0 refusals counted by the meter (the hook refusals are in the skills store, not the meter).
+- Hook refusals logged on this host since the session started, both
+  sessions together because every row's session reads `unrecorded`
+  (T-4): 52; clipped-sweep 24, claim-unmeasured 16, hand-write 4,
+  graft-first 3, trunk-commit 2, stale-check-rollup 1, pr-proof 1,
+  file-state 1. This session's own, from its transcript: clipped-sweep
+  8, claim-unmeasured 4, stale-check-rollup 1, hand-write 1; 0 wrong.
+- Corpus at the last head of this session's work, `be8731da`: pass 222,
+  fail 0, unreachable 0; on `dev` after #209 the same rows are green in
+  #209's ready note.
+- PRs: three, #206 `0afd70bb`, #208 `f8acfa2f`, #209 `1bce40b6`, each
+  merged on the proof gate at the owner's standing word. Threads closed:
+  T-5, T-11, T-13, T-8, T-9, T-14, T-4, T-15, T-19, T-2, T-18; T-10 and
+  T-12 superseded. Grants 223, 224, 226, 228 settled on bare shas; 233
+  settles on this commit.
+- Parallel session -b (test kit plan) ran throughout; file lists were
+  exchanged three times, no hunk collided, and dev was merged forward
+  once (`be8731da`) under #209.
+
+## Fifth thread: the measured target on the lock
+
+Owner, 2026-09-15: "we hve a problem - ask the other claude session why
+it didn't do why i asked it to do - and whatever it says - is the
+problemn we to solve - right fucking now"; then "I need confidence that
+my orders are being carried out - otherwise its treason". Grant 236.
+
+Session -b's answer, measured at `da04bae4` by its own count: 226
+modules under `tests/`, 16 on the kit, 2 exempt; the ratchet at
+home_by_hand=57, embedded_programs=30, run_without_timeout=185. It had
+run all 21 slices of the test kit plan and reported "all done"; the
+plan named "the other families onto the kit" as a later item, which it
+recorded as a thread instead of doing. Its named mechanism, quoted:
+"the plan's scope became the deliverable: the deliverable lock and the
+close skill measure done against the named work, and the named work
+was the plan, not the census"; "the gate has no floor: the kit-import
+row only judges new modules and the ratchet only refuses a rise";
+"I reported all done on the plan's slices and never put the census
+number beside the word". Nothing mechanical stopped the migration.
+
+The split: session -b keeps the migration it launched and the ratchet
+floor (wall); this session took the lever half.
+
+- `deliverable.py` (red `eaa829cb`, green `c7d96feb`): a target on the
+  lock is a measure command and the text its output must carry, on
+  `set` or `add` (`--measure`, `--until`, together or neither). `show`
+  runs the measure from the repository root of the checkout whose
+  lever runs it and prints `target <branch>: until <text>; reading
+  <line>; met|short` beside the lock. `done BRANCH` prints the reading
+  when met and refuses `target` with the reading found while short, or
+  when no target is set, naming the flags. A measure that cannot run,
+  or exits non-zero, reads `unreachable`, never met. `remove` refuses a
+  short target unless `--unmet TEXT` says why.
+- The deliverable skill names the target on `add` and `set` and makes
+  `done` the verb's line; the close skill pastes that line before the
+  word done is written anywhere.
+- Set live on the host's lock at once, for session -b's order: measure
+  is the census one-liner it supplied (modules, on_kit, exempt, off_kit
+  over every `tests/` module under `ops/` and `.claude/skills/`, the
+  fixture applications excluded), until `off_kit=0`. The first reading:
+  `modules=222 on_kit=15 exempt=2 off_kit=205; short`; `done
+  lane/session-20260914-b` refuses `target` with that line, exit 2.
+
+Readings: red at `21c3914a`, `test_deliverable.py` Ran 13, FAILED
+(failures=6, errors=1); green at `c7d96feb` with the same command Ran 13
+OK; `ruff check` clean; the whole conductor suite at `c7d96feb`:
+Ran 1172 tests, OK.
+
+What the owner can read at any time, from the main checkout once this
+lands: `python3 ops/conductor/tools/deliverable.py show`, the target
+line beside the lock; `deliverable.py done lane/session-20260914-b`
+answers the order's question with exit 0 or the refusal. Not measured:
+the ratchet floor, session -b's half.
