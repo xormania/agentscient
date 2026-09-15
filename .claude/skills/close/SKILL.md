@@ -86,6 +86,11 @@ checked after is the record that was wrong today.
 
    Every grant settled with evidence; this session's branches removed from the lock (`deliverable.py remove`) when the
    deliverable has landed, or left set with the reason in the handoff.
+   Landed is a reading: when the lock carries a target, `deliverable.py
+   done <branch>` prints it or refuses `target` with the reading found,
+   and that line is pasted here before the word done is written anywhere
+   (owner, 2026-09-15: a session reported a plan's slices all done with
+   the target short; the named work is never the target).
 
 6b. **Handoffs.** What this branch still has claimed, then the package for
    whoever comes next, both in the state engine's store and never in a

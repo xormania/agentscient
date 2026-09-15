@@ -126,6 +126,99 @@ class TheLockLever(unittest.TestCase):
                 before = self.lock.read_text()
         self.assertEqual(json.loads(self.lock.read_text())["branches"], ["lane/b"])
 
+    def measure_tool(self, text: str) -> str:
+        """A measure command: prints ``text`` and exits 0."""
+        tool = self.tmp / "measure.py"
+        tool.write_text(f"import sys\nsys.stdout.write({text!r})\n", encoding="utf-8")
+        return f"{sys.executable} {tool}"
+
+    def test_a_target_is_stored_and_show_prints_the_live_reading_beside_it(self):
+        """Owner, 2026-09-15, on a session that reported a plan's slices all
+        done with 210 of 226 test modules still off the kit: "whatever it
+        says - is the problem we to solve - right fucking now". The
+        session named "done" was measured against the named work, never
+        against the owner's target. A target on the lock is a measure
+        command and the reading it must contain; show runs it and prints
+        met or short beside the target, so the number sits next to the
+        word every time the lock is read."""
+        measure = self.measure_tool("on_kit=16/226\n")
+        proc = self.run_lever("add", "lane/x", "--why", "every family onto the kit",
+                              "--measure", measure, "--until", "on_kit=226/226")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        data = json.loads(self.lock.read_text())
+        self.assertEqual(data["targets"]["lane/x"], {"measure": measure, "until": "on_kit=226/226"})
+        shown = self.run_lever("show", identity=False)
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=16/226; short", shown.stdout)
+        met = self.measure_tool("on_kit=226/226 at abc1234\n")
+        proc = self.run_lever("set", "lane/y", "--why", "y", "--measure", met, "--until", "on_kit=226/226")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        shown = self.run_lever("show", identity=False)
+        self.assertIn("target lane/y: until on_kit=226/226; reading on_kit=226/226 at abc1234; met", shown.stdout)
+        self.assertNotIn("lane/x", json.loads(self.lock.read_text())["branches"], "set replaces")
+
+    def test_measure_without_until_or_until_without_measure_refuses_arguments(self):
+        for extra in (("--measure", "true"), ("--until", "x")):
+            with self.subTest(extra=extra):
+                proc = self.run_lever("add", "lane/x", "--why", "w", *extra)
+                self.assertEqual(proc.returncode, 2, proc.stdout)
+                self.assertRegex(proc.stderr.strip(), r"^arguments: expected .+; found .+; needed .+$")
+
+    def test_done_refuses_target_while_the_reading_is_short_and_prints_it_when_met(self):
+        measure = self.measure_tool("on_kit=16/226\n")
+        self.run_lever("add", "lane/x", "--why", "w", "--measure", measure, "--until", "on_kit=226/226")
+        proc = self.run_lever("done", "lane/x")
+        self.assertEqual(proc.returncode, 2, proc.stdout)
+        self.assertEqual(proc.stdout, "")
+        line = proc.stderr.strip()
+        self.assertRegex(line, r"^target: expected .+; found .+; needed .+$")
+        self.assertIn("on_kit=226/226", line)
+        self.assertIn("on_kit=16/226", line)
+        self.assertEqual(len(proc.stderr.strip().splitlines()), 1)
+        met = self.measure_tool("modules on_kit=226/226\nsecond line\n")
+        self.run_lever("add", "lane/x", "--why", "w", "--measure", met, "--until", "on_kit=226/226")
+        proc = self.run_lever("done", "lane/x")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "done lane/x: modules on_kit=226/226")
+
+    def test_done_on_a_branch_with_no_target_refuses_target_naming_the_flags(self):
+        self.run_lever("add", "lane/x", "--why", "the slices")
+        proc = self.run_lever("done", "lane/x")
+        self.assertEqual(proc.returncode, 2, proc.stdout)
+        line = proc.stderr.strip()
+        self.assertRegex(line, r"^target: expected .+; found .+; needed .+$")
+        self.assertIn("--measure", line)
+        self.assertIn("--until", line)
+        absent = self.run_lever("done", "lane/nobody")
+        self.assertEqual(absent.returncode, 2)
+        self.assertRegex(absent.stderr.strip(), r"^absent: ")
+
+    def test_a_measure_that_cannot_run_is_unreachable_never_met(self):
+        self.run_lever("add", "lane/x", "--why", "w", "--measure", f"{sys.executable} {self.tmp}/missing.py",
+                       "--until", "on_kit=226/226")
+        shown = self.run_lever("show", identity=False)
+        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assertIn("target lane/x: until on_kit=226/226; reading unreachable", shown.stdout)
+        proc = self.run_lever("done", "lane/x")
+        self.assertEqual(proc.returncode, 2, proc.stdout)
+        self.assertIn("unreachable", proc.stderr)
+
+    def test_remove_refuses_a_short_target_unless_a_reason_is_given(self):
+        measure = self.measure_tool("on_kit=16/226\n")
+        self.run_lever("add", "lane/x", "--why", "w", "--measure", measure, "--until", "on_kit=226/226")
+        proc = self.run_lever("remove", "lane/x")
+        self.assertEqual(proc.returncode, 2, proc.stdout)
+        self.assertRegex(proc.stderr.strip(), r"^target: expected .+; found .+; needed .+$")
+        self.assertTrue(self.lock.exists())
+        proc = self.run_lever("remove", "lane/x", "--unmet", "owner 2026-09-15: stop here")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "removed lane/x unmet (owner 2026-09-15: stop here); no lock")
+        met = self.measure_tool("on_kit=226/226\n")
+        self.run_lever("add", "lane/y", "--why", "w", "--measure", met, "--until", "on_kit=226/226")
+        proc = self.run_lever("remove", "lane/y")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "removed lane/y; no lock")
+
     def test_clear_removes_it_and_show_says_no_lock(self):
         self.run_lever("set", "lane/a", "--why", "x")
         proc = self.run_lever("clear")
