@@ -18,49 +18,6 @@ import support  # noqa: F401  (puts the harness dir on sys.path)
 
 import isolation
 
-# RED STAND-IN: empty registry, wrong seams, and a silent CLI so each
-# method fails its own pin. Removed after the red proof.
-from pathlib import Path as _RedPath
-_RED_CLI = _RedPath("/tmp/isolation-red-standin.py")
-_RED_CLI.write_text("import sys\nsys.exit(0)\n", encoding="utf-8")
-isolation.__file__ = str(_RED_CLI)
-isolation.HARNESSES = {}
-
-
-def _red_real_home(harness, env):
-    return "/stand-in-home"
-
-
-def _red_build_home(harness, root, env=None):
-    p = Path(root) / "stand-in-home"
-    p.mkdir(parents=True, exist_ok=True)
-    (p / "not-the-credential").write_text("x", encoding="utf-8")
-    return str(p)
-
-
-def _red_dispatch_env(harness, home=None, env=None):
-    return {"STAND_IN": "1"}
-
-
-def _red_dispatch_flags(harness):
-    return ["--stand-in"]
-
-
-def _red_isolated(harness, root, env=None):
-    return {"STAND_IN": "1"}, ["--stand-in"]
-
-
-def _red_report():
-    return "{}"
-
-
-isolation._real_home = _red_real_home
-isolation.build_home = _red_build_home
-isolation.dispatch_env = _red_dispatch_env
-isolation.dispatch_flags = _red_dispatch_flags
-isolation.isolated = _red_isolated
-isolation.report = _red_report
-
 
 EXPECTED_HARNESSES = {
     "claude": {
