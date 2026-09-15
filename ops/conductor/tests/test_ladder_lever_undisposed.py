@@ -18,16 +18,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 import sys
+import threading
 import unittest
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
+from test_ladder_lever import RUN_CAP, _completed, _LadderFixture
 
-from test_ladder_lever import RUN_CAP, _LadderFixture  # noqa: E402
+from ops.testkit import World, run
 
 RECORD_ID = r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$"
 ANSWER_KEY = r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}#[1-9][0-9]*$"
@@ -62,64 +60,7 @@ def _finding(tag: str) -> dict:
 
 SECURITY_FINDINGS = (_finding("SEC1"), _finding("SEC2"))
 ADVERSARIAL_FINDINGS = (_finding("ADV1"), _finding("ADV2"))
-
-FINDINGS_CITED_PY = r'''
-from __future__ import annotations
-import json
-import os
-import sys
-from pathlib import Path
-
-STUB = Path("@@STUB@@")
-argv = sys.argv[1:]
-log = STUB / "findings-argv.jsonl"
-with log.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(argv) + "\n")
-plant_path = STUB / "plant.json"
-plant = json.loads(plant_path.read_text(encoding="utf-8"))
-plant.setdefault("cwds", []).append(os.getcwd())
-plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-if plant.get("ledger_fail"):
-    sys.stderr.write(
-        "ledger: expected a writable findings export; found a write error; "
-        "needed a writable ledger\n"
-    )
-    raise SystemExit(3)
-if argv and argv[0] == "cited":
-    if len(argv) < 2 or not str(argv[1]).strip():
-        sys.stderr.write(
-            "key: expected KEY; found none; needed findings.py cited KEY\n"
-        )
-        raise SystemExit(2)
-    key = argv[1]
-    calls = [c.get("name") for c in plant.get("calls") or []]
-    if plant.get("revoke_after_fix_tests") and "fix-tests" in calls:
-        sys.stdout.write(key + "\topen\n")
-        raise SystemExit(1)
-    dispositions = plant.get("dispositions") or {}
-    citation = dispositions.get(key)
-    n = str(key).rsplit("#", 1)[-1] if "#" in str(key) else ""
-    if citation in (None, "", "open") and plant.get("cite_first_only") and n == "1":
-        citation = (
-            "contract item 9 of .dev/ladder-inputs/scope-gate-20260910.md"
-        )
-    if citation in (None, "", "open") and plant.get("cited_all"):
-        citation = (
-            "contract item 9 of .dev/ladder-inputs/scope-gate-20260910.md"
-        )
-    if citation in (None, "", "open"):
-        sys.stdout.write(key + "\topen\n")
-        raise SystemExit(1)
-    text = str(citation)
-    if text.startswith("uncited"):
-        sys.stdout.write(key + "\t" + text + "\n")
-        raise SystemExit(1)
-    sys.stdout.write(key + "\t" + text + "\n")
-    raise SystemExit(0)
-if argv and argv[0] == "export":
-    sys.stdout.write("{}\n")
-raise SystemExit(0)
-'''.lstrip()
+UNKNOWN_KEY = "20260901T000000Z-review-grok-aaaaaa#1"
 
 DISPATCH_FINDINGS_NEEDLE = "findings = []\n"
 DISPATCH_FINDINGS_INSERT = (
@@ -136,7 +77,7 @@ class _UndisposedFixture(_LadderFixture):
     def _plant_stub_scripts(self) -> None:
         super()._plant_stub_scripts()
         self._extend_dispatch_stage_findings()
-        self._extend_findings_cited()
+        self._plant_findings()
 
     def _extend_dispatch_stage_findings(self) -> None:
         path = self.stub_dir / "dispatch.py"
@@ -156,48 +97,65 @@ class _UndisposedFixture(_LadderFixture):
         landed = path.read_text(encoding="utf-8")
         self.assertIn("stage_findings", landed)
 
-    def _extend_findings_cited(self) -> None:
-        body = self._fill(FINDINGS_CITED_PY)
+    def _plant_findings(
+        self,
+        *,
+        cited_all: bool = False,
+        cite_first_only: bool = False,
+    ) -> None:
+        responses = [{"match": ["export"], "stdout": "{}\n", "exit": 0}]
+        if cite_first_only:
+            responses.insert(
+                0,
+                {"match": ["cited", "#1"], "stdout": CITATION + "\n", "exit": 0},
+            )
+        if cited_all:
+            cited_response = {"match": ["cited"], "stdout": CITATION + "\n", "exit": 0}
+        else:
+            cited_response = {
+                "match": ["cited"],
+                "stdout": UNKNOWN_KEY + "\topen\n",
+                "exit": 1,
+            }
+        responses.append(cited_response)
+        planted = self.world.tools.plant(
+            "findings",
+            responses=responses,
+        )
         dest = self.stub_dir / "findings.py"
-        self._plant_bytes(dest, body.encode("utf-8"))
-        landed = dest.read_text(encoding="utf-8")
-        self.assertIn("dispositions", landed)
-        self.assertIn('argv[0] == "cited"', landed)
-        self.assertIn("revoke_after_fix_tests", landed)
-        self.assertIn("cite_first_only", landed)
+        self.world.plant_bytes(dest, planted.read_bytes())
+        self.assertIn("fake_program import serve", dest.read_text(encoding="utf-8"))
 
     def setUp(self):
         super().setUp()
+        self.world: World
         wt = self.repo / "ops" / "conductor" / "tools" / "findings.py"
         self.assertTrue(wt.is_file(), wt)
-        self.assertIn("dispositions", wt.read_text(encoding="utf-8"))
+        self.assertIn("fake_program import serve", wt.read_text(encoding="utf-8"))
         self.assertIn(
             "stage_findings",
             (self.stub_dir / "dispatch.py").read_text(encoding="utf-8"),
         )
-        probe = self.cited_probe("20260901T000000Z-review-grok-aaaaaa#1")
+        probe = self.cited_probe(UNKNOWN_KEY)
         self.assertEqual(
             probe.returncode, 1,
             f"cited stub must treat an unknown key as open: "
             f"{probe.stdout!r} {probe.stderr!r}",
         )
         self.assertIn("\topen", probe.stdout)
-        log = self.stub_dir / "findings-argv.jsonl"
+        log = self.world.tools.log_path("findings")
         if log.exists():
             log.unlink()
         self.assertEqual(self.findings_argvs(), [])
 
     def cited_probe(self, key: str):
         tool = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        return subprocess.run(
+        return _completed(run(
             [sys.executable, str(tool), "cited", key],
             cwd=str(self.invoke_cwd),
             env=self.env(),
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
-        )
+        ))
 
     def plant_undisposed_audit(
         self,
@@ -220,6 +178,10 @@ class _UndisposedFixture(_LadderFixture):
             "revoke_after_fix_tests": revoke_after_fix_tests,
         }
         self.patch_plant(**updates)
+        self._plant_findings(
+            cited_all=cited_all or revoke_after_fix_tests,
+            cite_first_only=cite_first_only,
+        )
         plant = self.load_plant()
         self.assertEqual(plant["verdicts"].get("security"), "changes")
         self.assertEqual(plant["verdicts"].get("adversarial"), "changes")
@@ -244,9 +206,49 @@ class _UndisposedFixture(_LadderFixture):
             revoke_after_fix_tests,
         )
 
+    def patch_plant(self, **updates) -> dict:
+        plant = super().patch_plant(**updates)
+        if updates.get("dispositions"):
+            self._plant_findings(cited_all=True)
+        elif {
+            "cited_all",
+            "cite_first_only",
+            "revoke_after_fix_tests",
+        } & updates.keys():
+            self._plant_findings(
+                cited_all=bool(
+                    updates.get("cited_all")
+                    or updates.get("revoke_after_fix_tests")
+                ),
+                cite_first_only=bool(updates.get("cite_first_only")),
+            )
+        return plant
+
     def run_undisposed(self, **plant_kw):
         self.plant_undisposed_audit(**plant_kw)
-        return self.run_ladder()
+        if not plant_kw.get("revoke_after_fix_tests"):
+            return self.run_ladder()
+        stop = threading.Event()
+
+        def revoke_after_dispatch() -> None:
+            while not stop.wait(0.001):
+                try:
+                    if "fix-tests" in self.dispatch_names():
+                        self._plant_findings()
+                        return
+                except (json.JSONDecodeError, OSError):
+                    continue
+
+        watcher = threading.Thread(target=revoke_after_dispatch, daemon=True)
+        watcher.start()
+        try:
+            return self.run_ladder()
+        finally:
+            stop.set()
+            watcher.join(timeout=RUN_CAP)
+
+    def findings_argvs(self) -> list[list[str]]:
+        return [row["argv"] for row in self.world.tools.calls("findings")]
 
     def closed_envelope(self, name: str) -> dict:
         rec_id = self.record_id_for(name)
