@@ -14,9 +14,9 @@ import sys
 import unittest
 from pathlib import Path
 
-from ops.testkit import World, run
-
 from test_ladder_lever import AGENT, RUN_CAP, _LadderFixture
+
+from ops.testkit import World, run
 
 NINE = ("tests", "check-tests", "tests-fix", "code", "security", "adversarial",
         "fix-tests", "fix-code", "security-re")
@@ -33,20 +33,6 @@ def _plan(cls: str | None, name: str = "slice-x") -> str:
 
 
 class _StageSetFixture(_LadderFixture):
-    def setUp(self):
-        super().setUp()
-        # Planted invalid subject and empty table: every assertion fails
-        # on its own contract, not on a missing World.
-        self.assertIsInstance(self.world, World)
-        self.world.plant_text(
-            self.staged,
-            "import json, sys\njson.dump({'contract': []}, sys.stdout)\n",
-        )
-        self.world.plant_text(
-            self.table_path(),
-            json.dumps({"lane": [], "contract": []}) + "\n",
-        )
-
     def table_path(self) -> Path:
         return self.repo / "ops" / "conductor" / "stage-sets.json"
 
@@ -57,13 +43,14 @@ class _StageSetFixture(_LadderFixture):
             self.git("commit", "-m", "remove table\n")
             self.assertFalse(self.table_path().exists())
             return
-        text = json.dumps({"lane": [], "contract": []}) + "\n"
+        text = json.dumps(table, indent=2) + "\n"
         self.world.plant_text(self.table_path(), text)
         self.git("add", rel)
         self.git("commit", "-m", "plant table\n")
         self.assertEqual(
             json.loads(self.table_path().read_text(encoding="utf-8")), table,
         )
+        self.assertIsInstance(self.world, World)
 
     def skipped_by_set(self, record: dict, cls: str) -> list[str]:
         return [
