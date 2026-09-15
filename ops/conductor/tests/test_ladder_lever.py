@@ -255,7 +255,11 @@ class _LadderFixture(unittest.TestCase):
         self.maxDiff = None
         self.world = World(prefix="ladder-lever-")
         self.world.require("git")
-        self._live = self.world.watch(*_live_store_paths(), ignore=IGNORE, tolerate_new=TOLERATE_NEW)
+        # Presence, kind and immediate names only: the guard's contract
+        # (ops/conductor/test-store-guard.md); the live store is large and
+        # shared with running dispatches, and reading its bytes is neither
+        # promised nor affordable.
+        self._live = self.world.watch(*_live_store_paths(), ignore=IGNORE, tolerate_new=TOLERATE_NEW, contents=False)
         self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO, self.world.env()).strip()
         self._diff_before = run(["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=RUN_CAP).stdout
         root = self.world.root
@@ -1963,6 +1967,11 @@ class DerivedCommandContract(_LadderFixture):
         scope = self.implement_scope_text(argv)
         self.assertIn("python3 -m unittest discover", scope)
         self.assertIn("test_alpha.py", scope)
+        # Ruled rank 5 (record 20260915T025600Z-adjudicate-codex-68d3d9): both
+        # planted test modules of the one directory reach the command, joined.
+        self.assertIn("test_beta.py", scope)
+        self.assertIn(" && ", scope)
+        self.assertEqual(len(scope.split(" && ")), 2, scope)
         self.assertNotIn(
             SCOPE_FIRST, scope,
             "implement {scope} is the named command, not the work-order",

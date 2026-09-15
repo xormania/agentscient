@@ -72,4 +72,16 @@ MUTANTS = [
         '        because = "unstated"\n',
         "a retry with no reason, or a reason with no stage, is taken",
     ),
+    # ruled rank 5 (record 20260915T025600Z-adjudicate-codex-68d3d9): only the
+    # first test module of each tests/ directory reaches the implement command
+    Mutant(
+        "M-derive-first-per-directory", SUBJECT,
+        '                commands.append(\n'
+        '                    "python3 -m unittest discover "\n',
+        '                if any(c.startswith(f"python3 -m unittest discover -s {shlex.quote(path.parent.as_posix())} ") for c in commands):\n'
+        '                    continue\n'
+        '                commands.append(\n'
+        '                    "python3 -m unittest discover "\n',
+        "the second test module in a directory is never run",
+    ),
 ]

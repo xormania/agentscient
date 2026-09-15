@@ -69,6 +69,18 @@ class TheRatchet(_Ratchet):
         self.assertIn("ops/x/tests/test_new.py", result.stdout)
         self.assertIn("never rise", result.stdout)
 
+    def test_a_rising_count_under_a_nested_tests_path_is_reported(self):
+        # Ruled rank 7 (record 20260915T025600Z-adjudicate-codex-68d3d9):
+        # test_modules read only the immediate children of a tests/ directory,
+        # so tests/fakes/ grew the debt uncounted.
+        self.plant("test_a.py", CLEAN)
+        self.write_baseline()
+        self.world.plant_text(self.root / "ops" / "x" / "tests" / "fakes" / "prog.py", RUN_NO_TIMEOUT)
+        result = self.check()
+        self.assertEqual(result.exit, 1, result.stdout + result.stderr)
+        self.assertIn("run_without_timeout: 0 -> 1", result.stdout)
+        self.assertIn("ops/x/tests/fakes/prog.py", result.stdout)
+
     def test_an_equal_count_exits_zero(self):
         self.plant("test_a.py", HOME_BY_HAND + RUN_NO_TIMEOUT)
         self.write_baseline()

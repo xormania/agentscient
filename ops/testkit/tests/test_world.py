@@ -50,6 +50,25 @@ class Environment(unittest.TestCase):
         finally:
             del os.environ["WORLD_TEST_AMBIENT"]
 
+    def test_enter_keeps_a_named_ambient_value_in_process_and_restores_the_host(self):
+        # Ruled rank 4 (record 20260915T025600Z-adjudicate-codex-68d3d9): enter
+        # cleared os.environ before reading the ambient names from it.
+        os.environ["WORLD_TEST_AMBIENT"] = "named-value"
+        before = dict(os.environ)
+        try:
+            world = World(ambient=("WORLD_TEST_AMBIENT",))
+            self.assertEqual(world.env()["WORLD_TEST_AMBIENT"], "named-value")
+            world.enter()
+            try:
+                self.assertEqual(os.environ.get("WORLD_TEST_AMBIENT"), "named-value",
+                                 "an in-process subject sees the named ambient value")
+                self.assertEqual(os.environ["HOME"], str(world.home))
+            finally:
+                world.close()
+            self.assertEqual(dict(os.environ), before)
+        finally:
+            os.environ.pop("WORLD_TEST_AMBIENT", None)
+
     def test_enter_restores_os_environ(self):
         before = dict(os.environ)
         world = World()
@@ -113,6 +132,36 @@ class Watching(unittest.TestCase):
             (store / "kept").unlink()
             with self.assertRaises(AssertionError):
                 watch.assert_unchanged(self)
+
+    def test_watch_reports_a_rewritten_file_and_a_rewritten_child_of_a_watched_directory(self):
+        # Ruled rank 1 (record 20260915T025600Z-adjudicate-codex-68d3d9): a
+        # snapshot of names alone let a rewrite in place pass as unchanged.
+        with World() as world:
+            planted = world.plant_text("watched.txt", "before\n")
+            file_watch = world.watch(planted)
+            file_watch.assert_unchanged(self)
+            planted.write_text("after\n", encoding="utf-8")
+            with self.assertRaises(AssertionError):
+                file_watch.assert_unchanged(self)
+            store = world.root / "store"
+            (store / "sub").mkdir(parents=True)
+            inner = store / "sub" / "inner.txt"
+            inner.write_text("before\n", encoding="utf-8")
+            dir_watch = world.watch(store, ignore=(r"\.tmp\.[a-z]{3}",), tolerate_new=(r"^job-\d+$",))
+            dir_watch.assert_unchanged(self)
+            inner.write_text("after\n", encoding="utf-8")
+            with self.assertRaises(AssertionError):
+                dir_watch.assert_unchanged(self)
+            inner.write_text("before\n", encoding="utf-8")
+            dir_watch.assert_unchanged(self)
+            # the declared exclusions reach the children too
+            (store / "sub" / ".tmp.xyz").write_text("scratch", encoding="utf-8")
+            (store / "job-9").mkdir()
+            (store / "job-9" / "record.json").write_text("{}", encoding="utf-8")
+            dir_watch.assert_unchanged(self)
+            (store / "sub" / "added.txt").write_text("x", encoding="utf-8")
+            with self.assertRaises(AssertionError):
+                dir_watch.assert_unchanged(self)
 
     def test_compare_drops_a_removed_original_entry_only_from_expected_never_from_actual(self):
         # The planted fault: a compare that ignores a removed original entry.

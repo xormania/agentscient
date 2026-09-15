@@ -1,0 +1,245 @@
+{
+  "id": "20260915T023743Z-review-grok-7da077",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "f08d56c777a593b6cd6cff9e3960cf22a96f8ef2"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T02:37:43Z",
+    "closed": "2026-09-15T02:53:47Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "f08d56c777a593b6cd6cff9e3960cf22a96f8ef2",
+    "ref_sha": "f08d56c777a593b6cd6cff9e3960cf22a96f8ef2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "fd660a80-1729-4169-a6f2-e4e34b11db04",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok-stream/sessions/<snapshot-encoded>/fd660a80-1729-4169-a6f2-e4e34b11db04/summary.json"
+  },
+  "session": {
+    "id": "fd660a80-1729-4169-a6f2-e4e34b11db04",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok-stream/sessions/<snapshot-encoded>/fd660a80-1729-4169-a6f2-e4e34b11db04/summary.json",
+    "stream_sha256_at_close": "c64226ad7114022c32606bc350690a6dabb5c813da921c2e5534345e9b01a272",
+    "spend": {
+      "input": 3393030,
+      "cached": 3035136,
+      "output": 47397,
+      "total": 3440427,
+      "cost_usd_ticks": 8560309200,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok-stream/sessions/<snapshot-encoded>/fd660a80-1729-4169-a6f2-e4e34b11db04/summary.json",
+      "messages": 345
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Adversarial review of the test kit work of 2026-09-14, PRs #210 to #216 on dev (last merge aba8600a), one producer by hand against docs/tests.md and in/PLAN.md. In scope: ops/testkit/**; ops/conductor/tests/test_ladder_tables.py, test_ladder_refusals.py, test_ladder_stops.py, ladder_faults*.py, fakes/ladder_*.py, live_store_guard.py, _LadderFixture in test_ladder_lever.py; the kit-import row in ops/devlane/hooks (claude/engine.py, boundaries.json, claude/matrix.py, tests/test_engine.py, tests/support.py, tests/gh_stub.py); ops/devlane/workflow/checks/testkit_ratchet.py and its test; launch.py _what_exists; the two prompts in ops/devlane/task/jobs.json. Out of scope: every other file of the diff. Aim at: a fault a kit consumer meets that the kit's 30 tests and 4 planted faults stay quiet on; a retired ladder test whose behaviour no row reaches; a row that agrees with the driver, not the contract; a hook row a session can slip past; a ratchet count that can rise unseen.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/in/PLAN.md",
+        "sha256": "f23a77a86306093e71afc7c59708f497b0a8dee4dcc26fc199535caa02f8c360"
+      }
+    ],
+    "sha256": "feac406630e7e6b12a9f10bb4828bd2bb731ca3f93db83ece86307c9fec5af7b",
+    "bytes": 10234,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/lane-mcp.json",
+      "sha256": "97f3f5650e3e16a5bc2f60c7324710f0b947784b1f918cc44eaeb9d62a5cef64",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "593b304faf84864168656cdb64c1bfb6523b26bbc853da46b89edb74fdaebf94"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T02:37:57Z",
+      "ended": "2026-09-15T02:53:47Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "f08d56c777a593b6cd6cff9e3960cf22a96f8ef2",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 5,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/testkit/world.py snapshot/Watch",
+          "claim": "World.watch/assert_unchanged is silent when a declared file's bytes change, and when a file inside a watched directory is rewritten in place. snapshot() records (\"other\", ()) for any non-directory and only the immediate child names of a directory, never contents. docs/tests.md promises before/after snapshots of declared paths; the kit's 30 tests and the planted compare fault (a removed directory entry dropped from expected) stay green, so a consumer using watch to prove a subject did not mutate a planted file gets a pass.",
+          "reproduce": "python3 -c \"from ops.testkit import World\\nwith World() as w:\\n    p=w.plant_text('watched.txt','before\\\\n'); watch=w.watch(p); p.write_text('after\\\\n', encoding='utf-8'); watch.assert_unchanged(); print('silent pass on file')\\n    d=w.root/'dir'; d.mkdir(); f=d/'inner.txt'; f.write_text('before\\\\n', encoding='utf-8'); w2=w.watch(d); f.write_text('after\\\\n', encoding='utf-8'); w2.assert_unchanged(); print('silent pass on dir child content')\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_tables.py DERIVED_COMMAND_CASES; retired ops/conductor/tests/test_ladder_lever.py DerivedCommand.test_two_test_artifacts_become_joined_discover_invocations",
+          "claim": "The retired ladder test ran the driver and required the implement scope to be two discovers of test_alpha.py and test_beta.py (same tests/ directory) joined with &&, length 2. No remaining row reaches that behaviour: two-artifacts-join-in-order feeds derive_command two modules in different tests/ directories; the leftover DerivedCommandContract.test_implement_scope_is_the_derived_command_not_the_work_order still plants both files but only asserts test_alpha.py is present. A driver that emits one discover per directory, or that passes only the first artifact through to implement, stays green on every current row.",
+          "reproduce": "python3 -c \"from pathlib import Path; from ops.conductor.tests.test_ladder_tables import DERIVED_COMMAND_CASES\\nfor r in DERIVED_COMMAND_CASES:\\n    t=[v for v in r.artifacts.values() if isinstance(v,str) and Path(v).name.startswith('test') and str(v).endswith('.py')]\\n    if len(t)>=2: print(r.id, t, {str(Path(x).parent) for x in t})\\ntext=Path('ops/conductor/tests/test_ladder_lever.py').read_text(); body=text.split('class DerivedCommandContract')[1].split('class ')[0]; print('test_beta.py in leftover e2e', 'test_beta.py' in body); print('&& in leftover e2e', ' && ' in body)\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_ladder_refusals.py arguments-input-flag-bare",
+          "claim": "The row requires class arguments and forbids the needed text of class input for argv SCOPE BRANCH PLAN --input with no path. ops/conductor/ladder-lever.md \u00a7Preconditions and refusals: arguments is when neither SCOPE BRANCH [PLAN] nor resume LADDER_ID was supplied; input is when a --input path is absent or unreadable, needed 'supply a readable input file'. The start form was supplied; the path is absent. The row matches ladder.py split_inputs (refuse arguments, found '--input with no path', needed 'name the input file'), not the contract table.",
+          "reproduce": "python3 -c \"from ops.conductor.tests.test_ladder_refusals import REFUSAL_CASES; r=next(x for x in REFUSAL_CASES if x.id=='arguments-input-flag-bare'); print(r.cls, r.argv, r.named, r.absent)\\nimport pathlib; md=pathlib.Path('ops/conductor/ladder-lever.md').read_text().split('## Preconditions and refusals')[1].split('## Stops')[0]; print(md)\\nprint(pathlib.Path('ops/conductor/tools/ladder.py').read_text().split('if item == \\\"--input\\\":')[1][:400])\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/hooks/claude/engine.py p_test_file_without_kit",
+          "claim": "The kit-import row is slipped by a session that never writes tests/<file>.py as a new path. TEST_MODULE is (^|/)tests/[^/]+\\.py$ so Write of ops/conductor/tests/fakes/test_new.py (unittest discover is recursive; that tree already holds tests/fakes/) is not a test module; os.path.exists short-circuits any later Edit/Write of a file created by touch or a prior allowed write; KIT_IMPORT is unanchored to the first ten lines, so a docstring line 'from ops.testkit import World' counts as the import. test_engine.py covers only a direct tests/ child, treats Edit of an existing module as a pass, and never sends MultiEdit. docs/tests.md rule 1 is 'a new test module under any tests/ directory'.",
+          "reproduce": "python3 -c \"import re; T=re.compile(r'(^|/)tests/[^/]+\\\\.py$'); K=re.compile(r'^\\\\s*(from\\\\s+ops\\\\.testkit(\\\\.\\\\w+)*\\\\s+import\\\\b|import\\\\s+ops\\\\.testkit\\\\b)', re.M); print('nested', bool(T.search('ops/conductor/tests/fakes/test_new.py'))); print('direct', bool(T.search('ops/x/tests/test_new.py'))); print('docstring', bool(K.search('\\\\\\\"\\\\\\\"\\\\\\\"\\\\nfrom ops.testkit import World\\\\n\\\\\\\"\\\\\\\"\\\\\\\"\\\\nimport unittest\\\\n'))); print('exists short-circuit', 'if os.path.exists(absolute):' in open('ops/devlane/hooks/claude/engine.py').read())\""
+        },
+        {
+          "severity": "p2",
+          "where": "ops/devlane/workflow/checks/testkit_ratchet.py test_modules/measure_module",
+          "claim": "The census ceiling can rise unseen. test_modules yields only files whose parent directory is named tests, so ops/conductor/tests/fakes/ladder_land.py is not scanned; measure_module on that file is run_without_timeout=5. measure_module counts only Attribute(subprocess).run without a timeout keyword, so 'from subprocess import run; run([...])' and 'subprocess.run(..., timeout=None)' do not move the count. The ratchet tests plant only ops/x/tests/*.py with subprocess.run(...) missing timeout. Slice 8 of this change placed the ladder fakes under tests/fakes/; CI can stay green while that tree, or the alias form, grows the debt the check claims to hold.",
+          "reproduce": "python3 -c \"from pathlib import Path; from ops.devlane.workflow.checks.testkit_ratchet import test_modules, measure_module; print('fakes scanned', any(p.as_posix().endswith('tests/fakes/ladder_land.py') for p in test_modules(Path('.')))); print('if scanned', measure_module(Path('ops/conductor/tests/fakes/ladder_land.py'))); import ast; src='from subprocess import run\\\\nrun([\\\"true\\\"])\\\\n'; print('alias Call', [ast.dump(n.func) for n in ast.walk(ast.parse(src)) if isinstance(n, ast.Call)]); src2='import subprocess\\\\nsubprocess.run([\\\"true\\\"], timeout=None)\\\\n'; print('timeout=None keywords', [[k.arg for k in n.keywords] for n in ast.walk(ast.parse(src2)) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr=='run'])\""
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 3440427,
+        "out": 47397,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "f08d56c777a593b6cd6cff9e3960cf22a96f8ef2",
+        "started": "2026-09-15T02:37:43Z",
+        "ended": "2026-09-15T02:52:05Z"
+      },
+      "note": "reused: lane MCP agentscient-lane (lane_brief, lane_jobs, lane_changes; lane_findings refused: no configured id), graft_repo_map, docs/tests.md, in/PLAN.md, ops/conductor/ladder-lever.md, CONTRIB.md review protocol"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T023743Z-review-grok-7da077/home/grok-stream/sessions/<snapshot-encoded>/fd660a80-1729-4169-a6f2-e4e34b11db04/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T02:53:46.275Z"
+    }
+  },
+  "status": "closed"
+}
