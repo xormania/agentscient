@@ -20,11 +20,11 @@ from __future__ import annotations
 import os
 import re
 import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -34,14 +34,6 @@ BARE_AGENT = "Test Author"
 
 # A kind string the contract cannot have listed as valid.
 BOGUS_KIND = "not-a-kind-xyzzy-9f3c1e2a"
-
-
-def _copy_unread(src: Path, dst: Path) -> None:
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    data = src.read_bytes()
-    dst.write_bytes(data)
-    if dst.read_bytes() != data:
-        raise AssertionError(f"copy of {src.name} did not land intact")
 
 
 class SkillsFixture(unittest.TestCase):
@@ -58,78 +50,58 @@ class SkillsFixture(unittest.TestCase):
             self._real_db.stat() if self._real_db.is_file() else None
         )
 
-        self._tmp = tempfile.TemporaryDirectory(prefix="skills-registry-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.repo = root / "repo"
-        self.scratch = root / "scratch"
-        for path in (self.home, self.repo, self.scratch):
-            path.mkdir()
-        (self.home / ".local" / "state" / "agentscient").mkdir(parents=True)
-        (self.home / ".claude").mkdir()
+        self.world = World(prefix="skills-registry-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.repo = self.world.cwd
+        self.scratch = self.world.tmp
+        (self.home / ".claude").mkdir(parents=True, exist_ok=True)
         self.skills = self.repo / ".claude" / "skills"
-        self.skills.mkdir(parents=True)
+        self.skills.mkdir(parents=True, exist_ok=True)
 
-        src = TOOLS / SKILLS_PY
-        self.assertTrue(src.is_file(), f"missing tool at {src}")
-        self.tool = self.repo / "ops" / "conductor" / "tools" / SKILLS_PY
-        _copy_unread(src, self.tool)
-        self.assertGreater(self.tool.stat().st_size, 0)
-        # The tool imports instrument.py beside itself, which loads
-        # laneconf.py beside it and reads ops/lane.conf two levels up
-        # (instrument-conventions.md §The shared implementation); the
-        # throwaway tree carries both and a conf naming the lane.
-        for sibling in ("instrument.py", "laneconf.py"):
-            _copy_unread(TOOLS / sibling, self.tool.parent / sibling)
-        (self.repo / "ops" / "lane.conf").write_text(
-            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n", encoding="utf-8"
+        tools = self.repo / "ops" / "conductor" / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        self.tool = self._plant_subject(tools)
+        self.world.plant_text(
+            self.repo / "ops" / "lane.conf",
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n",
+            recognisable="LANE_NAME",
         )
 
     def tearDown(self):
-        try:
-            if self._state_listing is not None:
-                self.assertEqual(
-                    frozenset(os.listdir(self._real_state)),
-                    self._state_listing,
-                    "live ~/.local/state/agentscient must be untouched",
-                )
-            if self._real_db_stat is None:
-                self.assertFalse(
-                    self._real_db.exists(),
-                    "must not create the live skills.db",
-                )
-            else:
-                now = self._real_db.stat()
-                self.assertEqual(now.st_mtime_ns, self._real_db_stat.st_mtime_ns)
-                self.assertEqual(now.st_size, self._real_db_stat.st_size)
-        finally:
-            self._tmp.cleanup()
+        if self._state_listing is not None:
+            self.assertEqual(
+                frozenset(os.listdir(self._real_state)),
+                self._state_listing,
+                "live ~/.local/state/agentscient must be untouched",
+            )
+        if self._real_db_stat is None:
+            self.assertFalse(
+                self._real_db.exists(),
+                "must not create the live skills.db",
+            )
+        else:
+            now = self._real_db.stat()
+            self.assertEqual(now.st_mtime_ns, self._real_db_stat.st_mtime_ns)
+            self.assertEqual(now.st_size, self._real_db_stat.st_size)
 
-    def _env(self, agent=None):
-        env = {
-            "HOME": str(self.home),
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "LANG": "C.UTF-8",
-            "LC_ALL": "C.UTF-8",
-            "PYTHONIOENCODING": "utf-8",
-            "TMPDIR": str(self.scratch),
-            "XDG_STATE_HOME": str(self.home / ".local" / "state"),
-        }
-        if agent is not None:
-            env["WF_AGENT"] = agent
-        return env
+    def _plant_subject(self, tools: Path) -> Path:
+        # RED: a stub that exits 99 with no output, so every assertion
+        # fails on its own promise rather than on a missing World.
+        del tools
+        return self.world.tools.plant("skills.py", stdout="", stderr="", exit=99)
 
     def _run(self, *argv, agent=None):
-        proc = subprocess.run(
+        extra = {"PYTHONIOENCODING": "utf-8"}
+        if agent is not None:
+            extra["WF_AGENT"] = agent
+        proc = run(
             [sys.executable, str(self.tool), *argv],
             cwd=str(self.repo),
-            env=self._env(agent=agent),
-            capture_output=True,
-            text=True,
+            env=self.world.env(extra=extra),
             timeout=30,
-            check=False,
         )
-        out = (proc.stdout or "") + (proc.stderr or "")
+        out = proc.stdout + proc.stderr
         return proc, out
 
     def _write_skill(self, dirname, name=None, description="a skill"):
@@ -143,9 +115,7 @@ class SkillsFixture(unittest.TestCase):
                 f"---\n\nbody\n"
             )
         path = folder / "SKILL.md"
-        path.write_text(body, encoding="utf-8")
-        self.assertTrue(path.is_file())
-        self.assertIn(description, path.read_text(encoding="utf-8"))
+        self.world.plant_text(path, body, recognisable=description)
         return path
 
     def _kind_from_refusal(self, text):
@@ -174,7 +144,7 @@ class SkillsFixture(unittest.TestCase):
             agent=AGENT,
         )
         self.assertNotEqual(
-            proc.returncode, 0,
+            proc.exit, 0,
             "bad --kind must be refused so the valid set can be named:\n"
             + out,
         )
@@ -196,7 +166,7 @@ class TestSync(SkillsFixture):
             "dir-alpha", name="front-name", description="front-desc",
         )
         proc, out = self._run("sync")
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         _, listed = self._run("list")
         _, shown = self._run("show", "front-name")
         blob = listed + shown + out
@@ -207,7 +177,7 @@ class TestSync(SkillsFixture):
         # Broken impl that requires a frontmatter name would drop this row.
         self._write_skill("fallback-dir", name=None, description="no-name-here")
         proc, out = self._run("sync")
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         _, listed = self._run("list")
         blob = listed + out
         self.assertIn("fallback-dir", blob)
@@ -216,11 +186,11 @@ class TestSync(SkillsFixture):
         # Broken impl that DELETEs vanished rows would drop keep-me.
         self._write_skill("keep-me", name="keep-me", description="stay")
         proc, out = self._run("sync")
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         shutil.rmtree(self.skills / "keep-me")
         self.assertFalse((self.skills / "keep-me").exists(), "plant: vanished")
         proc2, out2 = self._run("sync")
-        self.assertEqual(proc2.returncode, 0, out2)
+        self.assertEqual(proc2.exit, 0, out2)
         _, listed = self._run("list")
         _, shown = self._run("show", "keep-me")
         blob = listed + shown
@@ -230,12 +200,12 @@ class TestSync(SkillsFixture):
     def test_sync_promotes_wished_row_to_active_when_directory_appears(self):
         # Broken impl that leaves status=wished after the directory appears.
         proc, out = self._run("wish", "soon-real", "please exist", agent=AGENT)
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         _, shown_before = self._run("show", "soon-real")
         self.assertRegex(shown_before, r"wished")
         self._write_skill("soon-real", name="soon-real", description="here now")
         proc2, out2 = self._run("sync")
-        self.assertEqual(proc2.returncode, 0, out2)
+        self.assertEqual(proc2.exit, 0, out2)
         _, shown = self._run("show", "soon-real")
         self.assertRegex(shown, r"active")
         self.assertNotRegex(shown, r"wished")
@@ -245,7 +215,7 @@ class TestSync(SkillsFixture):
         shutil.rmtree(self.skills)
         self.assertFalse(self.skills.exists(), "plant: skills dir absent")
         proc, out = self._run("sync")
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertTrue(out.strip(), "refusal must say why")
         self.assertRegex(out, r"skill", re.IGNORECASE)
 
@@ -258,7 +228,7 @@ class TestAdd(SkillsFixture):
             "add", "fresh-kind", "desc", f"--kind={BOGUS_KIND}",
             "--status=draft", agent=AGENT,
         )
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertRegex(out, r"kind", re.IGNORECASE)
         kinds = self._kind_from_refusal(out)
         self.assertTrue(kinds, "refusal must name the valid set:\n" + out)
@@ -272,12 +242,12 @@ class TestAdd(SkillsFixture):
             "add", "dup-name", "first", f"--kind={kind}",
             "--status=draft", agent=AGENT,
         )
-        self.assertEqual(first.returncode, 0, out1)
+        self.assertEqual(first.exit, 0, out1)
         second, out2 = self._run(
             "add", "dup-name", "again", f"--kind={kind}",
             "--status=draft", agent=AGENT,
         )
-        self.assertNotEqual(second.returncode, 0, out2)
+        self.assertNotEqual(second.exit, 0, out2)
         self.assertRegex(out2, r"note|sync", re.IGNORECASE)
 
 
@@ -286,9 +256,9 @@ class TestRetire(SkillsFixture):
         # Broken impl that retires on `retire NAME` with no reason.
         self._write_skill("stay-put", name="stay-put", description="d")
         proc, out = self._run("sync")
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         refused, msg = self._run("retire", "stay-put", agent=AGENT)
-        self.assertNotEqual(refused.returncode, 0, msg)
+        self.assertNotEqual(refused.exit, 0, msg)
         self.assertRegex(msg, r"(?i)reason")
         _, shown = self._run("show", "stay-put")
         self.assertIn("stay-put", shown)
@@ -297,10 +267,10 @@ class TestRetire(SkillsFixture):
         # Broken impl that DELETEs the row, or records no reason.
         self._write_skill("old-one", name="old-one", description="d")
         proc, out = self._run("sync")
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         reason = "superseded-by-contract"
         done, msg = self._run("retire", "old-one", reason, agent=AGENT)
-        self.assertEqual(done.returncode, 0, msg)
+        self.assertEqual(done.exit, 0, msg)
         _, listed = self._run("list")
         _, shown = self._run("show", "old-one")
         blob = listed + shown + msg
@@ -311,28 +281,28 @@ class TestRetire(SkillsFixture):
 class TestEvents(SkillsFixture):
     def test_log_use_refused_without_wf_agent(self):
         self._write_skill("used", name="used", description="d")
-        self.assertEqual(self._run("sync")[0].returncode, 0)
+        self.assertEqual(self._run("sync")[0].exit, 0)
         proc, out = self._run("log-use", "used", "invoked in session")
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertRegex(out, r"WF_AGENT|agent", re.IGNORECASE)
 
     def test_log_fail_refused_without_wf_agent(self):
         self._write_skill("fails", name="fails", description="d")
-        self.assertEqual(self._run("sync")[0].returncode, 0)
+        self.assertEqual(self._run("sync")[0].exit, 0)
         proc, out = self._run("log-fail", "fails", "boom")
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertRegex(out, r"WF_AGENT|agent", re.IGNORECASE)
 
     def test_log_miss_refused_without_wf_agent(self):
         self._write_skill("missed", name="missed", description="d")
-        self.assertEqual(self._run("sync")[0].returncode, 0)
+        self.assertEqual(self._run("sync")[0].exit, 0)
         proc, out = self._run("log-miss", "missed", "did it by hand")
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertRegex(out, r"WF_AGENT|agent", re.IGNORECASE)
 
     def test_wish_refused_without_wf_agent(self):
         proc, out = self._run("wish", "ghost", "please exist")
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertRegex(out, r"WF_AGENT|agent", re.IGNORECASE)
 
     def test_events_refused_for_bare_wf_agent_name(self):
@@ -345,21 +315,21 @@ class TestEvents(SkillsFixture):
         )
         self.assertEqual(len(verbs), 4)
         self._write_skill("used", name="used", description="d")
-        self.assertEqual(self._run("sync")[0].returncode, 0)
+        self.assertEqual(self._run("sync")[0].exit, 0)
         for verb, args in verbs:
             proc, out = self._run(verb, *args, agent=BARE_AGENT)
-            self.assertNotEqual(proc.returncode, 0, f"{verb}: {out}")
+            self.assertNotEqual(proc.exit, 0, f"{verb}: {out}")
             self.assertTrue(out.strip(), f"{verb} refusal must say why")
 
     def test_wish_for_existing_name_refused_toward_log_miss(self):
         # Broken impl that wishes an on-disk skill instead of pointing at
         # log-miss.
         self._write_skill("already", name="already", description="d")
-        self.assertEqual(self._run("sync")[0].returncode, 0)
+        self.assertEqual(self._run("sync")[0].exit, 0)
         proc, out = self._run(
             "wish", "already", "should be a miss", agent=AGENT,
         )
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertRegex(out, r"log-miss", re.IGNORECASE)
 
     def test_log_miss_for_unknown_name_refused_toward_wish_or_sync(self):
@@ -367,7 +337,7 @@ class TestEvents(SkillsFixture):
         proc, out = self._run(
             "log-miss", "no-such-skill", "did it by hand", agent=AGENT,
         )
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertRegex(out, r"wish|sync", re.IGNORECASE)
 
     def test_wish_creates_wished_row_carrying_its_detail(self):
@@ -375,7 +345,7 @@ class TestEvents(SkillsFixture):
         # the detail.
         detail = "need-a-foo-for-bar-9f3c1e2a"
         proc, out = self._run("wish", "foo-skill", detail, agent=AGENT)
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
         _, listed = self._run("list")
         _, shown = self._run("show", "foo-skill")
         blob = listed + shown + out
@@ -389,20 +359,20 @@ class TestReport(SkillsFixture):
         # Broken impl that prints the name with the wrong tallies, or
         # only a combined total.
         self._write_skill("metered", name="metered", description="d")
-        self.assertEqual(self._run("sync")[0].returncode, 0)
+        self.assertEqual(self._run("sync")[0].exit, 0)
         for _ in range(3):
             proc, out = self._run("log-use", "metered", "used", agent=AGENT)
-            self.assertEqual(proc.returncode, 0, out)
+            self.assertEqual(proc.exit, 0, out)
         for _ in range(5):
             proc, out = self._run("log-fail", "metered", "boom", agent=AGENT)
-            self.assertEqual(proc.returncode, 0, out)
+            self.assertEqual(proc.exit, 0, out)
         for _ in range(7):
             proc, out = self._run(
                 "log-miss", "metered", "did it by hand", agent=AGENT,
             )
-            self.assertEqual(proc.returncode, 0, out)
+            self.assertEqual(proc.exit, 0, out)
         proc, report = self._run("report")
-        self.assertEqual(proc.returncode, 0, report)
+        self.assertEqual(proc.exit, 0, report)
         self.assertIn("metered", report)
         line = next(
             (ln for ln in report.splitlines() if "metered" in ln),
@@ -419,17 +389,17 @@ class TestReport(SkillsFixture):
         n_low = 0
         n_high = 0
         proc, _out = self._run("wish", low, "need-low", agent=AGENT)
-        if proc.returncode == 0:
+        if proc.exit == 0:
             n_low += 1
         for i in range(3):
             proc, _out = self._run(
                 "wish", high, f"need-high-{i}", agent=AGENT,
             )
-            if proc.returncode == 0:
+            if proc.exit == 0:
                 n_high += 1
         self.assertGreaterEqual(n_low, 1, "first wish for a new name must land")
         proc, report = self._run("report")
-        self.assertEqual(proc.returncode, 0, report)
+        self.assertEqual(proc.exit, 0, report)
         self.assertIn(low, report)
         self.assertIn(high, report)
         if n_high > n_low:
@@ -442,13 +412,13 @@ class TestReport(SkillsFixture):
     def test_report_zero_misses_caveat_only_when_no_miss_logged(self):
         # Broken impl that always prints the caveat, or never does.
         self._write_skill("caveat", name="caveat", description="d")
-        self.assertEqual(self._run("sync")[0].returncode, 0)
+        self.assertEqual(self._run("sync")[0].exit, 0)
         self.assertEqual(
-            self._run("log-use", "caveat", "used", agent=AGENT)[0].returncode,
+            self._run("log-use", "caveat", "used", agent=AGENT)[0].exit,
             0,
         )
         proc, report = self._run("report")
-        self.assertEqual(proc.returncode, 0, report)
+        self.assertEqual(proc.exit, 0, report)
         # Skill doc: report's zero-misses line is a "declared zero".
         caveat = re.search(
             r"(?i).*(declared zero|zero\s+miss|no\s+miss(?:es)?).*",
@@ -463,9 +433,9 @@ class TestReport(SkillsFixture):
         miss, miss_out = self._run(
             "log-miss", "caveat", "did it by hand", agent=AGENT,
         )
-        self.assertEqual(miss.returncode, 0, miss_out)
+        self.assertEqual(miss.exit, 0, miss_out)
         proc2, after = self._run("report")
-        self.assertEqual(proc2.returncode, 0, after)
+        self.assertEqual(proc2.exit, 0, after)
         self.assertNotIn(
             caveat_text.strip(),
             after,
@@ -478,25 +448,23 @@ class TestNegativeSpace(SkillsFixture):
         # Broken impl that treats empty the same as absent (nonzero).
         self.assertEqual(list(self.skills.iterdir()), [])
         proc, out = self._run("sync")
-        self.assertEqual(proc.returncode, 0, out)
+        self.assertEqual(proc.exit, 0, out)
 
     def test_malformed_frontmatter_does_not_drop_a_well_formed_sibling(self):
         # Broken impl that aborts the whole sync on one bad SKILL.md.
         self._write_skill("good", name="good", description="ok-desc")
         bad = self.skills / "bad" / "SKILL.md"
-        bad.parent.mkdir(parents=True)
         planted = "---\nname: [unterminated\n---\n"
-        bad.write_text(planted, encoding="utf-8")
+        self.world.plant_text(bad, planted, recognisable="[unterminated")
         self.assertNotEqual(
             bad.read_text(encoding="utf-8"),
             "---\nname: good\n---\n",
             "plant: malformed bytes must differ from a clean skill",
         )
-        self.assertIn("[unterminated", bad.read_text(encoding="utf-8"))
         proc, out = self._run("sync")
         self.assertNotIn("Traceback (most recent call last)", out)
         _, listed = self._run("list")
-        if proc.returncode == 0:
+        if proc.exit == 0:
             self.assertIn("good", listed + out)
         else:
             self.assertTrue(out.strip(), "refusal must say why")
@@ -506,13 +474,13 @@ class TestNegativeSpace(SkillsFixture):
         proc, out = self._run("list")
         self.assertNotIn("Traceback (most recent call last)", out)
         self.assertTrue(
-            proc.returncode == 0 or out.strip(),
+            proc.exit == 0 or out.strip(),
             "empty db must list empty or refuse with a reason",
         )
         proc2, out2 = self._run("report")
         self.assertNotIn("Traceback (most recent call last)", out2)
         self.assertTrue(
-            proc2.returncode == 0 or out2.strip(),
+            proc2.exit == 0 or out2.strip(),
             "empty db must report or refuse with a reason",
         )
 
