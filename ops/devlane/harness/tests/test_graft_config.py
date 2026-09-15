@@ -12,6 +12,7 @@ from pathlib import Path
 
 import support  # noqa: F401
 import graft_support as gs
+from ops.testkit import World  # noqa: F401 - GraftCase owns one
 
 
 class DisabledAndMalformedConfig(gs.GraftCase, unittest.TestCase):
