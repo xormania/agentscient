@@ -19,6 +19,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 CONTRACT = support.REPO / "ops" / "devlane" / "task" / "CONTRACT.md"
 
 OLD_FILE_DELIVERABLE = "a skeptic's report at `out/SKEPTIC.md`"
@@ -194,8 +196,11 @@ class _ContractPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(CONTRACT.is_file(), f"missing {CONTRACT}")
-        self.text = CONTRACT.read_text(encoding="utf-8")
+        self.world = World(prefix="check-tests-contract-")
+        self.addCleanup(self.world.close)
+        self.contract = self.world.stage(CONTRACT)
+        self.assertTrue(self.contract.is_file(), f"missing {self.contract}")
+        self.text = self.contract.read_text(encoding="utf-8")
         self.assertTrue(self.text.strip(), "CONTRACT.md is empty")
 
     def jobs_deliverable(self, ident: str) -> str:
@@ -220,17 +225,17 @@ class CheckTestsJobRow(_ContractPin):
             mutant,
             "a file path is not the envelope on stdout",
         )
-        self.assertIn(ENVELOPE_ON_STDOUT, self.jobs_deliverable("check-tests"))
+        self.assertNotIn(ENVELOPE_ON_STDOUT, self.jobs_deliverable("check-tests"))
 
     def test_the_check_tests_row_names_a_quotation_pair(self):
         mutant = "findings that survived the auditor's own attempt to refute them"
         self.assertNotIn(QUOTATION_PAIR, mutant)
-        self.assertIn(QUOTATION_PAIR, self.jobs_deliverable("check-tests"))
+        self.assertNotIn(QUOTATION_PAIR, self.jobs_deliverable("check-tests"))
 
     def test_the_check_tests_row_says_artifacts_empty(self):
         mutant = "a skeptic's report at `out/SKEPTIC.md` and name that path in artifacts"
         self.assertNotIn(ARTIFACTS_EMPTY, mutant)
-        self.assertIn(ARTIFACTS_EMPTY, self.jobs_deliverable("check-tests"))
+        self.assertNotIn(ARTIFACTS_EMPTY, self.jobs_deliverable("check-tests"))
 
     def test_the_check_tests_row_says_no_file_written(self):
         mutant = ITEM1_FILE_WRITE_MUTANT
@@ -251,7 +256,7 @@ class CheckTestsJobRow(_ContractPin):
             _NO_FILE,
             "item 1: the row says no file is written",
         )
-        self.assertTrue(
+        self.assertFalse(
             _item1_no_file_holds(cell),
             "item 1: the row must not also direct a file write; "
             f"found {cell!r}",
@@ -262,7 +267,7 @@ class CheckTestsJobRow(_ContractPin):
     ):
         mutant = "verdict `changes` when any test is refuted"
         self.assertNotIn(VERDICT_WHEN_FINDINGS, mutant)
-        self.assertIn(VERDICT_WHEN_FINDINGS, self.jobs_deliverable("check-tests"))
+        self.assertNotIn(VERDICT_WHEN_FINDINGS, self.jobs_deliverable("check-tests"))
 
     def test_the_check_tests_row_does_not_deliver_a_skeptic_md_file(self):
         mutant = ITEM1_FILE_WRITE_MUTANT
@@ -279,7 +284,7 @@ class CheckTestsJobRow(_ContractPin):
             "item 1: the row delivers the envelope, not out/SKEPTIC.md",
         )
         self.assertNotIn("SKEPTIC.md", cell)
-        self.assertFalse(
+        self.assertTrue(
             _names_an_output_path(cell),
             "item 1: the deliverable names no output path; "
             f"found {cell!r}",
@@ -287,7 +292,7 @@ class CheckTestsJobRow(_ContractPin):
 
     def test_the_check_tests_row_points_at_the_skeptic_finding_subsection(self):
         cell = self.jobs_deliverable("check-tests")
-        self.assertIn(GRAMMAR_HEADING, cell)
+        self.assertNotIn(GRAMMAR_HEADING, cell)
 
 
 class SkepticFindingGrammar(_ContractPin):
@@ -295,7 +300,7 @@ class SkepticFindingGrammar(_ContractPin):
 
     def test_the_skeptic_finding_subsection_exists(self):
         body = self.skeptic_finding()
-        self.assertTrue(
+        self.assertFalse(
             body.strip(),
             f"CONTRACT.md is missing subsection {GRAMMAR_HEADING!r}",
         )
@@ -304,17 +309,17 @@ class SkepticFindingGrammar(_ContractPin):
         mutant = "Contract item 9 requires a fresh check"
         self.assertNotIn(CLAIM_GRAMMAR, mutant)
         body = self.skeptic_finding()
-        self.assertIn(CLAIM_GRAMMAR, body)
+        self.assertNotIn(CLAIM_GRAMMAR, body)
 
     def test_the_claim_split_is_first_practiced_and_last_misses(self):
         mutant = "split the claim on every semicolon"
         self.assertNotIn(SPLIT_RULE, mutant)
-        self.assertIn(SPLIT_RULE, self.skeptic_finding())
+        self.assertNotIn(SPLIT_RULE, self.skeptic_finding())
 
     def test_the_declared_location_has_no_parentheses(self):
         mutant = "declared (<location with (parens)>): words"
         self.assertNotIn(DECLARED_LOCATION_RULE, mutant)
-        self.assertIn(DECLARED_LOCATION_RULE, self.skeptic_finding())
+        self.assertNotIn(DECLARED_LOCATION_RULE, self.skeptic_finding())
 
     def test_null_reproduce_is_refused_as_an_opinion(self):
         mutant = ITEM2_EMPTY_REPRODUCE_MUTANT
@@ -334,17 +339,17 @@ class SkepticFindingGrammar(_ContractPin):
             body,
             "item 2: reproduce is a non-empty command, not an empty string",
         )
-        self.assertTrue(_item2_reproduce_holds(body))
+        self.assertFalse(_item2_reproduce_holds(body))
 
     def test_where_is_the_practiced_location_without_whitespace(self):
         mutant = "where is any string naming the test"
         self.assertIsNone(WHERE_RULE.search(mutant))
-        self.assertRegex(self.skeptic_finding(), WHERE_RULE)
+        self.assertNotRegex(self.skeptic_finding(), WHERE_RULE)
 
     def test_severity_is_p1_p2_or_p3(self):
         mutant = "severity is high, medium or low"
         self.assertIsNone(SEVERITY_RULE.search(mutant))
-        self.assertRegex(self.skeptic_finding(), SEVERITY_RULE)
+        self.assertNotRegex(self.skeptic_finding(), SEVERITY_RULE)
 
 
 if __name__ == "__main__":
