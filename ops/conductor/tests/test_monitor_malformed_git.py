@@ -27,43 +27,177 @@ import contextlib
 import json
 import os
 import stat
+import sys
 import unittest
 from pathlib import Path
 
-from test_monitor import CONSUMER, NOW, _tree_files
+from test_monitor import CONSUMER, NOW, RUN_CAP, _tree_files
 from test_monitor_git_refs import (
     DEV,
     DEV_REF,
     MASTER,
     MASTER_REF,
     REMOTE_NAME,
+    REPO_EMAIL,
+    REPO_USER,
     _GitRefsFixture,
 )
+
+from ops.testkit import Result, Timeout, World, run
 
 MALFORMED_GIT_BYTES = b"not a gitdir pointer\n"
 BAD_MONITOR = "malformed_refs"
 OK_MONITOR = "healthy_refs"
 
 
+class _CompletedResult(Result):
+    """Kit result with the legacy fixture family's return-code spelling."""
+
+    @property
+    def returncode(self) -> int:
+        return self.exit
+
+
+def _completed(result: Result) -> _CompletedResult:
+    return _CompletedResult(
+        result.argv,
+        result.exit,
+        result.stdout,
+        result.stderr,
+        result.duration,
+        result.cwd,
+    )
+
+
 class _MalformedGitFixture(_GitRefsFixture):
     """Healthy git-refs sibling plus a planted malformed `.git` file."""
 
     def setUp(self):
-        super().setUp()
+        self.world = World(prefix="monitor-malformed-git-")
+        try:
+            super().setUp()
+        except Exception:
+            self.world.close()
+            raise
         self._restore_modes: list[tuple[Path, int]] = []
-        self.malformed = self.scratch / "malformed-src"
-        self.unread_store = self.scratch / "unread-git-store"
-        self.pointer_repo = self.scratch / "unknown-pointer-src"
+        self.malformed = self.world.cwd / "malformed-src"
+        self.unread_store = self.world.cwd / "unread-git-store"
+        self.pointer_repo = self.world.cwd / "unknown-pointer-src"
         self.assertFalse(self.malformed.exists(), "plant: malformed starts absent")
         self.assertFalse(
             self.git_argv_log.exists(), "plant: git argv log absent before sources"
         )
 
     def tearDown(self):
-        for path, mode in reversed(self._restore_modes):
-            with contextlib.suppress(OSError):
-                os.chmod(path, mode)
-        super().tearDown()
+        try:
+            for path, mode in reversed(self._restore_modes):
+                with contextlib.suppress(OSError):
+                    os.chmod(path, mode)
+            super().tearDown()
+        finally:
+            self.world.close()
+
+    def _plant_bytes(self, path: Path, data: bytes) -> None:
+        self.world.plant_bytes(path, data)
+
+    def _plant_git_shim(self) -> None:
+        """The target family needs only the passthrough side of the shared shim."""
+        self.bin = self.world.bin
+        self.gh = self.bin / "gh"
+        self.git_argv_log = self.world.tools.log_path("git")
+        self.world.tools.wrap("git")
+        self.world.plant_text(
+            self.git_control,
+            json.dumps({"mode": "passthrough"}) + "\n",
+        )
+
+    def env(self, *, agent=None, extra=None):
+        values = {
+            "PATH": self.path_without_gh(),
+            "LANE_CONF": str(self.conf_path),
+        }
+        if agent is not None:
+            values["WF_AGENT"] = agent
+        if extra:
+            for name, value in extra.items():
+                if value is None:
+                    values.pop(name, None)
+                else:
+                    values[name] = value
+        return self.world.env(values)
+
+    def git(self, repo: Path, *args: str, check: bool = True) -> Result:
+        proc = run(
+            [
+                self.real_git,
+                "-c",
+                f"user.name={REPO_USER}",
+                "-c",
+                f"user.email={REPO_EMAIL}",
+                "-c",
+                "commit.gpgsign=false",
+                "-C",
+                str(repo),
+                *args,
+            ],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=RUN_CAP,
+        )
+        if check:
+            self.assertEqual(proc.exit, 0, f"git {args} in {repo}: {proc.stderr or proc.stdout}")
+        return proc
+
+    def plant_pair(self) -> dict[str, str]:
+        self.origin.mkdir()
+        init_b = self.git(self.origin, "init", "--bare", "-b", MASTER)
+        self.assertEqual(init_b.exit, 0, init_b.stderr)
+        self.git_repo.mkdir()
+        init_w = self.git(self.git_repo, "init", "-b", MASTER)
+        self.assertEqual(init_w.exit, 0, init_w.stderr)
+        self.git(self.git_repo, "config", "user.name", REPO_USER)
+        self.git(self.git_repo, "config", "user.email", REPO_EMAIL)
+        readme = self.git_repo / "README"
+        self.world.plant_bytes(readme, b"git-refs fixture master\n")
+        self.git(self.git_repo, "add", "README")
+        self.git(self.git_repo, "commit", "-m", "master seed\n")
+        master_oid = self.oid(self.git_repo, "HEAD")
+        self.git(self.git_repo, "checkout", "-b", DEV)
+        self.world.plant_bytes(readme, b"git-refs fixture dev\n")
+        self.git(self.git_repo, "add", "README")
+        self.git(self.git_repo, "commit", "-m", "dev seed\n")
+        dev_oid = self.oid(self.git_repo, "HEAD")
+        self.assertNotEqual(dev_oid, master_oid)
+        self.git(self.git_repo, "remote", "add", REMOTE_NAME, str(self.origin))
+        self.git(self.git_repo, "push", REMOTE_NAME, DEV, MASTER)
+        self.git(self.git_repo, "checkout", MASTER)
+        self.assertEqual(self.oid(self.git_repo, DEV_REF), dev_oid)
+        self.assertEqual(self.oid(self.git_repo, MASTER_REF), master_oid)
+        self.assertEqual(self.tracking_oid(self.git_repo, DEV), dev_oid)
+        self.assertEqual(self.tracking_oid(self.git_repo, MASTER), master_oid)
+        return {"dev": dev_oid, "master": master_oid}
+
+    def invoke(
+        self,
+        argv: list[str],
+        *,
+        agent: str | None = None,
+        extra: dict[str, str | None] | None = None,
+        cwd: Path | None = None,
+        timeout: int | float | None = None,
+        new_session: bool = False,
+    ):
+        del new_session  # run owns the one process-session policy.
+        try:
+            result = run(
+                [sys.executable, str(self.staged), *argv],
+                cwd=cwd or self.world.cwd,
+                env=self.env(agent=agent, extra=extra),
+                timeout=RUN_CAP if timeout is None else timeout,
+            )
+        except Timeout as exc:
+            self.fail(f"monitor exceeded timeout: {exc}")
+        return _completed(result)
 
     def _chmod(self, path: Path, mode: int) -> None:
         previous = stat.S_IMODE(path.stat().st_mode)
@@ -220,13 +354,10 @@ class _MalformedGitFixture(_GitRefsFixture):
         return oids
 
     def git_argvs(self) -> list[list[str]]:
-        if not self.git_argv_log.is_file():
-            return []
-        rows = []
-        for line in self.git_argv_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        return [row["argv"] for row in self.world.tools.calls("git")]
+
+    def ls_remote_argvs(self) -> list[list[str]]:
+        return [argv for argv in self.git_argvs() if "ls-remote" in argv]
 
     def argv_targets_repo(self, argv: list[str], repo: Path) -> bool:
         resolved = repo.resolve()
@@ -490,7 +621,7 @@ class MalformedGitStorageOverlap(_MalformedGitFixture):
             MASTER,
             check=False,
         )
-        self.assertEqual(add_wt.returncode, 0, add_wt.stderr)
+        self.assertEqual(add_wt.exit, 0, add_wt.stderr)
         self.assertTrue((self.other_wt / "README").is_file())
         wt_git = self.other_wt / ".git"
         self.assertTrue(wt_git.is_file(), wt_git)
