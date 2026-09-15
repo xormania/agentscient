@@ -64,7 +64,7 @@ class TheDefectLever(unittest.TestCase):
                               cwd=kw.get("cwd"), identity=kw.get("identity", True))
 
     def assert_wire(self, proc, klass):
-        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stdout + proc.stderr)
         self.assertEqual(proc.stdout, "", "a refusal prints nothing on stdout")
         lines = proc.stderr.strip().splitlines()
         self.assertEqual(len(lines), 1, proc.stderr)
@@ -73,7 +73,7 @@ class TheDefectLever(unittest.TestCase):
     def test_next_reads_the_table_then_the_rows_directory(self):
         proc = self.run_lever("next", identity=False)
         self.assertEqual(proc.exit, 0, proc.stderr)
-        self.assertEqual(proc.stdout.strip(), "LD-1", "the table ends at LD-35")
+        self.assertEqual(proc.stdout.strip(), "LD-36", "the table ends at LD-35")
         (self.repo / ROWS).mkdir()
         self.world.plant_text(self.repo / ROWS / "LD-40.md", "# LD-40\n")
         proc = self.run_lever("next", identity=False)
@@ -81,7 +81,7 @@ class TheDefectLever(unittest.TestCase):
 
     def test_add_writes_one_file_per_row_and_prints_its_id_and_path(self):
         proc = self.add()
-        self.assertEqual(proc.exit, 1, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), f"LD-36 {ROWS / 'LD-36.md'}")
         text = (self.repo / ROWS / "LD-36.md").read_text()
         self.assertTrue(text.startswith("# LD-36\n"), text)
@@ -108,7 +108,7 @@ class TheDefectLever(unittest.TestCase):
         self.add()
         self.add(n_where="`z.py`", defect="second")
         shown = self.run_lever("show", "LD-37", identity=False)
-        self.assertEqual(shown.exit, 1, shown.stderr)
+        self.assertEqual(shown.exit, 0, shown.stderr)
         self.assertIn("| defect | second |", shown.stdout)
         self.assert_wire(self.run_lever("show", "LD-99", identity=False), "absent")
         listed = self.run_lever("list", identity=False)
@@ -119,7 +119,7 @@ class TheDefectLever(unittest.TestCase):
     def test_two_sessions_rows_merge_as_two_additions(self):
         """The reason for the shape: rows from two branches never touch."""
         self.git("checkout", "-q", "-b", "lane/a")
-        self.assertEqual(self.add(n_where="`a.py`").exit, 1)
+        self.assertEqual(self.add(n_where="`a.py`").exit, 0)
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "a: LD-36")
         self.git("checkout", "-q", "dev")
@@ -130,7 +130,7 @@ class TheDefectLever(unittest.TestCase):
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "b: LD-36")
         merge = self.git("merge", "--no-edit", "lane/a", expect=None)
-        self.assertEqual(merge.exit, 0, "the same id twice is an add/add conflict, loudly")
+        self.assertEqual(merge.exit, 1, "the same id twice is an add/add conflict, loudly")
         conflicted = self.git("diff", "--name-only", "--diff-filter=U").stdout.split()
         self.assertEqual(conflicted, [str(ROWS / "LD-36.md")], "only the row file, never the page")
         self.git("merge", "--abort")
