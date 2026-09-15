@@ -27,7 +27,8 @@ fails on `FAULTS.json`) and because the lever ignores `probe_timeout`
 Each is the intended assertion, not an import.
 
 The app's own `tests/`, probes, fixes, `FAULTS.json`, and the lever
-edit are the implementer's.
+edit are the implementer's. Worlds, commands and fakes go through
+ops/testkit.
 """
 
 from __future__ import annotations
@@ -36,14 +37,13 @@ import json
 import os
 import re
 import shutil
-import stat
-import subprocess
-import tempfile
 import unittest
 from pathlib import Path
 
 from test_fixture_lever import _LeverFixture, assert_refusal_wire
 from test_fixture_manifests import KIND_IDS, validate_manifest
+
+from ops.testkit import Timeout, World, make_executable, plant_text, run
 
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
@@ -51,6 +51,8 @@ APPS = REPO / "ops" / "devlane" / "fixtures" / "apps"
 APP = APPS / "symfony-app"
 MANIFEST = APP / "FAULTS.json"
 CALIBRATION = REPO / "ops" / "conductor" / "findings" / "calibration.jsonl"
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+CALIBRATE_STUB = FIXTURES / "calibrate_capture.py"
 
 APP_NAME = "symfony-app"
 AGENT = "Symfony App Fixture Tester <symfony-app-fixture@example.invalid>"
@@ -220,7 +222,7 @@ def _lint_the_lane_copies_under_the_lane_contract(made: Path) -> None:
     text = source.read_text(encoding="utf-8")
     if text.count('"ops/') < 1:
         raise AssertionError("the repository ruff.toml keys its rows under ops/")
-    (made / "ops" / "ruff.toml").write_text(text.replace('"ops/', '"'), encoding="utf-8")
+    plant_text(made / "ops" / "ruff.toml", text.replace('"ops/', '"'))
 
 LANE_COPY_PATHS = (
     "ops/devlane/fixtures/apps/FAULT-KINDS.md",
@@ -305,36 +307,14 @@ KIND_CLEAN = {
     "K8": re.compile(r"\$expected\s*=\s*\d+\s*;"),
 }
 
-CALIBRATE_STUB = r'''#!/usr/bin/env python3
-import os
-import sys
-from pathlib import Path
-
-def refuse(cls, expected, found, needed):
-    print(
-        f"{cls}: expected {expected}; found {found}; needed {needed}",
-        file=sys.stderr,
-    )
-    raise SystemExit(2)
-
-verb = sys.argv[1] if len(sys.argv) > 1 else ""
-if verb != "calibrate":
-    refuse("arguments", "calibrate", verb or "none", "name calibrate")
-agent = os.environ.get("WF_AGENT", "")
-if "<" not in agent or ">" not in agent:
-    refuse(
-        "identity",
-        "Name <address>",
-        agent or "unset",
-        "export WF_AGENT",
-    )
-capture = os.environ.get("CALIBRATE_CAPTURE")
-if not capture:
-    refuse("calibration", "CALIBRATE_CAPTURE", "unset", "set it in tests")
-Path(capture).write_text(sys.stdin.read(), encoding="utf-8")
-'''
-
 SLEEPER_PROBE = b"#!/bin/sh\nsleep 3\nexit 1\n"
+RED_PROOF = True
+
+
+def _own_red(case: unittest.TestCase) -> None:
+    """Planted pin so each method fails its own assertion before green."""
+    if RED_PROOF:
+        case.assertIsNone("kit-red-proof", f"{case.id()} must fail its own assertion")
 
 
 def load_json_object(path: Path) -> dict:
@@ -374,17 +354,6 @@ def _script_text(value) -> str:
     return ""
 
 
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...] | None]:
-    if not path.exists():
-        return ("absent", None)
-    if path.is_file():
-        return ("file", (str(path.stat().st_size),))
-    if not path.is_dir():
-        return ("other", None)
-    names = tuple(sorted(p.name for p in path.iterdir()))
-    return ("dir", names)
-
-
 def _live_fixture_roots() -> list[Path]:
     paths: list[Path] = []
     xdg = os.environ.get("XDG_STATE_HOME")
@@ -417,14 +386,6 @@ def _live_findings_stores() -> list[Path]:
         seen.add(resolved)
         unique.append(path)
     return unique
-
-
-def _plant_bytes(testcase: unittest.TestCase, path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    landed = path.read_bytes()
-    testcase.assertEqual(landed, data, f"plant did not land intact: {path}")
-    testcase.assertEqual(len(landed), len(data))
 
 
 def _where(span: dict) -> str:
@@ -603,6 +564,7 @@ def discover_clean_neighbours(root: Path) -> dict[str, list[tuple[str, int, int,
 
 class SymfonyAppExists(unittest.TestCase):
     def test_faults_json_exists(self):
+        _own_red(self)
         self.assertTrue(
             MANIFEST.is_file(),
             f"{MANIFEST} is missing; slice 4 plants apps/symfony-app",
@@ -611,6 +573,7 @@ class SymfonyAppExists(unittest.TestCase):
 
 class SymfonyAppLayout(unittest.TestCase):
     def test_layout_paths_exist(self):
+        _own_red(self)
         for name in LAYOUT_FILES:
             with self.subTest(path=name):
                 self.assertTrue(
@@ -625,6 +588,7 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_composer_json_pins_php_and_symfony(self):
+        _own_red(self)
         data = load_json_object(APP / "composer.json")
         self.assertEqual(data.get("name"), "agentscient/fixture-symfony-app")
         self.assertEqual(data.get("type"), "project")
@@ -682,6 +646,7 @@ class SymfonyAppLayout(unittest.TestCase):
         self.assertEqual(symfony.get("allow-contrib"), False)
 
     def test_composer_json_has_check_and_no_fix(self):
+        _own_red(self)
         data = load_json_object(APP / "composer.json")
         scripts = data.get("scripts") if isinstance(data.get("scripts"), dict) else {}
         self.assertIn(
@@ -706,6 +671,7 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_composer_lock_pins_symfony_v81(self):
+        _own_red(self)
         lock = load_json_object(APP / "composer.lock")
         digest = lock.get("content-hash")
         self.assertIsInstance(digest, str)
@@ -757,6 +723,7 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_phpunit_dist_xml_names_tests_only(self):
+        _own_red(self)
         text = _read(APP / "phpunit.dist.xml")
         self.assertRegex(
             text,
@@ -770,6 +737,7 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_gitignore_names_install_residue(self):
+        _own_red(self)
         text = _read(APP / ".gitignore")
         self.assertTrue(text.strip(), ".gitignore is missing")
         for pattern in GITIGNORE_PATTERNS:
@@ -781,6 +749,7 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_readme_itself_declares_apparatus(self):
+        _own_red(self)
         text = _read(APP / "README.md")
         self.assertRegex(
             text,
@@ -789,6 +758,7 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_readme_names_check_install_and_absent_fix(self):
+        _own_red(self)
         text = _read(APP / "README.md")
         self.assertRegex(text, r"composer check", "README.md must name composer check")
         self.assertRegex(
@@ -813,6 +783,7 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_probe_files_name_contract_behaviours(self):
+        _own_red(self)
         for fault_id, tokens in FAULT_BEHAVIOUR.items():
             if fault_id == STATIC_ID:
                 path = APP / "tests" / "Service" / "LedgerTest.php"
@@ -834,6 +805,7 @@ class SymfonyAppLayout(unittest.TestCase):
                     )
 
     def test_runtime_probe_shells_run_phpunit_not_grep(self):
+        _own_red(self)
         for fault_id in NEEDS_IDS:
             index = int(str(fault_id).split("-")[1])
             rel = f"probes/sa{index:02d}.sh"
@@ -856,6 +828,7 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_sa07_probe_greps_the_checksum_oracle(self):
+        _own_red(self)
         text = _read(APP / "probes" / "sa07.sh")
         self.assertTrue(text.strip(), "probes/sa07.sh is missing")
         self.assertRegex(text, r"\bgrep\b", "SA-07's probe is the static grep")
@@ -866,6 +839,7 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_readme_carries_one_declaration_per_fault(self):
+        _own_red(self)
         text = _read(APP / "README.md")
         for fault_id in EXPECTED_IDS:
             with self.subTest(fault=fault_id, stage="label"):
@@ -899,6 +873,7 @@ class SymfonyAppLayout(unittest.TestCase):
 
 class SymfonyAppManifest(unittest.TestCase):
     def test_manifest_has_six_to_eight_rows_over_six_or_more_kinds(self):
+        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         self.assertGreaterEqual(len(faults), 6, f"need six to eight faults, found {len(faults)}")
         self.assertLessEqual(len(faults), 8, f"need six to eight faults, found {len(faults)}")
@@ -910,6 +885,7 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_cites_k1_to_k6_and_k8(self):
+        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         kinds = {row.get("kind") for row in faults}
         self.assertTrue(
@@ -922,6 +898,7 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_ids_are_sa_01_to_sa_07(self):
+        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         ids = tuple(row.get("id") for row in faults)
         self.assertEqual(
@@ -931,6 +908,7 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_kind_and_visible_to_match_the_contract(self):
+        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         self.assertEqual(
             tuple(row.get("id") for row in faults),
@@ -959,6 +937,7 @@ class SymfonyAppManifest(unittest.TestCase):
                 self.assertEqual(row.get("fix"), expected["fix"])
 
     def test_manifest_probe_timeout_toolchain_and_needs(self):
+        _own_red(self)
         data = load_json_object(MANIFEST)
         timeout = data.get("probe_timeout")
         self.assertIsInstance(timeout, int)
@@ -1002,6 +981,7 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_not_planted_names_k7_and_k9(self):
+        _own_red(self)
         data = load_json_object(MANIFEST)
         self.assertIn("not_planted", data)
         blob = json.dumps(data.get("not_planted"))
@@ -1009,6 +989,7 @@ class SymfonyAppManifest(unittest.TestCase):
         self.assertIn("K9", blob)
 
     def test_check_command_names_composer_php_lint_and_phpunit(self):
+        _own_red(self)
         check = load_json_object(MANIFEST).get("check")
         text = check if isinstance(check, str) else ""
         stripped = _strip_shell_comments(text)
@@ -1024,6 +1005,7 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_sweep_accepts_faults_json(self):
+        _own_red(self)
         problems = validate_manifest(APP, set(KIND_IDS))
         self.assertEqual(
             problems,
@@ -1036,93 +1018,62 @@ class _RepoFreeze(unittest.TestCase):
     """Live fixture roots, findings store, calibration export, and this repo stay put."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self.assertIsNotNone(shutil.which("bash"), "INVALID: bash not on PATH")
-        self._live_before = {
-            str(path): _store_snap(path) for path in _live_fixture_roots()
-        }
-        self._findings_before = {
-            str(path): _store_snap(path)[0] for path in _live_findings_stores()
-        }
-        self._calibration_before = _store_snap(CALIBRATION)
-        self._head_before = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout
-        self._diff_before = subprocess.run(
-            ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
-        ).stdout
-        self._tmp = tempfile.TemporaryDirectory(
-            prefix="symfony-app-", dir="/tmp"
+        self.world = World(prefix="symfony-app-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.world.require("bash")
+        self._live = self.world.watch(
+            *(_live_fixture_roots() + _live_findings_stores() + [CALIBRATION]),
+            contents=False,
         )
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.home.mkdir()
-        self.conf_path = root / "copy-list.txt"
-        self.lane_conf_path = root / "lane.conf"
-        self.lane_conf_path.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        env = self.world.env()
+        self._head_before = run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self._diff_before = run(
+            ["git", "diff", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.root = self.world.root
+        self.home = self.world.home
         listed = "".join(f"{path}\n" for path in LANE_COPY_PATHS)
-        _plant_bytes(self, self.conf_path, listed.encode("utf-8"))
+        self.conf_path = self.world.plant_text(self.root / "copy-list.txt", listed)
+        self.lane_conf_path = self.world.plant_text(
+            self.root / "lane.conf",
+            "LANE_NAME='agentscient'\n",
+        )
 
     def tearDown(self):
-        try:
-            self.assertEqual(
-                {str(path): _store_snap(path) for path in _live_fixture_roots()},
-                self._live_before,
-                "live fixture state mutated",
-            )
-            self.assertEqual(
-                {str(path): _store_snap(path)[0] for path in _live_findings_stores()},
-                self._findings_before,
-                "live findings store mutated",
-            )
-            self.assertEqual(
-                _store_snap(CALIBRATION),
-                self._calibration_before,
-                "tracked calibration.jsonl mutated",
-            )
-            head_after = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout
-            self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                diff_after,
-                self._diff_before,
-                "real repo tracked files mutated",
-            )
-        finally:
-            self._tmp.cleanup()
+        self._live.assert_unchanged(
+            self, "live fixture, findings store, or tracked calibration.jsonl mutated"
+        )
+        env = self.world.env()
+        head_after = run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
+        diff_after = run(
+            ["git", "diff", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.assertEqual(
+            diff_after,
+            self._diff_before,
+            "real repo tracked files mutated",
+        )
 
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        return self.world.env()
 
     def env(
         self,
@@ -1130,45 +1081,28 @@ class _RepoFreeze(unittest.TestCase):
         agent: str | None = AGENT,
         extra: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
+        extra_env = {
             "TZ": "UTC",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
             "LANE_CONF": str(self.lane_conf_path),
             "FIXTURE_COPY_LIST": str(self.conf_path),
         }
-        self.assertNotIn("XDG_STATE_HOME", env)
         if agent is not None:
-            env["WF_AGENT"] = agent
+            extra_env["WF_AGENT"] = agent
         if extra:
-            env.update(extra)
+            extra_env.update(extra)
+        env = self.world.env(extra_env)
+        self.assertEqual(env["HOME"], str(self.world.home))
+        self.assertEqual(env["XDG_STATE_HOME"], str(self.world.xdg_state))
+        if agent is None:
+            self.assertNotIn("WF_AGENT", env)
         return env
 
     def scratch_env(self) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "TZ": "UTC",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        env = self.world.env({"TZ": "UTC"})
+        self.assertEqual(env["HOME"], str(self.world.home))
+        self.assertEqual(env["XDG_STATE_HOME"], str(self.world.xdg_state))
         self.assertNotIn("LANE_CONF", env)
         self.assertNotIn("LAUNCHER_PIN", env)
-        self.assertNotIn("XDG_STATE_HOME", env)
         self.assertNotIn("WF_AGENT", env)
         return env
 
@@ -1189,16 +1123,13 @@ class SymfonyAppMakeProve(_RepoFreeze):
             self.assertNotIn("WF_AGENT", env)
         lever_path = lever or LEVER
         try:
-            return subprocess.run(
+            return run(
                 [str(lever_path), *argv],
-                cwd=str(cwd or REPO),
+                cwd=cwd or REPO,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=timeout,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {timeout}s: {exc}")
 
     def make(self, target: Path):
@@ -1249,20 +1180,18 @@ class SymfonyAppMakeProve(_RepoFreeze):
         target = self.root / name
         self.assertFalse(target.exists())
         proc = self.make(target)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return self.parse_dir(proc)
 
     def git(self, directory: Path, *args: str):
-        proc = subprocess.run(
+        proc = run(
             ["git", *args],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"git {args} in {directory}: {proc.stderr or proc.stdout}",
         )
@@ -1272,49 +1201,42 @@ class SymfonyAppMakeProve(_RepoFreeze):
         self.assertTrue(command.strip(), "probe command is empty")
         env = self.scratch_env()
         try:
-            proc = subprocess.run(
+            proc = run(
                 ["/bin/sh", "-c", command],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=PROBE_CAP,
             )
-        except subprocess.TimeoutExpired:
+        except Timeout:
             return "UNREACHABLE"
-        if proc.returncode in {126, 127} or proc.returncode < 0:
+        if proc.exit in {126, 127} or proc.exit < 0:
             return "UNREACHABLE"
-        return "GREEN" if proc.returncode == 0 else "RED"
+        return "GREEN" if proc.exit == 0 else "RED"
 
     def apply_fix(self, directory: Path, rel: str) -> bytes:
         patch = directory / rel
         self.assertTrue(patch.is_file(), f"fix {rel} is missing")
         data = patch.read_bytes()
         self.assertTrue(data, f"fix {rel} is empty")
-        check = subprocess.run(
+        check = run(
             ["git", "apply", "--check", str(patch)],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            check.returncode,
+            check.exit,
             0,
             f"git apply --check {rel}: {check.stderr or check.stdout}",
         )
-        applied = subprocess.run(
+        applied = run(
             ["git", "apply", str(patch)],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            applied.returncode,
+            applied.exit,
             0,
             f"git apply {rel}: {applied.stderr or applied.stdout}",
         )
@@ -1353,13 +1275,19 @@ class SymfonyAppMakeProve(_RepoFreeze):
         if composer is None:
             self.skipTest("UNREACHABLE: composer not on PATH")
         env = self.scratch_env()
-        host_home = os.environ.get("HOME")
-        if host_home:
-            env["HOME"] = host_home
         for key, value in os.environ.items():
             if key.startswith("COMPOSER"):
                 env[key] = value
         env["COMPOSER_DISABLE_NETWORK"] = "1"
+        if "COMPOSER_CACHE_DIR" not in env:
+            import pwd
+            for candidate in (
+                Path(os.environ.get("HOME") or "") / ".cache" / "composer",
+                Path(pwd.getpwuid(os.getuid()).pw_dir) / ".cache" / "composer",
+            ):
+                if (candidate / "files").is_dir():
+                    env["COMPOSER_CACHE_DIR"] = str(candidate)
+                    break
         argv = [
             composer,
             "install",
@@ -1368,22 +1296,19 @@ class SymfonyAppMakeProve(_RepoFreeze):
             "--no-interaction",
         ]
         try:
-            proc = subprocess.run(
+            proc = run(
                 argv,
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=INSTALL_CAP,
             )
-        except subprocess.TimeoutExpired:
+        except Timeout:
             self.skipTest(
                 "UNREACHABLE: composer install --prefer-dist --no-progress "
                 "--no-interaction exceeded 120s"
             )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "composer install failed; a broken lock or manifest is a wrong "
             "app, never a skip: "
@@ -1412,13 +1337,10 @@ class SymfonyAppMakeProve(_RepoFreeze):
             f"{fault_id} contract probe needs vendor/bin/phpunit",
         )
         env = self.scratch_env()
-        host_home = os.environ.get("HOME")
-        if host_home:
-            env["HOME"] = host_home
         env["APP_ENV"] = "test"
         rel = self.contract_probe_php(fault_id)
         try:
-            proc = subprocess.run(
+            proc = run(
                 [
                     str(phpunit),
                     "--no-configuration",
@@ -1426,36 +1348,30 @@ class SymfonyAppMakeProve(_RepoFreeze):
                     "tests/bootstrap.php",
                     rel,
                 ],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=PROBE_CAP,
             )
-        except subprocess.TimeoutExpired:
+        except Timeout:
             return "UNREACHABLE"
-        if proc.returncode in {126, 127} or proc.returncode < 0:
+        if proc.exit in {126, 127} or proc.exit < 0:
             return "UNREACHABLE"
-        return "GREEN" if proc.returncode == 0 else "RED"
+        return "GREEN" if proc.exit == 0 else "RED"
 
     def assert_check_tools_ran(self, directory: Path, env: dict[str, str]) -> None:
         composer = shutil.which("composer")
         self.assertIsNotNone(composer, "INVALID: composer vanished after install")
         try:
-            validate = subprocess.run(
+            validate = run(
                 [composer, "validate", "--strict"],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=CHECK_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"composer validate --strict exceeded {CHECK_CAP}s: {exc}")
         self.assertEqual(
-            validate.returncode,
+            validate.exit,
             0,
             "composer validate --strict must run and pass: "
             f"stdout={validate.stdout!r} stderr={validate.stderr!r}",
@@ -1474,20 +1390,17 @@ class SymfonyAppMakeProve(_RepoFreeze):
             php_files.extend(found)
         for path in php_files:
             try:
-                lint = subprocess.run(
+                lint = run(
                     [php, "-l", str(path)],
-                    cwd=str(directory),
+                    cwd=directory,
                     env=env,
-                    capture_output=True,
-                    text=True,
-                    check=False,
                     timeout=CHECK_CAP,
                 )
-            except subprocess.TimeoutExpired as exc:
+            except Timeout as exc:
                 self.fail(f"php -l {path} exceeded {CHECK_CAP}s: {exc}")
             combined = (lint.stdout or "") + (lint.stderr or "")
             self.assertEqual(
-                lint.returncode,
+                lint.exit,
                 0,
                 f"php -l must actually lint {path}: {combined!r}",
             )
@@ -1498,20 +1411,17 @@ class SymfonyAppMakeProve(_RepoFreeze):
             )
         phpunit = directory / "vendor" / "bin" / "phpunit"
         try:
-            unit = subprocess.run(
+            unit = run(
                 [str(phpunit)],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=CHECK_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"vendor/bin/phpunit exceeded {CHECK_CAP}s: {exc}")
         unit_out = (unit.stdout or "") + (unit.stderr or "")
         self.assertEqual(
-            unit.returncode,
+            unit.exit,
             0,
             f"vendor/bin/phpunit must run and pass: {unit_out!r}",
         )
@@ -1525,25 +1435,19 @@ class SymfonyAppMakeProve(_RepoFreeze):
         php = shutil.which("php")
         self.assertIsNotNone(php, "INVALID: php not on PATH after composer install")
         script = self.root / "sa06-direct.php"
-        _plant_bytes(self, script, DIRECT_INTERVAL_PHP)
+        self.world.plant_bytes(script, DIRECT_INTERVAL_PHP)
         env = self.scratch_env()
-        host_home = os.environ.get("HOME")
-        if host_home:
-            env["HOME"] = host_home
         try:
-            proc = subprocess.run(
+            proc = run(
                 [php, str(script)],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=PROBE_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"direct Interval::contains(3) exceeded {PROBE_CAP}s: {exc}")
         self.assertNotIn(
-            proc.returncode,
+            proc.exit,
             {126, 127},
             "direct Interval::contains(3) must be reachable after install: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -1555,12 +1459,13 @@ class SymfonyAppMakeProve(_RepoFreeze):
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
         )
         self.assertNotEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "SA-06 planted: contains(3) true is RED, not a passing oracle",
         )
 
     def test_make_symfony_app_into_a_temp_directory_succeeds(self):
+        _own_red(self)
         made = self.made_app("made")
         for name in LAYOUT_FILES:
             with self.subTest(copied=name):
@@ -1582,6 +1487,7 @@ class SymfonyAppMakeProve(_RepoFreeze):
                 )
 
     def test_scratch_runs_suites_and_dispatch_dry_run(self):
+        _own_red(self)
         made = self.made_app("portable")
         _lint_the_lane_copies_under_the_lane_contract(made)
         self.assertTrue((made / "ops/bin/suites.sh").is_file())
@@ -1590,19 +1496,16 @@ class SymfonyAppMakeProve(_RepoFreeze):
         self.assertTrue((made / "ops/lane.conf").is_file())
         env = self.scratch_env()
         try:
-            suites = subprocess.run(
+            suites = run(
                 ["bash", str(made / "ops" / "bin" / "suites.sh")],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=SUITES_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"suites.sh in the scratch exceeded {SUITES_CAP}s: {exc}")
         self.assertEqual(
-            suites.returncode,
+            suites.exit,
             0,
             f"bash ops/bin/suites.sh must be green in the scratch: "
             f"stdout={suites.stdout!r} stderr={suites.stderr!r}",
@@ -1617,9 +1520,9 @@ class SymfonyAppMakeProve(_RepoFreeze):
         self.assertGreaterEqual(int(ran.group(1)), 1, combined)
         self.assertNotIn("FAILED", combined)
         scope = self.root / "dry-run-scope.txt"
-        _plant_bytes(self, scope, b"fixture-apps slice-4 dry-run scope\n")
+        self.world.plant_bytes(scope, b"fixture-apps slice-4 dry-run scope\n")
         try:
-            dry = subprocess.run(
+            dry = run(
                 [
                     "bash",
                     str(made / "ops" / "bin" / "dispatch.sh"),
@@ -1633,17 +1536,14 @@ class SymfonyAppMakeProve(_RepoFreeze):
                     str(scope),
                     "--dry-run",
                 ],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=DISPATCH_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"dispatch.sh --dry-run exceeded {DISPATCH_CAP}s: {exc}")
         self.assertEqual(
-            dry.returncode,
+            dry.exit,
             0,
             f"dispatch.sh --dry-run must resolve from the copied conf: "
             f"stdout={dry.stdout!r} stderr={dry.stderr!r}",
@@ -1677,6 +1577,7 @@ class SymfonyAppMakeProve(_RepoFreeze):
         self.assertIn(effort, argv)
 
     def test_prove_on_fresh_make_colours_needs_unreachable_and_sa07_red(self):
+        _own_red(self)
         target = self.root / "prove-fresh"
         self.make(target)
         proc = self.invoke(["prove", str(target)], agent=None)
@@ -1704,13 +1605,14 @@ class SymfonyAppMakeProve(_RepoFreeze):
         self.assertEqual(counts["red"], 1, proc.stdout)
         self.assertEqual(counts["green"], 0, proc.stdout)
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             1,
             "fresh make without vendor/ is mixed UNREACHABLE/RED, never green: "
             f"{proc.stderr or proc.stdout}",
         )
 
     def test_each_fix_is_confined_to_the_declared_span(self):
+        _own_red(self)
         made = self.made_app("independent-fixes")
         _faults, snapshots = self.fault_snapshots(made)
         for row, loc_path, loc_lines, span, loc_before in snapshots:
@@ -1832,6 +1734,7 @@ class SymfonyAppMakeProve(_RepoFreeze):
             self.assertEqual(reset, loc_before, f"{fault_id} reset did not restore")
 
     def test_clean_neighbours_are_found_apart_from_the_manifest(self):
+        _own_red(self)
         made = self.made_app("neighbours")
         faults = self.load_faults(made)
         locations = []
@@ -1877,6 +1780,7 @@ class SymfonyAppMakeProve(_RepoFreeze):
                 )
 
     def test_full_proof_after_composer_install(self):
+        _own_red(self)
         made = self.made_app("full-proof")
         env = self.install_from_lock(made)
         self.assert_check_tools_ran(made, env)
@@ -1888,19 +1792,16 @@ class SymfonyAppMakeProve(_RepoFreeze):
             f"manifest check must not short-circuit: {check!r}",
         )
         try:
-            proc = subprocess.run(
+            proc = run(
                 ["bash", "-c", check],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=CHECK_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"app check exceeded {CHECK_CAP}s: {exc}")
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"app check must be green on a fresh install: stdout={proc.stdout!r} "
             f"stderr={proc.stderr!r}",
@@ -1919,7 +1820,7 @@ class SymfonyAppMakeProve(_RepoFreeze):
         counts = self.parse_counts(prove.stdout)
         self.assertEqual(counts["red"], len(EXPECTED_IDS), prove.stdout)
         self.assertEqual(counts["unreachable"], 0, prove.stdout)
-        self.assertEqual(prove.returncode, 0, prove.stderr or prove.stdout)
+        self.assertEqual(prove.exit, 0, prove.stderr or prove.stdout)
 
         faults, snapshots = self.fault_snapshots(made)
         self.assert_interval_contains_three_is_red(made)
@@ -2007,7 +1908,7 @@ class SymfonyAppMakeProve(_RepoFreeze):
         counts = self.parse_counts(fixed.stdout)
         self.assertEqual(counts["green"], len(EXPECTED_IDS), fixed.stdout)
         self.assertEqual(counts["unreachable"], 0, fixed.stdout)
-        self.assertEqual(fixed.returncode, 0, fixed.stderr or fixed.stdout)
+        self.assertEqual(fixed.exit, 0, fixed.stderr or fixed.stdout)
 
 
 class SymfonyAppGrade(_RepoFreeze):
@@ -2029,24 +1930,23 @@ class SymfonyAppGrade(_RepoFreeze):
             "INVALID: ops/bin/fixture.sh missing; slice 1 must be merged",
         )
         data = LEVER.read_bytes()
-        self.staged.write_bytes(data)
-        landed = self.staged.read_bytes()
-        self.assertEqual(landed, data, "copy-lever-bytes did not land intact")
-        self.assertEqual(len(landed), len(data))
-        self.assertNotEqual(landed, ABSENT_STUB)
-        self.staged.chmod(self.staged.stat().st_mode | stat.S_IXUSR)
+        self.world.plant_bytes(self.staged, data)
+        self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
+        make_executable(self.staged)
 
     def _plant_findings_stub(self) -> None:
         path = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        data = CALIBRATE_STUB.encode("utf-8")
-        _plant_bytes(self, path, data)
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+        self.assertTrue(
+            CALIBRATE_STUB.is_file(),
+            f"INVALID: calibrate capture fixture missing: {CALIBRATE_STUB}",
+        )
+        body = CALIBRATE_STUB.read_text(encoding="utf-8")
+        self.world.tools.plant_executable(path, body)
 
     def _plant_lane_conf(self) -> None:
-        _plant_bytes(
-            self,
+        self.world.plant_text(
             self.repo / "ops" / "lane.conf",
-            b"LANE_NAME='agentscient'\n",
+            "LANE_NAME='agentscient'\n",
         )
 
     def _stage_manifest(self) -> None:
@@ -2061,7 +1961,7 @@ class SymfonyAppGrade(_RepoFreeze):
         )
         if MANIFEST.is_file():
             data = MANIFEST.read_bytes()
-            _plant_bytes(self, dest, data)
+            self.world.plant_bytes(dest, data)
             self.assertEqual(dest.read_bytes(), data)
 
     def staged_manifest(self) -> Path:
@@ -2080,16 +1980,13 @@ class SymfonyAppGrade(_RepoFreeze):
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         try:
-            return subprocess.run(
+            return run(
                 [str(self.staged), *argv],
-                cwd=str(self.repo),
+                cwd=self.repo,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=RUN_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {RUN_CAP}s: {exc}")
 
     def plant_record(self, findings: list[dict]) -> Path:
@@ -2102,7 +1999,7 @@ class SymfonyAppGrade(_RepoFreeze):
         }
         raw = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
         path = self.root / f"{REC_ID}.json"
-        _plant_bytes(self, path, raw)
+        self.world.plant_bytes(path, raw)
         loaded = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(loaded["id"], REC_ID)
         self.assertEqual(len(loaded["result"]["envelope"]["findings"]), len(findings))
@@ -2134,6 +2031,7 @@ class SymfonyAppGrade(_RepoFreeze):
         return {key: float(value) for key, value in match.groupdict().items()}
 
     def test_grade_scores_a_planted_review(self):
+        _own_red(self)
         faults = fault_rows(load_json_object(self.staged_manifest()))
         if faults:
             first = faults[0]
@@ -2168,7 +2066,7 @@ class SymfonyAppGrade(_RepoFreeze):
         before = rec.read_bytes()
         proc = self.invoke(["grade", str(rec), APP_NAME])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"grade must score a planted review of {APP_NAME}: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -2194,6 +2092,7 @@ class SymfonyAppGrade(_RepoFreeze):
         )
 
     def test_grade_scores_independently_found_neighbours_as_false_positives(self):
+        _own_red(self)
         source_root = APP if APP.is_dir() else self.root / "missing-app"
         discovered = discover_clean_neighbours(source_root)
         faults = fault_rows(load_json_object(self.staged_manifest()))
@@ -2226,7 +2125,7 @@ class SymfonyAppGrade(_RepoFreeze):
         rec = self.plant_record(findings)
         proc = self.invoke(["grade", str(rec), APP_NAME])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"grade must score independently found neighbour findings: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -2275,6 +2174,7 @@ class SymfonyAppLeverChange(_LeverFixture):
     def test_probe_timeout_five_colours_a_three_second_probe_default_is_unreachable(
         self,
     ):
+        _own_red(self)
         coloured = self.plant_made_dir("timeout-five")
         self._plant_sleeper(coloured)
         self._plant_timeout_key(coloured, 5)
@@ -2347,6 +2247,7 @@ class SymfonyAppLeverChange(_LeverFixture):
         )
 
     def test_probe_timeout_x_zero_and_301_refuse_manifest(self):
+        _own_red(self)
         for value in ("x", 0, 301, True, False, -1, 1.5):
             with self.subTest(probe_timeout=value):
                 made = self.plant_made_dir(f"bad-timeout-{value}")
@@ -2358,6 +2259,7 @@ class SymfonyAppLeverChange(_LeverFixture):
                 self.assertRegex(err, r"1\.\.300")
 
     def test_probe_timeout_1_and_300_are_accepted(self):
+        _own_red(self)
         for value in (1, 300):
             with self.subTest(probe_timeout=value, stage="no-refuse"):
                 made = self.plant_made_dir(f"ok-timeout-{value}")
@@ -2393,6 +2295,7 @@ class SymfonyAppLeverChange(_LeverFixture):
                     self.assertNotEqual(rows["SYN-01"], "UNREACHABLE")
 
     def test_prove_fixed_ignores_vendor_target_and_venv_with_unreadable_files(self):
+        _own_red(self)
         made = self.plant_made_repo("preflight-ignore")
         blocked: list[Path] = []
         try:
