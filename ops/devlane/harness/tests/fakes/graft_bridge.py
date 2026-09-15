@@ -29,12 +29,6 @@ BUILD_KEYS = frozenset({"op", "root", "cache"})
 QUERY_KEYS = frozenset({"op", "root", "cache", "tool", "arguments"})
 PIN_PATH = Path(__file__).resolve().parents[2] / "graft" / "pin.json"
 INSTALLED_AT = "2026-01-01T00:00:00Z"
-# Absent-protocol stand-in: valid JSON that fails every closed-protocol
-# assertion (ok is neither True nor False; no transcript is written).
-_STANDIN = (
-    '{"ok":"stand-in","error":"stand-in",'
-    '"result":{"text":0,"isError":"stand-in"}}\n'
-)
 
 
 def load_pin() -> dict:
@@ -286,10 +280,34 @@ def _append_transcript(install: Path, payload: dict) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    # Red stand-in: every protocol test fails its own assertion (ok is
-    # neither True nor False; json.loads succeeds; no transcript).
-    del argv
-    sys.stdout.write(_STANDIN)
+    argv = list(sys.argv if argv is None else argv)
+    if len(argv) < 3:
+        sys.stdout.write(json.dumps(_fail("argv is node, bridge, graft_dir")) + "\n")
+        return 0
+    bridge = Path(argv[1])
+    graft_dir = Path(argv[2])
+    install = graft_dir.parent if graft_dir.name == "graft" else _install_from_node(Path(argv[0]))
+    raw = sys.stdin.read()
+    try:
+        req = json.loads(raw) if raw.strip() else None
+    except json.JSONDecodeError as exc:
+        req = None
+        response = _fail(f"malformed json: {exc}")
+    else:
+        if req is None:
+            response = _fail("empty stdin")
+        else:
+            response = _handle(req, graft_dir=graft_dir)
+    record = {
+        "argv": [str(Path(argv[0]).resolve()), str(bridge), str(graft_dir)],
+        "request": req,
+        "response": None if response.get("__truncated__") else response,
+    }
+    _append_transcript(install, record)
+    if response.get("__truncated__"):
+        sys.stdout.write('{"ok":true,"res')
+        return 0
+    sys.stdout.write(json.dumps(response, sort_keys=True) + "\n")
     return 0
 
 
