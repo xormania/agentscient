@@ -12,69 +12,91 @@ build the engine and the handoff manager"), one producer (Claude Fable
 `python3 -m unittest discover -s ops/conductor/tests -p test_handoff.py`:
 red while `handoff.py` is absent, read again after it is written; both
 readings are quoted in the commit that carries it.
+
+World owns HOME and the XDG roots; every subprocess goes through run;
+the tool is staged with instrument.py and laneconf.py beside it.
 """
 
 from __future__ import annotations
 
-import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
 TOOL = TOOLS / "handoff.py"
 LOCK_LEVER = TOOLS / "deliverable.py"
+# Absent stand-in so each method fails its own assertion (red proof).
+SUBJECT_TOOL = TOOL.with_name("no-such-handoff.py")
+SUBJECT_LOCK = LOCK_LEVER.with_name("no-such-deliverable.py")
+# The tools import these beside themselves (instrument-conventions.md
+# §The shared implementation); a staged copy run from a scratch
+# directory needs them staged too, or it refuses `tooling`.
+SIBLINGS = ("instrument.py", "laneconf.py", "machine.py")
 AGENT = "Closing Session <noreply@example.test>"
 OTHER = "Next Session <noreply@example.test>"
 BRANCH = "lane/session-20260913-x"
 OTHER_BRANCH = "lane/session-20260913-y"
+RUN_TIMEOUT = 60
 
 
 class _Scratch(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="handoff-"))
-        self.xdg = self.tmp / "xdg"
-        self.conf = self.tmp / "lane.conf"
-        self.conf.write_text("LANE_NAME='testlane'\n", encoding="utf-8")
-        self.store = self.xdg / "testlane" / "state.db"
+        self.world = World(prefix="handoff-")
+        self.addCleanup(self.world.close)
+        self.conf = self.world.plant_text(
+            self.world.path("lane.conf"), "LANE_NAME='testlane'\n",
+        )
+        self.store = self.world.xdg_state / "testlane" / "state.db"
+        tool_siblings = SIBLINGS if SUBJECT_TOOL.is_file() else ()
+        self.tool = self.world.stage(
+            SUBJECT_TOOL, "handoff.py", siblings=tool_siblings,
+        )
+        lock_siblings = SIBLINGS if SUBJECT_LOCK.is_file() else ()
+        self.lock_lever = self.world.stage(
+            SUBJECT_LOCK, "deliverable.py", siblings=lock_siblings,
+        )
+        # World.stage's absent stand-in exits 0 with no output; ok() would
+        # accept that. Exit 1 makes every method fail its own assertion.
+        if not SUBJECT_TOOL.is_file():
+            self.world.plant_text(self.tool, "import sys\nsys.exit(1)\n")
+        if not SUBJECT_LOCK.is_file():
+            self.world.plant_text(self.lock_lever, "import sys\nsys.exit(1)\n")
 
     def env(self, identity: str | None) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.tmp / "home"),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LANE_CONF": str(self.conf),
-        }
+        extra = {"LANE_CONF": str(self.conf)}
         if identity:
-            env["WF_AGENT"] = identity
-        return env
+            extra["WF_AGENT"] = identity
+        return self.world.env(extra=extra)
 
-    def run_tool(self, *argv: str, identity: str | None = AGENT, tool: Path = TOOL):
-        return subprocess.run(
-            [sys.executable, str(tool), *argv],
-            env=self.env(identity), capture_output=True, text=True, check=False,
+    def run_tool(self, *argv: str, identity: str | None = AGENT, tool: Path | None = None):
+        path = self.tool if tool is None else tool
+        return run(
+            [sys.executable, str(path), *argv],
+            cwd=str(REPO),
+            env=self.env(identity),
+            timeout=RUN_TIMEOUT,
         )
 
     def ok(self, *argv: str, identity: str | None = AGENT) -> str:
         proc = self.run_tool(*argv, identity=identity)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
         self.assertEqual(proc.stderr, "")
         return proc.stdout
 
     def lock(self, *branches: str) -> None:
-        proc = self.run_tool("set", *branches, "--why", "the scenario", tool=LOCK_LEVER)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = self.run_tool(
+            "set", *branches, "--why", "the scenario", tool=self.lock_lever,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
 
     def assert_refusal(self, proc, klass: str) -> str:
-        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
-        self.assertEqual(proc.stdout, "", "a refusal keeps stdout empty")
-        lines = [ln for ln in proc.stderr.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, proc.stderr)
-        self.assertRegex(lines[0], rf"^{klass}: expected .+; found .+; needed .+$")
-        return lines[0]
+        wire = proc.refusal(exit=2)
+        self.assertEqual(wire.cls, klass, wire.line)
+        return wire.line
 
     def a_handoff(self, *threads: str) -> list[str]:
         out = self.ok("open", "the session's package", "--summary", "what was left")
@@ -88,7 +110,7 @@ class _Scratch(unittest.TestCase):
 
 class ThePresence(unittest.TestCase):
     def test_the_tool_file_is_present(self):
-        self.assertTrue(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
+        self.assertTrue(SUBJECT_TOOL.is_file(), f"RED: tool is absent: {SUBJECT_TOOL}")
 
 
 class OpeningAHandoff(_Scratch):
@@ -211,9 +233,13 @@ class TakingAThread(_Scratch):
 class FinishingAThread(_Scratch):
     def setUp(self):
         super().setUp()
-        self.a_handoff("a thread")
-        self.lock(BRANCH)
-        self.ok("take", "T-1", "--branch", BRANCH, identity=OTHER)
+        try:
+            self.a_handoff("a thread")
+            self.lock(BRANCH)
+            self.ok("take", "T-1", "--branch", BRANCH, identity=OTHER)
+        except AssertionError:
+            if SUBJECT_TOOL.is_file():
+                raise
 
     def test_done_by_another_than_the_holder_refuses_holder(self):
         line = self.assert_refusal(
@@ -272,7 +298,7 @@ class ReadingTheBoard(_Scratch):
     def test_list_on_an_absent_store_says_so_and_creates_nothing(self):
         for verb in ("list", "brief"):
             proc = self.run_tool(verb, identity=None)
-            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.exit, 0, proc.stderr)
             self.assertEqual(proc.stdout.strip(), "no handoffs")
         self.assertFalse(self.store.exists(), "a read created the store")
 
@@ -281,7 +307,7 @@ class ReadingTheBoard(_Scratch):
 
     def test_held_on_an_absent_store_holds_nothing(self):
         proc = self.run_tool("held", "--branch", BRANCH, identity=None)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), "none held")
 
     def test_held_lists_the_branch_holdings_as_a_finding_until_they_close(self):
@@ -289,14 +315,14 @@ class ReadingTheBoard(_Scratch):
         self.lock(BRANCH)
         self.ok("take", "H-1", "--branch", BRANCH, identity=OTHER)
         proc = self.run_tool("held", "--branch", BRANCH, identity=None)
-        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
         self.assertEqual(proc.stderr, "")
         self.assertIn("T-1 taken", proc.stdout)
         self.assertIn("T-2 taken", proc.stdout)
         self.ok("done", "T-1", "--evidence", "#1", identity=OTHER)
         self.ok("release", "T-2", "--why", "not this session", identity=OTHER)
         proc = self.run_tool("held", "--branch", BRANCH, identity=None)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
         self.assertEqual(proc.stdout.strip(), "none held")
 
     def test_brief_counts_then_lists_open_and_taken_threads_by_handoff(self):
