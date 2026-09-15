@@ -42,15 +42,11 @@ MARKER = re.compile(
 )
 
 
-class AcceptanceFailure(RuntimeError):
-    pass
-
-
 def load(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as source:
         value = json.load(source)
     if not isinstance(value, dict):
-        raise AcceptanceFailure(f"{path}: top-level JSON value is not an object")
+        raise AssertionError(f"{path}: top-level JSON value is not an object")
     return value
 
 
@@ -187,11 +183,6 @@ def todo_text() -> str:
     )
 
 
-def require(condition: bool, detail: str) -> None:
-    if not condition:
-        raise AcceptanceFailure(detail)
-
-
 CONTROLS = (
     ("missing-command", "board.observation-command", False),
     ("cached-without-age", "board.cache-custody", False),
@@ -206,15 +197,12 @@ class BoardContract(unittest.TestCase):
         self.addCleanup(self.world.close)
         self.world.require("cue")
         self.contract = self.world.stage(CONTRACT, "board.cue")
-        # Planted invalid example and empty TODO: every assertion fails
-        # on its own contract, not on a missing World.
-        self.example_path = self.world.plant_text("stage/board.json", "{}\n")
-        clean = EXAMPLE.read_text(encoding="utf-8")
+        self.example_path = self.world.stage(EXAMPLE, "board.json")
         self.faults = {
-            name: self.world.plant_text(f"stage/{name}.json", clean)
+            name: self.world.stage(FAULTS / f"{name}.json", f"{name}.json")
             for name, _, _ in CONTROLS
         }
-        self.todo = self.world.plant_text("TODO.md", "# empty\n")
+        self.todo = self.world.plant_text("TODO.md", todo_text())
 
     def test_measured_empty(self):
         example = load(self.example_path)
