@@ -12,11 +12,11 @@ running a worker that fails in a way that looks like a model refusal.
 import datetime
 import importlib.util
 import json
-import shutil
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 HARNESS = Path(__file__).resolve().parents[1]
 
@@ -38,16 +38,15 @@ def _stamp(hours_ago):
 class ACredentialPastItsRefreshLifetimeIsRefused(unittest.TestCase):
     def setUp(self):
         self.iso = _isolation()
-        self.tmp = Path(tempfile.mkdtemp(prefix="cred-age-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.env = {"HOME": str(self.home)}
+        self.world = World(prefix="cred-age-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.home = self.world.home
+        self.env = self.world.env()
 
     def plant(self, harness, body):
         path = self.home / f".{harness}" / "auth.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(body, encoding="utf-8")
-        return path
+        return self.world.plant_text(path, body)
 
     def credential(self, hours_ago, refresh="r"):
         return json.dumps({"https://auth.x.ai::client": {
@@ -96,7 +95,7 @@ class ARenewedCredentialIsCarriedBackToTheHost(ACredentialPastItsRefreshLifetime
         job = home / "auth.json"
         self.assertTrue(job.is_symlink(), "plant: the home holds the link")
         job.unlink()
-        job.write_text(self.credential(hours_ago, refresh) + "\n", encoding="utf-8")
+        self.world.plant_text(job, self.credential(hours_ago, refresh) + "\n")
         self.assertFalse(job.is_symlink(), "plant: the renewal is a regular file")
         return job
 

@@ -15,9 +15,10 @@ import contextlib
 import datetime
 import importlib.util
 import json
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 HARNESS = Path(__file__).resolve().parents[1]
 
@@ -55,20 +56,19 @@ class GrokCredentialAgeSecondProducer(unittest.TestCase):
     def setUp(self):
         self.iso = load()
         self.rule = self.iso.HARNESSES["grok"]["credential_age"]
-        self.scratch = tempfile.TemporaryDirectory(prefix="ld18-")
-        self.addCleanup(self.scratch.cleanup)
-        self.base = Path(self.scratch.name)
+        self.world = World(prefix="ld18-")
+        self.addCleanup(self.world.close)
+        self.base = self.world.root
 
     def _write_auth(self, path, body):
-        path.parent.mkdir(parents=True, exist_ok=True)
         if isinstance(body, bytes):
-            path.write_bytes(body)
+            self.world.plant_bytes(path, body)
             planted = path.read_bytes()
             if planted != body:
                 raise AssertionError("auth plant did not land")
             return path
         text = body if isinstance(body, str) else json.dumps(body)
-        path.write_text(text, encoding="utf-8")
+        self.world.plant_text(path, text)
         planted = path.read_text(encoding="utf-8")
         if planted != text:
             raise AssertionError("auth plant did not land")
