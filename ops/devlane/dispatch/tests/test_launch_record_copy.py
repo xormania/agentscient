@@ -79,7 +79,7 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
             "record.json must sit in the job directory at launch: "
             f"{seen!r}",
         )
-        self.assertFalse(
+        self.assertTrue(
             seen.get("identical"),
             "the launched job copy must be byte-identical to the "
             f"tracked record: {seen!r}",
@@ -96,7 +96,7 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
         body = self.assert_copies_byte_identical(rec)
         closed = json.loads(body)
         self.assertEqual(closed["id"], rec["id"])
-        self.assertNotEqual(closed["status"], "closed")
+        self.assertEqual(closed["status"], "closed")
         self.assertEqual(closed["job"], "plan")
 
     def test_resume_rewrites_both_copies_identically(self):
@@ -110,7 +110,7 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
         code, out, err = self.run_main(["resume", rec["id"]])
         self.assertEqual(code, 0, self.combined(out, err))
         after = self.assert_copies_byte_identical()
-        self.assertEqual(
+        self.assertNotEqual(
             after,
             before,
             "resume must rewrite the record, not leave the closed copy",
@@ -201,4 +201,4 @@ class RecordCopyBesideTheJob(ls._TempLaunch):
         )
         closed = json.loads(beside.read_text(encoding="utf-8"))
         self.assertEqual(closed["id"], job_id)
-        self.assertNotEqual(closed["status"], "closed")
+        self.assertEqual(closed["status"], "closed")
