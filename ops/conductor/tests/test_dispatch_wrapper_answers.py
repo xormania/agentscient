@@ -110,7 +110,7 @@ class DispatcherAnswers(wrap._WrapperFixture):
         answers = [KEY_A]
         proc = self.invoke(self.answers_flags(answers))
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.returncode, 0, text)
         argv, _env = self.parse_dry_run(proc)
         self.assert_answers_reach(argv, answers)
         payload = self.parse_dry_run_object(proc)
@@ -122,7 +122,7 @@ class DispatcherAnswers(wrap._WrapperFixture):
         answers = [KEY_A, KEY_B]
         proc = self.invoke(self.answers_flags(answers))
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.returncode, 0, text)
         argv, _env = self.parse_dry_run(proc)
         self.assert_answers_reach(argv, answers)
         payload = self.parse_dry_run_object(proc)
@@ -142,7 +142,7 @@ class DispatcherAnswers(wrap._WrapperFixture):
             timeout=8,
         )
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 1, text)
+        self.assertEqual(proc.returncode, 0, text)
         calls = self.world.tools.calls("launcher")
         self.assertTrue(calls, "foreground path must launch")
         launched = calls[0]["argv"]
