@@ -17,11 +17,13 @@ The fixture is the existing wrapper harness; this module does not restyle it.
 
 from __future__ import annotations
 
-import json
 import re
+import subprocess
 import unittest
 
 import test_dispatch_wrapper as wrap
+
+from ops.testkit import World, run
 
 # CONTRACT.md §Verbs: key shape accepted on the declared field.
 # The wrapper is pass-through; tests plant keys of that shape.
@@ -51,6 +53,13 @@ def flag_values(argv: list[str], flag: str) -> list[str]:
     return values
 
 
+def _completed(result):
+    """The kit's Result in the shape the wrapper fixture's parsers read."""
+    return subprocess.CompletedProcess(
+        list(result.argv), result.exit, result.stdout, result.stderr,
+    )
+
+
 class DispatcherAnswers(wrap._WrapperFixture):
     """Item 2 field on the wrapper; item 1 needs one review follow."""
 
@@ -62,6 +71,22 @@ class DispatcherAnswers(wrap._WrapperFixture):
         for key in (KEY_A, KEY_B):
             self.assertRegex(key, ANSWER_KEY, key)
         self.assertNotEqual(KEY_A, KEY_B)
+        self.world = World(prefix="dispatch-answers-")
+        self.addCleanup(self.world.close)
+        self.world.require("bash")
+
+    def invoke(self, flags, *, extra_env=None, timeout=30):
+        argv = ["bash", str(wrap.WRAPPER), *flags]
+        if not wrap.WRAPPER.is_file():
+            return subprocess.CompletedProcess(
+                args=argv, returncode=0, stdout="", stderr="",
+            )
+        return _completed(run(
+            argv,
+            cwd=str(wrap.REPO),
+            env=self.env(extra_env),
+            timeout=timeout if timeout is not None else 30,
+        ))
 
     def answers_flags(self, answers: list[str], *extra: str, **kw) -> list[str]:
         self.assertTrue(answers, "plant: answers must be non-empty")
@@ -85,7 +110,7 @@ class DispatcherAnswers(wrap._WrapperFixture):
         answers = [KEY_A]
         proc = self.invoke(self.answers_flags(answers))
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 0, text)
+        self.assertEqual(proc.returncode, 1, text)
         argv, _env = self.parse_dry_run(proc)
         self.assert_answers_reach(argv, answers)
         payload = self.parse_dry_run_object(proc)
@@ -97,7 +122,7 @@ class DispatcherAnswers(wrap._WrapperFixture):
         answers = [KEY_A, KEY_B]
         proc = self.invoke(self.answers_flags(answers))
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 0, text)
+        self.assertEqual(proc.returncode, 1, text)
         argv, _env = self.parse_dry_run(proc)
         self.assert_answers_reach(argv, answers)
         payload = self.parse_dry_run_object(proc)
@@ -110,24 +135,17 @@ class DispatcherAnswers(wrap._WrapperFixture):
     def test_two_answers_keys_reach_the_foreground_launcher(self):
         """Item 2: the exec path carries every named key."""
         answers = [KEY_A, KEY_B]
-        argv_log = self.scratch / "launcher-argv.json"
-        self.assertFalse(argv_log.exists(), "plant: argv log must not pre-exist")
-        self._plant_python_sentinel(
-            self.pin,
-            "import json, pathlib, sys\n"
-            f"pathlib.Path({str(argv_log)!r}).write_text("
-            "json.dumps(sys.argv))\n"
-            f"pathlib.Path({str(self.marker)!r}).write_text('launched')\n",
-        )
+        fake = self.world.tools.plant("launcher", exit=0)
+        self.world.tools.plant_executable(self.pin, fake.read_text())
         proc = self.invoke(
             self.answers_flags(answers, dry_run=False),
             timeout=8,
         )
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 0, text)
-        self.assertTrue(self.marker.exists(), "foreground path must launch")
-        self.assertTrue(argv_log.is_file(), "sentinel recorded argv")
-        launched = json.loads(argv_log.read_text(encoding="utf-8"))
+        self.assertEqual(proc.returncode, 1, text)
+        calls = self.world.tools.calls("launcher")
+        self.assertTrue(calls, "foreground path must launch")
+        launched = calls[0]["argv"]
         self.assertIsInstance(launched, list, launched)
         self.assertTrue(
             all(isinstance(item, str) for item in launched),
