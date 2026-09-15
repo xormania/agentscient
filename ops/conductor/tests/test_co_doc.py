@@ -110,10 +110,17 @@ class DoctorFixture(unittest.TestCase):
             )
 
     def _plant_subject(self, tools: Path) -> Path:
-        # RED: a stub that exits 99 with no output, so every assertion
-        # fails on its own promise rather than on a missing World.
-        del tools
-        return self.world.tools.plant("co_doc.py", stdout="", stderr="", exit=99)
+        src = TOOLS / CO_DOC
+        self.assertTrue(src.is_file(), f"missing tool at {src}")
+        siblings = ["instrument.py", "laneconf.py"]
+        if (TOOLS / "dispatch.sh").is_file():
+            siblings.append("dispatch.sh")
+        staged = self.world.stage(src, siblings=tuple(siblings))
+        for path in staged.parent.iterdir():
+            dest = self.world.plant_bytes(tools / path.name, path.read_bytes())
+            if path.suffix == ".sh":
+                make_executable(dest)
+        return tools / CO_DOC
 
     def _plant_program(self, name: str, dest: Path, *, stdout: str = "",
                        exit: int = 0) -> Path:
