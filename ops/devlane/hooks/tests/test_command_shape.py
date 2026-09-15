@@ -11,6 +11,8 @@ import unittest
 import corpus
 import support
 
+from ops.testkit import World
+
 # Verbatim from command_shape.py as it shipped: the split the three hooks
 # used before this module existed. Kept in the test so a plant the old
 # split already handles fails as PLANT NOT LANDED rather than passing.
@@ -45,6 +47,11 @@ class CommandShapeCorpus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.mod = support.load_claude("command_shape.py", "command_shape")
+
+    def setUp(self):
+        self.world = World(prefix="command-shape-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
 
     def test_the_moved_tables_are_the_tables_that_were_there(self):
         self.assertEqual(len(corpus.SHAPE_FINDS), corpus.COUNTS["SHAPE_FINDS"])

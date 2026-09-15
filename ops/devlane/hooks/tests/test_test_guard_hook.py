@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
-import tempfile
 import unittest
 from pathlib import Path
 
 import support
+
+from ops.testkit import World, run
 
 HOOK = support.CLAUDE_DIR / "test-guard-hook.sh"
 
@@ -53,24 +53,25 @@ class TestGuardHookWrapper(unittest.TestCase):
             f"INVALID: {HOOK} is not executable",
         )
         # Prefix must not look like a test path: the scanner matches the path.
-        self.tmp = Path(tempfile.mkdtemp(prefix="tgh-wrap-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
-        self.env = support.isolated_env(self.home)
+        self.world = World(prefix="tgh-wrap-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.env = self.world.env({
+            "TESTKIT_DIR": str(support.WORKTREE_ROOT / "ops" / "testkit"),
+        })
 
     def _fire(self, tool: str, path: Path):
         payload = json.dumps(
             {"tool_name": tool, "tool_input": {"file_path": str(path)}}
         )
-        return support.run_cmd(
-            [str(HOOK)], self.tmp, self.env, stdin=payload, expect=None
+        return run(
+            [str(HOOK)], cwd=self.tmp, env=self.env, stdin=payload, timeout=120
         )
 
     def _rc(self, payload: str) -> int:
-        return support.run_cmd(
-            [str(HOOK)], self.tmp, self.env, stdin=payload, expect=None
-        ).returncode
+        return run(
+            [str(HOOK)], cwd=self.tmp, env=self.env, stdin=payload, timeout=120
+        ).exit
 
     def test_never_blocks_a_tool_call(self):
         self.assertGreater(len(JUNK), 0)
@@ -84,10 +85,10 @@ class TestGuardHookWrapper(unittest.TestCase):
 
     def test_catches_an_unguarded_plant_as_additional_context(self):
         path = self.tmp / "thing-test.sh"
-        support.plant_text(path, UNGUARDED, recognisable="sed -i")
+        self.world.plant_text(path, UNGUARDED, recognisable="sed -i")
         self.assertIn("sed -i", path.read_text(encoding="utf-8"))
         proc = self._fire("Write", path)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertIn(
             "unguarded-plant",
             proc.stdout,
@@ -110,7 +111,7 @@ class TestGuardHookWrapper(unittest.TestCase):
         opener = 'open(p, "wb")'
         reader = 'open(p, "rb").read()'
         body = "import sys\np = sys.argv[1]\n" + opener + ".write(" + reader + ")\n"
-        support.plant_text(path, body, recognisable="import sys")
+        self.world.plant_text(path, body, recognisable="import sys")
         landed = path.read_text(encoding="utf-8")
         needle = opener + ".write(" + reader + ")"
         self.assertIn(
@@ -120,7 +121,7 @@ class TestGuardHookWrapper(unittest.TestCase):
         )
         self.assertNotEqual(landed, "", "INVALID: fixture was emptied")
         proc = self._fire("Edit", path)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertIn(
             "truncating-self-read",
             proc.stdout,
@@ -129,27 +130,27 @@ class TestGuardHookWrapper(unittest.TestCase):
 
     def test_stays_quiet_where_it_should(self):
         guarded = self.tmp / "ok-test.sh"
-        support.plant_text(guarded, GUARDED, recognisable="cksum")
+        self.world.plant_text(guarded, GUARDED, recognisable="cksum")
         self.assertIn("cksum", guarded.read_text(encoding="utf-8"))
         not_test = self.tmp / "bump-version.sh"
-        support.plant_text(not_test, NOT_A_TEST, recognisable="pyproject")
+        self.world.plant_text(not_test, NOT_A_TEST, recognisable="pyproject")
         unguarded = self.tmp / "thing-test.sh"
-        support.plant_text(unguarded, UNGUARDED, recognisable="sed -i")
+        self.world.plant_text(unguarded, UNGUARDED, recognisable="sed -i")
 
         g = self._fire("Write", guarded)
-        self.assertEqual(g.returncode, 0, g.stderr)
+        self.assertEqual(g.exit, 0, g.stderr)
         self.assertFalse(
             support.has_additional_context(g.stdout),
             f"nagged a guarded test: {g.stdout!r}",
         )
         n = self._fire("Write", not_test)
-        self.assertEqual(n.returncode, 0, n.stderr)
+        self.assertEqual(n.exit, 0, n.stderr)
         self.assertFalse(
             support.has_additional_context(n.stdout),
             f"nagged a release script: {n.stdout!r}",
         )
         b = self._fire("Bash", unguarded)
-        self.assertEqual(b.returncode, 0, b.stderr)
+        self.assertEqual(b.exit, 0, b.stderr)
         self.assertFalse(
             support.has_additional_context(b.stdout),
             f"nagged a non-Write/Edit tool: {b.stdout!r}",
