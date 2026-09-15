@@ -14,13 +14,12 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import support  # noqa: F401
+from ops.testkit import World, run
 
 HARNESS = Path(__file__).resolve().parents[1]
 REPO = Path(__file__).resolve().parents[4]
@@ -66,72 +65,40 @@ class _Repo:
     """One temporary git repository, one commit, a scratch HOME."""
 
     def setUp(self):
-        self._td = tempfile.TemporaryDirectory(prefix="receipt-")
-        self.addCleanup(self._td.cleanup)
-        root = Path(self._td.name)
-        self.home = root / "home"
-        self.repo = root / "repo"
-        self.outside = root / "outside"
-        self.home.mkdir()
+        self.world = World(prefix="receipt-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.repo = self.world.cwd
+        self.outside = self.world.root / "outside"
         self.outside.mkdir()
-        self.repo.mkdir()
+        self.world.require("git")
+        self.world.tools.plant("true")
+        self.world.tools.plant("false", exit=1)
         self.git("init", "-b", "work")
         self.git("config", "user.name", "receipt-test")
         self.git("config", "user.email", "receipt-test@example.invalid")
         self.git("config", "commit.gpgsign", "false")
-        (self.repo / "README").write_text("receipt fixture\n", encoding="utf-8")
+        self.world.plant_text(self.repo / "README", "receipt fixture\n")
         self.git("add", "README")
         self.git("commit", "-m", "one")
         head = self.git("rev-parse", "HEAD").stdout.strip()
         self.assertTrue(head, "fixture commit must exist")
         self.assertEqual(self.git("status", "--porcelain").stdout.strip(), "")
 
-    def git(self, *args: str) -> subprocess.CompletedProcess[str]:
-        env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-        env.update({
-            "HOME": str(self.home),
-            "GIT_AUTHOR_NAME": "receipt-test",
-            "GIT_AUTHOR_EMAIL": "receipt-test@example.invalid",
-            "GIT_COMMITTER_NAME": "receipt-test",
-            "GIT_COMMITTER_EMAIL": "receipt-test@example.invalid",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-        })
-        proc = subprocess.run(
-            ["git", *args],
-            cwd=self.repo,
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if proc.returncode != 0:
-            raise RuntimeError(f"git {args} failed: {proc.stderr}")
-        return proc
+    def git(self, *args: str):
+        return self.world.git(*args, cwd=self.repo, timeout=60)
 
     def invoke(self, args, *, agent=AGENT):
-        env = {
-            k: v for k, v in os.environ.items()
-            if not k.startswith("GIT_") and k not in {
-                "WF_AGENT", "RECEIPT_TEST_LEVER",
-            }
-        }
-        env["HOME"] = str(self.home)
-        env["TZ"] = "UTC"
+        extra = {"TZ": "UTC"}
         if agent is not None:
-            env["WF_AGENT"] = agent
-        proc = subprocess.run(
+            extra["WF_AGENT"] = agent
+        proc = run(
             [sys.executable, str(lever_path()), *args],
             cwd=self.repo,
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
+            env=self.world.env(extra),
             timeout=30,
         )
-        return proc.returncode, proc.stdout, proc.stderr
+        return proc.exit, proc.stdout, proc.stderr
 
     def record(self, claim, argv, *, cwd=None, allow_dirty=False, agent=AGENT):
         args = ["record", "--claim", claim]
@@ -222,9 +189,7 @@ class _Repo:
         return body
 
     def write_json(self, path: Path, obj) -> Path:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(obj) + "\n", encoding="utf-8")
-        return path
+        return self.world.plant_text(path, json.dumps(obj) + "\n")
 
     def marker_argv(self, marker: Path):
         return [
@@ -250,15 +215,15 @@ class _Repo:
         return hashlib.sha256(commit.encode("ascii")).hexdigest()
 
     def cue_vet(self, receipt: Path, definition: str):
-        cue = shutil.which("cue")
+        env = self.world.env()
+        cue = shutil.which("cue", path=env["PATH"])
         if cue is None:
             self.skipTest("cue is not on PATH")
-        return subprocess.run(
+        return run(
             [cue, "vet", "./ops/devlane/harness/", str(receipt), "-d", definition],
             cwd=REPO,
-            capture_output=True,
-            text=True,
-            check=False,
+            env=env,
+            timeout=60,
         )
 
 
@@ -305,7 +270,7 @@ class Record(_Repo, unittest.TestCase):
         self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         _body, path = self.one_receipt()
         proc = self.cue_vet(path, "#AdmissibleReceipt")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
 
     def test_failing_command_exits_1_and_writes_receipt_with_that_exit_code(self):
         code, out, err = self.record("a failing command", ["false"])
@@ -325,7 +290,7 @@ class Record(_Repo, unittest.TestCase):
 
     def test_dirty_tree_refuses_dirty(self):
         planted = self.repo / "unstaged.txt"
-        planted.write_text("dirty\n", encoding="utf-8")
+        self.world.plant_text(planted, "dirty\n")
         self.assertEqual(planted.read_text(encoding="utf-8"), "dirty\n")
         self.assertTrue(self.git("status", "--porcelain").stdout.strip())
         code, out, err = self.record("dirty", ["true"])
@@ -334,7 +299,7 @@ class Record(_Repo, unittest.TestCase):
 
     def test_allow_dirty_records_tree_dirty_true(self):
         planted = self.repo / "unstaged.txt"
-        planted.write_text("dirty\n", encoding="utf-8")
+        self.world.plant_text(planted, "dirty\n")
         self.assertTrue(self.git("status", "--porcelain").stdout.strip())
         code, out, err = self.record("allow dirty", ["true"], allow_dirty=True)
         self.assertEqual(code, 0, f"out={out!r} err={err!r}")
@@ -344,14 +309,14 @@ class Record(_Repo, unittest.TestCase):
         self.assertIs(body["tree_dirty"], True)
 
     def test_allow_dirty_receipt_vets_as_receipt_not_admissible_when_cue_is_on_path(self):
-        (self.repo / "unstaged.txt").write_text("dirty\n", encoding="utf-8")
+        self.world.plant_text(self.repo / "unstaged.txt", "dirty\n")
         code, out, err = self.record("allow dirty cue", ["true"], allow_dirty=True)
         self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         _body, path = self.one_receipt()
         as_receipt = self.cue_vet(path, "#Receipt")
-        self.assertEqual(as_receipt.returncode, 0, as_receipt.stderr)
+        self.assertEqual(as_receipt.exit, 0, as_receipt.stderr)
         as_admissible = self.cue_vet(path, "#AdmissibleReceipt")
-        self.assertNotEqual(as_admissible.returncode, 0, as_admissible.stderr)
+        self.assertNotEqual(as_admissible.exit, 0, as_admissible.stderr)
         self.assertIn("tree_dirty", as_admissible.stderr)
 
     def test_absolute_cwd_refuses_cwd(self):
@@ -398,8 +363,7 @@ class Record(_Repo, unittest.TestCase):
 
     def test_receipts_dir_symlink_outside_root_refuses_and_writes_nothing_outside(self):
         kept = self.repo / ".dev" / "records" / "kept"
-        kept.parent.mkdir(parents=True)
-        kept.write_text("tracked\n", encoding="utf-8")
+        self.world.plant_text(kept, "tracked\n")
         self.git("add", ".dev")
         self.git("commit", "-m", "track .dev")
         leaked = self.outside / "leaked"
@@ -455,15 +419,14 @@ class Record(_Repo, unittest.TestCase):
     def test_git_status_failure_refuses_repository(self):
         index = self.repo / ".git" / "index"
         self.assertTrue(index.is_file())
-        index.write_bytes(b"corrupt")
-        probe = subprocess.run(
+        self.world.plant_bytes(index, b"corrupt")
+        probe = run(
             ["git", "status"],
             cwd=self.repo,
-            capture_output=True,
-            text=True,
-            check=False,
+            env=self.world.env(),
+            timeout=60,
         )
-        self.assertNotEqual(probe.returncode, 0, probe.stderr)
+        self.assertNotEqual(probe.exit, 0, probe.stderr)
         code, out, err = self.record("corrupt index", ["true"])
         self.assert_refusal(code, out, err, "repository")
         self.assert_no_receipt()
@@ -519,7 +482,7 @@ class Verify(_Repo, unittest.TestCase):
         self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         _body, path = self.one_receipt()
         recorded_head = self.git("rev-parse", "HEAD").stdout.strip()
-        (self.repo / "later.txt").write_text("moved\n", encoding="utf-8")
+        self.world.plant_text(self.repo / "later.txt", "moved\n")
         self.git("add", "later.txt")
         self.git("commit", "-m", "two")
         new_head = self.git("rev-parse", "HEAD").stdout.strip()
@@ -567,7 +530,7 @@ class Verify(_Repo, unittest.TestCase):
         body, path = self.one_receipt()
         digest = path.stem
         body["claim"] = "tampered"
-        path.write_text(json.dumps(body) + "\n", encoding="utf-8")
+        self.world.plant_text(path, json.dumps(body) + "\n")
         self.assertEqual(path.stem, digest)
         self.assertNotEqual(canonical_digest(body), digest)
         with self.subTest("verify"):
@@ -604,7 +567,7 @@ class Show(_Repo, unittest.TestCase):
             "stage": "not-a-receipt-field",
         }
         path = self.home / "extra.json"
-        path.write_text(json.dumps(body) + "\n", encoding="utf-8")
+        self.world.plant_text(path, json.dumps(body) + "\n")
         planted = json.loads(path.read_text(encoding="utf-8"))
         self.assertIn("stage", planted)
         self.assertEqual(len(planted), 13)
