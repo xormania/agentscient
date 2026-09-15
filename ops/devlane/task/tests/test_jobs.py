@@ -18,6 +18,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 JOBS_PATH = support.APP / "jobs.json"
 
 ENVELOPE_CLAUSE = (
@@ -33,12 +35,23 @@ SPEND_TO_THE_LAUNCHER = (
 )
 
 
-class AuthorTestsBriefAsksForTheEnvelope(unittest.TestCase):
+class _WorldCase(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="jobs-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
+    def jobs(self):
+        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
+        path = self.world.stage(JOBS_PATH)
+        return json.loads(path.read_text(encoding="utf-8"))
+
+
+class AuthorTestsBriefAsksForTheEnvelope(_WorldCase):
     """The author-tests brief asks for the envelope."""
 
     def test_the_author_tests_brief_asks_for_the_envelope(self):
-        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        jobs = self.jobs()
         self.assertIsInstance(jobs, dict)
         self.assertIn("author-tests", jobs)
         spec = jobs["author-tests"]
@@ -54,12 +67,11 @@ class AuthorTestsBriefAsksForTheEnvelope(unittest.TestCase):
         )
 
 
-class SecurityAuditIsInTheCatalogue(unittest.TestCase):
+class SecurityAuditIsInTheCatalogue(_WorldCase):
     """security-audit is a read, whole-tree job with the envelope."""
 
     def test_security_audit_is_a_read_whole_job_with_the_envelope(self):
-        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        jobs = self.jobs()
         self.assertIsInstance(jobs, dict)
         self.assertIn("security-audit", jobs)
         spec = jobs["security-audit"]
@@ -79,8 +91,7 @@ class SecurityAuditIsInTheCatalogue(unittest.TestCase):
         )
 
     def test_security_audit_declares_caps_timeout_1200(self):
-        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        jobs = self.jobs()
         self.assertIn("security-audit", jobs)
         self.assertIn("adversarial-review", jobs)
         audit = jobs["security-audit"]
@@ -100,12 +111,11 @@ class SecurityAuditIsInTheCatalogue(unittest.TestCase):
         )
 
 
-class EveryHarnessPromptLeavesSpendToTheLauncher(unittest.TestCase):
+class EveryHarnessPromptLeavesSpendToTheLauncher(_WorldCase):
     """Harness jobs do not hunt usage; the launcher fills spend."""
 
     def test_every_harness_prompt_leaves_spend_to_the_launcher(self):
-        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        jobs = self.jobs()
         self.assertIsInstance(jobs, dict)
         harness_jobs = [
             name for name, spec in jobs.items()
