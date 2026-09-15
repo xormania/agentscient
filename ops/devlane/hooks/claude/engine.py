@@ -28,6 +28,7 @@ is lifted by nothing.
 unknown predicates, unknown events. Adding a condition is adding a row.
 """
 
+import ast
 import importlib.util
 import json
 import os
@@ -297,6 +298,112 @@ def p_claim_without_reading(ctx):
     return None
 
 
+# A module under a tests/ directory at any depth (ruled rank 6, record
+# 20260915T025600Z-adjudicate-codex-68d3d9: tests/fakes/ was not one).
+TEST_MODULE = re.compile(r"(^|/)tests/(?:[^/]+/)*[^/]+\.py$")
+# The line pattern is the fallback for text that does not parse; parsed
+# text is judged by its import statements, never by words in a string.
+KIT_IMPORT = re.compile(r"^\s*(from\s+ops\.testkit(\.\w+)*\s+import\b|import\s+ops\.testkit\b)", re.MULTILINE)
+# The exemption carries a reason.
+# Spaces, not any whitespace: a newline after `exempt` is no reason.
+KIT_EXEMPT = re.compile(r"^[ \t]*# testkit: exempt[ \t]+\S", re.MULTILINE)
+
+
+def _imports_kit(text):
+    """True when the text carries an import statement of ops.testkit."""
+    try:
+        tree = ast.parse(text)
+    except (SyntaxError, ValueError):
+        return bool(KIT_IMPORT.search(text))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module == "ops.testkit" or module.startswith("ops.testkit."):
+                return True
+        elif isinstance(node, ast.Import):
+            if any(a.name == "ops.testkit" or a.name.startswith("ops.testkit.") for a in node.names):
+                return True
+    return False
+
+
+def _tracked(rel, cwd):
+    """True when git tracks rel, False when the file is untracked, None
+    when git cannot say (no repository, no git)."""
+    try:
+        proc = subprocess.run(["git", "-C", cwd, "ls-files", "--error-unmatch", "--", rel],  # noqa: S603, S607
+                              capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode == 0:
+        return True
+    if proc.returncode == 1:
+        return False
+    return None
+
+
+def _new_test_module_without_kit(path, body, ctx, *, replaces=True):
+    """The path when it is a new module under a tests/ directory whose text
+    neither imports the kit nor declares its exemption, with a reason, in
+    its first ten lines (docs/tests.md rule 1); None otherwise. A file git
+    tracks is grandfathered; one a touch or an earlier write made is still
+    new, judged on the text it will hold: ``body`` alone when the write
+    replaces the file, the disk text plus ``body`` when it edits."""
+    _, rel = matrix.relative(path, ctx.cwd)
+    if not TEST_MODULE.search(rel or path):
+        return None
+    absolute = os.path.normpath(os.path.join(ctx.cwd, os.path.expanduser(path)))
+    text = body or ""
+    if os.path.exists(absolute):
+        tracked = _tracked(rel or path, ctx.cwd)
+        if tracked is None or tracked:
+            return None
+        if not replaces:
+            try:
+                with open(absolute, encoding="utf-8") as fh:
+                    text = fh.read() + "\n" + text
+            except (OSError, UnicodeDecodeError):
+                pass
+    head = "\n".join(text.splitlines()[:10])
+    if _imports_kit(text) or KIT_EXEMPT.search(head):
+        return None
+    return path
+
+
+def p_test_file_without_kit(ctx):
+    """A new test module that neither imports the kit nor declares its
+    exemption (docs/tests.md rule 1; plan slice 16). An existing file, a
+    module that imports ops.testkit, or one carrying `# testkit: exempt
+    <reason>` in its first ten lines passes; a module written by a
+    redirect whose text the row cannot read is refused, because could
+    not look is not a pass."""
+    for key in ("file_path", "relative_path", "path"):
+        path = ctx.input.get(key)
+        if not path:
+            continue
+        body = ctx.input.get("content")
+        replaces = body is not None
+        if body is None:
+            edits = ctx.input.get("edits")
+            if isinstance(edits, list):
+                body = "\n".join(str((e or {}).get("new_string") or "") for e in edits if isinstance(e, dict))
+            else:
+                body = ctx.input.get("new_string") or ""
+        found = _new_test_module_without_kit(path, body, ctx, replaces=replaces)
+        if found:
+            return f"a new test module {found} without the kit"
+    heredocs = [(m.group(1).strip("'\""), m.group(4)) for m in matrix.HEREDOC_WRITE.finditer(ctx.text or "")]
+    for target, body in heredocs:
+        found = _new_test_module_without_kit(target, body, ctx)
+        if found:
+            return f"a new test module {found} written by heredoc without the kit"
+    written = {target for target, _ in heredocs}
+    for toks in ctx.statements:
+        for path in matrix.redirect_targets(toks):
+            if path != "." and path not in written and _new_test_module_without_kit(path, "", ctx):
+                return f"a new test module {path} written by redirect, its text unread"
+    return None
+
+
 def p_prune_target(ctx):
     for toks in ctx.statements:
         for target in matrix.prune_targets(toks, ctx.cwd, ctx.conf):
@@ -324,6 +431,7 @@ PREDICATES = {
     "claim_without_reading": p_claim_without_reading,
     "prune_target": p_prune_target,
     "unittest_path_form": p_unittest_path_form,
+    "test_file_without_kit": p_test_file_without_kit,
 }
 
 

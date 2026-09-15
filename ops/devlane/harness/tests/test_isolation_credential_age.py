@@ -12,6 +12,7 @@ running a worker that fails in a way that looks like a model refusal.
 import datetime
 import importlib.util
 import json
+import shutil
 import sys
 import tempfile
 import unittest
@@ -38,6 +39,7 @@ class ACredentialPastItsRefreshLifetimeIsRefused(unittest.TestCase):
     def setUp(self):
         self.iso = _isolation()
         self.tmp = Path(tempfile.mkdtemp(prefix="cred-age-"))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.home = self.tmp / "home"
         self.env = {"HOME": str(self.home)}
 
@@ -47,9 +49,9 @@ class ACredentialPastItsRefreshLifetimeIsRefused(unittest.TestCase):
         path.write_text(body, encoding="utf-8")
         return path
 
-    def credential(self, hours_ago):
+    def credential(self, hours_ago, refresh="r"):
         return json.dumps({"https://auth.x.ai::client": {
-            "key": "k", "refresh_token": "r", "create_time": _stamp(hours_ago)}})
+            "key": "k", "refresh_token": refresh, "create_time": _stamp(hours_ago)}})
 
     def build(self, harness, name):
         return Path(self.iso.build_home(harness, self.tmp / name, env=self.env))
@@ -82,6 +84,61 @@ class ACredentialPastItsRefreshLifetimeIsRefused(unittest.TestCase):
         self.plant("codex", self.credential(31))
         home = self.build("codex", "codex")
         self.assertEqual(sorted(p.name for p in home.iterdir()), ["auth.json"])
+
+
+class ARenewedCredentialIsCarriedBackToTheHost(ACredentialPastItsRefreshLifetimeIsRefused):
+    """LD-41 (2026-09-15): the CLI renews by renaming a new file over the
+    symlink build_home planted, so the renewal (a new refresh token and a
+    new create_time) stayed in the job home and the host copy aged out.
+    After an attempt the launcher carries a renewed regular file back."""
+
+    def renew(self, home, hours_ago, refresh):
+        job = home / "auth.json"
+        self.assertTrue(job.is_symlink(), "plant: the home holds the link")
+        job.unlink()
+        job.write_text(self.credential(hours_ago, refresh) + "\n", encoding="utf-8")
+        self.assertFalse(job.is_symlink(), "plant: the renewal is a regular file")
+        return job
+
+    def test_a_newer_regular_file_in_the_job_home_replaces_the_host_copy(self):
+        host = self.plant("grok", self.credential(20, "r0"))
+        host.chmod(0o600)
+        home = self.build("grok", "job")
+        job = self.renew(home, 1, "r1")
+        readings = self.iso.carry_back("grok", home, env=self.env)
+        self.assertEqual(readings, [{"file": "auth.json", "outcome": "carried"}])
+        self.assertIn('"r1"', host.read_text(encoding="utf-8"))
+        self.assertEqual(host.stat().st_mode & 0o777, 0o600)
+        self.assertTrue(job.is_symlink(), "the job home holds the link again, no copy outlives the run")
+        self.assertEqual(job.resolve(), host.resolve())
+        self.assertEqual(sorted(p.name for p in home.iterdir()), ["auth.json"],
+                         "no temporary file is left beside the credential")
+
+    def test_an_untouched_link_carries_nothing(self):
+        host = self.plant("grok", self.credential(20, "r0"))
+        home = self.build("grok", "job")
+        readings = self.iso.carry_back("grok", home, env=self.env)
+        self.assertEqual(readings, [{"file": "auth.json", "outcome": "linked"}])
+        self.assertIn('"r0"', host.read_text(encoding="utf-8"))
+
+    def test_an_older_regular_file_does_not_replace_the_host_copy(self):
+        host = self.plant("grok", self.credential(20, "r0"))
+        home = self.build("grok", "job")
+        self.renew(home, 30, "stale")
+        readings = self.iso.carry_back("grok", home, env=self.env)
+        self.assertEqual(readings, [{"file": "auth.json", "outcome": "older"}])
+        self.assertIn('"r0"', host.read_text(encoding="utf-8"))
+
+    def test_a_carried_credential_passes_the_age_rule_again(self):
+        self.plant("grok", self.credential(23, "r0"))
+        home = self.build("grok", "first")
+        self.renew(home, 1, "r1")
+        self.iso.carry_back("grok", home, env=self.env)
+        second = self.build("grok", "second")
+        self.assertEqual(sorted(p.name for p in second.iterdir()), ["auth.json"])
+
+    def test_a_harness_without_a_home_carries_nothing(self):
+        self.assertEqual(self.iso.carry_back("claude", self.tmp / "none", env=self.env), [])
 
 
 if __name__ == "__main__":

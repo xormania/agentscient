@@ -806,6 +806,14 @@ def _what_exists(snapshot, jobs, mcp_meta):
     names = [f"{name} ({spec.get('role') or 'direct'})" for name, spec in (jobs or {}).items()
              if isinstance(spec, dict)]
     lines.append("jobs (the catalogue): " + ", ".join(names) if names else "jobs: absent")
+    contract = root / "docs" / "tests.md"
+    if contract.is_file():
+        tail = contract.read_text(encoding="utf-8", errors="replace").split("## Invariants", 1)
+        invariants = re.findall(r"^- `([\w.-]+)`", tail[1], re.MULTILINE) if len(tail) > 1 else []
+        lines.append("test kit (ops/testkit): World, run, Tools, cases; a tests job's note joins one invariant with "
+                     "reused: <name>; invariants: " + (", ".join(invariants) if invariants else "none named in docs/tests.md"))
+    else:
+        lines.append("test kit: absent")
     ideas = sorted(p.stem for p in root.glob("ops/conductor/ideas/I-*.md"))
     lines.append("ideas (ops/conductor/ideas): " + ", ".join(ideas[-40:]) if ideas else "ideas: absent")
     handoffs = sorted(root.glob("ops/conductor/handoff/HANDOFF-*.md"))
@@ -1668,10 +1676,23 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
     (job_dir / "exit").write_text(f"{code}\n")
     rec["attempts"].append({"n": len(rec["attempts"]) + 1, "launched": launched,
                             "ended": _now(), "exit": code,
-                            "tripped": (job_dir / "TRIPPED.md").exists()})
+                            "tripped": (job_dir / "TRIPPED.md").exists(),
+                            "credential": _carry_back_credentials(harness, job_dir / "home" / harness)})
     if reason:
         rec.setdefault("note", reason)
     return code
+
+
+def _carry_back_credentials(harness, home):
+    """LD-41 (2026-09-15): a credential the worker renewed inside its job
+    home goes back to the host copy, so the next launch reads the renewal
+    and not the login (isolation.carry_back). Never fails the attempt: a
+    failure is a reading in the attempt, `unresolved`."""
+    isolation = _module("isolation_carry", HARNESS_APP / "isolation.py")
+    try:
+        return isolation.carry_back(harness, home, os.environ)
+    except (isolation.NotIsolated, OSError, ValueError, KeyError) as exc:
+        return [{"unresolved": str(exc)}]
 
 
 def _read_role_write_guard(name, job):

@@ -24,6 +24,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# The kit's recorder, by path: the suites copy this stub into a scratch bin,
+# so the kit is named by TESTKIT_DIR (support.isolated_env sets it) or found
+# above the original file.
+KIT = os.environ.get("TESTKIT_DIR") or str(Path(__file__).resolve().parents[3] / "ops" / "testkit")
+sys.path.insert(0, KIT)
+
+from fake_program import log_call  # noqa: E402
+
 
 def _fail(fix: Path) -> None:
     msg = os.environ.get("GH_FAIL_STDERR", "gh: authentication failed")
@@ -34,20 +42,22 @@ def _fail(fix: Path) -> None:
 
 
 def log(fix: Path, line: str) -> None:
-    path = fix / "calls.log"
-    with path.open("a", encoding="utf-8") as fh:
-        fh.write(line + "\n")
+    """One line appended to calls.log with a single write, as the kit's
+    recorder appends its JSON line: never a read-and-rewrite (LD-8)."""
+    fd = os.open(str(fix / "calls.log"), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        os.write(fd, (line + "\n").encode("utf-8"))
+    finally:
+        os.close(fd)
 
 
 def bump(fix: Path) -> int:
-    path = fix / "callcount"
-    n = 0
-    if path.is_file():
-        raw = path.read_text(encoding="utf-8").strip()
-        if raw.isdigit():
-            n = int(raw)
-    n += 1
-    path.write_text(str(n) + "\n", encoding="utf-8")
+    """The call's ordinal: the kit's recorder appends the JSON line to
+    calls.jsonl, and the count is the log's length. callcount is written
+    for the tests that read it, from that length, never from itself."""
+    log_call(str(fix / "calls.jsonl"), sys.argv[1:], "")
+    n = sum(1 for ln in (fix / "calls.jsonl").read_text(encoding="utf-8").splitlines() if ln.strip())
+    (fix / "callcount").write_text(str(n) + "\n", encoding="utf-8")
     return n
 
 

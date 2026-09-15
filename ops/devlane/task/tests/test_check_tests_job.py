@@ -35,7 +35,7 @@ OTHER_JOBS = (
 # declared their outputs (item 5 as amended), and again under grant 155
 # (2026-09-12) after caps.turns joined five entries, said in the commit.
 OTHERS_SHA256 = (
-    "d1bcaac14d7ad4d82a7cce3a5f96a3a3e6476d5933d44e839975eeb160cafd81"  # re-pinned 2026-09-13: the plan prompt forbids suite runs (token thrift #4)
+    "0ed185861ef242798bd275512165c14ae1b013c5bc0aa3f6244dd2802b605617"  # re-pinned 2026-09-14: the author-tests prompt names the kit (plan slice 18)
 )
 
 D1_PROMPT = (

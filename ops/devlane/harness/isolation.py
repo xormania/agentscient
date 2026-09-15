@@ -184,6 +184,10 @@ HARNESSES = {
         # after create_time (a refresh from it was accepted at 29.4 h,
         # record 3ab0c7; two dispatches died "Not signed in" at 30.1 h,
         # records dddd49 and 70b92e). Refuse before the mint instead.
+        # LD-41 (2026-09-15): why the renewal stayed in the job home: the
+        # CLI renames a new file over the link build_home planted. The
+        # launcher now carries a renewed file back (carry_back), so the
+        # host copy ages from the last renewal, not the last login.
         "credential_age": {
             "file": "auth.json",
             "field": "create_time",
@@ -319,6 +323,61 @@ def check_credential_age(harness, spec, name, src):
         f"accepted at {measured.get('accepted_h')} h, refused at "
         f"{measured.get('refused_h')} h), so a worker would die 'Not signed in'; "
         f"needed `{rule['remedy']}` on the host.")
+
+
+def carry_back(harness, home, env=None):
+    """LD-41 (2026-09-15): carry a credential the CLI renewed in a job home
+    back to the host copy. One reading per declared credential file:
+    {"file": name, "outcome": "carried" | "linked" | "older" | "absent"}.
+
+    `build_home` plants each credential as a symlink to the host copy. The
+    CLI renews by writing a temporary file and renaming it over the name,
+    which replaces the link with a regular file inside the job home: the
+    new refresh token and its `create_time` stayed there, and the host copy
+    kept the login's, which aged out (LD-18). Measured on this host on
+    2026-09-15: 48 job homes held a renewed regular file, 222 still the
+    link, and the host copy carried the 2026-09-13 login while every
+    renewal since sat in a job home.
+
+    A regular file in the job home whose stamp (the `credential_age`
+    field, else the modification time) is newer than the host copy's
+    replaces the host copy atomically, with the host copy's mode, and the
+    job home gets its link back so no copy outlives the run. Nothing is
+    written on any other outcome.
+    """
+    env = os.environ if env is None else env
+    spec = HARNESSES.get(harness)
+    if spec is None or spec["mechanism"] != "home":
+        return []
+    home = Path(home)
+    src_home = _real_home(harness, env, given=True)
+    rule = spec.get("credential_age") or {}
+    readings = []
+    for name in spec["auth_files"]:
+        job = home / name
+        host = src_home / name
+        if job.is_symlink() or not job.exists():
+            readings.append({"file": name, "outcome": "linked" if job.is_symlink() else "absent"})
+            continue
+        if rule.get("file") == name:
+            newer = _credential_created(job, rule["field"])
+            older = _credential_created(host, rule["field"]) if host.exists() else None
+            is_newer = newer is not None and (older is None or newer[0] > older[0])
+        else:
+            is_newer = not host.exists() or job.stat().st_mtime_ns > host.stat().st_mtime_ns
+        if not is_newer:
+            readings.append({"file": name, "outcome": "older"})
+            continue
+        mode = host.stat().st_mode & 0o777 if host.exists() else 0o600
+        host.parent.mkdir(parents=True, exist_ok=True)
+        staged = host.with_name(host.name + ".carry")
+        staged.write_bytes(job.read_bytes())
+        staged.chmod(mode)
+        os.replace(staged, host)
+        job.unlink()
+        job.symlink_to(host.resolve())
+        readings.append({"file": name, "outcome": "carried"})
+    return readings
 
 
 def build_home(harness, root, env=None):

@@ -18,7 +18,7 @@ set -u
 here=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 root=$(CDPATH='' cd -- "$here/../.." && pwd)
 cd "$root" || exit 2
-suites=(ops/devlane/{dispatch,harness,task,telemetry,hooks,fixtures,workflow}/tests ops/conductor/tests .claude/skills/pr-overview/tests)
+suites=(ops/devlane/{dispatch,harness,task,telemetry,hooks,fixtures,workflow}/tests ops/testkit/tests ops/conductor/tests .claude/skills/pr-overview/tests)
 logs=$(mktemp -d "${TMPDIR:-/tmp}/suites.XXXXXX") || exit 2
 trap 'rm -rf "$logs"' EXIT
 run_one() {  # run_one <tests dir> <log key>

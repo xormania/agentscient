@@ -11,22 +11,23 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import shutil
-import stat
 import subprocess
 import sys
 from pathlib import Path
+
+from ops.testkit import PlantFailed, Timeout, hermetic_env, make_executable, run
+from ops.testkit import plant_text as _kit_plant_text
+from ops.testkit import require as _kit_require
+from ops.testkit.world import FIXED_DATE
 
 TESTS_DIR = Path(__file__).resolve().parent
 HOOKS_DIR = TESTS_DIR.parent
 CLAUDE_DIR = HOOKS_DIR / "claude"
 WORKTREE_ROOT = TESTS_DIR.parents[3]
 
-FIXED_DATE = "2026-01-02T03:04:05Z"
+RUN_CAP = 120  # the one timeout of this suite's subprocesses (docs/tests.md rule 5)
 
-
-class PlantFailed(AssertionError):
-    """The fixture was not what the case claimed to set up."""
+# PlantFailed is the kit's: INVALID, not a verdict (docs/tests.md).
 
 
 def load_claude(filename: str, modname: str):
@@ -52,44 +53,20 @@ def load_claude(filename: str, modname: str):
 
 
 def isolated_env(home: Path, extra_path=None, extra=None):
-    """Env that cannot see the real repo's git config or hook escape hatches."""
-    path = os.environ.get("PATH", "/usr/bin:/bin")
-    if extra_path is not None:
-        path = str(extra_path) + os.pathsep + path
-    env = {
-        "PATH": path,
-        "HOME": str(home),
-        "GIT_CONFIG_GLOBAL": os.devnull,
-        "GIT_CONFIG_SYSTEM": os.devnull,
-        "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_AUTHOR_DATE": FIXED_DATE,
-        "GIT_COMMITTER_DATE": FIXED_DATE,
-        "LC_ALL": "C",
-        "LANG": "C",
-    }
-    # Never inherit the offline escape: a D2 case with this set is INVALID.
-    env.pop("CLAUDE_PRECHECK_NO_FETCH", None)
-    if extra:
-        env.update(extra)
-    return env
+    """Env that cannot see the real repo's git config or hook escape hatches:
+    the kit's hermetic environment for ``home``, ``extra_path`` first on
+    PATH. The offline escape CLAUDE_PRECHECK_NO_FETCH never reaches it
+    (a D2 case with it set is INVALID); the kit carries no host value."""
+    return hermetic_env(home, bin=extra_path, extra={"TESTKIT_DIR": str(WORKTREE_ROOT / "ops" / "testkit"), **(extra or {})})
 
 
 def run_cmd(argv, cwd, env, *, expect=None, stdin=None):
-    proc = subprocess.run(
-        argv,
-        cwd=str(cwd),
-        env=env,
-        input=stdin,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if expect is not None and proc.returncode != expect:
-        raise PlantFailed(
-            f"INVALID: {argv!r} in {cwd} exited {proc.returncode} "
-            f"(wanted {expect})\nstdout: {proc.stdout}\nstderr: {proc.stderr}"
-        )
-    return proc
+    """The kit's run, its Result in the CompletedProcess shape this suite reads."""
+    try:
+        result = run(argv, cwd=cwd, env=env, stdin=stdin, timeout=RUN_CAP, expect=expect)
+    except Timeout as exc:
+        raise PlantFailed(f"INVALID: {exc}") from exc
+    return subprocess.CompletedProcess(list(result.argv), result.exit, result.stdout, result.stderr)
 
 
 def git(cwd, env, *args, expect=0):
@@ -102,32 +79,15 @@ def configure_identity(repo: Path, env):
 
 
 def plant_text(path: Path, content: str, *, recognisable: str | None = None) -> str:
-    """Write ``content`` and prove it landed intact."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-    landed = path.read_text(encoding="utf-8")
-    if landed != content:
-        raise PlantFailed(
-            f"INVALID: plant did not reach disk for {path} "
-            f"(wanted {len(content)} bytes, got {len(landed)})"
-        )
-    if content and not landed:
-        raise PlantFailed(f"INVALID: plant emptied {path}")
-    if recognisable is not None and recognisable not in landed:
-        raise PlantFailed(
-            f"INVALID: plant left {path} unrecognisable as the fixture"
-        )
-    return landed
+    """Write ``content`` and prove it landed intact (the kit's plant)."""
+    return _kit_plant_text(path, content, recognisable=recognisable).read_text(encoding="utf-8")
 
 
 def plant_executable(path: Path, content: str) -> Path:
     """Write a stub binary, prove it is executable, prove it is the file we wrote."""
-    plant_text(path, content, recognisable=content.splitlines()[0][:20])
-    path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    mode = path.stat().st_mode
-    if not (mode & stat.S_IXUSR):
-        raise PlantFailed(f"INVALID: {path} is not executable")
+    path = Path(path)
+    _kit_plant_text(path, content, recognisable=content.splitlines()[0][:20])
+    make_executable(path)
     if not path.is_file():
         raise PlantFailed(f"INVALID: {path} is not a file")
     return path
@@ -292,10 +252,10 @@ class StaleClone:
 
 
 def require_jq():
-    if shutil.which("jq") is None:
-        raise PlantFailed(
-            "INVALID: jq is not on PATH; ruff-after-edit.sh cannot emit"
-        )
+    try:
+        _kit_require("jq")
+    except PlantFailed as exc:
+        raise PlantFailed("INVALID: jq is not on PATH; ruff-after-edit.sh cannot emit") from exc
 
 
 def rev_parse_path(cwd, env, flag: str, sandbox: Path) -> Path:

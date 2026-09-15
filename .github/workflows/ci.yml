@@ -53,6 +53,8 @@ jobs:
           ruff check .
       - name: lane suites
         run: bash ops/bin/suites.sh
+      - name: test kit ratchet — the census counts never rise
+        run: python3 ops/devlane/workflow/checks/testkit_ratchet.py
       - name: lane conf closure — every key read is declared
         run: python3 ops/conductor/tools/laneconf.py closure
       - name: lane conf literals — no lane literal is outside the conf
