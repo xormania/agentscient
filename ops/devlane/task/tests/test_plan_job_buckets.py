@@ -13,6 +13,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 JOBS_PATH = support.APP / "jobs.json"
 
 S_BUCKET = "S is one to three files and one worker run under ten minutes"
@@ -36,10 +38,18 @@ def _squish(text):
     return " ".join(text.split())
 
 
-class _PlanJob(unittest.TestCase):
+class _WorldCase(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="plan-buckets-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
+
+class _PlanJob(_WorldCase):
     def plan_prompt(self):
         self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        path = self.world.stage(JOBS_PATH)
+        jobs = json.loads(path.read_text(encoding="utf-8"))
         self.assertIsInstance(jobs, dict)
         self.assertIn("plan", jobs)
         spec = jobs["plan"]

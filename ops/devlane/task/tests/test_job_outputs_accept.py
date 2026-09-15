@@ -26,6 +26,8 @@ import unittest
 
 import outputs_support as osu
 
+from ops.testkit import World
+
 envelope = osu.envelope
 
 PLAN_INLINE = (
@@ -39,6 +41,11 @@ RULING_ABS = osu.OUT_ROOT + "/RULING.md"
 
 
 class _AcceptCase(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="outputs-accept-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
     def declared_validate_params(self):
         return inspect.signature(envelope.validate).parameters
 

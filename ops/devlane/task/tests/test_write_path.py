@@ -8,14 +8,12 @@ a temporary HOME. One producer wrote the module and this file (grant 149).
 from __future__ import annotations
 
 import json
-import os
-import subprocess
 import sys
-import tempfile
 import unittest
-from pathlib import Path
 
 import support
+
+from ops.testkit import World, run
 
 WRITE_PATH = support.APP / "write_path.py"
 OLD_SKEPTIC = "Write the report to {out}/SKEPTIC.md and name that path in artifacts"
@@ -33,8 +31,16 @@ def _job(prompt: str, role: str = "read", outputs=None) -> dict:
     return job
 
 
-class WriteInstruction(unittest.TestCase):
+class _WorldCase(unittest.TestCase):
     def setUp(self):
+        self.world = World(prefix="write-path-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
+
+class WriteInstruction(_WorldCase):
+    def setUp(self):
+        super().setUp()
         self.mod = support.load("write_path")
         self.fn = self.mod.write_instruction
 
@@ -68,26 +74,21 @@ class WriteInstruction(unittest.TestCase):
         self.assertIsNotNone(self.fn("Write the plan to {out}/PLAN.md", frozenset()))
 
 
-class TheCli(unittest.TestCase):
+class TheCli(_WorldCase):
     def setUp(self):
+        super().setUp()
         self.mod = support.load("write_path")
-        self.tmp = tempfile.TemporaryDirectory(prefix="write-path-")
-        self.addCleanup(self.tmp.cleanup)
-        self.home = Path(self.tmp.name) / "home"
-        self.home.mkdir()
 
     def run_cli(self, jobs: dict, *names: str):
-        path = Path(self.tmp.name) / "jobs.json"
-        path.write_text(json.dumps(jobs, indent=1), encoding="utf-8")
-        env = {"PATH": os.environ.get("PATH", ""), "HOME": str(self.home), "LC_ALL": "C"}
-        return subprocess.run(
+        path = self.world.plant_text("jobs.json", json.dumps(jobs, indent=1))
+        return run(
             [sys.executable, str(WRITE_PATH), "--jobs", str(path), *names],
-            capture_output=True, text=True, env=env, check=False, timeout=60,
+            cwd=support.REPO, env=self.world.env(), timeout=60,
         )
 
     def test_the_old_check_tests_entry_refuses_role_on_the_wire(self):
         proc = self.run_cli({"check-tests": _job(OLD_SKEPTIC)}, "check-tests")
-        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stderr)
         self.assertEqual(proc.stdout, "")
         lines = proc.stderr.strip().splitlines()
         self.assertEqual(len(lines), 1, proc.stderr)
@@ -96,7 +97,7 @@ class TheCli(unittest.TestCase):
 
     def test_the_wire_entry_passes(self):
         proc = self.run_cli({"check-tests": _job(D1)}, "check-tests")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout + proc.stderr, "")
 
     def test_a_declared_output_passes_and_every_job_is_checked_without_a_name(self):
@@ -106,24 +107,23 @@ class TheCli(unittest.TestCase):
             "implement": _job("Write the code to src/x.py", role="write"),
         }
         proc = self.run_cli(jobs)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         jobs["sweep"] = _job("Save the sweep to out/SWEEP.md")
         proc = self.run_cli(jobs)
-        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stderr)
         self.assertIn("found job sweep:", proc.stderr)
 
     def test_an_unknown_job_refuses_job(self):
         proc = self.run_cli({"check-tests": _job(D1)}, "nope")
-        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.exit, 2)
         self.assertTrue(proc.stderr.startswith("job: expected "), proc.stderr)
 
     def test_the_live_jobs_file_holds(self):
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(WRITE_PATH)],
-            capture_output=True, text=True, check=False, timeout=60,
-            env={"PATH": os.environ.get("PATH", ""), "HOME": str(self.home), "LC_ALL": "C"},
+            cwd=support.REPO, env=self.world.env(), timeout=60,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
 
 
 if __name__ == "__main__":
