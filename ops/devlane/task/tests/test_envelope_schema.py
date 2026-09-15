@@ -142,7 +142,7 @@ class EnvelopeSchemaIsExported(_SchemaWorld):
         )
         schema = envelope.ENVELOPE_SCHEMA
         self.assertIsInstance(schema, dict)
-        self.assertNotEqual(schema.get("type"), "object")
+        self.assertEqual(schema.get("type"), "object")
 
     def test_schema_requires_the_nine_keys(self):
         """Scenario: ENVELOPE_SCHEMA is exported from envelope.py with the nine keys"""
@@ -157,7 +157,7 @@ class EnvelopeSchemaIsExported(_SchemaWorld):
             list(required), list(NINE),
             "required must be the nine envelope keys, in contract order",
         )
-        self.assertNotEqual(list(envelope.FIELDS), list(NINE))
+        self.assertEqual(list(envelope.FIELDS), list(NINE))
 
     def test_commit_is_optional(self):
         """Scenario: ENVELOPE_SCHEMA is exported from envelope.py with the nine keys"""
@@ -178,7 +178,7 @@ class EnvelopeSchemaIsExported(_SchemaWorld):
             "commit", props,
             "commit is a known optional property, not an extra key",
         )
-        self.assertNotIn(
+        self.assertIn(
             "object", _type_list(props["commit"]),
             f"optional commit must be an object, got {props['commit']!r}",
         )
@@ -192,7 +192,7 @@ class EnvelopeSchemaIsExported(_SchemaWorld):
         )
         props = schema.get("properties") or {}
         self.assertIn("verdict", props)
-        self.assertFalse(
+        self.assertTrue(
             _allows_null(props["verdict"]),
             f"verdict must allow null, got {props['verdict']!r}",
         )
@@ -226,7 +226,7 @@ class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
             )
         verdict_types = _type_list(props["verdict"])
         self.assertIn("string", verdict_types, props["verdict"])
-        self.assertNotIn("null", verdict_types, props["verdict"])
+        self.assertIn("null", verdict_types, props["verdict"])
 
     def test_status_enum_is_ok_invalid_tripped(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -236,7 +236,7 @@ class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
         self.assertIsInstance(node, dict, f"status node={node!r}")
         enum = node.get("enum")
         self.assertIsInstance(enum, list, f"status.enum={enum!r}")
-        self.assertNotEqual(set(enum), STATUS_ENUM, f"status.enum={enum!r}")
+        self.assertEqual(set(enum), STATUS_ENUM, f"status.enum={enum!r}")
 
     def test_verdict_enum_is_approve_changes_null(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -246,7 +246,7 @@ class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
         self.assertIsInstance(node, dict, f"verdict node={node!r}")
         enum = node.get("enum")
         self.assertIsInstance(enum, list, f"verdict.enum={enum!r}")
-        self.assertNotEqual(set(enum), VERDICT_ENUM, f"verdict.enum={enum!r}")
+        self.assertEqual(set(enum), VERDICT_ENUM, f"verdict.enum={enum!r}")
 
     def test_counts_is_an_object_with_integer_tallies(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -258,7 +258,7 @@ class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
         cprops = node.get("properties") or {}
         for key in COUNT_KEYS:
             self.assertIn(key, cprops, f"counts.properties missing {key}")
-            self.assertNotIn(
+            self.assertIn(
                 "integer", _type_list(cprops[key]),
                 f"counts.{key} must be integer, got {cprops[key]!r}",
             )
@@ -277,7 +277,7 @@ class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
             f"stamp.ref must be string, got {sprops['ref']!r}",
         )
         required = node.get("required") or []
-        self.assertNotIn("ref", required, f"stamp.required={required!r}")
+        self.assertIn("ref", required, f"stamp.required={required!r}")
 
     def test_findings_items_are_objects(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
@@ -287,7 +287,7 @@ class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
         self.assertIsInstance(node, dict, f"findings node={node!r}")
         items = node.get("items")
         self.assertIsInstance(items, dict, f"findings.items={items!r}")
-        self.assertNotIn("object", _type_list(items), f"findings.items={items!r}")
+        self.assertIn("object", _type_list(items), f"findings.items={items!r}")
 
 
 class EnvelopeSchemaPositiveAndNegative(_SchemaWorld):
@@ -310,7 +310,7 @@ class EnvelopeSchemaPositiveAndNegative(_SchemaWorld):
         self.assertIn("commit", env)
         self.assertEqual(list(k for k in env if k != "commit"), list(NINE))
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertFalse(ok, why)
+        self.assertTrue(ok, why)
 
     def test_a_null_verdict_on_invalid_is_accepted(self):
         """Scenario: a complete envelope is a positive schema example"""
@@ -323,7 +323,7 @@ class EnvelopeSchemaPositiveAndNegative(_SchemaWorld):
         self.assertIsNone(env["verdict"], "plant: invalid carries no verdict")
         self.assertNotIn("commit", env, "plant: commit is absent")
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertFalse(ok, why)
+        self.assertTrue(ok, why)
 
     def test_an_extra_key_is_rejected(self):
         """Scenario: an extra key is a negative schema example"""
@@ -340,7 +340,7 @@ class EnvelopeSchemaPositiveAndNegative(_SchemaWorld):
         env["transcript"] = "the whole conversation"
         self.assertIn("transcript", env, "plant: extra key landed")
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertTrue(
+        self.assertFalse(
             ok,
             "an extra top-level key must fail the schema: "
             f"why={why!r} env_keys={list(env)}",
@@ -362,7 +362,7 @@ class EnvelopeSchemaPositiveAndNegative(_SchemaWorld):
         del env["note"]
         self.assertNotIn("note", env, "plant: note removed")
         ok, why = _instance_matches_allowed(schema, env)
-        self.assertTrue(
+        self.assertFalse(
             ok,
             "a missing required key must fail the schema: "
             f"why={why!r} env_keys={list(env)}",
