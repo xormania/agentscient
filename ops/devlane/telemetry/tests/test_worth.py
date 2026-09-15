@@ -30,9 +30,6 @@ NOW = "2026-08-22T12:00:00.000Z"
 DEFAULT_SINCE = "2026-08-21T12:00:00.000Z"
 WINDOW_SINCE = "2026-08-22T12:00:00.000Z"
 WINDOW_UNTIL = "2026-08-22T12:05:00.000Z"
-# Planted pin: _run_worth returns empty success so every case fails its
-# own assertion. Removed after red is proven.
-_PIN_EMPTY_WORTH = True
 
 
 class WorthResult(Result):
@@ -397,8 +394,6 @@ class WorthContractTests(unittest.TestCase):
             str(self.grok),
         ]
         self.assertEqual(cmd.count("--now"), 1)
-        if _PIN_EMPTY_WORTH:
-            return WorthResult(tuple(cmd), 0, "", "", 0.0, str(self.world.cwd))
         return self._wrap(run(
             cmd,
             cwd=self.world.cwd,
