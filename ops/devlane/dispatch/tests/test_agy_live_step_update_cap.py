@@ -176,7 +176,7 @@ class AgyLiveStepUpdateOutputCap(_AgyStepCapLaunch):
         self.assertIn('"state": "DONE"', raw)
         self.assertIn('"step_type": "agent_response"', raw)
         self.assertIn(f'"output_tokens": {over}', raw)
-        self.assertIn('"event": "result"', raw)
+        self.assertNotIn('"event": "result"', raw)
         self.assertFalse(
             done.is_file(),
             "over-budget live step_update must trip before COMPLETED",
@@ -258,8 +258,8 @@ class AgyLiveStepUpdateOutputCap(_AgyStepCapLaunch):
         rec = self.read_record()
         self.assertEqual(rec["caps"].get("cap-out"), budget, rec.get("caps"))
         envelope = (rec.get("result") or {}).get("envelope") or {}
-        self.assertEqual(
-            envelope.get("status"), "ok",
+        self.assertIn(
+            envelope.get("status"), ("tripped", "invalid"),
             f"absent live output must fail closed: {rec!r}",
         )
         self.assertNotEqual(envelope.get("verdict"), "approve", envelope)
