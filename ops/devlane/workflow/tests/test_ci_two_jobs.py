@@ -36,6 +36,7 @@ LANE_STEP_NEEDLES = (
     ("term_wall", "term wall"),
     ("ruff",),
     ("suites.sh",),
+    ("ratchet",),
     ("closure",),
     ("literals",),
     ("probes.py run",),
