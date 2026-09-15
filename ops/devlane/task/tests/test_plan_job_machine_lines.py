@@ -32,10 +32,7 @@ class _PlanJob(unittest.TestCase):
     def setUp(self):
         self.world = World()
         self.addCleanup(self.world.close)
-        self.jobs_path = self.world.plant_text(
-            "stage/jobs.json",
-            '{"plan":{"prompt":"stand-in","deliverable":"stand-in"}}\n',
-        )
+        self.jobs_path = self.world.stage(JOBS_PATH)
 
     def plan_prompt(self):
         self.assertTrue(self.jobs_path.is_file(), f"jobs.json missing: {self.jobs_path}")
