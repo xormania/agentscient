@@ -16,6 +16,7 @@ producer is absent by the owner's word (AGENTS.md §Ground rules).
 from __future__ import annotations
 
 import json
+import os
 import sys
 import unittest
 from pathlib import Path
@@ -329,11 +330,14 @@ class TheTrackedCorpusRunsGreen(unittest.TestCase):
     CI runs; it is what makes "done" a reading instead of a sentence."""
 
     def test_run_over_the_tracked_corpus_exits_zero(self):
-        with World(prefix="tracked-probes-") as world:
-            proc = run(
-                [sys.executable, str(TOOL), "run"], cwd=REPO,
-                env=world.env(), timeout=600,
-            )
+        # The corpus reads the host's own state store (absent rows, the
+        # record lane), so this one run keeps the host environment: the
+        # exception to rule 4 is this line, named (docs/tests.md).
+        proc = run(
+            [sys.executable, str(TOOL), "run"], cwd=REPO,
+            env=dict(os.environ), timeout=600,
+        )
+        if True:
             self.assertEqual(proc.stderr, "", proc.stderr)
             doc = json.loads(proc.stdout)
             bad = [r for r in doc["rows"] if r["result"] != "PASS"]
