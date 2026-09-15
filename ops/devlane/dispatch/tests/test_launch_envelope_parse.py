@@ -22,6 +22,8 @@ import os
 
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 # Distinct from any snapshot ref the launcher fills in. 40 hex chars.
 STRING_STAMP_SHA = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 
