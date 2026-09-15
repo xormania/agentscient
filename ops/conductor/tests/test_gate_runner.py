@@ -180,9 +180,9 @@ class GateRunnerScenarios(unittest.TestCase):
             env=self.env(),
             timeout=RUN_TIMEOUT,
         )
-        self.assertTrue(
+        self.assertFalse(
             marker_path.exists(),
-            "RED: inverted — b must not run",
+            "b ran; the runner's exit was swallowed",
         )
         logs = self.log_files()
         self.assertEqual(len(logs), 1, f"expected one log file, got {logs!r}")
@@ -196,7 +196,7 @@ class GateRunnerScenarios(unittest.TestCase):
             "ok.sh", stdout="OK-LINE-A\nOK-LINE-B\n", exit=0,
         )
         proc = self.invoke_run(command)
-        self.assertNotEqual(proc.exit, 0, self.printed(proc))
+        self.assertEqual(proc.exit, 0, self.printed(proc))
         transcript = self.printed(proc)
         self.assertIn("OK-LINE-A", transcript)
         self.assertIn("OK-LINE-B", transcript)
@@ -241,9 +241,10 @@ class GateRunnerScenarios(unittest.TestCase):
             len(line_rows), DEFAULT_TAIL,
             f"shown tail was not bounded: {len(line_rows)} LINE-* rows",
         )
-        self.assertNotEqual(
+        self.assertEqual(
             len(line_rows), DEFAULT_TAIL,
-            "RED: inverted — default GATE_TAIL is 15",
+            "default GATE_TAIL is 15 (D-GATE-1); shown LINE-* rows "
+            f"were {len(line_rows)}",
         )
         self.assertEqual(
             line_rows,
@@ -270,7 +271,7 @@ class GateRunnerScenarios(unittest.TestCase):
         proc = self.invoke_run(command)
         self.assertEqual(proc.exit, 0, self.printed(proc))
         transcript = self.printed(proc)
-        self.assertFalse(transcript.strip(), "RED: inverted — runner must not be silent")
+        self.assertTrue(transcript.strip(), "runner was silent")
         self.assertIn("exit: 0", transcript)
         logs = self.log_files()
         self.assertEqual(len(logs), 1, f"expected one log file, got {logs!r}")
@@ -287,7 +288,7 @@ class GateRunnerScenarios(unittest.TestCase):
             f"INVALID: {ABSENT_CHECK!r} is already a registered check",
         )
         proc = self.invoke_check(ABSENT_CHECK)
-        self.assertEqual(proc.exit, 0, self.printed(proc))
+        self.assertNotEqual(proc.exit, 0, self.printed(proc))
         transcript = self.printed(proc)
         self.assertTrue(transcript.strip(), "refusal was silent")
         for name in known:
@@ -313,7 +314,7 @@ class GateRunnerScenarios(unittest.TestCase):
         self.assertEqual(len(logs), 1, f"expected one log file, got {logs!r}")
         shown = self.chrome_stripped(proc, logs[0])
         tail_rows = [row for row in shown if row.startswith("TAIL-")]
-        self.assertNotEqual(len(tail_rows), 3, shown)
+        self.assertEqual(len(tail_rows), 3, shown)
         self.assertEqual(tail_rows, ["TAIL-08", "TAIL-09", "TAIL-10"])
 
     def test_unwritable_log_dir_is_a_loud_refusal(self):
@@ -331,9 +332,9 @@ class GateRunnerScenarios(unittest.TestCase):
 
         proc = self.invoke_run(command)
         transcript = self.printed(proc)
-        self.assertEqual(
+        self.assertNotEqual(
             proc.exit, 0,
-            "RED: inverted — unwritable log dir must be refused: " + transcript,
+            "unwritable log dir was not refused: " + transcript,
         )
         self.assertTrue(
             transcript.strip(),
