@@ -39,14 +39,8 @@ def _finding(**overrides):
 class _EnvelopeFixture(_LadderFixture):
     """Plant a check-tests envelope and assert the envelope refusal."""
 
-    def setUp(self):
-        super().setUp()
-        self.assertIsInstance(self.world, World)
-        # Planted invalid subject: exit 0, no envelope, so every
-        # assertion fails on its own contract.
-        self.world.plant_text(self.staged, "import sys\nsys.exit(0)\n")
-
     def plant_check_tests(self, **envelope):
+        self.assertIsInstance(self.world, World)
         self.patch_plant(
             verdicts={"check-tests": envelope.get("verdict", "changes")},
             skeptic_envelope=envelope,
