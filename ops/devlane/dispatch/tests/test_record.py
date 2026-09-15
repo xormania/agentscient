@@ -28,8 +28,15 @@ import unittest
 import launch_support as ls
 import support
 
+from ops.testkit import World
+
 
 class _RecordCase(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="record-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
+
     def recmod(self):
         # Load inside the test method so a missing file is an empty
         # stub, not a setUp ERROR, and the assertion below is the red.
