@@ -22,14 +22,13 @@ from __future__ import annotations
 
 import ast
 import json
-import os
 import re
-import subprocess
 import sys
-import tempfile
 import unittest
 from dataclasses import dataclass
 from pathlib import Path
+
+from ops.testkit import RefusalCase, World, refusal_wire, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -242,24 +241,15 @@ class TheRefusalWireIsUniform(unittest.TestCase):
         self.assertTrue(findings[1].identity)
 
     def invoke(self, tool: str, argv: list[str], *, identity: bool):
-        with tempfile.TemporaryDirectory(prefix="conventions-") as home:
-            env = {
-                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-                "HOME": home,
-                "LC_ALL": "C",
-                "LANG": "C",
-                "PYTHONDONTWRITEBYTECODE": "1",
-            }
+        with World(prefix="conventions-") as world:
+            extra = {}
             if identity:
-                env["WF_AGENT"] = AGENT
-            return subprocess.run(
+                extra["WF_AGENT"] = AGENT
+            return run(
                 [sys.executable, str(TOOLS / tool), *argv],
-                cwd=home,
-                env=env,
-                input="",
-                capture_output=True,
-                text=True,
-                check=False,
+                cwd=world.cwd,
+                env=world.env(extra),
+                stdin="",
                 timeout=60,
             )
 
@@ -274,32 +264,15 @@ class TheRefusalWireIsUniform(unittest.TestCase):
     def test_every_registered_instrument_speaks_the_wire(self):
         for row in self.live_rows():
             with self.subTest(tool=row.tool, refusal=row.refusal):
-                proc = self.invoke(row.tool, list(row.argv), identity=row.identity)
-                err = proc.stderr or ""
-                self.assertEqual(proc.returncode, 2, err or proc.stdout)
-                lines = [ln for ln in err.splitlines() if ln.strip()]
-                self.assertEqual(
-                    len(lines), 1, f"refusal must be one line: {err!r}"
-                )
-                line = lines[0]
-                head = line.split(":", 1)[0].strip().lower().replace("_", "-")
-                self.assertEqual(
-                    head,
-                    row.refusal,
-                    f"refusal class must be the leading token {row.refusal!r}: {line!r}",
-                )
-                lower = line.lower()
-                for word in ("expected", "found", "needed"):
-                    self.assertIn(word, lower, line)
-                self.assertLess(
-                    lower.index("expected"), lower.index("found"), line
-                )
-                self.assertLess(
-                    lower.index("found"), lower.index("needed"), line
-                )
-                self.assertEqual(
-                    (proc.stdout or "").strip(), "",
-                    "refusal text belongs on stderr, not stdout",
+                result = self.invoke(row.tool, list(row.argv), identity=row.identity)
+                refusal_wire(
+                    RefusalCase(
+                        id=f"{row.source}:{' '.join(row.argv)}",
+                        argv=row.argv,
+                        cls=row.refusal,
+                        origin=row.source,
+                    ),
+                    result,
                 )
 
     def test_identity_refusal_is_uniform_for_writing_instruments(self):
@@ -308,33 +281,30 @@ class TheRefusalWireIsUniform(unittest.TestCase):
         self.assertGreater(len(writers), 0, "registry has no writing instruments")
         for row in writers:
             with self.subTest(tool=row.tool, argv=row.argv):
-                proc = self.invoke(row.tool, list(row.argv), identity=False)
-                err = proc.stderr or ""
-                self.assertEqual(proc.returncode, 2, err)
-                lines = [ln for ln in err.splitlines() if ln.strip()]
-                self.assertEqual(len(lines), 1, err)
-                head = lines[0].split(":", 1)[0].strip().lower().replace("_", "-")
-                self.assertEqual(
-                    head,
-                    "identity",
-                    f"identity refusal must be the leading token: {lines[0]!r}",
+                result = self.invoke(row.tool, list(row.argv), identity=False)
+                refusal_wire(
+                    RefusalCase(
+                        id=f"{row.source}:identity",
+                        argv=row.argv,
+                        cls="identity",
+                        origin=row.source,
+                    ),
+                    result,
                 )
 
 
 class RegistryClosure(unittest.TestCase):
     def _scratch(self) -> tuple[Path, Path]:
-        tmp = tempfile.TemporaryDirectory(prefix="registry-")
-        self.addCleanup(tmp.cleanup)
-        root = Path(tmp.name)
-        tools = root / "tools"
-        registry = root / "registry"
+        self.world = World(prefix="registry-")
+        self.addCleanup(self.world.close)
+        tools = self.world.root / "tools"
+        registry = self.world.root / "registry"
         tools.mkdir()
         registry.mkdir()
         return tools, registry
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        self.world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
