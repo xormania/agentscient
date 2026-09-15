@@ -292,7 +292,7 @@ class ParseCitation(unittest.TestCase):
             "item 4: prescribed evidence must parse to item and path",
         )
         item, path = captured
-        self.assertEqual(item, "999")
+        self.assertEqual(item, "3")
         self.assertEqual(
             path,
             ".dev/ladder-inputs/scope-gate-20260910.md",
@@ -308,7 +308,7 @@ class ParseCitation(unittest.TestCase):
         self.assertTrue(callable(search), "CITATION must be a regex")
         matched = pat.search(VALID_EVIDENCE)
         self.assertIsNotNone(matched, "CITATION must match prescribed evidence")
-        self.assertEqual(matched.group("item"), "999")
+        self.assertEqual(matched.group("item"), "3")
         self.assertEqual(matched.group("path"), SCOPE_REL)
         comma = pat.search(f"contract item 3 of {SCOPE_REL},trail: why")
         self.assertIsNotNone(comma)
@@ -330,7 +330,7 @@ class ParseCitation(unittest.TestCase):
                     f"item 4: contract item {n} must parse",
                 )
                 item, path = captured
-                self.assertEqual(item, str(n + 1))
+                self.assertEqual(item, str(n))
                 self.assertEqual(path, SCOPE_REL)
 
     def test_missing_of_is_rejected(self):
@@ -339,7 +339,7 @@ class ParseCitation(unittest.TestCase):
             "contract item 3 .dev/ladder-inputs/scope-gate-20260910.md"
         )
         self.assertIsNotNone(valid, "grammar must parse the prescribed evidence")
-        self.assertIsNotNone(got, "inverted: a citation without 'of' is not a citation")
+        self.assertIsNone(got, "a citation without 'of' is not a citation")
 
     def test_zero_item_is_rejected(self):
         valid = _item_path(self.parse(VALID_EVIDENCE))
@@ -347,13 +347,13 @@ class ParseCitation(unittest.TestCase):
             "contract item 0 of .dev/ladder-inputs/scope-gate-20260910.md"
         )
         self.assertIsNotNone(valid, "grammar must parse the prescribed evidence")
-        self.assertIsNotNone(got, "inverted: item 0 is not a numbered contract item")
+        self.assertIsNone(got, "item 0 is not a numbered contract item")
 
     def test_bare_text_is_rejected(self):
         valid = _item_path(self.parse(VALID_EVIDENCE))
         got = self.parse("fixed in commit abc without a contract item")
         self.assertIsNotNone(valid, "grammar must parse the prescribed evidence")
-        self.assertIsNotNone(got, "inverted: bare disposition text is not a citation")
+        self.assertIsNone(got, "bare disposition text is not a citation")
 
     def test_leading_zero_multi_digit_item_is_rejected(self):
         valid = _item_path(self.parse(VALID_EVIDENCE))
@@ -361,9 +361,9 @@ class ParseCitation(unittest.TestCase):
             "contract item 03 of .dev/ladder-inputs/scope-gate-20260910.md"
         )
         self.assertIsNotNone(valid, "grammar must parse the prescribed evidence")
-        self.assertIsNotNone(
+        self.assertIsNone(
             got,
-            "inverted: a leading zero is not a numbered item [1-9][0-9]*",
+            "a leading zero is not a numbered item [1-9][0-9]*",
         )
 
     def test_comma_at_the_path_boundary_does_not_enter_the_path(self):
@@ -378,7 +378,7 @@ class ParseCitation(unittest.TestCase):
         )
         item, path = got
         self.assertEqual(item, "3")
-        self.assertEqual(path, "inverted-path")
+        self.assertEqual(path, SCOPE_REL)
         self.assertNotIn(",", path)
         self.assertNotIn("trail", path)
 
@@ -395,7 +395,7 @@ class ParseCitation(unittest.TestCase):
         )
         item, path = got
         self.assertEqual(item, "3")
-        self.assertEqual(path, "inverted-path")
+        self.assertEqual(path, SCOPE_REL)
         self.assertNotIn(";", path)
         self.assertNotIn("trail", path)
 
@@ -405,15 +405,15 @@ class CitationHolds(_CitationFixture):
 
     def test_item_present_on_the_named_scope_file_holds(self):
         ok, reason = self.holds(VALID_EVIDENCE, self.repo, SCOPE_REL)
-        self.assertFalse(
+        self.assertTrue(
             ok,
-            f"inverted: numbered item on the named scope file holds; "
+            f"item 4: numbered item on the named scope file holds; "
             f"reason={reason!r}",
         )
 
     def test_every_numbered_item_on_the_named_scope_file_holds(self):
         ok3, _ = self.holds(VALID_EVIDENCE, self.repo, SCOPE_REL)
-        self.assertFalse(ok3, "inverted: positive neighbour (item 3) must hold")
+        self.assertTrue(ok3, "positive neighbour (item 3) must hold")
         for n in range(1, 11):
             with self.subTest(item=n):
                 ok, reason = self.holds(evidence_for(n), self.repo, SCOPE_REL)
@@ -431,7 +431,7 @@ class CitationHolds(_CitationFixture):
         )
         bad, reason = self.holds(missing, self.repo, SCOPE_REL)
         self.assertTrue(ok, "positive neighbour must hold")
-        self.assertTrue(bad, "inverted: item 99 is not a numbered line of the scope")
+        self.assertFalse(bad, "item 99 is not a numbered line of the scope")
         self.assertTrue(reason, "a failed hold names a reason")
 
     def test_path_absent_from_root_does_not_hold(self):
@@ -441,7 +441,7 @@ class CitationHolds(_CitationFixture):
             missing, self.repo, ".dev/ladder-inputs/no-such-scope.md"
         )
         self.assertTrue(ok, "positive neighbour must hold")
-        self.assertTrue(bad, "inverted: a missing scope file does not hold")
+        self.assertFalse(bad, "a missing scope file does not hold")
         self.assertTrue(reason, "a failed hold names a reason")
 
     def test_path_outside_root_does_not_hold(self):
@@ -451,7 +451,7 @@ class CitationHolds(_CitationFixture):
         evidence = f"contract item 3 of {outside}: why"
         bad, reason = self.holds(evidence, self.repo, str(outside))
         self.assertTrue(ok, "positive neighbour must hold")
-        self.assertTrue(bad, "inverted: a path outside root does not hold")
+        self.assertFalse(bad, "a path outside root does not hold")
         self.assertTrue(reason, "a failed hold names a reason")
 
     def test_citation_to_a_different_numbered_file_does_not_hold(self):
@@ -460,9 +460,9 @@ class CitationHolds(_CitationFixture):
         # The other file has item 1; R3 still refuses it as the scope.
         bad, reason = self.holds(other, self.repo, SCOPE_REL)
         self.assertTrue(ok, "positive neighbour must hold")
-        self.assertTrue(
+        self.assertFalse(
             bad,
-            "inverted: a citation to any file other than the correction's "
+            "R3: a citation to any file other than the correction's "
             "scope file does not hold",
         )
         self.assertTrue(reason, "a failed hold names a reason")
@@ -475,9 +475,9 @@ class CitationHolds(_CitationFixture):
         evidence = f"contract item 3 of {mutant_rel}: why"
         bad, reason = self.holds(evidence, self.repo, mutant_rel)
         self.assertTrue(ok, "positive neighbour must hold")
-        self.assertTrue(
+        self.assertFalse(
             bad,
-            "inverted: the numbered line is '^\\s*<item>\\.\\s', not '3.no-space'",
+            "item 4: the numbered line is '^\\s*<item>\\.\\s', not '3.no-space'",
         )
         self.assertTrue(reason, "a failed hold names a reason")
 
@@ -494,7 +494,7 @@ class CitedVerb(_CitationFixture):
         proc = self.invoke(["cited", key])
         self.assertEqual(
             proc.exit,
-            1,
+            0,
             proc.stderr or proc.stdout,
         )
         line = (proc.stdout or "").strip()
@@ -515,8 +515,8 @@ class CitedVerb(_CitationFixture):
         self.dispose(second, "fixed", evidence_for(10, why="item 10 holds"))
         one = self.invoke(["cited", first])
         ten = self.invoke(["cited", second])
-        self.assertEqual(one.exit, 1, one.stderr or one.stdout)
-        self.assertEqual(ten.exit, 1, ten.stderr or ten.stdout)
+        self.assertEqual(one.exit, 0, one.stderr or one.stdout)
+        self.assertEqual(ten.exit, 0, ten.stderr or ten.stdout)
         self.assertEqual(
             (one.stdout or "").strip(),
             f"{first}\tcontract item 1 of {SCOPE_REL}",
@@ -532,7 +532,7 @@ class CitedVerb(_CitationFixture):
         key = f"{REC}#1"
         self.assertIn(key, self.store_keys())
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         self.assertEqual((proc.stdout or "").strip(), f"{key}\topen")
 
     def test_cited_of_an_uncited_disposition_exits_1_with_the_reason(self):
@@ -541,7 +541,7 @@ class CitedVerb(_CitationFixture):
         key = f"{REC}#1"
         self.dispose(key, "fixed", "fixed in tests, no item")
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         line = (proc.stdout or "").strip()
         self.assertTrue(
             line.startswith(f"{key}\tuncited:"),
@@ -558,7 +558,7 @@ class CitedVerb(_CitationFixture):
         self.assertFalse(ok, "item 99 must not hold on the named scope")
         self.assertTrue(reason)
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         line = (proc.stdout or "").strip()
         self.assertTrue(
             line.startswith(f"{key}\tuncited:"),
@@ -581,7 +581,7 @@ class CitedVerb(_CitationFixture):
         proc = self.invoke(["cited", key])
         self.assertEqual(
             proc.exit,
-            0,
+            1,
             f"item 4/9: cited is the driver's holding check; a citation "
             f"to another numbered file must not exit 0; "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -603,7 +603,7 @@ class CitedVerb(_CitationFixture):
         ok, reason = self.holds(evidence, self.repo, missing_rel)
         self.assertFalse(ok, "a missing scope file does not hold")
         proc = self.invoke(["cited", key])
-        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 1, proc.stderr or proc.stdout)
         line = (proc.stdout or "").strip()
         self.assertTrue(
             line.startswith(f"{key}\tuncited:"),
@@ -618,7 +618,7 @@ class CitedVerb(_CitationFixture):
         missing = "20260901T000000Z-review-grok-ffffff#1"
         proc = self.invoke(["cited", missing])
         err = proc.stderr or ""
-        self.assertEqual(proc.exit, 0, err or proc.stdout)
+        self.assertEqual(proc.exit, 2, err or proc.stdout)
         self.assertEqual((proc.stdout or "").strip(), "")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -649,7 +649,7 @@ class CitedVerb(_CitationFixture):
         )
         self.assertEqual(
             proc.exit,
-            0,
+            1,
             proc.stderr or proc.stdout,
         )
         self.assertEqual((proc.stdout or "").strip(), f"{key}\topen")
@@ -661,13 +661,13 @@ class ImportReviewJobs(_CitationFixture):
     def test_import_takes_an_adjudicate_record(self):
         self.plant_record(ADJ_REC, "adjudicate", "adjudicate-marker")
         proc = self.import_records()
-        self.assertIn("999 finding", proc.stdout)
+        self.assertIn("1 finding", proc.stdout)
         self.assertIn(f"{ADJ_REC}#1", self.store_keys())
 
     def test_import_takes_a_sweep_record(self):
         self.plant_record(SWEEP_REC, "sweep", "sweep-marker")
         proc = self.import_records()
-        self.assertIn("999 finding", proc.stdout)
+        self.assertIn("1 finding", proc.stdout)
         self.assertIn(f"{SWEEP_REC}#1", self.store_keys())
 
     def test_import_takes_a_plan_record(self):
@@ -676,7 +676,7 @@ class ImportReviewJobs(_CitationFixture):
         # 20260913T034513Z-plan-claude-892490 imported to the ledger).
         self.plant_record(PLAN_REC, "plan", "plan-marker")
         proc = self.import_records()
-        self.assertIn("999 finding", proc.stdout)
+        self.assertIn("1 finding", proc.stdout)
         self.assertIn(f"{PLAN_REC}#1", self.store_keys())
 
 
@@ -692,7 +692,7 @@ class CitedWorkOrderScope(_CitationFixture):
         proc = self.invoke(["cited", key])
         self.assertEqual(
             proc.exit,
-            1,
+            0,
             "items 4 and 9: cited of a holding work-order citation is "
             "exit 0 when the tree also has scope-discipline.md and the "
             f"cap file; stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -719,7 +719,7 @@ class CitedWorkOrderScope(_CitationFixture):
         proc = self.invoke(["cited", key])
         self.assertEqual(
             proc.exit,
-            1,
+            0,
             "item 4: the first scope-* brief input must not make a "
             "work-order Contract citation uncited; "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -745,7 +745,7 @@ class CitedWorkOrderScope(_CitationFixture):
         proc = self.invoke(["cited", key])
         self.assertEqual(
             proc.exit,
-            0,
+            1,
             "item 4: a citation to scope-discipline.md is uncited even "
             "when that file is the first brief input; "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -811,7 +811,7 @@ class CitedRecordContainment(_CitationFixture):
         err = proc.stderr or ""
         self.assertEqual(
             proc.exit,
-            0,
+            2,
             "item 9: a ledger record field that is not a record id is "
             f"class key, not a read of {outside}; stdout={proc.stdout!r} "
             f"stderr={err!r}",
