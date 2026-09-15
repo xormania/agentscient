@@ -27,8 +27,7 @@ from ops.testkit import World, make_executable, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "probes.py"
-# Absent stand-in so each method fails its own assertion (red proof).
-SUBJECT_TOOL = TOOL.with_name("no-such-probes.py")
+SUBJECT_TOOL = TOOL
 ABSENT_STUB = (
     "import json, sys\n"
     "print(json.dumps({'commit': 'dead', 'rows': [], "
