@@ -8,14 +8,14 @@ The tracked conf declares CLAUDE_DIR='.claude/projects'.
 from __future__ import annotations
 
 import json
-import os
 import re
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 import test_worth as worth_contract
+
+from ops.testkit import World, plant_text, run
 
 NOW = "2026-08-22T12:00:00.000Z"
 WINDOW = ("--since", "2026-08-22T09:00:00.000Z", "--until", "2026-08-22T12:00:00.000Z")
@@ -56,13 +56,14 @@ class ClaudeDirFromConf(unittest.TestCase):
         )
         self.w.setUp()
         self.addCleanup(self.w.doCleanups)
+        self.world = World()
+        self.addCleanup(self.world.close)
         self.root = self.w.root
         self.repo = self.w.repo
         self.claude = self.w.claude
         self.codex = self.w.codex
         self.grok = self.w.grok
-        self.home = self.root / "home"
-        self.home.mkdir()
+        self.home = self.world.home
         self.conf_path = self.root / "lane.conf"
         self._plant_claude = self.w._plant_claude
         self._session_ids = self.w._session_ids
@@ -77,7 +78,7 @@ class ClaudeDirFromConf(unittest.TestCase):
         for name, value in keys.items():
             lines.append(f"{name}='{value}'\n")
         text = "".join(lines)
-        self.conf_path.write_text(text, encoding="utf-8")
+        plant_text(self.conf_path, text)
         landed = self.conf_path.read_text(encoding="utf-8")
         self.assertEqual(landed, text, "conf plant did not land intact")
         for name in omit:
@@ -87,20 +88,13 @@ class ClaudeDirFromConf(unittest.TestCase):
         return self.conf_path
 
     def _env(self, extra=None):
-        env = os.environ.copy()
-        for key in ("DISPATCH_JOBS", "XDG_STATE_HOME", "CLAUDE_DIR"):
-            env.pop(key, None)
-        env.update({
-            "LC_ALL": "C",
-            "TZ": "Etc/GMT+11",
-            "HOME": str(self.home),
+        extra_env = {
             "LANE_CONF": str(self.conf_path),
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-        })
+            "TZ": "Etc/GMT+11",
+        }
         if extra:
-            env.update(extra)
-        return env
+            extra_env.update(extra)
+        return self.world.env(extra=extra_env)
 
     def _run(
         self,
@@ -134,18 +128,16 @@ class ClaudeDirFromConf(unittest.TestCase):
             self._env(extra_env),
             "CLAUDE_DIR must not leak in from the host environment",
         )
-        return subprocess.run(
+        return run(
             cmd,
             cwd=str(cwd or self.root),
             env=self._env(extra_env),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=30,
         )
 
     def _json_waste(self, *args, **kwargs):
         proc = self._run("waste", *WINDOW, "--format", "json", *args, **kwargs)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         data = json.loads(proc.stdout)
         self.assertIsInstance(data, dict)
         return proc, data
@@ -167,7 +159,7 @@ class ClaudeDirFromConf(unittest.TestCase):
         for verb in ("waste", "report"):
             with self.subTest(verb=verb):
                 proc = self._run(verb, *WINDOW, "--format", "json")
-                self.assertEqual(proc.returncode, 2, proc)
+                self.assertEqual(proc.exit, 2, proc)
                 self.assertEqual(proc.stdout, "")
                 self.assertRegex(proc.stderr.strip(), REFUSAL)
                 self.assertIn("conf-key", proc.stderr)
