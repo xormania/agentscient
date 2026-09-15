@@ -18,17 +18,19 @@ the contract promise rather than Python's missing-file exit 2.
 from __future__ import annotations
 
 import json
-import os
 import re
 import sqlite3
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
+from ops.testkit import World, run
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "hand.py"
+# Red proof: stage a missing subject so each assertion fails on its own
+# contract, not on Python's missing-file exit 2. Green points this at TOOL.
+SUBJECT = TOOL.with_name("hand.py.absent-for-red-proof")
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
@@ -75,96 +77,57 @@ SURVIVING_DDL = (
     "    verified INTEGER, late INTEGER DEFAULT 0, settle_note TEXT)"
 )
 
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
-
 DEFAULT_TTL_S = 30 * 60
-
-
-def _live_snapshot() -> tuple[str, bytes | None]:
-    if LIVE_STORE.is_file():
-        return ("file", LIVE_STORE.read_bytes())
-    if LIVE_STORE.exists():
-        return ("other", None)
-    return ("absent", None)
+RUN_TIMEOUT = 60
 
 
 class _LedgerFixture(unittest.TestCase):
     """Isolated HOME, staged tool copy, live store frozen."""
 
     def setUp(self):
-        self._live_before = _live_snapshot()
-        self._tmp = tempfile.TemporaryDirectory(prefix="handwork-ledger-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.home.mkdir()
+        self.world = World(prefix="handwork-ledger-")
+        self.addCleanup(self.world.close)
+        self._live = self.world.watch(LIVE_STORE)
+        self.home = self.world.home
+        self.scratch = self.world.root / "scratch"
         self.scratch.mkdir()
         self.store = self.home / ".local" / "state" / "agentscient" / "handwork.db"
         self.assertFalse(
             self.store.exists(),
             "plant: isolated store must start absent",
         )
-        self.staged = self.scratch / "hand.py"
         self._stage_tool_bytes()
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under HOME is the one asserted.
-        self.conf = root / "lane.conf"
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.conf = self.world.plant_text(
+            self.world.root / "lane.conf",
+            "LANE_NAME='agentscient'\n",
+        )
 
     def tearDown(self):
-        try:
-            self.assertEqual(
-                _live_snapshot(),
-                self._live_before,
-                f"live store mutated: {LIVE_STORE}",
-            )
-            if self._live_before[0] == "absent":
-                self.assertFalse(
-                    LIVE_STORE.exists(),
-                    "tests created the live store",
-                )
-        finally:
-            self._tmp.cleanup()
+        self._live.assert_unchanged(self, f"live store mutated: {LIVE_STORE}")
 
     def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    (self.staged.with_name(name)).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
+        siblings = SIBLINGS if SUBJECT.is_file() else ()
+        self.staged = self.world.stage(SUBJECT, "hand.py", siblings=siblings)
+        if SUBJECT.is_file():
+            self.assertEqual(
+                self.staged.read_bytes(),
+                SUBJECT.read_bytes(),
+                "copy-tool-bytes did not land intact",
+            )
         self.assertTrue(self.staged.is_file())
 
     def env(
         self,
         agent: str | None = None,
         session: str | None = None,
+        extra_env: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "LANE_CONF": str(self.conf),
-        }
+        extra = {"LANE_CONF": str(self.conf)}
+        if extra_env:
+            extra.update(extra_env)
+        env = self.world.env(extra)
         if agent is not None:
             env["WF_AGENT"] = agent
         if session is not None:
@@ -180,16 +143,11 @@ class _LedgerFixture(unittest.TestCase):
         cwd: Path | None = None,
         extra_env: dict[str, str] | None = None,
     ):
-        env = self.env(agent=agent, session=session)
-        if extra_env:
-            env.update(extra_env)
-        return subprocess.run(
+        return run(
             [sys.executable, str(self.staged), *argv],
-            cwd=str(cwd or REPO),
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=cwd or REPO,
+            env=self.env(agent=agent, session=session, extra_env=extra_env),
+            timeout=RUN_TIMEOUT,
         )
 
     def declare(
@@ -233,7 +191,7 @@ class _LedgerFixture(unittest.TestCase):
             token in compact or spaced in err.lower(),
             f"refusal class {class_name!r} not named in stderr: {err!r}",
         )
-        self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual(proc.exit, 2, err)
         self.assertTrue(err.strip(), "refusal was silent")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -321,14 +279,10 @@ class _LedgerFixture(unittest.TestCase):
             conn.close()
 
     def plant_file(self) -> Path:
-        path = self.scratch / "evidence.txt"
-        data = b"handwork-evidence-v1\n"
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, "evidence file plant did not land intact")
-        self.assertEqual(len(landed), len(data))
-        self.assertTrue(path.is_file())
-        return path
+        return self.world.plant_bytes(
+            self.scratch / "evidence.txt",
+            b"handwork-evidence-v1\n",
+        )
 
     def plant_dispatch_dir(self) -> Path:
         path = (
@@ -347,71 +301,18 @@ class _LedgerFixture(unittest.TestCase):
         return path
 
     def scratch_git(self) -> tuple[Path, str]:
+        self.world.require("git")
         repo = self.scratch / "evidence-repo"
         repo.mkdir()
-        (repo / "marker.txt").write_text("handwork-git-evidence\n", encoding="utf-8")
-        git_env = self.env()
-        git_env.update(
-            {
-                "GIT_AUTHOR_NAME": "Handwork Test",
-                "GIT_AUTHOR_EMAIL": "handwork@example.invalid",
-                "GIT_COMMITTER_NAME": "Handwork Test",
-                "GIT_COMMITTER_EMAIL": "handwork@example.invalid",
-            }
-        )
-        git = [
-            "git",
-            "-c",
-            "user.name=Handwork Test",
-            "-c",
-            "user.email=handwork@example.invalid",
-            "-c",
-            "commit.gpgsign=false",
-        ]
-        init = subprocess.run(
-            [*git, "init"],
-            cwd=str(repo),
-            env=git_env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(init.returncode, 0, init.stderr)
-        add = subprocess.run(
-            [*git, "add", "marker.txt"],
-            cwd=str(repo),
-            env=git_env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(add.returncode, 0, add.stderr)
-        commit = subprocess.run(
-            [*git, "commit", "-m", "scratch evidence"],
-            cwd=str(repo),
-            env=git_env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(commit.returncode, 0, commit.stderr)
-        sha = subprocess.check_output(
-            [*git, "rev-parse", "HEAD"],
-            cwd=str(repo),
-            env=git_env,
-            text=True,
-        ).strip()
+        self.world.plant_text(repo / "marker.txt", "handwork-git-evidence\n")
+        self.world.git("init", cwd=repo)
+        self.world.git("add", "marker.txt", cwd=repo)
+        self.world.git("commit", "-m", "scratch evidence", cwd=repo)
+        sha = self.world.git("rev-parse", "HEAD", cwd=repo).stdout.strip()
         self.assertRegex(sha, r"^[0-9a-f]{40}$")
-        probe = subprocess.run(
-            [*git, "cat-file", "-e", sha],
-            cwd=str(repo),
-            env=git_env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        probe = self.world.git("cat-file", "-e", sha, cwd=repo)
         self.assertEqual(
-            probe.returncode,
+            probe.exit,
             0,
             "INVALID: scratch sha is not in the scratch repo",
         )
@@ -498,7 +399,7 @@ class ToolPresence(_LedgerFixture):
     """Missing tool file counts once."""
 
     def test_the_tool_file_is_present(self):
-        self.assertTrue(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
+        self.assertTrue(SUBJECT.is_file(), f"RED: tool is absent: {SUBJECT}")
 
 
 class DeclareOpen(_LedgerFixture):
@@ -517,7 +418,7 @@ class DeclareOpen(_LedgerFixture):
             reminder,
             "declare must print the standing reminder with the grant id",
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         opened = self.invoke(["open"], agent=None)
         text = opened.stdout or ""
         # Adjudicated at reconciliation: the contract promises the open
@@ -534,7 +435,7 @@ class DeclareOpen(_LedgerFixture):
             r"ttl",
             "open must show age against ttl",
         )
-        self.assertEqual(opened.returncode, 0, opened.stderr)
+        self.assertEqual(opened.exit, 0, opened.stderr)
         row = self.latest_row()
         if row is not None:
             self.assertEqual(row["status"], "open")
@@ -542,8 +443,8 @@ class DeclareOpen(_LedgerFixture):
     def test_open_lists_oldest_first(self):
         first = self.declare(action="first-hand-act")
         second = self.declare(action="second-hand-act")
-        self.assertEqual(first.returncode, 0, first.stderr)
-        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(first.exit, 0, first.stderr)
+        self.assertEqual(second.exit, 0, second.stderr)
         opened = self.invoke(["open"], agent=None)
         text = opened.stdout or ""
         pos_first = text.find("first-hand-act")
@@ -662,7 +563,7 @@ class Identity(_LedgerFixture):
                 proc = self.invoke([verb], agent=None)
                 err = (proc.stderr or "").lower()
                 self.assertNotIn("identity", err)
-                self.assertEqual(proc.returncode, 0, proc.stderr)
+                self.assertEqual(proc.exit, 0, proc.stderr)
                 self.assertTrue(
                     (proc.stdout or "").strip(),
                     f"{verb} produced no result",
@@ -687,7 +588,7 @@ class WhyShort(_LedgerFixture):
             (proc.stdout or "").strip(),
             "four-word WHY must grant",
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertNotIn("why-short", (proc.stderr or "").lower())
 
 
@@ -738,7 +639,7 @@ class LeverExists(_LedgerFixture):
         )
         proc = self.declare(lever_class="land", extra=None)
         err = (proc.stderr or "").lower()
-        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stderr)
         self.assertIn("lever-exists", err)
 
     def test_declaring_pr_open_grants_because_the_probe_is_absent(self):
@@ -747,7 +648,7 @@ class LeverExists(_LedgerFixture):
             (proc.stdout or "").strip(),
             "declaring land must grant because land.sh is absent",
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         compact = (proc.stderr or "").lower().replace("_", "-")
         self.assertNotIn("lever-exists", compact)
 
@@ -766,7 +667,7 @@ class SettleEvidence(_LedgerFixture):
             1,
             "existing file path must verify (verified 1)",
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
 
     def test_dispatch_directory_evidence_verifies_as_a_record(self):
         granted = self.declare()
@@ -779,7 +680,7 @@ class SettleEvidence(_LedgerFixture):
             1,
             "dispatch directory must verify as a record (verified 1)",
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
 
     def test_real_git_sha_evidence_verifies(self):
         granted = self.declare()
@@ -794,7 +695,7 @@ class SettleEvidence(_LedgerFixture):
             1,
             "real scratch commit sha must verify (verified 1)",
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
 
     def test_bogus_hex_stores_as_claimed_unverified(self):
         granted = self.declare()
@@ -803,17 +704,14 @@ class SettleEvidence(_LedgerFixture):
         bogus = "deadbee"
         self.assertRegex(bogus, r"^[0-9a-f]{7,40}$")
         self.assertNotEqual(bogus, sha[: len(bogus)])
-        git_env = self.env()
-        probe = subprocess.run(
+        probe = run(
             ["git", "cat-file", "-e", bogus],
-            cwd=str(repo),
-            env=git_env,
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=repo,
+            env=self.world.env(),
+            timeout=RUN_TIMEOUT,
         )
         self.assertNotEqual(
-            probe.returncode,
+            probe.exit,
             0,
             "INVALID: bogus hex resolved in the scratch repo",
         )
@@ -877,7 +775,7 @@ class ResettleAndUnknown(_LedgerFixture):
         gid = self.grant_id(granted)
         path = self.plant_file()
         first = self.settle(gid, str(path))
-        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(first.exit, 0, first.stderr)
         again = self.settle(gid, str(path))
         err = again.stderr or ""
         self.assertTrue(
@@ -928,8 +826,8 @@ class SchemaAdoption(_LedgerFixture):
             text,
             "report must read the historical settled row without error",
         )
-        self.assertEqual(opened.returncode, 0, opened.stderr)
-        self.assertEqual(reported.returncode, 0, reported.stderr)
+        self.assertEqual(opened.exit, 0, opened.stderr)
+        self.assertEqual(reported.exit, 0, reported.stderr)
         self.assertNotIn("identity", (opened.stderr or "").lower())
         self.assertNotIn("identity", (reported.stderr or "").lower())
         self.assertEqual(self.table_columns(), columns_before)
@@ -945,7 +843,6 @@ class LaneNameSelectsStore(_LedgerFixture):
     """LANE_NAME from the conf selects the store under HOME."""
 
     def test_lane_name_from_conf_selects_the_store(self):
-        conf = self.scratch / "lane.conf"
         text = (
             "LANE_NAME='lanex'\n"
             "TRUNK_BRANCH='trunkx'\n"
@@ -964,8 +861,7 @@ class LaneNameSelectsStore(_LedgerFixture):
             "WALL_DEFAULT='900'\n"
             "SCOPE_CAP='1024'\n"
         )
-        conf.write_text(text, encoding="utf-8")
-        self.assertEqual(conf.read_text(encoding="utf-8"), text)
+        conf = self.world.plant_text(self.scratch / "lane.conf", text)
         lanex = self.home / ".local" / "state" / "lanex" / "handwork.db"
         self.assertFalse(lanex.exists(), "plant: lanex store must start absent")
         self.assertFalse(self.store.exists(), "plant: default store absent")
@@ -974,7 +870,7 @@ class LaneNameSelectsStore(_LedgerFixture):
             agent=AGENT,
             extra_env={"LANE_CONF": str(conf)},
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertTrue(lanex.is_file(), f"store missing under lanex: {lanex}")
         self.assertFalse(
             self.store.exists(),
