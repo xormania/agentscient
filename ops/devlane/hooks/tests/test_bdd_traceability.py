@@ -2,17 +2,59 @@
 
 import json
 import unittest
+from types import MethodType, SimpleNamespace
 
 import test_hooks as hook_contract
+
+from ops.testkit import World, run
+
+TIMEOUT = 120
+
+
+def env_for(fixture, wf_agent=hook_contract.WF, user="tester"):
+    extra = {}
+    if wf_agent is not None:
+        extra["WF_AGENT"] = wf_agent
+    if user is not None:
+        extra["USER"] = user
+    return fixture.world.env(extra)
+
+
+def run_cmd(fixture, argv, cwd, env=None, expect=0):
+    result = run(
+        argv,
+        cwd=cwd,
+        env=env if env is not None else fixture.env_for(),
+        timeout=TIMEOUT,
+    )
+    if expect is not None:
+        fixture.assertEqual(
+            result.exit,
+            expect,
+            f"command {argv!r} in {cwd} exited {result.exit} "
+            f"(wanted {expect})\nstdout: {result.stdout}\n"
+            f"stderr: {result.stderr}",
+        )
+    return SimpleNamespace(
+        args=list(result.argv),
+        returncode=result.exit,
+        stdout=result.stdout,
+        stderr=result.stderr,
+    )
 
 
 class MultiWorktreeScenarios(unittest.TestCase):
     def setUp(self):
+        self.world = World(prefix="bdd-traceability-")
+        self.addCleanup(self.world.close)
         self.fixture = hook_contract.HookContractTest(
             "test_h3_checkout_appends_one_branch_entry"
         )
-        self.fixture.setUp()
-        self.addCleanup(self.fixture.doCleanups)
+        self.fixture.world = self.world
+        self.fixture.tmp = self.world.root
+        self.fixture.home = self.world.home
+        self.fixture.env_for = MethodType(env_for, self.fixture)
+        self.fixture.run_cmd = MethodType(run_cmd, self.fixture)
 
     def test_a_file_checkout_is_not_a_crossing(self):
         """Scenario: a file checkout is not a crossing"""
@@ -23,7 +65,7 @@ class MultiWorktreeScenarios(unittest.TestCase):
 
         stream_before = h.stream_lines(repo)
         tracked = repo / "file.txt"
-        tracked.write_text("dirty replacement\n")
+        self.world.plant_text(tracked, "dirty replacement\n")
         self.assertEqual(tracked.read_text(), "dirty replacement\n")
         self.assertIn("file.txt", h.git(repo, "status", "--short").stdout)
 

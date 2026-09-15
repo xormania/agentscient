@@ -23,10 +23,11 @@ from __future__ import annotations
 import ast
 import json
 import re
-import subprocess
 import sys
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 HOOKS = Path(__file__).resolve().parents[1]
 REPO = HOOKS.parents[2]
@@ -35,6 +36,7 @@ REGISTRY = HOOKS / "boundaries.json"
 FIELDS = ("class", "boundary", "actor", "trigger", "evidence", "gate", "tests", "escape", "event", "tools")
 ESCAPES = {"none", "grant", "unscoped-grant", "ask"}
 BOUNDARIES = {"write", "search", "test-run", "dispatch", "branch", "pr", "commit", "publish"}
+TIMEOUT = 120
 
 
 def emitted_classes():
@@ -51,6 +53,8 @@ def emitted_classes():
 
 class TheRegistryClosesOverTheMatrix(unittest.TestCase):
     def setUp(self):
+        self.world = World(prefix="boundaries-")
+        self.addCleanup(self.world.close)
         self.assertTrue(REGISTRY.is_file(), f"missing {REGISTRY}")
         data = json.loads(REGISTRY.read_text(encoding="utf-8"))
         self.assertEqual(data.get("schema"), "agentscient.boundaries/2")
@@ -76,10 +80,14 @@ class TheRegistryClosesOverTheMatrix(unittest.TestCase):
                               f"{klass} is emitted by {sorted(self.emitted[klass])}, not {row['gate']}")
 
     def test_the_engine_lints_the_live_registry_clean(self):
-        proc = subprocess.run([sys.executable, str(HOOKS / "claude" / "engine.py"), "lint"],
-                              capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        report = json.loads(proc.stdout)
+        result = run(
+            [sys.executable, str(HOOKS / "claude" / "engine.py"), "lint"],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        self.assertEqual(result.exit, 0, result.stdout + result.stderr)
+        report = json.loads(result.stdout)
         self.assertEqual(report["unknown_predicates"], [])
         self.assertEqual(report["unknown_events"], [])
 
@@ -108,13 +116,24 @@ class TheRegistryClosesOverTheMatrix(unittest.TestCase):
         probe = ("import sys; sys.path.insert(0, %r); import importlib.util as u; "
                  "s = u.spec_from_file_location('matrix', %r); m = u.module_from_spec(s); s.loader.exec_module(m); "
                  "m.deny('no-such-row', 'x', 'y', 'z')") % (str(HOOKS / "claude"), str(MATRIX))
-        proc = subprocess.run([sys.executable, "-c", probe], capture_output=True, text=True, check=False)
-        self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("undeclared gate: no-such-row", proc.stderr)
+        result = run(
+            [sys.executable, "-c", probe],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        self.assertNotEqual(result.exit, 0)
+        self.assertIn("undeclared gate: no-such-row", result.stderr)
         payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "true"}, "cwd": str(REPO)})
-        proc = subprocess.run([sys.executable, str(MATRIX)], input=payload, capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(proc.stdout.strip(), "", "a plain command still passes")
+        result = run(
+            [sys.executable, str(MATRIX)],
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            stdin=payload,
+            timeout=TIMEOUT,
+        )
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "", "a plain command still passes")
 
 
 if __name__ == "__main__":
