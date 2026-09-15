@@ -20,10 +20,9 @@ from ops.testkit import World
 
 REPO = Path(__file__).resolve().parents[4]
 CONTRACT = REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
-# Absent stand-in first: World.stage of a missing file plants exit-0
-# with no output so each pin fails on its own assertion, not a missing
-# path. Flip to CONTRACT after the red is proven.
-_SUBJECT = CONTRACT.with_name("CONTRACT.md.absent-stand-in")
+# World.stage copies CONTRACT.md into the world; an absent file still
+# plants the exit-0 stand-in used to prove red.
+_SUBJECT = CONTRACT
 
 # Item 4: the path is a scope-file path. The item-3 needed command
 # writes `contract item N of <scope path>: <why>`, so a colon after the
