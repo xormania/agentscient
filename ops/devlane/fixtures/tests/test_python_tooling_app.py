@@ -108,6 +108,13 @@ LANE_COPY_PATHS = (
     "ops/devlane/task/envelope.py",
     "ops/devlane/task/tests/support.py",
     "ops/devlane/task/tests/test_envelope.py",
+    # the kit the task family's support imports (docs/tests.md §Reaching it)
+    "ops/testkit/__init__.py",
+    "ops/testkit/world.py",
+    "ops/testkit/command.py",
+    "ops/testkit/fakes.py",
+    "ops/testkit/fake_program.py",
+    "ops/testkit/cases.py",
 )
 
 REC_ID = "20260904T000000Z-review-grok-ptool01"
