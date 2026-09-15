@@ -86,10 +86,15 @@ class SkillsFixture(unittest.TestCase):
             self.assertEqual(now.st_size, self._real_db_stat.st_size)
 
     def _plant_subject(self, tools: Path) -> Path:
-        # RED: a stub that exits 99 with no output, so every assertion
-        # fails on its own promise rather than on a missing World.
-        del tools
-        return self.world.tools.plant("skills.py", stdout="", stderr="", exit=99)
+        src = TOOLS / SKILLS_PY
+        self.assertTrue(src.is_file(), f"missing tool at {src}")
+        staged = self.world.stage(
+            src, siblings=("instrument.py", "laneconf.py"),
+        )
+        for path in staged.parent.iterdir():
+            dest = self.world.plant_bytes(tools / path.name, path.read_bytes())
+            self.assertGreater(dest.stat().st_size, 0)
+        return tools / SKILLS_PY
 
     def _run(self, *argv, agent=None):
         extra = {"PYTHONIOENCODING": "utf-8"}
