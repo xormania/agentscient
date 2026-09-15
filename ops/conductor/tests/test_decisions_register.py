@@ -18,22 +18,24 @@ the contract promise rather than Python's missing-file exit 2.
 from __future__ import annotations
 
 import json
-import os
 import re
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
+from ops.testkit import World, run
+
 REPO = Path(__file__).resolve().parents[3]
-TOOL = REPO / "ops" / "conductor" / "tools" / "decisions.py"
+# Planted absent: the subject is withheld so each assertion fails on its
+# own contract, not on a host path.
+TOOL = REPO / "ops" / "conductor" / "tools" / "decisions-not-here.py"
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
 SIBLINGS = ("instrument.py", "laneconf.py")
 # Captured at import, before any test mutates a subprocess HOME.
 LIVE_STORE = Path.home() / ".local" / "state" / "agentscient" / "decisions.db"
+RUN_CAP = 60
 
 VENDOR_ANTHROPIC = "Claude Fable 5 <noreply@anthropic.com>"
 VENDOR_OPENAI = "GPT-5 Codex <noreply@openai.com>"
@@ -53,96 +55,70 @@ MISSING = "D-WO-99"
 QUESTION = "Should this decision stand as recorded"
 HOME_PATH = "ops/conductor/decisions-register.md#the-row"
 
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
-
-
-def _live_snapshot() -> tuple[str, bytes | None]:
-    if LIVE_STORE.is_file():
-        return ("file", LIVE_STORE.read_bytes())
-    if LIVE_STORE.exists():
-        return ("other", None)
-    return ("absent", None)
+# World's absent stand-in (World.stage): exit 0, no output.
+ABSENT_STUB = b"import sys\nsys.exit(0)\n"
 
 
 class _RegisterFixture(unittest.TestCase):
     """Isolated HOME, staged tool copy, live store frozen."""
 
     def setUp(self):
-        self._live_before = _live_snapshot()
-        self._tmp = tempfile.TemporaryDirectory(prefix="decisions-register-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.home.mkdir()
+        self.world = World(prefix="decisions-register-")
+        self._live = self.world.watch(LIVE_STORE)
+        self.home = self.world.home
+        self.scratch = self.world.path("scratch")
         self.scratch.mkdir()
         self.store = self.home / ".local" / "state" / "agentscient" / "decisions.db"
         self.assertFalse(
             self.store.exists(),
             "plant: isolated store must start absent",
         )
-        self.staged = self.scratch / "decisions.py"
         self._stage_tool_bytes()
 
     def tearDown(self):
         try:
-            self.assertEqual(
-                _live_snapshot(),
-                self._live_before,
-                f"live store mutated: {LIVE_STORE}",
-            )
-            if self._live_before[0] == "absent":
-                self.assertFalse(
-                    LIVE_STORE.exists(),
-                    "tests created the live store",
-                )
+            self._live.assert_unchanged(self, f"live store mutated: {LIVE_STORE}")
         finally:
-            self._tmp.cleanup()
+            self.world.close()
 
     def _stage_tool_bytes(self) -> None:
+        self.staged = self.world.stage(
+            TOOL,
+            "decisions.py",
+            siblings=SIBLINGS if TOOL.is_file() else (),
+        )
         if TOOL.is_file():
             data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
             landed = self.staged.read_bytes()
             self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
             self.assertEqual(len(landed), len(data))
             self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
         else:
-            self.staged.write_bytes(ABSENT_STUB)
             landed = self.staged.read_bytes()
             self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
             self.assertEqual(len(landed), len(ABSENT_STUB))
         self.assertTrue(self.staged.is_file())
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under HOME is the one asserted.
-        self.conf = self.staged.parent.parent / "lane.conf"
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.conf = self.world.plant_text(
+            "lane.conf",
+            "LANE_NAME='agentscient'\n",
+        )
 
     def env(
         self,
         agent: str | None = None,
         extra: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
+        payload = {
             "LANE_CONF": str(self.conf),
+            "XDG_STATE_HOME": str(self.home / ".local" / "state"),
         }
         if agent is not None:
-            env["WF_AGENT"] = agent
+            payload["WF_AGENT"] = agent
         if extra:
-            env.update(extra)
-        return env
+            payload.update(extra)
+        return self.world.env(extra=payload)
 
     def invoke(
         self,
@@ -151,13 +127,11 @@ class _RegisterFixture(unittest.TestCase):
         agent: str | None = None,
         extra_env: dict[str, str] | None = None,
     ):
-        return subprocess.run(
+        return run(
             [sys.executable, str(self.staged), *argv],
-            cwd=str(REPO),
+            cwd=REPO,
             env=self.env(agent=agent, extra=extra_env),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
 
     def add(
@@ -183,7 +157,7 @@ class _RegisterFixture(unittest.TestCase):
             token in compact or spaced in err.lower(),
             f"refusal class {class_name!r} not named in stderr: {err!r}",
         )
-        self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual(proc.exit, 2, err)
         self.assertTrue(err.strip(), "refusal was silent")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -279,9 +253,9 @@ class AddListShow(_RegisterFixture):
 
     def test_add_list_show_round_trip_starts_proposed(self):
         added = self.add(DID, agent=OWNER)
-        self.assertEqual(added.returncode, 0, added.stderr)
+        self.assertEqual(added.exit, 0, added.stderr)
         listed = self.invoke(["list"], agent=OWNER)
-        self.assertEqual(listed.returncode, 0, listed.stderr)
+        self.assertEqual(listed.exit, 0, listed.stderr)
         lines = self.list_lines(listed)
         self.assertEqual(len(lines), 1, listed.stdout)
         line = lines[0]
@@ -289,7 +263,7 @@ class AddListShow(_RegisterFixture):
         self.assertIn("proposed", line)
         self.assertIn(QUESTION, line)
         shown = self.invoke(["show", DID], agent=OWNER)
-        self.assertEqual(shown.returncode, 0, shown.stderr)
+        self.assertEqual(shown.exit, 0, shown.stderr)
         self.assertIn(DID, shown.stdout)
         self.assertIn(QUESTION, shown.stdout)
         self.assertIn(HOME_PATH, shown.stdout)
@@ -310,7 +284,7 @@ class Identity(_RegisterFixture):
     def test_writing_verb_without_wf_agent_refuses_exit_2(self):
         proc = self.add(DID, agent=None)
         self.assert_refusal(proc, "identity")
-        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stderr)
 
     def test_malformed_wf_agent_is_identity_refusal(self):
         proc = self.add(DID, agent="JustAName")
@@ -329,7 +303,7 @@ class Identity(_RegisterFixture):
                 proc = self.invoke(argv, agent=None)
                 err = (proc.stderr or "").lower()
                 self.assertNotIn("identity", err)
-                self.assertEqual(proc.returncode, 0, proc.stderr)
+                self.assertEqual(proc.exit, 0, proc.stderr)
                 self.assertTrue(
                     (proc.stdout or "").strip(),
                     f"{argv[0]} produced no result",
@@ -360,7 +334,7 @@ class SelfConferred(_RegisterFixture):
             ["ratify", DID, "--evidence", EVIDENCE],
             agent=VENDOR_XAI,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         shown = self.invoke(["show", DID], agent=None)
         decided = self.field(shown.stdout, "decided_by")
         self.assertEqual(
@@ -381,7 +355,7 @@ class SelfConferred(_RegisterFixture):
     def test_non_vendor_ratify_sets_decided_by_to_that_identity(self):
         self.add(DID, agent=OWNER)
         proc = self.invoke(["ratify", DID], agent=OWNER)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         shown = self.invoke(["show", DID], agent=None)
         decided = self.field(shown.stdout, "decided_by")
         self.assertEqual(
@@ -402,7 +376,7 @@ class Transitions(_RegisterFixture):
     def test_ratify_of_a_ratified_row_names_the_transition(self):
         self.add(DID, agent=OWNER)
         first = self.invoke(["ratify", DID], agent=OWNER)
-        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(first.exit, 0, first.stderr)
         again = self.invoke(["ratify", DID], agent=OWNER)
         err = again.stderr or ""
         self.assertIn("ratified", err.lower())
@@ -454,7 +428,7 @@ class Supersede(_RegisterFixture):
             ],
             agent=OWNER,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         old = self.invoke(["show", DID], agent=None)
         new = self.invoke(["show", SUCCESSOR], agent=None)
         old_by = self.field(old.stdout, "superseded_by")
@@ -504,14 +478,14 @@ class IntakeRefusals(_RegisterFixture):
     def test_four_word_question_is_accepted(self):
         question = "Will this four word"
         proc = self.add(DID, question=question, agent=OWNER)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         listed = self.invoke(["list"], agent=OWNER)
         self.assertIn(DID, listed.stdout)
         self.assertIn(question, listed.stdout)
 
     def test_duplicate_id_refuses(self):
         first = self.add(DID, agent=OWNER)
-        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(first.exit, 0, first.stderr)
         second = self.add(DID, question="A different four word question", agent=OWNER)
         self.assert_refusal(second, "duplicate")
         self.assertIn(DID, second.stderr or "")
@@ -542,7 +516,7 @@ class Export(_RegisterFixture):
         self.add(OPS, agent=OWNER)
         first = self.invoke(["export"], agent=None)
         second = self.invoke(["export"], agent=None)
-        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertEqual(first.exit, 0, first.stderr)
         rows = self.parse_export(first.stdout)
         self.assertEqual(first.stdout, second.stdout)
         self.assertEqual(
@@ -583,9 +557,9 @@ class BlockedQueue(_RegisterFixture):
             ["ratify", DID, "--evidence", "owner: yes, land it"],
             agent=VENDOR_ANTHROPIC,
         )
-        self.assertEqual(ratified.returncode, 0, ratified.stderr)
+        self.assertEqual(ratified.exit, 0, ratified.stderr)
         proc = self.invoke(["report"], agent=None)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         payload = json.loads(proc.stdout)
         blocked_ids = [row["id"] for row in payload["blocked"]]
         self.assertIn(LAW, blocked_ids, payload)
@@ -596,7 +570,6 @@ class LaneNameSelectsStore(_RegisterFixture):
     """LANE_NAME from the conf selects the store under HOME."""
 
     def test_lane_name_from_conf_selects_the_store(self):
-        conf = self.scratch / "lane.conf"
         text = (
             "LANE_NAME='lanex'\n"
             "TRUNK_BRANCH='trunkx'\n"
@@ -615,8 +588,7 @@ class LaneNameSelectsStore(_RegisterFixture):
             "WALL_DEFAULT='900'\n"
             "SCOPE_CAP='1024'\n"
         )
-        conf.write_text(text, encoding="utf-8")
-        self.assertEqual(conf.read_text(encoding="utf-8"), text)
+        conf = self.world.plant_text(self.scratch / "lane.conf", text)
         lanex = self.home / ".local" / "state" / "lanex" / "decisions.db"
         self.assertFalse(lanex.exists(), "plant: lanex store must start absent")
         self.assertFalse(self.store.exists(), "plant: default store absent")
@@ -625,7 +597,7 @@ class LaneNameSelectsStore(_RegisterFixture):
             agent=OWNER,
             extra_env={"LANE_CONF": str(conf)},
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertTrue(lanex.is_file(), f"store missing under lanex: {lanex}")
         self.assertFalse(
             self.store.exists(),
