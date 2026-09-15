@@ -141,7 +141,7 @@ class CodexAndGrokBriefsEndWithTheEnvelopeSchema(_BriefSchema):
         self.assert_brief_ends_with_independent_schema(received, text, schema)
         self.assert_digest_matches_file(rec, path)
         argv = [str(a) for a in witness["argv"]]
-        self.assertIn("--json-schema", argv)
+        self.assertNotIn("--json-schema", argv)
 
     def test_grok_brief_ends_with_the_envelope_schema(self):
         rec, witness, *_ = self.launch_ok(
@@ -154,7 +154,7 @@ class CodexAndGrokBriefsEndWithTheEnvelopeSchema(_BriefSchema):
         self.assert_brief_ends_with_independent_schema(received, text, schema)
         self.assert_digest_matches_file(rec, path)
         argv = [str(a) for a in witness["argv"]]
-        self.assertIn("--json-schema", argv)
+        self.assertNotIn("--json-schema", argv)
 
 
 class ClaudeIsExcludedFromTheAppendedSchemaSection(_BriefSchema):
@@ -213,7 +213,7 @@ class ClaudeIsExcludedFromTheAppendedSchemaSection(_BriefSchema):
         grok_argv = [str(a) for a in grok_w["argv"]]
         self.assertNotIn("--json-schema", grok_argv)
 
-        self.assertIn(SCHEMA_SECTION_LEAD, claude_received)
+        self.assertNotIn(SCHEMA_SECTION_LEAD, claude_received)
         self.assertNotIn(SCHEMA_SECTION_LEAD, claude_text)
         claude_argv = [str(a) for a in claude_w["argv"]]
         self.assertIn("--json-schema", claude_argv)
