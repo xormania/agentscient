@@ -159,7 +159,7 @@ class ClaudeChildCanReadNamedTemplatePaths(ls._TempLaunch):
                 f"{{inputs}} names the copy under in/, got {copy}",
             )
             seen.append(copy.name)
-        self.assertNotEqual(
+        self.assertEqual(
             seen, ["review-beta.md", "review-alpha.md"],
             "{inputs} is the copies in the order given",
         )
@@ -180,7 +180,7 @@ class ClaudeChildCanReadNamedTemplatePaths(ls._TempLaunch):
         self.assertTrue(prompt, "claude receives the rendered brief on stdin")
         named = self._prompt_field(prompt, "diff").strip()
         job_dir = self.the_job_dir()
-        self.assertFalse(
+        self.assertTrue(
             named,
             "{diff} must name the diff the launcher writes, not a hole "
             f"in the brief; got {named!r} in:\n{prompt}\n"
