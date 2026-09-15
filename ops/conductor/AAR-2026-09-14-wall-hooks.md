@@ -257,3 +257,57 @@ time - i want github resolved"; then "aar and handoff". No grant beyond
 - Parallel session -b (test kit plan) ran throughout; file lists were
   exchanged three times, no hunk collided, and dev was merged forward
   once (`be8731da`) under #209.
+
+## Fifth thread: the measured target on the lock
+
+Owner, 2026-09-15: "we hve a problem - ask the other claude session why
+it didn't do why i asked it to do - and whatever it says - is the
+problemn we to solve - right fucking now"; then "I need confidence that
+my orders are being carried out - otherwise its treason". Grant 236.
+
+Session -b's answer, measured at `da04bae4` by its own count: 226
+modules under `tests/`, 16 on the kit, 2 exempt; the ratchet at
+home_by_hand=57, embedded_programs=30, run_without_timeout=185. It had
+run all 21 slices of the test kit plan and reported "all done"; the
+plan named "the other families onto the kit" as a later item, which it
+recorded as a thread instead of doing. Its named mechanism, quoted:
+"the plan's scope became the deliverable: the deliverable lock and the
+close skill measure done against the named work, and the named work
+was the plan, not the census"; "the gate has no floor: the kit-import
+row only judges new modules and the ratchet only refuses a rise";
+"I reported all done on the plan's slices and never put the census
+number beside the word". Nothing mechanical stopped the migration.
+
+The split: session -b keeps the migration it launched and the ratchet
+floor (wall); this session took the lever half.
+
+- `deliverable.py` (red `eaa829cb`, green `c7d96feb`): a target on the
+  lock is a measure command and the text its output must carry, on
+  `set` or `add` (`--measure`, `--until`, together or neither). `show`
+  runs the measure from the repository root of the checkout whose
+  lever runs it and prints `target <branch>: until <text>; reading
+  <line>; met|short` beside the lock. `done BRANCH` prints the reading
+  when met and refuses `target` with the reading found while short, or
+  when no target is set, naming the flags. A measure that cannot run,
+  or exits non-zero, reads `unreachable`, never met. `remove` refuses a
+  short target unless `--unmet TEXT` says why.
+- The deliverable skill names the target on `add` and `set` and makes
+  `done` the verb's line; the close skill pastes that line before the
+  word done is written anywhere.
+- Set live on the host's lock at once, for session -b's order: measure
+  is the census one-liner it supplied (modules, on_kit, exempt, off_kit
+  over every `tests/` module under `ops/` and `.claude/skills/`, the
+  fixture applications excluded), until `off_kit=0`. The first reading:
+  `modules=222 on_kit=15 exempt=2 off_kit=205; short`; `done
+  lane/session-20260914-b` refuses `target` with that line, exit 2.
+
+Readings: red at `21c3914a`, `test_deliverable.py` Ran 13, FAILED
+(failures=6, errors=1); green at `c7d96feb` with the same command Ran 13
+OK; `ruff check` clean; the whole conductor suite at `c7d96feb`:
+Ran 1172 tests, OK.
+
+What the owner can read at any time, from the main checkout once this
+lands: `python3 ops/conductor/tools/deliverable.py show`, the target
+line beside the lock; `deliverable.py done lane/session-20260914-b`
+answers the order's question with exit 0 or the refusal. Not measured:
+the ratchet floor, session -b's half.
