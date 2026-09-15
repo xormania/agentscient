@@ -1,22 +1,27 @@
 """Shared fixtures of the PR overview's tests: the stubbed gh, the scratch repository, the loader.
 
 Moved out of two test modules copied over from the previous repository that
-never ran here; the fixtures are the part the real tests import.
+never ran here; the fixtures are the part the real tests import. Worlds,
+commands and the planted gh ride on the kit (docs/tests.md).
 """
 from __future__ import annotations
 
 import contextlib
 import importlib.util
+import json
 import os
 import shutil
-import subprocess
-import tempfile
 from pathlib import Path
 
+from ops.testkit import World, run
+
 ROOT = Path(__file__).resolve().parents[4]
-
-
 OVERVIEW = ROOT / ".claude" / "skills" / "pr-overview" / "pr_overview.py"
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+GH_STUB_PATH = FIXTURES / "gh_stub.py"
+KIT_DIR = str((ROOT / "ops" / "testkit").resolve())
+REPO = "uscient/agentscient"
+RUN_CAP = 60
 
 
 def load_overview(root: Path, name: str):
@@ -29,266 +34,15 @@ def load_overview(root: Path, name: str):
     return module
 
 
-REPO = "uscient/agentscient"
-
-
-GH_STUB = r"""#!/usr/bin/env python3
-import base64, hashlib, io, json, os, sys, tarfile
-from pathlib import Path
-from urllib.parse import parse_qs, urlparse
-
-state = json.loads(Path(os.environ["GH_STUB_STATE"]).read_text())
-args = sys.argv[1:]
-prs = state["prs"]
-trees = state.get("trees", {})
-
-def git_blob_sha(data):
-    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
-
-blobs = {}
-for files in trees.values():
-    for text in files.values():
-        data = text.encode("utf-8")
-        blobs[git_blob_sha(data)] = data
-
-def pr_by_number(n):
-    for pr in prs:
-        if int(pr["number"]) == int(n):
-            return pr
-    sys.stderr.write(f"unknown pr {n}\n")
-    sys.exit(2)
-
-def dump(obj):
-    jq = None
-    if "--jq" in args:
-        jq = args[args.index("--jq") + 1]
-    if jq:
-        cur = obj
-        for part in jq.strip(".").split("."):
-            if part == "":
-                continue
-            cur = cur[part]
-        if isinstance(cur, (dict, list)):
-            json.dump(cur, sys.stdout)
-        else:
-            sys.stdout.write("" if cur is None else str(cur))
-    else:
-        json.dump(obj, sys.stdout)
-    sys.exit(0)
-
-if "pr" in args and "list" in args:
-    keys = (
-        "number", "title", "headRefName", "baseRefName", "headRefOid",
-        "mergeable", "mergeStateStatus", "isDraft", "updatedAt",
-    )
-    json.dump([{k: pr[k] for k in keys} for pr in prs], sys.stdout)
-    sys.exit(0)
-
-if "pr" in args and "checks" in args:
-    number = None
-    after = args[args.index("checks") + 1 :]
-    for a in after:
-        if a.isdigit():
-            number = a
-            break
-    if number is None:
-        sys.stderr.write("pr checks: no number\n")
-        sys.exit(2)
-    pr = pr_by_number(number)
-    json.dump(
-        [{"name": c["name"], "bucket": c["bucket"]} for c in pr["checks"]],
-        sys.stdout,
-    )
-    sys.exit(0)
-
-if "api" in args and "graphql" in args:
-    number = None
-    for i, a in enumerate(args):
-        if a.startswith("pr="):
-            number = a.split("=", 1)[1]
-        if a == "-F" and i + 1 < len(args) and args[i + 1].startswith("pr="):
-            number = args[i + 1].split("=", 1)[1]
-    if number is None:
-        sys.stderr.write("graphql: no pr=\n")
-        sys.exit(2)
-    pr = pr_by_number(number)
-    json.dump(
-        {
-            "data": {
-                "repository": {
-                    "pullRequest": {
-                        "reviewThreads": {
-                            "pageInfo": {"hasNextPage": False, "endCursor": None},
-                            "nodes": [],
-                        },
-                        "reviews": {
-                            "pageInfo": {"hasNextPage": False, "endCursor": None},
-                            "nodes": [{
-                                "submittedAt": "2026-08-26T00:00:00Z",
-                                "commit": {"oid": pr["headRefOid"]},
-                                "author": {"login": "reviewer"},
-                                "state": "APPROVED",
-                                "body": "lgtm",
-                            }],
-                        },
-                    }
-                }
-            }
-        },
-        sys.stdout,
-    )
-    sys.exit(0)
-
-def api_token():
-    for a in args:
-        if a.startswith("repos/") or a.startswith("/repos/"):
-            return a
-    return None
-
-token = api_token() if "api" in args else None
-if token:
-    parsed = urlparse(token if "://" in token else "https://api.github.com/" + token.lstrip("/"))
-    path = parsed.path.lstrip("/")
-    qs = parse_qs(parsed.query)
-    for i, a in enumerate(args):
-        if a in ("-f", "-F") and i + 1 < len(args) and "=" in args[i + 1]:
-            k, v = args[i + 1].split("=", 1)
-            qs.setdefault(k, []).append(v)
-        if a.startswith("ref="):
-            qs.setdefault("ref", []).append(a.split("=", 1)[1])
-    parts = path.split("/")
-    if parts and parts[0] == "repos":
-        rest = parts[3:]
-    else:
-        rest = parts
-
-    def die(msg, code=1):
-        sys.stderr.write(msg + "\n")
-        sys.exit(code)
-
-    def tree_files(sha):
-        files = trees.get(sha)
-        if files is None:
-            die(f"no tree {sha}", 1)
-        return files
-
-    if rest[:2] == ["git", "trees"] and len(rest) >= 3:
-        sha = rest[2]
-        files = tree_files(sha)
-        tree = []
-        for p, text in sorted(files.items()):
-            data = text.encode("utf-8")
-            tree.append({
-                "path": p,
-                "mode": "100644",
-                "type": "blob",
-                "sha": git_blob_sha(data),
-                "size": len(data),
-            })
-        dump({"sha": sha, "tree": tree, "truncated": False})
-
-    if rest[:2] == ["git", "blobs"] and len(rest) >= 3:
-        bsha = rest[2]
-        data = blobs.get(bsha)
-        if data is None:
-            die(f"no blob {bsha}", 1)
-        dump({
-            "sha": bsha,
-            "content": base64.b64encode(data).decode("ascii"),
-            "encoding": "base64",
-            "size": len(data),
-        })
-
-    if rest[:2] == ["git", "commits"] and len(rest) >= 3:
-        sha = rest[2]
-        tree_files(sha)
-        dump({"sha": sha, "tree": {"sha": sha}})
-
-    if rest[:1] == ["tarball"] and len(rest) >= 2:
-        sha = rest[1]
-        files = tree_files(sha)
-        buf = io.BytesIO()
-        prefix = f"agentscient-{sha[:7]}/"
-        with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-            for p, text in files.items():
-                data = text.encode("utf-8")
-                info = tarfile.TarInfo(name=prefix + p)
-                info.size = len(data)
-                tar.addfile(info, io.BytesIO(data))
-        sys.stdout.buffer.write(buf.getvalue())
-        sys.exit(0)
-
-    if rest[:1] == ["contents"]:
-        rel = "/".join(rest[1:])
-        ref = (qs.get("ref") or [None])[0]
-        if not ref:
-            die("contents: no ref", 2)
-        files = tree_files(ref)
-        if rel in files:
-            data = files[rel].encode("utf-8")
-            dump({
-                "name": rel.rsplit("/", 1)[-1],
-                "path": rel,
-                "sha": git_blob_sha(data),
-                "size": len(data),
-                "type": "file",
-                "content": base64.b64encode(data).decode("ascii"),
-                "encoding": "base64",
-            })
-        prefix = (rel.rstrip("/") + "/") if rel else ""
-        names = {}
-        for p in files:
-            if prefix and not p.startswith(prefix):
-                continue
-            rest_p = p[len(prefix):] if prefix else p
-            if not rest_p:
-                continue
-            first = rest_p.split("/", 1)[0]
-            names[first] = "/" not in rest_p
-        if not names:
-            die(f"no content {rel}", 1)
-        listing = []
-        for name in sorted(names):
-            full = prefix + name
-            if names[name]:
-                data = files[full].encode("utf-8")
-                listing.append({
-                    "name": name,
-                    "path": full,
-                    "type": "file",
-                    "sha": git_blob_sha(data),
-                    "size": len(data),
-                })
-            else:
-                listing.append({
-                    "name": name,
-                    "path": full,
-                    "type": "dir",
-                    "sha": "0" * 40,
-                })
-        dump(listing)
-
-sys.stderr.write("stub gh: unhandled " + " ".join(args[:6]) + "\n")
-sys.exit(2)
-"""
-
-
-def _clean_git_env() -> dict[str, str]:
-    env = os.environ.copy()
-    for key in (
-        "GIT_DIR",
-        "GIT_WORK_TREE",
-        "GIT_INDEX_FILE",
-        "GIT_OBJECT_DIRECTORY",
-        "GIT_COMMON_DIR",
-        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
-    ):
-        env.pop(key, None)
-    env["GIT_AUTHOR_NAME"] = "testr"
-    env["GIT_AUTHOR_EMAIL"] = "t@t.test"
-    env["GIT_COMMITTER_NAME"] = "testr"
-    env["GIT_COMMITTER_EMAIL"] = "t@t.test"
-    return env
+def gh_stub_text() -> str:
+    text = GH_STUB_PATH.read_text(encoding="utf-8")
+    if "check_errors" not in text:
+        raise AssertionError("plant: check_errors missing from gh stub fixture")
+    if "review_errors" not in text:
+        raise AssertionError("plant: review_errors missing from gh stub fixture")
+    if "nameWithOwner" not in text:
+        raise AssertionError("plant: repo view hook missing from gh stub fixture")
+    return text
 
 
 def ready_pr(number, title, branch, oid, names, buckets=None):
@@ -307,25 +61,83 @@ def ready_pr(number, title, branch, oid, names, buckets=None):
     }
 
 
+def plant_gh(world: World, prs, trees, check_errors=None, review_errors=None) -> dict[str, str]:
+    """Plant the gh fixture on the world's bin. Returns env extras the stub reads."""
+    missing = [pr["headRefOid"] for pr in prs if pr["headRefOid"] not in trees]
+    if missing:
+        raise AssertionError(f"gh stub has no tree for head(s) {missing}")
+    payload = {
+        "prs": prs,
+        "trees": trees,
+        "check_errors": {str(k): v for k, v in (check_errors or {}).items()},
+        "review_errors": {str(k): v for k, v in (review_errors or {}).items()},
+        "repo": REPO,
+    }
+    state = world.plant_text(world.tmp / "gh-state.json", json.dumps(payload))
+    landed = json.loads(state.read_text(encoding="utf-8"))
+    if landed["check_errors"] != payload["check_errors"]:
+        raise AssertionError("plant: check_errors did not land in stub state")
+    if landed["review_errors"] != payload["review_errors"]:
+        raise AssertionError("plant: review_errors did not land in stub state")
+    world.tools.plant("gh", script=gh_stub_text())
+    return {
+        "GH_STUB_STATE": str(state),
+        "GH_STUB_LOG": str(world.tools.log_path("gh")),
+        "TESTKIT_DIR": KIT_DIR,
+    }
+
+
+@contextlib.contextmanager
+def in_world(world: World, extra: dict[str, str] | None = None):
+    """Hermetic os.environ and cwd for an in-process subject.
+
+    World.enter does not take extra (kit gap); extras the stub and the
+    subject read are applied after enter.
+    """
+    world.require("git")
+    env = world.env(extra=extra)
+    probe = run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=world.cwd,
+        env=env,
+        timeout=RUN_CAP,
+    )
+    if probe.exit == 0:
+        raise AssertionError(
+            f"collect cwd is a git repo: {probe.stdout.strip()}"
+        )
+    world.enter()
+    if extra:
+        os.environ.update(extra)
+    old = os.getcwd()
+    os.chdir(world.cwd)
+    try:
+        which = shutil.which("gh")
+        planted = world.bin / "gh"
+        if which is None or Path(which).resolve() != planted.resolve():
+            raise AssertionError(f"stub gh not first on PATH: {which}")
+        yield world
+    finally:
+        os.chdir(old)
+
+
 @contextlib.contextmanager
 def non_git_cwd():
-    tmp = Path(tempfile.mkdtemp(prefix="pr-overview-cwd-"))
-    old = os.getcwd()
-    try:
-        os.chdir(tmp)
-        probe = subprocess.run(
+    with World() as world:
+        world.require("git")
+        probe = run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            env=_clean_git_env(),
-            check=False,
+            cwd=world.cwd,
+            env=world.env(),
+            timeout=RUN_CAP,
         )
-        if probe.returncode == 0:
+        if probe.exit == 0:
             raise AssertionError(
                 f"collect cwd is a git repo: {probe.stdout.strip()}"
             )
-        yield tmp
-    finally:
-        os.chdir(old)
-        shutil.rmtree(tmp, ignore_errors=True)
-
+        old = os.getcwd()
+        os.chdir(world.cwd)
+        try:
+            yield world.cwd
+        finally:
+            os.chdir(old)
