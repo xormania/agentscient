@@ -9,6 +9,7 @@ at close. A plant proves it landed.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import os
 import re
 import shutil
@@ -70,8 +71,12 @@ class World:
         in-process subject; ``exit`` restores it exactly."""
         if self._saved_environ is None:
             self._saved_environ = dict(os.environ)
+        # The new environment is read from the host before the host is
+        # cleared, or the named ambient values are lost (ruled rank 4,
+        # record 20260915T025600Z-adjudicate-codex-68d3d9).
+        fresh = self.env()
         os.environ.clear()
-        os.environ.update(self.env())
+        os.environ.update(fresh)
         return self
 
     def exit(self) -> None:
@@ -151,8 +156,13 @@ class World:
 
     # -- watching --------------------------------------------------------
 
-    def watch(self, *paths, ignore=(), tolerate_new=()) -> Watch:
-        return Watch(paths, ignore=ignore, tolerate_new=tolerate_new)
+    def watch(self, *paths, ignore=(), tolerate_new=(), contents=True) -> Watch:
+        """Snapshot the declared paths now, to compare at the case's end.
+        ``contents=True`` reads every descendant's bytes, so a rewrite in
+        place shows; ``contents=False`` reads presence, kind and the
+        immediate names only, the shape a guard over a large live store
+        declares (ops/conductor/test-store-guard.md)."""
+        return Watch(paths, ignore=ignore, tolerate_new=tolerate_new, contents=contents)
 
     # -- the fake registry ------------------------------------------------
 
@@ -262,12 +272,28 @@ def require(tool: str) -> str:
 # -- snapshots -----------------------------------------------------------
 
 def snapshot(path: Path) -> tuple[str, tuple[str, ...]]:
+    """One path: ``absent``; ``file`` with its content digest; ``dir``
+    with its immediate names; ``other`` for anything else."""
     path = Path(path)
     if not path.exists():
         return ("absent", ())
-    if not path.is_dir():
-        return ("other", ())
-    return ("dir", tuple(sorted(p.name for p in path.iterdir())))
+    if path.is_dir():
+        return ("dir", tuple(sorted(p.name for p in path.iterdir())))
+    if path.is_file():
+        return ("file", (hashlib.sha256(path.read_bytes()).hexdigest(),))
+    return ("other", ())
+
+
+def snapshot_tree(path: Path) -> dict:
+    """``snapshot`` of ``path`` and, under a directory, of every descendant,
+    keyed by path: a rewrite in place shows as a changed digest (ruled
+    rank 1, record 20260915T025600Z-adjudicate-codex-68d3d9)."""
+    path = Path(path)
+    tree = {str(path): snapshot(path)}
+    if path.is_dir():
+        for child in sorted(path.iterdir()):
+            tree.update(snapshot_tree(child))
+    return tree
 
 
 def _patterns(items):
@@ -304,16 +330,38 @@ def compare(before: dict, after: dict, *, ignore=(), tolerate_new=()) -> tuple[d
 
 
 class Watch:
-    """A before snapshot of declared paths, compared at the case's end."""
+    """A before snapshot of declared paths and their contents, compared
+    at the case's end. ``ignore`` and ``tolerate_new`` are name patterns
+    and reach every level: a descendant under an ignored name is dropped
+    on both sides, one under a tolerated new name is dropped from the
+    after side when that name was not there before."""
 
-    def __init__(self, paths, *, ignore=(), tolerate_new=()):
+    def __init__(self, paths, *, ignore=(), tolerate_new=(), contents=True):
         self.paths = [Path(p) for p in paths]
         self.ignore = tuple(ignore)
         self.tolerate_new = tuple(tolerate_new)
-        self.before = {str(p): snapshot(p) for p in self.paths}
+        self.contents = contents
+        self.before = self._tree(before=None)
+
+    def _tree(self, *, before) -> dict:
+        if not self.contents:
+            return {str(p): snapshot(p) for p in self.paths}
+        ignore = _patterns(self.ignore)
+        tolerate_new = _patterns(self.tolerate_new)
+        tree: dict = {}
+        for root in self.paths:
+            for key, value in snapshot_tree(root).items():
+                parts = Path(key).relative_to(root).parts
+                if any(p.fullmatch(name) for name in parts for p in ignore):
+                    continue
+                if before is not None and key not in before and any(
+                        p.match(name) for name in parts for p in tolerate_new):
+                    continue
+                tree[key] = value
+        return tree
 
     def now(self) -> dict:
-        return {str(p): snapshot(p) for p in self.paths}
+        return self._tree(before=self.before)
 
     def changed(self) -> tuple[dict, dict]:
         return compare(self.before, self.now(), ignore=self.ignore, tolerate_new=self.tolerate_new)

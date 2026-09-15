@@ -255,7 +255,11 @@ class _LadderFixture(unittest.TestCase):
         self.maxDiff = None
         self.world = World(prefix="ladder-lever-")
         self.world.require("git")
-        self._live = self.world.watch(*_live_store_paths(), ignore=IGNORE, tolerate_new=TOLERATE_NEW)
+        # Presence, kind and immediate names only: the guard's contract
+        # (ops/conductor/test-store-guard.md); the live store is large and
+        # shared with running dispatches, and reading its bytes is neither
+        # promised nor affordable.
+        self._live = self.world.watch(*_live_store_paths(), ignore=IGNORE, tolerate_new=TOLERATE_NEW, contents=False)
         self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO, self.world.env()).strip()
         self._diff_before = run(["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=RUN_CAP).stdout
         root = self.world.root

@@ -11,6 +11,10 @@ that order.
 
 from __future__ import annotations
 
+import contextlib
+import os
+import re
+import signal
 import subprocess
 import time
 from dataclasses import dataclass
@@ -19,6 +23,11 @@ from pathlib import Path
 from .world import PlantFailed
 
 DEFAULT_TIMEOUT = 60.0
+CLEANUP = 5.0
+# docs/wire.md: the class is a lower-case token; a refusal that only
+# says "invalid" (or arrives with an upper-case, underscored or empty
+# token) makes the next actor guess.
+CLASS_TOKEN = re.compile(r"[a-z][a-z0-9-]*")
 
 
 class Timeout(AssertionError):
@@ -56,7 +65,7 @@ class Result:
         rule the result breaks."""
         if self.exit != exit:
             raise NotOnTheWire(f"exit {exit} expected, found {self.exit}: {self.stderr!r}")
-        if self.stdout.strip():
+        if self.stdout != "":
             raise NotOnTheWire(f"stdout must be empty on a refusal, found {self.stdout!r}")
         lines = self.lines
         if len(lines) != 1:
@@ -68,9 +77,8 @@ def parse_wire(line: str) -> Refusal:
     if ":" not in line:
         raise NotOnTheWire(f"no class token before ':' in {line!r}")
     cls, rest = line.split(":", 1)
-    cls = cls.strip().lower().replace("_", "-")
-    if not cls or " " in cls:
-        raise NotOnTheWire(f"the class token must be one lower-case word, found {cls!r}")
+    if not CLASS_TOKEN.fullmatch(cls):
+        raise NotOnTheWire(f"the class token must be one lower-case word of letters, digits and hyphens, found {cls!r}")
     lower = rest.lower()
     marks = [lower.find("expected"), lower.find("found"), lower.find("needed")]
     if -1 in marks:
@@ -80,27 +88,47 @@ def parse_wire(line: str) -> Refusal:
     expected = rest[marks[0] + len("expected"):marks[1]].strip(" ;,")
     found = rest[marks[1] + len("found"):marks[2]].strip(" ;,")
     needed = rest[marks[2] + len("needed"):].strip(" ;,")
+    for name, value in (("expected", expected), ("found", found), ("needed", needed)):
+        if not value:
+            raise NotOnTheWire(f"{name} must say something, found it empty: {line!r}")
     return Refusal(cls, expected, found, needed, line)
+
+
+def _kill_session(child: subprocess.Popen) -> None:
+    with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
+        os.killpg(child.pid, signal.SIGKILL)
+    with contextlib.suppress(ProcessLookupError, OSError):
+        child.kill()
 
 
 def run(argv, *, cwd, env, stdin: str | None = None, timeout: float = DEFAULT_TIMEOUT,
         expect: int | None = None) -> Result:
     """Run ``argv`` and return its ``Result``. ``expect`` names the exit a
-    fixture step must produce; any other exit is INVALID, never a verdict."""
+    fixture step must produce; any other exit is INVALID, never a verdict.
+
+    The child leads its own session, so a timeout kills every descendant
+    with it and the cleanup is bounded by ``CLEANUP``: a grandchild holding
+    the pipes cannot keep ``Timeout`` from arriving."""
     argv = tuple(str(a) for a in argv)
     started = time.monotonic()
     try:
         child = subprocess.Popen(
             argv, cwd=str(cwd), env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True,
+            stderr=subprocess.PIPE, text=True, start_new_session=True,
         )
     except FileNotFoundError as exc:
         raise PlantFailed(f"INVALID: {argv[0]} is not on PATH ({exc})") from exc
     try:
         out, err = child.communicate(input=stdin, timeout=timeout)
     except subprocess.TimeoutExpired as exc:
-        child.kill()
-        child.communicate()
+        _kill_session(child)
+        try:
+            child.communicate(timeout=CLEANUP)
+        except subprocess.TimeoutExpired:
+            for stream in (child.stdin, child.stdout, child.stderr):
+                with contextlib.suppress(OSError):
+                    stream.close()
+            child.wait(timeout=CLEANUP)
         raise Timeout(f"{argv!r} in {cwd} outlived {timeout:g}s; killed and reaped") from exc
     result = Result(argv, child.returncode, out, err, time.monotonic() - started, str(Path(cwd)))
     if expect is not None and result.exit != expect:
