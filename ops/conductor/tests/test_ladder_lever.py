@@ -33,11 +33,13 @@ import shutil
 import stat
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-from live_store_guard import assert_unchanged
+from live_store_guard import IGNORE, TOLERATE_NEW
+
+from ops.testkit import Timeout, World, run
+from ops.testkit.world import make_executable
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "ladder.py"
@@ -190,14 +192,6 @@ def stage_model_effort(name: str) -> tuple[str, str]:
     return mapping[name]
 
 
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
-    if not path.exists():
-        return ("absent", ())
-    if not path.is_dir():
-        return ("other", ())
-    return ("dir", tuple(sorted(p.name for p in path.iterdir())))
-
-
 def _live_store_paths() -> list[Path]:
     paths: list[Path] = []
     xdg = os.environ.get("XDG_STATE_HOME")
@@ -220,17 +214,16 @@ def _live_store_paths() -> list[Path]:
     return unique
 
 
-def _git_out(args: list[str], cwd: Path) -> str:
-    proc = subprocess.run(
-        args,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise AssertionError(f"{args} in {cwd}: {proc.stderr}")
-    return proc.stdout
+def _git_out(args: list[str], cwd: Path, env: dict[str, str]) -> str:
+    result = run(args, cwd=cwd, env=env, timeout=RUN_CAP)
+    if result.exit != 0:
+        raise AssertionError(f"{args} in {cwd}: {result.stderr}")
+    return result.stdout
+
+
+def _completed(result) -> subprocess.CompletedProcess:
+    """The kit's Result in the shape the family's assertions read."""
+    return subprocess.CompletedProcess(list(result.argv), result.exit, result.stdout, result.stderr)
 
 
 FAKES = Path(__file__).resolve().parent / "fakes"
@@ -253,7 +246,6 @@ LAND_PY = _fake("land")
 
 FINDINGS_PY = _fake("findings")
 
-GH_PY = _fake("gh")
 
 
 class _LadderFixture(unittest.TestCase):
@@ -261,30 +253,23 @@ class _LadderFixture(unittest.TestCase):
 
     def setUp(self):
         self.maxDiff = None
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
-        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO).strip()
-        self._diff_before = subprocess.run(
-            ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
-        ).stdout
-        self._tmp = tempfile.TemporaryDirectory(prefix="ladder-lever-")
-        root = Path(self._tmp.name)
+        self.world = World(prefix="ladder-lever-")
+        self.world.require("git")
+        self._live = self.world.watch(*_live_store_paths(), ignore=IGNORE, tolerate_new=TOLERATE_NEW)
+        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO, self.world.env()).strip()
+        self._diff_before = run(["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=RUN_CAP).stdout
+        root = self.world.root
         self.root = root
-        self.home = root / "home"
-        self.xdg = root / "xdg"
+        self.home = self.world.home
+        self.xdg = self.world.xdg_state
         self.scratch = root / "scratch"
-        self.bin = root / "bin"
+        self.bin = self.world.bin
         self.stub_dir = root / "stubs"
         self.main = root / "main"
         self.wt = root / WORKTREE_ROOT / ("ag-" + SLUG)
         self.repo = self.wt
         self.invoke_cwd = self.main
-        for path in (
-            self.home, self.xdg, self.scratch, self.bin, self.stub_dir,
-        ):
+        for path in (self.scratch, self.stub_dir):
             path.mkdir()
         self.store = self.xdg / LANE_NAME / "dispatch"
         self.home_store = (
@@ -295,7 +280,6 @@ class _LadderFixture(unittest.TestCase):
             self.home_store.exists(),
             "plant: isolated HOME agentscient store starts absent",
         )
-        self.staged = self.scratch / "ladder.py"
         self._stage_tool_bytes()
         self.gh = self.bin / "gh"
         self.scope_path = self.wt / "scope.md"
@@ -315,60 +299,33 @@ class _LadderFixture(unittest.TestCase):
 
     def tearDown(self):
         try:
-            assert_unchanged(
-                self,
-                self._live_before,
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-            )
+            self._live.assert_unchanged(self, "live dispatch store mutated")
             self.assertEqual(
-                _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
+                _git_out(["git", "rev-parse", "HEAD"], REPO, self.world.env()).strip(),
                 self._head_before,
                 "real repo HEAD moved",
             )
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
+            diff_after = run(["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=RUN_CAP).stdout
             self.assertEqual(
                 diff_after,
                 self._diff_before,
                 "real repo tracked files mutated",
             )
         finally:
-            self._tmp.cleanup()
+            self.world.close()
 
     def _stage_tool_bytes(self) -> None:
+        self.staged = self.world.stage(TOOL, "ladder.py", siblings=("instrument.py", "laneconf.py") if TOOL.is_file() else ())
         if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for sibling in ("instrument.py", "laneconf.py"):
-                self.staged.with_name(sibling).write_bytes(TOOL.with_name(sibling).read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(
-                landed, ABSENT_STUB, "stub plant did not land intact",
-            )
-            self.assertEqual(len(landed), len(ABSENT_STUB))
+            self.assertEqual(self.staged.read_bytes(), TOOL.read_bytes(), "copy-tool-bytes did not land intact")
+            self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
         self.assertTrue(self.staged.is_file())
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
-        self.assertEqual(len(landed), len(data))
+        self.world.plant_bytes(path, data)
 
     def _make_executable(self, path: Path) -> None:
-        mode = path.stat().st_mode
-        path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        self.assertTrue(os.access(path, os.X_OK), f"not executable: {path}")
+        make_executable(path)
 
     def default_plant(self) -> dict:
         return {
@@ -528,25 +485,17 @@ class _LadderFixture(unittest.TestCase):
         return json.dumps(data, indent=2) + "\n"
 
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
+        """The world's environment with the scratch owner's identity: the
+        seed commits are the owner's, the driver's are its own."""
+        return self.world.env({
             "GIT_AUTHOR_NAME": REPO_USER,
             "GIT_AUTHOR_EMAIL": REPO_EMAIL,
             "GIT_COMMITTER_NAME": REPO_USER,
             "GIT_COMMITTER_EMAIL": REPO_EMAIL,
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        })
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = subprocess.run(
+        proc = _completed(run(
             [
                 "git",
                 "-c",
@@ -557,12 +506,10 @@ class _LadderFixture(unittest.TestCase):
                 "commit.gpgsign=false",
                 *args,
             ],
-            cwd=str(cwd or self.repo),
+            cwd=cwd or self.repo,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+            timeout=RUN_CAP,
+        ))
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -639,14 +586,7 @@ class _LadderFixture(unittest.TestCase):
         self.git("commit", "-m", "seed ladder scratch\n", cwd=dest)
         self.git("branch", BRANCH, cwd=dest)
         self.origin.mkdir()
-        origin_init = subprocess.run(
-            ["git", "init", "--bare", "-b", BRANCH],
-            cwd=str(self.origin),
-            env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        origin_init = self.git("init", "--bare", "-b", BRANCH, cwd=self.origin, check=False)
         self.assertEqual(origin_init.returncode, 0, origin_init.stderr)
         self.git("remote", "add", "origin", str(self.origin), cwd=dest)
         common = self.git(
@@ -704,91 +644,35 @@ class _LadderFixture(unittest.TestCase):
         return path
 
     def path_with_gh(self) -> str:
-        path = str(self.bin) + os.pathsep + os.environ.get("PATH", "/usr/bin:/bin")
+        path = self.world.env()["PATH"]
         if self.gh.exists():
             found = shutil.which("gh", path=path)
             self.assertEqual(Path(found).resolve(), self.gh.resolve())
         return path
 
     def plant_gh(self) -> None:
-        body = "#!/usr/bin/env python3\n" + self._fill(GH_PY)
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        self.assertEqual(
-            self.gh.read_text(encoding="utf-8"),
-            body,
-            "gh stub plant did not land intact",
-        )
+        """A gh that answers every call with the PR URL and logs its argv."""
+        self.assertEqual(self.world.tools.plant("gh", stdout=PR_URL + "\n"), self.gh)
+        self.assertTrue(os.access(self.gh, os.X_OK), self.gh)
 
     def plant_silent_gh(self) -> None:
-        body = (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"STUB = Path({str(self.stub_dir)!r})\n"
-            "argv = sys.argv[1:]\n"
-            "log = STUB / 'gh-argv.jsonl'\n"
-            "with log.open('a', encoding='utf-8') as fh:\n"
-            "    fh.write(json.dumps(argv) + '\\n')\n"
-            "raise SystemExit(0)\n"
-        )
-        before = self.gh.read_bytes()
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        landed = self.gh.read_bytes()
-        self.assertNotEqual(landed, before, "silent gh plant did not replace stub")
-        self.assertNotIn(PR_URL.encode("utf-8"), landed)
-        self.assertIn(b"raise SystemExit(0)", landed)
+        """A gh that answers nothing: the driver must not read a URL from silence."""
+        self.assertEqual(self.world.tools.plant("gh"), self.gh)
+        spec = self.world.tools.spec_path("gh").read_text(encoding="utf-8")
+        self.assertNotIn(PR_URL, spec, "silent gh plant did not replace the stub")
 
     def plant_gh_stdout(self, text: str) -> None:
-        body = (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"STUB = Path({str(self.stub_dir)!r})\n"
-            "argv = sys.argv[1:]\n"
-            "log = STUB / 'gh-argv.jsonl'\n"
-            "with log.open('a', encoding='utf-8') as fh:\n"
-            "    fh.write(json.dumps(argv) + '\\n')\n"
-            f"sys.stdout.write({text!r} + '\\n')\n"
-            "raise SystemExit(0)\n"
-        )
-        before = self.gh.read_bytes()
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        landed = self.gh.read_bytes()
-        self.assertNotEqual(landed, before, "gh stdout plant did not replace stub")
-        self.assertIn(text.encode("utf-8"), landed)
+        self.assertEqual(self.world.tools.plant("gh", stdout=text + "\n"), self.gh)
+        self.assertIn(text, self.world.tools.spec_path("gh").read_text(encoding="utf-8"))
 
     def plant_git_wrapper(self) -> Path:
-        real = shutil.which("git")
-        self.assertIsNotNone(real, "INVALID: git not on PATH")
-        log = self.stub_dir / "git-argv.jsonl"
-        body = (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import os\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"LOG = Path({str(log)!r})\n"
-            f"REAL = {real!r}\n"
-            "with LOG.open('a', encoding='utf-8') as fh:\n"
-            "    fh.write(json.dumps(sys.argv[1:]) + '\\n')\n"
-            "os.execv(REAL, [REAL, *sys.argv[1:]])\n"
-        )
-        dest = self.bin / "git"
-        self._plant_bytes(dest, body.encode("utf-8"))
-        self._make_executable(dest)
+        dest = self.world.tools.wrap("git")
+        self.assertEqual(dest, self.bin / "git")
         self.assertTrue(os.access(dest, os.X_OK), dest)
         return dest
 
     def git_argvs(self) -> list:
-        return self.jsonl("git-argv.jsonl")
+        return [call["argv"] for call in self.world.tools.calls("git")]
 
     def commit_conf(self, message: str = "plant conf") -> None:
         rel = str(self.conf_path.relative_to(self.repo))
@@ -838,19 +722,11 @@ class _LadderFixture(unittest.TestCase):
         extra: dict[str, str] | None = None,
         with_gh: bool = True,
     ) -> dict[str, str]:
-        env = {
-            "PATH": self.path_with_gh() if with_gh else self.path_without_gh(),
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        env = self.world.env({"PATH": self.path_with_gh() if with_gh else self.path_without_gh()})
+        # The driver's commits carry the driver's own identity and clock,
+        # not the world's fixed ones: that identity is under test.
+        for name in [k for k in env if k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))]:
+            del env[name]
         self.assertNotIn("LANE_CONF", env)
         self.assertNotIn("DISPATCH_JOBS", env)
         if agent is not None:
@@ -870,16 +746,13 @@ class _LadderFixture(unittest.TestCase):
     ):
         env = self.env(agent=agent, extra=extra_env, with_gh=with_gh)
         try:
-            return subprocess.run(
+            return _completed(run(
                 [sys.executable, str(self.staged), *argv],
-                cwd=str(cwd or self.invoke_cwd),
+                cwd=cwd or self.invoke_cwd,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
+            ))
+        except Timeout as exc:
             self.fail(f"ladder exceeded {RUN_CAP}s: {exc}")
 
     def run_ladder(self, *extra: str, **kw):
@@ -930,7 +803,7 @@ class _LadderFixture(unittest.TestCase):
         return self.jsonl("findings-argv.jsonl")
 
     def gh_argvs(self) -> list:
-        return self.jsonl("gh-argv.jsonl")
+        return [call["argv"] for call in self.world.tools.calls("gh")]
 
     def launch_argvs(self) -> list:
         return self.jsonl("launch-argv.jsonl")
@@ -1214,15 +1087,7 @@ class _LadderFixture(unittest.TestCase):
 
     def assert_branch_pushed_once(self) -> None:
         self.assertEqual(len(self.push_log()), 1, self.push_log())
-        remote = subprocess.run(
-            [
-                "git", "--git-dir", str(self.origin),
-                "rev-parse", f"refs/heads/{BRANCH}",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        remote = self.git("--git-dir", str(self.origin), "rev-parse", f"refs/heads/{BRANCH}", check=False)
         self.assertEqual(
             remote.returncode, 0,
             f"branch was not pushed to origin: {remote.stderr}",
