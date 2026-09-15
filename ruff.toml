@@ -145,6 +145,14 @@ ignore = [
 # The repo-scoped skills are scripts that ASK other tools: shelling out is
 # the job, not an incident.
 ".claude/skills/*/*.py" = ["S603", "S607"]
+# The programs the conductor suites plant (moved out of test modules
+# verbatim, plan slice 8): the test-suite row, plus the formatting rules a
+# string literal never met. THIS DIRECTORY ONLY.
+"ops/conductor/tests/fakes/*.py" = [
+    "S101", "S105", "S106", "S108", "S603", "S607",
+    "PLW1510", "E741", "RUF012", "RUF015", "B007", "PLW2901",
+    "S608", "BLE001", "SIM117", "I001", "SIM108",
+]
 # Conductor and skill suites: subprocess is the subject.
 "ops/conductor/tests/*.py" = [
     "S101", "S105", "S106", "S108", "S603", "S607",
