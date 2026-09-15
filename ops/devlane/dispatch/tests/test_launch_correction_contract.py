@@ -16,8 +16,13 @@ import re
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 REPO = Path(__file__).resolve().parents[4]
 CONTRACT = REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
+# World.stage copies CONTRACT.md into the world; an absent file still
+# plants the exit-0 stand-in used to prove red.
+_SUBJECT = CONTRACT
 
 # Item 4: the path is a scope-file path. The item-3 needed command
 # writes `contract item N of <scope path>: <why>`, so a colon after the
@@ -186,12 +191,18 @@ class _ContractPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(CONTRACT.is_file(), f"missing {CONTRACT}")
-        self.text = CONTRACT.read_text(encoding="utf-8")
-        self.assertTrue(self.text.strip(), "CONTRACT.md is empty")
-        dispatch = _section(self.text, "## Dispatch")
-        self.assertTrue(dispatch, "CONTRACT.md has no ## Dispatch section")
-        self.dispatch = dispatch
+        self.world = World(prefix="correction-contract-")
+        self.addCleanup(self.world.close)
+        self.contract = self.world.stage(_SUBJECT, "CONTRACT.md")
+        self.assertTrue(self.contract.is_file(), f"missing {self.contract}")
+        if _SUBJECT.is_file():
+            self.assertEqual(
+                self.contract.read_bytes(),
+                _SUBJECT.read_bytes(),
+                "staged CONTRACT.md did not land intact",
+            )
+        self.text = self.contract.read_text(encoding="utf-8")
+        self.dispatch = _section(self.text, "## Dispatch")
 
     def section(self, prefix: str) -> str:
         block = _section(self.dispatch, prefix)
