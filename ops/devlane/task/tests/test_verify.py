@@ -25,36 +25,18 @@ import json
 import os
 import shlex
 import signal
-import subprocess
 import sys
-import tempfile
 import unittest
 import uuid
 from pathlib import Path
 
 import support
 
+from ops.testkit import World, run
+
+_fileset = support.load("fileset")
+sys.modules.setdefault("fileset", _fileset)
 verify = support.load("verify")
-
-
-def _git_env(home: Path) -> dict:
-    # GIT_DIR / GIT_WORK_TREE in the caller environment would aim git
-    # at the snapshot (or its parent). Fixtures must be closed worlds,
-    # and this suite must not run git against the snapshot's own repo.
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith("GIT_") and k != "XDG_CONFIG_HOME"}
-    env.update({
-        "HOME": str(home),
-        "GIT_AUTHOR_NAME": "verify-test",
-        "GIT_AUTHOR_EMAIL": "verify-test@example.test",
-        "GIT_COMMITTER_NAME": "verify-test",
-        "GIT_COMMITTER_EMAIL": "verify-test@example.test",
-        "GIT_CONFIG_GLOBAL": os.devnull,
-        "GIT_CONFIG_SYSTEM": os.devnull,
-        "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_TERMINAL_PROMPT": "0",
-    })
-    return env
 
 
 def _cmdline_pids(marker: str) -> list[int]:
@@ -97,11 +79,11 @@ class _TempCwd(unittest.TestCase):
     """A throwaway cwd. Never the snapshot's own tree."""
 
     def setUp(self):
-        self._td = tempfile.TemporaryDirectory()
-        self.root = Path(self._td.name)
-        self.cwd = self.root / "cwd"
-        self.cwd.mkdir()
+        self.world = World()
+        self.root = self.world.root
+        self.cwd = self.world.cwd
         self._markers: list[str] = []
+        self.world.enter()
 
     def tearDown(self):
         for marker in self._markers:
@@ -109,7 +91,7 @@ class _TempCwd(unittest.TestCase):
                 # Already gone is the outcome we wanted anyway.
                 with contextlib.suppress(ProcessLookupError):
                     os.kill(pid, signal.SIGKILL)
-        self._td.cleanup()
+        self.world.close()
 
     def parse_stdout(self, out):
         # An empty stdout is not an envelope. Failing here against the
@@ -191,9 +173,8 @@ class AMissingExecutableIsInvalidNeverChanges(_TempCwd):
     def test_a_file_that_is_not_executable_is_invalid_not_changes(self):
         # Same mapping row: the process never starts. Invoking the
         # interpreter on the file would hide the defect this pins.
-        script = self.cwd / "noexec.py"
-        script.write_text(
-            "#!/usr/bin/env python3\nprint('ran')\n", encoding="utf-8")
+        script = self.world.plant_text(
+            self.cwd / "noexec", "not an executable fixture\n")
         script.chmod(0o644)
         env = verify.check(
             "the script runs",
@@ -230,8 +211,7 @@ class ANonexistentCwdIsInvalid(_TempCwd):
         self.assertTrue(env.get("note", "").strip())
 
     def test_a_cwd_that_is_a_file_is_invalid(self):
-        not_a_dir = self.root / "not-a-dir"
-        not_a_dir.write_text("x\n", encoding="utf-8")
+        not_a_dir = self.world.plant_text("not-a-dir", "x\n")
         try:
             env = verify.check(
                 "python exits 0",
@@ -343,21 +323,10 @@ class ATimeoutTripsAndDoesNotLeaveTheProcessRunning(_TempCwd):
     def test_a_timeout_is_tripped_and_the_process_is_gone(self):
         marker = self.token("VERIFY-V7")
         self._markers.append(marker)
-        pidfile = self.root / "sleeper.pid"
-        sleeper = self.root / "sleeper.py"
-        sleeper.write_text(
-            "import os, sys, time\n"
-            "path, marker = sys.argv[1], sys.argv[2]\n"
-            "with open(path, 'w') as f:\n"
-            "    f.write(str(os.getpid()))\n"
-            "    f.flush()\n"
-            "    os.fsync(f.fileno())\n"
-            "time.sleep(60)\n",
-            encoding="utf-8",
-        )
+        sleeper = self.world.tools.plant("verify-sleeper", delay=60)
         env = verify.check(
             "the sleeper finishes",
-            [sys.executable, str(sleeper), str(pidfile), marker],
+            [str(sleeper), marker],
             cwd=str(self.cwd),
             timeout=1,
         )
@@ -367,11 +336,9 @@ class ATimeoutTripsAndDoesNotLeaveTheProcessRunning(_TempCwd):
         # The command must have started: otherwise we are asserting
         # 'not running' about a process that was never launched, and
         # the stub would pass that half.
-        self.assertTrue(
-            pidfile.is_file(),
-            "the command must have started before being timed out",
-        )
-        pid = int(pidfile.read_text(encoding="utf-8").strip())
+        calls = self.world.tools.calls("verify-sleeper")
+        self.assertEqual(len(calls), 1, "the command must have started before timeout")
+        pid = calls[0]["pid"]
         leftover = [p for p in _cmdline_pids(marker) if _pid_exists(p)]
         self.assertFalse(
             _pid_exists(pid),
@@ -444,41 +411,28 @@ class StampRefComesFromTheCwd(_TempCwd):
     def test_a_repo_cwd_stamps_git_head(self):
         repo = self.root / "repo"
         repo.mkdir()
-        env = _git_env(self.root)
-        saved = {k: os.environ[k] for k in list(os.environ)
-                 if k.startswith("GIT_")}
-        for k in list(saved):
-            del os.environ[k]
-        try:
-            def git(*args):
-                r = subprocess.run(
-                    ["git", *args], cwd=repo, env=env,
-                    capture_output=True, text=True)
-                if r.returncode != 0:
-                    raise RuntimeError(
-                        f"git {args} failed ({r.returncode}): {r.stderr}")
-                return r
+        git = self.world.require("git")
 
-            git("init")
-            git("config", "user.name", "verify-test")
-            git("config", "user.email", "verify-test@example.test")
-            git("config", "commit.gpgsign", "false")
-            (repo / "README").write_text("fixture\n", encoding="utf-8")
-            git("add", "-A")
-            git("commit", "-m", "init")
-            head = git("rev-parse", "HEAD").stdout.strip()
-            self.assertTrue(head, "fixture HEAD must exist")
-
-            result = verify.check(
-                "python exits 0",
-                [sys.executable, "-c", "pass"],
-                cwd=str(repo),
+        def git_run(*args):
+            return run(
+                [git, "-c", "user.name=verify-test",
+                 "-c", "user.email=verify-test@example.test",
+                 "-c", "commit.gpgsign=false", *args],
+                cwd=repo, env=self.world.env(), timeout=60, expect=0,
             )
-        finally:
-            for k in list(os.environ):
-                if k.startswith("GIT_"):
-                    del os.environ[k]
-            os.environ.update(saved)
+
+        git_run("init", "-q")
+        self.world.plant_text(repo / "README", "fixture\n")
+        git_run("add", "-A")
+        git_run("commit", "-q", "-m", "init")
+        head = git_run("rev-parse", "HEAD").stdout.strip()
+        self.assertTrue(head, "fixture HEAD must exist")
+
+        result = verify.check(
+            "python exits 0",
+            [sys.executable, "-c", "pass"],
+            cwd=str(repo),
+        )
 
         self.assertIsInstance(result, dict)
         stamp = result.get("stamp") if isinstance(result.get("stamp"), dict) else {}
@@ -569,22 +523,20 @@ class MainIsACli(_TempCwd):
     def test_a_tripped_run_prints_json_and_returns_two(self):
         marker = self.token("VERIFY-V12-TRIP")
         self._markers.append(marker)
-        sleeper = self.root / "cli-sleeper.py"
-        sleeper.write_text(
-            "import sys, time\n"
-            "marker = sys.argv[1]\n"
-            "time.sleep(60)\n",
-            encoding="utf-8",
-        )
+        sleeper = self.world.tools.plant("verify-cli-sleeper", delay=60)
         code, out, _err = run_main(
             ["--claim", "the sleeper finishes", "--cwd", str(self.cwd),
              "--timeout", "1",
-             "--", sys.executable, str(sleeper), marker],
+             "--", str(sleeper), marker],
         )
         self.assertEqual(code, 2)
         env = self.parse_stdout(out)
         self.assertEqual(env.get("status"), "tripped")
         self.assertIsNone(env.get("verdict"))
+        self.assertEqual(
+            len(self.world.tools.calls("verify-cli-sleeper")), 1,
+            "the command must have started before timeout",
+        )
         leftover = [p for p in _cmdline_pids(marker) if _pid_exists(p)]
         self.assertEqual(
             leftover, [],

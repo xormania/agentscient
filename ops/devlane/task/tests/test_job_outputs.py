@@ -31,6 +31,8 @@ from pathlib import Path
 import outputs_support as osu
 import support
 
+from ops.testkit import World
+
 envelope = support.load("envelope")
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures" / "job_outputs"
@@ -52,7 +54,14 @@ def _type_list(node):
     return types
 
 
-class OutputsSchemaIsExported(unittest.TestCase):
+class _WorldCase(unittest.TestCase):
+    def setUp(self):
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
+
+class OutputsSchemaIsExported(_WorldCase):
     """O2 — the standalone JSON Schema is the declaration vocabulary."""
 
     def test_outputs_schema_is_exported_as_an_array_schema(self):
@@ -146,7 +155,7 @@ class OutputsSchemaIsExported(unittest.TestCase):
         )
 
 
-class OmissionEmptyAndNull(unittest.TestCase):
+class OmissionEmptyAndNull(_WorldCase):
     """O1 / O8 — omission is []; null is invalid; prose grants nothing."""
 
     def test_omission_normalizes_to_an_empty_list(self):
@@ -188,7 +197,7 @@ class OmissionEmptyAndNull(unittest.TestCase):
         )
 
 
-class NativeAndRenamedDeclarations(unittest.TestCase):
+class NativeAndRenamedDeclarations(_WorldCase):
     """O7 — native arrays validate; a renamed job with the same array matches."""
 
     def test_native_plan_declaration_is_accepted_in_order(self):
@@ -248,7 +257,7 @@ class NativeAndRenamedDeclarations(unittest.TestCase):
         self.assertEqual([row["path"] for row in got], ["B.md", "A.md"])
 
 
-class MalformedUnknownAndGrammar(unittest.TestCase):
+class MalformedUnknownAndGrammar(_WorldCase):
     """O2 / O3 / O5 — unknown members, traversal and whole-string grammar."""
 
     def _refuse(self, value, plant):
@@ -362,7 +371,7 @@ class MalformedUnknownAndGrammar(unittest.TestCase):
         self._refuse([row], [row])
 
 
-class DuplicatesOverlapsAndScratch(unittest.TestCase):
+class DuplicatesOverlapsAndScratch(_WorldCase):
     """O4 / O5 — duplicates, ancestor overlap, one scratch, case-sensitive paths."""
 
     def test_identical_items_are_refused(self):
@@ -423,7 +432,7 @@ class DuplicatesOverlapsAndScratch(unittest.TestCase):
         self.assertEqual([row["path"] for row in got], ["PLAN.md", "plan.md"])
 
 
-class LoadOutputsJsonText(unittest.TestCase):
+class LoadOutputsJsonText(_WorldCase):
     """O4 — JSON text is a distinct load_outputs seam, not validate_outputs."""
 
     def test_load_outputs_is_the_json_text_seam(self):
@@ -490,7 +499,7 @@ class LoadOutputsJsonText(unittest.TestCase):
             osu.load_outputs(text, reserved=("adapter-state.json",))
 
 
-class TransportReservations(unittest.TestCase):
+class TransportReservations(_WorldCase):
     """O6 — reserved transport leaves; scratch tmp is not transport."""
 
     def test_default_reserved_leaves_are_commit_msg_and_last_message(self):
