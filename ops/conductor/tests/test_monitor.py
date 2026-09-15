@@ -180,12 +180,16 @@ class _MonitorFixture(unittest.TestCase):
         self.assertEqual(TOOL.is_file(), self._tool_before)
 
     def _stage_tool_bytes(self) -> Path:
-        # Red proof: stage the kit's absent stand-in so each assertion
-        # fails on the contract rather than a missing-file suite error.
-        return self.world.stage(
-            self.world.path("absent") / "monitor.py",
-            "monitor.py",
-        )
+        siblings = SIBLINGS if TOOL.is_file() else ()
+        staged = self.world.stage(TOOL, "monitor.py", siblings=siblings)
+        if TOOL.is_file():
+            self.assertEqual(
+                staged.read_bytes(),
+                TOOL.read_bytes(),
+                "copy-tool-bytes did not land intact",
+            )
+        self.assertTrue(staged.is_file())
+        return staged
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
         self.world.plant_bytes(path, data)
