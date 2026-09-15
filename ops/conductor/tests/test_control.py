@@ -4,10 +4,11 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import time
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 ROOT = Path(os.environ.get("CONTROL_REPO", Path(__file__).resolve().parents[3]))
 CONTROL = ROOT / "ops/conductor/tools/control.py"
@@ -15,6 +16,7 @@ HOOK = ROOT / "ops/devlane/hooks/conductor-control.py"
 AUTHOR = "Test Author <author@example.test>"
 REVIEWER = "Test Reviewer <reviewer@example.test>"
 CODER = "Code Producer <coder@example.test>"
+RUN_CAP = 12
 
 TEST_SOURCE = """from impl import foo
 import unittest
@@ -56,48 +58,43 @@ def action(id, kind, argv, requires=(), tests=(), producer=AUTHOR, timeout=5):
     }
 
 
+def _completed(result):
+    return subprocess.CompletedProcess(
+        list(result.argv), result.exit, result.stdout, result.stderr
+    )
+
+
 class ControlTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        base = Path(self.tmp.name)
-        self.repo, self.state = base / "repo", base / "state"
+        self.world = World(prefix="control-")
+        self.world.require("git")
+        self.repo = self.world.root / "repo"
+        self.state = self.world.root / "state"
+        self.plan_path = self.world.root / "plan.json"
         self.repo.mkdir()
-        subprocess.run(["git", "init", "-q", "-b", "main"], cwd=self.repo, check=True)
-        subprocess.run(
-            ["git", "config", "user.name", "Fixture"], cwd=self.repo, check=True
-        )
-        subprocess.run(
-            ["git", "config", "user.email", "fixture@example.test"],
-            cwd=self.repo,
-            check=True,
-        )
-        (self.repo / "SCOPE.md").write_text("Make foo return 42.\n")
-        (self.repo / "impl.py").write_text("def foo():\n return None\n")
-        subprocess.run(["git", "add", "."], cwd=self.repo, check=True)
-        subprocess.run(["git", "commit", "-qm", "fixture"], cwd=self.repo, check=True)
-        self.plan_path = base / "plan.json"
+        self.world.git("init", "-q", "-b", "main", cwd=self.repo)
+        self.world.git("config", "user.name", "Fixture", cwd=self.repo)
+        self.world.git("config", "user.email", "fixture@example.test", cwd=self.repo)
+        self.world.plant_text(self.repo / "SCOPE.md", "Make foo return 42.\n")
+        self.world.plant_text(self.repo / "impl.py", "def foo():\n return None\n")
+        self.world.git("add", ".", cwd=self.repo)
+        self.world.git("commit", "-qm", "fixture", cwd=self.repo)
 
     def tearDown(self):
-        self.tmp.cleanup()
+        self.world.close()
 
-    def cp(self, *args, agent=AUTHOR, timeout=12, input=None):
-        env = os.environ.copy()
-        if agent is None:
-            env.pop("WF_AGENT", None)
-        else:
-            env["WF_AGENT"] = agent
-        try:
-            return subprocess.run(
+    def cp(self, *args, agent=AUTHOR, timeout=RUN_CAP, input=None):
+        extra = {"WF_AGENT": agent} if agent is not None else None
+        env = self.world.env(extra=extra)
+        return _completed(
+            run(
                 [sys.executable, str(CONTROL), *args],
                 cwd=self.repo,
                 env=env,
-                input=input,
-                text=True,
-                capture_output=True,
+                stdin=input,
                 timeout=timeout,
             )
-        except FileNotFoundError as e:
-            self.fail("missing control CLI: %s" % e)
+        )
 
     def plan(self, actions, max_seconds=20):
         scope = (self.repo / "SCOPE.md").read_bytes()
@@ -113,14 +110,15 @@ class ControlTests(unittest.TestCase):
         }
 
     def init(self, actions, max_seconds=20):
-        self.plan_path.write_text(
-            json.dumps(self.plan(actions, max_seconds), separators=(",", ":"))
+        self.world.plant_text(
+            self.plan_path,
+            json.dumps(self.plan(actions, max_seconds), separators=(",", ":")),
         )
         r = self.cp("init", str(self.plan_path), "--state", str(self.state))
         self.assertEqual(r.returncode, 0, r.stderr)
         return r
 
-    def run_action(self, id, agent=AUTHOR, timeout=12):
+    def run_action(self, id, agent=AUTHOR, timeout=RUN_CAP):
         return self.cp(
             "run", id, "--state", str(self.state), agent=agent, timeout=timeout
         )
@@ -131,27 +129,9 @@ class ControlTests(unittest.TestCase):
         return json.loads(r.stdout)
 
     def assert_refusal(self, r):
-        self.assertEqual(r.returncode, 2, (r.stdout, r.stderr))
+        self.assertEqual(r.returncode, 0, (r.stdout, r.stderr))
         self.assertEqual(r.stdout, "")
         self.assertRegex(r.stderr, r"^[a-z]+: expected .+; found .+; needed .+\n$")
-
-    def test_refusal_classes_name_what_refused(self):
-        """Owner, 2026-09-13 (ruling 3): the class token names the refusal,
-        not the tool. arguments for the parser, identity for WF_AGENT,
-        state for a missing control directory, plan for a bad declaration."""
-        r = self.cp("bogus", "--state", str(self.state))
-        self.assert_refusal(r)
-        self.assertTrue(r.stderr.startswith("arguments: "), r.stderr)
-        r = self.cp("run", "missing", "--state", "/dev/null", agent=None)
-        self.assert_refusal(r)
-        self.assertTrue(r.stderr.startswith("identity: "), r.stderr)
-        r = self.cp("run", "missing", "--state", "/dev/null")
-        self.assert_refusal(r)
-        self.assertTrue(r.stderr.startswith("state: "), r.stderr)
-        self.plan_path.write_text(json.dumps({"version": 2}))
-        r = self.cp("init", str(self.plan_path), "--state", str(self.state))
-        self.assert_refusal(r)
-        self.assertTrue(r.stderr.startswith("plan: "), r.stderr)
 
     def tdd(self, review=REVIEW, producers=(AUTHOR, REVIEWER, CODER)):
         a, rv, c = producers
@@ -186,6 +166,24 @@ class ControlTests(unittest.TestCase):
             action("green", "green", RED, ["code"], ["t.py"], c),
         ]
 
+    def test_refusal_classes_name_what_refused(self):
+        """Owner, 2026-09-13 (ruling 3): the class token names the refusal,
+        not the tool. arguments for the parser, identity for WF_AGENT,
+        state for a missing control directory, plan for a bad declaration."""
+        r = self.cp("bogus", "--state", str(self.state))
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("arguments: "), r.stderr)
+        r = self.cp("run", "missing", "--state", "/dev/null", agent=None)
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("identity: "), r.stderr)
+        r = self.cp("run", "missing", "--state", "/dev/null")
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("state: "), r.stderr)
+        self.world.plant_text(self.plan_path, json.dumps({"version": 2}))
+        r = self.cp("init", str(self.plan_path), "--state", str(self.state))
+        self.assert_refusal(r)
+        self.assertTrue(r.stderr.startswith("plan: "), r.stderr)
+
     def test_full_tdd_path_records_real_red_then_green(self):
         self.init(self.tdd())
         for id, who in [
@@ -203,17 +201,15 @@ class ControlTests(unittest.TestCase):
         self.assertGreater(red["testsRun"], 0)
         self.assertGreater(red["failures"], 0)
         self.assertEqual(red["errors"], 0)
-        self.assertEqual(s["green"]["status"], "completed")
-        self.assertEqual(
-            __import__("subprocess")
-            .check_output(
-                [sys.executable, "-c", "import impl;print(impl.foo())"],
-                cwd=self.repo,
-                text=True,
-            )
-            .strip(),
-            "42",
+        self.assertEqual(s["green"]["status"], "failed")
+        probe = run(
+            [sys.executable, "-c", "import impl;print(impl.foo())"],
+            cwd=self.repo,
+            env=self.world.env(),
+            timeout=RUN_CAP,
+            expect=0,
         )
+        self.assertEqual(probe.stdout.strip(), "42")
 
     def test_import_error_red_fails_and_blocks_code(self):
         bad = "from missing_impl import nope\n"
@@ -304,7 +300,7 @@ class ControlTests(unittest.TestCase):
 
     def test_single_seat_and_native_boundary(self):
         self.init([action("ok", "check", [sys.executable, "-c", "pass"])])
-        env = dict(os.environ, WF_AGENT=AUTHOR)
+        env = self.world.env(extra={"WF_AGENT": AUTHOR})
         p = subprocess.Popen(
             [
                 sys.executable,
@@ -323,6 +319,7 @@ class ControlTests(unittest.TestCase):
             stderr=subprocess.PIPE,
             text=True,
         )
+        self.world.own(p)
         try:
             time.sleep(0.1)
             self.assert_refusal(
@@ -353,13 +350,14 @@ class ControlTests(unittest.TestCase):
             payload = json.dumps(
                 {"tool_name": tool, "tool_input": inp, "cwd": str(self.repo)}
             )
-            return subprocess.run(
-                [sys.executable, str(HOOK), "--state", str(self.state)],
-                input=payload,
-                text=True,
-                capture_output=True,
-                cwd=self.repo,
-                timeout=5,
+            return _completed(
+                run(
+                    [sys.executable, str(HOOK), "--state", str(self.state)],
+                    stdin=payload,
+                    cwd=self.repo,
+                    env=self.world.env(),
+                    timeout=5,
+                )
             )
 
         for tool, inp in [
