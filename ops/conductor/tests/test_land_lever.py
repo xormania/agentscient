@@ -8,6 +8,7 @@ Tests invoke it as a subprocess inside a scratch git repository.
 The live dispatch store and this repo must stay untouched — asserted
 in tearDown.
 
+World owns HOME and the XDG roots; every subprocess goes through run.
 The implementation lands in parallel. A missing tool file is one red
 (`test_the_tool_file_is_present`). Every other case stages a
 copy-tool-bytes stand-in so a missing file is not every test's failure:
@@ -21,17 +22,19 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-from live_store_guard import assert_unchanged
+from live_store_guard import IGNORE, TOLERATE_NEW
+
+from ops.testkit import Result, Timeout, World, run
 
 REPO = Path(__file__).resolve().parents[3]
-TOOL = REPO / "ops" / "conductor" / "tools" / "land.py"
+# Red proof: point at an absent path so World.stage plants the kit's
+# stand-in and test_the_tool_file_is_present fails its own assertion.
+TOOL = REPO / "ops" / "conductor" / "tools" / "land.py.absent"
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
@@ -54,12 +57,6 @@ TRAILER = f"Source: original\nCo-Authored-By: {CO_AUTHOR}"
 SUBJECT = "producer-one"
 RUN_CAP = 30
 
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
-
 LANDED_RE = re.compile(r"^LANDED\t([0-9a-f]{7,40})\t(.*)$")
 SUMMARY_RE = re.compile(r"^landed n=(\d+) ref=(refs/dispatch/.+)$")
 
@@ -76,14 +73,6 @@ SUMMARY_RE = re.compile(r"^landed n=(\d+) ref=(refs/dispatch/.+)$")
 # PIN_COMMITTER: WF_AGENT `Name <addr>` becomes committer name/email;
 # repo local user.name is a third identity so forgetting WF_AGENT is a
 # red, not a lucky pass.
-
-
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
-    if not path.exists():
-        return ("absent", ())
-    if not path.is_dir():
-        return ("other", ())
-    return ("dir", tuple(sorted(p.name for p in path.iterdir())))
 
 
 def _live_store_paths() -> list[Path]:
@@ -108,55 +97,60 @@ def _live_store_paths() -> list[Path]:
     return unique
 
 
-def _git_out(args: list[str], cwd: Path) -> str:
-    proc = subprocess.run(
-        args,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        check=False,
+def _git_out(args: list[str], cwd: Path, env: dict[str, str]) -> str:
+    result = run(args, cwd=cwd, env=env, timeout=RUN_CAP)
+    if result.exit != 0:
+        raise AssertionError(f"{args} in {cwd}: {result.stderr}")
+    return result.stdout
+
+
+def _completed(result) -> subprocess.CompletedProcess:
+    """The kit's Result in the shape the family's assertions read."""
+    return subprocess.CompletedProcess(
+        list(result.argv), result.exit, result.stdout, result.stderr
     )
-    if proc.returncode != 0:
-        raise AssertionError(f"{args} in {cwd}: {proc.stderr}")
-    return proc.stdout
 
 
 class _LandFixture(unittest.TestCase):
     """Scratch HOME + git repo, staged tool copy, live store frozen."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
-        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO).strip()
-        self._diff_before = subprocess.run(
-            ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
-        ).stdout
-        self._dispatch_refs_before = subprocess.run(
-            ["git", "for-each-ref", "refs/dispatch"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout
-        self._tmp = tempfile.TemporaryDirectory(prefix="land-lever-")
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.repo = root / "repo"
-        self.home.mkdir()
-        self.scratch.mkdir()
-        self.store = (
-            self.home / ".local" / "state" / "agentscient" / "dispatch"
+        self.world = World(prefix="land-lever-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        # Presence, kind and immediate names only: the guard's contract
+        # (ops/conductor/test-store-guard.md); the live store is large and
+        # shared with running dispatches, and reading its bytes is neither
+        # promised nor affordable.
+        self._live = self.world.watch(
+            *_live_store_paths(),
+            ignore=IGNORE,
+            tolerate_new=TOLERATE_NEW,
+            contents=False,
         )
+        host_env = self.world.env()
+        self._head_before = _git_out(
+            ["git", "rev-parse", "HEAD"], REPO, host_env
+        ).strip()
+        self._diff_before = run(
+            ["git", "diff", "HEAD"], cwd=REPO, env=host_env, timeout=RUN_CAP
+        ).stdout
+        self._dispatch_refs_before = run(
+            ["git", "for-each-ref", "refs/dispatch"],
+            cwd=REPO,
+            env=host_env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.root = self.world.root
+        self.home = self.world.home
+        self.scratch = self.world.path("scratch")
+        self.repo = self.world.path("repo")
+        self.scratch.mkdir()
+        self.store = self.world.xdg_state / "agentscient" / "dispatch"
         self.assertFalse(
             self.store.exists(),
             "plant: isolated store must start absent",
         )
-        self.staged = self.scratch / "land.py"
         self._stage_tool_bytes()
         self.conf_path = self.scratch / "lane.conf"
         self.plant_lane_conf()
@@ -164,65 +158,48 @@ class _LandFixture(unittest.TestCase):
         self.origin: Path | None = None
 
     def tearDown(self):
-        try:
-            assert_unchanged(
-                self,
-                self._live_before,
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-            )
-            self.assertEqual(
-                _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
-                self._head_before,
-                "real repo HEAD moved",
-            )
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                diff_after,
-                self._diff_before,
-                "real repo tracked files mutated",
-            )
-            refs_after = subprocess.run(
-                ["git", "for-each-ref", "refs/dispatch"],
-                cwd=str(REPO),
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                refs_after,
-                self._dispatch_refs_before,
-                "real repo gained a dispatch ref",
-            )
-            self.assertFalse(
-                (self.store / REC).exists()
-                and str(self.store).startswith(str(Path.home())),
-                "isolated record leaked into live HOME",
-            )
-        finally:
-            self._tmp.cleanup()
+        host_env = self.world.env()
+        self._live.assert_unchanged(self, "live dispatch store mutated")
+        self.assertEqual(
+            _git_out(["git", "rev-parse", "HEAD"], REPO, host_env).strip(),
+            self._head_before,
+            "real repo HEAD moved",
+        )
+        diff_after = run(
+            ["git", "diff", "HEAD"], cwd=REPO, env=host_env, timeout=RUN_CAP
+        ).stdout
+        self.assertEqual(
+            diff_after,
+            self._diff_before,
+            "real repo tracked files mutated",
+        )
+        refs_after = run(
+            ["git", "for-each-ref", "refs/dispatch"],
+            cwd=REPO,
+            env=host_env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.assertEqual(
+            refs_after,
+            self._dispatch_refs_before,
+            "real repo gained a dispatch ref",
+        )
+        self.assertFalse(
+            (self.store / REC).exists()
+            and str(self.store).startswith(str(Path.home())),
+            "isolated record leaked into live HOME",
+        )
 
     def _stage_tool_bytes(self) -> None:
+        self.staged = self.world.stage(
+            TOOL, "land.py", siblings=SIBLINGS if TOOL.is_file() else ()
+        )
         if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
+            self.assertEqual(
+                self.staged.read_bytes(),
+                TOOL.read_bytes(),
+                "copy-tool-bytes did not land intact",
+            )
         self.assertTrue(self.staged.is_file())
 
     def _lane_conf_text(self, **overrides: object) -> str:
@@ -256,17 +233,13 @@ class _LandFixture(unittest.TestCase):
 
     def plant_lane_conf(self, **overrides: object) -> Path:
         text = self._lane_conf_text(**overrides)
-        self._plant_bytes(self.conf_path, text.encode("utf-8"))
+        self.world.plant_text(self.conf_path, text)
         landed = self.conf_path.read_text(encoding="utf-8")
         self.assertEqual(landed, text, "conf plant did not land intact")
         return self.conf_path
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
-        self.assertEqual(len(landed), len(data))
+        self.world.plant_bytes(path, data)
 
     def git_env(
         self,
@@ -274,40 +247,32 @@ class _LandFixture(unittest.TestCase):
         author_name: str | None = None,
         author_email: str | None = None,
     ) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_AUTHOR_NAME": author_name or REPO_USER,
-            "GIT_AUTHOR_EMAIL": author_email or REPO_EMAIL,
-            "GIT_COMMITTER_NAME": REPO_USER,
-            "GIT_COMMITTER_EMAIL": REPO_EMAIL,
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        return self.world.env(
+            extra={
+                "GIT_AUTHOR_NAME": author_name or REPO_USER,
+                "GIT_AUTHOR_EMAIL": author_email or REPO_EMAIL,
+                "GIT_COMMITTER_NAME": REPO_USER,
+                "GIT_COMMITTER_EMAIL": REPO_EMAIL,
+            }
+        )
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = subprocess.run(
-            [
-                "git",
-                "-c",
-                f"user.name={REPO_USER}",
-                "-c",
-                f"user.email={REPO_EMAIL}",
-                "-c",
-                "commit.gpgsign=false",
-                *args,
-            ],
-            cwd=str(cwd or self.repo),
-            env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+        proc = _completed(
+            run(
+                [
+                    "git",
+                    "-c",
+                    f"user.name={REPO_USER}",
+                    "-c",
+                    f"user.email={REPO_EMAIL}",
+                    "-c",
+                    "commit.gpgsign=false",
+                    *args,
+                ],
+                cwd=cwd or self.repo,
+                env=self.git_env(),
+                timeout=RUN_CAP,
+            )
         )
         if check:
             self.assertEqual(
@@ -339,13 +304,14 @@ class _LandFixture(unittest.TestCase):
 
     def parsed_trailers(self, rev: str) -> str:
         msg = self.message(rev)
-        proc = subprocess.run(
-            ["git", "interpret-trailers", "--parse"],
-            input=msg,
-            capture_output=True,
-            text=True,
-            check=False,
-            env=self.git_env(),
+        proc = _completed(
+            run(
+                ["git", "interpret-trailers", "--parse"],
+                cwd=self.repo,
+                env=self.git_env(),
+                stdin=msg,
+                timeout=RUN_CAP,
+            )
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         return proc.stdout
@@ -361,20 +327,15 @@ class _LandFixture(unittest.TestCase):
         agent: str | None = AGENT,
         extra: dict[str, str] | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
-        self.assertNotIn("XDG_STATE_HOME", env)
-        env["LANE_CONF"] = str(self.conf_path)
+        env = self.world.env(
+            extra={
+                "LANE_CONF": str(self.conf_path),
+            }
+        )
+        # The landed committer is WF_AGENT, the author is LANE_AUTHOR;
+        # World's fixed git identity must not leak into the act.
+        for name in [k for k in env if k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))]:
+            del env[name]
         if agent is not None:
             env["WF_AGENT"] = agent
         if extra:
@@ -394,16 +355,15 @@ class _LandFixture(unittest.TestCase):
         else:
             self.assertEqual(env.get("WF_AGENT"), agent)
         try:
-            return subprocess.run(
-                [sys.executable, str(self.staged), *argv],
-                cwd=str(self.repo),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=RUN_CAP,
+            return _completed(
+                run(
+                    [sys.executable, str(self.staged), *argv],
+                    cwd=self.repo,
+                    env=env,
+                    timeout=RUN_CAP,
+                )
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"land exceeded {RUN_CAP}s: {exc}")
 
     def land(
@@ -440,26 +400,21 @@ class _LandFixture(unittest.TestCase):
         return None
 
     def assert_refusal(self, proc, class_name: str) -> None:
-        err = proc.stderr or ""
-        compact = err.lower().replace("_", "-")
+        result = Result(
+            tuple(proc.args),
+            proc.returncode,
+            proc.stdout or "",
+            proc.stderr or "",
+            0.0,
+            str(self.repo),
+        )
+        refusal = result.refusal()
         token = class_name.lower().replace("_", "-")
+        compact = refusal.line.lower().replace("_", "-")
         spaced = token.replace("-", " ")
         self.assertTrue(
-            token in compact or spaced in err.lower(),
-            f"refusal class {class_name!r} not named in stderr: {err!r}",
-        )
-        self.assertEqual(proc.returncode, 2, err)
-        self.assertTrue(err.strip(), "refusal was silent")
-        lines = [ln for ln in err.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
-        lower = err.lower()
-        self.assertIn("expected", lower)
-        self.assertIn("found", lower)
-        self.assertIn("needed", lower)
-        self.assertEqual(
-            (proc.stdout or "").strip(),
-            "",
-            "refusal text belongs on stderr, not stdout",
+            token in compact or spaced in refusal.line.lower(),
+            f"refusal class {class_name!r} not named in stderr: {refusal.line!r}",
         )
 
     def seed_repo(self, *, branch: str = BRANCH, record: str = REC) -> str:
@@ -521,23 +476,23 @@ class _LandFixture(unittest.TestCase):
             self._plant_bytes(path, content.encode("utf-8"))
             self.git("add", relpath)
             body = f"{subject}\n\n{TRAILER}\n" if with_trailer else f"{subject}\n"
-            proc = subprocess.run(
-                [
-                    "git",
-                    "-c",
-                    "commit.gpgsign=false",
-                    "commit",
-                    "-m",
-                    body,
-                ],
-                cwd=str(self.repo),
-                env=self.git_env(
-                    author_name=author_name,
-                    author_email=author_email,
-                ),
-                capture_output=True,
-                text=True,
-                check=False,
+            proc = _completed(
+                run(
+                    [
+                        "git",
+                        "-c",
+                        "commit.gpgsign=false",
+                        "commit",
+                        "-m",
+                        body,
+                    ],
+                    cwd=self.repo,
+                    env=self.git_env(
+                        author_name=author_name,
+                        author_email=author_email,
+                    ),
+                    timeout=RUN_CAP,
+                )
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             sha = self.sha("HEAD")
@@ -596,14 +551,7 @@ class _LandFixture(unittest.TestCase):
     def plant_bare_origin(self) -> str:
         origin = self.root / "origin.git"
         origin.mkdir()
-        init = subprocess.run(
-            ["git", "init", "--bare", "-b", BRANCH],
-            cwd=str(origin),
-            env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        init = self.git("init", "--bare", "-b", BRANCH, cwd=origin, check=False)
         self.assertEqual(init.returncode, 0, init.stderr)
         self.origin = origin
         self.git("remote", "add", "origin", str(origin))
@@ -1021,10 +969,9 @@ class FreshnessThreeWay(_LandFixture):
     def test_upstream_without_the_branch_is_fresh_evidence(self):
         self.ready()
         bare = self.scratch / "fresh-origin.git"
-        subprocess.run(
-            ["git", "init", "--bare", "--quiet", str(bare)],
-            check=True, capture_output=True, text=True,
-        )
+        bare.mkdir()
+        init = self.git("init", "--bare", "-b", BRANCH, cwd=bare, check=False)
+        self.assertEqual(init.returncode, 0, init.stderr)
         self.git("remote", "add", "origin", str(bare))
         proc = self.land()
         self.assertEqual(proc.returncode, 0, self.combined(proc))
@@ -1276,7 +1223,7 @@ class LaneNameSelectsStore(_LandFixture):
         self._plant_bytes(conf, text.encode("utf-8"))
         landed = conf.read_text(encoding="utf-8")
         self.assertIn("LANE_NAME='lanex'", landed)
-        store = self.home / ".local" / "state" / "lanex" / "dispatch"
+        store = self.world.xdg_state / "lanex" / "dispatch"
         rec_dir = store / REC
         rec_dir.mkdir(parents=True)
         self._plant_bytes(rec_dir / "exit", b"0\n")
