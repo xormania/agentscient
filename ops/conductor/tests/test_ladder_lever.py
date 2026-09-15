@@ -33,11 +33,13 @@ import shutil
 import stat
 import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-from live_store_guard import assert_unchanged
+from live_store_guard import IGNORE, TOLERATE_NEW
+
+from ops.testkit import Timeout, World, run
+from ops.testkit.world import make_executable
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "ladder.py"
@@ -190,14 +192,6 @@ def stage_model_effort(name: str) -> tuple[str, str]:
     return mapping[name]
 
 
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...]]:
-    if not path.exists():
-        return ("absent", ())
-    if not path.is_dir():
-        return ("other", ())
-    return ("dir", tuple(sorted(p.name for p in path.iterdir())))
-
-
 def _live_store_paths() -> list[Path]:
     paths: list[Path] = []
     xdg = os.environ.get("XDG_STATE_HOME")
@@ -220,538 +214,38 @@ def _live_store_paths() -> list[Path]:
     return unique
 
 
-def _git_out(args: list[str], cwd: Path) -> str:
-    proc = subprocess.run(
-        args,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise AssertionError(f"{args} in {cwd}: {proc.stderr}")
-    return proc.stdout
+def _git_out(args: list[str], cwd: Path, env: dict[str, str]) -> str:
+    result = run(args, cwd=cwd, env=env, timeout=RUN_CAP)
+    if result.exit != 0:
+        raise AssertionError(f"{args} in {cwd}: {result.stderr}")
+    return result.stdout
 
 
-DISPATCH_PY = r'''
-from __future__ import annotations
-import json
-import os
-import sys
-from pathlib import Path
-
-STUB = Path("@@STUB@@")
-REPO = Path("@@REPO@@")
-argv = sys.argv[1:]
-log = STUB / "dispatch-argv.jsonl"
-with log.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(argv) + "\n")
-plant_path = STUB / "plant.json"
-plant = json.loads(plant_path.read_text(encoding="utf-8"))
-plant.setdefault("cwds", []).append(os.getcwd())
-plant.setdefault("script_paths", []).append(str(Path(__file__).resolve()))
+def _completed(result) -> subprocess.CompletedProcess:
+    """The kit's Result in the shape the family's assertions read."""
+    return subprocess.CompletedProcess(list(result.argv), result.exit, result.stdout, result.stderr)
 
 
-def conf_map():
-    keys = {}
-    text = (REPO / "ops" / "lane.conf").read_text(encoding="utf-8")
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        name, value = line.split("=", 1)
-        keys[name] = value.strip().strip("'")
-    return keys
+FAKES = Path(__file__).resolve().parent / "fakes"
 
 
-def flag(name, default=None):
-    key = "--" + name
-    if key in argv:
-        i = argv.index(key)
-        if i + 1 < len(argv):
-            return argv[i + 1]
-    return default
+def _fake(name: str) -> str:
+    """One of the planted programs, read from its file; the fixture fills
+    its @@STUB@@, @@REPO@@ and @@PR_URL@@ placeholders (plan slice 8)."""
+    path = FAKES / f"ladder_{name}.py"
+    if not path.is_file():
+        raise AssertionError(f"INVALID: planted program missing: {path}")
+    return path.read_text(encoding="utf-8")
 
 
-job = flag("job", "")
-harness = flag("harness", "")
-stage = flag("stage", "")
-dry = "--dry-run" in argv
-conf = conf_map()
+DISPATCH_PY = _fake("dispatch")
 
+LAUNCH_PY = _fake("launch")
 
-def resolve_model():
-    explicit = flag("model")
-    if explicit:
-        return explicit
-    if job == "security-audit":
-        return conf.get("MODEL_CODEX_SECURITY_AUDIT") or conf.get("MODEL_CODEX")
-    if harness == "grok":
-        return conf.get("MODEL_GROK")
-    if harness == "codex":
-        return conf.get("MODEL_CODEX")
-    if harness == "claude":
-        if job == "plan":
-            return conf.get("MODEL_CLAUDE_PLAN")
-        return conf.get("MODEL_CLAUDE_READ")
-    return conf.get("MODEL_GROK")
+LAND_PY = _fake("land")
 
+FINDINGS_PY = _fake("findings")
 
-def resolve_effort():
-    explicit = flag("effort")
-    if explicit:
-        return explicit
-    if harness == "grok":
-        return conf.get("EFFORT_GROK")
-    if harness == "codex":
-        return conf.get("EFFORT_CODEX")
-    if harness == "claude":
-        return conf.get("EFFORT_CLAUDE")
-    return conf.get("EFFORT_GROK")
-
-
-model = resolve_model()
-effort = resolve_effort()
-launch_argv = [
-    str(REPO / "ops" / "devlane" / "dispatch" / "launch.py"),
-    job,
-    "--harness", harness or "",
-    "--model", model or "",
-    "--effort", effort or "",
-    "--stage", stage or "",
-]
-if dry:
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stdout.write(json.dumps({"argv": launch_argv, "env": {}}) + "\n")
-    raise SystemExit(0)
-
-seen = [c.get("name") for c in plant.get("calls", [])]
-
-
-def logical_name():
-    if job == "author-tests" and stage == "tests":
-        if "adversarial" in seen or "security" in seen:
-            return "fix-tests"
-        if "check-tests" in seen:
-            return "tests-fix"
-        return "tests"
-    if job == "implement" and stage == "code":
-        if "fix-tests" in seen or "fix-code" in seen:
-            return "fix-code"
-        code_n = sum(
-            1 for info in (plant.get("records") or {}).values()
-            if (info or {}).get("name") == "code"
-            or str((info or {}).get("name") or "").startswith("code-")
-        )
-        if code_n == 0:
-            return "code"
-        return "code-" + str(code_n + 1)
-    if job == "security-audit" and stage == "review":
-        minted = [
-            (info or {}).get("name")
-            for info in (plant.get("records") or {}).values()
-        ]
-        if "fix-code" in seen or "fix-tests" in seen or "security" in minted:
-            return "security-re"
-        return "security"
-    if job == "check-tests":
-        return "check-tests"
-    if job == "adversarial-review":
-        return "adversarial"
-    return job + ":" + stage + ":" + str(len(seen) + 1)
-
-
-name = logical_name()
-plant.setdefault("calls", []).append(
-    {"name": name, "job": job, "stage": stage, "argv": argv}
-)
-if "--detach" not in argv:
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stderr.write(
-        "arguments: expected --detach; found a wait-and-hold dispatch; "
-        "needed pass --detach\n"
-    )
-    raise SystemExit(3)
-if name in plant.get("refuse_stages", []) or job in plant.get("refuse_jobs", []):
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stderr.write(
-        "job: expected a mint; found a refusal; needed a dispatchable job\n"
-    )
-    raise SystemExit(3)
-
-seq = plant.get("n", 0) + 1
-plant["n"] = seq
-rec_id = "20260904T120000Z-" + (stage or "stage") + "-" + (harness or "h") + "-aa" + f"{seq:02d}" + "32"
-verdicts = plant.get("verdicts", {})
-verdict = verdicts.get(name, "approve")
-artifacts = {}
-if name == "tests":
-    if plant.get("empty_artifacts"):
-        artifacts = {}
-    else:
-        artifacts = dict(plant.get("artifacts", {}))
-if name == "check-tests" and plant.get("skeptic_md"):
-    body = plant.get("skeptic_text") or "SKEPTIC_MD_BODY_aa32 the skeptic report"
-    dest = REPO / "SKEPTIC.md"
-    dest.write_text(body, encoding="utf-8")
-    artifacts["skeptic"] = str(dest)
-    xdg = os.environ.get("XDG_STATE_HOME")
-    if xdg:
-        lane = conf.get("LANE_NAME") or "lanex"
-        outp = Path(xdg) / lane / "dispatch" / rec_id / "out" / "SKEPTIC.md"
-        outp.parent.mkdir(parents=True, exist_ok=True)
-        outp.write_text(body, encoding="utf-8")
-        artifacts["skeptic"] = str(outp)
-mismatch = name in plant.get("model_mismatch_stages", [])
-effort_mismatch = name in plant.get("effort_mismatch_stages", [])
-requested = "wrong-model-aa32" if mismatch else model
-effort_requested = "wrong-effort-aa32" if effort_mismatch else effort
-ran = plant.get("ran_" + (harness or ""), (harness or "h") + "-ran-aa32")
-note = None
-if name == "code" or str(name).startswith("code-"):
-    note = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
-    artifacts["body"] = "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers"
-if plant.get("leak_implement_into") == name:
-    note = "IMPLEMENT_ENVELOPE_LINE_aa32 unique"
-notes = plant.get("notes") or {}
-if name in notes:
-    note = notes[name]
-findings = []
-if plant.get("leak_implement_into_findings") == name:
-    findings.append({
-        "severity": "p2",
-        "where": "planted",
-        "claim": "IMPL_ENVELOPE_BODY_aa32 unique in envelope not in markers",
-        "reproduce": None,
-    })
-tripping = name in plant.get("trip_stages", [])
-crashing = name in plant.get("crash_stages", [])
-walling = name in plant.get("wait_wall_stages", [])
-envelope = {
-    "job": job,
-    "status": "ok",
-    "verdict": verdict,
-    "counts": {"p1": 0, "p2": 0, "p3": 0, "opinions": 0},
-    "findings": findings,
-    "artifacts": artifacts,
-    "spend": {"harness": harness, "total": 0, "out": 0, "runs": 0},
-    "stamp": {"ref": "planted", "started": None, "ended": None},
-    "note": note,
-}
-if name == "check-tests":
-    if verdict == "changes" and not envelope["findings"]:
-        envelope["findings"] = [{
-            "severity": "p2",
-            "where": "ops/conductor/tests/test_alpha.py:1",
-            "claim": (
-                "declared (ops/devlane/task/CONTRACT.md): "
-                "the JSON envelope on stdout; "
-                "practiced: Write the report to out/SKEPTIC.md; "
-                "misses: a check-tests job that still writes a file"
-            ),
-            "reproduce": (
-                "python3 -m unittest discover -s ops/conductor/tests "
-                "-p test_alpha.py"
-            ),
-        }]
-        envelope["counts"] = {"p1": 0, "p2": 1, "p3": 0, "opinions": 0}
-    extra = plant.get("skeptic_envelope")
-    if extra:
-        envelope.update(extra)
-record = {
-    "id": rec_id,
-    "lane": "dev",
-    "stage": stage,
-    "unit": flag("unit") or "lane/ladder-aa32",
-    "lineage": {
-        "branch": flag("branch") or "lane/ladder-aa32",
-        "base_sha": "0" * 40,
-    },
-    "follows": [],
-    "job": job,
-    "role": "write" if job in ("author-tests", "implement") else "read",
-    "dispatched_by": "stub",
-    "at": {
-        "launched": "2026-09-04T12:00:00Z",
-        "closed": None,
-    },
-    "snapshot": {
-        "mode": "whole",
-        "ref_name": "HEAD",
-        "ref_sha": "0" * 40,
-        "behind_tip": 0,
-        "root": "/tmp",
-    },
-    "harness": {
-        "name": harness,
-        "version": "0",
-        "isolation": {
-            "mechanism": "home",
-            "observed": {"unresolved": "stub"},
-        },
-        "sandbox": "always-approve",
-        "containment": "policy",
-        "argv": [],
-    },
-    "model": {
-        "requested": requested,
-        "effort_requested": effort_requested,
-        "effort_argv": ["--reasoning-effort", effort_requested or ""],
-        "ran": ran,
-        "read_from": None,
-        "note": None,
-    },
-    "session": {"id": None, "stream": None, "stream_sha256_at_close": None},
-    "brief": {
-        "template": {"path": "jobs.json", "sha256": "a" * 64},
-        "scope": "",
-        "inputs": [],
-        "sha256": "b" * 64,
-        "bytes": 0,
-    },
-    "caps": {"timeout": 1800, "source": "jobs.json"},
-    "overrides": [],
-    "attempts": [],
-    "result": None,
-    "status": "launched",
-}
-dest = REPO / ".dev" / "records" / "dispatches" / (rec_id + ".json")
-dest.parent.mkdir(parents=True, exist_ok=True)
-dest.write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
-plant.setdefault("records", {})[rec_id] = {
-    "name": name,
-    "job": job,
-    "path": str(dest),
-}
-plant.setdefault("envelopes", {})[rec_id] = envelope
-plant["last_id"] = rec_id
-plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-sys.stdout.write("record: " + rec_id + "\n")
-sys.stdout.write("launcher-pid: " + str(os.getpid()) + "\n")
-raise SystemExit(0)
-'''.lstrip()
-
-LAUNCH_PY = r'''
-from __future__ import annotations
-import json
-import os
-import sys
-from pathlib import Path
-
-STUB = Path("@@STUB@@")
-argv = sys.argv[1:]
-log = STUB / "launch-argv.jsonl"
-with log.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(argv) + "\n")
-plant_path = STUB / "plant.json"
-plant = json.loads(plant_path.read_text(encoding="utf-8"))
-plant.setdefault("cwds", []).append(os.getcwd())
-if not argv or argv[0] != "wait" or len(argv) < 2:
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stderr.write(
-        "arguments: expected wait ID; found "
-        + json.dumps(argv)
-        + "; needed launch.py wait ID\n"
-    )
-    raise SystemExit(2)
-rec_id = argv[1]
-info = plant.get("records", {}).get(rec_id)
-if not info:
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stderr.write(
-        "wait: expected a minted record; found unknown id "
-        + rec_id
-        + "; needed wait the detach id\n"
-    )
-    raise SystemExit(2)
-name = info.get("name")
-plant.setdefault("waits", []).append({"id": rec_id, "name": name, "cwd": os.getcwd()})
-path = Path(info["path"])
-if name in plant.get("crash_stages", []):
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stdout.write(
-        rec_id + " died attempt=1 exit=137 tripped=false envelope=none\n"
-    )
-    raise SystemExit(1)
-if name in plant.get("trip_stages", []):
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stdout.write(
-        rec_id + " died attempt=1 exit=137 tripped=true envelope=none\n"
-    )
-    raise SystemExit(1)
-if name in plant.get("wait_wall_stages", []):
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stdout.write(rec_id + " running attempt=1 wall=1\n")
-    raise SystemExit(2)
-if name in plant.get("wait_poll_invalid_stages", []):
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    envelope = dict(plant.get("envelopes", {}).get(rec_id) or {})
-    envelope["status"] = "invalid"
-    payload["status"] = "closed"
-    payload["at"]["closed"] = "2026-09-04T12:00:01Z"
-    payload["result"] = {"envelope": envelope}
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    plant.setdefault("wait_io", []).append({
-        "id": rec_id,
-        "stderr": (
-            "poll " + rec_id + " running elapsed=12s\n"
-            "poll " + rec_id + " running elapsed=24s\n"
-        ),
-        "stdout": (
-            rec_id
-            + " closed attempt=1 exit=0 tripped=false envelope=invalid\n"
-        ),
-        "exit": 1,
-    })
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stderr.write("poll " + rec_id + " running elapsed=12s\n")
-    sys.stderr.write("poll " + rec_id + " running elapsed=24s\n")
-    sys.stdout.write(
-        rec_id + " closed attempt=1 exit=0 tripped=false envelope=invalid\n"
-    )
-    raise SystemExit(1)
-payload = json.loads(path.read_text(encoding="utf-8"))
-envelope = dict(plant.get("envelopes", {}).get(rec_id) or {})
-summary = "ok"
-if name in plant.get("invalid_envelope_stages", []):
-    envelope["status"] = "invalid"
-    summary = "invalid"
-payload["status"] = "closed"
-payload["at"]["closed"] = "2026-09-04T12:00:01Z"
-payload["result"] = {"envelope": envelope}
-path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-sys.stdout.write(
-    rec_id + " closed attempt=1 exit=0 tripped=false envelope=" + summary + "\n"
-)
-raise SystemExit(0)
-'''.lstrip()
-
-LAND_PY = r'''
-from __future__ import annotations
-import json
-import os
-import subprocess
-import sys
-from pathlib import Path
-
-STUB = Path("@@STUB@@")
-REPO = Path("@@REPO@@")
-argv = sys.argv[1:]
-log = STUB / "land-argv.jsonl"
-with log.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(argv) + "\n")
-plant_path = STUB / "plant.json"
-plant = json.loads(plant_path.read_text(encoding="utf-8"))
-plant.setdefault("cwds", []).append(os.getcwd())
-plant.setdefault("land_cwds", []).append(os.getcwd())
-if plant.get("land_abort"):
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stdout.write("abort conflict sha=deadbeef remainder=1\n")
-    raise SystemExit(3)
-if plant.get("land_lineage_break"):
-    env = os.environ.copy()
-    env["GIT_AUTHOR_NAME"] = "Unrelated"
-    env["GIT_AUTHOR_EMAIL"] = "unrelated-aa32@example.invalid"
-    env["GIT_COMMITTER_NAME"] = "Unrelated"
-    env["GIT_COMMITTER_EMAIL"] = "unrelated-aa32@example.invalid"
-    tree = subprocess.run(
-        ["git", "mktree"],
-        input=b"",
-        cwd=str(REPO),
-        capture_output=True,
-        check=False,
-        env=env,
-    )
-    tree_sha = (tree.stdout or b"").decode("utf-8").strip()
-    commit = subprocess.run(
-        ["git", "commit-tree", tree_sha, "-m", "unrelated-aa32"],
-        cwd=str(REPO),
-        capture_output=True,
-        check=False,
-        env=env,
-    )
-    sha = (commit.stdout or b"").decode("utf-8").strip()
-    plant["lineage_break_sha"] = sha
-    plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-    sys.stdout.write("LANDED\t" + sha + "\tnot-descended\n")
-    sys.stdout.write("landed n=1 ref=refs/dispatch/planted\n")
-    raise SystemExit(0)
-rec = argv[0] if argv and not argv[0].startswith("-") else "planted"
-extra = plant.get("land_extra_path")
-info = (plant.get("records") or {}).get(rec) or {}
-if extra and str(info.get("name") or "").startswith("code"):
-    path = REPO / extra
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("outside-bucket-aa32\n", encoding="utf-8")
-    subprocess.run(
-        ["git", "add", "--", extra],
-        cwd=str(REPO),
-        capture_output=True,
-        check=False,
-    )
-subprocess.run(
-    ["git", "-c", "commit.gpgsign=false", "commit", "--allow-empty",
-     "-m", "landed-stub\n\nSource: original\n"],
-    cwd=str(REPO),
-    capture_output=True,
-    check=False,
-)
-sha_proc = subprocess.run(
-    ["git", "rev-parse", "HEAD"],
-    cwd=str(REPO),
-    capture_output=True,
-    text=True,
-    check=False,
-)
-sha = (sha_proc.stdout or "").strip()
-plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-sys.stdout.write("LANDED\t" + sha + "\tlanded-stub\n")
-sys.stdout.write("landed n=1 ref=refs/dispatch/" + rec + "\n")
-raise SystemExit(0)
-'''.lstrip()
-
-FINDINGS_PY = r'''
-from __future__ import annotations
-import json
-import os
-import sys
-from pathlib import Path
-
-STUB = Path("@@STUB@@")
-argv = sys.argv[1:]
-log = STUB / "findings-argv.jsonl"
-with log.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(argv) + "\n")
-plant_path = STUB / "plant.json"
-plant = json.loads(plant_path.read_text(encoding="utf-8"))
-plant.setdefault("cwds", []).append(os.getcwd())
-plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")
-if plant.get("ledger_fail"):
-    sys.stderr.write(
-        "ledger: expected a writable findings export; found a write error; "
-        "needed a writable ledger\n"
-    )
-    raise SystemExit(3)
-if argv and argv[0] == "export":
-    sys.stdout.write("{}\n")
-raise SystemExit(0)
-'''.lstrip()
-
-GH_PY = r'''
-from __future__ import annotations
-import json
-import sys
-from pathlib import Path
-
-STUB = Path("@@STUB@@")
-argv = sys.argv[1:]
-log = STUB / "gh-argv.jsonl"
-with log.open("a", encoding="utf-8") as fh:
-    fh.write(json.dumps(argv) + "\n")
-sys.stdout.write("@@PR_URL@@\n")
-raise SystemExit(0)
-'''.lstrip()
 
 
 class _LadderFixture(unittest.TestCase):
@@ -759,30 +253,23 @@ class _LadderFixture(unittest.TestCase):
 
     def setUp(self):
         self.maxDiff = None
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
-        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO).strip()
-        self._diff_before = subprocess.run(
-            ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
-        ).stdout
-        self._tmp = tempfile.TemporaryDirectory(prefix="ladder-lever-")
-        root = Path(self._tmp.name)
+        self.world = World(prefix="ladder-lever-")
+        self.world.require("git")
+        self._live = self.world.watch(*_live_store_paths(), ignore=IGNORE, tolerate_new=TOLERATE_NEW)
+        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO, self.world.env()).strip()
+        self._diff_before = run(["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=RUN_CAP).stdout
+        root = self.world.root
         self.root = root
-        self.home = root / "home"
-        self.xdg = root / "xdg"
+        self.home = self.world.home
+        self.xdg = self.world.xdg_state
         self.scratch = root / "scratch"
-        self.bin = root / "bin"
+        self.bin = self.world.bin
         self.stub_dir = root / "stubs"
         self.main = root / "main"
         self.wt = root / WORKTREE_ROOT / ("ag-" + SLUG)
         self.repo = self.wt
         self.invoke_cwd = self.main
-        for path in (
-            self.home, self.xdg, self.scratch, self.bin, self.stub_dir,
-        ):
+        for path in (self.scratch, self.stub_dir):
             path.mkdir()
         self.store = self.xdg / LANE_NAME / "dispatch"
         self.home_store = (
@@ -793,7 +280,6 @@ class _LadderFixture(unittest.TestCase):
             self.home_store.exists(),
             "plant: isolated HOME agentscient store starts absent",
         )
-        self.staged = self.scratch / "ladder.py"
         self._stage_tool_bytes()
         self.gh = self.bin / "gh"
         self.scope_path = self.wt / "scope.md"
@@ -813,60 +299,33 @@ class _LadderFixture(unittest.TestCase):
 
     def tearDown(self):
         try:
-            assert_unchanged(
-                self,
-                self._live_before,
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-            )
+            self._live.assert_unchanged(self, "live dispatch store mutated")
             self.assertEqual(
-                _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
+                _git_out(["git", "rev-parse", "HEAD"], REPO, self.world.env()).strip(),
                 self._head_before,
                 "real repo HEAD moved",
             )
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
+            diff_after = run(["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=RUN_CAP).stdout
             self.assertEqual(
                 diff_after,
                 self._diff_before,
                 "real repo tracked files mutated",
             )
         finally:
-            self._tmp.cleanup()
+            self.world.close()
 
     def _stage_tool_bytes(self) -> None:
+        self.staged = self.world.stage(TOOL, "ladder.py", siblings=("instrument.py", "laneconf.py") if TOOL.is_file() else ())
         if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for sibling in ("instrument.py", "laneconf.py"):
-                self.staged.with_name(sibling).write_bytes(TOOL.with_name(sibling).read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(
-                landed, ABSENT_STUB, "stub plant did not land intact",
-            )
-            self.assertEqual(len(landed), len(ABSENT_STUB))
+            self.assertEqual(self.staged.read_bytes(), TOOL.read_bytes(), "copy-tool-bytes did not land intact")
+            self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
         self.assertTrue(self.staged.is_file())
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
-        self.assertEqual(len(landed), len(data))
+        self.world.plant_bytes(path, data)
 
     def _make_executable(self, path: Path) -> None:
-        mode = path.stat().st_mode
-        path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        self.assertTrue(os.access(path, os.X_OK), f"not executable: {path}")
+        make_executable(path)
 
     def default_plant(self) -> dict:
         return {
@@ -1026,25 +485,17 @@ class _LadderFixture(unittest.TestCase):
         return json.dumps(data, indent=2) + "\n"
 
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
+        """The world's environment with the scratch owner's identity: the
+        seed commits are the owner's, the driver's are its own."""
+        return self.world.env({
             "GIT_AUTHOR_NAME": REPO_USER,
             "GIT_AUTHOR_EMAIL": REPO_EMAIL,
             "GIT_COMMITTER_NAME": REPO_USER,
             "GIT_COMMITTER_EMAIL": REPO_EMAIL,
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        })
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = subprocess.run(
+        proc = _completed(run(
             [
                 "git",
                 "-c",
@@ -1055,12 +506,10 @@ class _LadderFixture(unittest.TestCase):
                 "commit.gpgsign=false",
                 *args,
             ],
-            cwd=str(cwd or self.repo),
+            cwd=cwd or self.repo,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+            timeout=RUN_CAP,
+        ))
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -1137,14 +586,7 @@ class _LadderFixture(unittest.TestCase):
         self.git("commit", "-m", "seed ladder scratch\n", cwd=dest)
         self.git("branch", BRANCH, cwd=dest)
         self.origin.mkdir()
-        origin_init = subprocess.run(
-            ["git", "init", "--bare", "-b", BRANCH],
-            cwd=str(self.origin),
-            env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        origin_init = self.git("init", "--bare", "-b", BRANCH, cwd=self.origin, check=False)
         self.assertEqual(origin_init.returncode, 0, origin_init.stderr)
         self.git("remote", "add", "origin", str(self.origin), cwd=dest)
         common = self.git(
@@ -1202,91 +644,35 @@ class _LadderFixture(unittest.TestCase):
         return path
 
     def path_with_gh(self) -> str:
-        path = str(self.bin) + os.pathsep + os.environ.get("PATH", "/usr/bin:/bin")
+        path = self.world.env()["PATH"]
         if self.gh.exists():
             found = shutil.which("gh", path=path)
             self.assertEqual(Path(found).resolve(), self.gh.resolve())
         return path
 
     def plant_gh(self) -> None:
-        body = "#!/usr/bin/env python3\n" + self._fill(GH_PY)
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        self.assertEqual(
-            self.gh.read_text(encoding="utf-8"),
-            body,
-            "gh stub plant did not land intact",
-        )
+        """A gh that answers every call with the PR URL and logs its argv."""
+        self.assertEqual(self.world.tools.plant("gh", stdout=PR_URL + "\n"), self.gh)
+        self.assertTrue(os.access(self.gh, os.X_OK), self.gh)
 
     def plant_silent_gh(self) -> None:
-        body = (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"STUB = Path({str(self.stub_dir)!r})\n"
-            "argv = sys.argv[1:]\n"
-            "log = STUB / 'gh-argv.jsonl'\n"
-            "with log.open('a', encoding='utf-8') as fh:\n"
-            "    fh.write(json.dumps(argv) + '\\n')\n"
-            "raise SystemExit(0)\n"
-        )
-        before = self.gh.read_bytes()
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        landed = self.gh.read_bytes()
-        self.assertNotEqual(landed, before, "silent gh plant did not replace stub")
-        self.assertNotIn(PR_URL.encode("utf-8"), landed)
-        self.assertIn(b"raise SystemExit(0)", landed)
+        """A gh that answers nothing: the driver must not read a URL from silence."""
+        self.assertEqual(self.world.tools.plant("gh"), self.gh)
+        spec = self.world.tools.spec_path("gh").read_text(encoding="utf-8")
+        self.assertNotIn(PR_URL, spec, "silent gh plant did not replace the stub")
 
     def plant_gh_stdout(self, text: str) -> None:
-        body = (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"STUB = Path({str(self.stub_dir)!r})\n"
-            "argv = sys.argv[1:]\n"
-            "log = STUB / 'gh-argv.jsonl'\n"
-            "with log.open('a', encoding='utf-8') as fh:\n"
-            "    fh.write(json.dumps(argv) + '\\n')\n"
-            f"sys.stdout.write({text!r} + '\\n')\n"
-            "raise SystemExit(0)\n"
-        )
-        before = self.gh.read_bytes()
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        landed = self.gh.read_bytes()
-        self.assertNotEqual(landed, before, "gh stdout plant did not replace stub")
-        self.assertIn(text.encode("utf-8"), landed)
+        self.assertEqual(self.world.tools.plant("gh", stdout=text + "\n"), self.gh)
+        self.assertIn(text, self.world.tools.spec_path("gh").read_text(encoding="utf-8"))
 
     def plant_git_wrapper(self) -> Path:
-        real = shutil.which("git")
-        self.assertIsNotNone(real, "INVALID: git not on PATH")
-        log = self.stub_dir / "git-argv.jsonl"
-        body = (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import os\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"LOG = Path({str(log)!r})\n"
-            f"REAL = {real!r}\n"
-            "with LOG.open('a', encoding='utf-8') as fh:\n"
-            "    fh.write(json.dumps(sys.argv[1:]) + '\\n')\n"
-            "os.execv(REAL, [REAL, *sys.argv[1:]])\n"
-        )
-        dest = self.bin / "git"
-        self._plant_bytes(dest, body.encode("utf-8"))
-        self._make_executable(dest)
+        dest = self.world.tools.wrap("git")
+        self.assertEqual(dest, self.bin / "git")
         self.assertTrue(os.access(dest, os.X_OK), dest)
         return dest
 
     def git_argvs(self) -> list:
-        return self.jsonl("git-argv.jsonl")
+        return [call["argv"] for call in self.world.tools.calls("git")]
 
     def commit_conf(self, message: str = "plant conf") -> None:
         rel = str(self.conf_path.relative_to(self.repo))
@@ -1336,19 +722,11 @@ class _LadderFixture(unittest.TestCase):
         extra: dict[str, str] | None = None,
         with_gh: bool = True,
     ) -> dict[str, str]:
-        env = {
-            "PATH": self.path_with_gh() if with_gh else self.path_without_gh(),
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        env = self.world.env({"PATH": self.path_with_gh() if with_gh else self.path_without_gh()})
+        # The driver's commits carry the driver's own identity and clock,
+        # not the world's fixed ones: that identity is under test.
+        for name in [k for k in env if k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))]:
+            del env[name]
         self.assertNotIn("LANE_CONF", env)
         self.assertNotIn("DISPATCH_JOBS", env)
         if agent is not None:
@@ -1368,16 +746,13 @@ class _LadderFixture(unittest.TestCase):
     ):
         env = self.env(agent=agent, extra=extra_env, with_gh=with_gh)
         try:
-            return subprocess.run(
+            return _completed(run(
                 [sys.executable, str(self.staged), *argv],
-                cwd=str(cwd or self.invoke_cwd),
+                cwd=cwd or self.invoke_cwd,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
+            ))
+        except Timeout as exc:
             self.fail(f"ladder exceeded {RUN_CAP}s: {exc}")
 
     def run_ladder(self, *extra: str, **kw):
@@ -1428,7 +803,7 @@ class _LadderFixture(unittest.TestCase):
         return self.jsonl("findings-argv.jsonl")
 
     def gh_argvs(self) -> list:
-        return self.jsonl("gh-argv.jsonl")
+        return [call["argv"] for call in self.world.tools.calls("gh")]
 
     def launch_argvs(self) -> list:
         return self.jsonl("launch-argv.jsonl")
@@ -1712,15 +1087,7 @@ class _LadderFixture(unittest.TestCase):
 
     def assert_branch_pushed_once(self) -> None:
         self.assertEqual(len(self.push_log()), 1, self.push_log())
-        remote = subprocess.run(
-            [
-                "git", "--git-dir", str(self.origin),
-                "rev-parse", f"refs/heads/{BRANCH}",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        remote = self.git("--git-dir", str(self.origin), "rev-parse", f"refs/heads/{BRANCH}", check=False)
         self.assertEqual(
             remote.returncode, 0,
             f"branch was not pushed to origin: {remote.stderr}",
