@@ -16,8 +16,6 @@ from __future__ import annotations
 import sys
 import unittest
 
-from ops.testkit import run
-
 from test_instrument_conventions import (
     REGISTRY_DIR,
     read_registry,
@@ -26,6 +24,8 @@ from test_ladder_lever import (
     RUN_CAP,
     _LadderFixture,
 )
+
+from ops.testkit import run
 
 
 def _envelope_rows():
@@ -48,7 +48,7 @@ class EnvelopeRefusalRegistry(unittest.TestCase):
             ("ladder.py", (), "envelope", False),
             mutant,
         )
-        self.assertFalse(
+        self.assertTrue(
             rows,
             "item 7: ladder.py gains class envelope and must carry a "
             "hermetic registry row for it; found none",
@@ -65,7 +65,7 @@ class EnvelopeRefusalSpeaksTheWire(_LadderFixture):
 
     def assert_envelope_wire(self, proc) -> str:
         err = proc.stderr or ""
-        self.assertEqual(proc.exit, 0, err or proc.stdout)
+        self.assertEqual(proc.exit, 2, err or proc.stdout)
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
         line = lines[0]
