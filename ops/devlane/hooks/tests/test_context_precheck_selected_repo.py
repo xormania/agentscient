@@ -10,14 +10,16 @@ apart; these cases use two clones.
 from __future__ import annotations
 
 import os
-import shutil
-import tempfile
+import sys
 import unittest
 from pathlib import Path
 
 import support
 
+from ops.testkit import World, run
+
 SCRIPT = support.CLAUDE_DIR / "context-precheck.py"
+TIMEOUT = 120
 
 
 class SelectedRepoFreshness(unittest.TestCase):
@@ -26,25 +28,28 @@ class SelectedRepoFreshness(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(
-            SCRIPT.is_file(),
-            f"INVALID: context-precheck.py missing: {SCRIPT}",
-        )
-        self.tmp = Path(tempfile.mkdtemp(prefix="precheck-selected-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
-        self.env = support.isolated_env(self.home)
-        cwd_root = self.tmp / "cwd-pair"
-        other_root = self.tmp / "other-pair"
+        self.world = World(prefix="precheck-selected-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.hook = self._subject()
+        self.env = self.world.env()
+        cwd_root = self.world.root / "cwd-pair"
+        other_root = self.world.root / "other-pair"
         cwd_root.mkdir()
         other_root.mkdir()
         self.cwd_fix = support.StaleClone(cwd_root, self.env).build()
         self.other_fix = support.StaleClone(other_root, self.env).build()
 
+    def _subject(self):
+        self.assertTrue(
+            SCRIPT.is_file(),
+            f"INVALID: context-precheck.py missing: {SCRIPT}",
+        )
+        return self.world.stage(SCRIPT, siblings=("command_shape.py",))
+
     def _origin(self, fix: support.StaleClone) -> str:
-        return support.git(
-            fix.clone, self.env, "rev-parse", "origin/main",
+        return self.world.git(
+            "rev-parse", "origin/main", cwd=fix.clone,
         ).stdout.strip()
 
     def _fetch_head(self, fix: support.StaleClone) -> Path:
@@ -59,8 +64,8 @@ class SelectedRepoFreshness(unittest.TestCase):
             fix.old_sha, fix.new_sha,
             f"INVALID: {label} remote did not move",
         )
-        remote = support.git(
-            fix.bare, self.env, "rev-parse", "HEAD",
+        remote = self.world.git(
+            "rev-parse", "HEAD", cwd=fix.bare,
         ).stdout.strip()
         self.assertEqual(
             remote, fix.new_sha,
@@ -76,7 +81,13 @@ class SelectedRepoFreshness(unittest.TestCase):
 
     def _fire(self, command: str, *, cwd: Path):
         payload = support.bash_payload(command)
-        return support.run_script(SCRIPT, payload, cwd, self.env)
+        return run(
+            [sys.executable, str(self.hook)],
+            cwd=cwd,
+            env=self.env,
+            stdin=payload,
+            timeout=TIMEOUT,
+        )
 
     def _assert_denied_and_other_refreshed(self, command: str, *, cwd: Path):
         self._prove_stale(self.other_fix, "other")
@@ -189,7 +200,7 @@ class SelectedRepoFreshness(unittest.TestCase):
         )
 
     def test_minus_c_other_when_cwd_is_not_a_repo(self):
-        plain = self.tmp / "plain"
+        plain = self.world.root / "plain"
         plain.mkdir()
         self.assertFalse(
             (plain / ".git").exists(),
@@ -208,10 +219,10 @@ class SelectedRepoFreshness(unittest.TestCase):
         self._prove_fresh(self.cwd_fix, "cwd")
         self._prove_stale(self.other_fix, "other")
         cwd_main = self._origin(self.cwd_fix)
-        wt = self.tmp / "other-wt"
-        support.git(
-            self.other_fix.clone, self.env,
+        wt = self.world.root / "other-wt"
+        self.world.git(
             "worktree", "add", str(wt), "-b", "wt-topic",
+            cwd=self.other_fix.clone,
         )
         gitfile = wt / ".git"
         self.assertTrue(
