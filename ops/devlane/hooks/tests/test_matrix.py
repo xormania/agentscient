@@ -694,7 +694,11 @@ class MatrixHookTests(unittest.TestCase):
         for target in (".github/workflows/ci.yml", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
                        "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
                        "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/test_matrix.py",
-                       "ops/devlane/hooks/tests/test_engine.py", "ops/devlane/hooks/claude/engine.py"):
+                       "ops/devlane/hooks/tests/test_engine.py", "ops/devlane/hooks/claude/engine.py",
+                       # D-TESTKIT-1 (owner, 2026-09-14): the test kit and the job
+                       # catalogue are wall; docs/tests.md rule 8, plan slice 3.
+                       "ops/testkit/world.py", "ops/testkit/tests/test_world.py",
+                       "ops/devlane/task/jobs.json"):
             with self.subTest(target=target):
                 self.assert_denied(self.run_bash(f"echo x >> {target}"), "wall-write")
                 self.assert_denied(self.run_bash(f"HAND_GRANT={GRANT_OPEN} echo x >> {target}"), "wall-write")

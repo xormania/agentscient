@@ -179,9 +179,13 @@ STATE_DIR = os.path.expanduser("~/.local/state")
 # commits (cc04f7d9, 2c983635) changed the rows under an ordinary grant and
 # said so; the wall list is extended from the enforcing checkout, so the
 # extension itself went the same way (LD-34).
+# D-TESTKIT-1 (owner, 2026-09-14): the test kit is test machinery and the
+# job catalogue carries the tests job's prompt; both are wall (docs/tests.md
+# rule 8; plan record 20260913T034513Z-plan-claude-892490, slice 3).
 WALL_PATHS = (".github/workflows/", "ops/bin/suites.sh", "ops/conductor/tools/probes.py",
               "ops/conductor/tools/laneconf.py", "ops/devlane/hooks/boundaries.json",
               "ops/devlane/hooks/claude/matrix.py", "ops/devlane/hooks/tests/",
+              "ops/testkit/", "ops/devlane/task/jobs.json",
               "ops/devlane/hooks/claude/engine.py")
 
 
