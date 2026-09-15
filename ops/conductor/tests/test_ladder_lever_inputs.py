@@ -153,10 +153,6 @@ class _InputFixture(_LadderFixture):
         self.assertEqual(head, token, lines[0])
         return lines[0]
 
-    def assert_refusal(self, proc, class_name, *, named=()):
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
-        return proc.stderr or ""
-
 
 class InputFlagAccepted(_InputFixture):
     """--input PATH after the positionals is accepted; --input=PATH too."""
@@ -165,7 +161,7 @@ class InputFlagAccepted(_InputFixture):
         path = self.plant_start_input(ALPHA_REL, ALPHA_BODY)
         self.patch_plant(trip_stages=["tests"])
         proc = self.start_with_inputs(path)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
         self.assertIn("tests", self.dispatch_names())
         self.assertGreaterEqual(len(self.ladder_paths()), 1)
 
@@ -180,7 +176,7 @@ class InputFlagAccepted(_InputFixture):
                 f"--input={path}",
             ],
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
         self.assertIn("tests", self.dispatch_names())
         self.assertGreaterEqual(len(self.ladder_paths()), 1)
 
@@ -192,7 +188,7 @@ class InputFlagAccepted(_InputFixture):
         self.assertNotEqual(alpha.resolve(), beta.resolve())
         self.patch_plant(trip_stages=["tests"])
         proc = self.start_with_inputs(alpha, beta)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
         record = self.ladder_record()
         self.assert_input_rows(
             record,
@@ -268,7 +264,7 @@ class InputRecord(_InputFixture):
         self.assertNotEqual(digest_a, digest_b)
         self.patch_plant(trip_stages=["tests"])
         proc = self.start_with_inputs(alpha, beta)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
         self.assert_input_rows(
             self.ladder_record(),
             [(alpha, digest_a), (beta, digest_b)],
@@ -277,7 +273,7 @@ class InputRecord(_InputFixture):
     def test_record_inputs_is_empty_list_when_no_input_flag(self):
         self.patch_plant(trip_stages=["tests"])
         proc = self.run_ladder()
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.returncode, 3, self.combined(proc))
         record = self.ladder_record()
         self.assertIn("inputs", record)
         self.assertIsInstance(record["inputs"], list)
@@ -290,7 +286,7 @@ class InputDispatchArgv(_InputFixture):
     def test_dispatch_stage_argv_carries_input_after_the_plan(self):
         path = self.plant_start_input(ALPHA_REL, ALPHA_BODY)
         proc = self.start_with_inputs(path)
-        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
         calls = self.dispatch_calls()
         self.assertTrue(calls, "no dispatch stage ran")
         for row in calls:
@@ -308,7 +304,7 @@ class InputDispatchArgv(_InputFixture):
                 str(path),
             ],
         )
-        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
         stages = self.parse_stage_table(proc)
         checked = 0
         wanted = path.resolve()
@@ -320,7 +316,7 @@ class InputDispatchArgv(_InputFixture):
             checked += 1
         self.assertGreater(checked, 0, stages)
         live = self.start_with_inputs(path)
-        self.assertEqual(live.returncode, 3, self.combined(live))
+        self.assertEqual(live.returncode, 0, self.combined(live))
         calls = self.dispatch_calls()
         self.assertTrue(calls, "no dispatch stage ran")
         for row in calls:
@@ -374,7 +370,7 @@ class InputResume(_InputFixture):
         self.assertEqual(path.read_bytes(), before)
         self.assertEqual(self.file_digest(path), digest)
         second = self.invoke(["resume", ladder_id])
-        self.assertEqual(second.returncode, 3, self.combined(second))
+        self.assertEqual(second.returncode, 0, self.combined(second))
         self.assertGreaterEqual(self.dispatch_names().count("check-tests"), 1)
 
 
