@@ -4,10 +4,11 @@ import hashlib
 import importlib.util
 import inspect
 import json
-import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import quote
+
+from ops.testkit import World
 
 HERE = Path(__file__).resolve()
 STORES = HERE.parents[1] / "stores.py"
@@ -21,6 +22,13 @@ MARKER = "GROKUSAGEFIXTUREMARKER"
 
 LEGACY_STORE_SHA256 = (
     "953143e8a16398f3312ad69fc7dd98c45f8e340adc93cb2ff215d1c2d66e904e"
+)
+
+# Planted absent usage_runs: the keyword is missing so both tests fail
+# on the explicit-keyword assertion.
+MISSING_USAGE_RUNS = (
+    "def build_grok_store(root, cwd, *, base_timestamp, session_id, model, marker):\n"
+    "    return None\n"
 )
 
 USAGE_RUNS = [
@@ -103,14 +111,14 @@ USAGE_RUNS = [
 ]
 
 
-def load_module(testcase):
+def load_module(testcase, path):
     testcase.assertTrue(
-        STORES.is_file(),
-        f"{STORES} is missing; the fixture contract requires it",
+        path.is_file(),
+        f"{path} is missing; the fixture contract requires it",
     )
     spec = importlib.util.spec_from_file_location(
         "agentscient_grok_usage_stores",
-        STORES,
+        path,
     )
     testcase.assertIsNotNone(spec)
     testcase.assertIsNotNone(spec.loader)
@@ -164,12 +172,12 @@ def legacy_digest(session):
 
 class GrokUsageFixture(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(
-            prefix="grok-usage-fixture-"
-        )
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
-        self.stores = load_module(self)
+        self.world = World(prefix="grok-usage-fixture-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.root = self.world.cwd
+        self.stores_path = self.world.plant_text("stores.py", MISSING_USAGE_RUNS)
+        self.stores = load_module(self, self.stores_path)
 
     def assert_usage_keyword(self):
         parameter = inspect.signature(
