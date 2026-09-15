@@ -1691,6 +1691,20 @@ def _read_role_write_guard(name, job):
     return None
 
 
+def _review_base(repo, ref_sha, branch):
+    """merge-base(ref, <branch>) over the remote-tracking and local names
+    of ``branch``, the nearer one; "" when neither resolves."""
+    candidates = []
+    for anchor in (f"origin/{branch}", branch):
+        probe = _git(repo, "merge-base", ref_sha, anchor, check=False)
+        if probe.returncode == 0 and probe.stdout.strip():
+            candidate = probe.stdout.strip()
+            distance = int(_git(repo, "rev-list", "--count",
+                                f"{candidate}..{ref_sha}").stdout)
+            candidates.append((distance, candidate))
+    return min(candidates)[1] if candidates else ""
+
+
 def _launch(args):
     worker = _worker(args.harness)
     lane = _lane_values(
@@ -1776,21 +1790,20 @@ def _launch(args):
     # The base a review diffs against is where the lineage left the trunk, not
     # the lineage's own tip -- merge-base(ref, lineage) is ref itself when
     # ref is the tip, and a review of an empty comparison reviews nothing.
-    candidates = []
-    for anchor in (f"origin/{lane['TRUNK_BRANCH']}", lane["TRUNK_BRANCH"]):
-        probe = _git(repo, "merge-base", ref_sha, anchor, check=False)
-        if probe.returncode == 0 and probe.stdout.strip():
-            candidate = probe.stdout.strip()
-            distance = int(_git(repo, "rev-list", "--count",
-                                f"{candidate}..{ref_sha}").stdout)
-            candidates.append((distance, candidate))
-    if candidates:
-        base_sha = min(candidates)[1]
-    else:
+    # A ref that sits on the trunk (the release review, trunk into release)
+    # has the trunk as its own base; it anchors on the release branch when
+    # one exists, so the comparison is release...trunk (LD-36, 2026-09-14).
+    base_sha = _review_base(repo, ref_sha, lane["TRUNK_BRANCH"])
+    if base_sha == ref_sha and lane["RELEASE_BRANCH"]:
+        base_sha = _review_base(repo, ref_sha, lane["RELEASE_BRANCH"])
+    if not base_sha:
         base_sha = _git(repo, "merge-base", ref_sha, lineage).stdout.strip()
     prompt_template = job.get("prompt") or ""
     takes_comparison = all(slot in prompt_template for slot in ("{base}", "{diff}"))
-    if takes_comparison and args.stage == "review" and base_sha == ref_sha:
+    # The guard reads the derived stage: the wrapper passes no --stage for a
+    # review job, and reading args.stage handed the reviewer an empty patch
+    # without a word (LD-36).
+    if takes_comparison and stage == "review" and base_sha == ref_sha:
         _refuse("empty-comparison", f"{lineage} to differ from ref {ref_sha}",
                 f"an empty comparison at {ref_sha}",
                 f"name a ref on {lineage} with changes to review")
