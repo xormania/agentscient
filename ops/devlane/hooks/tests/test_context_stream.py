@@ -21,6 +21,8 @@ from pathlib import Path
 import support
 import test_hooks as hook_contract
 
+from ops.testkit import World, run
+
 STREAM_SH = support.CLAUDE_DIR / "context-stream.sh"
 BOUNDARY_SH = support.CLAUDE_DIR / "context-boundary.sh"
 KIND_WT = "artifacts"
@@ -29,6 +31,7 @@ KIND_WT = "artifacts"
 KIND_MAIN = "artifacts-from-primary"
 BRANCH_A = "stream-checkout-target"
 SINCE_EPOCH = "1970-01-01T00:00:00Z"
+RUN_CAP = 120
 
 
 class OneStreamPerClone(unittest.TestCase):
@@ -41,11 +44,32 @@ class OneStreamPerClone(unittest.TestCase):
             STREAM_SH.is_file(),
             f"INVALID: context-stream.sh is missing: {STREAM_SH}",
         )
+        self.world = World(prefix="context-stream-")
+        self.addCleanup(self.world.close)
         self.h = hook_contract.HookContractTest(
             "test_h6_second_worktree_appends_to_the_shared_stream"
         )
-        self.h.setUp()
-        self.addCleanup(self.h.doCleanups)
+        self.h.tmp = self.world.tmp
+        self.h.home = self.world.home
+        self.h.env_for = self._h_env_for
+        self.h.run_cmd = self._h_run_cmd
+
+    def _h_env_for(self, wf_agent=hook_contract.WF, user="tester"):
+        extra = {}
+        if wf_agent is not None:
+            extra["WF_AGENT"] = wf_agent
+        if user is not None:
+            extra["USER"] = user
+        return self.world.env(extra)
+
+    def _h_run_cmd(self, argv, cwd, env=None, expect=0):
+        return run(
+            argv,
+            cwd=cwd,
+            env=env if env is not None else self._h_env_for(),
+            timeout=RUN_CAP,
+            expect=expect,
+        )
 
     def _env(self):
         return self.h.env_for()
@@ -92,14 +116,18 @@ class OneStreamPerClone(unittest.TestCase):
             os.access(BOUNDARY_SH, os.X_OK),
             f"INVALID: {BOUNDARY_SH} is not executable",
         )
-        proc = support.run_cmd(
-            [str(BOUNDARY_SH)], cwd, self._env(), stdin=payload, expect=None
+        proc = run(
+            [str(BOUNDARY_SH)],
+            cwd=cwd,
+            env=self._env(),
+            stdin=payload,
+            timeout=RUN_CAP,
         )
         if expect is not None:
             self.assertEqual(
-                proc.returncode,
+                proc.exit,
                 expect,
-                f"context-boundary.sh exited {proc.returncode} "
+                f"context-boundary.sh exited {proc.exit} "
                 f"(wanted {expect})\nstdout: {proc.stdout}\n"
                 f"stderr: {proc.stderr}",
             )
@@ -139,7 +167,7 @@ class OneStreamPerClone(unittest.TestCase):
         repo, wt_a, _wt_b = self._linked_clone()
         before = self.h.stream_lines(repo)
         proc = self._stream_sh(wt_a, "record", KIND_WT)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self._wrote_kind_somewhere(repo, wt_a, KIND_WT)
 
         after = self.h.stream_lines(repo)
@@ -461,13 +489,34 @@ class OriginBoundaryNeverBlock(unittest.TestCase):
             BOUNDARY_SH.is_file(),
             f"INVALID: context-boundary.sh is missing: {BOUNDARY_SH}",
         )
+        self.world = World(prefix="context-boundary-")
+        self.addCleanup(self.world.close)
         self.h = hook_contract.HookContractTest(
             "test_h6_second_worktree_appends_to_the_shared_stream"
         )
-        self.h.setUp()
-        self.addCleanup(self.h.doCleanups)
+        self.h.tmp = self.world.tmp
+        self.h.home = self.world.home
+        self.h.env_for = self._h_env_for
+        self.h.run_cmd = self._h_run_cmd
         self.h.require_sources()
         self.repo = self.h.make_repo("primary-clone")
+
+    def _h_env_for(self, wf_agent=hook_contract.WF, user="tester"):
+        extra = {}
+        if wf_agent is not None:
+            extra["WF_AGENT"] = wf_agent
+        if user is not None:
+            extra["USER"] = user
+        return self.world.env(extra)
+
+    def _h_run_cmd(self, argv, cwd, env=None, expect=0):
+        return run(
+            argv,
+            cwd=cwd,
+            env=env if env is not None else self._h_env_for(),
+            timeout=RUN_CAP,
+            expect=expect,
+        )
 
     def test_exits_0_on_malformed_payloads(self):
         payloads = (
@@ -483,18 +532,18 @@ class OriginBoundaryNeverBlock(unittest.TestCase):
         )
         for payload in payloads:
             with self.subTest(payload=payload[:40]):
-                proc = support.run_cmd(
+                proc = run(
                     [str(BOUNDARY_SH)],
-                    self.repo,
-                    self.h.env_for(),
+                    cwd=self.repo,
+                    env=self.h.env_for(),
                     stdin=payload,
-                    expect=None,
+                    timeout=RUN_CAP,
                 )
                 self.assertEqual(
-                    proc.returncode,
+                    proc.exit,
                     0,
                     f"boundary wrapper blocked on {payload!r}: "
-                    f"rc={proc.returncode} stderr={proc.stderr!r}",
+                    f"rc={proc.exit} stderr={proc.stderr!r}",
                 )
 
 
