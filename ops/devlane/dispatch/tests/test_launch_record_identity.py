@@ -14,9 +14,10 @@ as author and committer instead of the owner's.
 from __future__ import annotations
 
 import os
-import subprocess
 
 import launch_support as ls
+
+from ops.testkit import World, run
 
 OWNER_IDENT = "xormania <127287135+xormania@users.noreply.github.com>"
 OWNER_NAME = "xormania"
@@ -38,14 +39,15 @@ class RecordCommitCarriesTheOwnersIdentity(ls._TempLaunch):
     decoys, and the owner's identity is none of them.
     """
 
+    world: World
+
     def _git_as_process(self, *args):
         """git with the process environment, the way a child commit sees it."""
-        return subprocess.run(
+        return run(
             ["git", *args],
             cwd=self.repo,
-            capture_output=True,
-            text=True,
-            check=False,
+            env=self.env,
+            timeout=60,
         )
 
     def _plant_decoy_identities(self):
@@ -77,8 +79,8 @@ class RecordCommitCarriesTheOwnersIdentity(ls._TempLaunch):
 
         author = self._git_as_process("var", "GIT_AUTHOR_IDENT")
         committer = self._git_as_process("var", "GIT_COMMITTER_IDENT")
-        self.assertEqual(author.returncode, 0, author.stderr)
-        self.assertEqual(committer.returncode, 0, committer.stderr)
+        self.assertEqual(author.exit, 0, author.stderr)
+        self.assertEqual(committer.exit, 0, committer.stderr)
         self.assertIn(DECOY_AUTHOR_NAME, author.stdout)
         self.assertIn(DECOY_AUTHOR_EMAIL, author.stdout)
         self.assertIn(DECOY_COMMITTER_NAME, committer.stdout)

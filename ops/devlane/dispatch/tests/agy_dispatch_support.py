@@ -24,6 +24,8 @@ from pathlib import Path
 
 import agy_envelope_support as frames
 
+from ops.testkit import World
+
 HARNESS = "agy"
 MODEL = "gemini-3.8-flash-high"
 PRINT_EQUALS = "--print="
@@ -153,6 +155,14 @@ if done:
     Path(done).write_text("COMPLETED\n", encoding="utf-8")
 raise SystemExit(0)
 """
+
+
+def plant_live_child(world: World, *, start_witness) -> Path:
+    """Plant the legacy live-child fixture through the kit registry."""
+    script = LIVE_CHILD.replace(
+        "@@START_WITNESS@@", json.dumps(str(start_witness)),
+    )
+    return world.tools.plant("agy", script=script)
 
 
 def user_event(content):

@@ -7,12 +7,12 @@ must state rather than estimate around.
 """
 
 import json
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import quote
+
+from ops.testkit import World, run
 
 USAGE = Path(__file__).resolve().parents[1] / "usage.py"
 REPO = "/home/work/projects/uscient/agentscient"
@@ -24,13 +24,14 @@ def line(**kw):
 
 class Fixtures(unittest.TestCase):
     def setUp(self):
-        self.home = Path(tempfile.mkdtemp(prefix="telemetry-"))
-        self.addCleanup(__import__("shutil").rmtree, self.home, True)
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
 
         # Claude: <dir>/<project-slug>/<session>.jsonl, usage per message.
         proj = self.home / "claude" / "-home-work-projects-uscient-agentscient"
-        proj.mkdir(parents=True)
-        (proj / "aaaa.jsonl").write_text(
+        self.world.plant_text(
+            proj / "aaaa.jsonl",
             line(timestamp="2026-08-21T10:00:00.000Z",
                  message={"model": "claude-fable-5",
                           "usage": {"input_tokens": 10,
@@ -44,16 +45,16 @@ class Fixtures(unittest.TestCase):
                                       "cache_read_input_tokens": 6000,
                                       "output_tokens": 300}}))
         other = self.home / "claude" / "-somewhere-else"
-        other.mkdir()
-        (other / "bbbb.jsonl").write_text(
+        self.world.plant_text(
+            other / "bbbb.jsonl",
             line(timestamp="2026-08-21T09:00:00.000Z",
                  message={"model": "claude-fable-5",
                           "usage": {"input_tokens": 999, "output_tokens": 999}}))
 
         # Codex: sessions/Y/M/D/rollout-*.jsonl, cumulative token_count.
         day = self.home / "codex" / "sessions" / "2026" / "08" / "21"
-        day.mkdir(parents=True)
-        (day / "rollout-2026-08-21T10-00-00-cccc.jsonl").write_text(
+        self.world.plant_text(
+            day / "rollout-2026-08-21T10-00-00-cccc.jsonl",
             line(timestamp="2026-08-21T10:00:00.000Z", type="session_meta",
                  payload={"id": "cccc", "cwd": REPO,
                           "timestamp": "2026-08-21T10:00:00.000Z"})
@@ -71,8 +72,7 @@ class Fixtures(unittest.TestCase):
         # Grok: sessions/<urlencoded-cwd>/<id>/summary.json — no tokens.
         gdir = (self.home / "grok" / "sessions"
                 / quote(REPO, safe="") / "dddd")
-        gdir.mkdir(parents=True)
-        (gdir / "summary.json").write_text(json.dumps({
+        self.world.plant_text(gdir / "summary.json", json.dumps({
             "info": {"id": "dddd", "cwd": REPO},
             "session_summary": "SESSIONPROMPTTEXT", "num_messages": 177,
             "created_at": "2026-08-21T10:00:00.000000000Z",
@@ -81,17 +81,20 @@ class Fixtures(unittest.TestCase):
             "git_root_dir": REPO + "/"}))
 
     def run_usage(self, *args):
-        return subprocess.run(
+        return run(
             [sys.executable, str(USAGE), *args,
              "--claude-dir", str(self.home / "claude"),
              "--codex-dir", str(self.home / "codex"),
              "--grok-dir", str(self.home / "grok"),
              "--repo", REPO],
-            capture_output=True, text=True, check=False)
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=30,
+        )
 
     def sessions(self):
         proc = self.run_usage("sessions", "--json")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         return json.loads(proc.stdout)["sessions"]
 
 
@@ -129,7 +132,7 @@ class SessionsAreNormalised(Fixtures):
 class TheReportAggregates(Fixtures):
     def test_totals_per_harness_and_the_gap_stated(self):
         proc = self.run_usage("report")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertIn("claude", proc.stdout)
         self.assertIn("490", proc.stdout, "codex total")
         self.assertIn("not yet parsed", proc.stdout, "the grok gap is stated")

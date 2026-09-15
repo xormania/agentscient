@@ -10,16 +10,16 @@ watch-fingerprint, and reviewThreads paging pins.
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
-import subprocess
-import tempfile
+import threading
 import time
 import unittest
 from pathlib import Path
 
 import support
+
+from ops.testkit import PlantFailed, Timeout, World, run
 
 SCRIPT = support.CLAUDE_DIR / "pr-feedback.sh"
 STUB_SRC = Path(__file__).resolve().parent / "gh_stub.py"
@@ -96,22 +96,16 @@ THREADS_MOVED = json.dumps({
         }
     }
 })
-
-
-def _kill(proc: subprocess.Popen) -> None:
-    if proc.poll() is None:
-        proc.kill()
-        try:
-            proc.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            proc.wait(timeout=3)
+RUN_CAP = 120
 
 
 class PrFeedback(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        support.require_jq()
+        self.world = World(prefix="pr-feedback-")
+        self.addCleanup(self.world.close)
+        self.world.require("jq")
         self.assertTrue(
             SCRIPT.is_file(),
             f"INVALID: pr-feedback.sh missing: {SCRIPT}",
@@ -120,20 +114,16 @@ class PrFeedback(unittest.TestCase):
             STUB_SRC.is_file(),
             f"INVALID: gh stub source missing: {STUB_SRC}",
         )
-        self.tmp = Path(tempfile.mkdtemp(prefix="pr-feedback-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
-        self.bin = self.tmp / "bin"
-        self.bin.mkdir()
-        self.fix = self.tmp / "fix"
+        self.tmp = self.world.cwd
+        self.home = self.world.home
+        self.bin = self.world.bin
+        self.fix = self.world.root / "fix"
         self.fix.mkdir()
-        self.mode_file = self.tmp / "gh-mode"
-        support.plant_text(self.mode_file, "ok\n", recognisable="ok")
+        self.mode_file = self.world.root / "gh-mode"
+        self.world.plant_text(self.mode_file, "ok\n", recognisable="ok")
         stub_body = STUB_SRC.read_text(encoding="utf-8")
-        self.stub = support.plant_executable(self.bin / "gh", stub_body)
-        which = shutil.which("gh", path=str(self.bin) + os.pathsep
-                             + os.environ.get("PATH", ""))
+        self.stub = self.world.tools.plant("gh", script=stub_body)
+        which = shutil.which("gh", path=self._env()["PATH"])
         self.assertEqual(
             Path(which).resolve(), self.stub.resolve(),
             f"INVALID: which gh is {which}, not the stub {self.stub}",
@@ -143,16 +133,24 @@ class PrFeedback(unittest.TestCase):
         merged = {
             "GH_FIXTURES": str(self.fix),
             "GH_MODE_FILE": str(self.mode_file),
+            "TESTKIT_DIR": str(Path(__file__).resolve().parents[3] / "testkit"),
         }
         if extra:
             merged.update(extra)
-        return support.isolated_env(
-            self.home, extra_path=self.bin, extra=merged,
+        return self.world.env(merged)
+
+    def _run(self, argv, env, *, expect=None):
+        return run(
+            argv,
+            cwd=self.tmp,
+            env=env,
+            timeout=RUN_CAP,
+            expect=expect,
         )
 
     def _plant_file(self, name: str, content: str, *, recognisable: str):
         path = self.fix / name
-        support.plant_text(path, content, recognisable=recognisable)
+        self.world.plant_text(path, content, recognisable=recognisable)
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, content, f"INVALID: {name} drifted")
         return path
@@ -185,40 +183,43 @@ class PrFeedback(unittest.TestCase):
         before = path.read_bytes()
         self.assertTrue(before, f"INVALID: {name} empty before move")
         before_len = len(before)
-        support.plant_text(path, new_content, recognisable=recognisable)
+        self.world.plant_text(path, new_content, recognisable=recognisable)
         after = path.read_bytes()
         if after == before:
-            raise support.PlantFailed(
+            raise PlantFailed(
                 f"INVALID: FIXTURE DID NOT MOVE — {name}"
             )
         if len(after) < max(1, before_len // 2):
-            raise support.PlantFailed(
+            raise PlantFailed(
                 f"INVALID: FIXTURE CLOBBERED — {name} "
                 f"({before_len} -> {len(after)} bytes)"
             )
 
     def _prove_stub_ok(self, env):
-        conv = support.run_cmd(
+        conv = self._run(
             ["gh", "api", "repos/o/r/issues/13/comments", "--jq", "length"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertEqual(
             conv.stdout.strip(), "1",
             f"INVALID: stub conv length {conv.stdout!r}",
         )
-        inline = support.run_cmd(
+        inline = self._run(
             ["gh", "api", "repos/o/r/pulls/13/comments", "--jq", "length"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertEqual(
             inline.stdout.strip(), "1",
             f"INVALID: stub inline length {inline.stdout!r} "
             "(did not distinguish inline from conversation)",
         )
-        paged = support.run_cmd(
+        paged = self._run(
             ["gh", "api",
              "repos/o/r/issues/13/comments?per_page=100", "--jq", "length"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertEqual(
             paged.stdout.strip(), "1",
@@ -226,13 +227,13 @@ class PrFeedback(unittest.TestCase):
         )
 
     def _prove_stub_fails(self, env, *, rc=1, stderr_snip="authentication"):
-        proc = support.run_cmd(
+        proc = self._run(
             ["gh", "api", "repos/o/r/issues/13/comments"],
-            self.tmp, env, expect=None,
+            env,
         )
         self.assertEqual(
-            proc.returncode, rc,
-            f"INVALID: stub fail rc {proc.returncode}, wanted {rc}",
+            proc.exit, rc,
+            f"INVALID: stub fail rc {proc.exit}, wanted {rc}",
         )
         if stderr_snip:
             self.assertIn(
@@ -247,34 +248,46 @@ class PrFeedback(unittest.TestCase):
 
     def _report(self, env, *args):
         argv = ["bash", str(SCRIPT), "13", "o/r", *args]
-        return support.run_cmd(argv, self.tmp, env, expect=None)
+        return self._run(argv, env)
 
     def _watch(self, env, *, interval=1, timeout=8, mover=None):
         argv = [
             "bash", str(SCRIPT), "13", "o/r",
             "--watch", "--interval", str(interval), "--timeout", str(timeout),
         ]
-        proc = subprocess.Popen(
-            argv,
-            cwd=str(self.tmp),
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-        self.addCleanup(_kill, proc)
-        if mover is not None:
+        moved = []
+        errors = []
+
+        def move_later():
             time.sleep(2)
-            mover()
+            try:
+                mover()
+                moved.append(True)
+            except BaseException as exc:  # surfaced in the test thread below
+                errors.append(exc)
+
+        thread = None
+        if mover is not None:
+            thread = threading.Thread(target=move_later, daemon=True)
+            thread.start()
         try:
-            out, _ = proc.communicate(timeout=timeout + 5)
-        except subprocess.TimeoutExpired:
-            _kill(proc)
-            out = proc.stdout.read() if proc.stdout else ""
-            self.fail(
-                f"watch did not exit within {timeout + 5}s; out={out!r}"
+            proc = run(
+                argv,
+                cwd=self.tmp,
+                env=env,
+                timeout=timeout + 5,
             )
-        return proc.returncode, out or ""
+        except Timeout as exc:
+            self.fail(f"watch did not exit within {timeout + 5}s: {exc}")
+        finally:
+            if thread is not None:
+                thread.join(timeout=5)
+        if thread is not None:
+            self.assertFalse(thread.is_alive(), "fixture mover did not finish")
+            if errors:
+                raise errors[0]
+            self.assertEqual(moved, [True], "fixture mover did not run")
+        return proc.exit, (proc.stdout or "") + (proc.stderr or "")
 
     def _combined(self, proc):
         return (proc.stdout or "") + (proc.stderr or "")
@@ -323,9 +336,10 @@ class PrFeedback(unittest.TestCase):
     def test_one_shot_empty_is_none_and_exit_0(self):
         self._empty_success()
         env = self._env()
-        proc = support.run_cmd(
+        proc = self._run(
             ["gh", "api", "repos/o/r/issues/13/comments", "--jq", "length"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertEqual(
             proc.stdout.strip(), "0",
@@ -334,8 +348,8 @@ class PrFeedback(unittest.TestCase):
         report = self._report(env)
         out = self._combined(report)
         self.assertEqual(
-            report.returncode, 0,
-            f"empty success wanted rc 0, got {report.returncode}\n{out}",
+            report.exit, 0,
+            f"empty success wanted rc 0, got {report.exit}\n{out}",
         )
         for heading in (
             "conversation comments",
@@ -451,7 +465,7 @@ class PrFeedback(unittest.TestCase):
         proc = self._report(env)
         out = self._combined(proc)
         self.assertNotEqual(
-            proc.returncode, 0,
+            proc.exit, 0,
             f"failed gh reported as success rc=0:\n{out}",
         )
 
@@ -501,8 +515,8 @@ class PrFeedback(unittest.TestCase):
             fail_out, empty_out,
             "auth failure and genuinely empty PR were byte-identical",
         )
-        self.assertEqual(empty.returncode, 0, empty_out)
-        self.assertNotEqual(fail.returncode, 0, fail_out)
+        self.assertEqual(empty.exit, 0, empty_out)
+        self.assertNotEqual(fail.exit, 0, fail_out)
 
     def test_failing_gh_empty_stderr_is_still_unreadable(self):
         self._empty_success()
@@ -510,7 +524,7 @@ class PrFeedback(unittest.TestCase):
         self._prove_stub_fails(env, stderr_snip="")
         proc = self._report(env)
         out = self._combined(proc)
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         self.assertIn("UNREADABLE", out, out)
         body = self._section(out, "conversation comments")
         self.assertNotIn("(none)", body, body)
@@ -518,22 +532,23 @@ class PrFeedback(unittest.TestCase):
     def test_one_surface_failing_keeps_the_others_readable(self):
         self._baseline()
         env = self._env(extra={"GH_FAIL_ENDPOINT": "/reviews"})
-        ok = support.run_cmd(
+        ok = self._run(
             ["gh", "api", "repos/o/r/issues/13/comments", "--jq", "length"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertEqual(ok.stdout.strip(), "1", "INVALID: conv should work")
-        bad = support.run_cmd(
+        bad = self._run(
             ["gh", "api", "repos/o/r/pulls/13/reviews"],
-            self.tmp, env, expect=None,
+            env,
         )
         self.assertEqual(
-            bad.returncode, 1,
-            f"INVALID: reviews endpoint did not fail: {bad.returncode}",
+            bad.exit, 1,
+            f"INVALID: reviews endpoint did not fail: {bad.exit}",
         )
         proc = self._report(env)
         out = self._combined(proc)
-        self.assertNotEqual(proc.returncode, 0, out)
+        self.assertNotEqual(proc.exit, 0, out)
         conv = self._section(out, "conversation comments")
         self.assertIn("@codex review", conv, conv)
         self.assertNotIn("UNREADABLE", conv, conv)
@@ -554,7 +569,7 @@ class PrFeedback(unittest.TestCase):
                 calls.is_file() and int(calls.read_text().strip() or "0") > 0,
                 "INVALID: watch never called gh before the failure plant",
             )
-            support.plant_text(self.mode_file, "fail\n", recognisable="fail")
+            self.world.plant_text(self.mode_file, "fail\n", recognisable="fail")
             landed = self.mode_file.read_text(encoding="utf-8").strip()
             self.assertEqual(landed, "fail", "INVALID: mode did not flip")
             self._prove_stub_fails(env)
@@ -576,7 +591,7 @@ class PrFeedback(unittest.TestCase):
         self._prove_stub_ok(env)
 
         def flip_to_fail():
-            support.plant_text(self.mode_file, "fail\n", recognisable="fail")
+            self.world.plant_text(self.mode_file, "fail\n", recognisable="fail")
             self._prove_stub_fails(env)
 
         rc, out = self._watch(env, interval=1, timeout=6, mover=flip_to_fail)
@@ -615,22 +630,24 @@ class PrFeedback(unittest.TestCase):
     def test_unresolved_thread_past_first_50_is_shown(self):
         self._empty_success()
         env = self._env(extra={"GH_THREAD_COUNT": "51"})
-        sample = support.run_cmd(
+        sample = self._run(
             ["gh", "api", "graphql", "-f",
              "query=reviewThreads(first: 50)", "--jq",
              ".data.repository.pullRequest.reviewThreads.nodes | length"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertEqual(
             sample.stdout.strip(), "50",
             f"INVALID: first:50 page length {sample.stdout!r}",
         )
-        page2 = support.run_cmd(
+        page2 = self._run(
             ["gh", "api", "graphql", "-f",
              "query=reviewThreads(first: 50)", "-f", "threadCursor=c50",
              "--jq",
              ".data.repository.pullRequest.reviewThreads.nodes[0].path"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertIn(
             "thread-51-unique.py", page2.stdout,
@@ -642,11 +659,12 @@ class PrFeedback(unittest.TestCase):
         """first:100 without paging is the pr-overview mutant, copied here."""
         self._empty_success()
         env = self._env(extra={"GH_THREAD_COUNT": "101"})
-        sample = support.run_cmd(
+        sample = self._run(
             ["gh", "api", "graphql", "-f",
              "query=reviewThreads(first: 100)", "--jq",
              ".data.repository.pullRequest.reviewThreads.nodes | length"],
-            self.tmp, env, expect=0,
+            env,
+            expect=0,
         )
         self.assertEqual(
             sample.stdout.strip(), "100",

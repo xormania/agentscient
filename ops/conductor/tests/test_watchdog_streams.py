@@ -13,7 +13,10 @@ import re
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 SOURCE = Path(__file__).resolve().parents[1] / "tools" / "watchdog.py"
+SIBLINGS = ("instrument.py", "laneconf.py")
 ERROR_ORACLE = re.compile(r"\berrored\b|\berrors\s*=\s*[1-9]\d*\b", re.IGNORECASE)
 REFUSAL_ORACLE = re.compile(
     rb"(?m)^\s*(?:empty\-comparison|scope\-cap|conf\-key|toolchain):"
@@ -32,7 +35,10 @@ class ChunkStream(io.BytesIO):
 class BoundedScannerLanguage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        spec = importlib.util.spec_from_file_location("watchdog_language_subject", SOURCE)
+        cls.world = World(prefix="watchdog-streams-")
+        cls.addClassCleanup(cls.world.close)
+        staged = cls.world.stage(SOURCE, siblings=SIBLINGS)
+        spec = importlib.util.spec_from_file_location("watchdog_language_subject", staged)
         cls.subject = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.subject)
 

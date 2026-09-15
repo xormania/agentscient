@@ -28,6 +28,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
+
 
 def _argv_strs(argv) -> list[str]:
     return [str(item) for item in argv]
@@ -58,6 +60,7 @@ class _CodexReadRoleJob(ls._TempLaunch):
     """One Codex read-role job per case: the fixture holds one record."""
 
     JOB = ""
+    world: World
 
     def _launch(self):
         # A review's base is the merge-base with dev; the fixture has no dev,

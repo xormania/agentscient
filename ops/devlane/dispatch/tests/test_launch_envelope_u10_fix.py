@@ -35,6 +35,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
+
 
 def _cause_reason(rec):
     cause = (rec.get("result") or {}).get("cause")
@@ -108,6 +110,10 @@ def _nested_counts_ok(obj):
 
 
 class _FixLaunch(ls._TempLaunch):
+    """The shared fixture owns the hermetic World and its tool registry."""
+
+    world: World
+
     def _raw_out(self):
         raw = self.the_job_dir() / "raw.out"
         self.assertTrue(raw.is_file(), "raw.out is missing")

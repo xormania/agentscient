@@ -7,13 +7,18 @@ import json
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 REPO = Path(__file__).resolve().parents[4]
 JOBS = REPO / "ops" / "devlane" / "task" / "jobs.json"
 
 
 class PlanPromptGrammar(unittest.TestCase):
     def setUp(self):
-        self.prompt = json.loads(JOBS.read_text(encoding="utf-8"))["plan"]["prompt"]
+        self.world = World()
+        self.addCleanup(self.world.close)
+        jobs = self.world.stage(JOBS)
+        self.prompt = json.loads(jobs.read_text(encoding="utf-8"))["plan"]["prompt"]
 
     def test_the_slice_line_carries_a_class(self):
         self.assertIn("`slice<TAB>name<TAB>S|M<TAB>class`", self.prompt)

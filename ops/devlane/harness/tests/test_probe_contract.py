@@ -7,16 +7,25 @@ where an unsuccessful arm becomes "no answer", is tested directly.
 
 from __future__ import annotations
 
-import os
+import importlib.util
 from pathlib import Path
 import sys
-import tempfile
 import unittest
 import uuid
 
-import support  # noqa: F401  (puts the harness dir on sys.path)
+from ops.testkit import World
 
-import probe
+HARNESS = Path(__file__).resolve().parents[1]
+
+
+def load(name):
+    spec = importlib.util.spec_from_file_location(name, HARNESS / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+probe = load("probe")
 
 
 class ProbeContractTests(unittest.TestCase):
@@ -26,10 +35,8 @@ class ProbeContractTests(unittest.TestCase):
         self.assertEqual(3, len(set(verdicts)))
 
     def test_run_executes_in_the_requested_environment_and_returns_all_streams(self):
-        with tempfile.TemporaryDirectory(prefix="probe cwd with spaces ") as temporary:
-            cwd = Path(temporary)
-            env = dict(os.environ)
-            env["PROBE_TEST_SENTINEL"] = "recognisable-environment"
+        with World(prefix="probe cwd with spaces ") as world:
+            env = world.env({"PROBE_TEST_SENTINEL": "recognisable-environment"})
             script = (
                 "import os, pathlib, sys; "
                 "data = sys.stdin.read(); "
@@ -41,14 +48,14 @@ class ProbeContractTests(unittest.TestCase):
             rc, stdout, stderr = probe._run(
                 [sys.executable, "-c", script],
                 env,
-                cwd,
+                world.cwd,
                 stdin="recognisable-stdin",
             )
 
             self.assertEqual(0, rc)
             self.assertEqual("recognisable-environment:recognisable-stdin\n", stdout)
             self.assertEqual("recognisable-stderr\n", stderr)
-            receipt = cwd / "ran.receipt"
+            receipt = world.cwd / "ran.receipt"
             self.assertTrue(receipt.is_file())
             self.assertEqual("recognisable-stdin", receipt.read_text(encoding="utf-8"))
 
@@ -59,10 +66,9 @@ class ProbeContractTests(unittest.TestCase):
             ("NO\n", 25),
         )
         self.assertEqual(3, len(cases))
-        for apparent_answer, exit_status in cases:
-            with self.subTest(apparent_answer=apparent_answer.strip()):
-                with tempfile.TemporaryDirectory() as temporary:
-                    cwd = Path(temporary)
+        with World() as world:
+            for apparent_answer, exit_status in cases:
+                with self.subTest(apparent_answer=apparent_answer.strip()):
                     script = (
                         "import pathlib, sys; "
                         f"sys.stdout.write({apparent_answer!r}); "
@@ -74,11 +80,11 @@ class ProbeContractTests(unittest.TestCase):
 
                     rc, stdout, stderr = probe._run(
                         [sys.executable, "-c", script],
-                        dict(os.environ),
-                        cwd,
+                        world.env(),
+                        world.cwd,
                     )
 
-                    receipt = cwd / "arm-ran.receipt"
+                    receipt = world.cwd / "arm-ran.receipt"
                     self.assertTrue(receipt.is_file())
                     self.assertEqual("recognisable-arm", receipt.read_text(encoding="utf-8"))
                     self.assertIsNone(rc)
@@ -87,30 +93,27 @@ class ProbeContractTests(unittest.TestCase):
 
     def test_run_reports_no_answer_when_the_arm_never_starts(self):
         missing_command = f"probe-command-that-does-not-exist-{uuid.uuid4().hex}"
-        with tempfile.TemporaryDirectory() as temporary:
-            cwd = Path(temporary)
-            self.assertEqual(0, len(list(cwd.iterdir())))
+        with World() as world:
+            self.assertEqual(0, len(list(world.cwd.iterdir())))
 
             rc, stdout, stderr = probe._run(
                 [missing_command],
-                dict(os.environ),
-                cwd,
+                world.env(),
+                world.cwd,
             )
 
             self.assertIsNone(rc)
             self.assertEqual("", stdout)
             self.assertIsInstance(stderr, str)
             self.assertNotEqual("", stderr.strip())
-            self.assertEqual(0, len(list(cwd.iterdir())))
+            self.assertEqual(0, len(list(world.cwd.iterdir())))
 
     def test_structural_probe_is_read_only_even_with_personal_extras_present(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            real_home = Path(temporary) / "operator-codex"
+        with World() as world:
+            real_home = world.root / "operator-codex"
             real_home.mkdir()
-            credential = real_home / "auth.json"
-            credential.write_text("recognisable-auth\n", encoding="utf-8")
-            planted_hook = real_home / "hooks.json"
-            planted_hook.write_text("personal-hook\n", encoding="utf-8")
+            world.plant_text(real_home / "auth.json", "recognisable-auth\n")
+            planted_hook = world.plant_text(real_home / "hooks.json", "personal-hook\n")
             before = {
                 path.relative_to(real_home): (path.is_symlink(), path.read_bytes())
                 for path in real_home.rglob("*")
@@ -121,6 +124,7 @@ class ProbeContractTests(unittest.TestCase):
             self.assertIn(Path("hooks.json"), before)
             self.assertEqual(b"personal-hook\n", planted_hook.read_bytes())
 
+            watch = world.watch(real_home)
             probe.structural("codex", env={"CODEX_HOME": str(real_home)})
 
             after = {
@@ -129,6 +133,7 @@ class ProbeContractTests(unittest.TestCase):
                 if path.is_file() or path.is_symlink()
             }
             self.assertEqual(before, after)
+            watch.assert_unchanged(self)
 
 if __name__ == "__main__":
     unittest.main()

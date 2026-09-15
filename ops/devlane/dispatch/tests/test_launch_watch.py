@@ -18,23 +18,22 @@ import json
 import os
 import re
 import shutil
-import subprocess
-import sys
 import threading
 import time
 from pathlib import Path
 
 import launch_support as ls
 
-
-def _reap(proc):
-    """Kill and wait, so the child is reaped before the interpreter warns about it."""
-    proc.kill()
-    proc.wait(timeout=10)
-    assert proc.poll() is not None, "the child was not reaped"
+from ops.testkit import Timeout, World, run
 
 
-class StatusReportsDiedNeverFinished(ls._TempLaunch):
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+
+class StatusReportsDiedNeverFinished(_KitLaunch):
     """W1 / plan (i). Planted job dirs — status does not need a live
     harness, but it does need launch.main."""
 
@@ -48,14 +47,14 @@ class StatusReportsDiedNeverFinished(ls._TempLaunch):
             "stream": str(d / "stream.jsonl"),
             "attempt": 1,
         }
-        (d / "state.json").write_text(json.dumps(state) + "\n", encoding="utf-8")
+        self.world.plant_text(d / "state.json", json.dumps(state) + "\n")
         landed = json.loads((d / "state.json").read_text(encoding="utf-8"))
         self.assertEqual(landed["pid"], pid, "plant: state.json pid")
         if exit_text is not None:
-            (d / "exit").write_text(exit_text, encoding="utf-8")
+            self.world.plant_text(d / "exit", exit_text)
             self.assertEqual((d / "exit").read_text(encoding="utf-8"), exit_text)
         if tripped:
-            (d / "TRIPPED.md").write_text("tripped\n", encoding="utf-8")
+            self.world.plant_text(d / "TRIPPED.md", "tripped\n")
             self.assertTrue((d / "TRIPPED.md").is_file())
         return d
 
@@ -90,17 +89,39 @@ class StatusReportsDiedNeverFinished(ls._TempLaunch):
         self.assertNotEqual(status, "finished")
 
     def test_an_alive_pid_is_running(self):
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "import time; time.sleep(60)"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        self.addCleanup(_reap, proc)
+        self.world.tools.plant("status-sleeper", delay=60)
+        runner_errors = []
+
+        def hold_alive():
+            try:
+                run(
+                    ["status-sleeper"], cwd=self.repo,
+                    env=self.world.env(), timeout=2,
+                )
+            except Timeout:
+                pass
+            except BaseException as exc:
+                runner_errors.append(exc)
+
+        runner = threading.Thread(target=hold_alive)
+        runner.start()
+        deadline = time.monotonic() + 1
+        calls = self.world.tools.calls("status-sleeper")
+        while not calls and time.monotonic() < deadline:
+            time.sleep(0.01)
+            calls = self.world.tools.calls("status-sleeper")
+        self.assertTrue(calls, "plant: the fake sleeper recorded its call")
+        pid = calls[0]["pid"]
         job_id = "20260826T000000Z-plan-grok-run001"
-        self._plant_job(job_id, pid=proc.pid)
-        os.kill(proc.pid, 0)  # plant: the pid is still alive
+        self._plant_job(job_id, pid=pid)
+        os.kill(pid, 0)  # plant: the pid is still alive
         text = self._status_blob(job_id, "--json")
         self.assertIn("running", text.lower())
         self.assertNotIn("DIED", text)
+        runner.join(timeout=3)
+        self.assertFalse(runner.is_alive(), "the run timeout reaps the sleeper")
+        if runner_errors:
+            raise runner_errors[0]
 
     def test_an_exit_file_is_finished(self):
         job_id = "20260826T000000Z-plan-grok-fin001"
@@ -123,7 +144,7 @@ class StatusReportsDiedNeverFinished(ls._TempLaunch):
         self.assertIn("unlaunched", text.lower())
 
 
-class ResumeRelaunchesInTheSameSnapshot(ls._TempLaunch):
+class ResumeRelaunchesInTheSameSnapshot(_KitLaunch):
     """W3 / plan (h)."""
 
     def test_resume_uses_the_harness_resume_verb_in_the_same_cwd(self):
@@ -204,7 +225,7 @@ class ResumeRelaunchesInTheSameSnapshot(ls._TempLaunch):
         )
 
 
-class TrippedResumeNeedsAReason(ls._TempLaunch):
+class TrippedResumeNeedsAReason(_KitLaunch):
     """W4."""
 
     def test_a_tripped_job_refuses_resume_without_a_changed_cap_or_reason(self):
@@ -287,7 +308,7 @@ class TrippedResumeNeedsAReason(ls._TempLaunch):
         )
 
 
-class CloseDiedCommitsInvalid(ls._TempLaunch):
+class CloseDiedCommitsInvalid(_KitLaunch):
     """W5 — close ID finalizes and commits a DIED job's record as invalid."""
 
     def test_close_of_a_died_job_commits_invalid(self):
@@ -298,11 +319,11 @@ class CloseDiedCommitsInvalid(ls._TempLaunch):
         d = self.jobs_root / job_id
         d.mkdir()
         pid = self.dead_pid()
-        (d / "state.json").write_text(json.dumps({
+        self.world.plant_text(d / "state.json", json.dumps({
             "pid": pid, "pgid": pid,
             "session": {"id": "22222222-2222-4222-8222-222222222222"},
             "attempt": 1,
-        }) + "\n", encoding="utf-8")
+        }) + "\n")
         self.assertFalse((d / "exit").exists())
         record_path = (
             self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
@@ -341,7 +362,7 @@ class CloseDiedCommitsInvalid(ls._TempLaunch):
             "result": None, "status": "launched",
         }
         (d / "snapshot").mkdir()
-        record_path.write_text(json.dumps(seed, indent=2) + "\n", encoding="utf-8")
+        self.world.plant_text(record_path, json.dumps(seed, indent=2) + "\n")
         self.assertIn("launched", record_path.read_text(encoding="utf-8"))
         before_head = self._git("rev-parse", "HEAD").stdout.strip()
         code, out, err = self.run_main(["close", job_id])
@@ -356,7 +377,7 @@ class CloseDiedCommitsInvalid(ls._TempLaunch):
         self.assertIn(job_id, msg)
 
 
-class LaunchedRecordExistsBeforeTheChildFinishes(ls._TempLaunch):
+class LaunchedRecordExistsBeforeTheChildFinishes(_KitLaunch):
     """The launched record is written before the child runs to completion."""
 
     def test_status_launched_is_visible_while_the_child_is_still_running(self):
@@ -392,7 +413,7 @@ class LaunchedRecordExistsBeforeTheChildFinishes(ls._TempLaunch):
         )
 
 
-class RuntimeOutcomesStillCommitARecord(ls._TempLaunch):
+class RuntimeOutcomesStillCommitARecord(_KitLaunch):
     """harness-cli, envelope-parse, timeout, trip produce committed records."""
 
     def _committed_invalid(self, rec, *, needles):
@@ -465,7 +486,7 @@ class RuntimeOutcomesStillCommitARecord(ls._TempLaunch):
         )
 
 
-class ResumeFindsTheMovedStore(ls._TempLaunch):
+class ResumeFindsTheMovedStore(_KitLaunch):
     """After a normal launch the store is moved to <harness>-stream.
     resume restores it under CODEX_HOME / GROK_HOME before the child
     starts, then moves it forward again. A resume with no store in
@@ -684,7 +705,7 @@ class ResumeFindsTheMovedStore(ls._TempLaunch):
         )
 
 
-class WaitPollsTheRecord(ls._TempLaunch):
+class WaitPollsTheRecord(_KitLaunch):
     """wait ID polls the record until closed or died. Launch prints
     record: <id> at mint."""
 
@@ -813,8 +834,8 @@ class WaitPollsTheRecord(ls._TempLaunch):
             "overrides": [], "attempts": [],
             "result": None, "status": "launched",
         }
-        record_path.write_text(
-            json.dumps(seed, indent=2) + "\n", encoding="utf-8",
+        self.world.plant_text(
+            record_path, json.dumps(seed, indent=2) + "\n",
         )
         planted = json.loads(record_path.read_text(encoding="utf-8"))
         self.assertEqual(planted["status"], "launched")

@@ -20,6 +20,8 @@ from pathlib import Path
 import agy_dispatch_support as agy
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 SYNTHETIC_THINKING = "synthetic-planner-thinking"
 SYNTHETIC_CONTENT = "synthetic-user-content"
 MALFORMED_PHRASE = "malformed native transcript"
@@ -78,9 +80,8 @@ class AgyNativeTranscriptSeam(ls._TempLaunch):
 
     def plant_auth(self):
         path = agy.auth_path(self.agy_home)
-        path.parent.mkdir(parents=True, exist_ok=True)
         marker = "agy-synthetic-auth\n"
-        path.write_text(marker, encoding="utf-8")
+        self.world.plant_text(path, marker)
         self.assertEqual(path.read_text(encoding="utf-8"), marker, "plant: auth")
         return path
 
@@ -95,7 +96,7 @@ class AgyNativeTranscriptSeam(ls._TempLaunch):
         body["cwd"] = cwd
         lines[0] = json.dumps(init)
         data = ("".join(line + "\n" for line in lines)).encode("utf-8")
-        self.raw_out.write_bytes(data)
+        self.world.plant_bytes(self.raw_out, data)
         landed = self.raw_out.read_bytes()
         self.assertEqual(landed, data, "plant: raw.out bytes")
         self.assertIn(agy.MODEL.encode("utf-8"), landed, "plant: init.model")
@@ -105,8 +106,7 @@ class AgyNativeTranscriptSeam(ls._TempLaunch):
 
     def plant_transcript(self, rows):
         data = _ndjson(rows)
-        self.transcript.parent.mkdir(parents=True, exist_ok=True)
-        self.transcript.write_bytes(data)
+        self.world.plant_bytes(self.transcript, data)
         landed = self.transcript.read_bytes()
         self.assertEqual(landed, data, "plant: transcript bytes")
         parsed = [json.loads(line) for line in landed.decode("utf-8").splitlines()

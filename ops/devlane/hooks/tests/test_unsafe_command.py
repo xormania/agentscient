@@ -1,15 +1,48 @@
 """Moved corpus for unsafe-command.py: refuse, stay silent, see an amend."""
 
+import importlib.util
+import sys
 import unittest
+from pathlib import Path
 
 import corpus
-import support
+
+from ops.testkit import World
+
+HOOK = Path(__file__).resolve().parents[1] / "claude" / "unsafe-command.py"
+
+
+def load_staged(world):
+    staged = world.stage(HOOK, siblings=("command_shape.py",))
+    shape_spec = importlib.util.spec_from_file_location(
+        "command_shape", staged.with_name("command_shape.py")
+    )
+    shape = importlib.util.module_from_spec(shape_spec)
+    previous = sys.modules.get("command_shape")
+    sys.modules["command_shape"] = shape
+    shape_spec.loader.exec_module(shape)
+    spec = importlib.util.spec_from_file_location("unsafe_command_testkit", staged)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module, previous
 
 
 class UnsafeCommandCorpus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mod = support.load_claude("unsafe-command.py", "unsafe_command")
+        cls.world = World(prefix="unsafe-command-")
+        cls.world.enter()
+        cls.mod, cls.previous_shape = load_staged(cls.world)
+
+    @classmethod
+    def tearDownClass(cls):
+        sys.modules.pop("unsafe_command_testkit", None)
+        if cls.previous_shape is None:
+            sys.modules.pop("command_shape", None)
+        else:
+            sys.modules["command_shape"] = cls.previous_shape
+        cls.world.close()
 
     def test_the_moved_tables_are_the_tables_that_were_there(self):
         self.assertEqual(len(corpus.UNSAFE_BLOCK), corpus.COUNTS["UNSAFE_BLOCK"])

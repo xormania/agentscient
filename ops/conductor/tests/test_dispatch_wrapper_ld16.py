@@ -15,24 +15,21 @@ second producer the defect list asks for was not dispatched.
 
 from __future__ import annotations
 
-import sys
-import tempfile
 import unittest
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import test_dispatch_wrapper as wrapper_suite
 from live_store_guard import assert_unchanged
+
+from ops.testkit import World
 
 PLANTED = "20260101T000000Z-tests-grok-a1d016"
 
 
 class AJobDirMintedMidRun(wrapper_suite._WrapperFixture):
     def setUp(self):
-        self._own_root = tempfile.TemporaryDirectory(prefix="ld16-jobs-")
-        self.addCleanup(self._own_root.cleanup)
-        own = Path(self._own_root.name)
+        self._own_world = World(prefix="ld16-jobs-")
+        self.addCleanup(self._own_world.close)
+        own = self._own_world.cwd
         original = wrapper_suite._jobs_roots_to_guard
         wrapper_suite._jobs_roots_to_guard = lambda: [own]
         self.addCleanup(setattr, wrapper_suite, "_jobs_roots_to_guard", original)

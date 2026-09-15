@@ -16,11 +16,13 @@ before the module existed. Each test names the contract rule it pins:
 
 from __future__ import annotations
 
+import importlib
 import json
 import unittest
 
-import support
+from ops.testkit import World
 
+support = importlib.import_module("support")
 envelope = support.load("envelope")
 
 STAMP = {"ref": "f0b8bb3", "started": "2026-08-22T12:00:00Z",
@@ -33,7 +35,14 @@ def a_finding(severity="p2", reproduce="python3 -m unittest x"):
         reproduce=reproduce)
 
 
-class TheRefusalRule(unittest.TestCase):
+class _WorldCase(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="envelope-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
+
+class TheRefusalRule(_WorldCase):
     """R1 — status routes; verdict judges; only a task that ran may approve."""
 
     def test_an_ok_task_may_approve(self):
@@ -93,7 +102,7 @@ class TheRefusalRule(unittest.TestCase):
             envelope.build("verify", status="ok", verdict="lgtm", stamp=STAMP)
 
 
-class AFindingWithoutAReproductionSaysSo(unittest.TestCase):
+class AFindingWithoutAReproductionSaysSo(_WorldCase):
     """R2 — the absence is a value in the data, not a missing key."""
 
     def test_the_key_is_present_and_null(self):
@@ -139,7 +148,7 @@ class AFindingWithoutAReproductionSaysSo(unittest.TestCase):
                     "claim": "c", **kwargs})
 
 
-class ArtifactsAreHandles(unittest.TestCase):
+class ArtifactsAreHandles(_WorldCase):
     """R3 — the prose stays on disk; the caller reads it if it decides to."""
 
     def test_a_path_is_accepted(self):
@@ -165,7 +174,7 @@ class ArtifactsAreHandles(unittest.TestCase):
                            artifacts={"raw": ""}, stamp=STAMP)
 
 
-class EverySoTaskReturnsTheSameShape(unittest.TestCase):
+class EverySoTaskReturnsTheSameShape(_WorldCase):
     """R4/R5/R6 — one key set, spend always priced, stamp always pinned."""
 
     def test_the_key_set_is_fixed_and_ordered(self):
@@ -214,7 +223,7 @@ class EverySoTaskReturnsTheSameShape(unittest.TestCase):
         self.assertEqual(json.loads(json.dumps(env)), env)
 
 
-class CountsAreDerivedNeverAsserted(unittest.TestCase):
+class CountsAreDerivedNeverAsserted(_WorldCase):
     """R7 — a tally that can disagree with the list is a tally that lies."""
 
     def test_build_tallies_the_findings_itself(self):
@@ -234,7 +243,7 @@ class CountsAreDerivedNeverAsserted(unittest.TestCase):
             envelope.validate(env)
 
 
-class AMalformedEnvelopeIsInvalidNotACrash(unittest.TestCase):
+class AMalformedEnvelopeIsInvalidNotACrash(_WorldCase):
     """Worker output is untrusted, so a wrong TYPE must refuse, not raise.
 
     `_candidate_envelope` in run.py catches EnvelopeError only. Anything

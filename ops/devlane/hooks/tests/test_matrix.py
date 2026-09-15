@@ -12,15 +12,14 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import sqlite3
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import support
+
+from ops.testkit import World, run
 
 HOOK = support.CLAUDE_DIR / "matrix.py"
 
@@ -201,21 +200,17 @@ class MatrixHookTests(unittest.TestCase):
     """One subprocess invocation of matrix.py per assertion."""
 
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="matrix-hook-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.bin = self.tmp / "bin"
-        self.wt = self.tmp / "wt"
-        self.repo = self.tmp / "repo"
-        self.home.mkdir()
-        self.bin.mkdir()
-        self.wt.mkdir()
-        self.repo.mkdir()
-        support.plant_executable(
-            self.bin / "cue", "#!/bin/sh\nexit ${CUE_FAKE_EXIT:-0}\n"
+        self.world = World(prefix="matrix-hook-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.home = self.world.home
+        self.bin = self.world.bin
+        self.wt = self.world.root / "wt"
+        self.repo = self.world.cwd
+        which_cue = self.world.tools.plant("cue")
+        self.env = self.world.env(
+            {"TESTKIT_DIR": str(support.WORKTREE_ROOT / "ops" / "testkit")}
         )
-        self.env = support.isolated_env(self.home, extra_path=self.bin)
-        which_cue = shutil.which("cue", path=self.env["PATH"])
         self.assertIsNotNone(which_cue, "INVALID: fake cue not on PATH")
         self.assertEqual(
             Path(which_cue).resolve(),
@@ -225,6 +220,7 @@ class MatrixHookTests(unittest.TestCase):
         self.store = (
             self.home / ".local" / "state" / LANE_NAME / "handwork.db"
         )
+        self.world.plant_bytes(self.store, b"")
         self._plant_handwork()
         self._plant_tree()
         self._plant_git()
@@ -232,9 +228,7 @@ class MatrixHookTests(unittest.TestCase):
         self.assertLessEqual(self.scope_ok.stat().st_size, SCOPE_CAP)
         self.assertGreater(self.scope_big.stat().st_size, SCOPE_CAP)
         self.assertFalse(self.scope_missing.exists())
-        ancestor = support.git(
-            self.repo,
-            self.env,
+        ancestor = self.git(
             "merge-base",
             "--is-ancestor",
             "origin/dev",
@@ -242,13 +236,12 @@ class MatrixHookTests(unittest.TestCase):
             expect=None,
         )
         self.assertEqual(
-            ancestor.returncode,
+            ancestor.exit,
             0,
             "INVALID: origin/dev is not an ancestor of HEAD in the fixture",
         )
 
     def _plant_handwork(self):
-        self.store.parent.mkdir(parents=True, exist_ok=True)
         rows = (
             (
                 GRANT_SCOPED,
@@ -351,10 +344,10 @@ class MatrixHookTests(unittest.TestCase):
         files = {
             "ops/lane.conf": LANE_CONF,
             "ops/devlane/harness/ok.cue": CUE_OK,
-            "ops/devlane/dispatch/launch.py": "#!/usr/bin/env python3\n",
-            "ops/bin/dispatch.sh": "#!/bin/sh\n",
-            "ops/bin/go.sh": "#!/bin/sh\n",
-            "ops/bin/ladder.sh": "#!/bin/sh\n",
+            "ops/devlane/dispatch/launch.py": "launcher placeholder\n",
+            "ops/bin/dispatch.sh": "dispatch wrapper placeholder\n",
+            "ops/bin/go.sh": "go wrapper placeholder\n",
+            "ops/bin/ladder.sh": "ladder wrapper placeholder\n",
             "ops/conductor/ideas/note.md": "idea\n",
             "ops/conductor/handoff/h.md": "handoff\n",
             "ops/conductor/AAR-2026-09-04.md": "aar\n",
@@ -367,7 +360,7 @@ class MatrixHookTests(unittest.TestCase):
             "packages/README.md": "pkg\n",
             "src/app.py": "x = 1\n",
             "config/services.yaml": "services: {}\n",
-            "bin/console": "#!/usr/bin/env php\n",
+            "bin/console": "console placeholder\n",
             "tests/test_app.py": "x = 1\n",
             "templates/page.twig": "{{ x }}\n",
             "composer.json": "{}\n",
@@ -382,8 +375,8 @@ class MatrixHookTests(unittest.TestCase):
             "phpunit.dist.xml": "<phpunit/>\n",
         }
         for rel, body in files.items():
-            support.plant_text(self.repo / rel, body, recognisable=body[:4])
-        support.plant_text(self.wt / "ag-x" / "keep.txt", "wt\n", recognisable="wt")
+            self.world.plant_text(self.repo / rel, body, recognisable=body[:4])
+        self.world.plant_text(self.wt / "ag-x" / "keep.txt", "wt\n", recognisable="wt")
         self.scope_ok = self.repo / ".dev" / "scope-ok.txt"
         self.scope_big = self.repo / ".dev" / "scope-big.txt"
         self.scope_suites = self.repo / ".dev" / "scope-suites.txt"
@@ -396,36 +389,36 @@ class MatrixHookTests(unittest.TestCase):
         self.input_no_heading = self.repo / ".dev" / "input-no-heading.md"
         self.input_no_assumption = self.repo / ".dev" / "input-no-assumption.md"
         self.input_missing = self.repo / ".dev" / "no-such-input.md"
-        support.plant_text(
+        self.world.plant_text(
             self.scope_ok, "verify the matrix hook\n", recognisable="matrix hook"
         )
-        support.plant_text(self.scope_big, "B" * 80, recognisable="BBBBB")
-        support.plant_text(
+        self.world.plant_text(self.scope_big, "B" * 80, recognisable="BBBBB")
+        self.world.plant_text(
             self.scope_suites, "run suites.sh please\n", recognisable="suites.sh"
         )
-        support.plant_text(
+        self.world.plant_text(
             self.scope_discover,
             "unittest discover tests\n",
             recognisable="unittest discover",
         )
-        support.plant_text(
+        self.world.plant_text(
             self.scope_discover_p,
             "unittest discover -p test_*.py\n",
             recognisable="unittest discover -p",
         )
-        support.plant_text(self.scope_empty, "", recognisable="")
-        support.plant_text(
+        self.world.plant_text(self.scope_empty, "", recognisable="")
+        self.world.plant_text(
             self.scope_dollar, "hello $WORLD\n", recognisable="$WORLD"
         )
-        support.plant_text(
+        self.world.plant_text(
             self.input_ok, WALKTHROUGH_OK, recognisable="First-run walkthrough"
         )
-        support.plant_text(
+        self.world.plant_text(
             self.input_no_heading,
             WALKTHROUGH_NO_HEADING,
             recognisable="# Notes",
         )
-        support.plant_text(
+        self.world.plant_text(
             self.input_no_assumption,
             WALKTHROUGH_NO_ASSUMPTION,
             recognisable="no assumption line",
@@ -435,23 +428,24 @@ class MatrixHookTests(unittest.TestCase):
         (self.repo / ".dev" / "records").mkdir()
 
     def _plant_git(self):
-        support.git(
-            self.repo, self.env, "-c", "init.defaultBranch=dev", "init", "-q"
-        )
-        support.configure_identity(self.repo, self.env)
-        support.git(self.repo, self.env, "add", "-A")
-        support.git(self.repo, self.env, "commit", "-q", "-m", "seed")
-        sha = support.git(
-            self.repo, self.env, "rev-parse", "HEAD"
-        ).stdout.strip()
+        self.git("-c", "init.defaultBranch=dev", "init", "-q")
+        self.git("config", "user.name", "Test User")
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "seed")
+        sha = self.git("rev-parse", "HEAD").stdout.strip()
         self.assertGreaterEqual(len(sha), 7, "INVALID: seed commit SHA missing")
-        support.git(
-            self.repo, self.env, "update-ref", "refs/remotes/origin/dev", sha
-        )
-        origin = support.git(
-            self.repo, self.env, "rev-parse", "origin/dev"
-        ).stdout.strip()
+        self.git("update-ref", "refs/remotes/origin/dev", sha)
+        origin = self.git("rev-parse", "origin/dev").stdout.strip()
         self.assertEqual(origin, sha, "INVALID: origin/dev was not planted")
+
+    def git(self, *args, expect=0):
+        return self.world.git(
+            *args,
+            cwd=self.repo,
+            check=expect is not None,
+            timeout=30,
+        )
 
     def payload_bash(self, command: str, cwd=None) -> str:
         cwd = str(cwd or self.repo)
@@ -473,14 +467,11 @@ class MatrixHookTests(unittest.TestCase):
         )
 
     def run_hook(self, payload: str, *, env=None, cwd=None):
-        return subprocess.run(
+        return run(
             [sys.executable, str(HOOK)],
-            cwd=str(cwd or self.repo),
+            cwd=cwd or self.repo,
             env=env or self.env,
-            input=payload,
-            capture_output=True,
-            text=True,
-            check=False,
+            stdin=payload,
             timeout=30,
         )
 
@@ -553,26 +544,18 @@ class MatrixHookTests(unittest.TestCase):
             parts.append(item)
         env = dict(self.env)
         env["PATH"] = os.pathsep.join(parts)
-        self.assertIsNone(
-            shutil.which("cue", path=env["PATH"]),
+        self.assertFalse(
+            any((Path(item) / "cue").exists() for item in parts),
             "INVALID: cue still visible on PATH",
         )
         return env
 
     def make_stale(self):
-        support.git(
-            self.repo, self.env, "commit", "-q", "--allow-empty", "-m", "ahead"
-        )
-        new = support.git(
-            self.repo, self.env, "rev-parse", "HEAD"
-        ).stdout.strip()
-        support.git(
-            self.repo, self.env, "update-ref", "refs/remotes/origin/dev", new
-        )
-        support.git(self.repo, self.env, "reset", "--hard", "HEAD~1")
-        check = support.git(
-            self.repo,
-            self.env,
+        self.git("commit", "-q", "--allow-empty", "-m", "ahead")
+        new = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("update-ref", "refs/remotes/origin/dev", new)
+        self.git("reset", "--hard", "HEAD~1")
+        check = self.git(
             "merge-base",
             "--is-ancestor",
             "origin/dev",
@@ -580,7 +563,7 @@ class MatrixHookTests(unittest.TestCase):
             expect=None,
         )
         self.assertNotEqual(
-            check.returncode,
+            check.exit,
             0,
             "INVALID: origin/dev is still an ancestor of HEAD",
         )
@@ -589,7 +572,7 @@ class MatrixHookTests(unittest.TestCase):
         self.assertTrue(
             proc.stdout and proc.stdout.strip(),
             f"expected deny of class {cls}; found empty stdout "
-            f"(exit={proc.returncode} stderr={proc.stderr!r})",
+            f"(exit={proc.exit} stderr={proc.stderr!r})",
         )
         try:
             data = json.loads(proc.stdout)
@@ -617,17 +600,17 @@ class MatrixHookTests(unittest.TestCase):
             f"reason for {cls} was {reason!r}",
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"hook must exit 0 on deny of {cls}; stderr={proc.stderr!r}",
         )
 
     def assert_allowed(self, proc):
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"expected allow (exit 0, empty stdout); found exit="
-            f"{proc.returncode} stdout={proc.stdout!r} stderr={proc.stderr!r}",
+            f"{proc.exit} stdout={proc.stdout!r} stderr={proc.stderr!r}",
         )
         self.assertEqual(
             proc.stdout,
@@ -900,18 +883,19 @@ class MatrixHookTests(unittest.TestCase):
     def make_conflicting(self):
         """HEAD and origin/dev diverge on the same line of one file."""
         target = self.repo / "conflict.txt"
-        support.plant_text(target, "theirs\n")
-        support.git(self.repo, self.env, "add", "-A")
-        support.git(self.repo, self.env, "commit", "-q", "-m", "theirs")
-        new = support.git(self.repo, self.env, "rev-parse", "HEAD").stdout.strip()
-        support.git(self.repo, self.env, "update-ref", "refs/remotes/origin/dev", new)
-        support.git(self.repo, self.env, "reset", "-q", "--hard", "HEAD~1")
-        support.plant_text(target, "ours\n")
-        support.git(self.repo, self.env, "add", "-A")
-        support.git(self.repo, self.env, "commit", "-q", "-m", "ours")
-        check = support.git(self.repo, self.env, "merge-base", "--is-ancestor",
-                            "origin/dev", "HEAD", expect=None)
-        self.assertNotEqual(check.returncode, 0, "INVALID: origin/dev still an ancestor")
+        self.world.plant_text(target, "theirs\n")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "theirs")
+        new = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("update-ref", "refs/remotes/origin/dev", new)
+        self.git("reset", "-q", "--hard", "HEAD~1")
+        self.world.plant_text(target, "ours\n")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "ours")
+        check = self.git(
+            "merge-base", "--is-ancestor", "origin/dev", "HEAD", expect=None
+        )
+        self.assertNotEqual(check.exit, 0, "INVALID: origin/dev still an ancestor")
 
     def test_stale_base_allows_a_worktree_the_dispatcher_can_merge_forward(self):
         """Owner, 2026-09-12: "why are the branches always out of date";
@@ -934,8 +918,8 @@ class MatrixHookTests(unittest.TestCase):
     # --- contract-vet ---
 
     def test_contract_vet_refuses_when_cue_vet_fails(self):
-        support.plant_executable(self.bin / "cue", "#!/bin/sh\nexit 1\n")
-        support.plant_text(
+        self.world.tools.plant("cue", exit=1)
+        self.world.plant_text(
             self.repo / "ops" / "devlane" / "harness" / "ok.cue",
             "this is not cue {\n",
             recognisable="not cue",
@@ -1017,13 +1001,15 @@ class MatrixHookTests(unittest.TestCase):
 
     def _lock(self, *branches):
         path = self.home / ".local" / "state" / LANE_NAME / "deliverable.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"branches": list(branches), "why": "the slices",
-                                    "by": "Owner <o@x>", "at": "2026-09-11T07:00:00Z"}) + "\n")
+        self.world.plant_text(
+            path,
+            json.dumps({"branches": list(branches), "why": "the slices",
+                        "by": "Owner <o@x>", "at": "2026-09-11T07:00:00Z"}) + "\n",
+        )
         self.assertIn(branches[0], path.read_text(), "plant: lock names the branch")
 
     def _repo_branch(self):
-        return support.git(self.repo, self.env, "symbolic-ref", "--short", "HEAD").stdout.strip()
+        return self.git("symbolic-ref", "--short", "HEAD").stdout.strip()
 
     def test_without_a_lock_new_branches_and_dispatches_pass(self):
         self.assert_allowed(self.run_bash("git worktree add ../wt/ag-other -b lane/other"))
@@ -1084,8 +1070,7 @@ class MatrixHookTests(unittest.TestCase):
         root = os.path.realpath(str(self.repo))
         context = (self.home / ".local" / "state" / LANE_NAME / "graft"
                    / f"{hashlib.sha256(root.encode()).hexdigest()}.context.json")
-        context.parent.mkdir(parents=True)
-        context.write_text("{}")
+        self.world.plant_text(context, "{}")
         proc = self.run_bash("grep -rn 'def foo' docs/")
         self.assert_denied(proc, "graft-first")
         self.assertIn(f"--context {context}", proc.stdout)
@@ -1195,14 +1180,12 @@ class MatrixHookTests(unittest.TestCase):
 
     def test_untracked_run_script_is_read_and_checked(self):
         script = self.repo / ".dev" / "run-write.sh"
-        support.plant_text(
+        self.world.plant_text(
             script,
             "#!/bin/sh\nDEST=AGENTS.md\necho x > $DEST\n",
             recognisable="DEST=AGENTS.md",
         )
-        tracked = support.git(
-            self.repo, self.env, "ls-files", ".dev/run-write.sh"
-        ).stdout.strip()
+        tracked = self.git("ls-files", ".dev/run-write.sh").stdout.strip()
         self.assertEqual(tracked, "", "INVALID: run script was tracked")
         for cmd in (
             "bash .dev/run-write.sh",
@@ -1424,7 +1407,7 @@ class MatrixHookTests(unittest.TestCase):
         fragment = "tests/test_app.py"
         scope = self.repo / ".dev" / "scope-path-form.txt"
         body = f"python3 -m unittest {fragment}\n"
-        support.plant_text(scope, body, recognisable=fragment)
+        self.world.plant_text(scope, body, recognisable=fragment)
         self.assertLessEqual(
             scope.stat().st_size,
             SCOPE_CAP,

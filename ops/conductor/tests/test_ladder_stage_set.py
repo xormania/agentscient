@@ -10,16 +10,13 @@ producer is absent and said so in the record.
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
+from test_ladder_lever import AGENT, RUN_CAP, _LadderFixture
 
-from test_ladder_lever import AGENT, RUN_CAP, _LadderFixture  # noqa: E402
+from ops.testkit import World, run
 
 NINE = ("tests", "check-tests", "tests-fix", "code", "security", "adversarial",
         "fix-tests", "fix-code", "security-re")
@@ -47,10 +44,13 @@ class _StageSetFixture(_LadderFixture):
             self.assertFalse(self.table_path().exists())
             return
         text = json.dumps(table, indent=2) + "\n"
-        self._plant_bytes(self.table_path(), text.encode("utf-8"))
+        self.world.plant_text(self.table_path(), text)
         self.git("add", rel)
         self.git("commit", "-m", "plant table\n")
-        self.assertEqual(json.loads(self.table_path().read_text(encoding="utf-8")), table)
+        self.assertEqual(
+            json.loads(self.table_path().read_text(encoding="utf-8")), table,
+        )
+        self.assertIsInstance(self.world, World)
 
     def skipped_by_set(self, record: dict, cls: str) -> list[str]:
         return [
@@ -182,20 +182,21 @@ class NoFixRoundInTheSet(_StageSetFixture):
 
 class TheVerb(_StageSetFixture):
     def _verb(self, path: str):
-        return subprocess.run(
+        return run(
             [sys.executable, str(self.staged), "stage-sets", path],
-            cwd=str(self.invoke_cwd), env=self.env(), capture_output=True, text=True,
-            check=False, timeout=RUN_CAP,
+            cwd=str(self.invoke_cwd),
+            env=self.env(),
+            timeout=RUN_CAP,
         )
 
     def test_the_verb_prints_a_valid_table(self):
         proc = self._verb(str(self.table_path()))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(tuple(json.loads(proc.stdout)["contract"]), CONTRACT_SET)
 
     def test_the_verb_refuses_an_absent_table_on_the_wire(self):
         proc = self._verb(str(self.repo / "nowhere" / "stage-sets.json"))
-        self.assertEqual(proc.returncode, 2, proc.stdout)
+        self.assertEqual(proc.exit, 2, proc.stdout)
         self.assertEqual(proc.stdout, "")
         lines = proc.stderr.strip().splitlines()
         self.assertEqual(len(lines), 1, proc.stderr)

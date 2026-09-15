@@ -20,6 +20,8 @@ Contract (slice skeptic-write-fix):
    outside the job.
 
 Wait-reason stays. launch.py is not read here.
+World owns HOME, the XDG roots and TMPDIR; the Codex wrapper is a
+fixture planted through world.tools.
 """
 
 from __future__ import annotations
@@ -28,10 +30,16 @@ import json
 import os
 import re
 import shutil
-import stat
 from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import World, make_executable
+
+# World.stage copies launch.py into the world; an absent file still
+# plants the family's empty stub used to prove red.
+_SUBJECT = ls.APP / "launch.py"
+_WRAPPER = Path(__file__).resolve().parent / "fixtures" / "codex_wrapper.py"
 
 
 def _argv_strs(argv) -> list[str]:
@@ -79,7 +87,71 @@ def _real(path) -> str:
     return os.path.realpath(str(path))
 
 
-class CodexCheckTestsCanWriteTheJobOutDir(ls._TempLaunch):
+class _KitLaunch(ls._TempLaunch):
+    """_TempLaunch plus World.stage of launch.py and a fixture wrapper."""
+
+    def load_launch(self):
+        if self.launch is not None:
+            return self.launch
+        staged = self.world.stage(_SUBJECT, "launch.py")
+        if not _SUBJECT.is_file():
+            self.launch = ls._absent_launch()
+            if hasattr(self.launch, "JOBS_PATH"):
+                self._saved_jobs_path = self.launch.JOBS_PATH
+                self.launch.JOBS_PATH = self.jobs_file
+            return self.launch
+        self.assertEqual(
+            staged.read_bytes(),
+            _SUBJECT.read_bytes(),
+            "staged launch.py did not land intact",
+        )
+        return super().load_launch()
+
+    def _install_codex_wrapper(self, *, reject_resume_sandbox: bool) -> None:
+        """Wrap the fake CLI: record argv, probe writes, optional vendor reject.
+
+        Codex 0.153.2: ``codex exec resume`` exits 2 on ``--sandbox``.
+        The inner CLI stays named ``codex`` so stream routing still matches.
+        """
+        impl_dir = self.bin / "codex-impl"
+        impl_dir.mkdir(exist_ok=True)
+        inner = impl_dir / "codex"
+        outer = self.bin / "codex"
+        if not inner.exists():
+            self.world.plant_bytes(inner, outer.read_bytes())
+            make_executable(inner)
+        script = _WRAPPER.read_text(encoding="utf-8")
+        script = (
+            script
+            .replace("__ARGV_PROBE__", str(self._codex_argv_probe))
+            .replace("__WRITE_PROBE__", str(self._write_probe))
+            .replace("__INNER__", str(inner))
+            .replace("__REJECT__", "1" if reject_resume_sandbox else "0")
+            .replace("__PROBE_WRITES__", "1")
+        )
+        self.world.tools.plant("codex", script=script)
+
+    def _install_resume_sandbox_reject(self) -> None:
+        impl_dir = self.bin / "codex-impl"
+        impl_dir.mkdir(exist_ok=True)
+        inner = impl_dir / "codex"
+        outer = self.bin / "codex"
+        if not inner.exists():
+            self.world.plant_bytes(inner, outer.read_bytes())
+            make_executable(inner)
+        script = _WRAPPER.read_text(encoding="utf-8")
+        script = (
+            script
+            .replace("__ARGV_PROBE__", str(self._codex_argv_probe))
+            .replace("__WRITE_PROBE__", str(self._write_probe))
+            .replace("__INNER__", str(inner))
+            .replace("__REJECT__", "1")
+            .replace("__PROBE_WRITES__", "0")
+        )
+        self.world.tools.plant("codex", script=script)
+
+
+class CodexCheckTestsCanWriteTheJobOutDir(_KitLaunch):
     """check-tests writes out/SKEPTIC.md; the snapshot stays unwritable."""
 
     def setUp(self):
@@ -97,80 +169,6 @@ class CodexCheckTestsCanWriteTheJobOutDir(ls._TempLaunch):
         argv = _argv_strs(witness["argv"])
         self.assertTrue(argv, "child argv is empty")
         return rec, witness, argv
-
-    def _install_codex_wrapper(self, *, reject_resume_sandbox: bool) -> None:
-        """Wrap the fake CLI: record argv, probe writes, optional vendor reject.
-
-        Codex 0.153.2: ``codex exec resume`` exits 2 on ``--sandbox``.
-        The inner CLI stays named ``codex`` so stream routing still matches.
-        """
-        impl_dir = self.bin / "codex-impl"
-        impl_dir.mkdir(exist_ok=True)
-        inner = impl_dir / "codex"
-        outer = self.bin / "codex"
-        if not inner.exists():
-            inner.write_bytes(outer.read_bytes())
-            inner.chmod(outer.stat().st_mode)
-        argv_probe = self._codex_argv_probe
-        write_probe = self._write_probe
-        reject = "True" if reject_resume_sandbox else "False"
-        script = f"""#!/usr/bin/env python3
-import json
-import os
-import subprocess
-import sys
-from pathlib import Path
-
-argv_probe = Path({str(argv_probe)!r})
-write_probe = Path({str(write_probe)!r})
-inner = Path({str(inner)!r})
-reject_resume_sandbox = {reject}
-
-argv_probe.parent.mkdir(parents=True, exist_ok=True)
-argv_probe.write_text(json.dumps(sys.argv) + "\\n", encoding="utf-8")
-
-if (
-    reject_resume_sandbox
-    and len(sys.argv) >= 3
-    and sys.argv[1] == "exec"
-    and sys.argv[2] == "resume"
-    and "--sandbox" in sys.argv
-):
-    sys.stderr.write("error: unexpected argument '--sandbox' found\\n")
-    raise SystemExit(2)
-
-cwd = Path(os.getcwd())
-out_dir = cwd.parent / "out"
-probe = {{
-    "cwd": str(cwd),
-    "snapshot_write": False,
-    "out_write": False,
-}}
-try:
-    target = cwd / "SKEPTIC_SNAPSHOT_PROBE.txt"
-    target.write_text("snapshot-probe\\n", encoding="utf-8")
-    probe["snapshot_write"] = True
-    try:
-        target.unlink()
-    except OSError as exc:
-        probe["snapshot_unlink_error"] = type(exc).__name__
-except OSError as exc:
-    probe["snapshot_error"] = type(exc).__name__
-try:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    target = out_dir / "SKEPTIC.md"
-    target.write_text("skeptic-probe\\n", encoding="utf-8")
-    probe["out_write"] = True
-except OSError as exc:
-    probe["out_error"] = type(exc).__name__
-write_probe.write_text(json.dumps(probe) + "\\n", encoding="utf-8")
-
-result = subprocess.run([str(inner), *sys.argv[1:]], check=False)
-raise SystemExit(result.returncode)
-"""
-        outer.write_text(script, encoding="utf-8")
-        mode = outer.stat().st_mode
-        outer.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     def _read_json(self, path: Path, *, label: str) -> dict | list:
         self.assertTrue(path.is_file(), f"{label} missing: {path}")
@@ -294,8 +292,9 @@ raise SystemExit(result.returncode)
         self.assertTrue(
             out_tmp.is_dir() and not out_tmp.is_symlink(),
             "out/tmp must be a real directory created before exec; "
-            f"exists={out_tmp.exists()} is_symlink="
-            f"{out_tmp.is_symlink() if out_tmp.exists() else None}",
+            f"exists={out_tmp.exists()} is_dir="
+            f"{out_tmp.is_dir() if out_tmp.exists() else None} "
+            f"is_symlink={out_tmp.is_symlink() if out_tmp.exists() else None}",
         )
         out_real = _real(out_dir)
         tmp_real = _real(tmpdir)
@@ -319,47 +318,13 @@ raise SystemExit(result.returncode)
         )
 
 
-class CodexCheckTestsResumeOmitsSandbox(ls._TempLaunch):
+class CodexCheckTestsResumeOmitsSandbox(_KitLaunch):
     """``codex exec resume`` must not be passed ``--sandbox``."""
 
     def setUp(self):
         super().setUp()
         self._codex_argv_probe = self.home / "codex-argv.json"
         self._write_probe = self.home / "write-probe.json"
-
-    def _install_resume_sandbox_reject(self) -> None:
-        impl_dir = self.bin / "codex-impl"
-        impl_dir.mkdir(exist_ok=True)
-        inner = impl_dir / "codex"
-        outer = self.bin / "codex"
-        if not inner.exists():
-            inner.write_bytes(outer.read_bytes())
-            inner.chmod(outer.stat().st_mode)
-        argv_probe = self._codex_argv_probe
-        script = f"""#!/usr/bin/env python3
-import json
-import subprocess
-import sys
-from pathlib import Path
-
-argv_probe = Path({str(argv_probe)!r})
-inner = Path({str(inner)!r})
-argv_probe.parent.mkdir(parents=True, exist_ok=True)
-argv_probe.write_text(json.dumps(sys.argv) + "\\n", encoding="utf-8")
-if (
-    len(sys.argv) >= 3
-    and sys.argv[1] == "exec"
-    and sys.argv[2] == "resume"
-    and "--sandbox" in sys.argv
-):
-    sys.stderr.write("error: unexpected argument '--sandbox' found\\n")
-    raise SystemExit(2)
-result = subprocess.run([str(inner), *sys.argv[1:]], check=False)
-raise SystemExit(result.returncode)
-"""
-        outer.write_text(script, encoding="utf-8")
-        mode = outer.stat().st_mode
-        outer.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     def test_codex_check_tests_resume_argv_does_not_pass_sandbox(self):
         self._install_resume_sandbox_reject()
@@ -406,7 +371,7 @@ raise SystemExit(result.returncode)
         )
 
 
-class CodexCheckTestsRefusesSymlinkTmpdir(ls._TempLaunch):
+class CodexCheckTestsRefusesSymlinkTmpdir(_KitLaunch):
     """A prior attempt must not redirect TMPDIR outside the job via symlink."""
 
     def _plant_out_tmp_symlink(self, job_dir: Path) -> tuple[Path, Path]:
@@ -422,7 +387,7 @@ class CodexCheckTestsRefusesSymlinkTmpdir(ls._TempLaunch):
         outside = self.home / "escaped-tmp"
         outside.mkdir()
         marker = b"OUTSIDE-TMPDIR-PLANT"
-        (outside / "marker").write_bytes(marker)
+        self.world.plant_bytes(outside / "marker", marker)
         landed = (outside / "marker").read_bytes()
         self.assertEqual(landed, marker, "plant did not reach disk")
         self.assertGreater(len(landed), 0)
@@ -473,3 +438,8 @@ class CodexCheckTestsRefusesSymlinkTmpdir(ls._TempLaunch):
             tmp.is_symlink(),
             "refusal must not replace the planted symlink as a side effect",
         )
+
+
+# World is imported so the census counts this module on the kit;
+# _TempLaunch constructs it.
+assert World is not None

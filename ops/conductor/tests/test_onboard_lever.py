@@ -18,20 +18,16 @@ the contract promise rather than Python's missing-file exit 2.
 
 from __future__ import annotations
 
-import contextlib
 import json
 import os
 import re
-import shutil
-import stat
-import subprocess
 import sys
-import tempfile
-import time
 import unittest
 from pathlib import Path
 
 from live_store_guard import assert_unchanged, without_new_job_dirs
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "onboard.py"
@@ -119,12 +115,6 @@ SIBLING_REFUSAL = (
     "id-shape: expected D-WO-N; found bad-id; needed a well-formed id"
 )
 
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
-
 # PIN_SECTION_HEADERS: the contract writes `== law`, `== state`,
 # `== handoffs` and prints them in that order on stdout.
 # PIN_OK_ABSENT: `OK <path> — <one-liner>` / `ABSENT <path> — <one-liner>`.
@@ -183,15 +173,9 @@ def _live_store_paths() -> list[Path]:
     return unique
 
 
-def _git_out(args: list[str], cwd: Path) -> str:
-    proc = subprocess.run(
-        args,
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
+def _git_out(world: World, args: list[str], cwd: Path) -> str:
+    proc = run(args, cwd=cwd, env=world.env(), timeout=60)
+    if proc.exit != 0:
         raise AssertionError(f"{args} in {cwd}: {proc.stderr}")
     return proc.stdout
 
@@ -229,125 +213,69 @@ class _OnboardFixture(unittest.TestCase):
     """Scratch HOME + git repo, staged tool copy, live store frozen."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
+        self.world = World(prefix="onboard-lever-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
         self._live_before = {str(p): _store_snap(p) for p in _live_store_paths()}
-        self._head_before = _git_out(["git", "rev-parse", "HEAD"], REPO).strip()
-        self._diff_before = subprocess.run(
-            ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
+        self._head_before = _git_out(self.world, ["git", "rev-parse", "HEAD"], REPO).strip()
+        self._diff_before = run(
+            ["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=60
         ).stdout
-        self._tmp = tempfile.TemporaryDirectory(prefix="onboard-lever-")
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.bin = root / "bin"
-        self.repo = root / "repo"
-        self.xdg = root / "xdg"
-        for path in (self.home, self.scratch, self.bin, self.repo, self.xdg):
-            path.mkdir()
+        self.root = self.world.root
+        self.home = self.world.home
+        self.scratch = self.world.tmp
+        self.bin = self.world.bin
+        self.repo = self.world.cwd
+        self.xdg = self.world.xdg_state
         self.store = self.home / ".local" / "state" / "agentscient" / "dispatch"
         self.xdg_store = self.xdg / "agentscient" / "dispatch"
         self.assertFalse(
             self.store.exists(),
             "plant: isolated store must start absent",
         )
-        self._workers: list[subprocess.Popen] = []
         self.gh = self.bin / "gh"
-        self.argv_log = self.scratch / "gh-argv.jsonl"
-        self.staged = self.scratch / "onboard.py"
         self._stage_tool_bytes()
-        self.assertFalse(self.argv_log.exists(), "plant: argv log must start absent")
         self.assertFalse(self.gh.exists(), "plant: gh stub is not planted yet")
 
     def tearDown(self):
-        try:
-            for proc in self._workers:
-                if proc.poll() is None:
-                    proc.kill()
-                    with contextlib.suppress(subprocess.TimeoutExpired):
-                        proc.wait(timeout=2)
-            assert_unchanged(
-                self,
-                self._live_before,
-                {str(p): _store_snap(p) for p in _live_store_paths()},
-            )
-            self.assertEqual(
-                _git_out(["git", "rev-parse", "HEAD"], REPO).strip(),
-                self._head_before,
-                "real repo HEAD moved",
-            )
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                diff_after,
-                self._diff_before,
-                "real repo tracked files mutated",
-            )
-        finally:
-            self._tmp.cleanup()
+        assert_unchanged(
+            self,
+            self._live_before,
+            {str(p): _store_snap(p) for p in _live_store_paths()},
+        )
+        self.assertEqual(
+            _git_out(self.world, ["git", "rev-parse", "HEAD"], REPO).strip(),
+            self._head_before,
+            "real repo HEAD moved",
+        )
+        diff_after = run(
+            ["git", "diff", "HEAD"], cwd=REPO, env=self.world.env(), timeout=60
+        ).stdout
+        self.assertEqual(
+            diff_after,
+            self._diff_before,
+            "real repo tracked files mutated",
+        )
 
     def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
+        self.staged = self.world.stage(TOOL, "onboard.py", siblings=SIBLINGS)
         self.assertTrue(self.staged.is_file())
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under HOME is the one asserted.
         self.conf = self.staged.parent.parent / "lane.conf"
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.world.plant_text(self.conf, "LANE_NAME='agentscient'\n")
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        self.world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
 
-    def _make_executable(self, path: Path) -> None:
-        mode = path.stat().st_mode
-        path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        self.assertTrue(os.access(path, os.X_OK), f"not executable: {path}")
-
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_AUTHOR_NAME": REPO_USER,
-            "GIT_AUTHOR_EMAIL": REPO_EMAIL,
-            "GIT_COMMITTER_NAME": REPO_USER,
-            "GIT_COMMITTER_EMAIL": REPO_EMAIL,
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        return self.world.env()
 
     def git(self, *args: str, check: bool = True, cwd: Path | None = None):
-        proc = subprocess.run(
+        proc = run(
             [
                 "git",
                 "-c",
@@ -358,15 +286,13 @@ class _OnboardFixture(unittest.TestCase):
                 "commit.gpgsign=false",
                 *args,
             ],
-            cwd=str(cwd or self.repo),
+            cwd=cwd or self.repo,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=60,
         )
         if check:
             self.assertEqual(
-                proc.returncode,
+                proc.exit,
                 0,
                 f"git {args}: {proc.stderr or proc.stdout}",
             )
@@ -376,7 +302,7 @@ class _OnboardFixture(unittest.TestCase):
         if (self.repo / ".git").exists():
             return
         init = self.git("init", "-b", BRANCH, cwd=self.repo, check=False)
-        self.assertEqual(init.returncode, 0, init.stderr)
+        self.assertEqual(init.exit, 0, init.stderr)
         self.git("config", "user.name", REPO_USER)
         self.git("config", "user.email", REPO_EMAIL)
         name = self.git("config", "--get", "user.name").stdout.strip()
@@ -412,23 +338,20 @@ class _OnboardFixture(unittest.TestCase):
                 f"INVALID: omitted law file landed: {path}",
             )
 
-    def _plant_py_stub(
+    def _plant_tool(
         self,
-        path: Path,
+        name: str,
+        paths: tuple[Path, ...],
         *,
         stdout: str = "",
         stderr: str = "",
         exit_code: int = 0,
     ) -> None:
-        body = (
-            "#!/usr/bin/env python3\n"
-            "import sys\n"
-            f"sys.stdout.write({stdout!r})\n"
-            f"sys.stderr.write({stderr!r})\n"
-            f"raise SystemExit({exit_code})\n"
+        fake = self.world.tools.plant(
+            name, stdout=stdout, stderr=stderr, exit=exit_code
         )
-        self._plant_bytes(path, body.encode("utf-8"))
-        self._make_executable(path)
+        for path in paths:
+            self._plant_bytes(path, fake.read_bytes())
 
     def plant_siblings(
         self,
@@ -443,41 +366,29 @@ class _OnboardFixture(unittest.TestCase):
         lock_stderr: str = "",
         lock_exit: int = 0,
     ) -> None:
-        locations = (
-            self.scratch,
-            self.repo / "ops" / "conductor" / "tools",
-        )
+        locations = (self.staged.parent, self.repo / "ops" / "conductor" / "tools")
         for folder in locations:
             folder.mkdir(parents=True, exist_ok=True)
-            self._plant_py_stub(
-                folder / "decisions.py",
-                stdout=register_stdout,
-                stderr=register_stderr,
-                exit_code=register_exit,
-            )
-            self._plant_py_stub(
-                folder / "hand.py",
-                stdout=ledger_stdout,
-                stderr=ledger_stderr,
-                exit_code=ledger_exit,
-            )
-            self._plant_py_stub(
-                folder / "deliverable.py",
-                stdout=lock_stdout,
-                stderr=lock_stderr,
-                exit_code=lock_exit,
-            )
-
-    def _gh_preamble(self) -> str:
-        return (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"log = Path({str(self.argv_log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text(prev + json.dumps(sys.argv[1:]) + '\\n', encoding='utf-8')\n"
+        self._plant_tool(
+            "decisions",
+            tuple(folder / "decisions.py" for folder in locations),
+            stdout=register_stdout,
+            stderr=register_stderr,
+            exit_code=register_exit,
+        )
+        self._plant_tool(
+            "hand",
+            tuple(folder / "hand.py" for folder in locations),
+            stdout=ledger_stdout,
+            stderr=ledger_stderr,
+            exit_code=ledger_exit,
+        )
+        self._plant_tool(
+            "deliverable",
+            tuple(folder / "deliverable.py" for folder in locations),
+            stdout=lock_stdout,
+            stderr=lock_stderr,
+            exit_code=lock_exit,
         )
 
     def plant_gh(
@@ -489,33 +400,14 @@ class _OnboardFixture(unittest.TestCase):
         stderr: str = "",
         rows: list | None = None,
     ) -> None:
-        table = f"{number}\t{title}\t{BRANCH}\tOPEN\n"
         payload = json.dumps(
             rows if rows is not None
             else [{"number": int(number), "title": title}]
+        ) + "\n"
+        self.world.tools.plant(
+            "gh", stdout=payload, stderr=stderr, exit=exit_code
         )
-        body = (
-            self._gh_preamble()
-            + f"stderr_text = {stderr!r}\n"
-            + "sys.stderr.write(stderr_text)\n"
-            + f"code = {exit_code}\n"
-            + "if code != 0:\n"
-            + "    raise SystemExit(code)\n"
-            + "argv = sys.argv[1:]\n"
-            + "joined = ' '.join(argv)\n"
-            + "if '--json' in joined or any(a.startswith('--json') for a in argv):\n"
-            + f"    sys.stdout.write({payload!r} + '\\n')\n"
-            + "else:\n"
-            + f"    sys.stdout.write({table!r})\n"
-            + "raise SystemExit(0)\n"
-        )
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
-        self.assertEqual(
-            self.gh.read_text(encoding="utf-8"),
-            body,
-            "gh stub plant did not land intact",
-        )
+        self.assertTrue(self.gh.is_file(), "gh fake did not land")
 
     def plant_dispatch(
         self,
@@ -545,35 +437,16 @@ class _OnboardFixture(unittest.TestCase):
         return dest
 
     def spawn_live(self) -> int:
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "import time; time.sleep(120)"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-        self._workers.append(proc)
-        deadline = time.monotonic() + 2
-        while time.monotonic() < deadline:
-            self.assertIsNone(proc.poll(), "INVALID: live worker exited")
-            try:
-                os.kill(proc.pid, 0)
-                return proc.pid
-            except ProcessLookupError:
-                time.sleep(0.02)
-        self.fail("INVALID: live worker pid never became killable")
-        raise AssertionError("unreachable")
+        pid = os.getpid()
+        os.kill(pid, 0)
+        return pid
 
     def dead_pid(self) -> int:
-        proc = subprocess.Popen(
-            [sys.executable, "-c", "pass"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        proc.wait(timeout=5)
-        self.assertIsNotNone(proc.poll(), "INVALID: dead pid still running")
+        pid_max = int(Path("/proc/sys/kernel/pid_max").read_text(encoding="utf-8"))
+        pid = pid_max + 1
         with self.assertRaises(ProcessLookupError):
-            os.kill(proc.pid, 0)
-        return proc.pid
+            os.kill(pid, 0)
+        return pid
 
     def plant_record_json(
         self,
@@ -781,26 +654,12 @@ class _OnboardFixture(unittest.TestCase):
         self.commit_plant()
 
     def env(self, *, xdg: Path | str | None = None) -> dict[str, str]:
-        env = {
-            "PATH": str(self.bin) + os.pathsep + os.environ.get(
-                "PATH", "/usr/bin:/bin"
-            ),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-            "LANE_CONF": str(self.conf),
-        }
+        env = self.world.env({"LANE_CONF": str(self.conf)})
         self.assertNotIn("WF_AGENT", env)
         if xdg is not None:
-            env["XDG_STATE_HOME"] = str(xdg)
+            self.assertEqual(Path(xdg), self.world.xdg_state)
         else:
-            self.assertNotIn("XDG_STATE_HOME", env)
+            env.pop("XDG_STATE_HOME")
         return env
 
     def invoke(
@@ -815,18 +674,12 @@ class _OnboardFixture(unittest.TestCase):
         if extra_env:
             env.update(extra_env)
         self.assertNotIn("WF_AGENT", env)
-        try:
-            return subprocess.run(
-                [sys.executable, str(self.staged), *(argv or [])],
-                cwd=str(cwd or self.repo),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"onboard exceeded {RUN_CAP}s: {exc}")
+        return run(
+            [sys.executable, str(self.staged), *(argv or [])],
+            cwd=cwd or self.repo,
+            env=env,
+            timeout=RUN_CAP,
+        )
 
     def combined(self, proc) -> str:
         return f"{proc.stdout or ''}{proc.stderr or ''}"
@@ -914,13 +767,7 @@ class _OnboardFixture(unittest.TestCase):
         return found[0]
 
     def gh_argvs(self) -> list[list[str]]:
-        if not self.argv_log.is_file():
-            return []
-        rows = []
-        for line in self.argv_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        return [row["argv"] for row in self.world.tools.calls("gh")]
 
     def short_sha(self) -> str:
         out = self.git("rev-parse", "--short", "HEAD").stdout.strip()
@@ -936,7 +783,7 @@ class _OnboardFixture(unittest.TestCase):
             token in compact or spaced in err.lower(),
             f"refusal class {class_name!r} not named in stderr: {err!r}",
         )
-        self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual(proc.exit, 2, err)
         self.assertTrue(err.strip(), "refusal was silent")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -990,7 +837,7 @@ class ExactLawTable(_OnboardFixture):
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
         self.assertEqual(len(ok_lines), 7, stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class HappyPath(_OnboardFixture):
@@ -1032,7 +879,7 @@ class HappyPath(_OnboardFixture):
         self.assertNotIn(CAL_OLD, stdout)
         self.assertNotIn(DECOY_CAL, stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         argvs = self.gh_argvs()
         self.assertTrue(argvs, "gh was not invoked for the prs line")
         for argv in argvs:
@@ -1050,8 +897,9 @@ class TheLockLine(_OnboardFixture):
 
     def plant_lock(self) -> None:
         lock = self.store.parent / "deliverable.json"
-        lock.parent.mkdir(parents=True, exist_ok=True)
-        lock.write_text('{"branches": ["lane/session-a"], "why": "planted"}\n', encoding="utf-8")
+        self.world.plant_text(
+            lock, '{"branches": ["lane/session-a"], "why": "planted"}\n'
+        )
 
     def test_the_lock_prints_with_its_why_and_every_target_reading(self):
         self.ready()
@@ -1068,7 +916,7 @@ class TheLockLine(_OnboardFixture):
         lock_i = next(i for i, ln in enumerate(stdout.splitlines()) if ln.startswith("lock: "))
         self.assertLess(state_i, lock_i)
         self.assertLess(lock_i, handoffs_i)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_no_lock_is_a_measured_fact_and_the_lever_is_not_run(self):
         self.ready(lock_stdout="LEVER_RAN_UNIQUE_9c1e\n")
@@ -1077,7 +925,7 @@ class TheLockLine(_OnboardFixture):
         stdout = proc.stdout or ""
         self.assertEqual(self.labelled_line(stdout, "lock"), "lock: none")
         self.assertNotIn("LEVER_RAN_UNIQUE_9c1e", stdout, "the lever is not run when the lock file is absent")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_a_lever_that_fails_is_unavailable_and_counts_an_absence(self):
         self.ready(lock_stdout="", lock_stderr="tooling: expected instrument.py beside this tool; found absent; needed restore it",
@@ -1087,7 +935,7 @@ class TheLockLine(_OnboardFixture):
         line = self.labelled_line(proc.stdout or "", "lock")
         self.assertIn("unavailable", line)
         self.assertIn("tooling", line)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class MissingLaw(_OnboardFixture):
@@ -1104,7 +952,7 @@ class MissingLaw(_OnboardFixture):
         self.assertNotIn(ok_line(missing, one_liner), stdout)
         self.assert_exact_law_table(stdout, absent=(missing,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_missing_discovery_lever_counts_one_absence_in_table_order(self):
         missing = "ops/conductor/discovery-lever.md"
@@ -1117,7 +965,7 @@ class MissingLaw(_OnboardFixture):
         self.assertNotIn(ok_line(missing, one_liner), stdout)
         self.assert_exact_law_table(stdout, absent=(missing,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class EmptyLawFile(_OnboardFixture):
@@ -1136,7 +984,7 @@ class EmptyLawFile(_OnboardFixture):
         self.assertNotIn(ok_line(empty, one_liner), stdout)
         self.assert_exact_law_table(stdout, empty=(empty,))
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class GhFailure(_OnboardFixture):
@@ -1149,7 +997,7 @@ class GhFailure(_OnboardFixture):
         prs = self.labelled_line(stdout, "prs")
         self.assertIn("gh unavailable:", prs)
         self.assertIn(GH_FAIL, prs)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertIn("brief complete,", self.last_line(stdout))
 
 
@@ -1164,7 +1012,7 @@ class DispatchStore(_OnboardFixture):
         line = self.labelled_line(stdout, "dispatches")
         self.assertIn("absent", line.lower())
         self.assert_exact_law_table(stdout)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(self.last_line(stdout), "brief complete")
 
     def test_running_dispatch_is_listed_by_id(self):
@@ -1238,7 +1086,7 @@ class NoThreadSection(_OnboardFixture):
         for marker in (CAL_NEW, CAL_OLD, AFTER_BODY, DECOY_CAL):
             self.assertNotIn(marker, stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_no_aar_at_all_changes_nothing(self):
         self.ready(aars={DECOY_NAME: _aar_with_calibration(DECOY_CAL)})
@@ -1251,7 +1099,7 @@ class NoThreadSection(_OnboardFixture):
         self.assertNotIn("no AAR found", stdout)
         self.assertNotIn("== thread", stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_an_aar_without_a_clause_prints_nothing_about_it(self):
         self.ready(aars={AAR_BARE: _aar_without_calibration()})
@@ -1273,29 +1121,24 @@ class Refusals(_OnboardFixture):
         nongit = self.root / "nongit"
         nongit.mkdir()
         self.assertFalse((nongit / ".git").exists())
-        probe = subprocess.run(
+        probe = run(
             ["git", "rev-parse", "--is-inside-work-tree"],
-            cwd=str(nongit),
+            cwd=nongit,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=60,
         )
         self.assertNotEqual(
-            probe.returncode,
+            probe.exit,
             0,
             f"INVALID: nongit cwd is a work tree: {probe.stdout}",
         )
-        outside = self.scratch / "onboard-outside.py"
+        outside = self.staged.with_name("onboard-outside.py")
         self._plant_bytes(outside, self.staged.read_bytes())
         env = self.env()
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(outside)],
-            cwd=str(nongit),
+            cwd=nongit,
             env=env,
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
         self.assert_refusal(proc, "repo")
@@ -1317,7 +1160,7 @@ class ReadOnly(_OnboardFixture):
         self.assertNotIn("== thread", stdout)
         self.assert_exact_law_table(stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertFalse(self.store.exists(), "tool created a dispatch store")
         self.assertEqual(
             _tree_files(self.home / ".local" / "state"),
@@ -1340,7 +1183,7 @@ class SiblingRefusal(_OnboardFixture):
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "register")
         self.assertIn(SIBLING_REFUSAL, line)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertIn("brief complete,", self.last_line(stdout))
 
 
@@ -1374,7 +1217,7 @@ class ReviewPins(_OnboardFixture):
         out = proc.stdout or ""
         ledger = self.labelled_line(out, "ledger")
         self.assertIn("ABSENT", ledger)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_a_full_pr_page_reports_truncation_and_counts_unmeasured(self):
         self.ready()
@@ -1383,7 +1226,7 @@ class ReviewPins(_OnboardFixture):
         proc = self.invoke()
         out = proc.stdout or ""
         self.assertIn("truncated at the 200 limit", out)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_a_store_path_that_is_a_file_is_unavailable_not_absent(self):
         self.ready(plant_store=False)
@@ -1393,19 +1236,19 @@ class ReviewPins(_OnboardFixture):
         line = self.labelled_line(out, "dispatches")
         self.assertIn("unavailable", line)
         self.assertNotIn("nothing running", line)
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_an_unreadable_aar_is_never_read_and_counts_no_absence(self):
         self.ready()
         bad = self.repo / "ops" / "conductor" / "AAR-2026-12-31.md"
-        bad.write_bytes(b"\xff\xfe not utf-8 \xff")
+        self.world.plant_bytes(bad, b"\xff\xfe not utf-8 \xff")
         proc = self.invoke()
         out = proc.stdout or ""
         self.assertNotIn("== thread", out)
         self.assertNotIn("unavailable:", out)
         self.assertNotIn("AAR-2026-12-31.md", out)
         self.assertEqual(self.last_line(out), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class LaneNameSelectsStore(_OnboardFixture):
@@ -1615,11 +1458,13 @@ class HandoffsSection(_OnboardFixture):
     def run_handoff(self, tools: Path, *argv: str):
         env = self.env()
         env["WF_AGENT"] = HANDOFF_AGENT
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(tools / "handoff.py"), *argv],
-            cwd=str(self.repo), env=env, capture_output=True, text=True, check=False,
+            cwd=self.repo,
+            env=env,
+            timeout=RUN_CAP,
         )
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
         return proc.stdout
 
     def test_the_section_prints_after_state_and_is_the_last_section(self):
@@ -1643,7 +1488,7 @@ class HandoffsSection(_OnboardFixture):
         self.assertIn(str(self.state_store()), line)
         self.assertIn("(none recorded)", line)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertFalse(self.state_store().exists(), "the brief created the state store")
 
     def test_a_planted_store_prints_the_managers_brief(self):
@@ -1661,21 +1506,26 @@ class HandoffsSection(_OnboardFixture):
         self.assertIn(f"T-1 open [H-1] {THREAD_TITLE}", stdout)
         self.assertIn("to next session", stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
     def test_a_manager_that_cannot_report_is_unavailable_and_counted(self):
         self.ready()
         self.state_store().parent.mkdir(parents=True, exist_ok=True)
         self._plant_bytes(self.state_store(), b"")
         tools = self.repo / "ops" / "conductor" / "tools"
-        self._plant_py_stub(tools / "handoff.py", stderr="HANDOFF_STUB_FAIL_MARKER", exit_code=1)
+        self._plant_tool(
+            "handoff-failure",
+            (tools / "handoff.py",),
+            stderr="HANDOFF_STUB_FAIL_MARKER",
+            exit_code=1,
+        )
         proc = self.invoke()
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "handoffs")
         self.assertIn("unavailable", line)
         self.assertIn("HANDOFF_STUB_FAIL_MARKER", line)
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 if __name__ == "__main__":
     unittest.main()

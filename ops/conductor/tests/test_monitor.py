@@ -12,17 +12,15 @@ stay untouched. Tests plant sources under the fixture scratch and
 assert those owned bytes; they do not enumerate ambient dispatch
 directories. No real GitHub, Codex, or dispatch store is opened.
 
-The implementation lands in parallel. A missing tool file is one red
-(`test_the_tool_file_is_present`). Every other case stages a
-copy-tool-bytes stand-in so a missing file is not every test's
-failure: when the tool exists its bytes are copied and run; when it
-does not, a no-op stub (exit 0, no output) is planted so each
-assertion fails on the contract promise rather than Python's
-missing-file exit 2. That stand-in is not semantic proof of the
-monitor. Absent-entrypoint red is the presence test alone.
+World owns HOME, the XDG roots and TMPDIR; every subprocess goes
+through run with a timeout. A fake gh is planted through world.tools.
+When the tool file is absent World.stage plants a no-op stand-in
+(exit 0, no output) so each assertion fails on the contract rather
+than a missing-file suite error. Absent-entrypoint red is the
+presence test alone.
 
-The gh mock is pinned to sys.executable and is executed as its own
-witness before any test treats argv/JSON from it as evidence.
+The gh mock is executed as its own witness before any test treats
+argv/JSON from it as evidence.
 """
 
 from __future__ import annotations
@@ -30,21 +28,22 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import stat
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from ops.testkit import Result, World, run
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "monitor.py"
 EXAMPLE = REPO / "ops" / "conductor" / "monitor.example.json"
 LANECONF = REPO / "ops" / "conductor" / "tools" / "laneconf.py"
 INSTRUMENT = REPO / "ops" / "conductor" / "tools" / "instrument.py"
+SIBLINGS = ("laneconf.py", "instrument.py")
 
 AGENT = "Monitor Tester <monitor-tester@example.invalid>"
 BAD_AGENT = "JustAName"
@@ -86,12 +85,6 @@ RESET_1 = 1700000000
 RESET_2 = 1700003600
 GH_SECRET = "GH_RAW_STDERR_aa41_must_not_leak"
 
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
-
 OMIT = object()
 
 EVENT_KEYS = (
@@ -119,97 +112,87 @@ def _tree_files(root: Path) -> tuple[str, ...]:
     return tuple(sorted(names))
 
 
+class _CompletedResult(Result):
+    """The inherited fixture still reads CompletedProcess.returncode."""
+
+    @property
+    def returncode(self) -> int:
+        return self.exit
+
+    @classmethod
+    def from_result(cls, result: Result) -> "_CompletedResult":
+        return cls(
+            result.argv,
+            result.exit,
+            result.stdout,
+            result.stderr,
+            result.duration,
+            result.cwd,
+        )
+
+
 class _MonitorFixture(unittest.TestCase):
     """Scratch HOME, staged tool, synthetic sources, stub gh on PATH."""
 
     def setUp(self):
         self._example_before = EXAMPLE.read_bytes()
         self._tool_before = TOOL.is_file()
-        self._tmp = tempfile.TemporaryDirectory(prefix="monitor-lever-")
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.xdg = root / "xdg"
-        self.scratch = root / "scratch"
-        self.bin = root / "bin"
-        self.conf_dir = root / "conf"
-        self.cwd = root / "cwd"
-        self.state = root / "state"
+        self.world = World(prefix="monitor-lever-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.root
+        self.home = self.world.home
+        self.xdg = self.world.xdg_state
+        self.scratch = self.root / "scratch"
+        self.bin = self.world.bin
+        self.conf_dir = self.root / "conf"
+        self.cwd = self.world.cwd
+        self.state = self.root / "state"
         self.store = self.conf_dir / "jobs"
         self.cwd_store = self.cwd / "jobs"
         self.rollout = self.conf_dir / "rollout.jsonl"
-        for path in (
-            self.home,
-            self.xdg,
-            self.scratch,
-            self.bin,
-            self.conf_dir,
-            self.cwd,
-            self.state,
-        ):
+        for path in (self.scratch, self.conf_dir, self.state):
             path.mkdir()
         self.gh = self.bin / "gh"
-        self.argv_log = self.scratch / "gh-argv.jsonl"
+        self.argv_log = self.world.tools.log_path("gh")
         self.counter = self.scratch / "gh-calls"
         self.sleep_marker = self.scratch / "gh-sleep-started"
         self.worker_cwd = self.scratch / "worker-cwd"
         self.worker_cwd.mkdir()
-        self.staged = self.scratch / "monitor.py"
+        self.staged = self._stage_tool_bytes()
         self.config = self.conf_dir / "monitor.json"
         self._workers: list[subprocess.Popen] = []
-        self._stage_tool_bytes()
-        self.assertFalse(self.argv_log.exists(), "plant: argv log absent")
+        self.assertEqual(
+            self.world.tools.calls("gh"), [], "plant: argv log absent"
+        )
         self.assertFalse(self.gh.exists(), "plant: gh stub not planted yet")
         self.assertFalse(self.store.exists(), "plant: store starts absent")
         self.plant_lane_conf()
 
     def tearDown(self):
-        try:
-            for proc in self._workers:
-                if proc.poll() is None:
-                    proc.kill()
-                    proc.wait(timeout=2)
-            self.assertEqual(
-                EXAMPLE.read_bytes(),
-                self._example_before,
-                "example registry mutated",
-            )
-            self.assertEqual(TOOL.is_file(), self._tool_before)
-        finally:
-            self._tmp.cleanup()
+        for proc in self._workers:
+            if proc.poll() is None:
+                self.world.reap(proc)
+        self.assertEqual(
+            EXAMPLE.read_bytes(),
+            self._example_before,
+            "example registry mutated",
+        )
+        self.assertEqual(TOOL.is_file(), self._tool_before)
 
-    def _stage_tool_bytes(self) -> None:
+    def _stage_tool_bytes(self) -> Path:
+        siblings = SIBLINGS if TOOL.is_file() else ()
+        staged = self.world.stage(TOOL, "monitor.py", siblings=siblings)
         if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
-        self.assertTrue(self.staged.is_file())
-        for sibling in (LANECONF, INSTRUMENT):
-            if sibling.is_file():
-                dest = self.staged.parent / sibling.name
-                payload = sibling.read_bytes()
-                dest.write_bytes(payload)
-                self.assertEqual(dest.read_bytes(), payload)
+            self.assertEqual(
+                staged.read_bytes(),
+                TOOL.read_bytes(),
+                "copy-tool-bytes did not land intact",
+            )
+        self.assertTrue(staged.is_file())
+        return staged
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land: {path}")
-        self.assertEqual(len(landed), len(data))
-
-    def _make_executable(self, path: Path) -> None:
-        mode = path.stat().st_mode
-        path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        self.assertTrue(os.access(path, os.X_OK), f"not executable: {path}")
+        self.world.plant_bytes(path, data)
 
     def owned_source_bytes(self) -> dict[str, bytes]:
         """Bytes of planted sources under this fixture, never ambient stores."""
@@ -229,7 +212,7 @@ class _MonitorFixture(unittest.TestCase):
             self.assertEqual(after[key], data, f"owned source mutated: {key}")
 
     def path_without_gh(self) -> str:
-        empty = self.scratch / "no-gh"
+        empty = self.world.path("no-gh")
         empty.mkdir(exist_ok=True)
         self.assertFalse((empty / "gh").exists(), "plant: empty PATH has gh")
         parts = [str(empty), str(self.bin)]
@@ -251,17 +234,13 @@ class _MonitorFixture(unittest.TestCase):
         agent: str | None = None,
         extra: dict[str, str | None] | None = None,
     ) -> dict[str, str]:
-        env = {
+        additions = {
             "PATH": self.path_without_gh(),
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg),
             "LANE_CONF": str(self.conf_path),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
         }
         if agent is not None:
-            env["WF_AGENT"] = agent
+            additions["WF_AGENT"] = agent
+        env = self.world.env(additions)
         if extra:
             for name, value in extra.items():
                 if value is None:
@@ -309,26 +288,22 @@ class _MonitorFixture(unittest.TestCase):
         cwd: Path | None = None,
         timeout: int | float | None = None,
         new_session: bool = False,
-    ):
+    ) -> _CompletedResult:
         env = self.env(agent=agent, extra=extra)
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         else:
             self.assertEqual(env.get("WF_AGENT"), agent)
-        try:
-            return subprocess.run(
-                [sys.executable, str(self.staged), *argv],
-                cwd=str(cwd or self.cwd),
-                env=env,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                check=False,
-                timeout=RUN_CAP if timeout is None else timeout,
-                start_new_session=new_session,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"monitor exceeded timeout: {exc}")
+        # run() always leads a new session; new_session is accepted for
+        # callers that still name the flag.
+        _ = new_session
+        result = run(
+            [sys.executable, str(self.staged), *argv],
+            cwd=cwd or self.cwd,
+            env=env,
+            timeout=RUN_CAP if timeout is None else timeout,
+        )
+        return _CompletedResult.from_result(result)
 
     def cfg_args(self, config: Path | None = None) -> list[str]:
         path = config if config is not None else self.config
@@ -399,7 +374,7 @@ class _MonitorFixture(unittest.TestCase):
             self.assert_int_count(data[key], key)
         return data
 
-    def run_counts(self, **kw) -> tuple[subprocess.CompletedProcess, dict]:
+    def run_counts(self, **kw) -> tuple[_CompletedResult, dict]:
         proc = self.run_once(**kw)
         data = self.parse_json(proc, expect_exit=0)
         self.assertIsInstance(data, dict, data)
@@ -408,7 +383,7 @@ class _MonitorFixture(unittest.TestCase):
             self.assert_int_count(data[key], key)
         return proc, data
 
-    def digest_data(self, **kw) -> tuple[subprocess.CompletedProcess, dict]:
+    def digest_data(self, **kw) -> tuple[_CompletedResult, dict]:
         proc = self.digest(**kw)
         data = self.parse_json(proc, expect_exit=0)
         self.assertIsInstance(data, dict, data)
@@ -820,21 +795,25 @@ class _MonitorFixture(unittest.TestCase):
         return data
 
     def _gh_preamble(self) -> str:
+        log = str(self.world.tools.log_path("gh"))
         return (
             f"#!{sys.executable}\n"
             "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
+            "import json, os, sys, time\n"
             "from pathlib import Path\n"
-            f"log = Path({str(self.argv_log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text(prev + json.dumps(sys.argv[1:]) + '\\n',"
-            " encoding='utf-8')\n"
+            f"log = Path({log!r})\n"
+            "line = json.dumps({\"at\": time.time_ns(), \"pid\": os.getpid(),"
+            " \"argv\": sys.argv[1:], \"cwd\": os.getcwd(),"
+            " \"stdin_sha256\": None}) + \"\\n\"\n"
+            "fd = os.open(str(log), os.O_WRONLY | os.O_APPEND | os.O_CREAT,"
+            " 0o644)\n"
+            "os.write(fd, line.encode(\"utf-8\"))\n"
+            "os.close(fd)\n"
         )
 
     def _plant_gh(self, body: str) -> None:
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        self._make_executable(self.gh)
+        planted = self.world.tools.plant("gh", script=body)
+        self.assertEqual(planted, self.gh)
         landed = self.gh.read_text(encoding="utf-8")
         self.assertEqual(landed, body, "gh stub plant did not land")
         self.assertTrue(
@@ -843,24 +822,29 @@ class _MonitorFixture(unittest.TestCase):
         )
 
     def plant_gh_rate(self, payload: dict, *, exit_code: int = 0, stderr: str = "") -> None:
-        body = (
-            self._gh_preamble()
-            + f"sys.stderr.write({stderr!r})\n"
-            + f"sys.stdout.write({json.dumps(payload)!r} + '\\n')\n"
-            + f"raise SystemExit({exit_code})\n"
+        planted = self.world.tools.plant(
+            "gh",
+            stdout=json.dumps(payload) + "\n",
+            stderr=stderr,
+            exit=exit_code,
         )
-        self._plant_gh(body)
+        self.assertEqual(planted, self.gh)
+        shebang = self.gh.read_text(encoding="utf-8").splitlines()[0]
+        self.assertEqual(shebang, f"#!{sys.executable}")
+        self.assertNotIn("/usr/bin/env", shebang)
 
     def plant_gh_raw(self, stdout: str, *, exit_code: int = 0, stderr: str = "") -> None:
-        body = (
-            self._gh_preamble()
-            + f"sys.stderr.write({stderr!r})\n"
-            + f"sys.stdout.write({stdout!r})\n"
-            + f"raise SystemExit({exit_code})\n"
+        planted = self.world.tools.plant(
+            "gh",
+            stdout=stdout,
+            stderr=stderr,
+            exit=exit_code,
         )
-        self._plant_gh(body)
+        self.assertEqual(planted, self.gh)
 
     def plant_gh_sequence(self, payloads: list[dict]) -> None:
+        # Kit gap: the fake spec answers by argv match, not call order,
+        # so a same-argv sequence stays a planted script.
         encoded = json.dumps(payloads)
         body = (
             self._gh_preamble()
@@ -879,6 +863,8 @@ class _MonitorFixture(unittest.TestCase):
         self.assertFalse(self.counter.exists(), "plant: counter still absent")
 
     def plant_gh_sleep(self, seconds: float, payload: dict) -> None:
+        # Kit gap: delay= sleeps but does not write the owned marker
+        # the witness and timeout cases assert.
         marker = self.sleep_marker
         body = (
             self._gh_preamble()
@@ -901,25 +887,16 @@ class _MonitorFixture(unittest.TestCase):
         self.assertFalse(marker.exists(), "plant: sleep marker still absent")
         self.assertFalse(self.counter.exists(), "plant: counter still absent")
 
-    def run_gh_mock(self, *argv: str, timeout: float = 5):
-        env = {
-            "PATH": self.path_without_gh(),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-        }
+    def run_gh_mock(self, *argv: str, timeout: float = 5) -> _CompletedResult:
         self.assertTrue(self.gh.is_file(), "INVALID: gh mock not planted")
         self.assertTrue(os.access(self.gh, os.X_OK), "INVALID: gh mock not executable")
-        return subprocess.run(
+        result = run(
             [str(self.gh), *argv],
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            check=False,
+            cwd=self.cwd,
+            env=self.world.env({"PATH": self.path_without_gh()}),
             timeout=timeout,
         )
+        return _CompletedResult.from_result(result)
 
     def rate_payload(self, **buckets) -> dict:
         return {"resources": buckets}
@@ -928,13 +905,7 @@ class _MonitorFixture(unittest.TestCase):
         return {"limit": limit, "remaining": remaining, "reset": reset}
 
     def gh_argvs(self) -> list[list[str]]:
-        if not self.argv_log.is_file():
-            return []
-        rows = []
-        for line in self.argv_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        return [call["argv"] for call in self.world.tools.calls("gh")]
 
     def spawn_named(self, token: str, *, cwd: Path | None = None) -> int:
         workdir = cwd if cwd is not None else self.worker_cwd
@@ -946,6 +917,7 @@ class _MonitorFixture(unittest.TestCase):
             stderr=subprocess.DEVNULL,
             start_new_session=True,
         )
+        self.world.own(proc)
         self._workers.append(proc)
         needle = token.encode("utf-8")
         cmdline = b""
@@ -973,6 +945,7 @@ class _MonitorFixture(unittest.TestCase):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+        self.world.own(proc)
         proc.wait(timeout=5)
         self.assertIsNotNone(proc.poll(), "INVALID: dead pid still running")
         with self.assertRaises(ProcessLookupError):
@@ -2725,6 +2698,7 @@ class RestartConcurrentAndLoop(_MonitorFixture):
             encoding="utf-8",
             start_new_session=True,
         )
+        self.world.own(loop)
         self._workers.append(loop)
         deadline = time.monotonic() + max(LOOP_CAP - 2, 2)
         while time.monotonic() < deadline:

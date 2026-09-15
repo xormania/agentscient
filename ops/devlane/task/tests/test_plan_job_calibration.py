@@ -14,6 +14,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 JOBS_PATH = support.APP / "jobs.json"
 
 CALIBRATION_ROW = "a calibration row per slice"
@@ -27,9 +29,14 @@ def _squish(text):
 
 
 class _PlanJob(unittest.TestCase):
+    def setUp(self):
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.jobs_path = self.world.stage(JOBS_PATH)
+
     def plan_prompt(self):
-        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        jobs = json.loads(JOBS_PATH.read_text(encoding="utf-8"))
+        self.assertTrue(self.jobs_path.is_file(), f"jobs.json missing: {self.jobs_path}")
+        jobs = json.loads(self.jobs_path.read_text(encoding="utf-8"))
         self.assertIsInstance(jobs, dict)
         self.assertIn("plan", jobs)
         spec = jobs["plan"]

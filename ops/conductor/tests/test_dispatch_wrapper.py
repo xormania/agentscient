@@ -21,17 +21,16 @@ from __future__ import annotations
 import contextlib
 import json
 import os
-import shutil
 import signal
-import stat
 import subprocess
-import tempfile
+import sys
 import time
 import unittest
 from pathlib import Path
 
 import worker_conf
-from live_store_guard import assert_unchanged
+
+from ops.testkit import Result, World, run
 
 REPO = Path(__file__).resolve().parents[3]
 WRAPPER = REPO / "ops" / "conductor" / "tools" / "dispatch.sh"
@@ -76,28 +75,41 @@ CONF_ENV = "LANE_CONF"
 # WF_AGENT_DEFAULT to be present in conf or local conf.
 
 
-def _porcelain(cwd: Path) -> bytes:
-    return subprocess.check_output(
+def _completed(result: Result) -> subprocess.CompletedProcess:
+    """The kit result in the inherited fixture's established shape."""
+    return subprocess.CompletedProcess(
+        list(result.argv), result.exit, result.stdout, result.stderr,
+    )
+
+
+def _porcelain(cwd: Path, world: World) -> str:
+    return run(
         ["git", "worktree", "list", "--porcelain"],
-        cwd=str(cwd),
-    )
+        cwd=cwd,
+        env=world.env(),
+        timeout=60,
+        expect=0,
+    ).stdout
 
 
-def _head_sha(path: Path) -> str:
-    return subprocess.check_output(
+def _head_sha(path: Path, world: World) -> str:
+    return run(
         ["git", "-C", str(path), "rev-parse", "HEAD"],
-        text=True,
-    ).strip()
+        cwd=path,
+        env=world.env(),
+        timeout=60,
+        expect=0,
+    ).stdout.strip()
 
 
-def _lineage(path: Path) -> str | None:
-    proc = subprocess.run(
+def _lineage(path: Path, world: World) -> str | None:
+    proc = run(
         ["git", "-C", str(path), "symbolic-ref", "--quiet", "--short", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=False,
+        cwd=path,
+        env=world.env(),
+        timeout=60,
     )
-    name = (proc.stdout or "").strip()
+    name = proc.stdout.strip()
     return name or None
 
 
@@ -167,7 +179,11 @@ class _WrapperFixture(unittest.TestCase):
     """Scratch conf, scratch scope, isolated HOME/jobs, no host mutation."""
 
     def setUp(self):
-        self._porcelain_before = _porcelain(REPO)
+        self._world = World(prefix="dispatch-wrapper-")
+        self.addCleanup(self._world.close)
+        self._world.require("bash")
+        self._world.require("git")
+        self._porcelain_before = _porcelain(REPO, self._world)
         self._tools_existed = TOOLS_DIR.exists()
         self._conf_existed = REAL_CONF.exists()
         self._conf_bytes = REAL_CONF.read_bytes() if self._conf_existed else None
@@ -177,24 +193,29 @@ class _WrapperFixture(unittest.TestCase):
         # ladders; a job directory minted mid-run is not this tool's write.
         # The shared guard declares exactly that exclusion.
         self._guarded = []
+        self._store_watches = []
         for root in _jobs_roots_to_guard():
             if root.is_dir():
-                self._guarded.append((root, ("dir", tuple(sorted(os.listdir(root))))))
+                watch = self._world.watch(
+                    root,
+                    tolerate_new=(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$",),
+                    contents=False,
+                )
+                before = watch.before[str(root)]
+                self._guarded.append((root, before))
+                self._store_watches.append(watch)
 
-        self._tmp = tempfile.TemporaryDirectory(prefix="dispatch-wrapper-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.xdg = root / "xdg"
+        root = self._world.root
+        self.home = self._world.home
+        self.xdg = self._world.xdg_state
         self.jobs_root = root / "jobs"
         self.scratch = root / "scratch"
-        for path in (self.home, self.xdg, self.jobs_root, self.scratch):
+        for path in (self.jobs_root, self.scratch):
             path.mkdir()
 
         self.marker = self.scratch / "launched.marker"
-        self.pin = self.scratch / "sentinel-launch"
-        self.pin_env = self.scratch / "sentinel-launch-env"
-        self._plant_sentinel(self.pin, self.marker)
-        self._plant_sentinel(self.pin_env, self.marker)
+        self.pin = self._world.tools.plant("sentinel-launch")
+        self.pin_env = self._world.tools.plant("sentinel-launch-env")
 
         self.scope_text = "scope-pointer-body-v1"
         self.scope_path = self.scratch / "scope.txt"
@@ -221,8 +242,8 @@ class _WrapperFixture(unittest.TestCase):
         # with origin/dev, an untracked file) cannot read as a dispatcher
         # failure; there is no origin ref in it, so nothing merges forward.
         self.worktree = self._scratch_repository(root / "wt")
-        self.ref = _head_sha(self.worktree)
-        self.lineage = _lineage(self.worktree)
+        self.ref = _head_sha(self.worktree, self._world)
+        self.lineage = _lineage(self.worktree, self._world)
 
         self.assertEqual(
             list(self.jobs_root.iterdir()),
@@ -238,7 +259,7 @@ class _WrapperFixture(unittest.TestCase):
     def tearDown(self):
         try:
             self.assertEqual(
-                _porcelain(REPO),
+                _porcelain(REPO, self._world),
                 self._porcelain_before,
                 "tests must not mutate worktree state",
             )
@@ -253,60 +274,51 @@ class _WrapperFixture(unittest.TestCase):
             self.assertEqual(OLD_CONF.exists(), self._old_existed)
             if self._old_existed:
                 self.assertEqual(OLD_CONF.read_bytes(), self._old_bytes)
-            for root, before in self._guarded:
-                after = ("dir", tuple(sorted(os.listdir(root))))
-                assert_unchanged(
+            for watch in self._store_watches:
+                watch.assert_unchanged(
                     self,
-                    {str(root): before},
-                    {str(root): after},
-                    f"host dispatch directory changed: {root}",
+                    f"host dispatch directory changed: {watch.paths[0]}",
                 )
         finally:
-            self._tmp.cleanup()
+            pass
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.write_bytes(data)
+        self._world.plant_bytes(path, data)
         landed = path.read_bytes()
         self.assertEqual(landed, data, f"plant did not land intact: {path}")
         self.assertEqual(len(landed), len(data))
 
-    def _plant_executable(self, path: Path, body: str) -> None:
-        path.write_text(body, encoding="utf-8")
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
-        landed = path.read_text(encoding="utf-8")
-        self.assertEqual(landed, body, f"sentinel plant did not land: {path}")
-        self.assertTrue(os.access(path, os.X_OK), f"sentinel not executable: {path}")
-
     def _scratch_repository(self, path: Path) -> Path:
         path.mkdir()
-        env = dict(os.environ, GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1")
+        env = self._world.env()
 
         def git(*args):
-            proc = subprocess.run(["git", "-C", str(path), *args], env=env,
-                                  capture_output=True, text=True, check=False)
-            self.assertEqual(proc.returncode, 0, f"plant: git {' '.join(args)}: {proc.stdout}{proc.stderr}")
+            proc = run(
+                ["git", "-C", str(path), *args],
+                cwd=path,
+                env=env,
+                timeout=60,
+            )
+            self.assertEqual(proc.exit, 0, f"plant: git {' '.join(args)}: {proc.stdout}{proc.stderr}")
         git("-c", "init.defaultBranch=dev", "init", "-q")
         git("config", "user.email", "fixture@example.invalid")
         git("config", "user.name", "Fixture")
         git("config", "commit.gpgsign", "false")
-        (path / "seed.txt").write_text("seed\n")
+        self._world.plant_text(path / "seed.txt", "seed\n")
         git("add", "-A")
         git("commit", "-q", "-m", "seed")
         git("checkout", "-q", "-b", "lane/session-fixture")
         return path
 
     def _plant_sentinel(self, path: Path, marker: Path) -> None:
-        body = (
-            "#!/bin/sh\n"
-            f"printf launched > '{marker}'\n"
-            "exit 0\n"
-        )
-        self._plant_executable(path, body)
+        self._world.tools.plant(path.name)
         self.assertFalse(marker.exists(), "plant: marker must not pre-exist")
 
     def _plant_python_sentinel(self, path: Path, script: str) -> None:
-        body = "#!/usr/bin/env python3\n" + script
-        self._plant_executable(path, body)
+        # Kit gap: three cases need a launcher that records selected child
+        # environment values or creates the launcher-owned job directory.
+        # The executable is still owned and planted by the fake registry.
+        self._world.tools.plant(path.name, script=f"#!{sys.executable}\n{script}")
 
     def _reap_reported_pid(self, proc: subprocess.CompletedProcess) -> None:
         for line in (proc.stdout or "").splitlines():
@@ -347,7 +359,7 @@ class _WrapperFixture(unittest.TestCase):
             f"{name}={_bash_single_quote(value)}\n" for name, value in keys.items()
         ]
         text = "".join(lines)
-        path.write_text(text, encoding="utf-8")
+        self._world.plant_text(path, text)
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, text, f"conf plant did not land: {path}")
         for name, value in keys.items():
@@ -355,18 +367,10 @@ class _WrapperFixture(unittest.TestCase):
             self.assertIn(value, landed)
 
     def env(self, extra: dict[str, str | None] | None = None) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg),
+        env = self._world.env({
             "DISPATCH_JOBS": str(self.jobs_root),
             CONF_ENV: str(self.conf_path),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-        }
+        })
         if extra:
             for name, value in extra.items():
                 if value is None:
@@ -392,19 +396,18 @@ class _WrapperFixture(unittest.TestCase):
                 args=argv, returncode=0, stdout="", stderr="",
             )
         try:
-            return subprocess.run(
+            result = run(
                 argv,
-                cwd=str(REPO),
+                cwd=REPO,
                 env=self.env(extra_env),
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=timeout,
+                timeout=timeout if timeout is not None else 30,
             )
-        except subprocess.TimeoutExpired as exc:
+            if self._world.tools.calls(self.pin.name) and not self.marker.exists():
+                self._world.plant_text(self.marker, "launched")
+            return _completed(result)
+        except AssertionError as exc:
             self.fail(
-                f"wrapper exceeded {timeout}s; stdout={exc.stdout!r} "
-                f"stderr={exc.stderr!r}"
+                f"wrapper exceeded {timeout}s: {exc}"
             )
 
     def combined(self, proc: subprocess.CompletedProcess) -> str:
@@ -1045,11 +1048,13 @@ class Row11LauncherSource(_WrapperFixture):
             f"sibling launch.py must be executable for exec: "
             f"mode={oct(sibling.stat().st_mode)}",
         )
-        listed = subprocess.check_output(
+        listed = run(
             ["git", "ls-files", "-s", "--", "ops/devlane/dispatch/launch.py"],
-            cwd=str(REPO),
-            text=True,
-        )
+            cwd=REPO,
+            env=self._world.env(),
+            timeout=60,
+            expect=0,
+        ).stdout
         self.assertTrue(
             listed.startswith("100755"),
             f"git index mode must be 100755, not a 644 regression: {listed!r}",
@@ -1677,12 +1682,14 @@ class _WorkerWrapperFixture(_WrapperFixture):
 
     def setUp(self):
         super().setUp()
-        self.bindir, self.bins = worker_conf.plant_named_bins(
-            self,
-            self.scratch,
-            worker_conf.DEFAULT_WORKERS + ("agy",),
-        )
-        self.worker_path = worker_conf.path_with(self.bindir)
+        names = worker_conf.DEFAULT_WORKERS + ("agy",)
+        self.bins = {
+            name: self._world.tools.plant(name)
+            for name in names
+        }
+        self.bindir = self._world.bin
+        self.worker_path = self._world.env()["PATH"]
+        self.assertEqual(len(self.bins), len(names), self.bins)
 
     def env(self, extra: dict[str, str | None] | None = None) -> dict[str, str]:
         extra = dict(extra or {})
@@ -1800,9 +1807,7 @@ class ProvisionalWrapperExecutableSourceAndPath(_WorkerWrapperFixture):
     """
 
     def test_file_executable_agy_is_not_relabelled_as_env(self):
-        override = worker_conf.plant_executable(
-            self, self.scratch / "override" / "agy",
-        )
+        override = self._world.tools.plant("agy-override").resolve()
         key = worker_conf.executable_key("agy")
         self._plant_conf(
             self.conf_path,
@@ -1823,12 +1828,8 @@ class ProvisionalWrapperExecutableSourceAndPath(_WorkerWrapperFixture):
 
     def test_exported_executable_reaches_the_child_not_the_file_value(self):
         grok_key = worker_conf.executable_key("grok")
-        grok_file = worker_conf.plant_executable(
-            self, self.scratch / "grok-from-file" / "grok",
-        )
-        grok_env = worker_conf.plant_executable(
-            self, self.scratch / "grok-from-env" / "grok",
-        )
+        grok_file = self._world.tools.plant("grok-from-file").resolve()
+        grok_env = self._world.tools.plant("grok-from-env").resolve()
         self.assertNotEqual(grok_file, grok_env)
         self._plant_conf(
             self.conf_path,
@@ -2108,9 +2109,13 @@ class FixtureDispatchesAgainstAScratchRepository(_WrapperFixture):
     def test_the_worktree_is_not_the_checkout_and_carries_no_trunk_ref(self):
         self.assertNotEqual(Path(self.worktree).resolve(), REPO.resolve(),
                             "the fixture dispatches against a scratch repository")
-        trunk = subprocess.run(["git", "-C", str(self.worktree), "rev-parse", "--verify", "-q", "origin/dev"],
-                               capture_output=True, text=True, check=False)
-        self.assertNotEqual(trunk.returncode, 0, "no origin/dev in the scratch repository, so nothing to merge forward")
+        trunk = run(
+            ["git", "-C", str(self.worktree), "rev-parse", "--verify", "-q", "origin/dev"],
+            cwd=self.worktree,
+            env=self._world.env(),
+            timeout=60,
+        )
+        self.assertNotEqual(trunk.exit, 0, "no origin/dev in the scratch repository, so nothing to merge forward")
         self.assertEqual(self.lineage, "lane/session-fixture")
         proc = self.invoke(self.full_flags(dry_run=True))
         self.assertEqual(proc.returncode, 0, self.combined(proc))
@@ -2121,7 +2126,7 @@ class FixtureDispatchesAgainstAScratchRepository(_WrapperFixture):
         """The failure class itself: the scratch worktree behind a trunk it
         does not have is not behind anything; an untracked file in it is
         no stale-base either, because there is no merge to do."""
-        (Path(self.worktree) / "untracked.txt").write_text("x\n")
+        self._world.plant_text(Path(self.worktree) / "untracked.txt", "x\n")
         proc = self.invoke(self.full_flags(dry_run=False))
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertNotIn("stale-base", self.combined(proc))
@@ -2141,25 +2146,30 @@ class MergeForwardBeforeLaunch(unittest.TestCase):
         self.fixture = RowAgentIdentity("test_agent_flag_beats_exported_wf_agent")
         self.fixture.setUp()
         self.addCleanup(self.fixture.tearDown)
-        self.tmp = Path(tempfile.mkdtemp(prefix="merge-forward-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.merge_world = World(prefix="merge-forward-")
+        self.addCleanup(self.merge_world.close)
+        self.tmp = self.merge_world.root
         self.repo = self.tmp / "wt"
         self.repo.mkdir()
         env = self.fixture.env()
-        self.git_env = dict(env, GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_NOSYSTEM="1")
+        self.git_env = env
 
         def git(*args, expect=0):
-            proc = subprocess.run(["git", "-C", str(self.repo), *args], env=self.git_env,
-                                  capture_output=True, text=True, check=False)
+            proc = run(
+                ["git", "-C", str(self.repo), *args],
+                cwd=self.repo,
+                env=self.git_env,
+                timeout=60,
+            )
             if expect is not None:
-                self.assertEqual(proc.returncode, expect, proc.stdout + proc.stderr)
-            return proc
+                self.assertEqual(proc.exit, expect, proc.stdout + proc.stderr)
+            return _completed(proc)
         self.git = git
         git("-c", "init.defaultBranch=dev", "init", "-q")
         git("config", "user.email", "fixture@example.invalid")
         git("config", "user.name", "Fixture")
         git("config", "commit.gpgsign", "false")
-        (self.repo / "seed.txt").write_text("seed\n")
+        self.merge_world.plant_text(self.repo / "seed.txt", "seed\n")
         git("add", "-A")
         git("commit", "-q", "-m", "seed")
         self.seed = git("rev-parse", "HEAD").stdout.strip()
@@ -2168,7 +2178,7 @@ class MergeForwardBeforeLaunch(unittest.TestCase):
     def advance_trunk(self, name="theirs.txt", content="theirs\n"):
         """origin/dev gains one commit the worktree does not have."""
         self.git("checkout", "-q", "dev")
-        (self.repo / name).write_text(content)
+        self.merge_world.plant_text(self.repo / name, content)
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "trunk moved")
         new = self.git("rev-parse", "HEAD").stdout.strip()
@@ -2208,7 +2218,7 @@ class MergeForwardBeforeLaunch(unittest.TestCase):
         self.assertIn("would merge: origin/dev", proc.stdout)
 
     def test_a_conflict_refuses_stale_base_and_leaves_the_worktree_as_it_was(self):
-        (self.repo / "same.txt").write_text("ours\n")
+        self.merge_world.plant_text(self.repo / "same.txt", "ours\n")
         self.git("add", "-A")
         self.git("commit", "-q", "-m", "ours")
         before = self.git("rev-parse", "HEAD").stdout.strip()

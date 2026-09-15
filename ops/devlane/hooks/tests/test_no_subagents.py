@@ -9,25 +9,26 @@ three fixture rows into the live registry per run. The hook now runs
 under a temporary HOME, and the live registry is proved untouched.
 """
 
+from __future__ import annotations
+
 import json
-import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-import support
+from ops.testkit import World, run
 
 HOOK = Path(__file__).resolve().parents[1] / "claude" / "no-subagents.py"
 LIVE_REGISTRY = Path.home() / ".local" / "state" / "agentscient" / "skills.db"
+TIMEOUT = 30
 
 
 class _Isolated(unittest.TestCase):
     def setUp(self):
-        self.home = Path(tempfile.mkdtemp(prefix="no-subagents-home-"))
-        self.addCleanup(shutil.rmtree, self.home, ignore_errors=True)
-        self.env = support.isolated_env(self.home)
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.env = self.world.env()
+        self.hook = self.world.stage(HOOK, siblings=("miss.py",))
         self._live = (
             (LIVE_REGISTRY.stat().st_size, LIVE_REGISTRY.stat().st_mtime_ns)
             if LIVE_REGISTRY.is_file() else None
@@ -40,13 +41,13 @@ class _Isolated(unittest.TestCase):
         )
         self.assertEqual(after, self._live, "the live skills registry must stay untouched")
 
-    def run(self, *args, **kwargs):  # unittest's own run; the hook runner is `hook`
-        return super().run(*args, **kwargs)
-
-    def hook(self, stdin: str):
-        return subprocess.run(
-            [sys.executable, str(HOOK)], input=stdin, capture_output=True, text=True,
-            timeout=30, env=self.env,
+    def hook_run(self, stdin: str):
+        return run(
+            [sys.executable, str(self.hook)],
+            cwd=self.world.cwd,
+            env=self.env,
+            stdin=stdin,
+            timeout=TIMEOUT,
         )
 
 
@@ -54,8 +55,8 @@ class Refuses(_Isolated):
     def test_each_delegating_tool_is_refused_with_the_path_named(self):
         for tool in ("Agent", "Workflow", "Task"):
             with self.subTest(tool=tool):
-                r = self.hook(json.dumps({"tool_name": tool, "tool_input": {}}))
-                self.assertEqual(r.returncode, 2)
+                r = self.hook_run(json.dumps({"tool_name": tool, "tool_input": {}}))
+                self.assertEqual(r.exit, 2)
                 self.assertEqual(r.stdout, "")
                 self.assertIn("ops/devlane/dispatch/launch.py", r.stderr)
                 self.assertIn("ops/bin/dispatch.sh", r.stderr)
@@ -66,14 +67,14 @@ class LetsThrough(_Isolated):
     def test_other_tools_are_silent_and_allowed(self):
         for tool in ("Bash", "Read", "Edit", "Skill", "SendMessage"):
             with self.subTest(tool=tool):
-                r = self.hook(json.dumps({"tool_name": tool, "tool_input": {}}))
-                self.assertEqual((r.returncode, r.stdout, r.stderr), (0, "", ""))
+                r = self.hook_run(json.dumps({"tool_name": tool, "tool_input": {}}))
+                self.assertEqual((r.exit, r.stdout, r.stderr), (0, "", ""))
 
     def test_junk_and_non_object_payloads_are_allowed(self):
         for stdin in ("", "not json", "[1,2]", "null", '"Agent"'):
             with self.subTest(stdin=stdin):
-                r = self.hook(stdin)
-                self.assertEqual((r.returncode, r.stdout, r.stderr), (0, "", ""))
+                r = self.hook_run(stdin)
+                self.assertEqual((r.exit, r.stdout, r.stderr), (0, "", ""))
 
 
 if __name__ == "__main__":

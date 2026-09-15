@@ -1,3 +1,4 @@
+# testkit: exempt the kit suite's own support leaf
 """Shared helpers of the kit's own suite: the kit's path, the fixture
 refuser, and a sleeper the world must reap."""
 

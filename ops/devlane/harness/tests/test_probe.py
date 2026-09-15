@@ -12,6 +12,8 @@ import unittest
 from unittest import mock
 from pathlib import Path
 
+from ops.testkit import World
+
 HARNESS = Path(__file__).resolve().parents[1]
 
 #: What `grok inspect` prints when the operator's files ARE loaded, and
@@ -33,16 +35,6 @@ def load(name):
 class AnArmThatDidNotRunIsNotAnAnswer(unittest.TestCase):
     def setUp(self):
         self.probe = load("probe")
-        # `load` gives a fresh MODULE, but `probe.subprocess` and
-        # `probe.isolation` are the same objects every other test in the
-        # process holds. Assigning through them mutates global state and
-        # never puts it back: these tests passed alone and broke an
-        # independent author's the moment both ran in one discovery,
-        # which is the only way anyone would have noticed.
-        self.enterContext(
-            mock.patch.object(
-                self.probe.isolation, "isolated",
-                lambda harness, root, env=None: ({"HOME": root}, [])))
 
     def verdict(self, isolated_exit, isolated_out=NOTHING):
         """Run both arms; the unisolated one always succeeds and leaks.
@@ -52,26 +44,34 @@ class AnArmThatDidNotRunIsNotAnAnswer(unittest.TestCase):
         without it — and a test that replaces `_run` would step over the
         very rule it is checking and pass either way.
         """
-        calls = {"n": 0}
-
-        class Done:
-            def __init__(self, rc, out, err):
-                self.returncode, self.stdout, self.stderr = rc, out, err
-
-        def fake(argv, **kwargs):
-            calls["n"] += 1
-            if calls["n"] == 1:
-                return Done(0, LEAKING, "")
+        with World(prefix="probe-visible-") as visible, World(prefix="probe-isolated-") as isolated:
+            visible.tools.plant("grok", stdout=LEAKING)
+            isolated.tools.plant(
+                "grok",
+                stdout=isolated_out,
+                stderr="grok: could not read config",
+                exit=isolated_exit or 0,
+            )
+            isolated_env = isolated.env()
             if isolated_exit is None:
-                raise OSError("the harness could not be started")
-            return Done(isolated_exit, isolated_out,
-                        "grok: could not read config")
-
-        self.enterContext(
-            mock.patch.object(self.probe.subprocess, "run", fake))
-        result = self.probe.behavioural_grok(env={})
-        self.assertEqual(calls["n"], 2, "both arms must have been attempted")
-        return result
+                isolated.bin.joinpath("grok").chmod(0o644)
+                isolated_env = isolated.env({"PATH": str(isolated.bin)})
+            with mock.patch.object(
+                self.probe.isolation,
+                "isolated",
+                lambda harness, root, env=None: (isolated_env, []),
+            ):
+                result = self.probe.behavioural_grok(env=visible.env())
+            self.assertEqual(
+                len(visible.tools.calls("grok")), 1,
+                "the unisolated arm must have been attempted",
+            )
+            self.assertEqual(
+                len(isolated.tools.calls("grok")),
+                0 if isolated_exit is None else 1,
+                "the isolated arm must have reached its declared fake",
+            )
+            return result
 
     def test_a_nonzero_exit_is_invalid_even_when_stdout_parses(self):
         # A grok that failed to initialise still prints a well-formed
@@ -93,23 +93,27 @@ class AnArmThatDidNotRunIsNotAnAnswer(unittest.TestCase):
         # the arm that was missed is the one the next reviewer found
         # (Codex, PR #40, twice). It lives in `_run` now, so a third arm
         # cannot be written without it.
-        class Done:
-            def __init__(self, rc, out):
-                self.returncode, self.stdout, self.stderr = rc, out, ""
-
         for exit_code, want in ((1, self.probe.INVALID),
                                 (0, self.probe.CLEAN)):
             with self.subTest(exit_code=exit_code):
-                calls = {"n": 0}
-
-                def fake(argv, exit_code=exit_code, calls=calls, **kwargs):
-                    calls["n"] += 1
-                    return Done(exit_code, "YES" if calls["n"] == 1 else "NO")
-
-                self.enterContext(
-                    mock.patch.object(self.probe.subprocess, "run", fake))
-                self.assertEqual(
-                    self.probe.behavioural_claude(env={}).verdict, want)
+                with World(prefix="probe-claude-") as world:
+                    world.tools.plant(
+                        "claude",
+                        stdout="YES",
+                        exit=exit_code,
+                        responses=[{
+                            "match": ["--setting-sources"],
+                            "stdout": "NO",
+                            "exit": exit_code,
+                        }],
+                    )
+                    with mock.patch.object(
+                        self.probe.isolation,
+                        "isolated",
+                        lambda harness, root, env=None: (world.env(), []),
+                    ):
+                        result = self.probe.behavioural_claude(env=world.env())
+                    self.assertEqual(result.verdict, want)
 
     def test_a_transport_failure_is_invalid(self):
         # `_run` answers None for an OSError or a timeout; the same

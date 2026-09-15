@@ -18,10 +18,14 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
+
 
 class GrokHeadCommitIsJudgedAgainstTheRef(ls._TempLaunch):
     """A write job that commits in its snapshot closes with head_commit
     judged against the ref, not against the post-write HEAD."""
+
+    world: World
 
     def test_a_write_job_that_commits_closes_with_head_commit_judged_against_the_ref(
             self):

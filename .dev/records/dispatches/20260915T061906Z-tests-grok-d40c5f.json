@@ -1,0 +1,264 @@
+{
+  "id": "20260915T061906Z-tests-grok-d40c5f",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "d658bcd1c8fb076185cf9ae4f7036af581d99977"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T06:19:06Z",
+    "closed": "2026-09-15T06:28:49Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "d658bcd1c8fb076185cf9ae4f7036af581d99977",
+    "ref_sha": "d658bcd1c8fb076185cf9ae4f7036af581d99977",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "fa3f9323-bc05-46f6-a5cb-1786f5488d6c",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok-stream/sessions/<snapshot-encoded>/fa3f9323-bc05-46f6-a5cb-1786f5488d6c/summary.json"
+  },
+  "session": {
+    "id": "fa3f9323-bc05-46f6-a5cb-1786f5488d6c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok-stream/sessions/<snapshot-encoded>/fa3f9323-bc05-46f6-a5cb-1786f5488d6c/summary.json",
+    "stream_sha256_at_close": "7533ea36e11f34a72987e7d7034d6a15d5a7444b25558687c659b5720607099e",
+    "spend": {
+      "input": 3266906,
+      "cached": 3142784,
+      "output": 26663,
+      "total": 3293569,
+      "cost_usd_ticks": 6730687600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok-stream/sessions/<snapshot-encoded>/fa3f9323-bc05-46f6-a5cb-1786f5488d6c/summary.json",
+      "messages": 350
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/devlane/dispatch/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/devlane/dispatch/tests/test_launch_u10b.py, ops/devlane/dispatch/tests/test_launch_isolation.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "0a8555b4f619e241d1ba8a5595d88fe28dc584f91c797a18fd8466b00ba6b3d3",
+    "bytes": 10316,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/lane-mcp.json",
+      "sha256": "1709d76d87a7978b97556a75069e48eca186f5d424f63f64d93557156e9f9e52",
+      "job_ids": [
+        "20260915T061629Z-tests-codex-e4e7b5",
+        "20260915T061410Z-tests-grok-504dc6",
+        "20260915T060425Z-tests-codex-6926a3",
+        "20260915T060206Z-tests-grok-e3e4e8",
+        "20260915T060205Z-tests-codex-6e5f6f",
+        "20260915T060204Z-tests-grok-291224",
+        "20260915T060201Z-tests-codex-a1e9a9",
+        "20260915T060200Z-tests-grok-cbcce7",
+        "20260915T060159Z-tests-codex-ab9812",
+        "20260915T060158Z-tests-grok-bd62c7",
+        "20260915T060157Z-tests-codex-7742e6",
+        "20260915T060156Z-tests-grok-823ed1",
+        "20260915T060155Z-tests-codex-aa36a0",
+        "20260915T060153Z-tests-grok-644a41",
+        "20260915T060152Z-tests-codex-97f4d6",
+        "20260915T060151Z-tests-grok-2f9365",
+        "20260915T060150Z-tests-codex-1a0148",
+        "20260915T060149Z-tests-grok-171b72",
+        "20260915T053533Z-tests-grok-79b916",
+        "20260915T053532Z-tests-codex-b7740b"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T06:19:08Z",
+      "ended": "2026-09-15T06:28:49Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "753f3687affa9c541aaf92d345d0c2762542488a",
+    "changed_paths": [
+      "ops/devlane/dispatch/tests/test_launch_isolation.py",
+      "ops/devlane/dispatch/tests/test_launch_u10b.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_u10b.py",
+          "claim": "Preserved all 10 test names and count; each method failed its own assertion against the family's absent launch stand-in, then the migrated module passed 10 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_u10b.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/dispatch/tests/test_launch_isolation.py",
+          "claim": "Preserved all 22 test names and count; each method failed its own assertion against the family's absent launch stand-in, then the migrated module passed 22 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_isolation.py"
+        }
+      ],
+      "artifacts": {
+        "u10b_before": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_u10b.py -> Ran 10 tests in 1.294s OK",
+        "u10b_red": "absent stand-in -> Ran 10 tests in 0.359s FAILED (failures=10); errors=0",
+        "u10b_after": "same command -> Ran 10 tests in 1.272s OK",
+        "isolation_before": "python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_isolation.py -> Ran 22 tests in 3.383s OK",
+        "isolation_red": "absent stand-in -> Ran 22 tests in 0.784s FAILED (failures=22); errors=0",
+        "isolation_after": "same command -> Ran 22 tests in 3.457s OK",
+        "family": "python3 -m unittest discover -s ops/devlane/dispatch/tests -> Ran 622 tests in 89.509s OK",
+        "ruff": "ruff check ops/devlane/dispatch/tests/test_launch_u10b.py ops/devlane/dispatch/tests/test_launch_isolation.py -> All checks passed",
+        "ratchet": "home_by_hand: 57 -> 28; the new floor\nembedded_programs: 30 -> 21; the new floor\nrun_without_timeout: 185 -> 78; the new floor\nratchet holds: home_by_hand=28, embedded_programs=21, run_without_timeout=78",
+        "census": "modules=224 on_kit=125 exempt=8 off_kit=91",
+        "commits": "84d1f7b u10b red; c0d63e5 u10b green; 47838e4 isolation red; 753f368 isolation green",
+        "head": "753f3687affa9c541aaf92d345d0c2762542488a"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3293569,
+        "out": 26663,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "d658bcd1c8fb076185cf9ae4f7036af581d99977",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nWorld owns HOME, the XDG roots and TMPDIR via the shared launch fixture; every git subprocess goes through run with timeout=60; fake claude/codex/grok CLIs are planted through world.tools; isolation plants settings.json through world.plant_text. Kit gap: World.stage's absent stand-in is import sys; sys.exit(0) which exits at in-process import, so the family's _absent_launch is the in-process stand-in used to prove red. No planted fake tool in these two modules themselves. No regression rows were added because this was a behavior-preserving migration. Test-name comparisons were exact: 10/10 and 22/22.\nbefore: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_u10b.py -> Ran 10 tests in 1.294s OK\nred: absent stand-in -> Ran 10 tests in 0.359s FAILED (failures=10); every method failed an assertion\nafter: same command -> Ran 10 tests in 1.272s OK\nbefore isolation: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_isolation.py -> Ran 22 tests in 3.383s OK\nred: absent stand-in -> Ran 22 tests in 0.784s FAILED (failures=22); every method failed an assertion\nafter: same command -> Ran 22 tests in 3.457s OK\nruff check ops/devlane/dispatch/tests/test_launch_u10b.py ops/devlane/dispatch/tests/test_launch_isolation.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 28; the new floor\nembedded_programs: 30 -> 21; the new floor\nrun_without_timeout: 185 -> 78; the new floor\nratchet holds: home_by_hand=28, embedded_programs=21, run_without_timeout=78\ncensus: modules=224 on_kit=125 exempt=8 off_kit=91\nfamily: python3 -m unittest discover -s ops/devlane/dispatch/tests -> Ran 622 tests in 89.509s OK\nOnly the two scoped modules changed. The implementation source and session store were not read.\ncommits 84d1f7b (u10b red) c0d63e5 (u10b green) 47838e4 (isolation red) 753f368 (isolation green) (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>)\nAlso reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 8,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T061906Z-tests-grok-d40c5f/home/grok-stream/sessions/<snapshot-encoded>/fa3f9323-bc05-46f6-a5cb-1786f5488d6c/summary.json"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nWorld owns HOME, the XDG roots and TMPDIR via the shared launch fixture; every git subprocess goes through run with timeout=60; fake claude/codex/grok CLIs are planted through world.tools; isolation plants settings.json through world.plant_text. Kit gap: World.stage's absent stand-in is import sys; sys.exit(0) which exits at in-process import, so the family's _absent_launch is the in-process stand-in used to prove red. No planted fake tool in these two modules themselves. No regression rows were added because this was a behavior-preserving migration. Test-name comparisons were exact: 10/10 and 22/22.\nbefore: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_u10b.py -> Ran 10 tests in 1.294s OK\nred: absent stand-in -> Ran 10 tests in 0.359s FAILED (failures=10); every method failed an assertion\nafter: same command -> Ran 10 tests in 1.272s OK\nbefore isolation: python3 -m unittest discover -s ops/devlane/dispatch/tests -p test_launch_isolation.py -> Ran 22 tests in 3.383s OK\nred: absent stand-in -> Ran 22 tests in 0.784s FAILED (failures=22); every method failed an assertion\nafter: same command -> Ran 22 tests in 3.457s OK\nruff check ops/devlane/dispatch/tests/test_launch_u10b.py ops/devlane/dispatch/tests/test_launch_isolation.py: All checks passed\npython3 ops/devlane/workflow/checks/testkit_ratchet.py:\nhome_by_hand: 57 -> 28; the new floor\nembedded_programs: 30 -> 21; the new floor\nrun_without_timeout: 185 -> 78; the new floor\nratchet holds: home_by_hand=28, embedded_programs=21, run_without_timeout=78\ncensus: modules=224 on_kit=125 exempt=8 off_kit=91\nfamily: python3 -m unittest discover -s ops/devlane/dispatch/tests -> Ran 622 tests in 89.509s OK\nOnly the two scoped modules changed. The implementation source and session store were not read.\ncommits 84d1f7b (u10b red) c0d63e5 (u10b green) 47838e4 (isolation red) 753f368 (isolation green) (Source: original; Co-Authored-By: Grok 4.6 <noreply@x.ai>)\nAlso reused: agentscient-lane lane_brief, lane_jobs, lane_changes, lane_findings; docs/tests.md; in/testkit-migration-guide.md.",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-15T06:28:48.666Z"
+    }
+  },
+  "status": "closed"
+}

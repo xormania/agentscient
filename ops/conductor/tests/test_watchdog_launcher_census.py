@@ -9,20 +9,20 @@ commands. The census stays a named heuristic.
 
 from __future__ import annotations
 
-import json
-import os
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
+from test_watchdog import (
+    REPO,
+    RUN_CAP,
+    SIBLINGS,
+    TOOL,
+    _live_store_paths,
+    _WatchdogFixture,
+)
 
-from test_watchdog import _WatchdogFixture  # noqa: E402
-
-PGREP_LOG = "pgrep-argv.jsonl"
+from ops.testkit import Timeout, World, run
 
 LAUNCH_CMDLINES = (
     "python3 ops/devlane/dispatch/launch.py --job author-tests",
@@ -51,55 +51,83 @@ def _pgrep_pattern(argv: list[str]) -> str:
     return tokens[-1]
 
 
-def _ere_run(pattern: str, text: str) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
-    env["POSIXLY_CORRECT"] = "1"
-    env["LC_ALL"] = "C"
-    env["LANG"] = "C"
-    return subprocess.run(
+def _ere_run(world: World, pattern: str, value: str):
+    return run(
         ["grep", "-E", "-e", pattern],
-        input=text if text.endswith("\n") else text + "\n",
-        capture_output=True,
-        text=True,
-        env=env,
-        check=False,
+        stdin=value if value.endswith("\n") else value + "\n",
+        cwd=world.cwd,
+        env=world.env({"POSIXLY_CORRECT": "1"}),
+        timeout=10,
     )
 
 
 class LauncherCensusPgrep(_WatchdogFixture):
     """The census pattern is valid ERE and matches versioned/absolute python3."""
 
-    def plant_pgrep(self) -> Path:
-        log = self.scratch / PGREP_LOG
-        self.assertFalse(log.exists(), "plant: pgrep argv log must start absent")
-        body = (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"log = Path({str(log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text("
-            "prev + json.dumps(sys.argv[1:]) + '\\n', encoding='utf-8')\n"
-            "sys.stdout.write('0\\n')\n"
-            "raise SystemExit(0)\n"
+    def setUp(self):
+        self.world = World(prefix="watchdog-launcher-census-")
+        self.world.require("grep")
+        self._live = self.world.watch(*_live_store_paths(), contents=False)
+        self.root = self.world.root
+        self.home = self.world.home
+        self.xdg = self.world.xdg_state
+        self.scratch = self.world.path("scratch")
+        self.scratch.mkdir()
+        self.bin = self.world.bin
+        self.store = self.xdg / "agentscient" / "dispatch"
+        self.home_store = self.home / ".local" / "state" / "agentscient" / "dispatch"
+        self.assertFalse(self.store.exists(), "plant: isolated XDG store must start absent")
+        self.assertFalse(self.home_store.exists(), "plant: isolated HOME store must start absent")
+        self.gh = self.bin / "gh"
+        self.argv_log = self.scratch / "gh-argv.jsonl"
+        self.staged = self.world.stage(
+            TOOL,
+            "watchdog.py",
+            siblings=SIBLINGS if TOOL.is_file() else (),
         )
-        path = self.bin / "pgrep"
-        self._plant_bytes(path, body.encode("utf-8"))
-        self._make_executable(path)
-        self.assertEqual(path.read_text(encoding="utf-8"), body)
-        self.assertTrue(os.access(path, os.X_OK), f"not executable: {path}")
+        self.conf = self.world.plant_text(
+            "lane.conf",
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n",
+        )
+
+    def tearDown(self):
+        try:
+            self._live.assert_unchanged(self, "live dispatch store mutated")
+        finally:
+            self.world.close()
+
+    def env(self, *, xdg=False, extra=None, home=None):
+        self.assertIs(xdg, False, "this family uses the World's XDG state root")
+        self.assertIsNone(home, "this family uses the World's HOME")
+        overrides = {
+            "LANE_CONF": str(self.conf),
+            "PYTHONUNBUFFERED": "1",
+        }
+        if extra:
+            overrides.update(extra)
+        return self.world.env(overrides)
+
+    def invoke(self, argv, *, extra_env=None, xdg=False, timeout=RUN_CAP, home=None):
+        try:
+            return run(
+                [sys.executable, "-u", str(self.staged), *argv],
+                cwd=REPO,
+                env=self.env(xdg=xdg, extra=extra_env, home=home),
+                timeout=timeout,
+            )
+        except Timeout as exc:
+            self.fail(f"watchdog exceeded {timeout}s: {exc}")
+
+    def plant_pgrep(self) -> Path:
+        log = self.world.tools.log_path("pgrep")
+        self.assertFalse(log.exists(), "plant: pgrep argv log must start absent")
+        path = self.world.tools.plant("pgrep", stdout="0\n")
+        self.assertEqual(path, self.bin / "pgrep")
         return log
 
     def pgrep_argvs(self, log: Path) -> list[list[str]]:
-        if not log.is_file():
-            return []
-        rows = []
-        for line in log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        self.assertEqual(log, self.world.tools.log_path("pgrep"))
+        return [row["argv"] for row in self.world.tools.calls("pgrep")]
 
     def captured_pattern(self, log: Path) -> str:
         argvs = self.pgrep_argvs(log)
@@ -118,7 +146,7 @@ class LauncherCensusPgrep(_WatchdogFixture):
         self.ensure_store()
         proc = self.once(extra=["--heartbeat-every", "1"])
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         beats = self.heartbeat_lines(proc)
         self.assertEqual(len(beats), 1, proc.stdout)
         self.assertIn("launchers=", beats[0])
@@ -126,9 +154,9 @@ class LauncherCensusPgrep(_WatchdogFixture):
         pattern = self.captured_pattern(log)
         self.assertIsInstance(pattern, str)
         self.assertTrue(pattern, "pgrep pattern was empty")
-        check = _ere_run(pattern, "python3 ops/devlane/dispatch/launch.py --once")
+        check = _ere_run(self.world, pattern, "python3 ops/devlane/dispatch/launch.py --once")
         self.assertNotEqual(
-            check.returncode,
+            check.exit,
             2,
             f"pgrep pattern is not valid POSIX ERE: {pattern!r} stderr={check.stderr!r}",
         )
@@ -138,19 +166,19 @@ class LauncherCensusPgrep(_WatchdogFixture):
         self.ensure_store()
         proc = self.once(extra=["--heartbeat-every", "1"])
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         pattern = self.captured_pattern(log)
-        ere_ok = _ere_run(pattern, LAUNCH_CMDLINES[0])
-        self.assertNotEqual(ere_ok.returncode, 2, ere_ok.stderr)
+        ere_ok = _ere_run(self.world, pattern, LAUNCH_CMDLINES[0])
+        self.assertNotEqual(ere_ok.exit, 2, ere_ok.stderr)
         missed = []
         for cmdline in LAUNCH_CMDLINES:
-            matched = _ere_run(pattern, cmdline)
+            matched = _ere_run(self.world, pattern, cmdline)
             self.assertNotEqual(
-                matched.returncode,
+                matched.exit,
                 2,
                 f"pattern {pattern!r} is not valid POSIX ERE on {cmdline!r}",
             )
-            if matched.returncode != 0:
+            if matched.exit != 0:
                 missed.append(cmdline)
         self.assertEqual(
             missed,
@@ -163,13 +191,13 @@ class LauncherCensusPgrep(_WatchdogFixture):
         self.ensure_store()
         proc = self.once(extra=["--heartbeat-every", "1"])
         self.assert_armed(proc, store=self.store)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         pattern = self.captured_pattern(log)
         hits = []
         for cmdline in UNRELATED_CMDLINES:
-            matched = _ere_run(pattern, cmdline)
-            self.assertNotEqual(matched.returncode, 2, matched.stderr)
-            if matched.returncode == 0:
+            matched = _ere_run(self.world, pattern, cmdline)
+            self.assertNotEqual(matched.exit, 2, matched.stderr)
+            if matched.exit == 0:
                 hits.append(cmdline)
         self.assertEqual(
             hits,

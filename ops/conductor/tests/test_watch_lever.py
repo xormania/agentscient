@@ -15,15 +15,12 @@ the contract promise rather than Python's missing-file exit 2.
 from __future__ import annotations
 
 import json
-import os
 import re
-import shutil
-import stat
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "watch.py"
@@ -48,12 +45,6 @@ REPO_SLUG = "owner/name"
 # stub spawn, and the abort paths were measured within half of the
 # old 30s cap. 60 keeps the hang guard while removing the flake edge.
 RUN_CAP = 60
-
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
 
 POLL_RE = re.compile(
     r"poll rows=(\d+) pass=(\d+) fail=(\d+) pending=(\d+) skip=(\d+) "
@@ -85,122 +76,78 @@ class _WatchFixture(unittest.TestCase):
     """Scratch HOME, staged tool copy, stub gh first on PATH."""
 
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory(prefix="watch-lever-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.bin = root / "bin"
-        for path in (self.home, self.scratch, self.bin):
-            path.mkdir()
+        self.world = World(prefix="watch-lever-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.scratch = self.world.cwd
+        self.bin = self.world.bin
         self.gh = self.bin / "gh"
-        self.argv_log = self.scratch / "gh-argv.jsonl"
         self.counter = self.scratch / "gh-calls"
-        self.staged = self.scratch / "watch.py"
-        self._stage_tool_bytes()
-        self.assertFalse(self.argv_log.exists(), "plant: argv log must start absent")
+        self.staged = self.world.stage(TOOL, "watch.py", siblings=SIBLINGS)
+        self.tracked_conf = self.world.stage(TRACKED_CONF, "lane.conf")
+        self.assertEqual(self.staged.parent, self.tracked_conf.parent)
+        self.assertEqual(self.staged.name, "watch.py")
+        self.assertFalse(
+            self.world.tools.log_path("gh").exists(),
+            "plant: argv log must start absent",
+        )
         self.assertFalse(self.counter.exists(), "plant: counter must start absent")
         self.assertFalse(self.gh.exists(), "plant: gh stub is not planted yet")
 
-    def tearDown(self):
-        self._tmp.cleanup()
-
-    def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for name in SIBLINGS:
-                sibling = TOOL.with_name(name)
-                if sibling.is_file():
-                    self.staged.with_name(name).write_bytes(sibling.read_bytes())
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
-        self.assertTrue(self.staged.is_file())
-
-    def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
-        self.assertEqual(len(landed), len(data))
-
-    def _plant_gh(self, body: str) -> None:
-        self._plant_bytes(self.gh, body.encode("utf-8"))
-        mode = self.gh.stat().st_mode
-        self.gh.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-        landed = self.gh.read_text(encoding="utf-8")
-        self.assertEqual(landed, body, "gh stub plant did not land intact")
-        self.assertTrue(os.access(self.gh, os.X_OK), "gh stub is not executable")
-
-    def _gh_preamble(self) -> str:
-        return (
-            "#!/usr/bin/env python3\n"
-            "from __future__ import annotations\n"
-            "import json\n"
-            "import sys\n"
-            "from pathlib import Path\n"
-            f"log = Path({str(self.argv_log)!r})\n"
-            "prev = log.read_text(encoding='utf-8') if log.is_file() else ''\n"
-            "log.write_text(prev + json.dumps(sys.argv[1:]) + '\\n', encoding='utf-8')\n"
-        )
-
     def plant_gh_rows(self, rows: list[dict], *, exit_code: int = 0, stderr: str = "") -> None:
-        payload = json.dumps(rows)
-        body = (
-            self._gh_preamble()
-            + f"sys.stderr.write({stderr!r})\n"
-            + f"sys.stdout.write({payload!r} + '\\n')\n"
-            + f"raise SystemExit({exit_code})\n"
+        self.assertEqual(
+            self.world.tools.plant(
+                "gh",
+                stdout=json.dumps(rows) + "\n",
+                stderr=stderr,
+                exit=exit_code,
+            ),
+            self.gh,
         )
-        self._plant_gh(body)
 
     def plant_gh_raw(self, stdout: str, *, exit_code: int = 0, stderr: str = "") -> None:
-        body = (
-            self._gh_preamble()
-            + f"sys.stderr.write({stderr!r})\n"
-            + f"sys.stdout.write({stdout!r})\n"
-            + f"raise SystemExit({exit_code})\n"
+        self.assertEqual(
+            self.world.tools.plant(
+                "gh",
+                stdout=stdout,
+                stderr=stderr,
+                exit=exit_code,
+            ),
+            self.gh,
         )
-        self._plant_gh(body)
 
     def plant_gh_sequence(self, sequence: list[list[dict]]) -> None:
-        body = (
-            self._gh_preamble()
-            + f"counter = Path({str(self.counter)!r})\n"
-            + "n = int(counter.read_text(encoding='utf-8')) if counter.is_file() else 0\n"
-            + "n += 1\n"
-            + "counter.write_text(str(n), encoding='utf-8')\n"
-            + f"seq = {json.dumps(sequence)}\n"
-            + "rows = seq[n - 1] if n <= len(seq) else seq[-1]\n"
-            + "sys.stdout.write(json.dumps(rows) + '\\n')\n"
-            + "raise SystemExit(0)\n"
-        )
-        self._plant_gh(body)
-        self.assertFalse(self.counter.exists(), "plant: sequence counter still absent")
+        self.plant_gh_steps(sequence)
 
     def plant_gh_steps(self, steps: list) -> None:
         """Like plant_gh_sequence, but a step that is a dict is an error
         exit: its `stderr` written, nothing on stdout, exit `exit`."""
-        body = (
-            self._gh_preamble()
-            + f"counter = Path({str(self.counter)!r})\n"
-            + "n = int(counter.read_text(encoding='utf-8')) if counter.is_file() else 0\n"
-            + "n += 1\n"
-            + "counter.write_text(str(n), encoding='utf-8')\n"
-            + f"seq = {json.dumps(steps)}\n"
-            + "step = seq[n - 1] if n <= len(seq) else seq[-1]\n"
-            + "if isinstance(step, dict):\n"
-            + "    sys.stderr.write(step['stderr'])\n"
-            + "    raise SystemExit(step['exit'])\n"
-            + "sys.stdout.write(json.dumps(step) + '\\n')\n"
-            + "raise SystemExit(0)\n"
+        fixture = self.world.plant_text(
+            "fixtures/gh-steps.json",
+            json.dumps(steps),
         )
-        self._plant_gh(body)
+        log = self.world.tools.log_path("gh")
+        script = f"""#!{sys.executable}
+import json, os, sys
+from pathlib import Path
+log = Path({str(log)!r})
+line = json.dumps({{"argv": sys.argv[1:], "cwd": os.getcwd()}}) + "\\n"
+fd = os.open(log, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+os.write(fd, line.encode("utf-8"))
+os.close(fd)
+counter = Path({str(self.counter)!r})
+n = int(counter.read_text(encoding="utf-8")) if counter.is_file() else 0
+n += 1
+counter.write_text(str(n), encoding="utf-8")
+steps = json.loads(Path({str(fixture)!r}).read_text(encoding="utf-8"))
+step = steps[n - 1] if n <= len(steps) else steps[-1]
+if isinstance(step, dict):
+    sys.stderr.write(step["stderr"])
+    raise SystemExit(step["exit"])
+sys.stdout.write(json.dumps(step) + "\\n")
+raise SystemExit(0)
+"""
+        self.assertEqual(self.world.tools.plant("gh", script=script), self.gh)
         self.assertFalse(self.counter.exists(), "plant: step counter still absent")
 
     def env(
@@ -210,20 +157,16 @@ class _WatchFixture(unittest.TestCase):
         agent: str | None = None,
         extra: dict[str, str | None] | None = None,
     ) -> dict[str, str]:
-        env = {
-            "PATH": path if path is not None else (
-                str(self.bin) + os.pathsep + os.environ.get("PATH", "/usr/bin:/bin")
-            ),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
+        overrides = {
             # Test apparatus: one virtual second of the 5s grid is 20ms real.
             "WATCH_TICK_SCALE": "0.02",
-            "LANE_CONF": str(TRACKED_CONF),
+            "LANE_CONF": str(self.tracked_conf),
         }
+        if path is not None:
+            overrides["PATH"] = path
         if agent is not None:
-            env["WF_AGENT"] = agent
+            overrides["WF_AGENT"] = agent
+        env = self.world.env(overrides)
         if extra:
             for name, value in extra.items():
                 if value is None:
@@ -233,22 +176,10 @@ class _WatchFixture(unittest.TestCase):
         return env
 
     def path_without_gh(self) -> str:
-        empty = self.scratch / "no-gh"
-        empty.mkdir(exist_ok=True)
+        empty = self.world.path("no-gh")
+        empty.mkdir()
         self.assertFalse((empty / "gh").exists(), "plant: empty PATH dir has a gh")
-        parts = [str(empty)]
-        for item in os.environ.get("PATH", "/usr/bin:/bin").split(os.pathsep):
-            if not item:
-                continue
-            if (Path(item) / "gh").exists():
-                continue
-            parts.append(item)
-        path = os.pathsep.join(parts)
-        self.assertIsNone(
-            shutil.which("gh", path=path),
-            "INVALID: gh is still on PATH",
-        )
-        return path
+        return str(empty)
 
     def invoke(
         self,
@@ -263,18 +194,12 @@ class _WatchFixture(unittest.TestCase):
             self.assertNotIn("WF_AGENT", env)
         else:
             self.assertEqual(env.get("WF_AGENT"), agent)
-        try:
-            return subprocess.run(
-                [sys.executable, str(self.staged), *argv],
-                cwd=str(REPO),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"watch exceeded {RUN_CAP}s: {exc}")
+        return run(
+            [sys.executable, str(self.staged), *argv],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        )
 
     def watch(
         self,
@@ -317,7 +242,7 @@ class _WatchFixture(unittest.TestCase):
             keys.pop(name, None)
         path = self.scratch / "lane.conf"
         text = "".join(f"{name}='{value}'\n" for name, value in keys.items())
-        self._plant_bytes(path, text.encode("utf-8"))
+        self.world.plant_text(path, text)
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, text, f"conf plant did not land: {path}")
         self.conf_path = path
@@ -327,13 +252,7 @@ class _WatchFixture(unittest.TestCase):
         return f"{proc.stdout or ''}{proc.stderr or ''}"
 
     def gh_argvs(self) -> list[list[str]]:
-        if not self.argv_log.is_file():
-            return []
-        rows = []
-        for line in self.argv_log.read_text(encoding="utf-8").splitlines():
-            if line.strip():
-                rows.append(json.loads(line))
-        return rows
+        return [call["argv"] for call in self.world.tools.calls("gh")]
 
     def poll_matches(self, text: str) -> list[re.Match[str]]:
         return list(POLL_RE.finditer(text))
@@ -369,7 +288,7 @@ class _WatchFixture(unittest.TestCase):
             token in compact or spaced in err.lower(),
             f"refusal class {class_name!r} not named in stderr: {err!r}",
         )
-        self.assertEqual(proc.returncode, 2, err)
+        self.assertEqual(proc.exit, 2, err)
         self.assertTrue(err.strip(), "refusal was silent")
         lines = [ln for ln in err.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, f"refusal must be one line: {err!r}")
@@ -414,7 +333,7 @@ class SettledGreen(_WatchFixture):
             "settled rows=2 pass=1 fail=0 skip=1",
             stdout,
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         counts = self.last_counts(proc)
         self.assertIsNotNone(counts, f"no poll line on stderr: {proc.stderr!r}")
         self.assertEqual(counts["rows"], 2)
@@ -441,7 +360,7 @@ class SettledFailure(_WatchFixture):
             "settled rows=1 pass=0 fail=1 skip=0",
             stdout,
         )
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
 
 class ZeroRowsAbort(_WatchFixture):
@@ -463,8 +382,8 @@ class ZeroRowsAbort(_WatchFixture):
         self.assertEqual(counts["fail"], 0, counts)
         self.assertEqual(counts["pending"], 0, counts)
         self.assertEqual(counts["skip"], 0, counts)
-        self.assertEqual(proc.returncode, 3, text)
-        self.assertNotEqual(proc.returncode, 0)
+        self.assertEqual(proc.exit, 3, text)
+        self.assertNotEqual(proc.exit, 0)
         self.assertIsNone(self.settled_line(proc.stdout or ""))
 
 
@@ -491,7 +410,7 @@ class PendingThenSettled(_WatchFixture):
         )
         stdout = proc.stdout or ""
         self.assertIn(check_line("PASS", "progress-check"), stdout)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(
             self.settled_line(stdout),
             "settled rows=1 pass=1 fail=0 skip=0",
@@ -518,8 +437,8 @@ class UnrecognizedNeverSettles(_WatchFixture):
             1,
             f"unrecognized state must count as pending: {counts}",
         )
-        self.assertEqual(proc.returncode, 3, text)
-        self.assertNotEqual(proc.returncode, 0, "unrecognized state settled")
+        self.assertEqual(proc.exit, 3, text)
+        self.assertNotEqual(proc.exit, 0, "unrecognized state settled")
         self.assertNotIn(check_line("PASS", "odd-check"), proc.stdout or "")
         self.assertIsNone(self.settled_line(proc.stdout or ""))
 
@@ -538,7 +457,7 @@ class StateMapping(_WatchFixture):
             stdout,
             f"CANCELLED must map to FAIL: {stdout!r}",
         )
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
         self.assertEqual(
             self.settled_line(stdout),
             "settled rows=1 pass=0 fail=1 skip=0",
@@ -556,7 +475,7 @@ class StateMapping(_WatchFixture):
             stdout,
             f"TIMED_OUT must map to FAIL: {stdout!r}",
         )
-        self.assertEqual(proc.returncode, 1, self.combined(proc))
+        self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_neutral_settles_as_skip(self):
         self.plant_gh_rows(
@@ -569,7 +488,7 @@ class StateMapping(_WatchFixture):
             stdout,
             f"NEUTRAL must map to SKIP: {stdout!r}",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(
             self.settled_line(stdout),
             "settled rows=1 pass=0 fail=0 skip=1",
@@ -640,8 +559,8 @@ class ExpectMin(_WatchFixture):
         )
         self.assertEqual(counts["rows"], 1, counts)
         self.assertEqual(counts["pending"], 0, counts)
-        self.assertEqual(proc.returncode, 3, self.combined(proc))
-        self.assertNotEqual(proc.returncode, 0)
+        self.assertEqual(proc.exit, 3, self.combined(proc))
+        self.assertNotEqual(proc.exit, 0)
 
 
 class NoIdentity(_WatchFixture):
@@ -658,7 +577,7 @@ class NoIdentity(_WatchFixture):
             stdout,
             f"read without WF_AGENT produced no PASS: {stdout!r}",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
 
 
 class RepoPassthrough(_WatchFixture):
@@ -700,7 +619,7 @@ class RepoPassthrough(_WatchFixture):
             found_pair,
             f"--repo was not followed by {REPO_SLUG!r}: {argvs!r}",
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertIn(check_line("PASS", "repo-check"), proc.stdout or "")
 
 
@@ -716,7 +635,7 @@ class TableCompleteness(_WatchFixture):
         ]
         self.plant_gh_sequence([one, three, three])
         proc = self.watch(expect_names="fast-lint,tests,secret-scan")
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertIn("settled rows=3", proc.stdout or "")
         self.assertNotIn("settled rows=1", proc.stdout or "")
         self.assertIn("confirming", proc.stderr or "")
@@ -724,7 +643,7 @@ class TableCompleteness(_WatchFixture):
     def test_expect_names_missing_check_never_settles(self):
         self.plant_gh_rows([{"name": "fast-lint", "state": "SUCCESS"}])
         proc = self.watch(extra=["--expect-names", "fast-lint,secret-scan"])
-        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertEqual(proc.exit, 3, self.combined(proc))
         self.assertIn("missing=1", proc.stderr or "")
         self.assertIn("abort", proc.stderr or "")
 
@@ -734,7 +653,7 @@ class TableCompleteness(_WatchFixture):
             {"name": "secret-scan", "state": "SUCCESS"},
         ])
         proc = self.watch(extra=["--expect-names", "fast-lint,secret-scan"])
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertIn("settled rows=2", proc.stdout or "")
 
 
@@ -768,7 +687,7 @@ class ConfExpectedSet(_WatchFixture):
             {"name": "beta", "state": "SUCCESS"},
         ])
         proc = self.watch(extra_env=self.conf_env())
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(
             self.settled_line(proc.stdout or ""),
             "settled rows=2 pass=2 fail=0 skip=0",
@@ -786,7 +705,7 @@ class ConfExpectedSet(_WatchFixture):
             {"name": "app", "state": "SUCCESS"},
         ])
         proc = self.watch(extra_env=self.conf_env())
-        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertEqual(proc.exit, 3, self.combined(proc))
         self.assertIn("missing=", proc.stderr or "")
         self.assertIsNone(self.settled_line(proc.stdout or ""))
 
@@ -801,7 +720,7 @@ class ConfExpectedSet(_WatchFixture):
             extra=["--expect-names", "fast-lint"],
             extra_env=self.conf_env(),
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(
             self.settled_line(proc.stdout or ""),
             "settled rows=1 pass=1 fail=0 skip=0",
@@ -823,7 +742,7 @@ class ConfExpectedSet(_WatchFixture):
         proc = self.watch(
             extra_env=self.conf_env(CHECK_NAMES=self.ENV_NAMES),
         )
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(
             self.settled_line(proc.stdout or ""),
             "settled rows=2 pass=2 fail=0 skip=0",
@@ -842,7 +761,7 @@ class ConfExpectedSet(_WatchFixture):
         proc = self.watch(
             extra_env=self.conf_env(CHECK_NAMES=self.ENV_NAMES),
         )
-        self.assertEqual(proc.returncode, 3, self.combined(proc))
+        self.assertEqual(proc.exit, 3, self.combined(proc))
         self.assertIn("missing=", proc.stderr or "")
         self.assertIsNone(self.settled_line(proc.stdout or ""))
 
@@ -885,7 +804,7 @@ class NoChecksReported(_WatchFixture):
         self.plant_gh_steps([{"exit": 1, "stderr": GH_NO_CHECKS}, self.GREEN])
         proc = self.watch(expect_names="lane,app")
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 0, text)
+        self.assertEqual(proc.exit, 0, text)
         self.assertIsNotNone(self.settled_line(proc.stdout or ""), text)
         polls = self.poll_matches(proc.stderr or "")
         self.assertTrue(polls, f"no poll lines: {text!r}")
@@ -895,7 +814,7 @@ class NoChecksReported(_WatchFixture):
         self.plant_gh_raw("", exit_code=1, stderr=GH_NO_CHECKS)
         proc = self.watch(expect_names="lane,app")
         text = self.combined(proc)
-        self.assertEqual(proc.returncode, 3, text)
+        self.assertEqual(proc.exit, 3, text)
         counts = self.last_counts(proc)
         self.assertIsNotNone(counts, f"abort printed no poll counts: {text!r}")
         self.assertEqual(counts["rows"], 0, counts)

@@ -8,12 +8,12 @@ Every test first asserts the three source files exist (install.sh,
 post-checkout, post-commit), so a missing implementation fails as a plain
 assertion with a message -- never as an import or collection error.
 
-All git activity happens in throwaway repositories under tempfile, with
+All git activity happens in throwaway repositories under a World, with
 explicit user.name/user.email and fixed --date on every commit; the wall
 clock is never an assertion input (the entry's "at" field is checked for
 shape only). The real repo's .git, hooks, and stream file are never
 touched: every resolved git common dir is asserted to live inside the
-test's own tempdir before anything is read or written there.
+test's own world before anything is read or written there.
 
 Every fixture these tests corrupt -- a foreign hook, a symlinked hook, a
 directory standing in the stream's place, pre-existing stream lines -- is
@@ -25,12 +25,12 @@ question about nothing.
 import json
 import os
 import re
-import shutil
 import stat
 import subprocess
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, make_executable, run
 
 # The package under test sits beside this tests/ directory, inside the
 # worktree at ops/devlane/hooks/ -- resolved from this file's own location.
@@ -58,6 +58,7 @@ WF = "Agent Under Test <noreply@example>"
 TRICKY_WF = 'Odd " Agent \\ Name <noreply@example>'
 FIXED_DATE_1 = "2026-01-02T03:04:05Z"
 FIXED_DATE_2 = "2026-01-02T03:05:06Z"
+RUN_CAP = 60
 
 # ISO8601 UTC with a literal Z suffix; fractional seconds allowed.
 AT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$")
@@ -70,10 +71,11 @@ class HookContractTest(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="hooks-contract-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
+        self.world = World(prefix="hooks-contract-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.tmp = self.world.root
+        self.home = self.world.home
 
     # ---------------------------------------------------------------- plumbing
 
@@ -89,32 +91,25 @@ class HookContractTest(unittest.TestCase):
 
     def env_for(self, wf_agent=WF, user="tester"):
         """A fully controlled environment: no global/system git config, a
-        temp HOME, fixed commit dates. Pass None to omit WF_AGENT or USER
+        World-owned HOME, fixed commit dates. Pass None to omit WF_AGENT or USER
         entirely (LOGNAME is never set, so $USER is the only identity)."""
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_AUTHOR_DATE": FIXED_DATE_1,
-            "GIT_COMMITTER_DATE": FIXED_DATE_1,
-            "LC_ALL": "C",
-        }
+        extra = {}
         if wf_agent is not None:
-            env["WF_AGENT"] = wf_agent
+            extra["WF_AGENT"] = wf_agent
         if user is not None:
-            env["USER"] = user
-        return env
+            extra["USER"] = user
+        return self.world.env(extra=extra)
 
     def run_cmd(self, argv, cwd, env=None, expect=0):
-        proc = subprocess.run(
+        result = run(
             argv,
             cwd=str(cwd),
             env=env if env is not None else self.env_for(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
+            expect=None,
+        )
+        proc = subprocess.CompletedProcess(
+            list(result.argv), result.exit, result.stdout, result.stderr
         )
         if expect is not None:
             self.assertEqual(
@@ -136,7 +131,7 @@ class HookContractTest(unittest.TestCase):
         self.git(repo, "-c", "init.defaultBranch=main", "init", "-q")
         self.git(repo, "config", "user.name", "Test User")
         self.git(repo, "config", "user.email", "test@example.invalid")
-        (repo / "file.txt").write_text("one\n")
+        self.world.plant_text(repo / "file.txt", "one\n", recognisable="one")
         self.git(repo, "add", "file.txt")
         self.git(repo, "commit", "-q", "-m", "c1", "--date", FIXED_DATE_1)
         return repo
@@ -150,20 +145,12 @@ class HookContractTest(unittest.TestCase):
         dest.mkdir(parents=True)
         check_dest = repo / "ops" / "devlane" / "workflow" / "checks"
         check_dest.mkdir(parents=True)
-        shutil.copy2(str(TRAILER_CHECK_SRC), str(check_dest / TRAILER_CHECK_SRC.name))
-        self.assertEqual(
-            (check_dest / TRAILER_CHECK_SRC.name).read_bytes(),
-            TRAILER_CHECK_SRC.read_bytes(),
-            "staged copy of the trailer checker did not land intact",
+        self.world.plant_bytes(
+            check_dest / TRAILER_CHECK_SRC.name, TRAILER_CHECK_SRC.read_bytes()
         )
         for src in SOURCES:
-            target = dest / src.name
-            shutil.copy2(str(src), str(target))
-            self.assertEqual(
-                target.read_bytes(),
-                src.read_bytes(),
-                f"staged copy of {src.name} did not land intact",
-            )
+            target = self.world.plant_bytes(dest / src.name, src.read_bytes())
+            make_executable(target)
         return dest / "install.sh"
 
     def install(self, repo, *args, env=None, expect=0):
@@ -278,20 +265,24 @@ class HookContractTest(unittest.TestCase):
         sentinel = (
             f"#!/bin/sh\n# pre-existing {name}, not ours\n"
             f"# sentinel: do-not-clobber-{name}\nexit 0\n"
-        ).encode()
+        )
         dest = hooks / name
-        dest.write_bytes(sentinel)
-        dest.chmod(0o755)
+        self.world.plant_text(
+            dest, sentinel, recognisable=f"do-not-clobber-{name}"
+        )
+        make_executable(dest)
         landed = dest.read_bytes()
-        self.assertEqual(landed, sentinel, f"planted foreign {name} did not land")
+        self.assertEqual(
+            landed, sentinel.encode(), f"planted foreign {name} did not land"
+        )
         self.assertTrue(landed, f"planted foreign {name} landed empty")
         self.assertNotEqual(
-            sentinel,
+            sentinel.encode(),
             packaged,
             f"planted foreign {name} is byte-identical to the packaged "
             "hook; this test cannot discriminate",
         )
-        return sentinel
+        return sentinel.encode()
 
     def plant_stream_lines(self, cwd, count=2):
         """Seed the shared stream with earlier records, proving they
@@ -314,7 +305,7 @@ class HookContractTest(unittest.TestCase):
         ]
         payload = "".join(line + "\n" for line in lines)
         self.assertTrue(payload, "stream plant payload is empty")
-        path.write_text(payload)
+        self.world.plant_text(path, payload, recognisable="earlier record 0")
         self.assertTrue(path.is_file(), "stream plant did not create the file")
         self.assertEqual(path.read_text(), payload, "stream plant did not land")
         self.assertEqual(
@@ -330,7 +321,7 @@ class HookContractTest(unittest.TestCase):
     def commit_change(self, repo, text, message, env=None):
         """Make a commit and return the resulting short SHA. Only the
         commit itself carries `env`; staging and rev-parse fire no hook."""
-        (repo / "file.txt").write_text(text)
+        self.world.plant_text(repo / "file.txt", text, recognisable=text.strip())
         self.git(repo, "add", "file.txt")
         # A real commit in this repo carries a Source trailer, and the
         # commit-msg hook these fixtures install now requires one. A bare
@@ -512,9 +503,11 @@ class HookContractTest(unittest.TestCase):
         outside_dir = self.tmp / "outside"
         outside_dir.mkdir()
         outside = outside_dir / "foreign-target"
-        sentinel = b"#!/bin/sh\n# somebody else's file, outside the hooks dir\nexit 0\n"
-        outside.write_bytes(sentinel)
-        outside.chmod(0o755)
+        sentinel = "#!/bin/sh\n# somebody else's file, outside the hooks dir\nexit 0\n"
+        self.world.plant_text(
+            outside, sentinel, recognisable="somebody else's file"
+        )
+        make_executable(outside)
         link = hooks / "post-checkout"
         os.symlink(str(outside), str(link))
         # Prove the plant landed and is still recognisably itself.
@@ -525,10 +518,10 @@ class HookContractTest(unittest.TestCase):
             "planted symlink does not point at the outside target",
         )
         self.assertEqual(
-            outside.read_bytes(), sentinel, "outside target was not planted intact"
+            outside.read_bytes(), sentinel.encode(), "outside target was not planted intact"
         )
         self.assertNotEqual(
-            sentinel,
+            sentinel.encode(),
             POST_CHECKOUT_SRC.read_bytes(),
             "outside target is byte-identical to the packaged hook; this "
             "test cannot discriminate",
@@ -536,7 +529,7 @@ class HookContractTest(unittest.TestCase):
         self.install(repo, "--force")  # exit 0 asserted by install()
         self.assertEqual(
             outside.read_bytes(),
-            sentinel,
+            sentinel.encode(),
             f"--force wrote through the symlink and overwrote {outside}, a "
             "file outside the hooks dir that install.sh was never asked to "
             "touch",

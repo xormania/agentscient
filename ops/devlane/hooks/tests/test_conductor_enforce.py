@@ -1,20 +1,51 @@
 """Policy corpus and process boundary for conductor-enforce.py."""
 
-import json
-import os
+import importlib.util
+import sys
 import unittest
+from pathlib import Path
 
-import support
+from ops.testkit import World, run
+
+HOOK = Path(__file__).resolve().parents[1] / "claude" / "conductor-enforce.py"
+TIMEOUT = 120
+
+
+def load_staged(world):
+    staged = world.stage(HOOK, siblings=("command_shape.py",))
+    shape_spec = importlib.util.spec_from_file_location(
+        "command_shape", staged.with_name("command_shape.py")
+    )
+    shape = importlib.util.module_from_spec(shape_spec)
+    previous = sys.modules.get("command_shape")
+    sys.modules["command_shape"] = shape
+    shape_spec.loader.exec_module(shape)
+    spec = importlib.util.spec_from_file_location("conductor_enforce_testkit", staged)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return staged, module, previous
 
 
 class ConductorPolicy(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mod = support.load_claude("conductor-enforce.py", "conductor_enforce")
+        cls.world = World(prefix="conductor-policy-")
+        cls.world.enter()
+        cls.staged, cls.mod, cls.previous_shape = load_staged(cls.world)
+
+    @classmethod
+    def tearDownClass(cls):
+        sys.modules.pop("conductor_enforce_testkit", None)
+        if cls.previous_shape is None:
+            sys.modules.pop("command_shape", None)
+        else:
+            sys.modules["command_shape"] = cls.previous_shape
+        cls.world.close()
 
     @staticmethod
     def bash(command):
-        return json.loads(support.bash_payload(command))
+        return {"tool_name": "Bash", "tool_input": {"command": command}}
 
     def test_agent_is_denied(self):
         self.assertEqual(
@@ -89,12 +120,17 @@ class ConductorPolicy(unittest.TestCase):
 
 class ConductorProcess(unittest.TestCase):
     def test_malformed_stdin_exits_zero_and_prints_nothing(self):
-        script = support.CLAUDE_DIR / "conductor-enforce.py"
-        proc = support.run_script(
-            script, "{not json", support.WORKTREE_ROOT, os.environ.copy()
-        )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(proc.stdout, "")
+        with World(prefix="conductor-process-") as world:
+            script = world.stage(HOOK, siblings=("command_shape.py",))
+            result = run(
+                [sys.executable, str(script)],
+                cwd=world.cwd,
+                env=world.env(),
+                stdin="{not json",
+                timeout=TIMEOUT,
+            )
+            self.assertEqual(result.exit, 0, result.stderr)
+            self.assertEqual(result.stdout, "")
 
 
 if __name__ == "__main__":

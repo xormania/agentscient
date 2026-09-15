@@ -1,3 +1,4 @@
+# testkit: exempt isolated fixture program; the consuming World plants it by path
 from __future__ import annotations
 import json
 import os
@@ -32,6 +33,7 @@ if plant.get("land_lineage_break"):
         capture_output=True,
         check=False,
         env=env,
+        timeout=60,
     )
     tree_sha = (tree.stdout or b"").decode("utf-8").strip()
     commit = subprocess.run(
@@ -40,6 +42,7 @@ if plant.get("land_lineage_break"):
         capture_output=True,
         check=False,
         env=env,
+        timeout=60,
     )
     sha = (commit.stdout or b"").decode("utf-8").strip()
     plant["lineage_break_sha"] = sha
@@ -59,6 +62,7 @@ if extra and str(info.get("name") or "").startswith("code"):
         cwd=str(REPO),
         capture_output=True,
         check=False,
+        timeout=60,
     )
 subprocess.run(
     ["git", "-c", "commit.gpgsign=false", "commit", "--allow-empty",
@@ -66,6 +70,7 @@ subprocess.run(
     cwd=str(REPO),
     capture_output=True,
     check=False,
+    timeout=60,
 )
 sha_proc = subprocess.run(
     ["git", "rev-parse", "HEAD"],
@@ -73,6 +78,7 @@ sha_proc = subprocess.run(
     capture_output=True,
     text=True,
     check=False,
+    timeout=60,
 )
 sha = (sha_proc.stdout or "").strip()
 plant_path.write_text(json.dumps(plant, indent=2) + "\n", encoding="utf-8")

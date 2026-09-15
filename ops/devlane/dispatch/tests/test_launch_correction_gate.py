@@ -18,12 +18,13 @@ import json
 import os
 import shlex
 import sqlite3
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import World, run
 
 FINDINGS = ls.REPO / "ops" / "conductor" / "tools" / "findings.py"
 REVIEW = "20260901T000000Z-review-grok-aaaaaa"
@@ -91,17 +92,15 @@ class _CorrectionLaunch(ls._TempLaunch):
     maxDiff = None
 
     def setUp(self):
+        self.world: World
         self._live_store = (
             Path.home() / ".local" / "state" / "agentscient" / "findings.db"
         )
         self._live_before = _store_snapshot(self._live_store)
         super().setUp()
-        os.environ.pop("XDG_STATE_HOME", None)
         self.planted_ids: set[str] = set()
         self.planted_job_ids: set[str] = set()
-        self.store = (
-            self.home / ".local" / "state" / "agentscient" / "findings.db"
-        )
+        self.store = self.world.xdg_state / "agentscient" / "findings.db"
         self.records = self.repo / ".dev" / "records" / "dispatches"
         self.records.mkdir(parents=True, exist_ok=True)
         self.findings = self._stage_findings()
@@ -128,23 +127,15 @@ class _CorrectionLaunch(ls._TempLaunch):
             super().tearDown()
 
     def findings_env(self) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
+        return self.world.env({
             "WF_AGENT": ls.AGENT,
-        }
-        env.pop("XDG_STATE_HOME", None)
-        return env
+        })
 
     def _stage_findings(self) -> Path:
         self.assertTrue(FINDINGS.is_file(), f"{FINDINGS} is missing")
         dest = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        dest.parent.mkdir(parents=True, exist_ok=True)
         data = FINDINGS.read_bytes()
-        dest.write_bytes(data)
+        self.world.plant_bytes(dest, data)
         landed = dest.read_bytes()
         self.assertEqual(landed, data, "copy-findings-bytes did not land intact")
         # findings.py imports these beside itself (instrument-conventions.md
@@ -154,20 +145,18 @@ class _CorrectionLaunch(ls._TempLaunch):
         for name in ("instrument.py", "laneconf.py"):
             sibling = FINDINGS.with_name(name)
             if sibling.is_file():
-                dest.with_name(name).write_bytes(sibling.read_bytes())
-        (self.repo / "ops" / "lane.conf").write_text(
-            "LANE_NAME='agentscient'\n", encoding="utf-8",
+                self.world.plant_bytes(dest.with_name(name), sibling.read_bytes())
+        self.world.plant_text(
+            self.repo / "ops" / "lane.conf",
+            "LANE_NAME='agentscient'\n",
         )
         return dest
 
     def findings_invoke(self, argv: list[str]):
-        return subprocess.run(
+        return run(
             [sys.executable, str(self.findings), *argv],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=self.findings_env(),
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
 
@@ -234,7 +223,7 @@ class _CorrectionLaunch(ls._TempLaunch):
 
     def import_records(self):
         proc = self.findings_invoke(["import"])
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         self.assertTrue(self.store.is_file(), "import must create the store")
         return proc
 
@@ -242,7 +231,7 @@ class _CorrectionLaunch(ls._TempLaunch):
         proc = self.findings_invoke(
             ["disposition", key, disposition, evidence]
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return proc
 
     def set_disposed_at(self, key: str, stamp: str) -> None:

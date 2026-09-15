@@ -6,20 +6,20 @@ When the file is absent a stub that exits 0 with no output is invoked,
 so the assertions fail rather than the suite erroring on a missing
 path. findings.py is staged only to plant the ledger; the gate is
 invoked as a subprocess against that planted HOME and records dir.
+World owns HOME and the XDG roots; every subprocess goes through run.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import shlex
 import sqlite3
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 CORRECTION = REPO / "ops" / "conductor" / "tools" / "correction.py"
@@ -81,11 +81,6 @@ CAP_BODY = (
     "numbered Contract items of .dev/ladder-inputs/scope-gate-20260910.md, "
     "tracked in this snapshot at the ref.\n"
 )
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
 RUN_CAP = 30
 FUTURE = "2099-01-01T00:00:00Z"
 PAST = "2000-01-01T00:00:00Z"
@@ -129,14 +124,6 @@ def evidence_for(item: int, path: str = SCOPE_REL, why: str = "why") -> str:
     return f"contract item {item} of {path}: {why}"
 
 
-def _live_snapshot() -> tuple[str, bytes | None]:
-    if LIVE_STORE.is_file():
-        return ("file", LIVE_STORE.read_bytes())
-    if LIVE_STORE.exists():
-        return ("other", None)
-    return ("absent", None)
-
-
 def _load_module(path: Path, name: str):
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -150,27 +137,24 @@ class _GateFixture(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self._live_before = _live_snapshot()
-        self._tmp = tempfile.TemporaryDirectory(prefix="correction-gate-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.repo = root / "repo"
+        self.world = World(prefix="correction-gate-")
+        self.addCleanup(self.world.close)
+        self._live = self.world.watch(LIVE_STORE)
+        self.scratch = self.world.path("scratch")
+        self.repo = self.world.path("repo")
         self.records = self.repo / ".dev" / "records" / "dispatches"
-        self.jobs_root = root / "jobs"
-        self.home.mkdir()
+        self.jobs_root = self.world.path("jobs")
         self.scratch.mkdir()
         self.records.mkdir(parents=True)
         self.jobs_root.mkdir()
         self.store = (
-            self.home / ".local" / "state" / "agentscient" / "findings.db"
+            self.world.xdg_state / "agentscient" / "findings.db"
         )
         self.scope = self.repo / SCOPE_REL
         self.other = self.repo / OTHER_REL
-        self.findings = self.repo / "ops" / "conductor" / "tools" / "findings.py"
         self._stage_findings()
-        self._plant_bytes(self.scope, SCOPE_BODY.encode("utf-8"))
-        self._plant_bytes(self.other, OTHER_BODY.encode("utf-8"))
+        self.world.plant_text(self.scope, SCOPE_BODY)
+        self.world.plant_text(self.other, OTHER_BODY)
         self.tool = self._correction_tool()
         self.assertFalse(
             self.store.exists(),
@@ -178,70 +162,54 @@ class _GateFixture(unittest.TestCase):
         )
 
     def tearDown(self):
-        try:
-            self.assertEqual(
-                _live_snapshot(),
-                self._live_before,
-                f"live store mutated: {LIVE_STORE}",
-            )
-        finally:
-            self._tmp.cleanup()
+        self._live.assert_unchanged(self, f"live store mutated: {LIVE_STORE}")
+
+    def _tools_dir(self) -> Path:
+        return self.repo / "ops" / "conductor" / "tools"
+
+    def _plant_staged_into_repo(self, staged: Path) -> Path:
+        """World.stage always lands under world.root/stage/; the needed
+        command names ops/conductor/tools/findings.py relative to --root,
+        so the proven copy is planted into that layout too."""
+        dest = self._tools_dir() / staged.name
+        self.world.plant_bytes(dest, staged.read_bytes())
+        for sibling in SIBLINGS:
+            src = staged.with_name(sibling)
+            if src.is_file():
+                self.world.plant_bytes(dest.with_name(sibling), src.read_bytes())
+        return dest
 
     def _stage_findings(self) -> None:
         self.assertTrue(FINDINGS.is_file(), f"{FINDINGS} is missing")
-        self.findings.parent.mkdir(parents=True, exist_ok=True)
-        data = FINDINGS.read_bytes()
-        self.findings.write_bytes(data)
-        landed = self.findings.read_bytes()
-        self.assertEqual(landed, data, "copy-findings-bytes did not land intact")
-        self.assertNotEqual(landed, ABSENT_STUB)
-        for name in SIBLINGS:
-            sibling = FINDINGS.with_name(name)
-            if sibling.is_file():
-                self.findings.with_name(name).write_bytes(sibling.read_bytes())
+        staged = self.world.stage(FINDINGS, siblings=SIBLINGS)
+        self.assertEqual(
+            staged.read_bytes(),
+            FINDINGS.read_bytes(),
+            "copy-findings-bytes did not land intact",
+        )
+        self.findings = self._plant_staged_into_repo(staged)
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under HOME is the one asserted.
         self.conf = self.findings.with_name("lane.conf")
-        self.conf.write_text("LANE_NAME='agentscient'\n", encoding="utf-8")
+        self.world.plant_text(self.conf, "LANE_NAME='agentscient'\n")
 
     def _correction_tool(self) -> Path:
-        dest = self.repo / "ops" / "conductor" / "tools" / "correction.py"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        if CORRECTION.is_file():
-            data = CORRECTION.read_bytes()
-            dest.write_bytes(data)
-            self.assertEqual(dest.read_bytes(), data)
-            self.assertNotEqual(data, ABSENT_STUB)
-        else:
-            dest.write_bytes(ABSENT_STUB)
-            self.assertEqual(dest.read_bytes(), ABSENT_STUB)
-        return dest
-
-    def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
+        staged = self.world.stage(CORRECTION, siblings=SIBLINGS)
+        return self._plant_staged_into_repo(staged)
 
     def env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "WF_AGENT": AGENT,
-            "LANE_CONF": str(self.conf),
-        }
+        return self.world.env(
+            extra={
+                "WF_AGENT": AGENT,
+                "LANE_CONF": str(self.conf),
+            }
+        )
 
     def findings_invoke(self, argv: list[str]):
-        return subprocess.run(
+        return run(
             [sys.executable, str(self.findings), *argv],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=self.env(),
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
 
@@ -291,14 +259,14 @@ class _GateFixture(unittest.TestCase):
             }
         path = self.records / f"{rec_id}.json"
         payload = json.dumps(envelope, indent=2) + "\n"
-        self._plant_bytes(path, payload.encode("utf-8"))
+        self.world.plant_text(path, payload)
         return path
 
     def plant_three_scope_files(self) -> None:
         discipline = self.repo / DISCIPLINE_REL
         cap = self.repo / CAP_REL
-        self._plant_bytes(discipline, DISCIPLINE_BODY.encode("utf-8"))
-        self._plant_bytes(cap, CAP_BODY.encode("utf-8"))
+        self.world.plant_text(discipline, DISCIPLINE_BODY)
+        self.world.plant_text(cap, CAP_BODY)
         names = sorted(
             p.name
             for p in (self.repo / ".dev" / "ladder-inputs").glob("scope-*.md")
@@ -324,14 +292,14 @@ class _GateFixture(unittest.TestCase):
 
     def import_records(self):
         proc = self.findings_invoke(["import"])
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return proc
 
     def dispose(self, key: str, disposition: str, evidence: str):
         proc = self.findings_invoke(
             ["disposition", key, disposition, evidence]
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return proc
 
     def set_disposed_at(self, key: str, stamp: str) -> None:
@@ -400,13 +368,10 @@ class _GateFixture(unittest.TestCase):
         if extra:
             argv.extend(extra)
         before = self._store_state()
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(self.tool), *argv],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=self.env(),
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
         after = self._store_state()
@@ -429,24 +394,13 @@ class _GateFixture(unittest.TestCase):
             return False, "citation_holds does not take scope_path"
 
     def assert_refusal(self, proc, class_name: str) -> str:
-        err = proc.stderr or ""
-        self.assertEqual(proc.returncode, 2, err or proc.stdout)
-        self.assertEqual((proc.stdout or "").strip(), "")
-        lines = [ln for ln in err.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, f"item 3: one stderr line: {err!r}")
-        line = lines[0]
-        head = line.split(":", 1)[0].strip().lower().replace("_", "-")
+        refusal = proc.refusal()
         self.assertEqual(
-            head,
+            refusal.cls,
             class_name,
-            f"refusal class must be {class_name!r}: {line!r}",
+            f"refusal class must be {class_name!r}: {refusal.line!r}",
         )
-        lower = line.lower()
-        for word in ("expected", "found", "needed"):
-            self.assertIn(word, lower, line)
-        self.assertLess(lower.index("expected"), lower.index("found"), line)
-        self.assertLess(lower.index("found"), lower.index("needed"), line)
-        return line
+        return refusal.line
 
     def found_clause(self, line: str) -> str:
         lower = line.lower()
@@ -513,16 +467,13 @@ class _GateFixture(unittest.TestCase):
             "ops/conductor/tools/findings.py",
             "disposition",
         ])
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, *parts[1:6]],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=self.env(),
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return proc
 
 
@@ -592,7 +543,7 @@ class FiveFoundTexts(_GateFixture):
         parts = self.assert_needed_disposition(needed, key)
         self.run_needed_disposition(parts)
         again = self.check(follows=[REVIEW], answers=[key])
-        self.assertEqual(again.returncode, 0, again.stderr or again.stdout)
+        self.assertEqual(again.exit, 0, again.stderr or again.stdout)
         body = (again.stdout or "").strip()
         self.assertTrue(body, "accept path prints JSON on stdout")
         payload = json.loads(body)
@@ -617,7 +568,7 @@ class FiveFoundTexts(_GateFixture):
         parts = self.assert_needed_disposition(needed, key)
         self.run_needed_disposition(parts)
         again = self.check(follows=[REVIEW], answers=[key])
-        self.assertEqual(again.returncode, 0, again.stderr or again.stdout)
+        self.assertEqual(again.exit, 0, again.stderr or again.stdout)
 
     def test_newlines_in_evidence_still_one_stderr_line(self):
         self.plant_record(REVIEW, "adversarial-review")
@@ -727,7 +678,7 @@ class AcceptPath(_GateFixture):
         key = f"{REVIEW}#1"
         self.dispose(key, "fixed", VALID_EVIDENCE)
         proc = self.check(follows=[REVIEW], answers=[key])
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         self.assertEqual((proc.stderr or "").strip(), "")
         body = (proc.stdout or "").strip()
         self.assertTrue(body, "accept path prints JSON on stdout")
@@ -752,7 +703,7 @@ class AcceptPath(_GateFixture):
         self.dispose(first, "fixed", evidence_for(1, why="item 1 holds"))
         self.dispose(second, "fixed", evidence_for(10, why="item 10 holds"))
         proc = self.check(follows=[REVIEW], answers=[first, second])
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         body = (proc.stdout or "").strip()
         self.assertTrue(body, "accept path prints JSON on stdout")
         payload = json.loads(body)
@@ -795,7 +746,7 @@ class ReviewJobShape(_GateFixture):
             with self.subTest(job=job):
                 self.plant_record(rec_id, job)
                 note = self.jobs_root / rec_id / "out" / "note.md"
-                self._plant_bytes(note, b"review artifact\n")
+                self.world.plant_bytes(note, b"review artifact\n")
                 proc = self.check(inputs=[str(note)])
                 line = self.assert_refusal(proc, "correction")
                 self.assertIn("no --answers key named", line)
@@ -809,10 +760,10 @@ class NonCorrections(_GateFixture):
     def _assert_not_a_correction(self, proc) -> None:
         err = proc.stderr or ""
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "item 7: a non-correction is not inspected and must not be "
-            f"refused; got exit {proc.returncode} stderr={err!r} "
+            f"refused; got exit {proc.exit} stderr={err!r} "
             f"stdout={proc.stdout!r}",
         )
         self.assertEqual(err.strip(), "")
@@ -871,7 +822,7 @@ class OutInputShape(_GateFixture):
     def test_out_input_without_answers_is_the_no_key_arm(self):
         self.plant_record(REVIEW, "adversarial-review")
         note = self.jobs_root / REVIEW / "out" / "note.md"
-        self._plant_bytes(note, b"review artifact\n")
+        self.world.plant_bytes(note, b"review artifact\n")
         proc = self.check(inputs=[str(note)])
         line = self.assert_refusal(proc, "correction")
         self.assertIn("no --answers key named", line)
@@ -896,7 +847,7 @@ class FollowsRefusals(_GateFixture):
         path = self.plant_record(REVIEW, "adversarial-review")
         payload = json.loads(path.read_text(encoding="utf-8"))
         payload["id"] = CHECK
-        self._plant_bytes(
+        self.world.plant_bytes(
             path, (json.dumps(payload, indent=2) + "\n").encode("utf-8")
         )
         proc = self.check(follows=[REVIEW])
@@ -961,7 +912,7 @@ class SharedDefinition(_GateFixture):
             f"    return False, {marker!r}\n"
         )
         before = self.findings.read_text(encoding="utf-8")
-        self.findings.write_text(before + suffix, encoding="utf-8")
+        self.world.plant_text(self.findings, before + suffix)
         landed = self.findings.read_text(encoding="utf-8")
         self.assertTrue(
             landed.endswith(suffix),
@@ -985,7 +936,7 @@ class NoOverride(_GateFixture):
             extra=["--override", "correction:reason"],
         )
         err = proc.stderr or ""
-        self.assertNotEqual(proc.returncode, 0, proc.stdout)
+        self.assertNotEqual(proc.exit, 0, proc.stdout)
         head = err.split(":", 1)[0].strip().lower().replace("_", "-")
         self.assertNotEqual(head, "correction")
         self.assertNotIn("override permitted", err.lower())
@@ -1009,13 +960,10 @@ class RegistryJoin(_GateFixture):
         self.assertEqual(data["rows"], list(REGISTRY_ROWS))
 
     def test_bare_check_is_class_arguments(self):
-        proc = subprocess.run(
+        proc = run(
             [sys.executable, str(self.tool), "check"],
-            cwd=str(self.repo),
+            cwd=self.repo,
             env=self.env(),
-            capture_output=True,
-            text=True,
-            check=False,
             timeout=RUN_CAP,
         )
         self.assert_refusal(proc, "arguments")
@@ -1040,7 +988,7 @@ class WorkOrderScope(_GateFixture):
         self.dispose(key, "fixed", VALID_EVIDENCE)
         proc = self.check(follows=[REVIEW], answers=[key])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "items 1 and 4: a correction is --follows a review plus "
             "a holding citation to the work-order Contract; the other "
@@ -1068,7 +1016,7 @@ class WorkOrderScope(_GateFixture):
         self.run_needed_disposition(parts)
         again = self.check(follows=[REVIEW], answers=[key])
         self.assertEqual(
-            again.returncode,
+            again.exit,
             0,
             "item 3: the printed disposition command satisfies the "
             f"next mint; stderr={again.stderr!r} stdout={again.stdout!r}",
@@ -1091,7 +1039,7 @@ class WorkOrderScope(_GateFixture):
             ],
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "item 4: the first scope-* input must not make a work-order "
             "Contract citation fail; "
@@ -1130,7 +1078,7 @@ class WorkOrderScope(_GateFixture):
             inputs=[str(self.repo / CAP_REL)],
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "item 4: the 1024-byte cap file has no numbered Contract "
             "item; a holding citation to the work-order file still "
@@ -1163,7 +1111,7 @@ class WorkOrderScope(_GateFixture):
             inputs=[str(self.repo / CAP_REL)],
         )
         self.assertEqual(
-            again.returncode,
+            again.exit,
             0,
             "item 3: running the printed command must satisfy the next "
             f"check; stderr={again.stderr!r} stdout={again.stdout!r}",
@@ -1189,14 +1137,14 @@ class AnswerKeysTiedToTheReview(_GateFixture):
         self.dispose(own, "fixed", VALID_EVIDENCE)
         neighbour = self.check(follows=[REVIEW], answers=[own])
         self.assertEqual(
-            neighbour.returncode,
+            neighbour.exit,
             0,
             "positive neighbour: the followed review's own cited key "
             f"is accepted; stderr={neighbour.stderr!r}",
         )
         proc = self.check(follows=[REVIEW], answers=[OTHER_KEY])
         self.assertNotEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "items 1, 2, 6, 8: a previously cited key from another "
             "review must not stand in for the followed review; "
@@ -1238,7 +1186,7 @@ class NeededCitesTheFindingItem(_GateFixture):
         cited = self.findings_invoke(["cited", key])
         gate = self.check(follows=[REVIEW], answers=[key])
         self.assertEqual(
-            cited.returncode,
+            cited.exit,
             0,
             "item 9: cited of a holding work-order citation is exit 0 "
             f"when three scope-*.md files exist; stdout={cited.stdout!r} "
@@ -1249,7 +1197,7 @@ class NeededCitesTheFindingItem(_GateFixture):
             f"{key}\tcontract item 3 of {SCOPE_REL}",
         )
         self.assertEqual(
-            gate.returncode,
+            gate.exit,
             0,
             "items 4 and 9: the mint gate and cited must resolve the "
             f"same scope file; stderr={gate.stderr!r} stdout={gate.stdout!r}",

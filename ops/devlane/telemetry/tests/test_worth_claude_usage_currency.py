@@ -11,44 +11,163 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 import unittest
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
+from ops.testkit import World, run
 
-import test_worth as worth_contract  # noqa: E402
-
+WORTH = Path(__file__).resolve().parents[1] / "worth.py"
 NOW = "2026-08-22T12:00:00.000Z"
 INSIDE = "2026-08-22T10:00:00.000Z"
 VALID_OUT = 41
 VALID_IN = 7
 NEGATIVE_OUT = -17
 PARTIAL_IN = 100
+TIMEOUT = 60
+
+
+def canonical_key(value):
+    return re.sub(r"[^a-z0-9]", "", str(value).lower())
+
+
+def walk_leaves(value, path=()):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            yield from walk_leaves(child, path + (str(key),))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            yield from walk_leaves(child, path + (str(index),))
+    else:
+        yield path, value
 
 
 class ClaudeUsageCurrency(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.w = worth_contract.WorthContractTests(
-            "test_unusable_arguments_exit_two_and_explain_the_reason"
+        self.world = World(prefix="worth-currency-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        # Kit gap: worth.py locates conductor siblings from Path(__file__).
+        self.worth_py = WORTH
+        self.repo = self.world.root / "repo"
+        self.repo.mkdir()
+        self.claude = self.world.root / "claude"
+        self.codex = self.world.root / "codex"
+        self.grok = self.world.root / "grok"
+        self.world.git("init", "-q", "-b", "dev", cwd=self.repo)
+        self.world.plant_text(self.repo / "README.md", "throwaway worth fixture\n")
+        extra = {
+            "GIT_AUTHOR_DATE": "2026-08-20T10:00:00+00:00",
+            "GIT_COMMITTER_DATE": "2026-08-20T10:00:00+00:00",
+        }
+        env = self.world.env(extra=extra)
+        run(["git", "add", "-A"], cwd=self.repo, env=env, timeout=TIMEOUT,
+            expect=0)
+        run(["git", "commit", "-q", "-m", "initial fixture"], cwd=self.repo,
+            env=env, timeout=TIMEOUT, expect=0)
+
+    def _write_jsonl(self, path, entries):
+        content = "".join(
+            json.dumps(entry, sort_keys=True) + "\n" for entry in entries
         )
-        self.w.setUp()
-        self.addCleanup(self.w.doCleanups)
-        self._write_jsonl = self.w._write_jsonl
-        self._slug = self.w._slug
-        self._assert_key_number = self.w._assert_key_number
-        self._harness_record = self.w._harness_record
-        self._session_ids = self.w._session_ids
+        planted_path = self.world.plant_text(path, content)
+        planted = [
+            json.loads(raw)
+            for raw in planted_path.read_text(encoding="utf-8").splitlines()
+            if raw.strip()
+        ]
+        self.assertEqual(len(planted), len(entries))
+        self.assertEqual(planted, entries)
+        return planted_path
+
+    def _slug(self, repo=None):
+        repo = str(repo or self.repo)
+        return "-" + "-".join(repo.strip("/").split("/"))
+
+    def _assert_key_number(self, value, aliases, expected):
+        wanted = {canonical_key(alias) for alias in aliases}
+        matches = [
+            leaf for path, leaf in walk_leaves(value)
+            if path
+            and canonical_key(path[-1]) in wanted
+            and isinstance(leaf, (int, float))
+            and not isinstance(leaf, bool)
+        ]
+        self.assertIn(
+            expected,
+            matches,
+            f"expected {aliases}={expected}; observed {matches} in {value}",
+        )
+
+    def _harness_record(self, data, harness):
+        container = data["cost"]
+        wanted = canonical_key(harness)
+
+        def find(value):
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    if canonical_key(key) == wanted:
+                        return child
+                if canonical_key(value.get("harness", "")) == wanted:
+                    return value
+                for child in value.values():
+                    found = find(child)
+                    if found is not None:
+                        return found
+            elif isinstance(value, list):
+                for child in value:
+                    found = find(child)
+                    if found is not None:
+                        return found
+            return None
+
+        record = find(container)
+        self.assertIsNotNone(record, f"no cost record for {harness}: {container}")
+        return record
+
+    def _run_worth(self, verb, *args):
+        cmd = [
+            sys.executable,
+            str(self.worth_py),
+            verb,
+            *args,
+            "--now",
+            NOW,
+            "--repo",
+            str(self.repo),
+            "--claude-dir",
+            str(self.claude),
+            "--codex-dir",
+            str(self.codex),
+            "--grok-dir",
+            str(self.grok),
+        ]
+        self.assertEqual(cmd.count("--now"), 1)
+        return run(
+            cmd,
+            cwd=self.world.cwd,
+            env=self.world.env(extra={"TZ": "Etc/GMT+11"}),
+            timeout=TIMEOUT,
+        )
+
+    def _json_worth(self, verb, *args):
+        proc = self._run_worth(verb, *args, "--format", "json")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        try:
+            value = json.loads(proc.stdout)
+        except ValueError as exc:
+            self.fail(f"invalid JSON: {exc}\nstdout:\n{proc.stdout}")
+        self.assertIsInstance(value, dict)
+        return value
 
     def _assistant(self, session_id, mid, usage, timestamp=INSIDE):
         return {
             "type": "assistant",
             "timestamp": timestamp,
-            "cwd": str(self.w.repo),
+            "cwd": str(self.repo),
             "sessionId": session_id,
             "message": {
                 "id": mid,
@@ -67,7 +186,7 @@ class ClaudeUsageCurrency(unittest.TestCase):
         }
 
     def _plant(self, session_id, rows):
-        path = self.w.claude / self._slug() / f"{session_id}.jsonl"
+        path = self.claude / self._slug() / f"{session_id}.jsonl"
         planted = self._write_jsonl(path, rows)
         self.assertEqual(
             [
@@ -80,11 +199,10 @@ class ClaudeUsageCurrency(unittest.TestCase):
         return planted
 
     def _plant_raw(self, session_id, text):
-        path = self.w.claude / self._slug() / f"{session_id}.jsonl"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
-        self.assertEqual(path.read_text(encoding="utf-8"), text)
-        return path
+        path = self.claude / self._slug() / f"{session_id}.jsonl"
+        planted = self.world.plant_text(path, text)
+        self.assertEqual(planted.read_text(encoding="utf-8"), text)
+        return planted
 
     def _plant_valid_control(self, session_id="valid-control"):
         path = self._plant(
@@ -103,15 +221,15 @@ class ClaudeUsageCurrency(unittest.TestCase):
         return session_id
 
     def _report(self):
-        plain = self.w._run_worth("report")
-        self.assertEqual(plain.returncode, 0, plain.stderr)
-        data = self.w._json_worth("report")
+        plain = self._run_worth("report")
+        self.assertEqual(plain.exit, 0, plain.stderr)
+        data = self._json_worth("report")
         return plain.stdout, data
 
     def _waste(self, *extra):
-        plain = self.w._run_worth("waste", "--top", "20", *extra)
-        self.assertEqual(plain.returncode, 0, plain.stderr)
-        data = self.w._json_worth("waste", "--top", "20", *extra)
+        plain = self._run_worth("waste", "--top", "20", *extra)
+        self.assertEqual(plain.exit, 0, plain.stderr)
+        data = self._json_worth("waste", "--top", "20", *extra)
         return plain.stdout, data
 
     def _claude_cost(self, data):

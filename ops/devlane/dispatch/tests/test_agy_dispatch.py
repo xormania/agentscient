@@ -20,6 +20,8 @@ from pathlib import Path
 import agy_dispatch_support as agy
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 
 def _iso(test):
     return ls.load_path(
@@ -54,14 +56,15 @@ class _AgyLaunch(ls._TempLaunch):
     def plant_auth(self, home=None):
         home = Path(home or self.home)
         path = agy.auth_path(home)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("agy-synthetic-auth\n", encoding="utf-8")
+        self.world.plant_text(path, "agy-synthetic-auth\n")
         os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, "agy-synthetic-auth\n", "plant: auth leaf")
         self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
         canary = agy.canary_path(home)
-        canary.write_text("personal-settings-must-not-cross\n", encoding="utf-8")
+        self.world.plant_text(
+            canary, "personal-settings-must-not-cross\n",
+        )
         self.assertEqual(
             canary.read_text(encoding="utf-8"),
             "personal-settings-must-not-cross\n",
@@ -73,7 +76,6 @@ class _AgyLaunch(ls._TempLaunch):
 
     def plant_transcript(self, home, conversation_id, marker):
         path = agy.transcript_path(home, conversation_id)
-        path.parent.mkdir(parents=True, exist_ok=True)
         row = {
             "step_index": 1,
             "source": "USER",
@@ -82,7 +84,7 @@ class _AgyLaunch(ls._TempLaunch):
             "created_at": "2026-09-08T00:00:00Z",
             "content": marker,
         }
-        path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+        self.world.plant_text(path, json.dumps(row) + "\n")
         landed = path.read_text(encoding="utf-8")
         self.assertIn(marker, landed, "plant: transcript marker")
         self.assertIn(conversation_id, str(path))
@@ -106,17 +108,10 @@ class _AgyLaunch(ls._TempLaunch):
         return argv
 
     def install_live_child(self):
-        dest = self.bin / "agy"
-        script = agy.LIVE_CHILD.replace(
-            "@@START_WITNESS@@", json.dumps(str(self.start_witness)),
+        dest = agy.plant_live_child(
+            self.world, start_witness=self.start_witness,
         )
-        dest.write_text(script, encoding="utf-8")
-        dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP
-                   | stat.S_IXOTH)
-        landed = dest.read_text(encoding="utf-8")
-        self.assertIn("AGY_FAKE_SLEEP", landed)
-        self.assertIn(str(self.start_witness), landed)
-        self.assertNotIn("@@START_WITNESS@@", landed)
+        self.assertEqual(dest, self.bin / "agy")
         return dest
 
 
@@ -302,15 +297,14 @@ class AgySessionSnapshotAssociation(_AgyLaunch):
         os.utime(foreign, (2_000_000_000, 2_000_000_000))
         self.assertGreater(foreign.stat().st_mtime, own.stat().st_mtime)
         claude_decoy = self.home / ".claude" / "projects" / "decoy" / "x.jsonl"
-        claude_decoy.parent.mkdir(parents=True, exist_ok=True)
-        claude_decoy.write_text("claude-fallback-decoy\n", encoding="utf-8")
+        self.world.plant_text(claude_decoy, "claude-fallback-decoy\n")
         os.utime(claude_decoy, (2_100_000_000, 2_100_000_000))
         self.assertIn("claude-fallback-decoy", claude_decoy.read_text())
 
         matching = agy.framed_stdout(
             cwd=str(snap.resolve()), permission_mode="always-proceed",
         )
-        (job_dir / "raw.out").write_bytes(matching)
+        self.world.plant_bytes(job_dir / "raw.out", matching)
         self.assertIn(str(snap.resolve()).encode("utf-8"), matching)
         self.assertIn(b"always-proceed", matching)
         self.assertNotIn(b'"cwd"', own.read_bytes())
@@ -338,7 +332,8 @@ class AgySessionSnapshotAssociation(_AgyLaunch):
             f"matching init.cwd must not mismatch: {got!r}",
         )
 
-        (job_dir / "raw.out").write_bytes(
+        self.world.plant_bytes(
+            job_dir / "raw.out",
             agy.framed_stdout(
                 cwd="/not-this-snapshot",
                 permission_mode="always-proceed",
@@ -366,8 +361,7 @@ class AgyMissingAuthRefuses(_AgyLaunch):
         path = agy.auth_path(self.home)
         self.assertFalse(path.exists(), "plant: auth leaf is absent")
         neighbor = path.parent / "personal-settings.json"
-        neighbor.parent.mkdir(parents=True, exist_ok=True)
-        neighbor.write_text("not-auth\n", encoding="utf-8")
+        self.world.plant_text(neighbor, "not-auth\n")
         self.assertTrue(neighbor.is_file(), "plant: neighboring file is not auth")
         before = list(self.jobs_root.iterdir())
         code, out, err = self.dispatch_agy(
@@ -479,7 +473,7 @@ class AgyExplicitIdResume(_AgyLaunch):
         }
         path = self.the_record_path()
         before = path.read_bytes()
-        path.write_text(json.dumps(planted) + "\n", encoding="utf-8")
+        self.world.plant_text(path, json.dumps(planted) + "\n")
         after = path.read_bytes()
         self.assertNotEqual(after, before, "plant: record harness is agy")
         self.assertIn(b'"agy"', after)
@@ -554,7 +548,7 @@ class AgyTerminalUsage(_AgyLaunch):
                 usage=usage, status=status, conversation_id=conversation_id,
                 cwd=str(self.repo),
             )
-        (job_dir / "raw.out").write_bytes(raw)
+        self.world.plant_bytes(job_dir / "raw.out", raw)
         self.assertIn(b'"event": "result"', raw)
         self.assertIn(
             str(usage["total_tokens"]).encode("utf-8"), raw, "plant: total",
@@ -627,14 +621,14 @@ class AgyTerminalUsage(_AgyLaunch):
                 },
             ),
         )
-        (job_dir / "state.json").write_text(
+        self.world.plant_text(
+            job_dir / "state.json",
             json.dumps({
                 "pid": None,
                 "pgid": None,
                 "session": agy.CONVERSATION_ID,
                 "attempt": 2,
             }) + "\n",
-            encoding="utf-8",
         )
         payload, planted_raw = self._spend_from(
             agy.RESUME_USAGE, rec=rec, raw=combined, job_dir=job_dir,

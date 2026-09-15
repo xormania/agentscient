@@ -17,71 +17,59 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import RefusalCase, World, refusal_wire, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "probes.py"
 CORPUS_DIR = Path("ops/conductor/handoff/probes")
 
 
-def _git(root, *args):
-    return subprocess.run(
-        ["git", *args], cwd=root, capture_output=True, text=True, check=True,
-    ).stdout
-
-
 class _Fixture(unittest.TestCase):
     """A disposable repository with its own corpus directory."""
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name) / "repo"
-        self.root.mkdir()
-        _git(self.root, "init", "-q", "-b", "trunk")
-        _git(self.root, "config", "user.email", "fixture@example.invalid")
-        _git(self.root, "config", "user.name", "Fixture")
-        (self.root / "notes.md").write_text("alpha lives here\nthe sky is blue\n")
-        tools = self.root / "ops" / "conductor" / "tools"
-        tools.mkdir(parents=True)
-        (tools / "served.py").write_text("print('served: forty-two')\n")
-        (tools / "slow.py").write_text("import time; time.sleep(5)\n")
-        (tools / "loud.py").write_text("import sys; print('x'); sys.exit(0)\n")
+        self.world = World(prefix="probes-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.cwd
+        self.world.git("init", "-q", "-b", "trunk", cwd=self.root, timeout=60)
+        self.world.plant_text(self.root / "notes.md", "alpha lives here\nthe sky is blue\n")
         (self.root / CORPUS_DIR).mkdir(parents=True)
-        _git(self.root, "add", "-A")
-        _git(self.root, "commit", "-q", "-m", "fixture")
-        self.short = _git(self.root, "rev-parse", "--short", "HEAD").strip()
-        self.env = {k: v for k, v in os.environ.items() if k != "WF_AGENT"}
-        self.env["WF_AGENT"] = "Should Be Stripped <strip@example.invalid>"
+        self.world.tools.plant("python3", responses=[
+            {"match": ["served.py"], "stdout": "served: forty-two\n"},
+            {"match": ["slow.py"], "delay": 5.0},
+            {"match": ["loud.py"], "stdout": "x\n"},
+        ])
+        self.world.git("add", "-A", cwd=self.root, timeout=60)
+        self.world.git("commit", "-q", "-m", "fixture", cwd=self.root, timeout=60)
+        self.short = self.world.git(
+            "rev-parse", "--short", "HEAD", cwd=self.root, timeout=60
+        ).stdout.strip()
+        self.env = self.world.env(extra={
+            "WF_AGENT": "Should Be Stripped <strip@example.invalid>",
+        })
 
     def rows(self, name, rows):
         path = self.root / CORPUS_DIR / name
-        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
-        return path
+        return self.world.plant_text(
+            path, "".join(json.dumps(r) + "\n" for r in rows)
+        )
 
     def run_tool(self, *argv, env=None):
-        return subprocess.run(
+        return run(
             [sys.executable, str(TOOL), *argv], cwd=self.root,
-            capture_output=True, text=True, env=env or self.env, timeout=60,
+            env=env or self.env, timeout=60,
         )
 
     def assert_refusal(self, proc, klass):
-        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
-        self.assertEqual(proc.stdout, "")
-        lines = proc.stderr.splitlines()
-        self.assertEqual(len(lines), 1, proc.stderr)
-        line = lines[0]
-        self.assertTrue(line.startswith(f"{klass}: expected "), line)
-        self.assertIn("; found ", line)
-        self.assertIn("; needed ", line)
-        return line
+        row = RefusalCase("fixture-refusal", (), klass)
+        return refusal_wire(row, proc).line
 
     def report(self, proc):
-        self.assertIn(proc.returncode, (0, 1), proc.stdout + proc.stderr)
+        self.assertIn(proc.exit, (0, 1), proc.stdout + proc.stderr)
         self.assertEqual(proc.stderr, "", proc.stderr)
         doc = json.loads(proc.stdout)
         self.assertEqual(set(doc), {"commit", "rows", "counts"})
@@ -116,7 +104,7 @@ class RunPassesACleanCorpus(_Fixture):
         self.rows("probes-b.jsonl", [NEARMISS, SIBLING])
         proc = self.run_tool("run")
         doc = self.report(proc)
-        self.assertEqual(proc.returncode, 0, proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stdout)
         self.assertEqual([r["id"] for r in doc["rows"]],
                          ["P-T-serve", "P-T-absent", "P-T-near", "P-T-sibling"],
                          "files in name order, rows in file order")
@@ -138,7 +126,7 @@ class RunReportsFailAndUnreachable(_Fixture):
         self.rows("p.jsonl", [dict(SERVE, serve="git show HEAD:no-such-file")])
         proc = self.run_tool("run")
         doc = self.report(proc)
-        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(proc.exit, 1)
         self.assertEqual(doc["rows"][0]["result"], "UNREACHABLE")
         self.assertTrue(doc["rows"][0]["detail"])
         self.assertEqual(doc["counts"]["unreachable"], 1)
@@ -163,12 +151,28 @@ class RunReportsFailAndUnreachable(_Fixture):
         self.assertIn("timeout", doc["rows"][1]["detail"])
 
     def test_rows_run_with_wf_agent_stripped(self):
-        (self.root / "ops/conductor/tools/whoami.py").write_text(
-            "import os; print('agent=' + os.environ.get('WF_AGENT', 'none'))\n")
-        self.rows("p.jsonl", [dict(SIBLING, serve="python3 ops/conductor/tools/whoami.py",
-                                   expect="agent=none")])
+        log = self.world.tools.log_path("python3")
+        self.world.tools.plant(
+            "python3",
+            script=(
+                f"#!{sys.executable}\n"
+                "import json, os, sys\n"
+                f"with open({str(log)!r}, 'a', encoding='utf-8') as fh:\n"
+                "    fh.write(json.dumps({'argv': sys.argv[1:]}) + '\\n')\n"
+                "print('agent=' + os.environ.get('WF_AGENT', 'none'))\n"
+            ),
+        )
+        self.rows("p.jsonl", [dict(
+            SIBLING,
+            serve="python3 ops/conductor/tools/whoami.py",
+            expect="agent=none",
+        )])
         doc = self.report(self.run_tool("run"))
         self.assertEqual(doc["rows"][0]["result"], "PASS")
+        self.assertEqual(
+            self.world.tools.calls("python3")[-1]["argv"],
+            ["ops/conductor/tools/whoami.py"],
+        )
 
 
 class CorpusRefusals(_Fixture):
@@ -176,7 +180,6 @@ class CorpusRefusals(_Fixture):
         self.assert_refusal(self.run_tool("run"), "corpus")
 
     def test_command_outside_the_allowlist_refuses_before_any_row_runs(self):
-        witness = self.root / "witness"
         self.rows("p.jsonl", [
             dict(SIBLING, id="P-T-bad", serve="cat notes.md"),
             dict(SIBLING, id="P-T-touch",
@@ -184,7 +187,7 @@ class CorpusRefusals(_Fixture):
         ])
         line = self.assert_refusal(self.run_tool("run"), "corpus")
         self.assertIn("P-T-bad", line)
-        self.assertFalse(witness.exists())
+        self.assertEqual(self.world.tools.calls("python3"), [])
 
     def test_git_verb_outside_the_read_set_refuses(self):
         self.rows("p.jsonl", [dict(SERVE, serve="git commit -m x")])
@@ -199,13 +202,10 @@ class CorpusRefusals(_Fixture):
         the output of `COMMAND PATH`, spawning it for every file, so a
         nominally read-only row could run a writer on the self-hosted
         runner; `--pre-glob` and `-z`/`--search-zip` spawn the same way."""
-        witness = self.root / "witness"
-        pre = self.root / "pre.sh"
-        pre.write_text("#!/bin/sh\ntouch witness\ncat \"$1\"\n")
-        pre.chmod(0o755)
-        for command in ("rg --pre ./pre.sh alpha notes.md",
-                        "rg --pre=./pre.sh alpha notes.md",
-                        "rg --pre ./pre.sh --pre-glob '*.md' alpha notes.md",
+        pre = self.world.tools.plant("pre", stdout="alpha\n")
+        for command in (f"rg --pre {pre} alpha notes.md",
+                        f"rg --pre={pre} alpha notes.md",
+                        f"rg --pre {pre} --pre-glob '*.md' alpha notes.md",
                         "rg -z alpha notes.md",
                         "rg -cz alpha notes.md",
                         "rg --search-zip alpha notes.md"):
@@ -213,7 +213,7 @@ class CorpusRefusals(_Fixture):
             line = self.assert_refusal(self.run_tool("run"), "corpus")
             self.assertIn("P-T-serve", line)
             self.assertIn("spawn", line)
-            self.assertFalse(witness.exists(), command)
+            self.assertEqual(self.world.tools.calls("pre"), [], command)
 
     def test_rg_options_that_only_read_stay_allowed(self):
         self.rows("p.jsonl", [dict(ABSENT, absent="rg -c -eomega notes.md"),
@@ -228,7 +228,10 @@ class CorpusRefusals(_Fixture):
         self.assertIn("P-T-serve", line)
 
     def test_blank_or_non_json_line_refuses(self):
-        (self.root / CORPUS_DIR / "p.jsonl").write_text(json.dumps(SERVE) + "\n\nnot json\n")
+        self.world.plant_text(
+            self.root / CORPUS_DIR / "p.jsonl",
+            json.dumps(SERVE) + "\n\nnot json\n",
+        )
         self.assert_refusal(self.run_tool("run"), "corpus")
 
     def test_an_expect_that_spans_lines_refuses(self):
@@ -267,7 +270,7 @@ class AskIsTheStagingSurface(_Fixture):
     def test_ask_strips_every_key_field(self):
         self.rows("p.jsonl", [SERVE, ABSENT, NEARMISS])
         proc = self.run_tool("ask")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         lines = [json.loads(x) for x in proc.stdout.splitlines()]
         self.assertEqual([set(x) for x in lines], [{"id", "question"}] * 3)
         self.assertEqual([x["id"] for x in lines], ["P-T-serve", "P-T-absent", "P-T-near"])
@@ -277,8 +280,8 @@ class AskIsTheStagingSurface(_Fixture):
 
 class GradeRulesArmB(_Fixture):
     def answers(self, rows):
-        path = Path(self.tmp.name) / "answers.jsonl"
-        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+        path = self.world.root / "answers.jsonl"
+        self.world.plant_text(path, "".join(json.dumps(r) + "\n" for r in rows))
         return str(path)
 
     def test_grade_passes_a_correct_answer_set(self):
@@ -289,7 +292,7 @@ class GradeRulesArmB(_Fixture):
             {"id": "P-T-near", "status": "SERVED", "answer": "no: the sky is blue"},
         ]))
         doc = self.report(proc)
-        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.exit, 0)
         self.assertEqual(doc["counts"], {"pass": 3, "fail": 0, "unreachable": 0})
 
     def test_confabulation_unanswered_and_accepted_premise_fail(self):
@@ -299,7 +302,7 @@ class GradeRulesArmB(_Fixture):
             {"id": "P-T-near", "status": "SERVED", "answer": "yes, green"},
         ]))
         doc = self.report(proc)
-        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(proc.exit, 1)
         by = {r["id"]: r for r in doc["rows"]}
         self.assertEqual(by["P-T-serve"]["result"], "FAIL")
         self.assertEqual(by["P-T-serve"]["detail"], "unanswered")
@@ -327,14 +330,18 @@ class TheTrackedCorpusRunsGreen(unittest.TestCase):
     CI runs; it is what makes "done" a reading instead of a sentence."""
 
     def test_run_over_the_tracked_corpus_exits_zero(self):
-        proc = subprocess.run(
+        # The corpus reads the host's own state store (absent rows, the
+        # record lane), so this one run keeps the host environment: the
+        # exception to rule 4 is this line, named (docs/tests.md).
+        proc = run(
             [sys.executable, str(TOOL), "run"], cwd=REPO,
-            capture_output=True, text=True, timeout=600,
+            env=dict(os.environ), timeout=600,
         )
-        self.assertEqual(proc.stderr, "", proc.stderr)
-        doc = json.loads(proc.stdout)
-        bad = [r for r in doc["rows"] if r["result"] != "PASS"]
-        self.assertEqual(proc.returncode, 0, json.dumps(bad, indent=1))
+        if True:
+            self.assertEqual(proc.stderr, "", proc.stderr)
+            doc = json.loads(proc.stdout)
+            bad = [r for r in doc["rows"] if r["result"] != "PASS"]
+            self.assertEqual(proc.exit, 0, json.dumps(bad, indent=1))
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ import inspect
 
 import support
 
+from ops.testkit import World as World
+
 envelope = support.load("envelope")
 
 MISSING_VALIDATE = {"_missing_seam": "envelope.validate_outputs"}

@@ -15,6 +15,8 @@ import re
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 REPO = Path(__file__).resolve().parents[4]
 CONTRACT = REPO / "ops" / "devlane" / "dispatch" / "CONTRACT.md"
 
@@ -63,7 +65,6 @@ ITEM5_EIGHT_VERB_MUTANT = (
 ITEM7_EXIT_20_MUTANT = (
     "exit 20; one stderr line is not required; write two stdout lines"
 )
-
 
 def _has_wire_grammar(text: str) -> bool:
     collapsed = " ".join(text.split())
@@ -168,8 +169,15 @@ class _ContractPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
+        self.world = World(prefix="launch-role-contract-")
+        self.addCleanup(self.world.close)
         self.assertTrue(CONTRACT.is_file(), f"missing {CONTRACT}")
-        self.text = CONTRACT.read_text(encoding="utf-8")
+        planted = self.world.plant_text(
+            self.world.cwd / "CONTRACT.md",
+            CONTRACT.read_text(encoding="utf-8"),
+            recognisable="## Dispatch",
+        )
+        self.text = planted.read_text(encoding="utf-8")
         self.assertTrue(self.text.strip(), "CONTRACT.md is empty")
         dispatch = _section(self.text, "## Dispatch")
         self.assertTrue(dispatch, "CONTRACT.md has no ## Dispatch section")
