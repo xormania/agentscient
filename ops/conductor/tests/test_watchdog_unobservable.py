@@ -40,9 +40,6 @@ class MissingPidUnobservable(_WatchdogFixture):
         super().setUp()
         self.world = World(prefix="watchdog-unobs-")
         self.addCleanup(self.world.close)
-        # Planted invalid subject: exit 0, no lines, so every assertion
-        # fails on its own contract, not on a missing World.
-        self.world.plant_text(self.staged, "import sys\nsys.exit(0)\n")
 
     def unobservable_lines(self, proc, rec_id: str) -> list[str]:
         return [
