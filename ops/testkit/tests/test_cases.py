@@ -107,7 +107,7 @@ class Verbs(unittest.TestCase):
 
     def test_calibrate_reports_caught_and_quiet_per_mutant_and_exits_one_on_quiet(self):
         with World() as world:
-            quiet = Mutant("M-comment", REFUSER_REL, "# Its mutants are declared", "# Its mutants are listed", "a comment change no test sees")
+            quiet = Mutant("M-comment", REFUSER_REL, "Its mutants are declared", "Its mutants are listed", "a docstring change no test sees")
             mutants = write_mutants(world.root / "faults.py", [*WIRE_MUTANTS, quiet])
             report = calibrate(REFUSER_REL, mutants, self.COMMAND, repo=support.REPO)
             self.assertEqual(report["clean"], "green", report)
@@ -128,7 +128,7 @@ class Verbs(unittest.TestCase):
             out = world.root / "record.json"
             record = sidebyside(REFUSER_REL, mutants, self.COMMAND, "true", repo=support.REPO)
             self.assertEqual(record["clean"], {"old": "green", "new": "green"})
-            self.assertEqual(record["quiet_in_new"], [m.id for m in WIRE_MUTANTS])
+            self.assertEqual(record["quiet_in_new"], sorted(m.id for m in WIRE_MUTANTS))
             self.assertFalse(record["ok"])
             code = main(["sidebyside", "--subject", REFUSER_REL, "--mutants", str(mutants), "--old", self.COMMAND,
                          "--new", self.COMMAND, "--out", str(out), "--repo", str(support.REPO)])
