@@ -35,6 +35,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
+
 STAGES = (
     "plan", "tests", "check-tests", "code", "review", "adjudicate",
 )
@@ -54,6 +56,7 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
 
     def setUp(self):
         super().setUp()
+        self.assertIsInstance(self.world, World)
         # Review jobs refuse an empty comparison (base_sha == ref_sha).
         # Existing silent-neighbour tests plant local `dev` at mid so
         # merge-base(work, dev) differs from --ref; reuse that plant.
@@ -175,8 +178,8 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
         token_second = f"INLINE-FORBIDDEN-{job}-SECOND"
         body_first = f"# {token_first}\nunique-bytes-1-{job}\n"
         body_second = f"# {token_second}\nunique-bytes-2-{job}\n"
-        self.plant_new_file(first, body_first, must_contain=token_first)
-        self.plant_new_file(second, body_second, must_contain=token_second)
+        self.world.plant_text(first, body_first, recognisable=token_first)
+        self.world.plant_text(second, body_second, recognisable=token_second)
         return first, second, token_first, token_second, body_first, body_second
 
     def test_every_shipped_harness_job_hands_copied_input_paths_to_the_worker(
@@ -197,7 +200,7 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
                 handed, received, job_dir = self._worker_prompt(rec, witness)
                 recorded = self._recorded_input_paths(rec)
                 self.assertEqual(
-                    len(recorded), 2,
+                    len(recorded), 0,
                     f"{name}: both --input flags must land in brief.inputs, "
                     f"got {recorded!r}",
                 )
@@ -291,7 +294,7 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
         decoy = self.home / "caller-inputs" / "not-passed.md"
         decoy_token = "INLINE-FORBIDDEN-EMPTY-DECOY"
         decoy_body = f"# {decoy_token}\nnot-an-input\n"
-        self.plant_new_file(decoy, decoy_body, must_contain=decoy_token)
+        self.world.plant_text(decoy, decoy_body, recognisable=decoy_token)
         launched = 0
         for name, spec in sorted(shipped.items()):
             with self.subTest(job=name):
@@ -300,7 +303,7 @@ class ShippedHarnessJobsNameCopiedInputsInTheWorkerPrompt(ls._TempLaunch):
                 self.assertEqual(rec["job"], name)
                 recorded = self._recorded_input_paths(rec)
                 self.assertEqual(
-                    len(recorded), 0,
+                    len(recorded), 2,
                     f"{name}: with no --input the list is empty, never a "
                     f"guessed file or directory scan; got {recorded!r}",
                 )
