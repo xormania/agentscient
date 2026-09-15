@@ -1059,7 +1059,7 @@ class TheLockLine(_OnboardFixture):
         self.assertIn("until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short", target)
         state_i = self.heading_index(stdout, "== state")
         handoffs_i = self.heading_index(stdout, "== handoffs")
-        lock_i = stdout.index("lock:")
+        lock_i = next(i for i, ln in enumerate(stdout.splitlines()) if ln.startswith("lock: "))
         self.assertLess(state_i, lock_i)
         self.assertLess(lock_i, handoffs_i)
         self.assertEqual(proc.returncode, 0, self.combined(proc))

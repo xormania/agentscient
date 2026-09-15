@@ -149,6 +149,29 @@ def prs_line(root: Path) -> tuple[str, bool]:
     return f"prs: {len(entries)} open; {detail}", True
 
 
+def lock_lines(root: Path) -> tuple[list[str], bool]:
+    """The deliverable lock as deliverable.py show prints it: the branches
+    and the owner's words on one line, then every target with its live
+    reading (owner, 2026-09-15: a brief that never printed the lock let a
+    plan's paraphrase of the order stand in for the order)."""
+    tool = root / "ops/conductor/tools/deliverable.py"
+    output, reason = run([sys.executable, str(tool), "show"], root)
+    if output is None:
+        return [f"lock: unavailable: {reason}"], False
+    if output.strip() == "no lock":
+        return ["lock: none"], True
+    lines = output.splitlines()
+    targets = [line for line in lines if line.startswith("target ")]
+    body = "\n".join(line for line in lines if not line.startswith("target "))
+    try:
+        data = json.loads(body)
+        branches = ", ".join(str(b) for b in data.get("branches") or []) or "nothing"
+        why = str(data.get("why") or "").strip() or "no why"
+    except (json.JSONDecodeError, AttributeError) as error:
+        return [f"lock: invalid report: {error}"], False
+    return [f"lock: {branches} — {why}", *targets], True
+
+
 def dispatch_is_running(path: Path) -> bool:
     if (path / "exit").exists():
         return False
@@ -259,6 +282,10 @@ def brief() -> int:
     for line, measured in state_lines:
         print(line)
         absences += not measured
+    lock, lock_measured = lock_lines(root)
+    for line in lock:
+        print(line)
+    absences += not lock_measured
 
     print("== handoffs")
     handoff_lines, handoffs_measured = handoffs_lines(root)
