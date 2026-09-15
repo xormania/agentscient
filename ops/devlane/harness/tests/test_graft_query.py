@@ -16,12 +16,6 @@ from ops.testkit import World, plant_text  # noqa: F401 - GraftCase owns World
 import support  # noqa: F401
 import graft_support as gs
 
-# RED STAND-IN: a silent adapter so CLI steps miss exit 0 and the Python
-# seam has no public names. Removed after the red proof.
-_RED = Path("/tmp/graft-red-standin.py")
-plant_text(_RED, "if __name__ == '__main__':\n    raise SystemExit(1)\n")
-gs.GRAFT_PY = _RED
-
 ADMITTED = (
     "graft_find_code",
     "graft_file_api",
