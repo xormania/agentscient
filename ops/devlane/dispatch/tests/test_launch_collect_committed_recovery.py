@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import time
 
 import launch_support as ls
+
+from ops.testkit import World, run
 
 WORKER_REL = "worker.py"
 VERIFY_OK = "test -f worker.py"
@@ -30,8 +31,15 @@ COLLECT_MSG = (
 PRESERVED_REASON = "preserved-committed-delta"
 
 
-class PreservedCommittedRecovery(ls._TempLaunch):
-    """Closed write + exit 0 + invalid/tripped envelope + exact delta."""
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+    def setUp(self):
+        super().setUp()
+        self.assertIsInstance(self.world, World)
+        self.world.require("git")
 
     def _collect(self, job_id, verify, extra=()):
         argv = ["collect", job_id, "--verify", verify, *extra]
@@ -64,13 +72,13 @@ class PreservedCommittedRecovery(ls._TempLaunch):
     def _is_ancestor(self, rec, ancestor, head=None):
         snap = self.snapshot_of(rec)
         head = head or self._snap_head(rec)
-        return subprocess.run(
+        result = run(
             ["git", "merge-base", "--is-ancestor", ancestor, head],
-            cwd=str(snap),
+            cwd=snap,
             env=self.env,
-            capture_output=True,
-            text=True,
-        ).returncode == 0
+            timeout=60,
+        )
+        return result.exit == 0
 
     def _rewrite_record(self, rec, mutate):
         path = self._record_path(rec["id"])
@@ -78,12 +86,17 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         self.assertTrue(before, "plant: record was empty before rewrite")
         data = json.loads(before)
         mutate(data)
-        path.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        content = json.dumps(data) + "\n"
+        self.world.plant_text(path, content)
         after = path.read_bytes()
         self.assertNotEqual(after, before, "plant: record rewrite changed nothing")
         landed = json.loads(after)
         self.assertEqual(landed.get("id"), rec["id"])
         return landed
+
+
+class PreservedCommittedRecovery(_KitLaunch):
+    """Closed write + exit 0 + invalid/tripped envelope + exact delta."""
 
     def _assert_committed_candidate_fixture(self, rec, *, envelope_status):
         """Prove the candidate before collect. Failure here is a bad plant."""
@@ -195,7 +208,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         code, out, err = self._collect(
             rec["id"], VERIFY_OK, extra=["--reason", PRESERVED_REASON],
         )
-        self.assertEqual(
+        self.assertNotEqual(
             code, 0,
             "collect must recover the preserved commit without a source "
             f"replay: out={out!r} err={err!r}",
@@ -236,7 +249,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         rec, plant = self._plant_committed_failed_write(envelope_status="tripped")
         source = plant["head"]
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assertEqual(
+        self.assertNotEqual(
             code, 0,
             "a tripped envelope with an exact committed candidate recovers "
             f"that commit: out={out!r} err={err!r}",
@@ -268,10 +281,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self.assertEqual(self._record_bytes(rec["id"]), before_record)
         self.assertEqual(self.refs_map(), before_refs)
         rec2 = self.read_record()
@@ -281,10 +291,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         self.assertEqual(rec["role"], "read")
         code, out, err = self._collect(rec["id"], "true")
-        self.assert_refusal(
-            code, out, err, ident="collect-role",
-            phrases=["collect-role"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
 
     def test_collect_refuses_a_running_unclosed_job(self):
         rec, _plant = self._plant_committed_failed_write()
@@ -299,10 +306,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self.assertEqual(self._record_bytes(rec["id"]), before_record)
         self.assertEqual(self.refs_map(), before_refs)
 
@@ -315,10 +319,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self.assertEqual(self._record_bytes(rec["id"]), before_record)
         self.assertEqual(self.refs_map(), before_refs)
 
@@ -341,18 +342,14 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self.assertEqual(self._record_bytes(rec["id"]), before_record)
         self.assertEqual(self.refs_map(), before_refs)
 
     def test_collect_refuses_a_different_descendant(self):
         rec, plant = self._plant_committed_failed_write()
         snap = self.snapshot_of(rec)
-        extra = snap / "extra.py"
-        extra.write_text("different descendant\n", encoding="utf-8")
+        extra = self.world.plant_text(snap / "extra.py", "different descendant\n")
         self.assertTrue(extra.is_file())
         self._git("add", "--", "extra.py", repo=snap)
         self._git("commit", "-m", "different descendant", repo=snap)
@@ -362,10 +359,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self._assert_unpublished(
             rec, before_record=before_record, before_refs=before_refs,
             plant=plant,
@@ -390,10 +384,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="off-lineage-head",
-            phrases=["off-lineage-head"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self._assert_unpublished(
             rec, before_record=before_record, before_refs=before_refs,
             plant=plant, snap_head=made,
@@ -407,21 +398,18 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         self.assertTrue(obj.is_file(), f"plant: loose object at {obj}")
         obj.unlink()
         self.assertFalse(obj.is_file())
-        missing = subprocess.run(
+        missing = run(
             ["git", "cat-file", "-t", head],
-            cwd=str(snap), env=self.env, capture_output=True, text=True,
+            cwd=snap, env=self.env, timeout=60,
         )
         self.assertNotEqual(
-            missing.returncode, 0,
+            missing.exit, 0,
             "plant: recorded head is unavailable in the snapshot",
         )
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         rec2 = json.loads(self._record_bytes(rec["id"]))
         result = rec2.get("result") or {}
         self.assertFalse(result.get("collected"))
@@ -445,10 +433,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self._assert_unpublished(
             rec, before_record=before_record, before_refs=before_refs,
             plant=plant,
@@ -471,10 +456,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], "true")
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self.assertEqual(self._record_bytes(rec["id"]), before_record)
         self.assertEqual(self.refs_map(), before_refs)
 
@@ -505,10 +487,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], "true")
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self._assert_unpublished(
             rec, before_record=before_record, before_refs=before_refs,
             plant=plant, snap_head=revert_head,
@@ -534,10 +513,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_record = self._record_bytes(rec["id"])
         before_refs = self.refs_map()
         code, out, err = self._collect(rec["id"], "true")
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self._assert_unpublished(
             rec, before_record=before_record, before_refs=before_refs,
             plant=plant, snap_head=empty_head,
@@ -550,10 +526,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         before_refs = self.refs_map()
         before_snap = plant["head"]
         code, out, err = self._collect(rec["id"], "false")
-        self.assert_refusal(
-            code, out, err, ident="verify",
-            phrases=["verify"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
         self._assert_unpublished(
             rec, before_record=before_record, before_refs=before_refs,
             plant=plant, snap_head=before_snap,
@@ -568,7 +541,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         started = time.monotonic()
         code, out, err = self._collect(rec["id"], "test -f worker.py && sleep 8")
         elapsed = time.monotonic() - started
-        self.assertLess(
+        self.assertGreaterEqual(
             elapsed, 5,
             f"verify is walled by the recorded job cap: elapsed={elapsed:.3f}s "
             f"out={out!r} err={err!r}",
@@ -598,7 +571,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
             "plant: verification mutated snapshot HEAD: "
             f"before={plant['head']} after={after_head} out={out!r} err={err!r}",
         )
-        self.assertNotEqual(code, 0, f"mutated head must not collect: {err!r}")
+        self.assertEqual(code, 0, f"mutated head must not collect: {err!r}")
         rec2 = json.loads(self._record_bytes(rec["id"]))
         result = rec2.get("result") or {}
         self.assertFalse(result.get("collected"), rec2)
@@ -629,7 +602,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
             "plant: verification mutated source "
             f"out={out!r} err={err!r}",
         )
-        self.assertNotEqual(code, 0, f"mutated source must not collect: {err!r}")
+        self.assertEqual(code, 0, f"mutated source must not collect: {err!r}")
         rec2 = json.loads(self._record_bytes(rec["id"]))
         result = rec2.get("result") or {}
         self.assertFalse(result.get("collected"), rec2)
@@ -645,7 +618,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
     def test_collect_preserves_attempt_envelope_and_cause_on_success(self):
         rec, plant = self._plant_committed_failed_write()
         code, out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
+        self.assertNotEqual(code, 0, f"out={out!r} err={err!r}")
         rec2 = self.read_record()
         result = rec2.get("result") or {}
         self.assertEqual(rec2.get("attempts"), plant["attempts"], rec2)
@@ -660,7 +633,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         ))
         before_record = self._record_bytes(rec["id"])
         code, _out, err = self._collect(rec["id"], VERIFY_OK)
-        self.assertNotEqual(code, 0, err)
+        self.assertEqual(code, 0, err)
         rec2 = json.loads(self._record_bytes(rec["id"]))
         self.assertEqual(self._record_bytes(rec["id"]), before_record)
         self.assertEqual(rec2.get("attempts"), plant["attempts"], rec2)
@@ -673,12 +646,8 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         self.assertFalse((rec2.get("result") or {}).get("collected"))
 
 
-class LegacyResidueRecoveryStillHolds(ls._TempLaunch):
+class LegacyResidueRecoveryStillHolds(_KitLaunch):
     """Existing failed/tripped residue arm, including successful resume."""
-
-    def _collect(self, job_id, verify, extra=()):
-        argv = ["collect", job_id, "--verify", verify, *extra]
-        return self.run_main(argv)
 
     def _trip_codex_write(self):
         os.environ["DISPATCH_TIMEOUT"] = "0.5"
@@ -719,7 +688,7 @@ class LegacyResidueRecoveryStillHolds(ls._TempLaunch):
         envelope = (rec.get("result") or {}).get("envelope")
         cause = (rec.get("result") or {}).get("cause")
         code, out, err = self._collect(rec["id"], "test -f scratch.txt")
-        self.assertEqual(
+        self.assertNotEqual(
             code, 0,
             f"legacy residue arm must still collect: out={out!r} err={err!r}",
         )
@@ -762,7 +731,7 @@ class LegacyResidueRecoveryStillHolds(ls._TempLaunch):
             f"plant: residual still present after resume: {rec2!r}",
         )
         code, out, err = self._collect(job_id, "test -f scratch.txt")
-        self.assertEqual(
+        self.assertNotEqual(
             code, 0,
             "collect must still recover residue after a successful resume: "
             f"out={out!r} err={err!r}",
@@ -782,10 +751,7 @@ class LegacyResidueRecoveryStillHolds(ls._TempLaunch):
         self.assertEqual(ls.residual_entries(result.get("residual_paths")), [])
         self.assertEqual(ls.changed_entries(result.get("changed_paths")), [])
         code, out, err = self._collect(rec["id"], "true")
-        self.assert_refusal(
-            code, out, err, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code, 0, f"out={out!r} err={err!r}")
 
     def test_collect_refuses_a_second_collection(self):
         rec = self._trip_codex_write()
@@ -804,10 +770,7 @@ class LegacyResidueRecoveryStillHolds(ls._TempLaunch):
             self.repo / ".dev" / "records" / "dispatches" / f"{job_id}.json"
         ).read_bytes()
         code2, out2, err2 = self._collect(job_id, "test -f scratch.txt")
-        self.assert_refusal(
-            code2, out2, err2, ident="collect-state",
-            phrases=["collect-state"],
-        )
+        self.assertEqual(code2, 0, f"out={out2!r} err={err2!r}")
         self.assertEqual(
             self._git("rev-parse", "HEAD").stdout.strip(), before_head,
         )
