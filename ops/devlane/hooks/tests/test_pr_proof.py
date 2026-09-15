@@ -68,17 +68,12 @@ class PrProofTests(unittest.TestCase):
         self.head = self.world.git("rev-parse", "HEAD").stdout.strip()
 
     def _subject(self):
-        """Red stand-in: each method fails its own assertion, not import."""
-        dest = self.world.root / "stage" / "matrix.py"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        return self.world.plant_text(
-            dest,
-            '"""other matrix rows; not the proof row"""\n'
-            "import json\n"
-            "print(json.dumps({\"hookSpecificOutput\": {"
-            "\"permissionDecision\": \"ask\","
-            "\"permissionDecisionReason\": \"pr-proof stand-in\"}}))\n",
-        )
+        staged = self.world.stage(HOOK, siblings=("miss.py", "command_shape.py"))
+        # Kit gap: stage copies siblings beside the subject, not the parent
+        # data file matrix.py loads as ../boundaries.json.
+        src = HOOK.parent.parent / "boundaries.json"
+        self.world.plant_bytes(staged.parent.parent / "boundaries.json", src.read_bytes())
+        return staged
 
     def _plant_gh(self, *, fail, pr=None, runs=None):
         if fail:
