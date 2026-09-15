@@ -13,23 +13,9 @@ from pathlib import Path
 import support
 
 from ops.testkit import World, run
-from ops.testkit.world import make_executable
 
 HOOK = support.CLAUDE_DIR / "ruff-after-edit.sh"
 TIMEOUT = 120
-
-_QUIET = {
-    "test_stays_quiet_on_a_clean_py",
-    "test_stays_quiet_on_format_only",
-    "test_ignores_a_non_py_file",
-    "test_ignores_a_file_that_is_not_there",
-    "test_ignores_a_payload_with_no_path",
-    "test_ignores_junk_input",
-    "test_ignores_empty_input",
-    "test_noop_where_ruff_is_not_configured",
-    "test_d4_format_check_rc_2_is_not_a_formatting_violation",
-    "test_d4_check_rc_2_with_empty_stdout_is_silence",
-}
 
 
 class RuffAfterEdit(unittest.TestCase):
@@ -44,20 +30,8 @@ class RuffAfterEdit(unittest.TestCase):
         self._stub_kind = "corpus"
 
     def _subject(self):
-        """Red stand-in: opposite of each method's additionalContext pin."""
-        dest = self.world.root / "stage" / "ruff-after-edit.sh"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        if self._testMethodName in _QUIET:
-            body = (
-                "#!/bin/sh\n"
-                'echo \'{"hookSpecificOutput":'
-                '{"additionalContext":"formatting lint"}}\'\n'
-            )
-        else:
-            body = "#!/bin/sh\nexit 0\n"
-        path = self.world.plant_text(dest, body)
-        make_executable(path)
-        return path
+        self.assertTrue(HOOK.is_file(), f"INVALID: hook missing: {HOOK}")
+        return self.world.stage(HOOK)
 
     def _git_repo(self, *, ruff_toml: str | None = ""):
         self.world.git("-c", "init.defaultBranch=main", "init", "-q")
