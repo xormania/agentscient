@@ -41,17 +41,11 @@ class SelectedRepoFreshness(unittest.TestCase):
         self.other_fix = support.StaleClone(other_root, self.env).build()
 
     def _subject(self):
-        """Red stand-in: deny without fetching, so each method fails."""
-        dest = self.world.root / "stage" / "context-precheck.py"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        return self.world.plant_text(
-            dest,
-            '"""other precheck; not the selected-repo gate"""\n'
-            "import json\n"
-            "print(json.dumps({\"hookSpecificOutput\": {"
-            "\"permissionDecision\": \"deny\","
-            "\"permissionDecisionReason\": \"origin/main is stale\"}}))\n",
+        self.assertTrue(
+            SCRIPT.is_file(),
+            f"INVALID: context-precheck.py missing: {SCRIPT}",
         )
+        return self.world.stage(SCRIPT, siblings=("command_shape.py",))
 
     def _origin(self, fix: support.StaleClone) -> str:
         return self.world.git(
