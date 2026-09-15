@@ -16,9 +16,13 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
+
 
 class JobsRootDefaultsToXdgThenHome(ls._TempLaunch):
     """V1 — no flag; $DISPATCH_JOBS, else XDG, else ~/.local/state."""
+
+    world: World
 
     def test_xdg_state_home_is_used_when_dispatch_jobs_is_unset(self):
         xdg = self.home / "xdg-state"
