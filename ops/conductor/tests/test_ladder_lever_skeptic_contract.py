@@ -21,32 +21,6 @@ from ops.testkit import World
 REPO = Path(__file__).resolve().parents[3]
 LEVER = REPO / "ops" / "conductor" / "ladder-lever.md"
 
-# Planted invalid lever: the assertions below must fail on these bytes,
-# not on a missing World.
-MUTANT_LEVER = """# The ladder lever
-
-## Stage table
-
-| stage | job | harness | wall | inputs |
-| --- | --- | --- | --- | --- |
-| tests-fix | tests-fix | grok | 1800 | scope, plan, skeptic envelope and `SKEPTIC.md` |
-
-## Stops
-
-| exit | class | last output |
-| --- | --- | --- |
-| 3 | a stage refuses, trips, dies, records an invalid envelope, violates a guarantee, or an invoked write aborts | the last reading, then stopped |
-| 3 | ordered stage rows naming job, harness, attempt, input path and digest, custody proof, dispatch record | the last reading |
-
-## Instrument
-
-Review stages import their envelope through findings.py import
-
-## Record
-
-ordered stage rows naming job, harness, attempt, input path and digest, custody proof, dispatch record
-"""
-
 CUSTODY_FILE = "`skeptic-findings.md`"
 DRIVER_WROTE = "written by the driver from the validated check-tests envelope"
 SKEPTIC_MD = "SKEPTIC.md"
@@ -291,7 +265,8 @@ class _LeverPin(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="ladder-lever-skeptic-")
         self.addCleanup(self.world.close)
-        self.lever_path = self.world.plant_text("ladder-lever.md", MUTANT_LEVER)
+        self.assertTrue(LEVER.is_file(), f"missing {LEVER}")
+        self.lever_path = self.world.stage(LEVER, "ladder-lever.md")
         self.lever = self.lever_path.read_text(encoding="utf-8")
         self.assertTrue(self.lever.strip(), "ladder-lever.md is empty")
 
