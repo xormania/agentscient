@@ -28,23 +28,37 @@ d3bb7333ad761666f87a4d56ddba6cc73af8abfd7cc7dae7ec0419872a477e64.
 from __future__ import annotations
 
 import json
+import types
 import unittest
 
 import agy_envelope_support as agy
 import launch_support as ls
+
+from ops.testkit import World
 
 _OMIT = object()
 
 
 class _AgyEnvelopeCase(unittest.TestCase):
     def setUp(self):
-        self.launch = ls.require_module(self, "launch")
+        self.world = World(prefix="agy-envelope-")
+        self.addCleanup(self.world.close)
+        # Kit absent stand-in: World.stage of a missing subject is the
+        # CLI no-op; this seam is in-process, so a callable empty
+        # envelope makes each method fail its own assertion.
+        self.world.stage(self.world.root / "absent-launch.py", "launch.py")
+        self.launch = types.ModuleType("agy_envelope_absent")
+        self.launch._envelope = lambda *a, **k: {}
         self.ref = agy.LAUNCHER_REF
+        self.raw_path = self.world.tmp / "raw.out"
 
     def parse(self, raw, job="plan", *, harness="agy", note=None):
+        planted = self.world.plant_bytes(self.raw_path, raw)
+        landed = planted.read_bytes()
+        self.assertEqual(landed, raw, "plant: raw stdout landed")
         fn = getattr(self.launch, "_envelope", None)
         self.assertTrue(callable(fn), "launch._envelope parses stdout")
-        args = [raw, job, self.ref]
+        args = [landed, job, self.ref]
         kwargs = {}
         if note is not None:
             args.append(note)
