@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import select
 import sys
 import time
 
@@ -33,6 +34,20 @@ def log_call(log_path: str, argv: list[str], stdin: str) -> None:
         os.close(fd)
 
 
+def read_stdin() -> str:
+    """What the caller piped in, or nothing: a terminal, or a pipe nobody
+    has written to or closed, is never waited on (a planted tool that
+    blocks on an inherited stdin hangs the suite that planted it)."""
+    stream = sys.stdin
+    if stream is None or stream.closed or stream.isatty():
+        return ""
+    try:
+        ready, _, _ = select.select([stream], [], [], 0.05)
+    except (OSError, ValueError):
+        return ""
+    return stream.read() if ready else ""
+
+
 def choose(spec: dict, argv: list[str]) -> dict:
     joined = " ".join(argv)
     for response in spec.get("responses") or []:
@@ -43,7 +58,7 @@ def choose(spec: dict, argv: list[str]) -> dict:
 
 def serve(spec_path: str, log_path: str, argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
-    stdin = "" if sys.stdin is None or sys.stdin.isatty() else sys.stdin.read()
+    stdin = read_stdin()
     log_call(log_path, argv, stdin)
     with open(spec_path, encoding="utf-8") as fh:
         spec = json.load(fh)

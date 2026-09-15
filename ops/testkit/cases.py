@@ -150,9 +150,13 @@ def head_sha(repo) -> str:
     return proc.stdout.strip() if proc.returncode == 0 else "unknown"
 
 
-def archive(repo, dest) -> Path:
+def archive(repo, dest, world: World | None = None) -> Path:
     """``git archive HEAD`` into ``dest``: the tree as committed, no
-    worktree, nothing of the tree itself touched."""
+    worktree, nothing of the tree itself touched. With a ``world`` the
+    copy is made a repository of its own, one commit at the archived
+    content under the world's identity, so a subject or a suite that
+    reads HEAD or diffs against it finds one; the copy is still no
+    worktree of ``repo``."""
     proc = subprocess.run(["git", "archive", "--format=tar", "HEAD"], cwd=str(repo),
                           capture_output=True, check=False, timeout=300)
     if proc.returncode != 0:
@@ -161,6 +165,10 @@ def archive(repo, dest) -> Path:
     dest.mkdir(parents=True, exist_ok=True)
     with tarfile.open(fileobj=io.BytesIO(proc.stdout)) as tar:
         tar.extractall(dest, filter="data")
+    if world is not None:
+        world.git("init", "-q", "-b", "archive", cwd=dest)
+        world.git("add", "-A", cwd=dest)
+        world.git("commit", "-q", "-m", "archive of HEAD", cwd=dest)
     return dest
 
 
@@ -169,9 +177,8 @@ def verdict(command: str, cwd, world: World, timeout: float) -> str:
     return "green" if result.exit == 0 else "red"
 
 
-def _each_mutant(subject, mutants, repo, world, commands, timeout):
-    """Yield (mutant, {name: verdict}) over fresh archive copies."""
-    base = archive(repo, world.root / "base")
+def _each_mutant(mutants, base, world, commands, timeout):
+    """Yield (mutant, {name: verdict}) over fresh copies of the archived base."""
     for mutant in mutants:
         copy = world.root / "copies" / mutant.id
         copy.parent.mkdir(exist_ok=True)
@@ -201,13 +208,13 @@ def calibrate(subject, mutants_path, command, *, repo=".", timeout=COMMAND_TIMEO
     mutants = load_mutants(mutants_path)
     check_anchors(mutants, repo)
     with World(prefix="calibrate-") as world:
-        base = archive(repo, world.root / "base")
+        base = archive(repo, world.root / "base", world)
         report = {
             "verb": "calibrate", "subject": str(subject), "command": command,
             "commit": head_sha(repo), "clean": verdict(command, base, world, timeout),
             "mutants": {},
         }
-        for mutant, verdicts in _each_mutant(subject, mutants, repo, world, {"run": command}, timeout):
+        for mutant, verdicts in _each_mutant(mutants, base, world, {"run": command}, timeout):
             report["mutants"][mutant.id] = "caught" if verdicts["run"] == "red" else "quiet"
     report["quiet"] = sorted(k for k, v in report["mutants"].items() if v == "quiet")
     report["ok"] = report["clean"] == "green" and not report["quiet"]
@@ -218,14 +225,14 @@ def sidebyside(subject, mutants_path, old, new, *, repo=".", timeout=COMMAND_TIM
     mutants = load_mutants(mutants_path)
     check_anchors(mutants, repo)
     with World(prefix="sidebyside-") as world:
-        base = archive(repo, world.root / "base")
+        base = archive(repo, world.root / "base", world)
         record = {
             "verb": "sidebyside", "subject": str(subject), "old": old, "new": new,
             "commit": head_sha(repo),
             "clean": {"old": verdict(old, base, world, timeout), "new": verdict(new, base, world, timeout)},
             "mutants": {},
         }
-        for mutant, verdicts in _each_mutant(subject, mutants, repo, world, {"old": old, "new": new}, timeout):
+        for mutant, verdicts in _each_mutant(mutants, base, world, {"old": old, "new": new}, timeout):
             record["mutants"][mutant.id] = verdicts
     record["quiet_in_new"] = sorted(
         k for k, v in record["mutants"].items() if v["old"] == "red" and v["new"] == "green"

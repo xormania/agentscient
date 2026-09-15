@@ -7,7 +7,6 @@ import os
 import subprocess
 import sys
 import unittest
-from concurrent.futures import ThreadPoolExecutor
 
 from ops.testkit import PlantFailed, World, run
 
@@ -46,11 +45,17 @@ class Logging(unittest.TestCase):
             world.tools.plant("busy")
             env = world.env()
 
-            def call(i):
-                return subprocess.run(["busy", str(i)], cwd=world.cwd, env=env, capture_output=True, check=False, timeout=300).returncode
-
-            with ThreadPoolExecutor(max_workers=60) as pool:
-                exits = list(pool.map(call, range(60)))
+            # Sixty children started back to back, all alive at once, no
+            # threads: the log's append is what is under test.
+            children = [
+                world.own(subprocess.Popen(["busy", str(i)], cwd=world.cwd, env=env, stdin=subprocess.DEVNULL,
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+                for i in range(60)
+            ]
+            exits = []
+            for child in children:
+                child.communicate(timeout=300)
+                exits.append(child.returncode)
             self.assertEqual(exits, [0] * 60)
             calls = world.tools.calls("busy")
             self.assertEqual(len(calls), 60)
