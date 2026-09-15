@@ -6,14 +6,17 @@ fetch itself is unchanged: it always runs and refreshes every
 remote-tracking ref.
 """
 
-import shutil
-import tempfile
+import sys
 import unittest
 from pathlib import Path
 
 import support
 
+from ops.testkit import World, run
+from ops.testkit.world import FIXED_DATE
+
 SCRIPT = support.CLAUDE_DIR / "context-precheck.py"
+TIMEOUT = 120
 
 
 class PrecheckScope(unittest.TestCase):
@@ -22,22 +25,20 @@ class PrecheckScope(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(
-            SCRIPT.is_file(),
-            f"INVALID: context-precheck.py missing: {SCRIPT}",
-        )
-        self.tmp = Path(tempfile.mkdtemp(prefix="precheck-scope-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
-        self.env = support.isolated_env(self.home)
-        self.fixture = support.StaleClone(self.tmp, self.env).build()
+        self.world = World(prefix="precheck-scope-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.hook = self._subject()
+        self.env = self.world.env()
+        pair = self.world.root / "pair"
+        pair.mkdir()
+        self.fixture = support.StaleClone(pair, self.env).build()
         self.records_new_sha = None
-        support.git(
-            self.fixture.clone, self.env, "checkout", "-q", "-b", "records",
+        self.world.git(
+            "checkout", "-q", "-b", "records", cwd=self.fixture.clone,
         )
-        branch = support.git(
-            self.fixture.clone, self.env, "rev-parse", "--abbrev-ref", "HEAD",
+        branch = self.world.git(
+            "rev-parse", "--abbrev-ref", "HEAD", cwd=self.fixture.clone,
         ).stdout.strip()
         self.assertEqual(
             branch, "records",
@@ -50,23 +51,30 @@ class PrecheckScope(unittest.TestCase):
         )
         self.assertEqual(self._rev("origin/main"), self.fixture.old_sha)
 
+    def _subject(self):
+        """Red: absent stand-in (exit 0, no output) so each method fails."""
+        return self.world.stage(self.world.root / "absent-precheck.py")
+
     def _rev(self, name: str) -> str:
-        return support.git(
-            self.fixture.clone, self.env, "rev-parse", name,
+        return self.world.git(
+            "rev-parse", name, cwd=self.fixture.clone,
         ).stdout.strip()
 
     def _has_ref(self, name: str) -> bool:
-        proc = support.git(
-            self.fixture.clone, self.env,
+        proc = self.world.git(
             "rev-parse", "--verify", "--quiet", name,
-            expect=None,
+            cwd=self.fixture.clone, check=False,
         )
-        return proc.returncode == 0
+        return proc.exit == 0
 
     def _run(self, command: str):
         payload = support.bash_payload(command)
-        return support.run_script(
-            SCRIPT, payload, self.fixture.clone, self.env,
+        return run(
+            [sys.executable, str(self.hook)],
+            cwd=self.fixture.clone,
+            env=self.env,
+            stdin=payload,
+            timeout=TIMEOUT,
         )
 
     def _drop_fetch_head(self):
@@ -85,8 +93,8 @@ class PrecheckScope(unittest.TestCase):
             self._has_ref("origin/records"),
             "INVALID: origin/records exists; this case is only origin/main",
         )
-        remote = support.git(
-            self.fixture.bare, self.env, "rev-parse", "HEAD",
+        remote = self.world.git(
+            "rev-parse", "HEAD", cwd=self.fixture.bare,
         ).stdout.strip()
         self.assertEqual(
             remote, self.fixture.new_sha,
@@ -98,21 +106,21 @@ class PrecheckScope(unittest.TestCase):
         seed = self.fixture.seed
         bare = self.fixture.bare
         clone = self.fixture.clone
-        env = self.env
-        support.git(
-            seed, env, "branch", "records", self.fixture.old_sha,
+        self.world.git(
+            "branch", "records", self.fixture.old_sha, cwd=seed,
         )
-        support.git(seed, env, "push", "-q", str(bare), "records")
-        bare_old = support.git(
-            bare, env, "rev-parse", "refs/heads/records",
+        self.world.git("push", "-q", str(bare), "records", cwd=seed)
+        bare_old = self.world.git(
+            "rev-parse", "refs/heads/records", cwd=bare,
         ).stdout.strip()
         self.assertEqual(
             bare_old, self.fixture.old_sha,
             "INVALID: remote records is not the seed",
         )
-        support.git(
-            clone, env, "fetch", "-q", "origin",
+        self.world.git(
+            "fetch", "-q", "origin",
             "refs/heads/records:refs/remotes/origin/records",
+            cwd=clone,
         )
         self._drop_fetch_head()
         self.assertEqual(
@@ -124,17 +132,17 @@ class PrecheckScope(unittest.TestCase):
             "INVALID: fetching records refreshed origin/main",
         )
 
-        support.git(seed, env, "checkout", "-q", "records")
-        support.plant_text(
+        self.world.git("checkout", "-q", "records", cwd=seed)
+        self.world.plant_text(
             seed / "records.txt", "records-one\n",
             recognisable="records-one",
         )
-        support.git(seed, env, "add", "records.txt")
-        support.git(
-            seed, env, "commit", "-q", "-m", "R", "--date", support.FIXED_DATE,
+        self.world.git("add", "records.txt", cwd=seed)
+        self.world.git(
+            "commit", "-q", "-m", "R", "--date", FIXED_DATE, cwd=seed,
         )
-        self.records_new_sha = support.git(
-            seed, env, "rev-parse", "HEAD",
+        self.records_new_sha = self.world.git(
+            "rev-parse", "HEAD", cwd=seed,
         ).stdout.strip()
         self.assertNotEqual(
             self.records_new_sha, self.fixture.old_sha,
@@ -144,9 +152,9 @@ class PrecheckScope(unittest.TestCase):
             self.records_new_sha, self.fixture.new_sha,
             "INVALID: records SHA collided with main",
         )
-        support.git(seed, env, "push", "-q", str(bare), "records")
-        bare_new = support.git(
-            bare, env, "rev-parse", "refs/heads/records",
+        self.world.git("push", "-q", str(bare), "records", cwd=seed)
+        bare_new = self.world.git(
+            "rev-parse", "refs/heads/records", cwd=bare,
         ).stdout.strip()
         self.assertEqual(
             bare_new, self.records_new_sha,
@@ -257,11 +265,11 @@ class PrecheckScope(unittest.TestCase):
     def test_detached_head_push_records_denies_when_origin_main_moved(self):
         """Detached HEAD keeps the old breadth even for an explicit dest."""
         self._prove_only_origin_main_moved()
-        support.git(
-            self.fixture.clone, self.env, "checkout", "--detach", "-q",
+        self.world.git(
+            "checkout", "--detach", "-q", cwd=self.fixture.clone,
         )
-        abbrev = support.git(
-            self.fixture.clone, self.env, "rev-parse", "--abbrev-ref", "HEAD",
+        abbrev = self.world.git(
+            "rev-parse", "--abbrev-ref", "HEAD", cwd=self.fixture.clone,
         ).stdout.strip()
         self.assertEqual(
             abbrev, "HEAD",
@@ -287,8 +295,8 @@ class PrecheckScope(unittest.TestCase):
             self):
         """git push origin HEAD:refs/heads/records reads the destination."""
         self._prove_only_origin_main_moved()
-        branch = support.git(
-            self.fixture.clone, self.env, "rev-parse", "--abbrev-ref", "HEAD",
+        branch = self.world.git(
+            "rev-parse", "--abbrev-ref", "HEAD", cwd=self.fixture.clone,
         ).stdout.strip()
         self.assertEqual(
             branch, "records",
