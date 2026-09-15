@@ -297,6 +297,58 @@ def p_claim_without_reading(ctx):
     return None
 
 
+TEST_MODULE = re.compile(r"(^|/)tests/[^/]+\.py$")
+KIT_IMPORT = re.compile(r"^\s*(from\s+ops\.testkit(\.\w+)*\s+import\b|import\s+ops\.testkit\b)", re.MULTILINE)
+KIT_EXEMPT = "# testkit: exempt"
+
+
+def _new_test_module_without_kit(path, body, ctx):
+    """The path when it is a new module under a tests/ directory whose text
+    neither imports the kit nor declares its exemption in its first ten
+    lines (docs/tests.md rule 1); None otherwise."""
+    _, rel = matrix.relative(path, ctx.cwd)
+    if not TEST_MODULE.search(rel or path):
+        return None
+    absolute = os.path.normpath(os.path.join(ctx.cwd, os.path.expanduser(path)))
+    if os.path.exists(absolute):
+        return None
+    text = body or ""
+    head = "\n".join(text.splitlines()[:10])
+    if KIT_IMPORT.search(text) or KIT_EXEMPT in head:
+        return None
+    return path
+
+
+def p_test_file_without_kit(ctx):
+    """A new test module that neither imports the kit nor declares its
+    exemption (docs/tests.md rule 1; plan slice 16). An existing file, a
+    module that imports ops.testkit, or one carrying `# testkit: exempt
+    <reason>` in its first ten lines passes; a module written by a
+    redirect whose text the row cannot read is refused, because could
+    not look is not a pass."""
+    for key in ("file_path", "relative_path", "path"):
+        path = ctx.input.get(key)
+        if not path:
+            continue
+        body = ctx.input.get("content")
+        if body is None:
+            body = ctx.input.get("new_string") or ""
+        found = _new_test_module_without_kit(path, body, ctx)
+        if found:
+            return f"a new test module {found} without the kit"
+    heredocs = [(m.group(1).strip("'\""), m.group(4)) for m in matrix.HEREDOC_WRITE.finditer(ctx.text or "")]
+    for target, body in heredocs:
+        found = _new_test_module_without_kit(target, body, ctx)
+        if found:
+            return f"a new test module {found} written by heredoc without the kit"
+    written = {target for target, _ in heredocs}
+    for toks in ctx.statements:
+        for path in matrix.redirect_targets(toks):
+            if path != "." and path not in written and _new_test_module_without_kit(path, "", ctx):
+                return f"a new test module {path} written by redirect, its text unread"
+    return None
+
+
 def p_prune_target(ctx):
     for toks in ctx.statements:
         for target in matrix.prune_targets(toks, ctx.cwd, ctx.conf):
@@ -324,6 +376,7 @@ PREDICATES = {
     "claim_without_reading": p_claim_without_reading,
     "prune_target": p_prune_target,
     "unittest_path_form": p_unittest_path_form,
+    "test_file_without_kit": p_test_file_without_kit,
 }
 
 

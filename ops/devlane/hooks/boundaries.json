@@ -427,6 +427,33 @@
    "tests": [
     "ops/devlane/hooks/tests/test_matrix.py::test_wall_paths_need_a_wall_grant_and_a_wall_grant_touches_only_the_wall"
    ]
+  },
+  {
+   "class": "kit-import",
+   "boundary": "write",
+   "actor": "session",
+   "trigger": "a write creating a module under a tests/ directory whose text neither imports ops.testkit nor carries `# testkit: exempt <reason>` in its first ten lines",
+   "evidence": "the kit import (from ops.testkit import ...), or the exemption with its reason; docs/tests.md rule 1",
+   "gate": "engine",
+   "tests": [
+    "ops/devlane/hooks/tests/test_engine.py::test_kit_import_refuses_a_new_test_module_without_the_kit_and_passes_import_exemption_and_existing_files"
+   ],
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash",
+    "Write",
+    "Edit",
+    "MultiEdit"
+   ],
+   "engine": true,
+   "when": {
+    "pred": "test_file_without_kit"
+   },
+   "refuse": {
+    "expected": "a new test module that imports the kit (from ops.testkit import World, run, ...) or declares `# testkit: exempt <reason>` in its first ten lines (docs/tests.md rule 1)",
+    "needed": "import the kit, or declare the exemption with its reason. No grant lifts this row: the kit is the one place test machinery lives (D-TESTKIT-1)"
+   }
   }
  ],
  "engine": "ops/devlane/hooks/claude/engine.py evaluates rows with engine: true at the event they bind to; rows with engine: false are still carried by matrix.py's code and are declared here so a class nobody declared cannot refuse",

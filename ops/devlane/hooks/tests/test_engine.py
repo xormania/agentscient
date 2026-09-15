@@ -299,6 +299,39 @@ class TheVocabularyCoversTheLaneRows(_Engine):
         self.refusal(self.bash("cat > ops/conductor/placement/new.py.json <<'EOF'\n{\"state\": {\"engine\": \"file\"}}\nEOF"), "state")
 
 
+    def test_kit_import_refuses_a_new_test_module_without_the_kit_and_passes_import_exemption_and_existing_files(self):
+        """docs/tests.md rule 1 (plan slice 16): a new test module imports
+        the kit or declares its exemption; an existing file, a module that
+        imports ops.testkit, one carrying the exemption in its first ten
+        lines, and a file outside tests/ pass. On the planted registry, then
+        on the live one."""
+        tests = self.repo / "ops" / "x" / "tests"
+        tests.mkdir(parents=True)
+        (tests / "test_old.py").write_text("import unittest\n")
+        bare = "import unittest\n\nclass T(unittest.TestCase):\n    pass\n"
+        with_kit = "import unittest\n\nfrom ops.testkit import World\n\nclass T(unittest.TestCase):\n    pass\n"
+        exempt = "# testkit: exempt reads a hook payload shape only\nimport unittest\n"
+        late_exempt = ("\n" * 12) + "# testkit: exempt too late\nimport unittest\n"
+        for registry in ("planted", "live"):
+            with self.subTest(registry=registry):
+                env = dict(self.env)
+                if registry == "planted":
+                    self.plant(row("kit-import", tools=("Bash", "Write", "Edit"), when={"pred": "test_file_without_kit"}))
+                else:
+                    env.pop("BOUNDARIES_PATH", None)
+                reason = self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_new.py"), "content": bare}, env=env), "kit-import")
+                self.assertIn("test_new.py", reason)
+                self.refusal(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_late.py"), "content": late_exempt}, env=env), "kit-import")
+                self.refusal(self.bash("cat > ops/x/tests/test_here.py <<'EOF'\nimport unittest\nEOF", env=env), "kit-import")
+                self.refusal(self.bash("printf 'import unittest' > ops/x/tests/test_redirect.py", env=env), "kit-import")
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_kit.py"), "content": with_kit}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_exempt.py"), "content": exempt}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Edit", {"file_path": str(tests / "test_old.py"), "old_string": "import unittest", "new_string": "import unittest, os"}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "support.py"), "content": with_kit}, env=env))
+                self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(self.repo / "ops" / "x" / "tool.py"), "content": bare}, env=env))
+                self.allowed(self.bash("cat > ops/x/tests/test_heredoc_kit.py <<'EOF'\nfrom ops.testkit import World\nEOF", env=env))
+
+
 class TheLiveRegistryIsEvaluable(unittest.TestCase):
     def test_every_engine_row_names_known_predicates_and_events(self):
         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))

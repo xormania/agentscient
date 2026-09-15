@@ -59,6 +59,11 @@ row that cannot look refuses: "could not look" is not a pass.
                     declaring state.engine file (engine row);
                     no grant escape (owner, 2026-09-13: "i need
                     to prevent future default to files")
+    kit-import      a write creating a module under a tests/       the path, the text's
+                    directory that neither imports ops.testkit    imports and its first
+                    nor declares `# testkit: exempt <reason>`     ten lines
+                    (engine row; docs/tests.md rule 1); no grant
+                    escape (D-TESTKIT-1, 2026-09-14)
     wall-write      a write to the CI and test machinery          the path, the grant's
                     (.github/workflows, suites.sh, probes.py,     lever class
                     laneconf.py, the hook registry, rows, engine
@@ -1289,7 +1294,6 @@ def heredoc_records(text, cwd):
     return found
 
 
-TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
 TRUNK_WRITES = ("commit", "merge", "cherry-pick", "rebase", "revert", "am")
 
 
