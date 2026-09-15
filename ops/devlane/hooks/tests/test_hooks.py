@@ -82,11 +82,6 @@ class HookContractTest(unittest.TestCase):
     def require_sources(self):
         """The clear missing-file assertion: while the implementation does
         not exist, every test fails here, with a message, not on import."""
-        self.assertTrue(
-            False,
-            "hook package file does not exist yet (implementation "
-            "missing): red-proof stand-in",
-        )
         for path in SOURCES:
             self.assertTrue(
                 path.is_file(),
