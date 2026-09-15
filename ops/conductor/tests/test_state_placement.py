@@ -139,29 +139,13 @@ def check(tools: Path, placement: Path, pin: frozenset[str]) -> list[str]:
 
 
 class TheRealTree(unittest.TestCase):
-    def setUp(self):
-        self.world = World(prefix="state-placement-")
-        self.addCleanup(self.world.close)
-        # Planted invalid placement: no sqlite engine, so both real-tree
-        # assertions fail on that contract, not on a missing World.
-        for name in ("machine.py", "handoff.py"):
-            self.world.plant_text(f"tools/{name}", "print(1)\n")
-            self.world.plant_text(
-                f"placement/{name}.json",
-                json.dumps({"state": {"engine": "none"}}),
-            )
-        self.tools = self.world.path("tools")
-        self.placement = self.world.path("placement")
-
     def test_every_placement_file_declares_its_state_engine_and_the_tree_agrees(self):
-        failures = check(self.tools, self.placement, FILE_BACKED)
+        failures = check(TOOLS, PLACEMENT, FILE_BACKED)
         self.assertEqual(failures, [], "\n".join(failures))
 
     def test_the_two_engine_tools_declare_sqlite(self):
         for name in ("machine.py", "handoff.py"):
-            data = json.loads(
-                (self.placement / f"{name}.json").read_text(encoding="utf-8")
-            )
+            data = json.loads((PLACEMENT / f"{name}.json").read_text(encoding="utf-8"))
             self.assertEqual(data["state"]["engine"], "sqlite", name)
 
 
@@ -184,122 +168,84 @@ class PlantedTrees(unittest.TestCase):
         )
 
     def test_a_clean_sqlite_tool_passes(self):
-        self.plant("a.py", "print(1)\n", {"engine": "sqlite"})
+        self.plant("a.py", "import sqlite3\n", {"engine": "sqlite"})
         self.assertEqual(check(self.tools, self.placement, frozenset()), [])
 
     def test_a_tool_on_the_engine_passes_as_sqlite(self):
-        self.plant("a.py", "print(1)\n", {"engine": "sqlite"})
+        self.plant("a.py", "import machine\n", {"engine": "sqlite"})
         self.assertEqual(check(self.tools, self.placement, frozenset()), [])
 
     def test_a_read_only_tool_passes_as_none(self):
-        self.plant(
-            "a.py",
-            "from pathlib import Path\nPath('x').write_text('y')\n",
-            {"engine": "none"},
-        )
+        self.plant("a.py", "from pathlib import Path\nprint(Path('x').read_text())\n", {"engine": "none"})
         self.assertEqual(check(self.tools, self.placement, frozenset()), [])
 
     def test_a_missing_state_key_fails_naming_the_tool(self):
-        self.plant("a.py", "import sqlite3\n", {"engine": "sqlite"})
+        self.plant("a.py", "import sqlite3\n", None)
         failures = check(self.tools, self.placement, frozenset())
         self.assertEqual(len(failures), 1)
         self.assertIn("a.py", failures[0])
         self.assertIn("state.engine", failures[0])
 
     def test_sqlite_without_the_import_fails(self):
-        self.plant("a.py", "import sqlite3\n", {"engine": "sqlite"})
+        self.plant("a.py", "print(1)\n", {"engine": "sqlite"})
         failures = check(self.tools, self.placement, frozenset())
         self.assertEqual(len(failures), 1)
         self.assertIn("imports neither", failures[0])
 
     def test_none_with_a_write_fails_naming_the_call_and_line(self):
-        self.plant(
-            "a.py",
-            "from pathlib import Path\nprint(Path('x').read_text())\n",
-            {"engine": "none"},
-        )
+        self.plant("a.py", "from pathlib import Path\n\nPath('x').write_text('y')\n", {"engine": "none"})
         failures = check(self.tools, self.placement, frozenset())
-        self.assertTrue(
-            any("write_text at line 3" in f for f in failures), failures,
-        )
+        self.assertTrue(any("write_text at line 3" in f for f in failures), failures)
 
     def test_a_write_without_a_files_reason_fails(self):
-        self.plant(
-            "a.py",
-            "import sqlite3, json\njson.dump({}, open('x', 'w'))\n",
-            {"engine": "sqlite", "files": "the export is a record"},
-        )
+        self.plant("a.py", "import sqlite3, json\njson.dump({}, open('x', 'w'))\n", {"engine": "sqlite"})
         failures = check(self.tools, self.placement, frozenset())
         self.assertEqual(len(failures), 1)
         self.assertIn("state.files gives no reason", failures[0])
 
     def test_a_write_with_a_files_reason_passes(self):
-        self.plant(
-            "a.py",
-            "import sqlite3, json\njson.dump({}, open('x', 'w'))\n",
-            {"engine": "sqlite"},
-        )
+        self.plant("a.py", "import sqlite3, json\njson.dump({}, open('x', 'w'))\n",
+                   {"engine": "sqlite", "files": "the export is a record"})
         self.assertEqual(check(self.tools, self.placement, frozenset()), [])
 
     def test_a_new_file_backed_tool_outside_the_pin_fails(self):
-        self.plant(
-            "a.py",
-            "from pathlib import Path\nPath('x').write_text('y')\n",
-            {"engine": "file", "files": "a lock"},
-        )
-        failures = check(self.tools, self.placement, frozenset({"a.py"}))
+        self.plant("a.py", "from pathlib import Path\nPath('x').write_text('y')\n",
+                   {"engine": "file", "files": "a lock"})
+        failures = check(self.tools, self.placement, frozenset())
         self.assertEqual(len(failures), 1)
         self.assertIn("a new file-backed store", failures[0])
         self.assertIn("machine.py", failures[0])
 
     def test_a_pinned_file_backed_tool_passes(self):
-        self.plant(
-            "a.py",
-            "from pathlib import Path\nPath('x').write_text('y')\n",
-            {"engine": "file", "files": "a lock"},
-        )
-        self.assertEqual(check(self.tools, self.placement, frozenset()), [])
+        self.plant("a.py", "from pathlib import Path\nPath('x').write_text('y')\n",
+                   {"engine": "file", "files": "a lock"})
+        self.assertEqual(check(self.tools, self.placement, frozenset({"a.py"})), [])
 
     def test_a_pinned_tool_that_stopped_declaring_file_asks_the_pin_to_shrink(self):
-        self.plant(
-            "a.py",
-            "from pathlib import Path\nPath('x').write_text('y')\n",
-            {"engine": "file", "files": "a lock"},
-        )
+        self.plant("a.py", "import sqlite3\n", {"engine": "sqlite"})
         failures = check(self.tools, self.placement, frozenset({"a.py"}))
         self.assertEqual(len(failures), 1)
         self.assertIn("shrink FILE_BACKED", failures[0])
 
     def test_file_without_a_write_fails(self):
-        self.plant(
-            "a.py",
-            "from pathlib import Path\nPath('x').write_text('y')\n",
-            {"engine": "file", "files": "claimed"},
-        )
+        self.plant("a.py", "print(1)\n", {"engine": "file", "files": "claimed"})
         failures = check(self.tools, self.placement, frozenset({"a.py"}))
-        self.assertTrue(
-            any("makes no file-write call" in f for f in failures), failures,
-        )
+        self.assertTrue(any("makes no file-write call" in f for f in failures), failures)
 
     def test_the_write_scanner_reads_the_forms_the_tools_use(self):
         source = (
             "import json, os, shutil\nfrom pathlib import Path\n"
+            "Path('a').write_bytes(b'')\n"
+            "os.replace('a', 'b')\n"
+            "with open('c', mode='a') as fh: json.dump({}, fh)\n"
+            "with Path('d').open('w') as fh: pass\n"
+            "shutil.copyfile('a', 'e')\n"
             "print(open('f').read())\n"
             "print(str.replace('x', 'y'))\n"
         )
         kinds = [kind for _, kind in write_calls(source)]
         self.assertEqual(
-            sorted(kinds),
-            sorted(
-                [
-                    "write_bytes",
-                    "os.replace",
-                    "open(w)",
-                    "dump",
-                    "open(w)",
-                    "copyfile",
-                ]
-            ),
+            sorted(kinds), sorted(["write_bytes", "os.replace", "open(w)", "dump", "open(w)", "copyfile"])
         )
 
 
