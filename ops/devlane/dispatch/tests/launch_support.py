@@ -287,6 +287,16 @@ if orphan:
     if sha:
         git("reset", "--soft", sha)
 
+renew_auth = os.environ.get("TASK_LAUNCH_RENEW_AUTH") or ""
+if renew_auth and exe == "grok":
+    # The real CLI renews by writing a temporary file beside auth.json and
+    # renaming it over the name, so a symlink there becomes a regular file.
+    grok_home = Path(os.environ.get("GROK_HOME") or Path(os.environ.get("HOME", "")) / ".grok")
+    auth_path = grok_home / "auth.json"
+    auth_tmp = auth_path.with_name("auth.json.tmp")
+    auth_tmp.write_text(renew_auth, encoding="utf-8")
+    os.replace(auth_tmp, auth_path)
+
 if write_stream and stores_path:
     spec = importlib.util.spec_from_file_location("task_launch_stores", stores_path)
     stores = importlib.util.module_from_spec(spec)
@@ -815,6 +825,7 @@ class _TempLaunch(unittest.TestCase):
                 "TASK_LAUNCH_WRAPPER_USAGE",
                 "TASK_LAUNCH_WRAPPER_AGENT_NOTE", "TASK_LAUNCH_NOTE",
                 "TASK_LAUNCH_GROK_USAGE", "TASK_LAUNCH_COMMIT_MSG",
+                "TASK_LAUNCH_RENEW_AUTH",
                 "CLICOLOR_FORCE", "FORCE_COLOR",
                 "NO_COLOR", "CODEX_HOME", "GROK_HOME", "CLAUDE_CONFIG_DIR",
                 "TMPDIR",
@@ -941,6 +952,7 @@ class _TempLaunch(unittest.TestCase):
         os.environ.pop("TASK_LAUNCH_ENVELOPE_COMMIT", None)
         os.environ.pop("TASK_LAUNCH_GROK_USAGE", None)
         os.environ.pop("TASK_LAUNCH_COMMIT_MSG", None)
+        os.environ.pop("TASK_LAUNCH_RENEW_AUTH", None)
 
         (self.home / ".codex").mkdir()
         (self.home / ".codex" / "auth.json").write_text("{}\n", encoding="utf-8")
