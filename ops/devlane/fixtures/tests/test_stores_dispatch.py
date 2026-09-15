@@ -33,10 +33,6 @@ LAUNCHER_ARTIFACTS = {
     f"{JOB_ID}/prompt.txt",
 }
 
-# Planted missing-builder: no build_dispatch_store on the staged module.
-MISSING_BUILDER = "import json\njson.dumps({})\n"
-
-
 def load_module(testcase, path, name):
     testcase.assertTrue(
         path.is_file(),
@@ -142,7 +138,9 @@ class DispatchStoreBuilderShape(unittest.TestCase):
         self.addCleanup(self.world.close)
         self.world.enter()
         self.root = self.world.cwd
-        self.stores_path = self.world.plant_text("stores.py", MISSING_BUILDER)
+        self.assertTrue(STORES.is_file(), f"{STORES} is missing; the contract requires this module to exist")
+        self.assertTrue(RECORD.is_file(), f"{RECORD} is missing; the contract requires this module to exist")
+        self.stores_path = self.world.stage(STORES, "stores.py")
         self.record_path = self.world.stage(RECORD, "record.py")
 
     def stores(self):
