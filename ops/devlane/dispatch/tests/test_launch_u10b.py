@@ -25,9 +25,9 @@ import launch_support as ls
 from ops.testkit import World
 
 LAUNCH = Path(__file__).resolve().parents[1] / "launch.py"
-# Absent stand-in first: the family's empty main so each assertion fails
-# on the contract, not a missing path. Flip to LAUNCH after the red is proven.
-_SUBJECT = LAUNCH.with_name("launch.py.absent-stand-in")
+# World.stage's absent stand-in exits at import, so this family uses
+# _absent_launch for red; the live subject is the tree's launch.py.
+_SUBJECT = LAUNCH
 
 NINE = (
     "job", "status", "verdict", "counts", "findings",
