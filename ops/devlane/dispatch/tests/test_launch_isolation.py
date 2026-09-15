@@ -22,8 +22,28 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
 
-class ClaudeIsolationIsFlagsAndHomeUntouched(ls._TempLaunch):
+LAUNCH = Path(__file__).resolve().parents[1] / "launch.py"
+# Absent stand-in first: the family's empty main so each assertion fails
+# on the contract, not a missing path. Flip to LAUNCH after the red is proven.
+_SUBJECT = LAUNCH.with_name("launch.py.absent-stand-in")
+
+
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+    def load_launch(self):
+        if not Path(_SUBJECT).is_file():
+            if self.launch is None:
+                self.launch = ls._absent_launch()
+            return self.launch
+        return super().load_launch()
+
+
+class ClaudeIsolationIsFlagsAndHomeUntouched(_KitLaunch):
     """I1 / contract isolation table / plan (k)."""
 
     def test_claude_argv_carries_the_isolation_flags_and_session_id(self):
@@ -58,7 +78,7 @@ class ClaudeIsolationIsFlagsAndHomeUntouched(ls._TempLaunch):
         )
 
 
-class MinimalHomesHoldExactlyAuthJson(ls._TempLaunch):
+class MinimalHomesHoldExactlyAuthJson(_KitLaunch):
     """I2 / plan (k)."""
 
     def test_codex_home_is_the_job_home_holding_exactly_auth_json(self):
@@ -113,7 +133,7 @@ class MinimalHomesHoldExactlyAuthJson(ls._TempLaunch):
         self.assertEqual(rec["harness"]["containment"], "policy")
 
 
-class AgentEnvIsAppliedToTheChild(ls._TempLaunch):
+class AgentEnvIsAppliedToTheChild(_KitLaunch):
     """I3 / contract child's environment."""
 
     def test_clicolor_force_is_absent_and_no_color_is_set(self):
@@ -143,7 +163,7 @@ class AgentEnvIsAppliedToTheChild(ls._TempLaunch):
         self.assertEqual(env.get("LESS"), "FRX")
 
 
-class StreamIsFoundUnderTheIsolatedStore(ls._TempLaunch):
+class StreamIsFoundUnderTheIsolatedStore(_KitLaunch):
     """I4 / plan (j) — a newer stream planted in ~/.codex is not chosen."""
 
     def test_a_newer_operator_codex_stream_is_not_chosen(self):
@@ -236,7 +256,7 @@ class StreamIsFoundUnderTheIsolatedStore(ls._TempLaunch):
         self.assertNotIn(decoy_id, stream)
 
 
-class UnsupervisedLiveProcessIsTerminated(ls._TempLaunch):
+class UnsupervisedLiveProcessIsTerminated(_KitLaunch):
     """I5 / contract unsupervised / plan (j).
 
     Seam: ``DISPATCH_STREAM_GRACE`` (default 120) and injected
@@ -334,7 +354,7 @@ class UnsupervisedLiveProcessIsTerminated(ls._TempLaunch):
             self.assertFalse(ls.pid_is_alive(pid))
 
 
-class SessionIdIsMintedOrRead(ls._TempLaunch):
+class SessionIdIsMintedOrRead(_KitLaunch):
     """I6 / plan (h)."""
 
     def test_grok_receives_dash_s_uuid(self):
@@ -359,7 +379,7 @@ class SessionIdIsMintedOrRead(ls._TempLaunch):
         self.assertIn("session_meta", body)
 
 
-class IgnoringTheMintedIdIsAMismatch(ls._TempLaunch):
+class IgnoringTheMintedIdIsAMismatch(_KitLaunch):
     """I7 / plan (t)."""
 
     def test_a_fake_that_ignores_session_id_is_recorded_as_a_mismatch(self):
@@ -379,7 +399,7 @@ class IgnoringTheMintedIdIsAMismatch(ls._TempLaunch):
         self.assertNotEqual(rec["session"]["id"], ignored)
 
 
-class ObservedIsUnresolvedOrVerbatim(ls._TempLaunch):
+class ObservedIsUnresolvedOrVerbatim(_KitLaunch):
     """I8 / plan (u). Tests do not run a live behavioural probe."""
 
     def test_observed_is_unresolved_or_a_probe_dict_never_a_bare_false(self):
@@ -399,7 +419,7 @@ class ObservedIsUnresolvedOrVerbatim(ls._TempLaunch):
             # (the manufactured shape) is already refused above.
 
 
-class CodexReadsTheBriefOnStdin(ls._TempLaunch):
+class CodexReadsTheBriefOnStdin(_KitLaunch):
     """codex exec with DEVNULL on stdin exits 1 "No prompt provided via
     stdin" before any work. Three dispatches on 2026-08-28 closed
     harness-cli: exited 1 with empty findings and were committed as records."""
@@ -419,7 +439,7 @@ class CodexReadsTheBriefOnStdin(ls._TempLaunch):
         self.assertEqual(witness["stdin"], brief)
 
 
-class ClaudeReadsTheBriefOnStdin(ls._TempLaunch):
+class ClaudeReadsTheBriefOnStdin(_KitLaunch):
     """claude --print with DEVNULL on stdin exits 1 "Input must be provided
     either through stdin or as a prompt argument" (dispatch
     20260828T204050Z-plan-claude-61a0f6, harness-cli: exited 1)."""
@@ -435,7 +455,7 @@ class ClaudeReadsTheBriefOnStdin(ls._TempLaunch):
         self.assertEqual(witness["stdin"], brief)
 
 
-class GrokArgvCarriesTheSandboxTheRecordStates(ls._TempLaunch):
+class GrokArgvCarriesTheSandboxTheRecordStates(_KitLaunch):
     """A record saying sandbox: plan over an argv with no --permission-mode
     claims a permission mode the child never had (dispatch
     20260828T194753Z-review-grok-6a8e2c)."""
@@ -463,7 +483,7 @@ class GrokArgvCarriesTheSandboxTheRecordStates(ls._TempLaunch):
         self.assertIn("--prompt-file", argv)
 
 
-class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
+class ClaudeArgvCarriesTheProjectPermissions(_KitLaunch):
     """Project permissions.allow/deny from .claude/settings.json land on
     argv after the floor; network-reaching rules are dropped; the
     record's harness.permissions names what applied.
@@ -498,8 +518,7 @@ class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
         path = self.repo / ".claude" / "settings.json"
         body = json.dumps(payload, indent=2) + "\n"
         self.assertFalse(path.is_file(), "plant: settings.json was already there")
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(body, encoding="utf-8")
+        self.world.plant_text(path, body)
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, body)
         self.ref = self._commit("plant project claude settings")
@@ -580,9 +599,8 @@ class ClaudeArgvCarriesTheProjectPermissions(ls._TempLaunch):
 
     def test_unparseable_project_settings_are_declared_unresolved(self):
         path = self.repo / ".claude" / "settings.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
         planted = "{not-json\n"
-        path.write_text(planted, encoding="utf-8")
+        self.world.plant_text(path, planted)
         self.assertEqual(path.read_text(encoding="utf-8"), planted)
         with self.assertRaises(json.JSONDecodeError):
             json.loads(planted)
