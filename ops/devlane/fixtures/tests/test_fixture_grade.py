@@ -15,13 +15,11 @@ copy-or-stub so each assertion goes red on the grading promise.
 from __future__ import annotations
 
 import json
-import os
 import re
-import stat
-import subprocess
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import Result, World, make_executable, run
 
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
@@ -33,8 +31,6 @@ HARNESS = "grok"
 MODEL = "grok-4.6"
 RUN_CAP = 30
 
-ABSENT_STUB = b"#!/usr/bin/env bash\nexit 0\n"
-
 COUNTS_RE = re.compile(
     r"caught=(?P<caught>\d+)\s+missed=(?P<missed>\d+)\s+"
     r"false-positive=(?P<fp>\d+)\s+unmatched=(?P<unmatched>\d+)\s+"
@@ -44,44 +40,6 @@ RATE_RE = re.compile(
     r"caught/faults=(?P<caught>0(?:\.\d+)?|1(?:\.0+)?)\s+"
     r"false-positive/neighbours=(?P<fp>0(?:\.\d+)?|1(?:\.0+)?)"
 )
-
-CALIBRATE_STUB = r'''#!/usr/bin/env python3
-import os
-import sys
-from pathlib import Path
-
-def refuse(cls, expected, found, needed):
-    print(
-        f"{cls}: expected {expected}; found {found}; needed {needed}",
-        file=sys.stderr,
-    )
-    raise SystemExit(2)
-
-verb = sys.argv[1] if len(sys.argv) > 1 else ""
-if verb != "calibrate":
-    refuse("arguments", "calibrate", verb or "none", "name calibrate")
-agent = os.environ.get("WF_AGENT", "")
-if "<" not in agent or ">" not in agent:
-    refuse(
-        "identity",
-        "Name <address>",
-        agent or "unset",
-        "export WF_AGENT",
-    )
-capture = os.environ.get("CALIBRATE_CAPTURE")
-if not capture:
-    refuse("calibration", "CALIBRATE_CAPTURE", "unset", "set it in tests")
-Path(capture).write_text(sys.stdin.read(), encoding="utf-8")
-'''
-
-
-def _plant_bytes(testcase: unittest.TestCase, path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    landed = path.read_bytes()
-    testcase.assertEqual(landed, data, f"plant did not land intact: {path}")
-    testcase.assertEqual(len(landed), len(data))
-
 
 def _finding(severity: str, where: str, claim: str) -> dict:
     return {
@@ -94,43 +52,29 @@ def _finding(severity: str, where: str, claim: str) -> dict:
 
 class _GradeFixture(unittest.TestCase):
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory(prefix="fixture-grade-")
-        root = Path(self._tmp.name)
+        self.world = World(prefix="fixture-grade-")
+        self.addCleanup(self.world.close)
+        root = self.world.root
         self.root = root
-        self.home = root / "home"
-        self.repo = root / "repo"
-        self.home.mkdir()
-        self.repo.mkdir()
+        self.repo = self.world.cwd
         self.staged = self.repo / "ops" / "bin" / "fixture.sh"
-        self.capture = root / "calibrate.stdin"
+        self.capture = self.repo / "calibrate"
         self._stage_lever()
         self._plant_findings_stub()
         self._plant_manifest()
 
-    def tearDown(self):
-        self._tmp.cleanup()
-
     def _stage_lever(self) -> None:
-        self.staged.parent.mkdir(parents=True, exist_ok=True)
-        if LEVER.is_file():
-            data = LEVER.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data)
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB)
-            self.assertEqual(len(landed), len(ABSENT_STUB))
-        self.staged.chmod(self.staged.stat().st_mode | stat.S_IXUSR)
+        staged = self.world.stage(LEVER, "fixture.sh")
+        data = staged.read_bytes()
+        self.world.plant_bytes(self.staged, data)
+        make_executable(self.staged)
+        self.assertEqual(self.staged.read_bytes(), data)
 
     def _plant_findings_stub(self) -> None:
         path = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        data = CALIBRATE_STUB.encode("utf-8")
-        _plant_bytes(self, path, data)
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+        wrapped = self.world.tools.wrap("tee")
+        self.world.plant_bytes(path, wrapped.read_bytes())
+        make_executable(path)
 
     def _plant_manifest(self) -> None:
         app = self.repo / "ops" / "devlane" / "fixtures" / "apps" / APP
@@ -191,7 +135,7 @@ class _GradeFixture(unittest.TestCase):
             ],
         }
         planted = (json.dumps(manifest, indent=2) + "\n").encode("utf-8")
-        _plant_bytes(self, app / "FAULTS.json", planted)
+        self.world.plant_bytes(app / "FAULTS.json", planted)
 
     def record_payload(
         self,
@@ -233,43 +177,27 @@ class _GradeFixture(unittest.TestCase):
             )
         else:
             path = self.root / f"{body['id']}.json"
-        _plant_bytes(self, path, raw)
+        self.world.plant_bytes(path, raw)
         loaded = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(loaded["id"], body["id"])
         return path
 
     def env(self, *, agent: str | None = AGENT) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "CALIBRATE_CAPTURE": str(self.capture),
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-        }
+        extra = {}
         if agent is not None:
-            env["WF_AGENT"] = agent
-        return env
+            extra["WF_AGENT"] = agent
+        return self.world.env(extra)
 
     def invoke(self, argv: list[str], *, agent: str | None = AGENT):
         env = self.env(agent=agent)
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
-        try:
-            return subprocess.run(
-                [str(self.staged), *argv],
-                cwd=str(self.repo),
-                env=env,
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=RUN_CAP,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"fixture.sh {argv} exceeded {RUN_CAP}s: {exc}")
+        return run(
+            [str(self.staged), *argv],
+            cwd=self.repo,
+            env=env,
+            timeout=RUN_CAP,
+        )
 
     def grade(self, record: str, app: str = APP, extra: list[str] | None = None, **kwargs):
         argv = ["grade", record, app]
@@ -278,22 +206,13 @@ class _GradeFixture(unittest.TestCase):
         return self.invoke(argv, **kwargs)
 
     def assert_refusal(self, proc, class_name: str) -> None:
-        err = proc.stderr or ""
-        self.assertEqual(proc.returncode, 2, err)
-        self.assertEqual((proc.stdout or "").strip(), "")
-        lines = [ln for ln in err.splitlines() if ln.strip()]
-        self.assertEqual(len(lines), 1, err)
-        line = lines[0]
+        refusal = proc.refusal()
         token = class_name.lower().replace("_", "-")
-        head = line.split(":", 1)[0].strip().lower().replace("_", "-")
         self.assertEqual(
-            head,
+            refusal.cls,
             token,
-            f"refusal class must be the leading token {token!r}: {line!r}",
+            f"refusal class must be the leading token {token!r}: {refusal.line!r}",
         )
-        lower = line.lower()
-        self.assertLess(lower.index("expected"), lower.index("found"), err)
-        self.assertLess(lower.index("found"), lower.index("needed"), err)
 
     def assert_grade_stdout_only_report(self, stdout: str) -> None:
         lines = [ln for ln in stdout.splitlines() if ln.strip()]
@@ -349,11 +268,13 @@ class _GradeFixture(unittest.TestCase):
 
 class RefusalShape(_GradeFixture):
     def test_embedded_class_token_is_not_a_refusal(self):
-        proc = subprocess.CompletedProcess(
-            args=["fixture.sh"],
-            returncode=2,
+        proc = Result(
+            argv=("fixture.sh",),
+            exit=2,
             stdout="",
             stderr="not-identity garbage expected x; found y; needed z\n",
+            duration=0.0,
+            cwd=str(self.repo),
         )
         with self.assertRaises(AssertionError):
             self.assert_refusal(proc, "identity")
@@ -364,7 +285,7 @@ class GradeClassifies(_GradeFixture):
         rec = self.plant_record()
         before = rec.read_bytes()
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         self.assertEqual(rec.read_bytes(), before, "grade writes nothing to the record")
         out = proc.stdout
         self.assertIn(HARNESS, out)
@@ -388,7 +309,7 @@ class GradeClassifies(_GradeFixture):
     def test_grade_rates_are_computed_from_the_counts(self):
         rec = self.plant_record()
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         rates = self.parse_rates(proc.stdout)
         self.assertEqual(rates["caught"], counts["caught"] / 2)
@@ -400,7 +321,7 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 1)
         self.assertEqual(counts["false-positive"], 0)
@@ -416,7 +337,7 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 1)
         self.assertEqual(counts["unmatched"], 0)
@@ -431,7 +352,7 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["false-positive"], 1)
         self.assertEqual(counts["caught"], 0)
@@ -446,14 +367,14 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 1)
 
     def test_grade_resolves_a_record_id_under_dispatches(self):
         self.plant_record(under_dispatches=True)
         proc = self.grade(REC_ID)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 1)
         self.assertEqual(counts["missed"], 1)
@@ -465,7 +386,7 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 1)
         self.assertEqual(counts["missed"], 1)
@@ -493,7 +414,7 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 2)
         self.assertEqual(counts["missed"], 0)
@@ -514,7 +435,7 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 1)
         self.assertEqual(counts["missed"], 1)
@@ -526,7 +447,7 @@ class GradeClassifies(_GradeFixture):
         ]
         rec = self.plant_record(self.record_payload(findings=findings))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["caught"], 0)
         self.assertEqual(counts["unmatched"], 1)
@@ -543,9 +464,9 @@ class GradeClassifies(_GradeFixture):
             / f"{payload['id']}.json"
         )
         raw = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
-        _plant_bytes(self, path, raw)
+        self.world.plant_bytes(path, raw)
         proc = self.grade(REC_ID, extra=["--repo", str(other)])
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["unlocated"], 1)
 
@@ -560,7 +481,7 @@ class GradeRefuses(_GradeFixture):
     def test_check_tests_is_a_review_job(self):
         rec = self.plant_record(self.record_payload(job="check-tests"))
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         self.parse_counts(proc.stdout)
 
     def test_adversarial_review_is_a_review_job(self):
@@ -568,7 +489,7 @@ class GradeRefuses(_GradeFixture):
             self.record_payload(job="adversarial-review")
         )
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         self.parse_counts(proc.stdout)
 
 
@@ -576,7 +497,7 @@ class GradeWritesCalibrate(_GradeFixture):
     def test_calibrate_rows_carry_app_and_fault_ids(self):
         rec = self.plant_record()
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         rows = self.parse_rows()
         for row in rows:
             self.assertEqual(row["app"], APP)
@@ -623,7 +544,7 @@ class GradeWritesCalibrate(_GradeFixture):
     def test_grade_invokes_the_repo_findings_py_not_a_path_lookup(self):
         rec = self.plant_record()
         proc = self.grade(str(rec))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertTrue(self.capture.is_file())
         self.assertTrue(
             (self.repo / "ops" / "conductor" / "tools" / "findings.py").is_file()
