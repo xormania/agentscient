@@ -308,13 +308,6 @@ KIND_CLEAN = {
 }
 
 SLEEPER_PROBE = b"#!/bin/sh\nsleep 3\nexit 1\n"
-RED_PROOF = True
-
-
-def _own_red(case: unittest.TestCase) -> None:
-    """Planted pin so each method fails its own assertion before green."""
-    if RED_PROOF:
-        case.assertIsNone("kit-red-proof", f"{case.id()} must fail its own assertion")
 
 
 def load_json_object(path: Path) -> dict:
@@ -564,7 +557,6 @@ def discover_clean_neighbours(root: Path) -> dict[str, list[tuple[str, int, int,
 
 class SymfonyAppExists(unittest.TestCase):
     def test_faults_json_exists(self):
-        _own_red(self)
         self.assertTrue(
             MANIFEST.is_file(),
             f"{MANIFEST} is missing; slice 4 plants apps/symfony-app",
@@ -573,7 +565,6 @@ class SymfonyAppExists(unittest.TestCase):
 
 class SymfonyAppLayout(unittest.TestCase):
     def test_layout_paths_exist(self):
-        _own_red(self)
         for name in LAYOUT_FILES:
             with self.subTest(path=name):
                 self.assertTrue(
@@ -588,7 +579,6 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_composer_json_pins_php_and_symfony(self):
-        _own_red(self)
         data = load_json_object(APP / "composer.json")
         self.assertEqual(data.get("name"), "agentscient/fixture-symfony-app")
         self.assertEqual(data.get("type"), "project")
@@ -646,7 +636,6 @@ class SymfonyAppLayout(unittest.TestCase):
         self.assertEqual(symfony.get("allow-contrib"), False)
 
     def test_composer_json_has_check_and_no_fix(self):
-        _own_red(self)
         data = load_json_object(APP / "composer.json")
         scripts = data.get("scripts") if isinstance(data.get("scripts"), dict) else {}
         self.assertIn(
@@ -671,7 +660,6 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_composer_lock_pins_symfony_v81(self):
-        _own_red(self)
         lock = load_json_object(APP / "composer.lock")
         digest = lock.get("content-hash")
         self.assertIsInstance(digest, str)
@@ -723,7 +711,6 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_phpunit_dist_xml_names_tests_only(self):
-        _own_red(self)
         text = _read(APP / "phpunit.dist.xml")
         self.assertRegex(
             text,
@@ -737,7 +724,6 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_gitignore_names_install_residue(self):
-        _own_red(self)
         text = _read(APP / ".gitignore")
         self.assertTrue(text.strip(), ".gitignore is missing")
         for pattern in GITIGNORE_PATTERNS:
@@ -749,7 +735,6 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_readme_itself_declares_apparatus(self):
-        _own_red(self)
         text = _read(APP / "README.md")
         self.assertRegex(
             text,
@@ -758,7 +743,6 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_readme_names_check_install_and_absent_fix(self):
-        _own_red(self)
         text = _read(APP / "README.md")
         self.assertRegex(text, r"composer check", "README.md must name composer check")
         self.assertRegex(
@@ -783,7 +767,6 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_probe_files_name_contract_behaviours(self):
-        _own_red(self)
         for fault_id, tokens in FAULT_BEHAVIOUR.items():
             if fault_id == STATIC_ID:
                 path = APP / "tests" / "Service" / "LedgerTest.php"
@@ -805,7 +788,6 @@ class SymfonyAppLayout(unittest.TestCase):
                     )
 
     def test_runtime_probe_shells_run_phpunit_not_grep(self):
-        _own_red(self)
         for fault_id in NEEDS_IDS:
             index = int(str(fault_id).split("-")[1])
             rel = f"probes/sa{index:02d}.sh"
@@ -828,7 +810,6 @@ class SymfonyAppLayout(unittest.TestCase):
                 )
 
     def test_sa07_probe_greps_the_checksum_oracle(self):
-        _own_red(self)
         text = _read(APP / "probes" / "sa07.sh")
         self.assertTrue(text.strip(), "probes/sa07.sh is missing")
         self.assertRegex(text, r"\bgrep\b", "SA-07's probe is the static grep")
@@ -839,7 +820,6 @@ class SymfonyAppLayout(unittest.TestCase):
         )
 
     def test_readme_carries_one_declaration_per_fault(self):
-        _own_red(self)
         text = _read(APP / "README.md")
         for fault_id in EXPECTED_IDS:
             with self.subTest(fault=fault_id, stage="label"):
@@ -873,7 +853,6 @@ class SymfonyAppLayout(unittest.TestCase):
 
 class SymfonyAppManifest(unittest.TestCase):
     def test_manifest_has_six_to_eight_rows_over_six_or_more_kinds(self):
-        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         self.assertGreaterEqual(len(faults), 6, f"need six to eight faults, found {len(faults)}")
         self.assertLessEqual(len(faults), 8, f"need six to eight faults, found {len(faults)}")
@@ -885,7 +864,6 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_cites_k1_to_k6_and_k8(self):
-        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         kinds = {row.get("kind") for row in faults}
         self.assertTrue(
@@ -898,7 +876,6 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_ids_are_sa_01_to_sa_07(self):
-        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         ids = tuple(row.get("id") for row in faults)
         self.assertEqual(
@@ -908,7 +885,6 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_kind_and_visible_to_match_the_contract(self):
-        _own_red(self)
         faults = fault_rows(load_json_object(MANIFEST))
         self.assertEqual(
             tuple(row.get("id") for row in faults),
@@ -937,7 +913,6 @@ class SymfonyAppManifest(unittest.TestCase):
                 self.assertEqual(row.get("fix"), expected["fix"])
 
     def test_manifest_probe_timeout_toolchain_and_needs(self):
-        _own_red(self)
         data = load_json_object(MANIFEST)
         timeout = data.get("probe_timeout")
         self.assertIsInstance(timeout, int)
@@ -981,7 +956,6 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_not_planted_names_k7_and_k9(self):
-        _own_red(self)
         data = load_json_object(MANIFEST)
         self.assertIn("not_planted", data)
         blob = json.dumps(data.get("not_planted"))
@@ -989,7 +963,6 @@ class SymfonyAppManifest(unittest.TestCase):
         self.assertIn("K9", blob)
 
     def test_check_command_names_composer_php_lint_and_phpunit(self):
-        _own_red(self)
         check = load_json_object(MANIFEST).get("check")
         text = check if isinstance(check, str) else ""
         stripped = _strip_shell_comments(text)
@@ -1005,7 +978,6 @@ class SymfonyAppManifest(unittest.TestCase):
         )
 
     def test_manifest_sweep_accepts_faults_json(self):
-        _own_red(self)
         problems = validate_manifest(APP, set(KIND_IDS))
         self.assertEqual(
             problems,
@@ -1465,7 +1437,6 @@ class SymfonyAppMakeProve(_RepoFreeze):
         )
 
     def test_make_symfony_app_into_a_temp_directory_succeeds(self):
-        _own_red(self)
         made = self.made_app("made")
         for name in LAYOUT_FILES:
             with self.subTest(copied=name):
@@ -1487,7 +1458,6 @@ class SymfonyAppMakeProve(_RepoFreeze):
                 )
 
     def test_scratch_runs_suites_and_dispatch_dry_run(self):
-        _own_red(self)
         made = self.made_app("portable")
         _lint_the_lane_copies_under_the_lane_contract(made)
         self.assertTrue((made / "ops/bin/suites.sh").is_file())
@@ -1577,7 +1547,6 @@ class SymfonyAppMakeProve(_RepoFreeze):
         self.assertIn(effort, argv)
 
     def test_prove_on_fresh_make_colours_needs_unreachable_and_sa07_red(self):
-        _own_red(self)
         target = self.root / "prove-fresh"
         self.make(target)
         proc = self.invoke(["prove", str(target)], agent=None)
@@ -1612,7 +1581,6 @@ class SymfonyAppMakeProve(_RepoFreeze):
         )
 
     def test_each_fix_is_confined_to_the_declared_span(self):
-        _own_red(self)
         made = self.made_app("independent-fixes")
         _faults, snapshots = self.fault_snapshots(made)
         for row, loc_path, loc_lines, span, loc_before in snapshots:
@@ -1734,7 +1702,6 @@ class SymfonyAppMakeProve(_RepoFreeze):
             self.assertEqual(reset, loc_before, f"{fault_id} reset did not restore")
 
     def test_clean_neighbours_are_found_apart_from_the_manifest(self):
-        _own_red(self)
         made = self.made_app("neighbours")
         faults = self.load_faults(made)
         locations = []
@@ -1780,7 +1747,6 @@ class SymfonyAppMakeProve(_RepoFreeze):
                 )
 
     def test_full_proof_after_composer_install(self):
-        _own_red(self)
         made = self.made_app("full-proof")
         env = self.install_from_lock(made)
         self.assert_check_tools_ran(made, env)
@@ -2031,7 +1997,6 @@ class SymfonyAppGrade(_RepoFreeze):
         return {key: float(value) for key, value in match.groupdict().items()}
 
     def test_grade_scores_a_planted_review(self):
-        _own_red(self)
         faults = fault_rows(load_json_object(self.staged_manifest()))
         if faults:
             first = faults[0]
@@ -2092,7 +2057,6 @@ class SymfonyAppGrade(_RepoFreeze):
         )
 
     def test_grade_scores_independently_found_neighbours_as_false_positives(self):
-        _own_red(self)
         source_root = APP if APP.is_dir() else self.root / "missing-app"
         discovered = discover_clean_neighbours(source_root)
         faults = fault_rows(load_json_object(self.staged_manifest()))
@@ -2174,7 +2138,6 @@ class SymfonyAppLeverChange(_LeverFixture):
     def test_probe_timeout_five_colours_a_three_second_probe_default_is_unreachable(
         self,
     ):
-        _own_red(self)
         coloured = self.plant_made_dir("timeout-five")
         self._plant_sleeper(coloured)
         self._plant_timeout_key(coloured, 5)
@@ -2247,7 +2210,6 @@ class SymfonyAppLeverChange(_LeverFixture):
         )
 
     def test_probe_timeout_x_zero_and_301_refuse_manifest(self):
-        _own_red(self)
         for value in ("x", 0, 301, True, False, -1, 1.5):
             with self.subTest(probe_timeout=value):
                 made = self.plant_made_dir(f"bad-timeout-{value}")
@@ -2259,7 +2221,6 @@ class SymfonyAppLeverChange(_LeverFixture):
                 self.assertRegex(err, r"1\.\.300")
 
     def test_probe_timeout_1_and_300_are_accepted(self):
-        _own_red(self)
         for value in (1, 300):
             with self.subTest(probe_timeout=value, stage="no-refuse"):
                 made = self.plant_made_dir(f"ok-timeout-{value}")
@@ -2295,7 +2256,6 @@ class SymfonyAppLeverChange(_LeverFixture):
                     self.assertNotEqual(rows["SYN-01"], "UNREACHABLE")
 
     def test_prove_fixed_ignores_vendor_target_and_venv_with_unreadable_files(self):
-        _own_red(self)
         made = self.plant_made_repo("preflight-ignore")
         blocked: list[Path] = []
         try:
