@@ -18,8 +18,16 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import World
+
+LAUNCH = Path(__file__).resolve().parents[1] / "launch.py"
+# World.stage's absent stand-in exits at import, so this family uses
+# _absent_launch for red; the live subject is the tree's launch.py.
+_SUBJECT = LAUNCH
 
 NINE = (
     "job", "status", "verdict", "counts", "findings",
@@ -69,7 +77,20 @@ def _planted(job):
     }
 
 
-class _U10bLaunch(ls._TempLaunch):
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+    def load_launch(self):
+        if not Path(_SUBJECT).is_file():
+            if self.launch is None:
+                self.launch = ls._absent_launch()
+            return self.launch
+        return super().load_launch()
+
+
+class _U10bLaunch(_KitLaunch):
     def _emit(self, planted):
         body = json.dumps(planted)
         os.environ["TASK_LAUNCH_STDOUT"] = "token"
