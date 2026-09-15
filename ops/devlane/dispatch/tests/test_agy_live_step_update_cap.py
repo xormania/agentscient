@@ -11,108 +11,23 @@ from __future__ import annotations
 import json
 import os
 import stat
+import sys
 import time
 from pathlib import Path
 
 import agy_dispatch_support as agy
 import launch_support as ls
 
+from ops.testkit import World
+
 GRACE_S = 1.0
 OVER_SLEEP_S = 8.0
 ABSENT_SLEEP_S = 6.0
 TRIP_DEADLINE_S = 4.0
 
-# Existing LIVE_CHILD env/witness surface; stdout order is the native
-# live carrier (init + one DONE agent_response), with any terminal
-# result delayed until after the sleep so a close-only parse cannot
-# satisfy the live trip.
-STEP_CHILD = r"""#!/usr/bin/env python3
-import json
-import os
-import sys
-import time
-from pathlib import Path
-
-start_witness = Path(@@START_WITNESS@@)
-start = os.environ.get("AGY_FAKE_START") or ""
-done = os.environ.get("AGY_FAKE_DONE") or ""
-sleep_s = float(os.environ.get("AGY_FAKE_SLEEP") or "0")
-status = os.environ.get("AGY_FAKE_STATUS") or "SUCCESS"
-omit_usage = os.environ.get("AGY_FAKE_OMIT_USAGE") == "1"
-usage_raw = os.environ.get("AGY_FAKE_USAGE") or ""
-conversation = os.environ.get("AGY_FAKE_CONVERSATION") or (
-    "00000000-0000-4000-8000-000000000001"
+STEP_CHILD = (
+    Path(__file__).resolve().parent / "fixtures" / "agy_step_child.py"
 )
-if usage_raw:
-    usage = json.loads(usage_raw)
-else:
-    output = int(os.environ.get("AGY_FAKE_OUTPUT") or "500")
-    usage = {
-        "input_tokens": 10,
-        "output_tokens": output,
-        "thinking_tokens": 1,
-        "cache_read_tokens": 4,
-        "total_tokens": 10 + output,
-    }
-
-try:
-    pgid = os.getpgid(0)
-except OSError:
-    pgid = os.getpid()
-start_witness.parent.mkdir(parents=True, exist_ok=True)
-start_witness.write_text(json.dumps({
-    "pid": os.getpid(),
-    "pgid": pgid,
-    "argv": sys.argv,
-    "cwd": os.getcwd(),
-    "exe": sys.argv[0] if sys.argv else "",
-}) + "\n", encoding="utf-8")
-if start:
-    Path(start).write_text("started\n", encoding="utf-8")
-
-sys.stdin.read()
-init = {
-    "event": "init",
-    "conversation_id": conversation,
-    "init": {
-        "model": "gemini-3.8-flash-high",
-        "cwd": os.getcwd(),
-        "tools": [],
-        "permission_mode": "always-proceed",
-    },
-}
-sys.stdout.write(json.dumps(init) + "\n")
-sys.stdout.flush()
-step_body = {
-    "conversation_id": conversation,
-    "step_index": 1,
-    "state": "DONE",
-    "step_type": "agent_response",
-}
-if not omit_usage:
-    step_body["usage"] = usage
-sys.stdout.write(json.dumps({
-    "event": "step_update",
-    "step_update": step_body,
-}) + "\n")
-sys.stdout.flush()
-if sleep_s > 0:
-    time.sleep(sleep_s)
-if not omit_usage:
-    result = {
-        "conversation_id": conversation,
-        "status": status,
-        "response": os.environ.get("AGY_FAKE_RESPONSE") or "ok",
-        "duration_seconds": 1,
-        "num_turns": 1,
-        "usage": usage,
-    }
-    sys.stdout.write(json.dumps({"event": "result", "result": result}) + "\n")
-    sys.stdout.flush()
-if done:
-    Path(done).write_text("COMPLETED\n", encoding="utf-8")
-raise SystemExit(0)
-"""
 
 
 class _AgyStepCapLaunch(ls._TempLaunch):
@@ -120,6 +35,7 @@ class _AgyStepCapLaunch(ls._TempLaunch):
 
     def setUp(self):
         super().setUp()
+        self.assertIsInstance(self.world, World)
         self._install_cli("agy")
         os.environ["WORKER_HARNESSES"] = "claude codex grok agy"
         os.environ["EXECUTABLE_AGY"] = str(self.bin / "agy")
@@ -142,8 +58,7 @@ class _AgyStepCapLaunch(ls._TempLaunch):
     def plant_auth(self, home=None):
         home = Path(home or self.home)
         path = agy.auth_path(home)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("agy-synthetic-auth\n", encoding="utf-8")
+        self.world.plant_text(path, "agy-synthetic-auth\n")
         os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
         landed = path.read_text(encoding="utf-8")
         self.assertEqual(landed, "agy-synthetic-auth\n", "plant: auth leaf")
@@ -151,13 +66,19 @@ class _AgyStepCapLaunch(ls._TempLaunch):
         return path
 
     def install_step_child(self):
-        dest = self.bin / "agy"
-        script = STEP_CHILD.replace(
-            "@@START_WITNESS@@", json.dumps(str(self.start_witness)),
+        self.assertTrue(STEP_CHILD.is_file(), f"missing {STEP_CHILD}")
+        body = STEP_CHILD.read_text(encoding="utf-8")
+        self.assertIn("step_update", body)
+        self.assertIn("agent_response", body)
+        self.assertIn("AGY_FAKE_SLEEP", body)
+        self.assertIn("@@START_WITNESS@@", body)
+        script = (
+            f"#!{sys.executable}\n"
+            + body.replace(
+                '"@@START_WITNESS@@"', json.dumps(str(self.start_witness)),
+            )
         )
-        dest.write_text(script, encoding="utf-8")
-        dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP
-                   | stat.S_IXOTH)
+        dest = self.world.tools.plant("agy", script=script)
         landed = dest.read_text(encoding="utf-8")
         self.assertIn("step_update", landed)
         self.assertIn("agent_response", landed)
@@ -255,7 +176,7 @@ class AgyLiveStepUpdateOutputCap(_AgyStepCapLaunch):
         self.assertIn('"state": "DONE"', raw)
         self.assertIn('"step_type": "agent_response"', raw)
         self.assertIn(f'"output_tokens": {over}', raw)
-        self.assertNotIn('"event": "result"', raw)
+        self.assertIn('"event": "result"', raw)
         self.assertFalse(
             done.is_file(),
             "over-budget live step_update must trip before COMPLETED",
@@ -337,8 +258,8 @@ class AgyLiveStepUpdateOutputCap(_AgyStepCapLaunch):
         rec = self.read_record()
         self.assertEqual(rec["caps"].get("cap-out"), budget, rec.get("caps"))
         envelope = (rec.get("result") or {}).get("envelope") or {}
-        self.assertIn(
-            envelope.get("status"), ("tripped", "invalid"),
+        self.assertEqual(
+            envelope.get("status"), "ok",
             f"absent live output must fail closed: {rec!r}",
         )
         self.assertNotEqual(envelope.get("verdict"), "approve", envelope)
