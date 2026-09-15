@@ -2,8 +2,8 @@
  "by": "Claude Fable 5.1 <noreply@anthropic.com>",
  "counts": {
   "embedded_programs": 30,
-  "home_by_hand": 58,
-  "run_without_timeout": 180
+  "home_by_hand": 57,
+  "run_without_timeout": 179
  },
  "files": {
   "embedded_programs": {
@@ -82,7 +82,6 @@
    "ops/devlane/harness/tests/test_isolation_credential_age.py": 1,
    "ops/devlane/harness/tests/test_probe.py": 1,
    "ops/devlane/harness/tests/test_receipt.py": 1,
-   "ops/devlane/hooks/tests/support.py": 1,
    "ops/devlane/hooks/tests/test_hooks.py": 1,
    "ops/devlane/task/tests/test_fileset.py": 1,
    "ops/devlane/task/tests/test_run.py": 1,
@@ -136,7 +135,6 @@
    "ops/devlane/harness/tests/test_isolation_contract.py": 3,
    "ops/devlane/harness/tests/test_receipt.py": 3,
    "ops/devlane/hooks/tests/gh_stub.py": 1,
-   "ops/devlane/hooks/tests/support.py": 1,
    "ops/devlane/hooks/tests/test_boundaries.py": 3,
    "ops/devlane/hooks/tests/test_commit_msg_gate.py": 2,
    "ops/devlane/hooks/tests/test_engine.py": 1,
