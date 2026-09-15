@@ -49,6 +49,7 @@ class OneStreamPerClone(unittest.TestCase):
         self.h = hook_contract.HookContractTest(
             "test_h6_second_worktree_appends_to_the_shared_stream"
         )
+        self.h.world = self.world  # the contract helper plants and reads through the world now
         self.h.tmp = self.world.tmp
         self.h.home = self.world.home
         self.h.env_for = self._h_env_for
@@ -494,6 +495,7 @@ class OriginBoundaryNeverBlock(unittest.TestCase):
         self.h = hook_contract.HookContractTest(
             "test_h6_second_worktree_appends_to_the_shared_stream"
         )
+        self.h.world = self.world  # the contract helper plants and reads through the world now
         self.h.tmp = self.world.tmp
         self.h.home = self.world.home
         self.h.env_for = self._h_env_for

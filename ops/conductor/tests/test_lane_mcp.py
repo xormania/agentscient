@@ -39,6 +39,7 @@ from ops.testkit import Result, World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "lane_mcp.py"
+READ = TOOL.with_name("lane_read.py")  # test_lane_mcp_review.py and test_lane_mcp_context.py import it
 # The tool imports these beside itself (instrument-conventions.md §The
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.

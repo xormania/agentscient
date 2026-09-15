@@ -105,11 +105,9 @@ class _MalformedGitFixture(_GitRefsFixture):
         self.bin = self.world.bin
         self.gh = self.bin / "gh"
         self.git_argv_log = self.world.tools.log_path("git")
+        # a wrapped real git is the passthrough side; no control file since
+        # _GitRefsFixture moved onto world.tools
         self.world.tools.wrap("git")
-        self.world.plant_text(
-            self.git_control,
-            json.dumps({"mode": "passthrough"}) + "\n",
-        )
 
     def env(self, *, agent=None, extra=None):
         values = {
