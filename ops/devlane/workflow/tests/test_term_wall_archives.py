@@ -1,30 +1,19 @@
 """Captured-data exemptions. Contract: CONTRACT-term-wall.md §Captured data."""
 
-import sys
 import unittest
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
+import test_term_wall as _term_wall
 
-import test_term_wall as _term_wall  # noqa: E402
+from ops.testkit import World
 
 PLANT = _term_wall.PLANT
 WIP = ".dev/wip"
 DISPATCH = ".dev/records/dispatches"
 
 
-class TermWallArchiveTest(unittest.TestCase):
-    def setUp(self):
-        self.inner = _term_wall.TermWallTest("test_clean_tree")
-        self.inner.setUp()
-        self.addCleanup(self.inner.tearDown)
-        self.root = self.inner.root
-        self._run = self.inner._run
-        self._track = self.inner._track
-        self.assertClean = self.inner.assertClean
-        self.assertHit = self.inner.assertHit
+class TermWallArchiveTest(_term_wall.TermWallFixture, unittest.TestCase):
+    WORLD = World
 
     def _plant(self, relative, content):
         path = self._track(relative, content)
