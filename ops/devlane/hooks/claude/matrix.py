@@ -64,6 +64,12 @@ row that cannot look refuses: "could not look" is not a pass.
                     nor declares `# testkit: exempt <reason>`     ten lines
                     (engine row; docs/tests.md rule 1); no grant
                     escape (D-TESTKIT-1, 2026-09-14)
+    done-gate       at Stop, a reply that says done, complete,    last_assistant_message,
+                    finished, landed, merged or solved with no    the lock's target lines
+                    deliverable.py line (engine row; three        (deliverable.py show)
+                    blocks per session, then the stop passes;
+                    owner, 2026-09-15: "I need confidence that
+                    my orders are being carried out")
     wall-write      a write to the CI and test machinery          the path, the grant's
                     (.github/workflows, suites.sh, probes.py,     lever class
                     laneconf.py, the hook registry, rows, engine
