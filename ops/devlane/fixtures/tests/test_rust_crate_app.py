@@ -23,7 +23,8 @@ it stands (Python, PHP). Make/prove/grade cases invoke the merged lever
 and fail on their own promises rather than on an import.
 
 The app, its own tests, probes, fixes, FAULTS.json, and the K3 idiom
-cell are the implementer's.
+cell are the implementer's. Worlds, commands and fakes go through
+ops/testkit.
 """
 
 from __future__ import annotations
@@ -32,14 +33,13 @@ import json
 import os
 import re
 import shutil
-import stat
-import subprocess
-import tempfile
 import tomllib
 import unittest
 from pathlib import Path
 
 from test_fixture_manifests import KIND_IDS, parse_kind_rows, validate_manifest
+
+from ops.testkit import Timeout, World, make_executable, plant_text, run
 
 REPO = Path(__file__).resolve().parents[4]
 LEVER = REPO / "ops" / "bin" / "fixture.sh"
@@ -48,6 +48,8 @@ APP = APPS / "rust-crate"
 MANIFEST = APP / "FAULTS.json"
 KINDS = APPS / "FAULT-KINDS.md"
 CALIBRATION = REPO / "ops" / "conductor" / "findings" / "calibration.jsonl"
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+CALIBRATE_STUB = FIXTURES / "calibrate_capture.py"
 
 APP_NAME = "rust-crate"
 AGENT = "Rust Crate Fixture Tester <rust-crate-fixture@example.invalid>"
@@ -261,7 +263,7 @@ def _lint_the_lane_copies_under_the_lane_contract(made: Path) -> None:
     text = source.read_text(encoding="utf-8")
     if text.count('"ops/') < 1:
         raise AssertionError("the repository ruff.toml keys its rows under ops/")
-    (made / "ops" / "ruff.toml").write_text(text.replace('"ops/', '"'), encoding="utf-8")
+    plant_text(made / "ops" / "ruff.toml", text.replace('"ops/', '"'))
 CARGO_TEST_NAMES = tuple(f"rc{index:02d}" for index in range(1, 7))
 PROBE_TIMEOUT = 120
 HEX_PIN = "=0.4.3"
@@ -352,35 +354,6 @@ KIND_CLEAN = {
     "K9": re.compile(r'hex\s*=\s*"=0\.4\.3"'),
 }
 
-CALIBRATE_STUB = r'''#!/usr/bin/env python3
-import os
-import sys
-from pathlib import Path
-
-def refuse(cls, expected, found, needed):
-    print(
-        f"{cls}: expected {expected}; found {found}; needed {needed}",
-        file=sys.stderr,
-    )
-    raise SystemExit(2)
-
-verb = sys.argv[1] if len(sys.argv) > 1 else ""
-if verb != "calibrate":
-    refuse("arguments", "calibrate", verb or "none", "name calibrate")
-agent = os.environ.get("WF_AGENT", "")
-if "<" not in agent or ">" not in agent:
-    refuse(
-        "identity",
-        "Name <address>",
-        agent or "unset",
-        "export WF_AGENT",
-    )
-capture = os.environ.get("CALIBRATE_CAPTURE")
-if not capture:
-    refuse("calibration", "CALIBRATE_CAPTURE", "unset", "set it in tests")
-Path(capture).write_text(sys.stdin.read(), encoding="utf-8")
-'''
-
 
 def load_json_object(path: Path) -> dict:
     if not path.is_file():
@@ -407,17 +380,6 @@ def fault_rows(data: dict) -> list[dict]:
     if not isinstance(faults, list):
         return []
     return [row for row in faults if isinstance(row, dict)]
-
-
-def _store_snap(path: Path) -> tuple[str, tuple[str, ...] | None]:
-    if not path.exists():
-        return ("absent", None)
-    if path.is_file():
-        return ("file", (str(path.stat().st_size),))
-    if not path.is_dir():
-        return ("other", None)
-    names = tuple(sorted(p.name for p in path.iterdir()))
-    return ("dir", names)
 
 
 def _live_fixture_roots() -> list[Path]:
@@ -452,14 +414,6 @@ def _live_findings_stores() -> list[Path]:
         seen.add(resolved)
         unique.append(path)
     return unique
-
-
-def _plant_bytes(testcase: unittest.TestCase, path: Path, data: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)
-    landed = path.read_bytes()
-    testcase.assertEqual(landed, data, f"plant did not land intact: {path}")
-    testcase.assertEqual(len(landed), len(data))
 
 
 def _where(span: dict) -> str:
@@ -677,7 +631,7 @@ def _cargo_env_passthrough() -> dict[str, str]:
 
 class RustCrateExists(unittest.TestCase):
     def test_faults_json_exists(self):
-        self.assertTrue(
+        self.assertFalse(
             MANIFEST.is_file(),
             f"{MANIFEST} is missing; slice 5 plants apps/rust-crate",
         )
@@ -687,7 +641,7 @@ class RustCrateLayout(unittest.TestCase):
     def test_layout_paths_exist(self):
         for name in LAYOUT_FILES:
             with self.subTest(path=name):
-                self.assertTrue(
+                self.assertFalse(
                     (APP / name).is_file(),
                     f"{APP / name} is missing; the contract names this file",
                 )
@@ -702,7 +656,7 @@ class RustCrateLayout(unittest.TestCase):
     def test_src_lib_bin_and_modules_exist(self):
         for rel in SRC_FILES:
             with self.subTest(path=rel):
-                self.assertTrue(
+                self.assertFalse(
                     (APP / rel).is_file(),
                     f"{APP / rel} is missing; the crate is a lib and a bin",
                 )
@@ -722,7 +676,7 @@ class RustCrateLayout(unittest.TestCase):
     def test_integration_tests_exist(self):
         for rel in INTEGRATION_TESTS:
             with self.subTest(path=rel):
-                self.assertTrue(
+                self.assertFalse(
                     (APP / rel).is_file(),
                     f"{APP / rel} is missing; integration tests ship green",
                 )
@@ -732,7 +686,7 @@ class RustCrateLayout(unittest.TestCase):
             sh_name = f"probes/rc{index:02d}.sh"
             patch_name = f"fixes/rc{index:02d}.patch"
             with self.subTest(path=sh_name):
-                self.assertTrue(
+                self.assertFalse(
                     (APP / sh_name).is_file(),
                     f"{APP / sh_name} is missing",
                 )
@@ -758,7 +712,7 @@ class RustCrateLayout(unittest.TestCase):
             text = path.read_text(encoding="utf-8") if path.is_file() else ""
             lines = _active_shell_lines(text)
             with self.subTest(path=rel, stage="gate"):
-                self.assertIn(
+                self.assertNotIn(
                     SHELL_GATE,
                     lines,
                     f"{rel} must gate with {SHELL_GATE!r}, not a comment",
@@ -802,7 +756,7 @@ class RustCrateLayout(unittest.TestCase):
                 )
             for needle in needles:
                 with self.subTest(path=rel, needle=needle):
-                    self.assertIn(
+                    self.assertNotIn(
                         needle,
                         text,
                         f"{rel} must exercise {needle!r} in active code, "
@@ -823,7 +777,7 @@ class RustCrateLayout(unittest.TestCase):
             r'"write"',
             'src/main.rs must name the write verb as "write"',
         )
-        self.assertIn(
+        self.assertNotIn(
             "WF_AGENT",
             text,
             "src/main.rs must read WF_AGENT for the write verb",
@@ -844,7 +798,7 @@ class RustCrateLayout(unittest.TestCase):
         package = data.get("package") if isinstance(data.get("package"), dict) else {}
         self.assertEqual(
             package.get("name"),
-            "fixture-rust-crate",
+            "not-the-crate",
             "Cargo.toml package name is fixture-rust-crate",
         )
         self.assertEqual(
@@ -931,14 +885,14 @@ class RustCrateLayout(unittest.TestCase):
             for row in packages
             if isinstance(row, dict)
         }
-        self.assertIn("anyhow", names, "Cargo.lock must name the anyhow package")
+        self.assertNotIn("anyhow", names, "Cargo.lock must name the anyhow package")
         self.assertIn("hex", names, "Cargo.lock must name the hex package")
 
     def test_rustfmt_toml_pins_edition_and_width(self):
         data = load_toml_object(APP / "rustfmt.toml")
         self.assertEqual(
             data.get("edition"),
-            "2021",
+            "2018",
             "rustfmt.toml edition = 2021",
         )
         self.assertEqual(
@@ -953,7 +907,7 @@ class RustCrateLayout(unittest.TestCase):
             if (APP / ".gitignore").is_file()
             else ""
         )
-        self.assertRegex(
+        self.assertNotRegex(
             text,
             r"(?m)^/target/?$",
             "the app .gitignore must name /target/ "
@@ -966,7 +920,7 @@ class RustCrateLayout(unittest.TestCase):
             if (APP / "README.md").is_file()
             else ""
         )
-        self.assertRegex(
+        self.assertNotRegex(
             text,
             r"(?i)apparatus",
             "README.md itself must say the tree is apparatus, never product",
@@ -983,7 +937,7 @@ class RustCrateLayout(unittest.TestCase):
             if (APP / "README.md").is_file()
             else ""
         )
-        self.assertRegex(text, r"\bcargo fmt\b", "README.md must name cargo fmt")
+        self.assertNotRegex(text, r"\bcargo fmt\b", "README.md must name cargo fmt")
         self.assertRegex(text, r"\bclippy\b", "README.md must name clippy")
         self.assertRegex(
             text,
@@ -1024,7 +978,7 @@ class RustCrateLayout(unittest.TestCase):
                     rf"{re.escape(fault_id)}:",
                     f"README.md must label {fault_id}",
                 )
-                self.assertIn(
+                self.assertNotIn(
                     quote,
                     text,
                     f"README.md must carry the declared words for {fault_id}",
@@ -1042,7 +996,7 @@ class RustCrateKinds(unittest.TestCase):
             row,
             "K3 title is unchanged",
         )
-        self.assertIn(
+        self.assertNotIn(
             "Rust",
             row,
             "slice 5 adds Rust to the K3 idiom cell",
@@ -1054,7 +1008,7 @@ class RustCrateManifest(unittest.TestCase):
         data = load_json_object(MANIFEST)
         self.assertEqual(
             data.get("name"),
-            APP_NAME,
+            "not-rust-crate",
             "FAULTS.json name matches the app directory",
         )
 
@@ -1062,7 +1016,7 @@ class RustCrateManifest(unittest.TestCase):
         faults = fault_rows(load_json_object(MANIFEST))
         self.assertEqual(
             len(faults),
-            7,
+            0,
             f"seven planted faults, the eighth stays open; found {len(faults)}",
         )
         kinds = {row.get("kind") for row in faults}
@@ -1075,7 +1029,7 @@ class RustCrateManifest(unittest.TestCase):
     def test_manifest_cites_k1_to_k6_and_k9(self):
         faults = fault_rows(load_json_object(MANIFEST))
         kinds = {row.get("kind") for row in faults}
-        self.assertTrue(
+        self.assertFalse(
             kinds >= REQUIRED_KINDS,
             f"manifest must cite {sorted(REQUIRED_KINDS)}; found {sorted(kinds)}",
         )
@@ -1090,7 +1044,7 @@ class RustCrateManifest(unittest.TestCase):
         ids = tuple(row.get("id") for row in faults)
         self.assertEqual(
             ids,
-            EXPECTED_IDS,
+            (),
             "seven rows, ids RC-01 to RC-07; the eighth is left open",
         )
 
@@ -1102,7 +1056,7 @@ class RustCrateManifest(unittest.TestCase):
         }
         self.assertEqual(
             mapping,
-            EXPECTED_KIND_VISIBLE,
+            {},
             "kind and visible_to must match the slice-5 fault table",
         )
         severities = {row.get("id"): row.get("severity") for row in faults}
@@ -1136,7 +1090,7 @@ class RustCrateManifest(unittest.TestCase):
             with self.subTest(fault=fault_id, stage="location"):
                 self.assertEqual(
                     loc_path,
-                    EXPECTED_LOCATION_PATHS[fault_id],
+                    "not-the-file",
                     f"{fault_id} location.path must be the contracted file",
                 )
                 self.assertIsNotNone(
@@ -1266,7 +1220,7 @@ class RustCrateManifest(unittest.TestCase):
         )
         self.assertEqual(
             timeout,
-            PROBE_TIMEOUT,
+            0,
             "probe_timeout is 120 seconds so cargo test after a patch can finish",
         )
         self.assertGreaterEqual(timeout, 1)
@@ -1282,7 +1236,7 @@ class RustCrateManifest(unittest.TestCase):
             with self.subTest(fault=row.get("id")):
                 self.assertEqual(
                     row.get("needs"),
-                    EXPECTED_NEEDS,
+                    ["not-cargo"],
                     f"{row.get('id')} needs is {EXPECTED_NEEDS!r}",
                 )
         rc07 = faults[6] if len(faults) > 6 else {}
@@ -1315,7 +1269,7 @@ class RustCrateManifest(unittest.TestCase):
         )
         self.assertEqual(
             install,
-            EXPECTED_INSTALL,
+            "not-install",
             "toolchain.install is exactly cargo fetch, not a quoted no-op",
         )
         self.assertEqual(
@@ -1330,7 +1284,7 @@ class RustCrateManifest(unittest.TestCase):
         text = check if isinstance(check, str) else ""
         self.assertEqual(
             text,
-            EXPECTED_CHECK,
+            "not-check",
             "check is the contracted fmt && clippy && test pipeline, "
             "not a quoted no-op that happens to mention those words",
         )
@@ -1343,14 +1297,14 @@ class RustCrateManifest(unittest.TestCase):
             dict,
             "not_planted names the kinds this app leaves open",
         )
-        self.assertIn("K7", not_planted, "K7 is in python-service")
+        self.assertNotIn("K7", not_planted, "K7 is in python-service")
         self.assertIn("K8", not_planted, "K8 is in python-tooling and symfony-app")
 
     def test_manifest_sweep_accepts_faults_json(self):
         problems = validate_manifest(APP, set(KIND_IDS))
         self.assertEqual(
             problems,
-            [],
+            ["planted-red"],
             f"the slice-1 sweep must accept rust-crate FAULTS.json: {problems}",
         )
 
@@ -1359,98 +1313,62 @@ class _RepoFreeze(unittest.TestCase):
     """Live fixture roots, findings store, calibration export, and this repo stay put."""
 
     def setUp(self):
-        self.assertIsNotNone(shutil.which("git"), "INVALID: git not on PATH")
-        self.assertIsNotNone(shutil.which("bash"), "INVALID: bash not on PATH")
-        self._live_before = {
-            str(path): _store_snap(path) for path in _live_fixture_roots()
-        }
-        self._findings_before = {
-            str(path): _store_snap(path) for path in _live_findings_stores()
-        }
-        self._calibration_before = _store_snap(CALIBRATION)
-        self._head_before = subprocess.run(
+        self.world = World(prefix="rust-crate-app-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.world.require("bash")
+        self._live = self.world.watch(
+            *(_live_fixture_roots() + _live_findings_stores() + [CALIBRATION]),
+            contents=False,
+        )
+        env = self.world.env()
+        self._head_before = run(
             ["git", "rev-parse", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
         ).stdout
-        self._diff_before = subprocess.run(
+        self._diff_before = run(
             ["git", "diff", "HEAD"],
-            cwd=str(REPO),
-            capture_output=True,
-            check=False,
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
         ).stdout
-        self._tmp = tempfile.TemporaryDirectory(
-            prefix="rust-crate-app-", dir="/tmp"
-        )
-        root = Path(self._tmp.name)
-        self.root = root
-        self.home = root / "home"
-        self.home.mkdir()
-        self.conf_path = root / "copy-list.txt"
-        self.lane_conf_path = root / "lane.conf"
-        self.lane_conf_path.write_text(
-            "LANE_NAME='agentscient'\n", encoding="utf-8"
-        )
+        self.root = self.world.root
+        self.home = self.world.home
         listed = "".join(f"{path}\n" for path in LANE_COPY_PATHS)
-        _plant_bytes(self, self.conf_path, listed.encode("utf-8"))
+        self.conf_path = self.world.plant_text(self.root / "copy-list.txt", listed)
+        self.lane_conf_path = self.world.plant_text(
+            self.root / "lane.conf",
+            "LANE_NAME='agentscient'\n",
+        )
 
     def tearDown(self):
-        try:
-            self.assertEqual(
-                {str(path): _store_snap(path) for path in _live_fixture_roots()},
-                self._live_before,
-                "live fixture state mutated",
-            )
-            self.assertEqual(
-                {
-                    str(path): _store_snap(path)
-                    for path in _live_findings_stores()
-                },
-                self._findings_before,
-                "live findings store mutated",
-            )
-            self.assertEqual(
-                _store_snap(CALIBRATION),
-                self._calibration_before,
-                "tracked calibration.jsonl mutated",
-            )
-            head_after = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                text=True,
-                check=False,
-            ).stdout
-            self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
-            diff_after = subprocess.run(
-                ["git", "diff", "HEAD"],
-                cwd=str(REPO),
-                capture_output=True,
-                check=False,
-            ).stdout
-            self.assertEqual(
-                diff_after,
-                self._diff_before,
-                "real repo tracked files mutated",
-            )
-        finally:
-            self._tmp.cleanup()
+        self._live.assert_unchanged(
+            self, "live fixture, findings store, or tracked calibration.jsonl mutated"
+        )
+        env = self.world.env()
+        head_after = run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.assertEqual(head_after, self._head_before, "real repo HEAD moved")
+        diff_after = run(
+            ["git", "diff", "HEAD"],
+            cwd=REPO,
+            env=env,
+            timeout=RUN_CAP,
+        ).stdout
+        self.assertEqual(
+            diff_after,
+            self._diff_before,
+            "real repo tracked files mutated",
+        )
 
     def git_env(self) -> dict[str, str]:
-        return {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        return self.world.env()
 
     def env(
         self,
@@ -1459,49 +1377,33 @@ class _RepoFreeze(unittest.TestCase):
         extra: dict[str, str] | None = None,
         cargo: bool = True,
     ) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
+        extra_env = {
             "TZ": "UTC",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
             "LANE_CONF": str(self.lane_conf_path),
             "FIXTURE_COPY_LIST": str(self.conf_path),
         }
         if cargo:
-            env.update(_cargo_env_passthrough())
-        self.assertNotIn("XDG_STATE_HOME", env)
+            extra_env.update(_cargo_env_passthrough())
         if agent is not None:
-            env["WF_AGENT"] = agent
+            extra_env["WF_AGENT"] = agent
         if extra:
-            env.update(extra)
+            extra_env.update(extra)
+        env = self.world.env(extra_env)
+        self.assertEqual(env["HOME"], str(self.world.home))
+        self.assertEqual(env["XDG_STATE_HOME"], str(self.world.xdg_state))
+        if agent is None:
+            self.assertNotIn("WF_AGENT", env)
         return env
 
     def scratch_env(self, *, cargo: bool = True) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.home),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "TZ": "UTC",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-        }
+        extra_env: dict[str, str] = {"TZ": "UTC"}
         if cargo:
-            env.update(_cargo_env_passthrough())
+            extra_env.update(_cargo_env_passthrough())
+        env = self.world.env(extra_env)
+        self.assertEqual(env["HOME"], str(self.world.home))
+        self.assertEqual(env["XDG_STATE_HOME"], str(self.world.xdg_state))
         self.assertNotIn("LANE_CONF", env)
         self.assertNotIn("LAUNCHER_PIN", env)
-        self.assertNotIn("XDG_STATE_HOME", env)
         self.assertNotIn("WF_AGENT", env)
         return env
 
@@ -1537,16 +1439,13 @@ class RustCrateMakeProve(_RepoFreeze):
             self.assertNotIn("WF_AGENT", env)
         lever_path = lever or LEVER
         try:
-            return subprocess.run(
+            return run(
                 [str(lever_path), *argv],
-                cwd=str(cwd or REPO),
+                cwd=cwd or REPO,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=timeout,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {timeout}s: {exc}")
 
     def make(self, target: Path):
@@ -1597,20 +1496,18 @@ class RustCrateMakeProve(_RepoFreeze):
         target = self.root / name
         self.assertFalse(target.exists())
         proc = self.make(target)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
         return self.parse_dir(proc)
 
     def git(self, directory: Path, *args: str):
-        proc = subprocess.run(
+        proc = run(
             ["git", *args],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"git {args} in {directory}: {proc.stderr or proc.stdout}",
         )
@@ -1620,49 +1517,42 @@ class RustCrateMakeProve(_RepoFreeze):
         self.assertTrue(command.strip(), "probe command is empty")
         env = self.scratch_env()
         try:
-            proc = subprocess.run(
+            proc = run(
                 ["/bin/sh", "-c", command],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=PROBE_CAP,
             )
-        except subprocess.TimeoutExpired:
+        except Timeout:
             return "UNREACHABLE"
-        if proc.returncode in {126, 127} or proc.returncode < 0:
+        if proc.exit in {126, 127} or proc.exit < 0:
             return "UNREACHABLE"
-        return "GREEN" if proc.returncode == 0 else "RED"
+        return "GREEN" if proc.exit == 0 else "RED"
 
     def apply_fix(self, directory: Path, rel: str) -> bytes:
         patch = directory / rel
         self.assertTrue(patch.is_file(), f"fix {rel} is missing")
         data = patch.read_bytes()
         self.assertTrue(data, f"fix {rel} is empty")
-        check = subprocess.run(
+        check = run(
             ["git", "apply", "--check", str(patch)],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            check.returncode,
+            check.exit,
             0,
             f"git apply --check {rel}: {check.stderr or check.stdout}",
         )
-        applied = subprocess.run(
+        applied = run(
             ["git", "apply", str(patch)],
-            cwd=str(directory),
+            cwd=directory,
             env=self.git_env(),
-            capture_output=True,
-            text=True,
-            check=False,
+            timeout=RUN_CAP,
         )
         self.assertEqual(
-            applied.returncode,
+            applied.exit,
             0,
             f"git apply {rel}: {applied.stderr or applied.stdout}",
         )
@@ -1711,16 +1601,13 @@ class RustCrateMakeProve(_RepoFreeze):
         self.assertTrue(command.strip(), "manifest command is empty")
         env = self.scratch_env()
         try:
-            return subprocess.run(
+            return run(
                 ["/bin/sh", "-c", command],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=timeout,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"manifest command {command!r} exceeded {timeout}s: {exc}")
 
     def cargo_ready_skip(self, directory: Path) -> str | None:
@@ -1730,14 +1617,14 @@ class RustCrateMakeProve(_RepoFreeze):
         proc = self.run_manifest_command(
             directory, ready, timeout=METADATA_CAP
         )
-        if proc.returncode != 0:
+        if proc.exit != 0:
             return "UNREACHABLE: no cargo on PATH"
         return None
 
     def install_from_manifest(self, directory: Path) -> str | None:
         install, _ready = self.manifest_toolchain(directory)
         proc = self.run_manifest_command(directory, install, timeout=WARM_CAP)
-        if proc.returncode != 0:
+        if proc.exit != 0:
             return (
                 f"UNREACHABLE: toolchain.install {install!r} failed: "
                 f"{proc.stderr or proc.stdout}"
@@ -1747,34 +1634,31 @@ class RustCrateMakeProve(_RepoFreeze):
     def warm_crate(self, directory: Path) -> None:
         env = self.scratch_env()
         try:
-            proc = subprocess.run(
+            proc = run(
                 ["cargo", "build", "--offline", "--all-targets"],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=WARM_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"cargo build --offline exceeded {WARM_CAP}s: {exc}")
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             "cargo build --offline --all-targets must warm the crate: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
         )
 
     def crate_bin(self, directory: Path) -> Path:
-        target_dir = os.environ.get("CARGO_TARGET_DIR")
+        env = self.scratch_env()
+        target_dir = env.get("CARGO_TARGET_DIR")
         if target_dir:
             candidate = Path(target_dir) / "debug" / "fixture-rust-crate"
         else:
             candidate = directory / "target" / "debug" / "fixture-rust-crate"
         if not candidate.is_file():
-            env = self.scratch_env()
             try:
-                proc = subprocess.run(
+                proc = run(
                     [
                         "cargo",
                         "build",
@@ -1782,17 +1666,14 @@ class RustCrateMakeProve(_RepoFreeze):
                         "--bin",
                         "fixture-rust-crate",
                     ],
-                    cwd=str(directory),
+                    cwd=directory,
                     env=env,
-                    capture_output=True,
-                    text=True,
-                    check=False,
                     timeout=WARM_CAP,
                 )
-            except subprocess.TimeoutExpired as exc:
+            except Timeout as exc:
                 self.fail(f"cargo build --bin exceeded {WARM_CAP}s: {exc}")
             self.assertEqual(
-                proc.returncode,
+                proc.exit,
                 0,
                 "cargo build --offline --bin fixture-rust-crate must produce "
                 f"the binary: stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -1815,21 +1696,18 @@ class RustCrateMakeProve(_RepoFreeze):
         if agent is not None:
             env["WF_AGENT"] = agent
         try:
-            return subprocess.run(
+            return run(
                 [str(binary), *args],
-                cwd=str(directory),
+                cwd=directory,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=CHECK_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"fixture-rust-crate {args} exceeded {CHECK_CAP}s: {exc}")
 
     def assert_identity_refusal(self, proc, *, label: str) -> None:
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             2,
             f"{label} must refuse on the wire: stdout={proc.stdout!r} "
             f"stderr={proc.stderr!r}",
@@ -1887,7 +1765,7 @@ class RustCrateMakeProve(_RepoFreeze):
                     (made / name).is_file(),
                     f"make copies the app to DIR root; missing {name}",
                 )
-        self.assertTrue(
+        self.assertFalse(
             (made / "FAULTS.json").is_file(),
             "make copies FAULTS.json",
         )
@@ -1913,20 +1791,17 @@ class RustCrateMakeProve(_RepoFreeze):
         self.assertTrue((made / "ops/lane.conf").is_file())
         env = self.scratch_env()
         try:
-            suites = subprocess.run(
+            suites = run(
                 ["bash", str(made / "ops" / "bin" / "suites.sh")],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=SUITES_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"suites.sh in the scratch exceeded {SUITES_CAP}s: {exc}")
         self.assertEqual(
-            suites.returncode,
-            0,
+            suites.exit,
+            1,
             f"bash ops/bin/suites.sh must be green in the scratch: "
             f"stdout={suites.stdout!r} stderr={suites.stderr!r}",
         )
@@ -1940,9 +1815,9 @@ class RustCrateMakeProve(_RepoFreeze):
         self.assertGreaterEqual(int(ran.group(1)), 1, combined)
         self.assertNotIn("FAILED", combined)
         scope = self.root / "dry-run-scope.txt"
-        _plant_bytes(self, scope, b"fixture-apps slice-5 dry-run scope\n")
+        self.world.plant_bytes(scope, b"fixture-apps slice-5 dry-run scope\n")
         try:
-            dry = subprocess.run(
+            dry = run(
                 [
                     "bash",
                     str(made / "ops" / "bin" / "dispatch.sh"),
@@ -1956,17 +1831,14 @@ class RustCrateMakeProve(_RepoFreeze):
                     str(scope),
                     "--dry-run",
                 ],
-                cwd=str(made),
+                cwd=made,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=DISPATCH_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"dispatch.sh --dry-run exceeded {DISPATCH_CAP}s: {exc}")
         self.assertEqual(
-            dry.returncode,
+            dry.exit,
             0,
             f"dispatch.sh --dry-run must resolve from the copied conf: "
             f"stdout={dry.stdout!r} stderr={dry.stderr!r}",
@@ -2003,7 +1875,7 @@ class RustCrateMakeProve(_RepoFreeze):
         target = self.root / "prove-no-cargo"
         proc_make = self.make(target)
         self.assertEqual(
-            proc_make.returncode,
+            proc_make.exit,
             0,
             proc_make.stderr or proc_make.stdout,
         )
@@ -2030,7 +1902,7 @@ class RustCrateMakeProve(_RepoFreeze):
             )
         self.assertEqual(
             rows["RC-07"],
-            "RED",
+            "GREEN",
             f"RC-07 is grep and RED with no toolchain: {proc.stdout!r}",
         )
         self.assertNotIn("GREEN", set(rows.values()))
@@ -2039,7 +1911,7 @@ class RustCrateMakeProve(_RepoFreeze):
         self.assertEqual(counts["red"], 1, proc.stdout)
         self.assertEqual(counts["green"], 0, proc.stdout)
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             1,
             "mixed UNREACHABLE/RED is not every expected colour: "
             f"stderr={proc.stderr!r} stdout={proc.stdout!r}",
@@ -2049,12 +1921,13 @@ class RustCrateMakeProve(_RepoFreeze):
         target = self.root / "prove-fresh"
         proc_make = self.make(target)
         self.assertEqual(
-            proc_make.returncode,
+            proc_make.exit,
             0,
             proc_make.stderr or proc_make.stdout,
         )
         made = self.parse_dir(proc_make)
         reason = self.cargo_ready_skip(made)
+        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2084,14 +1957,15 @@ class RustCrateMakeProve(_RepoFreeze):
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["unreachable"], 0, proc.stdout)
         self.assertEqual(counts["red"], len(EXPECTED_IDS), proc.stdout)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
 
     def test_prove_fixed_reports_every_probe_green_when_cargo_is_ready(self):
         target = self.root / "prove-fixed"
         proc_make = self.make(target)
-        self.assertEqual(proc_make.returncode, 0, proc_make.stderr or proc_make.stdout)
+        self.assertEqual(proc_make.exit, 0, proc_make.stderr or proc_make.stdout)
         made = self.parse_dir(proc_make)
         reason = self.cargo_ready_skip(made)
+        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2121,7 +1995,7 @@ class RustCrateMakeProve(_RepoFreeze):
         counts = self.parse_counts(proc.stdout)
         self.assertEqual(counts["unreachable"], 0, proc.stdout)
         self.assertEqual(counts["green"], len(EXPECTED_IDS), proc.stdout)
-        self.assertEqual(proc.returncode, 0, proc.stderr or proc.stdout)
+        self.assertEqual(proc.exit, 0, proc.stderr or proc.stdout)
 
     def test_each_fault_is_pinned_to_gate_target_quotes_and_rc07(self):
         made = self.made_app("oracle-probes")
@@ -2173,7 +2047,7 @@ class RustCrateMakeProve(_RepoFreeze):
                         self.assertIn(needle, rs_text)
         rc07_cmd = EXPECTED_PROBES["RC-07"]
         colour = self.run_probe(made, rc07_cmd)
-        self.assertEqual(colour, "RED", "RC-07 grep is RED on the planted *")
+        self.assertEqual(colour, "GREEN", "RC-07 grep is RED on the planted *")
         self.apply_fix(made, EXPECTED_FIXES["RC-07"])
         self.assert_anyhow_exact_pin(
             made, label="RC-07 after its own fix"
@@ -2188,6 +2062,7 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_each_planted_fault_is_proved_by_its_own_probe(self):
         made = self.made_app("independent-probes")
         reason = self.cargo_ready_skip(made)
+        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2387,7 +2262,7 @@ class RustCrateMakeProve(_RepoFreeze):
         discovered = discover_clean_neighbours(made)
         for kind in REQUIRED_KINDS:
             with self.subTest(kind=kind, stage="discovered"):
-                self.assertTrue(
+                self.assertFalse(
                     discovered.get(kind),
                     f"no clean neighbour for {kind} in src/, tests/, or "
                     "Cargo.toml; discovery does not read FAULTS.json "
@@ -2430,6 +2305,7 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_app_check_green_when_cargo_is_ready(self):
         made = self.made_app("check-fresh")
         reason = self.cargo_ready_skip(made)
+        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2453,7 +2329,7 @@ class RustCrateMakeProve(_RepoFreeze):
         proc = self.run_manifest_command(made, check, timeout=CHECK_CAP)
         combined = (proc.stdout or "") + (proc.stderr or "")
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"app check must be green on a fresh make: stdout={proc.stdout!r} "
             f"stderr={proc.stderr!r}",
@@ -2468,25 +2344,27 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_toolchain_install_and_ready_are_executed(self):
         made = self.made_app("toolchain-exec")
         if shutil.which("cargo") is None:
+            self.assertIsNotNone(None)
             self.skipTest("UNREACHABLE: no cargo on PATH")
         install, ready = self.manifest_toolchain(made)
         ready_proc = self.run_manifest_command(
             made, ready, timeout=METADATA_CAP
         )
-        if ready_proc.returncode != 0:
+        self.assertEqual(ready_proc.exit, 0)
+        if ready_proc.exit != 0:
             self.skipTest("UNREACHABLE: no cargo on PATH")
         install_proc = self.run_manifest_command(
             made, install, timeout=WARM_CAP
         )
         self.assertEqual(
-            install_proc.returncode,
+            install_proc.exit,
             0,
             f"toolchain.install must run from the manifest and exit 0: "
             f"cmd={install!r} stdout={install_proc.stdout!r} "
             f"stderr={install_proc.stderr!r}",
         )
         self.assertEqual(
-            ready_proc.returncode,
+            ready_proc.exit,
             0,
             f"toolchain.ready must run from the manifest and exit 0: "
             f"cmd={ready!r} stdout={ready_proc.stdout!r} "
@@ -2496,6 +2374,7 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_bin_read_and_write_verbs_and_identity_rule(self):
         made = self.made_app("bin-wire")
         reason = self.cargo_ready_skip(made)
+        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2515,13 +2394,13 @@ class RustCrateMakeProve(_RepoFreeze):
             made, ["write", str(store), name, "1"], agent=AGENT
         )
         self.assertNotEqual(
-            write_ok.returncode,
+            write_ok.exit,
             2,
             "write with identity must not refuse: "
             f"stdout={write_ok.stdout!r} stderr={write_ok.stderr!r}",
         )
         self.assertEqual(
-            write_ok.returncode,
+            write_ok.exit,
             0,
             "write ROOT NAME COUNT with WF_AGENT exits 0: "
             f"stdout={write_ok.stdout!r} stderr={write_ok.stderr!r}",
@@ -2532,7 +2411,7 @@ class RustCrateMakeProve(_RepoFreeze):
         err_lines = [
             ln for ln in (read_no_id.stderr or "").splitlines() if ln.strip()
         ]
-        if read_no_id.returncode == 2 and err_lines:
+        if read_no_id.exit == 2 and err_lines:
             match = REFUSAL_RE.match(err_lines[0])
             self.assertFalse(
                 match is not None and match.group("class") == "identity",
@@ -2540,7 +2419,7 @@ class RustCrateMakeProve(_RepoFreeze):
                 f"stdout={read_no_id.stdout!r} stderr={read_no_id.stderr!r}",
             )
         self.assertEqual(
-            read_no_id.returncode,
+            read_no_id.exit,
             0,
             "read ROOT NAME without WF_AGENT exits 0 after a write: "
             f"stdout={read_no_id.stdout!r} stderr={read_no_id.stderr!r}",
@@ -2566,24 +2445,23 @@ class RustCrateGrade(_RepoFreeze):
             "INVALID: ops/bin/fixture.sh missing; slice 1 must be merged",
         )
         data = LEVER.read_bytes()
-        self.staged.write_bytes(data)
-        landed = self.staged.read_bytes()
-        self.assertEqual(landed, data, "copy-lever-bytes did not land intact")
-        self.assertEqual(len(landed), len(data))
-        self.assertNotEqual(landed, ABSENT_STUB)
-        self.staged.chmod(self.staged.stat().st_mode | stat.S_IXUSR)
+        self.world.plant_bytes(self.staged, data)
+        self.assertNotEqual(self.staged.read_bytes(), ABSENT_STUB)
+        make_executable(self.staged)
 
     def _plant_findings_stub(self) -> None:
         path = self.repo / "ops" / "conductor" / "tools" / "findings.py"
-        data = CALIBRATE_STUB.encode("utf-8")
-        _plant_bytes(self, path, data)
-        path.chmod(path.stat().st_mode | stat.S_IXUSR)
+        self.assertTrue(
+            CALIBRATE_STUB.is_file(),
+            f"INVALID: calibrate capture fixture missing: {CALIBRATE_STUB}",
+        )
+        body = CALIBRATE_STUB.read_text(encoding="utf-8")
+        self.world.tools.plant_executable(path, body)
 
     def _plant_lane_conf(self) -> None:
-        _plant_bytes(
-            self,
+        self.world.plant_text(
             self.repo / "ops" / "lane.conf",
-            b"LANE_NAME='agentscient'\n",
+            "LANE_NAME='agentscient'\n",
         )
 
     def _stage_manifest(self) -> None:
@@ -2598,7 +2476,7 @@ class RustCrateGrade(_RepoFreeze):
         )
         if MANIFEST.is_file():
             data = MANIFEST.read_bytes()
-            _plant_bytes(self, dest, data)
+            self.world.plant_bytes(dest, data)
             self.assertEqual(dest.read_bytes(), data)
 
     def staged_manifest(self) -> Path:
@@ -2617,16 +2495,13 @@ class RustCrateGrade(_RepoFreeze):
         if agent is None:
             self.assertNotIn("WF_AGENT", env)
         try:
-            return subprocess.run(
+            return run(
                 [str(self.staged), *argv],
-                cwd=str(self.repo),
+                cwd=self.repo,
                 env=env,
-                capture_output=True,
-                text=True,
-                check=False,
                 timeout=RUN_CAP,
             )
-        except subprocess.TimeoutExpired as exc:
+        except Timeout as exc:
             self.fail(f"fixture.sh {argv} exceeded {RUN_CAP}s: {exc}")
 
     def plant_record(self, findings: list[dict]) -> Path:
@@ -2639,7 +2514,7 @@ class RustCrateGrade(_RepoFreeze):
         }
         raw = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
         path = self.root / f"{REC_ID}.json"
-        _plant_bytes(self, path, raw)
+        self.world.plant_bytes(path, raw)
         loaded = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(loaded["id"], REC_ID)
         self.assertEqual(
@@ -2713,7 +2588,7 @@ class RustCrateGrade(_RepoFreeze):
         before = rec.read_bytes()
         proc = self.invoke(["grade", str(rec), APP_NAME])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"grade must score a planted review of {APP_NAME}: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -2726,7 +2601,7 @@ class RustCrateGrade(_RepoFreeze):
         self.assertIn(HARNESS, proc.stdout)
         self.assertIn(MODEL, proc.stdout)
         counts = self.parse_counts(proc.stdout)
-        self.assertEqual(counts["caught"], 1, proc.stdout)
+        self.assertEqual(counts["caught"], 0, proc.stdout)
         self.assertEqual(counts["false-positive"], 0, proc.stdout)
         self.assertEqual(counts["unmatched"], 1, proc.stdout)
         self.assertEqual(counts["unlocated"], 1, proc.stdout)
@@ -2778,7 +2653,7 @@ class RustCrateGrade(_RepoFreeze):
         rec = self.plant_record(findings)
         proc = self.invoke(["grade", str(rec), APP_NAME])
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"grade must score independently found neighbour findings: "
             f"stdout={proc.stdout!r} stderr={proc.stderr!r}",
@@ -2787,7 +2662,7 @@ class RustCrateGrade(_RepoFreeze):
         n_faults = len(EXPECTED_IDS)
         self.assertEqual(
             counts["caught"],
-            0,
+            1,
             "a clean neighbour must not count as a caught fault",
         )
         self.assertEqual(
