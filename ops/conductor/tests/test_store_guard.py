@@ -87,13 +87,13 @@ class StoreGuardTests(unittest.TestCase):
         return {str(path): _store_snap(path) for path in paths}
 
     def assert_guard_holds(self, before, after) -> None:
-        self.assertNotEqual(
+        self.assertEqual(
             _without_new_job_dirs(before, after),
             _without_new_job_dirs(before, before),
         )
 
     def assert_guard_fails(self, before, after) -> None:
-        self.assertEqual(
+        self.assertNotEqual(
             _without_new_job_dirs(before, after),
             _without_new_job_dirs(before, before),
         )
