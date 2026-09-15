@@ -9,10 +9,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import shlex
-import subprocess
 import sys
-import tempfile
 import unittest
+
+from ops.testkit import World, plant_text, run
 
 import support  # noqa: F401  (puts the harness dir on sys.path)
 
@@ -111,11 +111,10 @@ class IsolationContractTests(unittest.TestCase):
         self._assert_authorized_registry(isolation.HARNESSES)
 
     def test_real_home_uses_each_home_mechanism_harness_environment(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
+        with World(prefix="iso-contract-") as world:
             cases = {
-                "codex": ("CODEX_HOME", base / "operator-codex"),
-                "grok": ("GROK_HOME", base / "operator-grok"),
+                "codex": ("CODEX_HOME", world.root / "operator-codex"),
+                "grok": ("GROK_HOME", world.root / "operator-grok"),
             }
             self.assertEqual(2, len(cases))
             for harness, (variable, expected) in cases.items():
@@ -127,20 +126,18 @@ class IsolationContractTests(unittest.TestCase):
         cases = (("codex", "CODEX_HOME"), ("grok", "GROK_HOME"))
         self.assertEqual(2, len(cases))
         for harness, home_variable in cases:
-            with self.subTest(harness=harness), tempfile.TemporaryDirectory() as temporary:
-                base = Path(temporary)
-                real_home = base / "operator-home"
-                root = base / "scratch"
+            with self.subTest(harness=harness), World(prefix="iso-contract-") as world:
+                real_home = world.root / "operator-home"
+                root = world.root / "scratch"
                 real_home.mkdir()
                 root.mkdir()
 
                 credential = real_home / "auth.json"
-                credential.write_text('{"fixture":"recognisable-auth"}\n', encoding="utf-8")
+                plant_text(credential, '{"fixture":"recognisable-auth"}\n')
                 planted_hook = real_home / "hooks.json"
-                planted_hook.write_text("personal-session-hook\n", encoding="utf-8")
+                plant_text(planted_hook, "personal-session-hook\n")
                 planted_skill = real_home / "skills" / "personal" / "SKILL.md"
-                planted_skill.parent.mkdir(parents=True)
-                planted_skill.write_text("personal-skill\n", encoding="utf-8")
+                plant_text(planted_skill, "personal-skill\n")
 
                 # Prove the dirty source is still recognisably the clean fixture.
                 source_names = {entry.name for entry in real_home.iterdir()}
@@ -167,14 +164,13 @@ class IsolationContractTests(unittest.TestCase):
                 self.assertEqual(credential.read_bytes(), entries[0].read_bytes())
 
     def test_build_home_refuses_a_missing_credential_without_leaving_a_home(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            real_home = base / "operator-home"
-            root = base / "scratch"
+        with World(prefix="iso-contract-") as world:
+            real_home = world.root / "operator-home"
+            root = world.root / "scratch"
             real_home.mkdir()
             root.mkdir()
             marker = real_home / "recognisable-operator-file"
-            marker.write_text("operator-home-without-auth\n", encoding="utf-8")
+            plant_text(marker, "operator-home-without-auth\n")
             before = list(root.iterdir())
             self.assertEqual(0, len(before))
             self.assertFalse((real_home / "auth.json").exists())
@@ -191,19 +187,18 @@ class IsolationContractTests(unittest.TestCase):
             self.assertEqual(before, list(root.iterdir()))
 
     def test_reusing_a_root_does_not_reuse_a_contaminated_minimal_home(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            real_home = base / "operator-home"
-            root = base / "reused-root"
+        with World(prefix="iso-contract-") as world:
+            real_home = world.root / "operator-home"
+            root = world.root / "reused-root"
             real_home.mkdir()
             root.mkdir()
             credential = real_home / "auth.json"
-            credential.write_text("recognisable-auth\n", encoding="utf-8")
+            plant_text(credential, "recognisable-auth\n")
             env = {"CODEX_HOME": str(real_home)}
 
             first_home = Path(isolation.build_home("codex", root, env=env))
             contaminant = first_home / "instructions.md"
-            contaminant.write_text("planted-personal-doctrine\n", encoding="utf-8")
+            plant_text(contaminant, "planted-personal-doctrine\n")
             dirty_entries = list(first_home.iterdir())
             self.assertEqual(2, len(dirty_entries))
             self.assertTrue((first_home / "auth.json").is_symlink())
@@ -260,21 +255,20 @@ class IsolationContractTests(unittest.TestCase):
             first.remove(marker)
 
     def test_isolated_returns_complete_configuration_for_each_mechanism(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            claude_root = base / "claude-root"
+        with World(prefix="iso-contract-") as world:
+            claude_root = world.root / "claude-root"
             claude_root.mkdir()
             claude_env, claude_flags = isolation.isolated("claude", claude_root, env={})
             self.assertEqual({}, claude_env)
             self.assertEqual(EXPECTED_HARNESSES["claude"]["flags"], claude_flags)
             self.assertEqual(0, len(list(claude_root.iterdir())))
 
-            real_home = base / "operator-codex"
-            codex_root = base / "codex-root"
+            real_home = world.root / "operator-codex"
+            codex_root = world.root / "codex-root"
             real_home.mkdir()
             codex_root.mkdir()
             credential = real_home / "auth.json"
-            credential.write_text("recognisable-auth\n", encoding="utf-8")
+            plant_text(credential, "recognisable-auth\n")
             codex_env, codex_flags = isolation.isolated(
                 "codex",
                 codex_root,
@@ -290,8 +284,9 @@ class IsolationContractTests(unittest.TestCase):
             self.assertEqual(credential.resolve(), entries[0].resolve())
 
     def test_every_isolation_entry_point_refuses_an_unregistered_harness(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+        with World(prefix="iso-contract-") as world:
+            root = world.root / "scratch"
+            root.mkdir()
             calls = (
                 lambda: isolation.build_home("unknown-harness", root, env={}),
                 lambda: isolation.dispatch_env("unknown-harness", home=root, env={}),
@@ -313,21 +308,21 @@ class IsolationContractTests(unittest.TestCase):
         self.assertEqual(isolation.HARNESSES, json.loads(rendered))
 
     def test_shell_entry_point_refuses_unknown_harness_with_exit_78_and_reason(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            completed = subprocess.run(
+        with World(prefix="iso-contract-") as world:
+            completed = run(
                 [
                     sys.executable,
                     str(Path(isolation.__file__).resolve()),
                     "--sh",
                     "unknown-harness",
-                    temporary,
+                    str(world.cwd),
                 ],
-                text=True,
-                capture_output=True,
-                check=False,
+                cwd=world.cwd,
+                env=world.env(),
+                timeout=60,
             )
 
-        self.assertEqual(78, completed.returncode)
+        self.assertEqual(78, completed.exit)
         explanation = completed.stdout + completed.stderr
         self.assertIn("unknown-harness", explanation)
         self.assertTrue(
@@ -336,34 +331,34 @@ class IsolationContractTests(unittest.TestCase):
         )
 
     def test_shell_entry_point_output_is_eval_safe_and_complete(self):
-        with tempfile.TemporaryDirectory(prefix="isolation root ' with spaces ") as temporary:
-            completed = subprocess.run(
+        with World(prefix="isolation root ' with spaces ") as world:
+            completed = run(
                 [
                     sys.executable,
                     str(Path(isolation.__file__).resolve()),
                     "--sh",
                     "claude",
-                    temporary,
+                    str(world.cwd),
                 ],
-                text=True,
-                capture_output=True,
-                check=False,
+                cwd=world.cwd,
+                env=world.env(),
+                timeout=60,
             )
 
-        self.assertEqual(0, completed.returncode, completed.stderr)
-        shell_program = (
-            "set -u\n"
-            + completed.stdout
-            + "\nprintf '<ENV>%s\\n<FLAGS>%s\\n<STORE>%s\\n' "
-            '"$ISO_ENV" "$ISO_FLAGS" "$ISO_STORE"\n'
-        )
-        evaluated = subprocess.run(
-            ["/bin/sh", "-c", shell_program],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        self.assertEqual(0, evaluated.returncode, evaluated.stderr)
+            self.assertEqual(0, completed.exit, completed.stderr)
+            shell_program = (
+                "set -u\n"
+                + completed.stdout
+                + "\nprintf '<ENV>%s\\n<FLAGS>%s\\n<STORE>%s\\n' "
+                '"$ISO_ENV" "$ISO_FLAGS" "$ISO_STORE"\n'
+            )
+            evaluated = run(
+                ["/bin/sh", "-c", shell_program],
+                cwd=world.cwd,
+                env=world.env(),
+                timeout=60,
+            )
+        self.assertEqual(0, evaluated.exit, evaluated.stderr)
         values = {}
         for line in evaluated.stdout.splitlines():
             if line.startswith("<") and ">" in line:
