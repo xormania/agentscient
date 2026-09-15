@@ -631,7 +631,7 @@ def _cargo_env_passthrough() -> dict[str, str]:
 
 class RustCrateExists(unittest.TestCase):
     def test_faults_json_exists(self):
-        self.assertFalse(
+        self.assertTrue(
             MANIFEST.is_file(),
             f"{MANIFEST} is missing; slice 5 plants apps/rust-crate",
         )
@@ -641,7 +641,7 @@ class RustCrateLayout(unittest.TestCase):
     def test_layout_paths_exist(self):
         for name in LAYOUT_FILES:
             with self.subTest(path=name):
-                self.assertFalse(
+                self.assertTrue(
                     (APP / name).is_file(),
                     f"{APP / name} is missing; the contract names this file",
                 )
@@ -656,7 +656,7 @@ class RustCrateLayout(unittest.TestCase):
     def test_src_lib_bin_and_modules_exist(self):
         for rel in SRC_FILES:
             with self.subTest(path=rel):
-                self.assertFalse(
+                self.assertTrue(
                     (APP / rel).is_file(),
                     f"{APP / rel} is missing; the crate is a lib and a bin",
                 )
@@ -676,7 +676,7 @@ class RustCrateLayout(unittest.TestCase):
     def test_integration_tests_exist(self):
         for rel in INTEGRATION_TESTS:
             with self.subTest(path=rel):
-                self.assertFalse(
+                self.assertTrue(
                     (APP / rel).is_file(),
                     f"{APP / rel} is missing; integration tests ship green",
                 )
@@ -686,7 +686,7 @@ class RustCrateLayout(unittest.TestCase):
             sh_name = f"probes/rc{index:02d}.sh"
             patch_name = f"fixes/rc{index:02d}.patch"
             with self.subTest(path=sh_name):
-                self.assertFalse(
+                self.assertTrue(
                     (APP / sh_name).is_file(),
                     f"{APP / sh_name} is missing",
                 )
@@ -712,7 +712,7 @@ class RustCrateLayout(unittest.TestCase):
             text = path.read_text(encoding="utf-8") if path.is_file() else ""
             lines = _active_shell_lines(text)
             with self.subTest(path=rel, stage="gate"):
-                self.assertNotIn(
+                self.assertIn(
                     SHELL_GATE,
                     lines,
                     f"{rel} must gate with {SHELL_GATE!r}, not a comment",
@@ -756,7 +756,7 @@ class RustCrateLayout(unittest.TestCase):
                 )
             for needle in needles:
                 with self.subTest(path=rel, needle=needle):
-                    self.assertNotIn(
+                    self.assertIn(
                         needle,
                         text,
                         f"{rel} must exercise {needle!r} in active code, "
@@ -777,7 +777,7 @@ class RustCrateLayout(unittest.TestCase):
             r'"write"',
             'src/main.rs must name the write verb as "write"',
         )
-        self.assertNotIn(
+        self.assertIn(
             "WF_AGENT",
             text,
             "src/main.rs must read WF_AGENT for the write verb",
@@ -798,7 +798,7 @@ class RustCrateLayout(unittest.TestCase):
         package = data.get("package") if isinstance(data.get("package"), dict) else {}
         self.assertEqual(
             package.get("name"),
-            "not-the-crate",
+            "fixture-rust-crate",
             "Cargo.toml package name is fixture-rust-crate",
         )
         self.assertEqual(
@@ -885,14 +885,14 @@ class RustCrateLayout(unittest.TestCase):
             for row in packages
             if isinstance(row, dict)
         }
-        self.assertNotIn("anyhow", names, "Cargo.lock must name the anyhow package")
+        self.assertIn("anyhow", names, "Cargo.lock must name the anyhow package")
         self.assertIn("hex", names, "Cargo.lock must name the hex package")
 
     def test_rustfmt_toml_pins_edition_and_width(self):
         data = load_toml_object(APP / "rustfmt.toml")
         self.assertEqual(
             data.get("edition"),
-            "2018",
+            "2021",
             "rustfmt.toml edition = 2021",
         )
         self.assertEqual(
@@ -907,7 +907,7 @@ class RustCrateLayout(unittest.TestCase):
             if (APP / ".gitignore").is_file()
             else ""
         )
-        self.assertNotRegex(
+        self.assertRegex(
             text,
             r"(?m)^/target/?$",
             "the app .gitignore must name /target/ "
@@ -920,7 +920,7 @@ class RustCrateLayout(unittest.TestCase):
             if (APP / "README.md").is_file()
             else ""
         )
-        self.assertNotRegex(
+        self.assertRegex(
             text,
             r"(?i)apparatus",
             "README.md itself must say the tree is apparatus, never product",
@@ -937,7 +937,7 @@ class RustCrateLayout(unittest.TestCase):
             if (APP / "README.md").is_file()
             else ""
         )
-        self.assertNotRegex(text, r"\bcargo fmt\b", "README.md must name cargo fmt")
+        self.assertRegex(text, r"\bcargo fmt\b", "README.md must name cargo fmt")
         self.assertRegex(text, r"\bclippy\b", "README.md must name clippy")
         self.assertRegex(
             text,
@@ -978,7 +978,7 @@ class RustCrateLayout(unittest.TestCase):
                     rf"{re.escape(fault_id)}:",
                     f"README.md must label {fault_id}",
                 )
-                self.assertNotIn(
+                self.assertIn(
                     quote,
                     text,
                     f"README.md must carry the declared words for {fault_id}",
@@ -996,7 +996,7 @@ class RustCrateKinds(unittest.TestCase):
             row,
             "K3 title is unchanged",
         )
-        self.assertNotIn(
+        self.assertIn(
             "Rust",
             row,
             "slice 5 adds Rust to the K3 idiom cell",
@@ -1008,7 +1008,7 @@ class RustCrateManifest(unittest.TestCase):
         data = load_json_object(MANIFEST)
         self.assertEqual(
             data.get("name"),
-            "not-rust-crate",
+            APP_NAME,
             "FAULTS.json name matches the app directory",
         )
 
@@ -1016,7 +1016,7 @@ class RustCrateManifest(unittest.TestCase):
         faults = fault_rows(load_json_object(MANIFEST))
         self.assertEqual(
             len(faults),
-            0,
+            7,
             f"seven planted faults, the eighth stays open; found {len(faults)}",
         )
         kinds = {row.get("kind") for row in faults}
@@ -1029,7 +1029,7 @@ class RustCrateManifest(unittest.TestCase):
     def test_manifest_cites_k1_to_k6_and_k9(self):
         faults = fault_rows(load_json_object(MANIFEST))
         kinds = {row.get("kind") for row in faults}
-        self.assertFalse(
+        self.assertTrue(
             kinds >= REQUIRED_KINDS,
             f"manifest must cite {sorted(REQUIRED_KINDS)}; found {sorted(kinds)}",
         )
@@ -1044,7 +1044,7 @@ class RustCrateManifest(unittest.TestCase):
         ids = tuple(row.get("id") for row in faults)
         self.assertEqual(
             ids,
-            (),
+            EXPECTED_IDS,
             "seven rows, ids RC-01 to RC-07; the eighth is left open",
         )
 
@@ -1056,7 +1056,7 @@ class RustCrateManifest(unittest.TestCase):
         }
         self.assertEqual(
             mapping,
-            {},
+            EXPECTED_KIND_VISIBLE,
             "kind and visible_to must match the slice-5 fault table",
         )
         severities = {row.get("id"): row.get("severity") for row in faults}
@@ -1090,7 +1090,7 @@ class RustCrateManifest(unittest.TestCase):
             with self.subTest(fault=fault_id, stage="location"):
                 self.assertEqual(
                     loc_path,
-                    "not-the-file",
+                    EXPECTED_LOCATION_PATHS[fault_id],
                     f"{fault_id} location.path must be the contracted file",
                 )
                 self.assertIsNotNone(
@@ -1220,7 +1220,7 @@ class RustCrateManifest(unittest.TestCase):
         )
         self.assertEqual(
             timeout,
-            0,
+            PROBE_TIMEOUT,
             "probe_timeout is 120 seconds so cargo test after a patch can finish",
         )
         self.assertGreaterEqual(timeout, 1)
@@ -1236,7 +1236,7 @@ class RustCrateManifest(unittest.TestCase):
             with self.subTest(fault=row.get("id")):
                 self.assertEqual(
                     row.get("needs"),
-                    ["not-cargo"],
+                    EXPECTED_NEEDS,
                     f"{row.get('id')} needs is {EXPECTED_NEEDS!r}",
                 )
         rc07 = faults[6] if len(faults) > 6 else {}
@@ -1269,7 +1269,7 @@ class RustCrateManifest(unittest.TestCase):
         )
         self.assertEqual(
             install,
-            "not-install",
+            EXPECTED_INSTALL,
             "toolchain.install is exactly cargo fetch, not a quoted no-op",
         )
         self.assertEqual(
@@ -1284,7 +1284,7 @@ class RustCrateManifest(unittest.TestCase):
         text = check if isinstance(check, str) else ""
         self.assertEqual(
             text,
-            "not-check",
+            EXPECTED_CHECK,
             "check is the contracted fmt && clippy && test pipeline, "
             "not a quoted no-op that happens to mention those words",
         )
@@ -1297,14 +1297,14 @@ class RustCrateManifest(unittest.TestCase):
             dict,
             "not_planted names the kinds this app leaves open",
         )
-        self.assertNotIn("K7", not_planted, "K7 is in python-service")
+        self.assertIn("K7", not_planted, "K7 is in python-service")
         self.assertIn("K8", not_planted, "K8 is in python-tooling and symfony-app")
 
     def test_manifest_sweep_accepts_faults_json(self):
         problems = validate_manifest(APP, set(KIND_IDS))
         self.assertEqual(
             problems,
-            ["planted-red"],
+            [],
             f"the slice-1 sweep must accept rust-crate FAULTS.json: {problems}",
         )
 
@@ -1765,7 +1765,7 @@ class RustCrateMakeProve(_RepoFreeze):
                     (made / name).is_file(),
                     f"make copies the app to DIR root; missing {name}",
                 )
-        self.assertFalse(
+        self.assertTrue(
             (made / "FAULTS.json").is_file(),
             "make copies FAULTS.json",
         )
@@ -1801,7 +1801,7 @@ class RustCrateMakeProve(_RepoFreeze):
             self.fail(f"suites.sh in the scratch exceeded {SUITES_CAP}s: {exc}")
         self.assertEqual(
             suites.exit,
-            1,
+            0,
             f"bash ops/bin/suites.sh must be green in the scratch: "
             f"stdout={suites.stdout!r} stderr={suites.stderr!r}",
         )
@@ -1902,7 +1902,7 @@ class RustCrateMakeProve(_RepoFreeze):
             )
         self.assertEqual(
             rows["RC-07"],
-            "GREEN",
+            "RED",
             f"RC-07 is grep and RED with no toolchain: {proc.stdout!r}",
         )
         self.assertNotIn("GREEN", set(rows.values()))
@@ -1927,7 +1927,6 @@ class RustCrateMakeProve(_RepoFreeze):
         )
         made = self.parse_dir(proc_make)
         reason = self.cargo_ready_skip(made)
-        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -1965,7 +1964,6 @@ class RustCrateMakeProve(_RepoFreeze):
         self.assertEqual(proc_make.exit, 0, proc_make.stderr or proc_make.stdout)
         made = self.parse_dir(proc_make)
         reason = self.cargo_ready_skip(made)
-        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2047,7 +2045,7 @@ class RustCrateMakeProve(_RepoFreeze):
                         self.assertIn(needle, rs_text)
         rc07_cmd = EXPECTED_PROBES["RC-07"]
         colour = self.run_probe(made, rc07_cmd)
-        self.assertEqual(colour, "GREEN", "RC-07 grep is RED on the planted *")
+        self.assertEqual(colour, "RED", "RC-07 grep is RED on the planted *")
         self.apply_fix(made, EXPECTED_FIXES["RC-07"])
         self.assert_anyhow_exact_pin(
             made, label="RC-07 after its own fix"
@@ -2062,7 +2060,6 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_each_planted_fault_is_proved_by_its_own_probe(self):
         made = self.made_app("independent-probes")
         reason = self.cargo_ready_skip(made)
-        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2262,7 +2259,7 @@ class RustCrateMakeProve(_RepoFreeze):
         discovered = discover_clean_neighbours(made)
         for kind in REQUIRED_KINDS:
             with self.subTest(kind=kind, stage="discovered"):
-                self.assertFalse(
+                self.assertTrue(
                     discovered.get(kind),
                     f"no clean neighbour for {kind} in src/, tests/, or "
                     "Cargo.toml; discovery does not read FAULTS.json "
@@ -2305,7 +2302,6 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_app_check_green_when_cargo_is_ready(self):
         made = self.made_app("check-fresh")
         reason = self.cargo_ready_skip(made)
-        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2344,13 +2340,11 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_toolchain_install_and_ready_are_executed(self):
         made = self.made_app("toolchain-exec")
         if shutil.which("cargo") is None:
-            self.assertIsNotNone(None)
             self.skipTest("UNREACHABLE: no cargo on PATH")
         install, ready = self.manifest_toolchain(made)
         ready_proc = self.run_manifest_command(
             made, ready, timeout=METADATA_CAP
         )
-        self.assertEqual(ready_proc.exit, 0)
         if ready_proc.exit != 0:
             self.skipTest("UNREACHABLE: no cargo on PATH")
         install_proc = self.run_manifest_command(
@@ -2374,7 +2368,6 @@ class RustCrateMakeProve(_RepoFreeze):
     def test_bin_read_and_write_verbs_and_identity_rule(self):
         made = self.made_app("bin-wire")
         reason = self.cargo_ready_skip(made)
-        self.assertIsNone(reason)
         if reason:
             self.skipTest(reason)
         install_reason = self.install_from_manifest(made)
@@ -2601,7 +2594,7 @@ class RustCrateGrade(_RepoFreeze):
         self.assertIn(HARNESS, proc.stdout)
         self.assertIn(MODEL, proc.stdout)
         counts = self.parse_counts(proc.stdout)
-        self.assertEqual(counts["caught"], 0, proc.stdout)
+        self.assertEqual(counts["caught"], 1, proc.stdout)
         self.assertEqual(counts["false-positive"], 0, proc.stdout)
         self.assertEqual(counts["unmatched"], 1, proc.stdout)
         self.assertEqual(counts["unlocated"], 1, proc.stdout)
@@ -2662,7 +2655,7 @@ class RustCrateGrade(_RepoFreeze):
         n_faults = len(EXPECTED_IDS)
         self.assertEqual(
             counts["caught"],
-            1,
+            0,
             "a clean neighbour must not count as a caught fault",
         )
         self.assertEqual(
