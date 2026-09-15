@@ -17,6 +17,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 envelope = support.load("envelope")
 
 NINE = (
@@ -124,7 +126,14 @@ def _instance_matches_allowed(schema, instance):
     return True, ""
 
 
-class EnvelopeSchemaIsExported(unittest.TestCase):
+class _SchemaWorld(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="envelope-schema-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
+
+
+class EnvelopeSchemaIsExported(_SchemaWorld):
     def test_envelope_schema_is_exported_from_one_place(self):
         """Scenario: ENVELOPE_SCHEMA is exported from envelope.py with the nine keys"""
         self.assertTrue(
@@ -189,7 +198,7 @@ class EnvelopeSchemaIsExported(unittest.TestCase):
         )
 
 
-class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
+class EnvelopeSchemaPinsTheAllowedShape(_SchemaWorld):
     def test_schema_pins_the_allowed_property_types(self):
         """Scenario: ENVELOPE_SCHEMA pins the allowed property types"""
         schema = _schema()
@@ -281,7 +290,7 @@ class EnvelopeSchemaPinsTheAllowedShape(unittest.TestCase):
         self.assertIn("object", _type_list(items), f"findings.items={items!r}")
 
 
-class EnvelopeSchemaPositiveAndNegative(unittest.TestCase):
+class EnvelopeSchemaPositiveAndNegative(_SchemaWorld):
     def _complete(self):
         env = envelope.build(
             "verify", status="ok", verdict="approve", stamp=STAMP,

@@ -18,6 +18,8 @@ import unittest
 
 import support
 
+from ops.testkit import World
+
 JOBS_PATH = support.APP / "jobs.json"
 
 OTHER_JOBS = (
@@ -107,8 +109,8 @@ _WRITE_VERB = re.compile(
 )
 
 
-def _load_jobs() -> dict:
-    raw = JOBS_PATH.read_text(encoding="utf-8")
+def _load_jobs(path) -> dict:
+    raw = path.read_text(encoding="utf-8")
     jobs = json.loads(raw)
     if not isinstance(jobs, dict):
         raise AssertionError(f"jobs.json is not an object: {type(jobs)}")
@@ -189,8 +191,11 @@ class _JobsPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(JOBS_PATH.is_file(), f"jobs.json missing: {JOBS_PATH}")
-        self.jobs = _load_jobs()
+        self.world = World(prefix="check-tests-job-")
+        self.addCleanup(self.world.close)
+        self.jobs_path = self.world.stage(JOBS_PATH)
+        self.assertTrue(self.jobs_path.is_file(), f"jobs.json missing: {self.jobs_path}")
+        self.jobs = _load_jobs(self.jobs_path)
         self.assertIn("check-tests", self.jobs)
         spec = self.jobs["check-tests"]
         self.assertIsInstance(spec, dict)
