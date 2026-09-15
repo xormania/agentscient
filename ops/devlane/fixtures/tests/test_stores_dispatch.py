@@ -12,9 +12,10 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import json
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 HERE = Path(__file__).resolve()
 STORES = HERE.parents[1] / "stores.py"
@@ -31,6 +32,9 @@ LAUNCHER_ARTIFACTS = {
     f"{JOB_ID}/raw.out",
     f"{JOB_ID}/prompt.txt",
 }
+
+# Planted missing-builder: no build_dispatch_store on the staged module.
+MISSING_BUILDER = "import json\njson.dumps({})\n"
 
 
 def load_module(testcase, path, name):
@@ -134,15 +138,18 @@ def minimum_payload(job_id=JOB_ID):
 
 class DispatchStoreBuilderShape(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="stores-dispatch-")
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.world = World(prefix="stores-dispatch-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.root = self.world.cwd
+        self.stores_path = self.world.plant_text("stores.py", MISSING_BUILDER)
+        self.record_path = self.world.stage(RECORD, "record.py")
 
     def stores(self):
-        return load_module(self, STORES, "agentscient_fixture_stores")
+        return load_module(self, self.stores_path, "agentscient_fixture_stores")
 
     def recmod(self):
-        return load_module(self, RECORD, "agentscient_dispatch_record")
+        return load_module(self, self.record_path, "agentscient_dispatch_record")
 
     def built_record(self, **overrides):
         payload = dict(minimum_payload())
