@@ -53,6 +53,7 @@ class _Wired(ls._TempLaunch):
         self._write("ops/conductor/handoff/HANDOFF-2026-01-01-fixture.md",
                     "# Handoff\n\n## Corrections to retain\n\n- keep this exact line\n\n## Next\n\nother\n")
         self._write("ops/lane.conf", "LANE_NAME='fixture'\nMODEL_GROK='m'\n")
+        self._write("docs/tests.md", "# Tests\n\n## Invariants\n\n- `testkit.world` — hermetic\n- `testkit.refusal-wire` — the wire\n")
         self.ref = self._commit("plant capabilities")
 
         os.environ["TASK_LAUNCH_WRITE_STREAM"] = "1"
@@ -222,6 +223,8 @@ class ThePromptCarriesWhatExists(_Wired):
         self.assertIn(SERVER, text)
         self.assertIn(CLAUSE, text)
         self.assertIn(REUSE_KEY, text)
+        self.assertIn("test kit (ops/testkit): World, run, Tools, cases", text)
+        self.assertIn("testkit.refusal-wire", text)
         self.assertLess(len(text.split(BRIEF_MARK, 1)[1]), 8192, "the brief is bounded")
 
     def test_absent_sections_are_declared_not_silent(self):
@@ -235,6 +238,7 @@ class ThePromptCarriesWhatExists(_Wired):
         self.assertIn("ideas: absent", text)
         self.assertIn("corrections: absent", text)
         self.assertIn("lane.conf: absent", text)
+        self.assertIn("test kit: absent", text)
 
 
 class AWriteEnvelopeMustDeclareReuse(_Wired):

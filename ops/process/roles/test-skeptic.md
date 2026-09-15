@@ -37,6 +37,13 @@ this repo while its suite was green:
    ran: a `-k` pattern matching zero tests prints "NO TESTS RAN" and exits
    nonzero — that is not a red. A red must fail on the intended assertion,
    not on collection or import.
+7. **Quiet on a planted fault.** A case table carries a fixture set, the
+   planted faults it catches and the clean neighbours it passes
+   (docs/tests.md rule 3), or it is a declared gap. Run
+   `python3 ops/testkit/cases.py calibrate --subject <the subject>
+   --mutants <its faults file> --command <the table's discover command>`
+   from the tree root: a table without a fixture set, or a row that stays
+   quiet on the table's planted fault, is one finding.
 
 For the highest-value findings, prove them: plant a deliberate fault in a
 **copy** of the implementation (never the working tree — copy first, or work

@@ -61,35 +61,9 @@ class World:
         """The hermetic environment: the world's own roots, a fixed git
         identity and clock, C locales, and only the ambient names from the
         host. ``extra`` overrides, as the case declares."""
-        host_path = os.environ.get("PATH", "/usr/bin:/bin")
-        env = {
-            "PATH": str(self.bin) + os.pathsep + host_path,
-            "HOME": str(self.home),
-            "XDG_STATE_HOME": str(self.xdg_state),
-            "XDG_CONFIG_HOME": str(self.xdg_config),
-            "XDG_CACHE_HOME": str(self.xdg_cache),
-            "TMPDIR": str(self.tmp),
-            "LC_ALL": "C",
-            "LANG": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-            "GIT_CONFIG_SYSTEM": os.devnull,
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_TERMINAL_PROMPT": "0",
-            "GIT_OPTIONAL_LOCKS": "0",
-            "GIT_AUTHOR_NAME": USER,
-            "GIT_AUTHOR_EMAIL": EMAIL,
-            "GIT_COMMITTER_NAME": USER,
-            "GIT_COMMITTER_EMAIL": EMAIL,
-            "GIT_AUTHOR_DATE": FIXED_DATE,
-            "GIT_COMMITTER_DATE": FIXED_DATE,
-        }
-        for name in self.ambient:
-            if name in os.environ:
-                env[name] = os.environ[name]
-        if extra:
-            env.update(extra)
-        return env
+        return hermetic_env(self.home, xdg_state=self.xdg_state, xdg_config=self.xdg_config,
+                            xdg_cache=self.xdg_cache, tmp=self.tmp, bin=self.bin,
+                            ambient=self.ambient, extra=extra)
 
     def enter(self) -> World:
         """Patch ``os.environ`` to the world's environment for an
@@ -119,28 +93,11 @@ class World:
         return target if target.is_absolute() else self.root / target
 
     def plant_text(self, target, content: str, *, recognisable: str | None = None) -> Path:
-        """Write ``content`` and prove it landed intact."""
-        path = self.path(target)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        landed = path.read_text(encoding="utf-8")
-        if landed != content:
-            raise PlantFailed(f"INVALID: plant did not reach disk for {path} "
-                              f"(wanted {len(content)} chars, got {len(landed)})")
-        if content and not landed:
-            raise PlantFailed(f"INVALID: plant emptied {path}")
-        if recognisable is not None and recognisable not in landed:
-            raise PlantFailed(f"INVALID: plant left {path} unrecognisable as the fixture")
-        return path
+        """Write ``content`` under the world and prove it landed intact."""
+        return plant_text(self.path(target), content, recognisable=recognisable)
 
     def plant_bytes(self, target, data: bytes) -> Path:
-        path = self.path(target)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        if landed != data:
-            raise PlantFailed(f"INVALID: plant did not reach disk for {path}")
-        return path
+        return plant_bytes(self.path(target), data)
 
     def stage(self, subject, name: str | None = None, *, siblings=()) -> Path:
         """Copy a subject's bytes into the world so a test never runs the
@@ -166,10 +123,7 @@ class World:
 
     def require(self, tool: str) -> str:
         """An ambient tool the case needs; its absence is INVALID, never a verdict."""
-        found = shutil.which(tool)
-        if found is None:
-            raise PlantFailed(f"INVALID: {tool} is not on PATH")
-        return found
+        return require(tool)
 
     # -- children --------------------------------------------------------
 
@@ -220,6 +174,89 @@ class World:
         self.exit()
         if not self.keep:
             shutil.rmtree(self.root, ignore_errors=True)
+
+
+# -- the environment and the plants, as functions ---------------------------
+# A suite whose fixture predates the World keeps its own home and reaches
+# these by name; the World's methods are the same functions bound to its
+# own roots, so one implementation answers both.
+
+def hermetic_env(home, *, xdg_state=None, xdg_config=None, xdg_cache=None, tmp=None, bin=None,
+                 ambient=(), extra: dict[str, str] | None = None) -> dict[str, str]:
+    """The hermetic environment for ``home``: the roots (defaulting to the
+    XDG layout under ``home`` and ``home``/tmp), the host PATH behind
+    ``bin`` when one is given, a fixed git identity and clock, C locales,
+    and only the ``ambient`` names from the host. ``extra`` overrides."""
+    home = Path(home)
+    host_path = os.environ.get("PATH", "/usr/bin:/bin")
+    # TMPDIR names a directory that exists: the world's own, or a caller's
+    # home/tmp when it has one; a home without one keeps the system default,
+    # since a TMPDIR nobody created breaks every mktemp under it.
+    if tmp is None and (home / "tmp").is_dir():
+        tmp = home / "tmp"
+    env = {
+        "PATH": (str(bin) + os.pathsep + host_path) if bin is not None else host_path,
+        "HOME": str(home),
+        "XDG_STATE_HOME": str(xdg_state or home / ".local" / "state"),
+        "XDG_CONFIG_HOME": str(xdg_config or home / ".config"),
+        "XDG_CACHE_HOME": str(xdg_cache or home / ".cache"),
+        "LC_ALL": "C",
+        "LANG": "C",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_TERMINAL_PROMPT": "0",
+        "GIT_OPTIONAL_LOCKS": "0",
+        "GIT_AUTHOR_NAME": USER,
+        "GIT_AUTHOR_EMAIL": EMAIL,
+        "GIT_COMMITTER_NAME": USER,
+        "GIT_COMMITTER_EMAIL": EMAIL,
+        "GIT_AUTHOR_DATE": FIXED_DATE,
+        "GIT_COMMITTER_DATE": FIXED_DATE,
+    }
+    if tmp is not None:
+        env["TMPDIR"] = str(tmp)
+    for name in ambient:
+        if name in os.environ:
+            env[name] = os.environ[name]
+    if extra:
+        env.update(extra)
+    return env
+
+
+def plant_text(path, content: str, *, recognisable: str | None = None) -> Path:
+    """Write ``content`` and prove it landed intact."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    landed = path.read_text(encoding="utf-8")
+    if landed != content:
+        raise PlantFailed(f"INVALID: plant did not reach disk for {path} "
+                          f"(wanted {len(content)} chars, got {len(landed)})")
+    if content and not landed:
+        raise PlantFailed(f"INVALID: plant emptied {path}")
+    if recognisable is not None and recognisable not in landed:
+        raise PlantFailed(f"INVALID: plant left {path} unrecognisable as the fixture")
+    return path
+
+
+def plant_bytes(path, data: bytes) -> Path:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    landed = path.read_bytes()
+    if landed != data:
+        raise PlantFailed(f"INVALID: plant did not reach disk for {path}")
+    return path
+
+
+def require(tool: str) -> str:
+    """An ambient tool a case needs; its absence is INVALID, never a verdict."""
+    found = shutil.which(tool)
+    if found is None:
+        raise PlantFailed(f"INVALID: {tool} is not on PATH")
+    return found
 
 
 # -- snapshots -----------------------------------------------------------
