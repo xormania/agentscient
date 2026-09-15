@@ -7,6 +7,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from ops.testkit import World, run
+
 REPO = Path(__file__).resolve().parents[4]
 DOC = REPO / "ops/process/cross-review.md"
 BREAKER = REPO / "ops/devlane/telemetry/breaker.py"
@@ -1878,9 +1880,6 @@ class DispatchDirWiringTests(unittest.TestCase):
         )
 
     def test_dispatch_dir_default_names_the_same_jobs_root_as_the_launcher(self):
-        tests_dir = Path(__file__).resolve().parent
-        if str(tests_dir) not in sys.path:
-            sys.path.insert(0, str(tests_dir))
         import test_worth_dispatches as dispatch_meter
 
         meter = dispatch_meter.DispatchMeterTests(
@@ -1888,6 +1887,7 @@ class DispatchDirWiringTests(unittest.TestCase):
         )
         meter.setUp()
         self.addCleanup(meter.doCleanups)
+        self.assertIsInstance(meter.world, World)
         home_jobs = (
             meter.home / ".local" / "state" / "agentscient" / "dispatch"
         )
@@ -1909,15 +1909,30 @@ class DispatchDirWiringTests(unittest.TestCase):
             json.loads(planted.read_text(encoding="utf-8"))["id"],
             dispatch_meter.CLAUDE_ID,
         )
-        proc = meter._run_worth(
-            "report",
-            *dispatch_meter.window_args(),
-            "--format",
-            "json",
-            dispatch_dir=None,
-            extra_env={},
+        proc = run(
+            [
+                sys.executable,
+                str(meter.subject),
+                "report",
+                *dispatch_meter.window_args(),
+                "--format",
+                "json",
+                "--now",
+                dispatch_meter.WINDOW_NOW,
+                "--repo",
+                str(meter.repo),
+                "--claude-dir",
+                str(meter.claude),
+                "--codex-dir",
+                str(meter.codex),
+                "--grok-dir",
+                str(meter.grok),
+            ],
+            cwd=meter.root,
+            env=meter._worth_env({}),
+            timeout=60,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         data = json.loads(proc.stdout)
         ids = [
             row.get("id")
