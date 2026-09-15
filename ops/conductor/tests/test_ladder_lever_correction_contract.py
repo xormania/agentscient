@@ -21,9 +21,8 @@ from ops.testkit import World
 REPO = Path(__file__).resolve().parents[3]
 LEVER = REPO / "ops" / "conductor" / "ladder-lever.md"
 README = REPO / "ops" / "conductor" / "findings" / "README.md"
-# Absent stand-in so each method fails its own assertion (red proof).
-SUBJECT_LEVER = LEVER.with_name("no-such-ladder-lever.md")
-SUBJECT_README = README.with_name("no-such-README.md")
+SUBJECT_LEVER = LEVER
+SUBJECT_README = README
 
 EVERY_FINDING = re.compile(
     r"every finding|each finding|each key|per key|"
@@ -154,10 +153,14 @@ class _LeverPin(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="ladder-lever-correction-")
         self.addCleanup(self.world.close)
+        self.assertTrue(SUBJECT_LEVER.is_file(), f"missing {SUBJECT_LEVER}")
         self.lever_path = self.world.stage(SUBJECT_LEVER, "ladder-lever.md")
         self.lever = self.lever_path.read_text(encoding="utf-8")
+        self.assertTrue(self.lever.strip(), "ladder-lever.md is empty")
+        self.assertTrue(SUBJECT_README.is_file(), f"missing {SUBJECT_README}")
         self.readme_path = self.world.stage(SUBJECT_README, "findings-README.md")
         self.readme = self.readme_path.read_text(encoding="utf-8")
+        self.assertTrue(self.readme.strip(), "findings README is empty")
 
     def section(self, prefix: str) -> str:
         block = _section(self.lever, prefix)
