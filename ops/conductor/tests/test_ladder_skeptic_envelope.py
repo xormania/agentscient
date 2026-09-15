@@ -12,19 +12,15 @@ flake. Item 7: the refusal is one stderr line, exit 2, stdout empty.
 
 from __future__ import annotations
 
-import sys
 import unittest
-from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
-
-from test_ladder_lever import (  # noqa: E402
+from test_ladder_lever import (
     WELL_FORMED_SKEPTIC_COUNTS,
     WELL_FORMED_SKEPTIC_FINDING,
     _LadderFixture,
 )
+
+from ops.testkit import World
 
 ZERO_COUNTS = {"p1": 0, "p2": 0, "p3": 0, "opinions": 0}
 PROSE_CLAIM = "Contract item 9 requires a fresh check"
@@ -42,6 +38,13 @@ def _finding(**overrides):
 
 class _EnvelopeFixture(_LadderFixture):
     """Plant a check-tests envelope and assert the envelope refusal."""
+
+    def setUp(self):
+        super().setUp()
+        self.assertIsInstance(self.world, World)
+        # Planted invalid subject: exit 0, no envelope, so every
+        # assertion fails on its own contract.
+        self.world.plant_text(self.staged, "import sys\nsys.exit(0)\n")
 
     def plant_check_tests(self, **envelope):
         self.patch_plant(
