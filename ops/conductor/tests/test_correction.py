@@ -28,7 +28,7 @@ FINDINGS = REPO / "ops" / "conductor" / "tools" / "findings.py"
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
 SIBLINGS = ("instrument.py", "laneconf.py")
-REGISTRY = REPO / "ops" / "conductor" / "registry" / "correction.py.json.absent"
+REGISTRY = REPO / "ops" / "conductor" / "registry" / "correction.py.json"
 LIVE_STORE = Path.home() / ".local" / "state" / "agentscient" / "findings.db"
 AGENT = "Correction Tester <correction-tester@example.invalid>"
 
@@ -164,26 +164,38 @@ class _GateFixture(unittest.TestCase):
     def tearDown(self):
         self._live.assert_unchanged(self, f"live store mutated: {LIVE_STORE}")
 
+    def _tools_dir(self) -> Path:
+        return self.repo / "ops" / "conductor" / "tools"
+
+    def _plant_staged_into_repo(self, staged: Path) -> Path:
+        """World.stage always lands under world.root/stage/; the needed
+        command names ops/conductor/tools/findings.py relative to --root,
+        so the proven copy is planted into that layout too."""
+        dest = self._tools_dir() / staged.name
+        self.world.plant_bytes(dest, staged.read_bytes())
+        for sibling in SIBLINGS:
+            src = staged.with_name(sibling)
+            if src.is_file():
+                self.world.plant_bytes(dest.with_name(sibling), src.read_bytes())
+        return dest
+
     def _stage_findings(self) -> None:
         self.assertTrue(FINDINGS.is_file(), f"{FINDINGS} is missing")
-        self.findings = self.world.stage(FINDINGS, siblings=SIBLINGS)
+        staged = self.world.stage(FINDINGS, siblings=SIBLINGS)
         self.assertEqual(
-            self.findings.read_bytes(),
+            staged.read_bytes(),
             FINDINGS.read_bytes(),
             "copy-findings-bytes did not land intact",
         )
+        self.findings = self._plant_staged_into_repo(staged)
         # The staged copy has no tracked conf beside its reader; the
         # fixture names one, so the lane under HOME is the one asserted.
         self.conf = self.findings.with_name("lane.conf")
         self.world.plant_text(self.conf, "LANE_NAME='agentscient'\n")
 
     def _correction_tool(self) -> Path:
-        # Red proof: stage the kit's absent stand-in so each assertion
-        # fails on the contract rather than a missing-file suite error.
-        return self.world.stage(
-            self.world.path("absent") / "correction.py",
-            "correction.py",
-        )
+        staged = self.world.stage(CORRECTION, siblings=SIBLINGS)
+        return self._plant_staged_into_repo(staged)
 
     def env(self) -> dict[str, str]:
         return self.world.env(
