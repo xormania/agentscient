@@ -167,3 +167,37 @@ differed from the main checkout's copy read at session start (the
 checkout is 14 commits behind), so one page edit was placed by a second
 script after the first asserted zero matches. Hook refusals in this
 thread: `clipped-sweep` 3, 0 wrong.
+
+## Third thread: T-19 and T-2 (LD-36)
+
+After #208 merged at `f8acfa2f`, the owner's standing word ("keep
+moving"); grant 228 (other). T-19 and T-2 taken from the store.
+
+- **T-19, the zone row**: `find . -name '*ci_shape*'` at `f8acfa2f`
+  finds nothing, and no `test_ci_contexts*` either; the workflow tests
+  directory holds `test_ci_two_jobs.py` (20 tests) and `checks/` holds
+  `ci_contexts.py`, referenced by neither `ci.yml` nor `suites.sh`. The
+  CI shape row now names the pins that exist and the floor that runs;
+  the gitea-ci row says its suite is absent on `dev`, a named gap.
+- **T-2, LD-36**: `launch.py`'s guard read `args.stage`, which the
+  wrapper never passes for a review job, so a review of the trunk tip
+  launched with the prompt "Review the change at <ref> against <ref>"
+  and an empty patch (the red's own reading at `f8acfa2f`). The guard
+  now reads the derived stage, and a ref that sits on the trunk takes
+  its base against `RELEASE_BRANCH`, so the release review diffs
+  release...trunk. `_review_base` is the one merge-base reader for both
+  anchors. No `--base` flag was added: the anchor rule needs no wrapper
+  change, which was LD-36's second remedy.
+
+Readings: red at `f8acfa2f`, commit `98532080`: `test_launch_u10b.py`
+Ran 10, FAILED (failures=2), the third case a silent neighbour that
+reads green at the base. Green at `b2e267d5` with the same command: Ran
+10 OK; the whole dispatch suite: Ran 621 tests, OK; `ruff check` on
+`launch.py` clean. `ops/bin/suites.sh` at `b2e267d5`: dispatch 621, harness 155, task 351, telemetry 227, hooks 303, fixtures 221, workflow 51, conductor 1182, pr-overview 8, every one OK, exit 0.
+The six `P-TRUNKREV-20260914-*` rows are read in the ready note.
+
+Decisions: the release anchor applies only when the trunk anchor is the
+ref itself; a lineage that left the trunk keeps its trunk base (the
+third red case pins it). With no release branch the base stays the ref
+and the guard refuses, as before but now for a wrapper-dispatched job
+too. Hook refusals in this thread: 0.
