@@ -28,7 +28,6 @@ d3bb7333ad761666f87a4d56ddba6cc73af8abfd7cc7dae7ec0419872a477e64.
 from __future__ import annotations
 
 import json
-import types
 import unittest
 
 import agy_envelope_support as agy
@@ -43,12 +42,7 @@ class _AgyEnvelopeCase(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="agy-envelope-")
         self.addCleanup(self.world.close)
-        # Kit absent stand-in: World.stage of a missing subject is the
-        # CLI no-op; this seam is in-process, so a callable empty
-        # envelope makes each method fail its own assertion.
-        self.world.stage(self.world.root / "absent-launch.py", "launch.py")
-        self.launch = types.ModuleType("agy_envelope_absent")
-        self.launch._envelope = lambda *a, **k: {}
+        self.launch = ls.require_module(self, "launch")
         self.ref = agy.LAUNCHER_REF
         self.raw_path = self.world.tmp / "raw.out"
 
