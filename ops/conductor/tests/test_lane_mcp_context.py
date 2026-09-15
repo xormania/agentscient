@@ -57,10 +57,9 @@ from test_lane_mcp import (
 
 from ops.testkit import Timeout, World, run
 
-# Absent stand-in first: World.stage of a missing file plants exit-0
-# with no output so each CLI assertion fails on the contract, not on a
-# missing path. Flip to TOOL after the red is proven.
-_SUBJECT = TOOL.with_name("lane_mcp.py.absent-stand-in")
+# World.stage copies the subject (and siblings) into the world; an
+# absent file still plants the exit-0 stand-in used to prove red.
+_SUBJECT = TOOL
 
 REPO = Path(__file__).resolve().parents[3]
 V1_EXAMPLE = REPO / "ops" / "conductor" / "lane-mcp.example.json"
