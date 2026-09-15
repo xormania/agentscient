@@ -24,13 +24,6 @@ LEGACY_STORE_SHA256 = (
     "953143e8a16398f3312ad69fc7dd98c45f8e340adc93cb2ff215d1c2d66e904e"
 )
 
-# Planted absent usage_runs: the keyword is missing so both tests fail
-# on the explicit-keyword assertion.
-MISSING_USAGE_RUNS = (
-    "def build_grok_store(root, cwd, *, base_timestamp, session_id, model, marker):\n"
-    "    return None\n"
-)
-
 USAGE_RUNS = [
     [
         {
@@ -176,7 +169,11 @@ class GrokUsageFixture(unittest.TestCase):
         self.addCleanup(self.world.close)
         self.world.enter()
         self.root = self.world.cwd
-        self.stores_path = self.world.plant_text("stores.py", MISSING_USAGE_RUNS)
+        self.assertTrue(
+            STORES.is_file(),
+            f"{STORES} is missing; the fixture contract requires it",
+        )
+        self.stores_path = self.world.stage(STORES, "stores.py")
         self.stores = load_module(self, self.stores_path)
 
     def assert_usage_keyword(self):
