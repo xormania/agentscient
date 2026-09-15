@@ -109,7 +109,7 @@ class WallDefaultFromConf(_LaneConfLaunch):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         self.assertIn("caps", rec)
         caps = rec["caps"]
-        self.assertNotEqual(float(caps["timeout"]), 7.0)
+        self.assertEqual(float(caps["timeout"]), 7.0)
         self.assertNotEqual(float(caps["timeout"]), 900.0)
         self.assertEqual(caps["timeout_source"], "default")
 
@@ -128,7 +128,7 @@ class ScopeCapFromConf(_LaneConfLaunch):
         ))
         self.assert_wire_refusal(
             code, out, err, ident="scope-cap",
-            named=("999",),
+            named=("11",),
             phrases=["scope-cap", "11"],
         )
         self.assert_not_started()
@@ -149,7 +149,7 @@ class LaneNameJobsRoot(_LaneConfLaunch):
             str(root).startswith(str(expected) + os.sep) or root == expected,
             f"jobs root should sit under {expected}, snapshot is {root}",
         )
-        self.assertIn(
+        self.assertNotIn(
             f"{os.sep}agentscient{os.sep}",
             str(root),
         )
@@ -170,7 +170,7 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         )
         self.assert_wire_refusal(
             code, out, err, ident="record-target",
-            named=("nope",),
+            named=("trunkx",),
             phrases=["record-target", "trunkx"],
         )
         self.assertEqual(self.job_dirs(), [])
@@ -187,7 +187,7 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         )
         self.assertEqual(rec.get("status"), "closed")
         text = str(rec)
-        self.assertIn("record-target", text)
+        self.assertNotIn("record-target", text)
 
     def test_checkout_on_the_conf_release_refuses_record_target(self):
         self.plant_conf(TRUNK_BRANCH="trunkx", RELEASE_BRANCH="relx")
@@ -199,7 +199,7 @@ class TrunkBranchRecordTarget(_LaneConfLaunch):
         )
         self.assert_wire_refusal(
             code, out, err, ident="record-target",
-            named=("nope",),
+            named=("relx",),
             phrases=["record-target", "relx"],
         )
         self.assertEqual(self.job_dirs(), [])
@@ -228,7 +228,7 @@ class RecordCommitAuthorFromConf(_LaneConfLaunch):
         author = self.git(
             "log", "-1", "--format=%an <%ae>", sha,
         ).stdout.strip()
-        self.assertNotEqual(author, ident)
+        self.assertEqual(author, ident)
         self.assertNotEqual(author, self.HARDCODED)
         committer = self.git(
             "log", "-1", "--format=%cn <%ce>", sha,
@@ -255,7 +255,7 @@ class MissingLauncherKeyIsConfKey(_LaneConfLaunch):
                 code, out, err = self.dispatch(self.argv_for(stage="plan"))
                 self.assert_wire_refusal(
                     code, out, err, ident="conf-key",
-                    named=("not-a-key",),
+                    named=(key, str(self.conf_path)),
                     phrases=["conf-key", key],
                 )
                 self.assert_not_started()
