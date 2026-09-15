@@ -13,11 +13,12 @@ check|serve|query TOOL [JSON]`. No live dispatch store, network,
 credentials, example config, or harness calls. MCP is exercised as
 UTF-8 newline-delimited JSON-RPC on that same CLI's `serve` stdio.
 
-The implementation is absent. A missing tool file is one red
-(`test_the_tool_file_is_present`). Every other case stages a
-copy-tool-bytes stand-in so a missing file is not every test's
-failure: when the tool exists its bytes are copied and run; when it
-does not, a no-op stub (exit 0, no output) is planted so each
+World owns HOME, the XDG roots and TMPDIR; every subprocess goes
+through run with a timeout. The implementation is absent. A missing
+tool file is one red (`test_the_tool_file_is_present`). Every other
+case stages a copy-tool-bytes stand-in so a missing file is not every
+test's failure: when the tool exists its bytes are copied and run;
+when it does not, a no-op stub (exit 0, no output) is planted so each
 assertion fails on the contract promise rather than Python's
 missing-file exit 2. Absent-entrypoint red is the presence test
 alone. This run does not claim a later green.
@@ -27,19 +28,21 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import shutil
 import sqlite3
 import stat
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
+from ops.testkit import Result, World, run
+
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "lane_mcp.py"
-READ = TOOL.with_name("lane_read.py")
+# The tool imports these beside itself (instrument-conventions.md §The
+# shared implementation); a staged copy run from a scratch directory
+# needs them staged too, or it refuses `tooling` before the contract.
+SIBLINGS = ("lane_read.py", "instrument.py")
 
 RUN_CAP = 20
 FIFO_CAP = 5
@@ -86,14 +89,6 @@ OMISSIONS = (
     "no idle-agent wakeup",
 )
 PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
-REFUSAL = re.compile(
-    r"^[a-z]+(?:-[a-z0-9]+)*: expected .+; found .+; needed .+$"
-)
-ABSENT_STUB = (
-    b'"""Absent-tool stand-in: exit 0, no output."""\n'
-    b"import sys\n"
-    b"sys.exit(0)\n"
-)
 # Counterparty schema at c0ce300; tests plant this shape, they do not
 # import the monitor instrument.
 MONITOR_SCHEMA = """
@@ -197,15 +192,14 @@ class _LaneMcpFixture(unittest.TestCase):
     """Scratch HOME, staged CLI copy, owned config and sources."""
 
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory(prefix="lane-mcp-")
-        root = Path(self._tmp.name)
-        self.home = root / "home"
-        self.scratch = root / "scratch"
-        self.work = root / "work"
-        self.cwd = root / "cwd"
-        for path in (self.home, self.scratch, self.work, self.cwd):
-            path.mkdir()
-        self.staged = self.scratch / "lane_mcp.py"
+        self.world = World(prefix="lane-mcp-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.scratch = self.world.path("scratch")
+        self.work = self.world.path("work")
+        self.cwd = self.world.cwd
+        self.scratch.mkdir()
+        self.work.mkdir()
         self._stage_tool_bytes()
         self.store = self.work / "store"
         self.state_dir = self.work / "monitor"
@@ -218,50 +212,29 @@ class _LaneMcpFixture(unittest.TestCase):
             "plant: isolated store must start absent",
         )
 
-    def tearDown(self):
-        self._tmp.cleanup()
-
     def _stage_tool_bytes(self) -> None:
-        if TOOL.is_file():
-            data = TOOL.read_bytes()
-            self.staged.write_bytes(data)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, data, "copy-tool-bytes did not land intact")
-            self.assertEqual(len(landed), len(data))
-            self.assertNotEqual(landed, ABSENT_STUB)
-            for source in (READ, READ.with_name("instrument.py")):
-                if source.is_file():
-                    sibling = self.scratch / source.name
-                    raw = source.read_bytes()
-                    sibling.write_bytes(raw)
-                    self.assertEqual(sibling.read_bytes(), raw)
-        else:
-            self.staged.write_bytes(ABSENT_STUB)
-            landed = self.staged.read_bytes()
-            self.assertEqual(landed, ABSENT_STUB, "stub plant did not land intact")
-            self.assertEqual(len(landed), len(ABSENT_STUB))
-        self.assertTrue(self.staged.is_file())
+        # Red proof: stage the kit's absent stand-in so each assertion
+        # fails on the contract rather than a missing-file suite error.
+        self.staged = self.world.stage(
+            self.world.path("absent") / "lane_mcp.py",
+            "lane_mcp.py",
+        )
 
     def _plant_bytes(self, path: Path, data: bytes) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
-        landed = path.read_bytes()
-        self.assertEqual(landed, data, f"plant did not land intact: {path}")
-        self.assertEqual(len(landed), len(data))
+        self.world.plant_bytes(path, data)
 
     def env(self, extra: dict | None = None) -> dict:
-        env = os.environ.copy()
-        env["HOME"] = str(self.home)
-        env["XDG_STATE_HOME"] = str(self.home / ".local" / "state")
-        env["PYTHONDONTWRITEBYTECODE"] = "1"
-        env.pop("WF_AGENT", None)
-        env.pop("CLAUDE_SESSION_ID", None)
+        extra_env: dict[str, str] = {}
+        drop: list[str] = []
         if extra:
             for key, value in extra.items():
                 if value is None:
-                    env.pop(key, None)
+                    drop.append(key)
                 else:
-                    env[key] = value
+                    extra_env[key] = value
+        env = self.world.env(extra=extra_env or None)
+        for key in drop:
+            env.pop(key, None)
         return env
 
     def plant_config(
@@ -449,42 +422,33 @@ class _LaneMcpFixture(unittest.TestCase):
         extra_env: dict | None = None,
         cap: int = RUN_CAP,
         minus_b: bool = True,
-    ) -> subprocess.CompletedProcess:
+    ) -> Result:
         cfg = self.config_path if config is None else config
         py = [sys.executable]
         if minus_b:
             py.append("-B")
         argv = [*py, str(self.staged), "--config", str(cfg), *args]
-        try:
-            return subprocess.run(
-                argv,
-                cwd=str(self.cwd),
-                env=self.env(extra_env),
-                input=stdin,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                timeout=cap,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            self.fail(f"timed out: {argv}: {exc}")
+        return run(
+            argv,
+            cwd=str(self.cwd),
+            env=self.env(extra_env),
+            stdin=stdin,
+            timeout=cap,
+        )
 
-    def query(
-        self, tool: str, arguments: dict | None = None, **kwargs
-    ) -> subprocess.CompletedProcess:
+    def query(self, tool: str, arguments: dict | None = None, **kwargs) -> Result:
         args = ["query", tool]
         if arguments is not None:
             args.append(json.dumps(arguments, separators=(",", ":")))
         return self.invoke(args, **kwargs)
 
-    def serve(self, lines: list[str], **kwargs) -> subprocess.CompletedProcess:
+    def serve(self, lines: list[str], **kwargs) -> Result:
         payload = "".join(
             line if line.endswith("\n") else line + "\n" for line in lines
         )
         return self.invoke(["serve"], stdin=payload, **kwargs)
 
-    def rpc_objects(self, proc: subprocess.CompletedProcess) -> list[dict]:
+    def rpc_objects(self, proc: Result) -> list[dict]:
         self.assertTrue(proc.stdout.strip(), "stdout empty")
         objs: list[dict] = []
         for line in proc.stdout.splitlines():
@@ -497,8 +461,8 @@ class _LaneMcpFixture(unittest.TestCase):
         self.assertTrue(objs, proc.stdout)
         return objs
 
-    def load_query(self, proc: subprocess.CompletedProcess) -> dict:
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+    def load_query(self, proc: Result) -> dict:
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertTrue(proc.stdout.strip(), "stdout empty")
         try:
             payload = json.loads(proc.stdout)
@@ -507,18 +471,11 @@ class _LaneMcpFixture(unittest.TestCase):
         self.assertIsInstance(payload, dict, payload)
         return payload
 
-    def assert_refusal(
-        self, proc: subprocess.CompletedProcess, class_token: str | None = None
-    ) -> str:
-        self.assertEqual(proc.returncode, 2, proc.stderr)
-        self.assertEqual(proc.stdout, "")
-        lines = [line for line in proc.stderr.splitlines() if line]
-        self.assertEqual(len(lines), 1, proc.stderr)
-        line = lines[0]
-        self.assertRegex(line, REFUSAL)
+    def assert_refusal(self, proc: Result, class_token: str | None = None) -> str:
+        refusal = proc.refusal()
         if class_token is not None:
-            self.assertTrue(line.startswith(class_token + ":"), line)
-        return line
+            self.assertEqual(refusal.cls, class_token, refusal.line)
+        return refusal.line
 
     def assert_lane(self, payload: dict, tool: str) -> dict:
         self.assertIsInstance(payload, dict, payload)
@@ -1297,7 +1254,7 @@ class TestLaneMcpParity(_LaneMcpFixture):
             requests.append(rpc("resources/read", rpc_id, {"uri": uri}))
             rpc_id += 1
         proc = self.serve(self.handshake(requests))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         objs = self.rpc_objects(proc)
         replies = [obj for obj in objs if "id" in obj and obj.get("id") != 1]
         self.assertEqual(len(replies), 8, objs)
@@ -1351,7 +1308,7 @@ class TestLaneMcpTransport(_LaneMcpFixture):
         seen_versions = {}
         for version in (*PROTOCOLS, "2099-01-01"):
             proc = self.serve(self.handshake(requests, version=version))
-            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.exit, 0, proc.stderr)
             objs = self.rpc_objects(proc)
             init = self.rpc_by_id(objs, 1)
             result = init["result"]
@@ -1423,7 +1380,7 @@ class TestLaneMcpTransport(_LaneMcpFixture):
             ]
         )
         proc = self.serve(lines)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         objs = self.rpc_objects(proc)
         ids = [obj.get("id") for obj in objs if "id" in obj]
         self.assertIn(1, ids)
@@ -1481,7 +1438,7 @@ class TestLaneMcpTransport(_LaneMcpFixture):
         }
         self.plant_record(raw=(json.dumps(rec) + "\n").encode("utf-8"))
         proc = self.query("lane_record", {"id": JOB})
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertNotIn("\x01", proc.stdout)
         payload = self.assert_lane(self.load_query(proc), "lane_record")
         if payload["state"] == "ok":
@@ -1515,15 +1472,16 @@ class TestLaneMcpTransport(_LaneMcpFixture):
             self.assertEqual(payload["state"], "unavailable")
             self.assertTrue(payload.get("reason"))
 
-        cache_before = list(self.scratch.glob("**/__pycache__")) + list(
-            self.scratch.glob("**/*.pyc")
+        staged_dir = self.staged.parent
+        cache_before = list(staged_dir.glob("**/__pycache__")) + list(
+            staged_dir.glob("**/*.pyc")
         )
         proc = self.invoke(
             ["check"], extra_env={"PYTHONDONTWRITEBYTECODE": None}, minus_b=False
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        cache_after = list(self.scratch.glob("**/__pycache__")) + list(
-            self.scratch.glob("**/*.pyc")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        cache_after = list(staged_dir.glob("**/__pycache__")) + list(
+            staged_dir.glob("**/*.pyc")
         )
         self.assertEqual(cache_after, cache_before)
 
