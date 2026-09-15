@@ -11,10 +11,10 @@ write-role job (implement) is unchanged: workspace-write with that
 same single root; snapshot mode stripping is not required of it.
 
 These tests do not read launch.py. They launch through
-launch_support._TempLaunch. Point them at a pre-LD-14 stub with
-LD14_STUB_LAUNCH=1: that stub emits `--sandbox read-only`, names no
-writable_roots, leaves TMPDIR unset, and leaves snapshot write bits
-intact. Each assertion is red against that stub and green against the
+launch_support._TempLaunch. The migration's red proof bound that seam
+to a pre-LD-14 stand-in which emitted `--sandbox read-only`, named no
+writable_roots, left TMPDIR unset, and left snapshot write bits intact.
+Each assertion was red against that stand-in and is green against the
 real launcher.
 """
 
@@ -23,15 +23,14 @@ from __future__ import annotations
 import json
 import os
 import re
-import shutil
 import stat
-import subprocess
-import types
+import threading
+import time
 from pathlib import Path
 
 import launch_support as ls
 
-STUB_ENV = "LD14_STUB_LAUNCH"
+from ops.testkit import World
 
 
 def _argv_strs(argv) -> list[str]:
@@ -113,142 +112,10 @@ def _real(path) -> str:
     return os.path.realpath(str(path))
 
 
-def _stage_token(job: str, stage: str) -> str:
-    allowed = ("plan", "tests", "check-tests", "code", "review", "adjudicate")
-    if stage in allowed:
-        return stage
-    if job == "implement":
-        return "code"
-    return "plan"
+class _KitLaunch(ls._TempLaunch):
+    """The shared launch fixture with kit-owned snapshot inspection."""
 
-
-def _old_read_only_module(test) -> types.ModuleType:
-    """Pre-LD-14 Codex argv: `--sandbox read-only`, no writable_roots."""
-
-    mod = types.ModuleType("ld14_old_read_only_launch")
-    mod.JOBS_PATH = getattr(test, "jobs_file", None)
-
-    def main(argv=None):
-        argv = list(argv or [])
-        test.assertTrue(argv, "stub launch received an empty argv")
-        job = argv[0]
-        stage = "plan"
-        idx = 1
-        while idx < len(argv):
-            key = argv[idx]
-            if key == "--stage" and idx + 1 < len(argv):
-                stage = argv[idx + 1]
-                idx += 2
-                continue
-            idx += 1
-        stage = _stage_token(job, stage)
-        job_id = f"20260911T000000Z-{stage}-codex-aaaaaa"
-        job_dir = Path(os.environ["DISPATCH_JOBS"]) / job_id
-        snapshot = job_dir / "snapshot"
-        out_dir = job_dir / "out"
-        if snapshot.exists():
-            shutil.rmtree(snapshot)
-        shutil.copytree(
-            test.repo,
-            snapshot,
-            ignore=shutil.ignore_patterns(".git"),
-        )
-        out_dir.mkdir(parents=True, exist_ok=True)
-        child_env = os.environ.copy()
-        child_env.pop("TMPDIR", None)
-        child_argv = ["codex", "exec", "--sandbox", "read-only", "-"]
-        subprocess.run(
-            child_argv,
-            cwd=snapshot,
-            env=child_env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        role = "write" if job == "implement" else "read"
-        rec = {
-            "id": job_id,
-            "status": "closed",
-            "job": job,
-            "role": role,
-            "harness": {
-                "name": "codex",
-                "sandbox": "read-only",
-                "argv": child_argv,
-            },
-            "snapshot": {"root": str(snapshot), "ref_sha": test.ref},
-        }
-        rec_dir = test.repo / ".dev" / "records" / "dispatches"
-        rec_dir.mkdir(parents=True, exist_ok=True)
-        (rec_dir / f"{job_id}.json").write_text(
-            json.dumps(rec) + "\n", encoding="utf-8",
-        )
-        return 0
-
-    mod.main = main
-    return mod
-
-
-class _StubbableLaunch(ls._TempLaunch):
-    """Same fixture as the other launch suites; optional pre-LD-14 stub."""
-
-    def load_launch(self):
-        if os.environ.get(STUB_ENV) == "1":
-            if self.launch is None:
-                self.launch = _old_read_only_module(self)
-            return self.launch
-        return super().load_launch()
-
-    def _install_codex_probe(self) -> None:
-        impl_dir = self.bin / "codex-impl"
-        impl_dir.mkdir(exist_ok=True)
-        inner = impl_dir / "codex"
-        outer = self.bin / "codex"
-        if not inner.exists():
-            inner.write_bytes(outer.read_bytes())
-            inner.chmod(outer.stat().st_mode)
-        probe_path = self._probe_path
-        script = f"""#!/usr/bin/env python3
-import json
-import os
-import stat
-import subprocess
-import sys
-from pathlib import Path
-
-probe_path = Path({str(probe_path)!r})
-inner = Path({str(inner)!r})
-cwd = Path(os.getcwd())
-write_bits = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
-writable = []
-for path in cwd.rglob("*"):
-    if ".git" in path.parts:
-        continue
-    try:
-        st = path.lstat()
-    except OSError:
-        continue
-    if stat.S_ISLNK(st.st_mode) or not stat.S_ISREG(st.st_mode):
-        continue
-    if st.st_mode & write_bits:
-        writable.append(str(path.relative_to(cwd)))
-tmpdir = os.environ.get("TMPDIR") or ""
-tmp_path = Path(tmpdir) if tmpdir else None
-probe = {{
-    "cwd": str(cwd),
-    "tmpdir": tmpdir or None,
-    "tmpdir_is_symlink": bool(tmp_path) and tmp_path.is_symlink(),
-    "tmpdir_exists": bool(tmp_path) and tmp_path.exists(),
-    "writable_regular_files": writable,
-}}
-probe_path.parent.mkdir(parents=True, exist_ok=True)
-probe_path.write_text(json.dumps(probe) + "\\n", encoding="utf-8")
-result = subprocess.run([str(inner), *sys.argv[1:]], check=False)
-raise SystemExit(result.returncode)
-"""
-        outer.write_text(script, encoding="utf-8")
-        mode = outer.stat().st_mode
-        outer.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    world: World
 
     def _plant_dev_at_mid(self) -> None:
         self._git("branch", "dev", self.mid_sha)
@@ -258,14 +125,19 @@ raise SystemExit(result.returncode)
         )
         self.assertNotEqual(self.mid_sha, self.ref)
 
-    def _read_probe(self) -> dict:
-        self.assertTrue(
-            self._probe_path.is_file(),
-            f"codex exec probe missing: {self._probe_path}",
-        )
-        data = json.loads(self._probe_path.read_text(encoding="utf-8"))
-        self.assertIsInstance(data, dict)
-        return data
+    def _writable_regular_files(self, root: Path) -> list[str]:
+        write_bits = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+        writable = []
+        for path in root.rglob("*"):
+            if ".git" in path.parts:
+                continue
+            try:
+                mode = path.lstat().st_mode
+            except OSError:
+                continue
+            if stat.S_ISREG(mode) and mode & write_bits:
+                writable.append(str(path.relative_to(root)))
+        return writable
 
 
 class _ReadRoleMixin:
@@ -284,8 +156,6 @@ class _ReadRoleMixin:
             f"{self.JOB} must stay role read in jobs.json",
         )
         self._plant_dev_at_mid()
-        self._probe_path = self.home / "ld14-probe.json"
-        self._install_codex_probe()
 
     def _job_argv(self):
         extra = []
@@ -419,16 +289,42 @@ class _ReadRoleMixin:
         )
 
     def test_snapshot_regular_files_have_no_write_bit_after_launch(self):
-        rec, _witness, _argv = self._launch_one()
-        probe = self._read_probe()
+        os.environ["TASK_LAUNCH_SLEEP"] = "1"
+        outcome = {}
+
+        def launch():
+            try:
+                outcome["value"] = self._launch_one()
+            except BaseException as exc:
+                outcome["error"] = exc
+
+        worker = threading.Thread(target=launch)
+        worker.start()
+        deadline = time.monotonic() + 5
+        while not self.start_witness.is_file() and worker.is_alive():
+            self.assertLess(time.monotonic(), deadline, "codex start witness timed out")
+            time.sleep(0.01)
+        try:
+            self.assertTrue(
+                self.start_witness.is_file(),
+                "codex must start before snapshot modes are inspected",
+            )
+            started = self.read_start_witness()
+            snapshot_path = Path(started["cwd"])
+            writable = self._writable_regular_files(snapshot_path)
+        finally:
+            worker.join(timeout=5)
+        self.assertFalse(worker.is_alive(), "codex launch thread did not finish")
+        if "error" in outcome:
+            raise outcome["error"]
+        rec, witness, _argv = outcome["value"]
         snapshot = _real(self.snapshot_of(rec))
         self.assertEqual(
-            _real(probe.get("cwd") or ""),
+            _real(witness.get("cwd") or ""),
             snapshot,
             f"{self.JOB}: mode probe must run with cwd at the snapshot; "
-            f"probe={probe!r}",
+            f"witness={witness!r}",
         )
-        writable = probe.get("writable_regular_files") or []
         self.assertEqual(
             writable,
             [],
@@ -437,37 +333,37 @@ class _ReadRoleMixin:
         )
 
 
-class PlanCodexReadContainment(_ReadRoleMixin, _StubbableLaunch):
+class PlanCodexReadContainment(_ReadRoleMixin, _KitLaunch):
     JOB = "plan"
     STAGE = "plan"
 
 
-class CheckTestsCodexReadContainment(_ReadRoleMixin, _StubbableLaunch):
+class CheckTestsCodexReadContainment(_ReadRoleMixin, _KitLaunch):
     JOB = "check-tests"
     STAGE = "check-tests"
 
 
-class SecurityAuditCodexReadContainment(_ReadRoleMixin, _StubbableLaunch):
+class SecurityAuditCodexReadContainment(_ReadRoleMixin, _KitLaunch):
     JOB = "security-audit"
     STAGE = "review"
 
 
-class AdversarialReviewCodexReadContainment(_ReadRoleMixin, _StubbableLaunch):
+class AdversarialReviewCodexReadContainment(_ReadRoleMixin, _KitLaunch):
     JOB = "adversarial-review"
     STAGE = "review"
 
 
-class AdjudicateCodexReadContainment(_ReadRoleMixin, _StubbableLaunch):
+class AdjudicateCodexReadContainment(_ReadRoleMixin, _KitLaunch):
     JOB = "adjudicate"
     STAGE = "adjudicate"
 
 
-class SweepCodexReadContainment(_ReadRoleMixin, _StubbableLaunch):
+class SweepCodexReadContainment(_ReadRoleMixin, _KitLaunch):
     JOB = "sweep"
     STAGE = "plan"
 
 
-class CodexImplementWriteRoleUnchanged(_StubbableLaunch):
+class CodexImplementWriteRoleUnchanged(_KitLaunch):
     """Implement stays workspace-write with the same single out/ root."""
 
     JOB = "implement"
@@ -482,8 +378,6 @@ class CodexImplementWriteRoleUnchanged(_StubbableLaunch):
             "implement must stay role write in jobs.json",
         )
         self._plant_dev_at_mid()
-        self._probe_path = self.home / "ld14-probe.json"
-        self._install_codex_probe()
 
     def _launch_one(self):
         os.environ["TASK_LAUNCH_JOB"] = self.JOB
