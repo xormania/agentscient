@@ -28,37 +28,33 @@ import hashlib
 import io
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 import support
+from ops.testkit import World
 
-fileset = support.load("fileset")
+# RED_STANDIN: a quiet subject so each case fails its own assertion,
+# never an import error. Flip to False (and load the real module) for green.
+_RED_STANDIN = True
+
+if _RED_STANDIN:
+    class _FilesetError(Exception):
+        pass
+
+    fileset = SimpleNamespace(
+        FilesetError=_FilesetError,
+        derive=lambda *args, **kwargs: [],
+        snapshot=lambda *args, **kwargs: {},
+        parity=lambda *args, **kwargs: (False, "", ""),
+        main=lambda argv: 0,
+    )
+else:
+    fileset = support.load("fileset")
 
 _META = frozenset({"FILESET.md", "FILESET.diff"})
-
-
-def _git_env(home: Path) -> dict:
-    # GIT_DIR / GIT_WORK_TREE in the caller environment would aim
-    # git at the snapshot (or its parent). The fixtures must be
-    # closed worlds.
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith("GIT_") and k != "XDG_CONFIG_HOME"}
-    env.update({
-        "HOME": str(home),
-        "GIT_AUTHOR_NAME": "fileset-test",
-        "GIT_AUTHOR_EMAIL": "fileset-test@example.test",
-        "GIT_COMMITTER_NAME": "fileset-test",
-        "GIT_COMMITTER_EMAIL": "fileset-test@example.test",
-        "GIT_CONFIG_GLOBAL": os.devnull,
-        "GIT_CONFIG_SYSTEM": os.devnull,
-        "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_TERMINAL_PROMPT": "0",
-    })
-    return env
 
 
 def payload_paths(into) -> list[str]:
@@ -105,37 +101,27 @@ class _TempRepo(unittest.TestCase):
     """A throwaway git repo. Never the snapshot's own tree."""
 
     def setUp(self):
-        self._td = tempfile.TemporaryDirectory()
-        self.home = Path(self._td.name)
-        self.repo = self.home / "repo"
-        self.into = self.home / "into"
-        self.pruned = self.home / "pruned"
-        self.repo.mkdir()
+        self.world = World(prefix="fileset-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.world.require("git")
+        self.home = self.world.home
+        self.repo = self.world.cwd
+        self.into = self.world.path("into")
+        self.pruned = self.world.path("pruned")
         self.into.mkdir()
-        self.env = _git_env(self.home)
+        self.pruned.mkdir()
         # Branch name is irrelevant: every test pins SHAs, not HEAD.
         self._git("init")
         self._git("config", "user.name", "fileset-test")
         self._git("config", "user.email", "fileset-test@example.test")
         self._git("config", "commit.gpgsign", "false")
 
-    def tearDown(self):
-        self._td.cleanup()
-
     def _git(self, *args):
-        r = subprocess.run(
-            ["git", *args], cwd=self.repo, env=self.env,
-            capture_output=True, text=True)
-        if r.returncode != 0:
-            raise RuntimeError(
-                f"git {args} failed ({r.returncode}): {r.stderr}")
-        return r
+        return self.world.git(*args, cwd=self.repo, timeout=60)
 
     def _write(self, rel, content):
-        p = self.repo / rel
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content)
-        return p
+        return self.world.plant_text(self.repo / rel, content)
 
     def _commit(self, msg):
         self._git("add", "-A")
