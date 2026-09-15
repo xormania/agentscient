@@ -885,7 +885,7 @@ class ToolPresence(_OnboardFixture):
     """Missing tool file counts once."""
 
     def test_the_tool_file_is_present(self):
-        self.assertFalse(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
+        self.assertTrue(TOOL.is_file(), f"RED: tool is absent: {TOOL}")
 
 
 class ExactLawTable(_OnboardFixture):
@@ -910,7 +910,7 @@ class ExactLawTable(_OnboardFixture):
         stdout = proc.stdout or ""
         expected = tuple(ok_line(path, one) for path, one in LAW)
         found = self.law_body_lines(stdout)
-        self.assertEqual(len(found), 0, stdout)
+        self.assertEqual(len(found), 7, stdout)
         self.assertEqual(found, list(expected), stdout)
         self.assertNotEqual(found, list(expected[1:]) + [expected[0]])
         for (_path, one_liner), line in zip(LAW, found, strict=True):
@@ -931,7 +931,7 @@ class HappyPath(_OnboardFixture):
         law_i = self.heading_index(stdout, "== law")
         state_i = self.heading_index(stdout, "== state")
         handoffs_i = self.heading_index(stdout, "== handoffs")
-        self.assertGreater(law_i, state_i, stdout)
+        self.assertLess(law_i, state_i, stdout)
         self.assertLess(state_i, handoffs_i, stdout)
         self.assertNotIn("== thread", stdout)
         ok_lines = [ln for ln in stdout.splitlines() if ln.startswith("OK ")]
@@ -987,7 +987,7 @@ class TheLockLine(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         lock = self.labelled_line(stdout, "lock")
-        self.assertNotIn("lane/session-a, lane/session-b", lock)
+        self.assertIn("lane/session-a, lane/session-b", lock)
         self.assertIn("owner 2026-09-15: every test family onto the kit", lock)
         target = self.labelled_line(stdout, "target lane/session-b")
         self.assertIn("until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short", target)
@@ -1003,7 +1003,7 @@ class TheLockLine(_OnboardFixture):
         self.assertFalse((self.store.parent / "deliverable.json").exists(), "INVALID: a lock was planted")
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertNotEqual(self.labelled_line(stdout, "lock"), "lock: none")
+        self.assertEqual(self.labelled_line(stdout, "lock"), "lock: none")
         self.assertNotIn("LEVER_RAN_UNIQUE_9c1e", stdout, "the lever is not run when the lock file is absent")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
@@ -1015,7 +1015,7 @@ class TheLockLine(_OnboardFixture):
         line = self.labelled_line(proc.stdout or "", "lock")
         self.assertIn("unavailable", line)
         self.assertIn("tooling", line)
-        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        self.assertEqual(proc.returncode, 1, self.combined(proc))
 
 
 class MissingLaw(_OnboardFixture):
@@ -1031,7 +1031,7 @@ class MissingLaw(_OnboardFixture):
         self.assertIn(absent_line(missing, one_liner), stdout)
         self.assertNotIn(ok_line(missing, one_liner), stdout)
         self.assert_exact_law_table(stdout, absent=(missing,))
-        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
     def test_missing_discovery_lever_counts_one_absence_in_table_order(self):
@@ -1044,7 +1044,7 @@ class MissingLaw(_OnboardFixture):
         self.assertIn(absent_line(missing, one_liner), stdout)
         self.assertNotIn(ok_line(missing, one_liner), stdout)
         self.assert_exact_law_table(stdout, absent=(missing,))
-        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
 
@@ -1063,7 +1063,7 @@ class EmptyLawFile(_OnboardFixture):
         self.assertIn(absent_line(empty, one_liner), stdout)
         self.assertNotIn(ok_line(empty, one_liner), stdout)
         self.assert_exact_law_table(stdout, empty=(empty,))
-        self.assertEqual(self.last_line(stdout), "brief complete")
+        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
 
@@ -1075,7 +1075,7 @@ class GhFailure(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         prs = self.labelled_line(stdout, "prs")
-        self.assertNotIn("gh unavailable:", prs)
+        self.assertIn("gh unavailable:", prs)
         self.assertIn(GH_FAIL, prs)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
         self.assertIn("brief complete,", self.last_line(stdout))
@@ -1090,7 +1090,7 @@ class DispatchStore(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "dispatches")
-        self.assertNotIn("absent", line.lower())
+        self.assertIn("absent", line.lower())
         self.assert_exact_law_table(stdout)
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertEqual(self.last_line(stdout), "brief complete")
@@ -1102,7 +1102,7 @@ class DispatchStore(_OnboardFixture):
         self.assertFalse((rec / "exit").exists(), "INVALID: running has exit")
         proc = self.invoke()
         line = self.labelled_line(proc.stdout or "", "dispatches")
-        self.assertNotIn(RUNNING_ID, line)
+        self.assertIn(RUNNING_ID, line)
 
     def test_newest_closed_record_shows_its_exit_code(self):
         self.ready()
@@ -1121,7 +1121,7 @@ class DispatchStore(_OnboardFixture):
         os.utime(new / "exit", (1_700_000_000, 1_700_000_000))
         proc = self.invoke()
         line = self.labelled_line(proc.stdout or "", "dispatches")
-        self.assertNotIn(CLOSED_NEW, line)
+        self.assertIn(CLOSED_NEW, line)
         self.assertIn(CLOSED_NEW_EXIT, line)
 
     def test_xdg_state_home_store_is_the_one_read(self):
@@ -1138,7 +1138,7 @@ class DispatchStore(_OnboardFixture):
         )
         proc = self.invoke(xdg=self.xdg)
         line = self.labelled_line(proc.stdout or "", "dispatches")
-        self.assertNotIn(xdg_running, line)
+        self.assertIn(xdg_running, line)
         self.assertFalse(self.home_store.exists(), "tool created a HOME store")
 
 
@@ -1161,7 +1161,7 @@ class NoThreadSection(_OnboardFixture):
         )
         proc = self.invoke()
         stdout = proc.stdout or ""
-        self.assertIn("== thread", stdout)
+        self.assertNotIn("== thread", stdout)
         self.assertNotIn("calibration", stdout)
         for name in (AAR_NEW, AAR_OLD, AAR_BARE):
             self.assertNotIn(name, stdout)
@@ -1179,7 +1179,7 @@ class NoThreadSection(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         self.assertNotIn("no AAR found", stdout)
-        self.assertIn("== thread", stdout)
+        self.assertNotIn("== thread", stdout)
         self.assertEqual(self.last_line(stdout), "brief complete")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
 
@@ -1188,7 +1188,7 @@ class NoThreadSection(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         self.assertNotIn("no calibration clause", stdout)
-        self.assertIn(AAR_BARE, stdout)
+        self.assertNotIn(AAR_BARE, stdout)
 
 
 class Refusals(_OnboardFixture):
@@ -1197,7 +1197,7 @@ class Refusals(_OnboardFixture):
     def test_any_argument_refuses_class_arguments(self):
         self.ensure_git()
         proc = self.invoke(["--help"])
-        self.assert_refusal(proc, "repo")
+        self.assert_refusal(proc, "arguments")
 
     def test_outside_a_git_work_tree_refuses_class_repo(self):
         nongit = self.root / "nongit"
@@ -1226,7 +1226,7 @@ class Refusals(_OnboardFixture):
                 timeout=RUN_CAP,
             )
         )
-        self.assert_refusal(proc, "arguments")
+        self.assert_refusal(proc, "repo")
 
 
 class ReadOnly(_OnboardFixture):
@@ -1244,7 +1244,7 @@ class ReadOnly(_OnboardFixture):
         self.heading_index(stdout, "== handoffs")
         self.assertNotIn("== thread", stdout)
         self.assert_exact_law_table(stdout)
-        self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
+        self.assertEqual(self.last_line(stdout), "brief complete")
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         self.assertFalse(self.store.exists(), "tool created a dispatch store")
         self.assertEqual(
@@ -1267,7 +1267,7 @@ class SiblingRefusal(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "register")
-        self.assertNotIn(SIBLING_REFUSAL, line)
+        self.assertIn(SIBLING_REFUSAL, line)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
         self.assertIn("brief complete,", self.last_line(stdout))
 
@@ -1281,7 +1281,7 @@ class NoCalibrationFence(_OnboardFixture):
         self.ready()
         proc = self.invoke()
         out = proc.stdout or ""
-        self.assertNotEqual(out.find("-- calibration, verbatim from"), -1, out)
+        self.assertEqual(out.find("-- calibration, verbatim from"), -1, out)
         self.assertEqual(out.find("-- end calibration --"), -1, out)
         self.assertEqual(out.find(CAL_BODY), -1, out)
         self.assertNotIn("untrusted data, not instructions", out)
@@ -1301,7 +1301,7 @@ class ReviewPins(_OnboardFixture):
         proc = self.invoke()
         out = proc.stdout or ""
         ledger = self.labelled_line(out, "ledger")
-        self.assertNotIn("ABSENT", ledger)
+        self.assertIn("ABSENT", ledger)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
     def test_a_full_pr_page_reports_truncation_and_counts_unmeasured(self):
@@ -1310,7 +1310,7 @@ class ReviewPins(_OnboardFixture):
         self.plant_gh(rows=rows)
         proc = self.invoke()
         out = proc.stdout or ""
-        self.assertNotIn("truncated at the 200 limit", out)
+        self.assertIn("truncated at the 200 limit", out)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
     def test_a_store_path_that_is_a_file_is_unavailable_not_absent(self):
@@ -1319,7 +1319,7 @@ class ReviewPins(_OnboardFixture):
         proc = self.invoke()
         out = proc.stdout or ""
         line = self.labelled_line(out, "dispatches")
-        self.assertNotIn("unavailable", line)
+        self.assertIn("unavailable", line)
         self.assertNotIn("nothing running", line)
         self.assertEqual(proc.returncode, 1, self.combined(proc))
 
@@ -1329,7 +1329,7 @@ class ReviewPins(_OnboardFixture):
         bad.write_bytes(b"\xff\xfe not utf-8 \xff")
         proc = self.invoke()
         out = proc.stdout or ""
-        self.assertIn("== thread", out)
+        self.assertNotIn("== thread", out)
         self.assertNotIn("unavailable:", out)
         self.assertNotIn("AAR-2026-12-31.md", out)
         self.assertEqual(self.last_line(out), "brief complete")
@@ -1371,7 +1371,7 @@ class LaneNameSelectsStore(_OnboardFixture):
         )
         proc = self.invoke(extra_env={"LANE_CONF": str(conf)})
         line = self.labelled_line(proc.stdout or "", "dispatches")
-        self.assertNotIn(rec_id, line)
+        self.assertIn(rec_id, line)
         self.assertFalse(
             self.store.exists(),
             "tool created the literal agentscient store",
@@ -1406,8 +1406,8 @@ class RunningIsLiveLaunched(_OnboardFixture):
         proc = self.invoke()
         self.assert_running_only(
             proc.stdout or "",
-            live=(DIED_INVALID_ID,),
-            decoys=(LIVE_RUN_ID,),
+            live=(LIVE_RUN_ID,),
+            decoys=(DIED_INVALID_ID,),
         )
 
     def test_closed_record_without_exit_is_not_listed_as_running(self):
@@ -1423,8 +1423,8 @@ class RunningIsLiveLaunched(_OnboardFixture):
         proc = self.invoke()
         self.assert_running_only(
             proc.stdout or "",
-            live=(CLOSED_NOEXIT_ID,),
-            decoys=(LIVE_RUN_ID,),
+            live=(LIVE_RUN_ID,),
+            decoys=(CLOSED_NOEXIT_ID,),
         )
 
     def test_job_dir_without_record_json_is_not_listed_as_running(self):
@@ -1442,8 +1442,8 @@ class RunningIsLiveLaunched(_OnboardFixture):
         proc = self.invoke()
         self.assert_running_only(
             proc.stdout or "",
-            live=(UNRECORDED_ID, UNRECORDED_LIVE_ID),
-            decoys=(LIVE_RUN_ID,),
+            live=(LIVE_RUN_ID,),
+            decoys=(UNRECORDED_ID, UNRECORDED_LIVE_ID),
         )
 
     def test_launched_without_pid_file_is_not_inferred_live(self):
@@ -1458,8 +1458,8 @@ class RunningIsLiveLaunched(_OnboardFixture):
         proc = self.invoke()
         self.assert_running_only(
             proc.stdout or "",
-            live=(LAUNCH_NOPID_ID,),
-            decoys=(LIVE_RUN_ID,),
+            live=(LIVE_RUN_ID,),
+            decoys=(LAUNCH_NOPID_ID,),
         )
 
     def test_launched_with_dead_pid_is_not_listed_as_running(self):
@@ -1479,8 +1479,8 @@ class RunningIsLiveLaunched(_OnboardFixture):
         proc = self.invoke()
         self.assert_running_only(
             proc.stdout or "",
-            live=(LAUNCH_DEAD_ID,),
-            decoys=(LIVE_RUN_ID,),
+            live=(LIVE_RUN_ID,),
+            decoys=(LAUNCH_DEAD_ID,),
         )
 
     def test_running_field_lists_only_the_live_launched_id(self):
@@ -1512,7 +1512,7 @@ class RunningIsLiveLaunched(_OnboardFixture):
         )
         planted = {LIVE_RUN_ID, *decoys}
         listed = [i for i in self.running_ids(proc.stdout or "") if i in planted]
-        self.assertEqual(listed, [])
+        self.assertEqual(listed, [LIVE_RUN_ID])
 
 
 
@@ -1560,7 +1560,7 @@ class HandoffsSection(_OnboardFixture):
         stdout = proc.stdout or ""
         state_i = self.heading_index(stdout, "== state")
         handoffs_i = self.heading_index(stdout, "== handoffs")
-        self.assertGreater(state_i, handoffs_i, stdout)
+        self.assertLess(state_i, handoffs_i, stdout)
         self.assertNotIn("== thread", stdout)
         headings = [ln for ln in stdout.splitlines() if ln.startswith("== ")]
         self.assertEqual(headings[-1], "== handoffs", headings)
@@ -1571,7 +1571,7 @@ class HandoffsSection(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "handoffs")
-        self.assertNotIn("ABSENT", line)
+        self.assertIn("ABSENT", line)
         self.assertIn(str(self.state_store()), line)
         self.assertIn("(none recorded)", line)
         self.assertEqual(self.last_line(stdout), "brief complete")
@@ -1588,7 +1588,7 @@ class HandoffsSection(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "handoffs")
-        self.assertNotEqual(line, "handoffs: open=1 taken=0 done=0")
+        self.assertEqual(line, "handoffs: open=1 taken=0 done=0")
         self.assertIn(HANDOFF_TITLE, stdout)
         self.assertIn(f"T-1 open [H-1] {THREAD_TITLE}", stdout)
         self.assertIn("to next session", stdout)
@@ -1604,7 +1604,7 @@ class HandoffsSection(_OnboardFixture):
         proc = self.invoke()
         stdout = proc.stdout or ""
         line = self.labelled_line(stdout, "handoffs")
-        self.assertNotIn("unavailable", line)
+        self.assertIn("unavailable", line)
         self.assertIn("HANDOFF_STUB_FAIL_MARKER", line)
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.returncode, 1, self.combined(proc))
