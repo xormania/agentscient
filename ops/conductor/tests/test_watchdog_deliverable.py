@@ -11,9 +11,14 @@ branch is `stall`. Without a lock, none of these lines exist.
 from __future__ import annotations
 
 import json
+import os
+import sys
 from datetime import datetime, timedelta, timezone
 
 import test_watchdog as base
+from live_store_guard import IGNORE, TOLERATE_NEW
+
+from ops.testkit import World, run
 
 LOCKED = "lane/deliverable-x"
 OTHER = "lane/other-y"
@@ -27,10 +32,81 @@ def _ago(minutes):
 
 
 class DeliverableLines(base._WatchdogFixture):
+    def setUp(self):
+        self.world = World(prefix="watchdog-deliverable-")
+        self.addCleanup(self.world.close)
+        self._live_watch = self.world.watch(
+            *base._live_store_paths(),
+            ignore=IGNORE,
+            tolerate_new=TOLERATE_NEW,
+            contents=False,
+        )
+        self.root = self.world.root
+        self.home = self.world.home
+        self.xdg = self.world.xdg_state
+        self.scratch = self.world.root / "scratch"
+        self.scratch.mkdir()
+        self.bin = self.world.bin
+        self.store = self.xdg / "agentscient" / "dispatch"
+        self.home_store = self.home / ".local" / "state" / "agentscient" / "dispatch"
+        self.gh = self.bin / "gh"
+        self.argv_log = self.scratch / "gh-argv.jsonl"
+        self.staged = self.world.stage(base.TOOL, siblings=base.SIBLINGS)
+        self.conf = self.staged.parent.parent / "lane.conf"
+        self.world.plant_text(
+            self.conf,
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n",
+        )
+        self._workers = []
+
+    def tearDown(self):
+        try:
+            self._live_watch.assert_unchanged(self)
+        finally:
+            self.world.close()
+
+    def _plant_bytes(self, path, data):
+        self.world.plant_bytes(path, data)
+
+    def dead_pid(self):
+        pid = 1_000_000_000
+        with self.assertRaises(ProcessLookupError):
+            os.kill(pid, 0)
+        return pid
+
+    def invoke(
+        self,
+        argv,
+        *,
+        extra_env=None,
+        xdg=False,
+        timeout=base.RUN_CAP,
+        home=None,
+    ):
+        self.assertIs(xdg, False, "this family uses the world's XDG root")
+        self.assertIsNone(home, "this family uses the world's home")
+        extra = {"LANE_CONF": str(self.conf), "PYTHONUNBUFFERED": "1"}
+        if extra_env:
+            extra.update(extra_env)
+        env = self.world.env(extra)
+        return run(
+            [sys.executable, "-u", str(self.staged), *argv],
+            cwd=base.REPO,
+            env=env,
+            timeout=timeout,
+        )
+
     def plant_lock(self, minutes_ago=120):
         path = self.xdg / "agentscient" / "deliverable.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"branches": [LOCKED], "why": "slice", "by": "Owner <o@x>", "at": _ago(minutes_ago)}) + "\n")
+        self.world.plant_text(
+            path,
+            json.dumps({
+                "branches": [LOCKED],
+                "why": "slice",
+                "by": "Owner <o@x>",
+                "at": _ago(minutes_ago),
+            }) + "\n",
+        )
         self.assertIn(LOCKED, path.read_text(), "plant: lock names the branch")
 
     def plant_closed(self, rec_id, branch, closed_minutes_ago):
@@ -38,7 +114,10 @@ class DeliverableLines(base._WatchdogFixture):
         job_dir = self.plant_job(rec_id, pid=self.dead_pid(), launched=launched)
         payload = self.record_dict(rec_id, status="closed", launched=launched, closed=_ago(closed_minutes_ago), env_status="ok", changed_paths=[])
         payload["lineage"] = {"branch": branch, "base_sha": "0" * 40}
-        (job_dir / "record.json").write_text(json.dumps(payload, indent=2) + "\n")
+        self.world.plant_text(
+            job_dir / "record.json",
+            json.dumps(payload, indent=2) + "\n",
+        )
         return job_dir
 
     def test_no_lock_says_nothing_about_deliverables(self):
