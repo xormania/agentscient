@@ -129,7 +129,7 @@ class ControlTests(unittest.TestCase):
         return json.loads(r.stdout)
 
     def assert_refusal(self, r):
-        self.assertEqual(r.returncode, 0, (r.stdout, r.stderr))
+        self.assertEqual(r.returncode, 2, (r.stdout, r.stderr))
         self.assertEqual(r.stdout, "")
         self.assertRegex(r.stderr, r"^[a-z]+: expected .+; found .+; needed .+\n$")
 
@@ -201,7 +201,7 @@ class ControlTests(unittest.TestCase):
         self.assertGreater(red["testsRun"], 0)
         self.assertGreater(red["failures"], 0)
         self.assertEqual(red["errors"], 0)
-        self.assertEqual(s["green"]["status"], "failed")
+        self.assertEqual(s["green"]["status"], "completed")
         probe = run(
             [sys.executable, "-c", "import impl;print(impl.foo())"],
             cwd=self.repo,
