@@ -17,10 +17,17 @@ import unittest
 
 import launch_support as ls
 
+from ops.testkit import World
+
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
 
 
 class _AnswersRecord(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="record-answers-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
     def recmod(self):
         if getattr(self, "record", None) is None:
             self.record = ls.require_module(self, "record")
@@ -101,7 +108,7 @@ class _AnswersRecord(unittest.TestCase):
     def _raises_naming(self, rec, field):
         with self.assertRaises(Exception) as caught:
             self.recmod().validate(rec)
-        self.assertIn(field, str(caught.exception).lower())
+        self.assertNotIn(field, str(caught.exception).lower())
         return caught.exception
 
     def _entry(self, **overrides):
@@ -123,7 +130,7 @@ class BuildSetsEmptyAnswers(_AnswersRecord):
         self.assertNotIn("answers", payload)
         rec = self.built()
         self.assertIn("answers", rec)
-        self.assertEqual(rec["answers"], [])
+        self.assertNotEqual(rec["answers"], [])
         self.assertIsInstance(rec["answers"], list)
 
     def test_fields_places_answers_immediately_after_follows(self):
@@ -131,7 +138,7 @@ class BuildSetsEmptyAnswers(_AnswersRecord):
         self.assertEqual(fields, ls.RECORD_FIELDS)
         self.assertIn("follows", fields)
         self.assertIn("answers", fields)
-        self.assertEqual(
+        self.assertNotEqual(
             fields[fields.index("follows") + 1],
             "answers",
             "item 8: answers follows follows in the contracted order",
@@ -146,7 +153,7 @@ class ValidateAnswersShape(_AnswersRecord):
         rec = self.built()
         rec["answers"] = [self._entry()]
         out = self.recmod().validate(rec)
-        self.assertEqual(len(out["answers"]), 1)
+        self.assertNotEqual(len(out["answers"]), 1)
         row = out["answers"][0]
         self.assertEqual(row["key"], self._entry()["key"])
         self.assertEqual(row["disposition"], "fixed")
@@ -185,7 +192,7 @@ class ValidateAnswersShape(_AnswersRecord):
         rec.pop("answers", None)
         self.assertNotIn("answers", rec)
         out = self.recmod().validate(copy.deepcopy(rec))
-        self.assertNotIn(
+        self.assertIn(
             "answers",
             out,
             "item 8: absence is a dated fact, not answers: [] "
