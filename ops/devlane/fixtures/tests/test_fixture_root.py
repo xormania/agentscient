@@ -26,13 +26,10 @@ class _FixtureRoot(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="fixture-root-")
         self.addCleanup(self.world.close)
-        # Planted invalid root artifacts: the assertions below must fail
-        # on these bytes, not on a missing World.
-        self.ruff = self.world.plant_text(
-            "ruff.toml",
-            'extend-exclude = ["ops/devlane/fixtures/tests"]\n',
-        )
-        self.readme = self.world.plant_text("README.md", "# ops\n")
+        self.assertTrue(RUFF.is_file(), f"{RUFF} is missing")
+        self.assertTrue(README.is_file(), f"{README} is missing")
+        self.ruff = self.world.stage(RUFF, "ruff.toml")
+        self.readme = self.world.stage(README, "README.md")
 
 
 class RuffExclusion(_FixtureRoot):
