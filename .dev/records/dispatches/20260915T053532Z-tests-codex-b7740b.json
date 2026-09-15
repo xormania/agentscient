@@ -1,0 +1,257 @@
+{
+  "id": "20260915T053532Z-tests-codex-b7740b",
+  "lane": "dev",
+  "stage": "tests",
+  "unit": "lane/session-20260914-b",
+  "lineage": {
+    "branch": "lane/session-20260914-b",
+    "base_sha": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-15T05:35:32Z",
+    "closed": "2026-09-15T05:55:06Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+    "ref_sha": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-34-01a0a390-3ce8-7802-a7ec-3a55d248208e.jsonl"
+  },
+  "session": {
+    "id": "01a0a390-3ce8-7802-a7ec-3a55d248208e",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-34-01a0a390-3ce8-7802-a7ec-3a55d248208e.jsonl",
+    "stream_sha256_at_close": "8eeaac46c7ee53315eb70a10a932f4f7875cbf3f6f03a76c2c0469ae86fcc116",
+    "spend": {
+      "input": 5594955,
+      "cached": 5468032,
+      "output": 21860,
+      "total": 5616815,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-34-01a0a390-3ce8-7802-a7ec-3a55d248208e.jsonl",
+      "messages": 488
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260914-b/ops/devlane/task/jobs.json",
+      "sha256": "26aae8b0bef235159a87cf5542545482299b81fc24211f0da92c5221507e2e7d"
+    },
+    "scope": "Move these modules of ops/conductor/tests onto the kit as in/testkit-migration-guide.md says, touching only them: ops/conductor/tests/test_monitor_git_refs.py. Same test names and counts, worlds through World, every subprocess through run with a timeout, fakes through world.tools or fixture files; commit each module when green; the guide's proof in the envelope.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/in/testkit-migration-guide.md",
+        "sha256": "e859876dae2f874dc2af01c3534a59ff497f9d2a717eb05d382a8014726a7185"
+      }
+    ],
+    "sha256": "1f79f9d40ab4539e6dc3b8954d2a5234c3257535262c603c9979c43ce40d5176",
+    "bytes": 10254,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/lane-mcp.json",
+      "sha256": "8c5c4611ca4016521a7d54e89e41bb15a5726c2e4aa7b3e74627579a8ce6aca1",
+      "job_ids": [
+        "20260915T053530Z-tests-grok-57f552",
+        "20260915T053529Z-tests-codex-91518a",
+        "20260915T053528Z-tests-grok-d94271",
+        "20260915T053527Z-tests-codex-e32f1e",
+        "20260915T053526Z-tests-grok-1a9c2b",
+        "20260915T053525Z-tests-codex-f66d80",
+        "20260915T053524Z-tests-grok-7cb422",
+        "20260915T053523Z-tests-codex-391ada",
+        "20260915T053522Z-tests-grok-8497d2",
+        "20260915T053521Z-tests-codex-928ba9",
+        "20260915T053520Z-tests-grok-c14b8c",
+        "20260915T053518Z-tests-codex-34dc59",
+        "20260915T053517Z-tests-grok-c96ee3",
+        "20260915T053516Z-tests-codex-b41d6c",
+        "20260915T050556Z-tests-grok-688433",
+        "20260915T050130Z-tests-grok-438f06",
+        "20260915T050129Z-tests-codex-4835f9",
+        "20260915T050127Z-tests-codex-4ebecf",
+        "20260915T045629Z-tests-grok-5f6732",
+        "20260915T045627Z-tests-grok-62cb95"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-15T05:35:32Z",
+      "ended": "2026-09-15T05:55:05Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "e8cac46f456484282c53aa6a27b0f93bb7aacda7",
+    "changed_paths": [
+      "ops/conductor/tests/test_monitor_git_refs.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tests/test_monitor_git_refs.py",
+          "claim": "Preserved all 19 test names and count; a planted monitors >= 99 expectation failed its own assertion with 1 found before the restored migrated module passed all 19 tests.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p test_monitor_git_refs.py"
+        }
+      ],
+      "artifacts": {
+        "file": "ops/conductor/tests/test_monitor_git_refs.py",
+        "sha256": "6798df81362d65f5b44984e0af6e02d34eab336781a41ba47117a22ff8d3c68f",
+        "before": "python3 -m unittest discover -s ops/conductor/tests -p test_monitor_git_refs.py -> Ran 19 tests; OK",
+        "red": "Same command with planted monitors >= 99 assertion -> Ran 19 tests; FAILED (failures=1), 1 not greater than or equal to 99",
+        "after": "python3 -m unittest discover -s ops/conductor/tests -p test_monitor_git_refs.py -> Ran 19 tests; OK",
+        "dependent": "python3 -m unittest discover -s ops/conductor/tests -p test_monitor_malformed_git.py -> Ran 4 tests; OK",
+        "family": "python3 -m unittest discover -s ops/conductor/tests -> Ran 1172 tests; FAILED (failures=1): test_probes.TheTrackedCorpusRunsGreen.test_run_over_the_tracked_corpus_exits_zero reported unavailable remotes and absent record refs",
+        "ruff": "ruff check ops/conductor/tests/test_monitor_git_refs.py -> All checks passed!",
+        "ratchet": "home_by_hand: 57 -> 47; embedded_programs: 30 -> 27; run_without_timeout: 185 -> 129; ratchet holds",
+        "commit_attempt": "git add/commit refused: .git/index.lock could not be created because the Git filesystem is read-only"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 5616815,
+        "out": 21860,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "75f657a1d2f6054e94a8759d7bc1f67677fa47a9",
+        "started": null,
+        "ended": "2026-09-15T05:54:23Z"
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes\nWorld owns the temporary roots and environment; every subprocess in the migrated module uses run with an explicit timeout; Git passthrough and injected failures use world.tools. Kit gap: the inherited fixture and dependent regression still consume CompletedProcess.returncode and JSON-array Git logs, so local compatibility views preserve those interfaces over Result and the kit call log. No regression rows were added because this is a behavior-preserving migration. Test names are unchanged. The migration guide, docs/tests.md, kit modules/tests, lane brief/jobs/changes/findings, and applicable repository contracts were read whole. The implementation and session store were not read. Only the scoped module changed. The full family\u2019s sole remaining failure is outside the scoped module and names unavailable repository remotes/refs. Commit was attempted after green proof and denied by the read-only Git index; finished work remains on disk.",
+      "commit": {
+        "subject": "test(conductor): migrate monitor git refs onto testkit",
+        "body": "Red: test_valid_git_refs_params_pass_check_without_observing failed its planted monitors >= 99 assertion (1 found); green: 19 tests pass. One producer; second producer absent.\n\nSource: original\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 9,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260915T053532Z-tests-codex-b7740b/home/codex-stream/sessions/2026/09/15/rollout-2026-09-15T01-35-34-01a0a390-3ce8-7802-a7ec-3a55d248208e.jsonl"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes\nWorld owns the temporary roots and environment; every subprocess in the migrated module uses run with an explicit timeout; Git passthrough and injected failures use world.tools. Kit gap: the inherited fixture and dependent regression still consume CompletedProcess.returncode and JSON-array Git logs, so local compatibility views preserve those interfaces over Result and the kit call log. No regression rows were added because this is a behavior-preserving migration. Test names are unchanged. The migration guide, docs/tests.md, kit modules/tests, lane brief/jobs/changes/findings, and applicable repository contracts were read whole. The implementation and session store were not read. Only the scoped module changed. The full family\u2019s sole remaining failure is outside the scoped module and names unavailable repository remotes/refs. Commit was attempted after green proof and denied by the read-only Git index; finished work remains on disk.",
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-15T05:55:04.944Z"
+    }
+  },
+  "status": "closed"
+}
