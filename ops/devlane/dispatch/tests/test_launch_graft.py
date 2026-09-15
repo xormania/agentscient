@@ -16,6 +16,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 FAKE_PY = ls.HARNESS_DIR / "tests" / "fakes" / "graft_bridge.py"
 GRAFT_PY = ls.HARNESS_DIR / "graft.py"
 PIN_PATH = ls.HARNESS_DIR / "graft" / "pin.json"
@@ -91,23 +93,36 @@ class _GraftLaunch(ls._TempLaunch):
         needle = "raise SystemExit(exit_code)"
         self.assertIn(needle, body)
         snippet = f"""
+import contextlib as graft_contextlib
+import io as graft_io
+import runpy as graft_runpy
 graft_ctx = Path(os.getcwd()).parent / "context" / "graft.json"
 graft_py = Path({str(GRAFT_PY)!r})
 graft_wit = Path(os.getcwd()).parent / "graft-query.witness"
 if graft_ctx.is_file() and graft_py.is_file():
-    gq = subprocess.run(
-        [sys.executable, str(graft_py), "query", "--context", str(graft_ctx),
-         "graft_repo_map", "{{}}"],
-        capture_output=True, text=True,
-    )
+    graft_out, graft_err = graft_io.StringIO(), graft_io.StringIO()
+    graft_argv = sys.argv
+    sys.argv = [str(graft_py), "query", "--context", str(graft_ctx),
+                "graft_repo_map", "{{}}"]
+    try:
+        with graft_contextlib.redirect_stdout(graft_out), graft_contextlib.redirect_stderr(graft_err):
+            try:
+                graft_runpy.run_path(str(graft_py), run_name="__main__")
+            except SystemExit as exc:
+                graft_code = 0 if exc.code is None else int(exc.code)
+            else:
+                graft_code = 0
+    finally:
+        sys.argv = graft_argv
     graft_wit.write_text(json.dumps({{
-        "code": gq.returncode,
-        "out": gq.stdout,
-        "err": gq.stderr,
+        "code": graft_code,
+        "out": graft_out.getvalue(),
+        "err": graft_err.getvalue(),
     }}) + "\\n", encoding="utf-8")
 """
-        dest.write_text(body.replace(needle, snippet + "\n" + needle, 1), encoding="utf-8")
-        return dest
+        return self.world.tools.plant(
+            name, script=body.replace(needle, snippet + "\n" + needle, 1),
+        )
 
 
 class DisabledJobsAreByteStable(_GraftLaunch):
@@ -254,7 +269,7 @@ class ResumeAndBriefCheck(_GraftLaunch):
         self.assertTrue(desc_path.is_file())
         desc = json.loads(desc_path.read_text(encoding="utf-8"))
         desc["root"] = str(self.home / "other-snapshot")
-        desc_path.write_text(json.dumps(desc) + "\n", encoding="utf-8")
+        self.world.plant_text(desc_path, json.dumps(desc) + "\n")
         self.start_witness.unlink(missing_ok=True)
         code, out, err = self.run_main(["resume", rec["id"]])
         self.assertNotEqual(code, 0)
@@ -269,7 +284,7 @@ class ResumeAndBriefCheck(_GraftLaunch):
         for path in (self.the_record_path(), self.the_job_dir() / "record.json"):
             data = json.loads(path.read_text(encoding="utf-8"))
             data["brief"]["graft"]["sha256"] = bogus
-            path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+            self.world.plant_text(path, json.dumps(data, indent=2) + "\n")
         code, out, err = self.run_main(["brief", "--check", rec["id"]])
         self.assertNotEqual(code, 0, err + out)
         text = ((out or "") + (err or "")).lower()

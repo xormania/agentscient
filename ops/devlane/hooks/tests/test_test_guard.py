@@ -5,12 +5,23 @@ files that must stay quiet. They live here as triple-quoted data so
 scanning THIS file does not treat the examples as plants.
 """
 
-import shutil
-import tempfile
+import importlib.util
+import sys
 import unittest
 from pathlib import Path
 
-import support
+from ops.testkit import World
+
+HOOK = Path(__file__).resolve().parents[1] / "claude" / "test-guard.py"
+
+
+def load_staged(world):
+    staged = world.stage(HOOK)
+    spec = importlib.util.spec_from_file_location("test_guard", staged)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 # Copied from test-guard.py's in-file table. 10 rows: 4 that must flag,
 # 6 that must not.
@@ -87,15 +98,20 @@ printf 'literal\\n' > "$F"
 class TestGuardCorpus(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.mod = support.load_claude("test-guard.py", "test_guard")
+        cls.world = World(prefix="tg-corpus-")
+        cls.world.enter()
+        cls.mod = load_staged(cls.world)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.world.close()
 
     def setUp(self):
         # The scanner treats a path as a test file when the PATH matches
         # a test-ish regex. A tempdir named `test-…` would make a
         # release script look like a test. The original --test used
         # tempfile's `tmp*` prefix, which does not match.
-        self.tmp = Path(tempfile.mkdtemp(prefix="tg-corpus-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
+        self.tmp = self.world.cwd
 
     def test_the_moved_tables_are_the_tables_that_were_there(self):
         self.assertEqual(len(CASES), 10)
@@ -109,7 +125,7 @@ class TestGuardCorpus(unittest.TestCase):
         for i, (name, body, want) in enumerate(CASES):
             with self.subTest(name=name, want=want, i=i):
                 path = self.tmp / f"{i}_{name}"
-                support.plant_text(path, body, recognisable=body.strip()[:12])
+                self.world.plant_text(path, body, recognisable=body.strip()[:12])
                 landed = path.read_text(encoding="utf-8")
                 self.assertEqual(landed, body, "INVALID: plant did not land")
                 self.assertNotEqual(landed, "", "INVALID: plant emptied the file")

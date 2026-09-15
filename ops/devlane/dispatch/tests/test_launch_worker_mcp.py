@@ -22,12 +22,16 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 import launch_support as ls
+
+from ops.testkit import (
+    World,  # noqa: F401 - _TempLaunch owns the world
+    run,
+)
 
 REPO = Path(__file__).resolve().parents[4]
 LANE_MCP = REPO / "ops" / "conductor" / "tools" / "lane_mcp.py"
@@ -79,13 +83,18 @@ class TheConfigIsWrittenAndValid(_Wired):
         self.assertEqual(data["job_registry"], str(self.jobs_file))
         self.assertEqual(Path(data["dispatch_store"]), self.job_dir(rec).parent)
         self.assertIsInstance(data["job_ids"], list)
-        proc = subprocess.run([sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
-                              capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = run(
+            [sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
+            cwd=self.repo, env=self.world.env(), timeout=60,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout), {"tools": 7, "valid": True})
-        proc = subprocess.run([sys.executable, "-B", str(LANE_MCP), "--config", str(cfg),
-                               "query", "lane_jobs", "{}"], capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = run(
+            [sys.executable, "-B", str(LANE_MCP), "--config", str(cfg),
+             "query", "lane_jobs", "{}"],
+            cwd=self.repo, env=self.world.env(), timeout=60,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
         names = {j["name"] for j in json.loads(proc.stdout)["jobs"]}
         self.assertIn("plan", names)
         mcp = rec["brief"]["mcp"]
@@ -172,9 +181,11 @@ class ARelocatedJobIsRewiredOnResume(_Wired):
         cfg = new_job / "lane-mcp.json"
         data = json.loads(cfg.read_text(encoding="utf-8"))
         self.assertEqual(Path(data["dispatch_store"]).resolve(), new_job.parent.resolve())
-        proc = subprocess.run([sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
-                              capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        proc = run(
+            [sys.executable, "-B", str(LANE_MCP), "--config", str(cfg), "check"],
+            cwd=self.repo, env=self.world.env(), timeout=60,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout), {"tools": 7, "valid": True})
         home = Path(self.read_witness()["env"]["GROK_HOME"])
         self.assertEqual(home, new_job / "home" / "grok")

@@ -2,20 +2,23 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import re
-import subprocess
 import sys
-import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
+from ops.testkit import Result, World, run
+
 HERE = Path(__file__).resolve()
 APP = HERE.parents[2]
 WORTH = HERE.parents[1] / "worth.py"
 STORES_PATH = APP / "fixtures" / "stores.py"
+TIMEOUT = 60
+
+# Kit gap: worth.py locates conductor siblings from Path(__file__), so
+# this family runs the tree file through run rather than staging it.
 
 SPEC = importlib.util.spec_from_file_location("worth_test_stores", STORES_PATH)
 if SPEC is None or SPEC.loader is None:
@@ -27,6 +30,14 @@ NOW = "2026-08-22T12:00:00.000Z"
 DEFAULT_SINCE = "2026-08-21T12:00:00.000Z"
 WINDOW_SINCE = "2026-08-22T12:00:00.000Z"
 WINDOW_UNTIL = "2026-08-22T12:05:00.000Z"
+
+
+class WorthResult(Result):
+    """Kit Result with the CompletedProcess.returncode name assertions use."""
+
+    @property
+    def returncode(self):
+        return self.exit
 
 
 def iso_epoch(value):
@@ -75,9 +86,10 @@ class WorthContractTests(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix="worth-contract-")
-        self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
+        self.world = World(prefix="worth-contract-")
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        self.root = self.world.root
         self.repo = self.root / "repo"
         self.repo.mkdir()
 
@@ -95,28 +107,32 @@ class WorthContractTests(unittest.TestCase):
         )
 
     def _git_env(self, when=None):
-        env = os.environ.copy()
-        env.update({
-            "LC_ALL": "C",
-            "TZ": "UTC",
-            "GIT_CONFIG_NOSYSTEM": "1",
-            "GIT_CONFIG_GLOBAL": os.devnull,
-        })
+        extra = {"TZ": "UTC"}
         if when is not None:
             fixed = git_date(when)
-            env["GIT_AUTHOR_DATE"] = fixed
-            env["GIT_COMMITTER_DATE"] = fixed
-        return env
+            extra.update({
+                "GIT_AUTHOR_DATE": fixed,
+                "GIT_COMMITTER_DATE": fixed,
+            })
+        return self.world.env(extra)
+
+    def _wrap(self, result):
+        return WorthResult(
+            result.argv,
+            result.exit,
+            result.stdout,
+            result.stderr,
+            result.duration,
+            result.cwd,
+        )
 
     def _git(self, *args, when=None, check=True):
-        proc = subprocess.run(
+        proc = self._wrap(run(
             ["git", *args],
             cwd=self.repo,
             env=self._git_env(when),
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+            timeout=TIMEOUT,
+        ))
         if check:
             self.assertEqual(
                 proc.returncode,
@@ -127,9 +143,7 @@ class WorthContractTests(unittest.TestCase):
         return proc
 
     def _write_repo_file(self, relative, content):
-        path = self.repo / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        path = self.world.plant_text(self.repo / relative, content)
         self.assertEqual(path.read_text(encoding="utf-8"), content)
         return path
 
@@ -187,10 +201,9 @@ class WorthContractTests(unittest.TestCase):
         return "-" + "-".join(repo.strip("/").split("/"))
 
     def _write_jsonl(self, path, entries):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
+        self.world.plant_text(
+            path,
             "".join(json.dumps(entry, sort_keys=True) + "\n" for entry in entries),
-            encoding="utf-8",
         )
         planted = json_lines(path)
         self.assertEqual(len(planted), len(entries))
@@ -381,21 +394,12 @@ class WorthContractTests(unittest.TestCase):
             str(self.grok),
         ]
         self.assertEqual(cmd.count("--now"), 1)
-        return subprocess.run(
+        return self._wrap(run(
             cmd,
-            cwd=self.root,
-            env={
-                **os.environ,
-                "LC_ALL": "C",
-                "TZ": "Etc/GMT+11",
-                "HOME": str(self.root / "empty-home"),
-                "GIT_CONFIG_NOSYSTEM": "1",
-                "GIT_CONFIG_GLOBAL": os.devnull,
-            },
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+            cwd=self.world.cwd,
+            env=self.world.env({"TZ": "Etc/GMT+11"}),
+            timeout=TIMEOUT,
+        ))
 
     def _json_worth(self, verb, *args, now=NOW, repo=None):
         proc = self._run_worth(
@@ -1046,8 +1050,7 @@ class WorthContractTests(unittest.TestCase):
         malformed_claude = (
             self.claude / self._slug() / "malformed-claude.jsonl"
         )
-        malformed_claude.parent.mkdir(parents=True, exist_ok=True)
-        malformed_claude.write_text("{not-json\n", encoding="utf-8")
+        self.world.plant_text(malformed_claude, "{not-json\n")
         self.assertEqual(
             malformed_claude.read_text(encoding="utf-8"),
             "{not-json\n",
@@ -1058,8 +1061,7 @@ class WorthContractTests(unittest.TestCase):
             self.codex / "sessions" / "2026" / "08" / "22"
             / "rollout-malformed-codex.jsonl"
         )
-        malformed_codex.parent.mkdir(parents=True, exist_ok=True)
-        malformed_codex.write_text("[not-json\n", encoding="utf-8")
+        self.world.plant_text(malformed_codex, "[not-json\n")
         self.assertEqual(
             malformed_codex.read_text(encoding="utf-8"),
             "[not-json\n",
@@ -1070,11 +1072,7 @@ class WorthContractTests(unittest.TestCase):
             self.grok / "sessions" / quote(str(self.repo), safe="")
             / "malformed-grok"
         )
-        malformed_grok.mkdir(parents=True)
-        (malformed_grok / "summary.json").write_text(
-            "not-json",
-            encoding="utf-8",
-        )
+        self.world.plant_text(malformed_grok / "summary.json", "not-json")
         self.assertEqual(
             (malformed_grok / "summary.json").read_text(encoding="utf-8"),
             "not-json",

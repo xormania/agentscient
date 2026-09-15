@@ -9,53 +9,64 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
+from ops.testkit import World, run
+
 TOOL = Path(__file__).resolve().parents[1] / "tools" / "watchdog.py"
+SIBLINGS = ("instrument.py", "laneconf.py")
 BAD = "20260904T100000Z-tests-grok-bad001"
 GOOD = "20260904T200000Z-tests-grok-good01"
 
 
 class HeldFileIsolation(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="watchdog-files-")
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
-        self.store = self.root / "dispatch"
-        self.store.mkdir()
+        self.world = World(prefix="watchdog-files-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.root
+        self.store = self.world.xdg_state / "agentscient" / "dispatch"
+        self.store.mkdir(parents=True)
+        self.staged = self.world.stage(TOOL, siblings=SIBLINGS)
+        self.conf = self.staged.parent.parent / "lane.conf"
+        self.world.plant_text(
+            self.conf,
+            "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\n",
+        )
         self.bad = self.plant(BAD)
         good = self.plant(GOOD)
-        (good / "raw.out").write_text("errors=2\n", encoding="utf-8")
+        self.world.plant_text(good / "raw.out", "errors=2\n")
 
     def plant(self, ident):
         job = self.store / ident
         job.mkdir()
-        (job / "record.json").write_text(json.dumps({
-            "id": ident, "job": "author-tests", "status": "closed",
-            "harness": {"name": "grok"}, "caps": {"timeout": 600},
-            "at": {"launched": "2026-09-04T10:00:00Z",
-                   "closed": "2026-09-04T10:05:00Z"},
-            "result": {"envelope": {"status": "ok", "findings": []},
-                       "changed_paths": []},
-        }), encoding="utf-8")
-        (job / "state.json").write_text("{}", encoding="utf-8")
+        self.world.plant_text(
+            job / "record.json",
+            json.dumps({
+                "id": ident, "job": "author-tests", "status": "closed",
+                "harness": {"name": "grok"}, "caps": {"timeout": 600},
+                "at": {"launched": "2026-09-04T10:00:00Z",
+                       "closed": "2026-09-04T10:05:00Z"},
+                "result": {"envelope": {"status": "ok", "findings": []},
+                           "changed_paths": []},
+            }),
+        )
+        self.world.plant_text(job / "state.json", "{}")
         return job
 
     def observe(self):
-        env = dict(os.environ, HOME=str(self.root), XDG_STATE_HOME=str(self.root),
-                   DISPATCH_JOBS=str(self.store), PYTHONDONTWRITEBYTECODE="1")
-        result = subprocess.run(
-            [sys.executable, str(TOOL), "--store", str(self.store),
+        env = self.world.env({
+            "DISPATCH_JOBS": str(self.store),
+            "LANE_CONF": str(self.conf),
+        })
+        result = run(
+            [sys.executable, str(self.staged), "--store", str(self.store),
              "--once", "--no-forge", "--report-existing",
              "--heartbeat-every", "1"],
-            cwd=self.root, env=env, capture_output=True, text=True,
-            timeout=4, check=False,
+            cwd=self.world.cwd, env=env, timeout=4,
         )
-        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.exit, 0, result.stderr)
         self.assertIn("deviation errors " + GOOD, result.stdout)
         self.assertIn("heartbeat:", result.stdout)
         self.assertIn("watchdog error:", result.stdout)
@@ -71,7 +82,7 @@ class HeldFileIsolation(unittest.TestCase):
 
     def test_symlink_outside_job_is_not_read_as_held_output(self):
         outside = self.root / "outside.txt"
-        outside.write_text("scope-cap: SYNTHETIC-PRIVATE-MARKER\n", encoding="utf-8")
+        self.world.plant_text(outside, "scope-cap: SYNTHETIC-PRIVATE-MARKER\n")
         (self.bad / "raw.out").symlink_to(outside)
         output = self.observe()
         self.assertNotIn("deviation refused " + BAD, output)
@@ -86,4 +97,3 @@ class HeldFileIsolation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

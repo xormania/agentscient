@@ -6,6 +6,8 @@ import unittest
 import test_breaker as breaker_contract
 import test_breaker_grok as grok_contract
 
+from ops.testkit import World  # noqa: F401 - the import rule (docs/tests.md rule 1)
+
 
 class BreakerScenarios(unittest.TestCase):
     def breaker_fixture(self):
@@ -30,7 +32,7 @@ class BreakerScenarios(unittest.TestCase):
         planted = breaker_contract.claude_line(
             "output-heavy", out=600, inp=5, cached=0
         )
-        fixture.stream.write_text(planted)
+        fixture.plant_stream(planted)
         self.assertEqual(
             fixture.stream.read_text(),
             planted,
@@ -40,7 +42,7 @@ class BreakerScenarios(unittest.TestCase):
         proc = fixture.run_once("--cap", "1000", "--cap-out", "500")
 
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             breaker_contract.EXIT_TRIPPED,
             proc.stderr,
         )
@@ -56,7 +58,7 @@ class BreakerScenarios(unittest.TestCase):
         planted = breaker_contract.claude_line(
             "would-trip", out=600, inp=5, cached=0
         )
-        fixture.stream.write_text(planted)
+        fixture.plant_stream(planted)
         self.assertEqual(
             fixture.stream.read_text(),
             planted,
@@ -67,11 +69,11 @@ class BreakerScenarios(unittest.TestCase):
         disarmed = fixture.run_once()
 
         self.assertEqual(
-            armed.returncode,
+            armed.exit,
             breaker_contract.EXIT_TRIPPED,
             "the control did not prove this stream can trip a nonzero cap",
         )
-        self.assertEqual(disarmed.returncode, 0, disarmed.stderr)
+        self.assertEqual(disarmed.exit, 0, disarmed.stderr)
 
     def test_batch_and_non_numeric_records_do_not_charge_or_crash(self):
         """Scenario: a malformed record neither kills the battery nor counts"""

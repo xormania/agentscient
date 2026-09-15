@@ -3,12 +3,12 @@
 import importlib.util
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import quote
+
+from ops.testkit import World, run
 
 HERE = Path(__file__).resolve()
 PULSE = HERE.parents[1] / "pulse.py"
@@ -113,9 +113,9 @@ class PulseCase(unittest.TestCase):
             STORES,
             "agentscient_fixture_stores_for_pulse",
         )
-        self.temp = tempfile.TemporaryDirectory(prefix="pulse-contract-")
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.world = World(prefix="pulse-contract-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.root
         self.claude_root = self.root / "claude"
         self.codex_root = self.root / "codex"
         self.grok_root = self.root / "grok"
@@ -355,7 +355,8 @@ class PulseCase(unittest.TestCase):
             for key, value in original_usage.items()
         }
         entries[-1]["message"]["usage"] = grown_usage
-        stream.write_text(
+        self.world.plant_text(
+            stream,
             "".join(
                 json.dumps(
                     entry,
@@ -514,7 +515,7 @@ class PulseCase(unittest.TestCase):
                 )
 
     def run_pulse(self, *args):
-        return subprocess.run(
+        return run(
             [
                 sys.executable,
                 str(PULSE),
@@ -528,9 +529,9 @@ class PulseCase(unittest.TestCase):
                 "--grok-dir",
                 str(self.grok_root),
             ],
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=60,
         )
 
 
@@ -603,7 +604,7 @@ class LiveJsonStatus(PulseCase):
             "20",
         )
         self.assertEqual(
-            first.returncode,
+            first.exit,
             0,
             f"{PULSE} --json failed: {first.stderr}",
         )
@@ -615,7 +616,7 @@ class LiveJsonStatus(PulseCase):
             "20",
         )
         self.assertEqual(
-            second.returncode,
+            second.exit,
             0,
             f"{PULSE} --json was not repeatable: {second.stderr}",
         )
@@ -802,7 +803,7 @@ class LiveJsonStatus(PulseCase):
             "20",
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"{PULSE} failed on a byte-identical re-emit: {proc.stderr}",
         )
@@ -836,7 +837,7 @@ class CompactPlainStatus(PulseCase):
             "2",
         )
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"{PULSE} plain output failed: {proc.stderr}",
         )
@@ -959,7 +960,7 @@ class LivenessAndFiltering(PulseCase):
 
         proc = self.run_pulse("--json", "--repo", REPO)
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"{PULSE} failed while applying liveness filters: {proc.stderr}",
         )
@@ -998,7 +999,7 @@ class LivenessAndFiltering(PulseCase):
             "600",
         )
         self.assertEqual(
-            included.returncode,
+            included.exit,
             0,
             f"{PULSE} rejected --live-window 600: {included.stderr}",
         )
@@ -1021,7 +1022,7 @@ class LivenessAndFiltering(PulseCase):
             "599",
         )
         self.assertEqual(
-            excluded.returncode,
+            excluded.exit,
             0,
             f"{PULSE} rejected --live-window 599: {excluded.stderr}",
         )
@@ -1082,7 +1083,7 @@ class LivenessAndFiltering(PulseCase):
     def invoke_grok_only(self):
         proc = self.run_pulse("--json", "--repo", REPO)
         self.assertEqual(
-            proc.returncode,
+            proc.exit,
             0,
             f"{PULSE} failed on the divergent-mtime build: {proc.stderr}",
         )
@@ -1095,7 +1096,7 @@ class LivenessAndFiltering(PulseCase):
 
         plain = self.run_pulse("--repo", REPO)
         self.assertEqual(
-            plain.returncode,
+            plain.exit,
             0,
             f"{PULSE} plain empty status failed: {plain.stderr}",
         )
@@ -1107,7 +1108,7 @@ class LivenessAndFiltering(PulseCase):
 
         structured = self.run_pulse("--json", "--repo", REPO)
         self.assertEqual(
-            structured.returncode,
+            structured.exit,
             0,
             f"{PULSE} JSON empty status failed: {structured.stderr}",
         )

@@ -27,14 +27,14 @@ import importlib.util
 import io
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from contextlib import redirect_stderr
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -86,8 +86,8 @@ PRIVATE_NAMES = frozenset({
 })
 
 
-def load():
-    spec = importlib.util.spec_from_file_location("instrument_under_test", MODULE)
+def load(path=MODULE):
+    spec = importlib.util.spec_from_file_location("instrument_under_test", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -101,7 +101,9 @@ class TheModuleIsPresent(unittest.TestCase):
 class TheRefusalWire(unittest.TestCase):
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
-        self.m = load()
+        self.world = World(prefix="instrument-wire-")
+        self.addCleanup(self.world.close)
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
 
     def test_refuse_raises_a_refusal_whose_text_is_the_wire_line(self):
         with self.assertRaises(self.m.Refusal) as caught:
@@ -141,7 +143,10 @@ class TheRefusalWire(unittest.TestCase):
 class Identity(unittest.TestCase):
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
-        self.m = load()
+        self.world = World(prefix="instrument-identity-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
 
     def refusal_for(self, value):
         env = {k: v for k, v in os.environ.items() if k != "WF_AGENT"}
@@ -185,7 +190,9 @@ class Identity(unittest.TestCase):
 class TheClock(unittest.TestCase):
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
-        self.m = load()
+        self.world = World(prefix="instrument-clock-")
+        self.addCleanup(self.world.close)
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
 
     def test_now_is_aware_utc(self):
         value = self.m.now()
@@ -215,44 +222,41 @@ class TheClock(unittest.TestCase):
 class TheStateRootAndTheConf(unittest.TestCase):
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
-        self.m = load()
-        self.tmp = Path(tempfile.mkdtemp(prefix="instrument-"))
-        self.addCleanup(lambda: __import__("shutil").rmtree(self.tmp, ignore_errors=True))
+        self.world = World(prefix="instrument-state-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.tmp = self.world.root
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
 
     def test_state_root_honors_xdg_state_home(self):
-        with mock.patch.dict(os.environ, {"XDG_STATE_HOME": str(self.tmp / "xdg")}):
-            self.assertEqual(self.m.state_root(), self.tmp / "xdg")
+        self.assertEqual(self.m.state_root(), self.world.xdg_state)
 
     def test_state_root_falls_back_to_home_local_state(self):
         env = {k: v for k, v in os.environ.items() if k != "XDG_STATE_HOME"}
-        env["HOME"] = str(self.tmp / "home")
         with mock.patch.dict(os.environ, env, clear=True):
-            self.assertEqual(self.m.state_root(), self.tmp / "home" / ".local" / "state")
+            self.assertEqual(self.m.state_root(), self.world.home / ".local" / "state")
 
     def test_conf_reads_the_lane_conf_named_by_lane_conf(self):
-        conf = self.tmp / "lane.conf"
-        conf.write_text("LANE_NAME='testlane'\n", encoding="utf-8")
+        conf = self.world.plant_text("read-lane.conf", "LANE_NAME='testlane'\n")
         with mock.patch.dict(os.environ, {"LANE_CONF": str(conf)}):
             self.assertEqual(self.m.conf("LANE_NAME"), "testlane")
             self.assertEqual(self.m.lane_name(), "testlane")
 
     def test_state_dir_is_the_lane_under_the_state_root(self):
-        conf = self.tmp / "lane.conf"
-        conf.write_text("LANE_NAME='testlane'\n", encoding="utf-8")
-        env = {"LANE_CONF": str(conf), "XDG_STATE_HOME": str(self.tmp / "xdg")}
+        conf = self.world.plant_text("state-lane.conf", "LANE_NAME='testlane'\n")
+        env = {"LANE_CONF": str(conf)}
         with mock.patch.dict(os.environ, env):
-            self.assertEqual(self.m.state_dir(), self.tmp / "xdg" / "testlane")
+            self.assertEqual(self.m.state_dir(), self.world.xdg_state / "testlane")
 
     def test_a_staged_copy_names_its_conf_or_refuses_conf_file(self):
         """A copy of the module staged beside a copy of a tool has no
         tracked conf beside it. No name stands in: with nothing named
         it refuses conf-file, and a LANE_CONF names the conf it reads.
         The module itself carries no lane-name literal."""
-        staged = self.tmp / "staged"
-        staged.mkdir()
-        for name in ("instrument.py", "laneconf.py"):
-            (staged / name).write_bytes((TOOLS / name).read_bytes())
-        spec = importlib.util.spec_from_file_location("instrument_staged", staged / "instrument.py")
+        staged = self.world.stage(
+            MODULE, "second/instrument.py", siblings=("laneconf.py",)
+        )
+        spec = importlib.util.spec_from_file_location("instrument_staged", staged)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         env = {k: v for k, v in os.environ.items() if k not in ("LANE_CONF", "LANE_NAME")}
@@ -262,8 +266,7 @@ class TheStateRootAndTheConf(unittest.TestCase):
         ):
             module.lane_name()
         self.assertEqual(caught.exception.kind, "conf-file")
-        conf = self.tmp / "named.conf"
-        conf.write_text("LANE_NAME='namedlane'\n", encoding="utf-8")
+        conf = self.world.plant_text("named.conf", "LANE_NAME='namedlane'\n")
         env["LANE_CONF"] = str(conf)
         with mock.patch.dict(os.environ, env, clear=True):
             self.assertEqual(module.lane_name(), "namedlane")
@@ -272,8 +275,7 @@ class TheStateRootAndTheConf(unittest.TestCase):
         self.assertNotIn('"agentscient"', source)
 
     def test_a_missing_key_refuses_conf_key(self):
-        conf = self.tmp / "lane.conf"
-        conf.write_text("LANE_NAME='testlane'\n", encoding="utf-8")
+        conf = self.world.plant_text("missing-key.conf", "LANE_NAME='testlane'\n")
         with (
             mock.patch.dict(os.environ, {"LANE_CONF": str(conf)}),
             self.assertRaises(self.m.Refusal) as caught,
@@ -294,7 +296,10 @@ class TheStateRootAndTheConf(unittest.TestCase):
 class TheBoundedCall(unittest.TestCase):
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
-        self.m = load()
+        self.world = World(prefix="instrument-call-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
 
     def test_run_returns_the_completed_process_without_a_shell(self):
         result = self.m.run([sys.executable, "-c", "print('ok')"])
@@ -323,26 +328,22 @@ class TheCommandLine(unittest.TestCase):
 
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
-        self.home = tempfile.mkdtemp(prefix="instrument-home-")
-        self.addCleanup(lambda: __import__("shutil").rmtree(self.home, ignore_errors=True))
+        self.world = World(prefix="instrument-home-")
+        self.addCleanup(self.world.close)
+        self.module = self.world.stage(MODULE, siblings=("laneconf.py",))
 
     def invoke(self, *argv, agent=None):
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": self.home,
-            "LC_ALL": "C",
-            "PYTHONDONTWRITEBYTECODE": "1",
-        }
+        extra = {}
         if agent is not None:
-            env["WF_AGENT"] = agent
-        return subprocess.run(
-            [sys.executable, str(MODULE), *argv],
-            cwd=self.home, env=env, capture_output=True, text=True, check=False, timeout=60,
+            extra["WF_AGENT"] = agent
+        return run(
+            [sys.executable, str(self.module), *argv], cwd=self.world.cwd,
+            env=self.world.env(extra), timeout=60,
         )
 
     def test_identity_without_wf_agent_refuses_on_the_wire(self):
         proc = self.invoke("identity")
-        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stderr)
         self.assertEqual(proc.stdout, "")
         lines = proc.stderr.splitlines()
         self.assertEqual(len(lines), 1, proc.stderr)
@@ -350,13 +351,13 @@ class TheCommandLine(unittest.TestCase):
 
     def test_identity_with_wf_agent_prints_it(self):
         proc = self.invoke("identity", agent=AGENT)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout, AGENT + "\n")
         self.assertEqual(proc.stderr, "")
 
     def test_refuse_emits_the_given_refusal(self):
         proc = self.invoke("refuse", "scope", "one job", "two jobs", "split them")
-        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.exit, 2)
         self.assertEqual(proc.stdout, "")
         self.assertEqual(
             proc.stderr, "scope: expected one job; found two jobs; needed split them\n"
@@ -364,7 +365,7 @@ class TheCommandLine(unittest.TestCase):
 
     def test_an_unknown_verb_refuses_arguments(self):
         proc = self.invoke("dance")
-        self.assertEqual(proc.returncode, 2)
+        self.assertEqual(proc.exit, 2)
         self.assertEqual(proc.stdout, "")
         self.assertRegex(proc.stderr, r"^arguments: expected .*; found dance; needed .*\n$")
 

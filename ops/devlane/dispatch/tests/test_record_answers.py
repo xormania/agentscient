@@ -17,10 +17,17 @@ import unittest
 
 import launch_support as ls
 
+from ops.testkit import World
+
 SCOPE_REL = ".dev/ladder-inputs/scope-gate-20260910.md"
 
 
 class _AnswersRecord(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="record-answers-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+
     def recmod(self):
         if getattr(self, "record", None) is None:
             self.record = ls.require_module(self, "record")

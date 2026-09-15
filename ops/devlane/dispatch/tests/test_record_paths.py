@@ -12,40 +12,34 @@ it yourself real quick"); the residual is declared in the PR.
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import os
 import re
-import sys
-import tempfile
 import unittest
 import urllib.parse
-from pathlib import Path
 from unittest import mock
 
-HERE = Path(__file__).resolve().parent
-LAUNCH = HERE.parent / "launch.py"
+import launch_support as ls
 
-
-def _load_launch():
-    sys.path.insert(0, str(HERE.parent))
-    spec = importlib.util.spec_from_file_location("launch_under_test", LAUNCH)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+from ops.testkit import World, hermetic_env
 
 
 class RecordPathsArePortable(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.home = self.tmp / "home" / "acmeuser"
+        self.world = World(prefix="record-paths-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.home = self.world.root / "home" / "acmeuser"
         self.store = self.home / ".local/state/agentscient/dispatch"
         self.store.mkdir(parents=True)
-        self.env = mock.patch.dict(os.environ, {"HOME": str(self.home)}, clear=False)
+        env = hermetic_env(
+            self.home,
+            tmp=self.world.tmp,
+            bin=self.world.bin,
+        )
+        self.env = mock.patch.dict(os.environ, env, clear=True)
         self.env.start()
-        os.environ.pop("DISPATCH_JOBS", None)
-        os.environ.pop("XDG_STATE_HOME", None)
-        self.launch = _load_launch()
+        self.launch = ls.require_module(self, "launch")
         self.job = "20260903T000000Z-plan-claude-abc123"
         self.snapshot = str(self.store / self.job / "snapshot")
         self.slug = self.snapshot.replace("/", "-").replace(".", "-")

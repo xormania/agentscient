@@ -5,13 +5,16 @@ Invoked as ``[absolute_node, absolute_bridge, absolute_graft_directory]``.
 One UTF-8 JSON object on stdin; one JSON object on stdout. No network.
 Transcript lands at ``<install>/fake-transcript.jsonl`` so a suite can
 prove the build and query arms actually ran.
+
+Helpers import the kit (World, run, plant_text/plant_bytes). The planted
+node copy of this file is executed as argv[0] and must stay stdlib-only
+at import, so those imports live inside the helpers, not at module level.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
-import stat
 import sys
 from pathlib import Path
 
@@ -191,76 +194,83 @@ def _runtime_files(graft: Path) -> list[Path]:
 
 def plant_install(destination: Path, *, pin: dict | None = None, mode: str = "ok") -> Path:
     """Write a completed fake install tree. Does not download or run npm."""
+    from ops.testkit import World, make_executable
+
     dest = Path(destination)
     if dest.exists() and any(dest.iterdir()):
         raise FileExistsError(f"nonempty destination: {dest}")
     dest.mkdir(parents=True, exist_ok=True)
     pin = json.loads(json.dumps(pin or load_pin()))
     node = dest / "node" / "bin" / "node"
-    node.parent.mkdir(parents=True, exist_ok=True)
-    node.write_bytes(Path(__file__).resolve().read_bytes())
-    node.chmod(node.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     graft = dest / "graft"
-    graft.mkdir(parents=True, exist_ok=True)
-    (graft / "bridge.mjs").write_text(
-        "export {}; // fake stub; the Python fake Node does not eval this\n",
-        encoding="utf-8",
-    )
-    (graft / "package.json").write_text(
-        json.dumps({
-            "name": pin["graft"]["package"],
-            "version": pin["graft"]["version"],
-        }) + "\n",
-        encoding="utf-8",
-    )
-    (graft / "package-lock.json").write_text(
-        json.dumps({"lockfileVersion": 3, "name": "fake"}) + "\n",
-        encoding="utf-8",
-    )
-    dist = graft / "dist"
-    (dist / "graph").mkdir(parents=True, exist_ok=True)
-    (dist / "mcp").mkdir(parents=True, exist_ok=True)
-    (dist / "graph" / "build.js").write_text("export function buildGraph() {}\n", encoding="utf-8")
-    (dist / "mcp" / "tools.js").write_text("export function callTool() {}\n", encoding="utf-8")
-    mod = graft / "node_modules" / "fake-mod"
-    mod.mkdir(parents=True, exist_ok=True)
-    (mod / "index.js").write_text("export {}\n", encoding="utf-8")
-    if mode != "ok":
-        (dest / "fake-mode").write_text(mode + "\n", encoding="utf-8")
-    files = {
-        "node/bin/node": sha256_file(node),
-        "graft/package.json": sha256_file(graft / "package.json"),
-        "graft/package-lock.json": sha256_file(graft / "package-lock.json"),
-    }
-    for path in _runtime_files(graft):
-        files[path.relative_to(dest).as_posix()] = sha256_file(path)
-    receipt = {
-        "schema": "graft-install/1",
-        "pin": pin,
-        "installed_at": INSTALLED_AT,
-        "files": dict(sorted(files.items())),
-    }
-    (dest / "receipt.json").write_text(
-        json.dumps(receipt, sort_keys=True, indent=2) + "\n", encoding="utf-8",
-    )
+    with World(prefix="graft-plant-") as world:
+        world.plant_bytes(node, Path(__file__).resolve().read_bytes())
+        make_executable(node)
+        world.plant_text(
+            graft / "bridge.mjs",
+            "export {}; // fake stub; the Python fake Node does not eval this\n",
+        )
+        world.plant_text(
+            graft / "package.json",
+            json.dumps({
+                "name": pin["graft"]["package"],
+                "version": pin["graft"]["version"],
+            }) + "\n",
+        )
+        world.plant_text(
+            graft / "package-lock.json",
+            json.dumps({"lockfileVersion": 3, "name": "fake"}) + "\n",
+        )
+        world.plant_text(
+            graft / "dist" / "graph" / "build.js",
+            "export function buildGraph() {}\n",
+        )
+        world.plant_text(
+            graft / "dist" / "mcp" / "tools.js",
+            "export function callTool() {}\n",
+        )
+        world.plant_text(
+            graft / "node_modules" / "fake-mod" / "index.js",
+            "export {}\n",
+        )
+        if mode != "ok":
+            world.plant_text(dest / "fake-mode", mode + "\n")
+        files = {
+            "node/bin/node": sha256_file(node),
+            "graft/package.json": sha256_file(graft / "package.json"),
+            "graft/package-lock.json": sha256_file(graft / "package-lock.json"),
+        }
+        for path in _runtime_files(graft):
+            files[path.relative_to(dest).as_posix()] = sha256_file(path)
+        receipt = {
+            "schema": "graft-install/1",
+            "pin": pin,
+            "installed_at": INSTALLED_AT,
+            "files": dict(sorted(files.items())),
+        }
+        world.plant_text(
+            dest / "receipt.json",
+            json.dumps(receipt, sort_keys=True, indent=2) + "\n",
+        )
     return dest
 
 
 def invoke(install: Path, request: dict) -> tuple[int, str, str]:
+    from ops.testkit import World, run
+
     install = Path(install)
     node = install / "node" / "bin" / "node"
     graft_dir = install / "graft"
     bridge = graft_dir / "bridge.mjs"
-    import subprocess
-
-    proc = subprocess.run(
-        [str(node), str(bridge), str(graft_dir)],
-        input=json.dumps(request),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    return proc.returncode, proc.stdout, proc.stderr
+    with World(prefix="graft-bridge-") as world:
+        result = run(
+            [str(node), str(bridge), str(graft_dir)],
+            cwd=world.cwd,
+            env=world.env(),
+            stdin=json.dumps(request),
+            timeout=30,
+        )
+    return result.exit, result.stdout, result.stderr
 
 
 def _append_transcript(install: Path, payload: dict) -> None:

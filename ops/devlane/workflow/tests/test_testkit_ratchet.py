@@ -58,6 +58,20 @@ class TheCounts(_Ratchet):
         self.assertEqual(sorted(baseline["files"]["home_by_hand"]), ["ops/x/tests/test_a.py", "ops/x/tests/test_b.py"])
 
 
+class TheCensus(_Ratchet):
+    def test_census_prints_modules_on_and_off_the_kit_and_skips_fixture_applications(self):
+        # owner 2026-09-15: the measure of "on the kit" the deliverable names.
+        self.plant("test_a.py", CLEAN)
+        self.plant("test_b.py", HOME_BY_HAND)
+        self.plant("test_c.py", "# testkit: exempt reads a payload shape\nimport unittest\n")
+        self.world.plant_text(self.root / "ops" / "devlane" / "fixtures" / "apps" / "svc" / "tests" / "test_app.py", HOME_BY_HAND)
+        result = self.check("--census")
+        self.assertEqual(result.exit, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "modules=3 on_kit=1 exempt=1 off_kit=1")
+        baseline = self.write_baseline()
+        self.assertEqual(baseline["counts"]["home_by_hand"], 1, "a fixture application's tests are not lane tests")
+
+
 class TheRatchet(_Ratchet):
     def test_a_rising_count_exits_one_naming_the_file(self):
         self.plant("test_a.py", CLEAN)

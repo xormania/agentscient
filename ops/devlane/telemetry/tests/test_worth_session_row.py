@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 import unittest
 
 import test_worth as worth_contract
+
+from ops.testkit import World, plant_text, run
 
 NOW = "2026-08-22T12:00:00.000Z"
 SINCE = "2026-08-22T09:00:00.000Z"
@@ -42,6 +45,8 @@ class WasteSessionBudgetRow(unittest.TestCase):
         )
         self.w.setUp()
         self.addCleanup(self.w.doCleanups)
+        self.world = World()
+        self.addCleanup(self.world.close)
         self._write_jsonl = self.w._write_jsonl
         self._slug = self.w._slug
 
@@ -144,10 +149,37 @@ class WasteSessionBudgetRow(unittest.TestCase):
             ),
         ]
 
+    def _run_waste(self, *extra):
+        cmd = [
+            sys.executable,
+            str(worth_contract.WORTH),
+            "waste",
+            *WINDOW,
+            *extra,
+            "--now",
+            NOW,
+            "--repo",
+            str(self.w.repo),
+            "--claude-dir",
+            str(self.w.claude),
+            "--codex-dir",
+            str(self.w.codex),
+            "--grok-dir",
+            str(self.w.grok),
+        ]
+        return run(
+            cmd,
+            cwd=self.w.root,
+            env=self.world.env(extra={"TZ": "Etc/GMT+11"}),
+            timeout=30,
+        )
+
     def _waste(self, *extra):
-        plain = self.w._run_worth("waste", *WINDOW, *extra)
-        self.assertEqual(plain.returncode, 0, plain.stderr)
-        data = self.w._json_worth("waste", *WINDOW, *extra)
+        plain = self._run_waste(*extra)
+        self.assertEqual(plain.exit, 0, plain.stderr)
+        data_proc = self._run_waste(*extra, "--format", "json")
+        self.assertEqual(data_proc.exit, 0, data_proc.stderr)
+        data = json.loads(data_proc.stdout)
         return plain.stdout, data
 
     def _row(self, data, session_id):
@@ -228,8 +260,7 @@ class WasteSessionBudgetRow(unittest.TestCase):
         """Scenario: an unreadable transcript prints unrecorded for turns, avg_context, and refusals"""
         path = self.w.claude / self._slug() / "unreadable.jsonl"
         raw = "{broken\n"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(raw, encoding="utf-8")
+        plant_text(path, raw)
         self.assertEqual(path.read_text(encoding="utf-8"), raw)
         self.assertNotIn("usage", raw)
         plain, data = self._waste("--top", "20")

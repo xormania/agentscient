@@ -5,5 +5,6 @@ retired files caught."""
 from ops.conductor.tests.ladder_faults import MUTANTS as TABLES
 from ops.conductor.tests.ladder_faults_refusals import MUTANTS as REFUSALS
 from ops.conductor.tests.ladder_faults_stops import MUTANTS as STOPS
+from ops.testkit import Mutant
 
-MUTANTS = [*TABLES, *REFUSALS, *STOPS]
+MUTANTS: list[Mutant] = [*TABLES, *REFUSALS, *STOPS]

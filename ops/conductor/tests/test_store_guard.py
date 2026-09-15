@@ -6,16 +6,18 @@ is not edited here. Teardown-shaped comparison is both snapshots
 through that helper, matching the contract's both-sides normalize.
 
 Scratch directories only. The live dispatch store is not written.
+Worlds, plants and the hermetic root go through ops/testkit.
 """
 
 from __future__ import annotations
 
 import shutil
-import tempfile
 import unittest
 from pathlib import Path
 
 from test_onboard_lever import _store_snap, _without_new_job_dirs
+
+from ops.testkit import World, plant_bytes
 
 # Measured concurrent name from the contract (suite failure
 # `.launcher.iCO9sU` at 16f870930c373b8e266343af222f985898be6303).
@@ -47,8 +49,8 @@ class StoreGuardTests(unittest.TestCase):
     """Planted names on scratch stores, then the teardown comparison."""
 
     def setUp(self):
-        self._tmp = tempfile.TemporaryDirectory(prefix="store-guard-")
-        self.root = Path(self._tmp.name)
+        self.world = World(prefix="store-guard-")
+        self.root = self.world.root
         self.store = self.root / "dispatch"
         self.store.mkdir()
         self.key = str(self.store)
@@ -60,16 +62,11 @@ class StoreGuardTests(unittest.TestCase):
         )
 
     def tearDown(self):
-        self._tmp.cleanup()
+        self.world.close()
 
     def plant_file(self, name: str, body: bytes, store: Path | None = None) -> Path:
         target = (store or self.store) / name
-        target.write_bytes(body)
-        self.assertEqual(
-            target.read_bytes(),
-            body,
-            f"plant: {name!r} bytes did not land",
-        )
+        plant_bytes(target, body)
         self.assertTrue(target.is_file(), f"plant: {name!r} must be a file")
         return target
 
@@ -314,7 +311,7 @@ class StoreGuardTests(unittest.TestCase):
         self.assert_planted(JOB_ORIGINAL)
 
         shutil.rmtree(self.store)
-        self.store.write_bytes(b"STORE_NOW_A_FILE\n")
+        plant_bytes(self.store, b"STORE_NOW_A_FILE\n")
         self.assertTrue(self.store.is_file(), "plant: store must become a file")
         after = self.snapshot()
         self.assertEqual(after[self.key], ("other", ()))

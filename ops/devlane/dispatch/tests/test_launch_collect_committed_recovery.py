@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import time
 
 import launch_support as ls
+
+from ops.testkit import World, run
 
 WORKER_REL = "worker.py"
 VERIFY_OK = "test -f worker.py"
@@ -30,8 +31,15 @@ COLLECT_MSG = (
 PRESERVED_REASON = "preserved-committed-delta"
 
 
-class PreservedCommittedRecovery(ls._TempLaunch):
-    """Closed write + exit 0 + invalid/tripped envelope + exact delta."""
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+    def setUp(self):
+        super().setUp()
+        self.assertIsInstance(self.world, World)
+        self.world.require("git")
 
     def _collect(self, job_id, verify, extra=()):
         argv = ["collect", job_id, "--verify", verify, *extra]
@@ -64,13 +72,13 @@ class PreservedCommittedRecovery(ls._TempLaunch):
     def _is_ancestor(self, rec, ancestor, head=None):
         snap = self.snapshot_of(rec)
         head = head or self._snap_head(rec)
-        return subprocess.run(
+        result = run(
             ["git", "merge-base", "--is-ancestor", ancestor, head],
-            cwd=str(snap),
+            cwd=snap,
             env=self.env,
-            capture_output=True,
-            text=True,
-        ).returncode == 0
+            timeout=60,
+        )
+        return result.exit == 0
 
     def _rewrite_record(self, rec, mutate):
         path = self._record_path(rec["id"])
@@ -78,12 +86,17 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         self.assertTrue(before, "plant: record was empty before rewrite")
         data = json.loads(before)
         mutate(data)
-        path.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        content = json.dumps(data) + "\n"
+        self.world.plant_text(path, content)
         after = path.read_bytes()
         self.assertNotEqual(after, before, "plant: record rewrite changed nothing")
         landed = json.loads(after)
         self.assertEqual(landed.get("id"), rec["id"])
         return landed
+
+
+class PreservedCommittedRecovery(_KitLaunch):
+    """Closed write + exit 0 + invalid/tripped envelope + exact delta."""
 
     def _assert_committed_candidate_fixture(self, rec, *, envelope_status):
         """Prove the candidate before collect. Failure here is a bad plant."""
@@ -351,8 +364,7 @@ class PreservedCommittedRecovery(ls._TempLaunch):
     def test_collect_refuses_a_different_descendant(self):
         rec, plant = self._plant_committed_failed_write()
         snap = self.snapshot_of(rec)
-        extra = snap / "extra.py"
-        extra.write_text("different descendant\n", encoding="utf-8")
+        extra = self.world.plant_text(snap / "extra.py", "different descendant\n")
         self.assertTrue(extra.is_file())
         self._git("add", "--", "extra.py", repo=snap)
         self._git("commit", "-m", "different descendant", repo=snap)
@@ -407,12 +419,12 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         self.assertTrue(obj.is_file(), f"plant: loose object at {obj}")
         obj.unlink()
         self.assertFalse(obj.is_file())
-        missing = subprocess.run(
+        missing = run(
             ["git", "cat-file", "-t", head],
-            cwd=str(snap), env=self.env, capture_output=True, text=True,
+            cwd=snap, env=self.env, timeout=60,
         )
         self.assertNotEqual(
-            missing.returncode, 0,
+            missing.exit, 0,
             "plant: recorded head is unavailable in the snapshot",
         )
         before_record = self._record_bytes(rec["id"])
@@ -673,12 +685,8 @@ class PreservedCommittedRecovery(ls._TempLaunch):
         self.assertFalse((rec2.get("result") or {}).get("collected"))
 
 
-class LegacyResidueRecoveryStillHolds(ls._TempLaunch):
+class LegacyResidueRecoveryStillHolds(_KitLaunch):
     """Existing failed/tripped residue arm, including successful resume."""
-
-    def _collect(self, job_id, verify, extra=()):
-        argv = ["collect", job_id, "--verify", verify, *extra]
-        return self.run_main(argv)
 
     def _trip_codex_write(self):
         os.environ["DISPATCH_TIMEOUT"] = "0.5"

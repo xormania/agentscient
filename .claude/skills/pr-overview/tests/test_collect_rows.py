@@ -5,9 +5,8 @@ Defect 10: gh pr checks exiting non-zero with empty stdout and
 One PR's forge error is a cannot-tell row. The overview refuses only
 when it could read none of the open PRs.
 
-The fake gh is a PATH stub in the shape of
-ops/devlane/hooks/tests/gh_stub.py and the neighboring
-support.GH_STUB, with per-PR checks errors injected.
+The fake gh is the fixture at tests/fixtures/gh_stub.py, planted through
+the kit's Tools registry with per-PR checks errors in the stub state.
 """
 
 from __future__ import annotations
@@ -15,137 +14,24 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-import os
 import re
-import shutil
-import stat
 import sys
-import tempfile
 import unittest
-from pathlib import Path
 from unittest import mock
 
 from support import (
-    GH_STUB,
     REPO,
     ROOT,
+    in_world,
     load_overview,
-    non_git_cwd,
+    plant_gh,
     ready_pr,
 )
 
-BASE_GH_STUB = GH_STUB
+from ops.testkit import World
 
 NO_CHECKS_STDERR = "no checks reported on the 'lane/workflow' branch"
 AUTH_STDERR = "gh: authentication failed"
-
-CHECKS_OLD = """if "pr" in args and "checks" in args:
-    number = None
-    after = args[args.index("checks") + 1 :]
-    for a in after:
-        if a.isdigit():
-            number = a
-            break
-    if number is None:
-        sys.stderr.write("pr checks: no number\\n")
-        sys.exit(2)
-    pr = pr_by_number(number)
-    json.dump(
-        [{"name": c["name"], "bucket": c["bucket"]} for c in pr["checks"]],
-        sys.stdout,
-    )
-    sys.exit(0)
-"""
-
-CHECKS_NEW = """if "pr" in args and "checks" in args:
-    number = None
-    after = args[args.index("checks") + 1 :]
-    for a in after:
-        if a.isdigit():
-            number = a
-            break
-    if number is None:
-        sys.stderr.write("pr checks: no number\\n")
-        sys.exit(2)
-    errors = state.get("check_errors") or {}
-    if str(number) in errors:
-        err = errors[str(number)]
-        stderr = err.get("stderr") or ""
-        if stderr and not stderr.endswith("\\n"):
-            stderr = stderr + "\\n"
-        sys.stderr.write(stderr)
-        sys.stdout.write(err.get("stdout") or "")
-        sys.exit(int(err["rc"]))
-    pr = pr_by_number(number)
-    json.dump(
-        [{"name": c["name"], "bucket": c["bucket"]} for c in pr["checks"]],
-        sys.stdout,
-    )
-    sys.exit(0)
-"""
-
-REPO_VIEW = """if "repo" in args and "view" in args:
-    repo = state.get("repo") or "uscient/agentscient"
-    json.dump({"nameWithOwner": repo}, sys.stdout)
-    sys.exit(0)
-
-"""
-
-GRAPHQL_OLD = '''if "api" in args and "graphql" in args:
-    number = None
-    for i, a in enumerate(args):
-        if a.startswith("pr="):
-            number = a.split("=", 1)[1]
-        if a == "-F" and i + 1 < len(args) and args[i + 1].startswith("pr="):
-            number = args[i + 1].split("=", 1)[1]
-    if number is None:
-        sys.stderr.write("graphql: no pr=\\n")
-        sys.exit(2)
-    pr = pr_by_number(number)
-'''
-
-GRAPHQL_NEW = '''if "api" in args and "graphql" in args:
-    number = None
-    for i, a in enumerate(args):
-        if a.startswith("pr="):
-            number = a.split("=", 1)[1]
-        if a == "-F" and i + 1 < len(args) and args[i + 1].startswith("pr="):
-            number = args[i + 1].split("=", 1)[1]
-    if number is None:
-        sys.stderr.write("graphql: no pr=\\n")
-        sys.exit(2)
-    errors = state.get("review_errors") or {}
-    if str(number) in errors:
-        err = errors[str(number)]
-        stderr = err.get("stderr") or ""
-        if stderr and not stderr.endswith("\\n"):
-            stderr = stderr + "\\n"
-        sys.stderr.write(stderr)
-        sys.stdout.write(err.get("stdout") or "")
-        sys.exit(int(err["rc"]))
-    pr = pr_by_number(number)
-'''
-
-if CHECKS_OLD not in BASE_GH_STUB:
-    raise AssertionError("plant: neighboring GH_STUB checks block moved")
-ROW_GH_STUB = BASE_GH_STUB.replace(CHECKS_OLD, CHECKS_NEW, 1)
-if ROW_GH_STUB == BASE_GH_STUB:
-    raise AssertionError("plant: checks error hook did not land in GH_STUB")
-if "check_errors" not in ROW_GH_STUB:
-    raise AssertionError("plant: check_errors missing from GH_STUB")
-if ROW_GH_STUB.count("if \"pr\" in args and \"checks\" in args:") != 1:
-    raise AssertionError("plant: checks handler count drifted")
-if GRAPHQL_OLD not in ROW_GH_STUB:
-    raise AssertionError("plant: neighboring GH_STUB graphql block moved")
-ROW_GH_STUB = ROW_GH_STUB.replace(GRAPHQL_OLD, GRAPHQL_NEW, 1)
-if "review_errors" not in ROW_GH_STUB:
-    raise AssertionError("plant: review_errors missing from GH_STUB")
-MARKER = 'args = sys.argv[1:]\n'
-if MARKER not in ROW_GH_STUB:
-    raise AssertionError("plant: args assignment missing from GH_STUB")
-ROW_GH_STUB = ROW_GH_STUB.replace(MARKER, MARKER + REPO_VIEW, 1)
-if "nameWithOwner" not in ROW_GH_STUB:
-    raise AssertionError("plant: repo view hook did not land in GH_STUB")
 
 
 def snapshot_live_derivation() -> dict[str, str]:
@@ -183,54 +69,6 @@ def no_checks_error() -> dict:
 
 def auth_error() -> dict:
     return {"rc": 1, "stderr": AUTH_STDERR, "stdout": ""}
-
-
-@contextlib.contextmanager
-def gh_on_path(
-    prs: list[dict],
-    trees: dict[str, dict[str, str]],
-    check_errors: dict | None = None,
-    review_errors: dict | None = None,
-):
-    tmp = Path(tempfile.mkdtemp(prefix="pr-overview-rows-gh-"))
-    state = tmp / "state.json"
-    stub = tmp / "gh"
-    missing = [pr["headRefOid"] for pr in prs if pr["headRefOid"] not in trees]
-    if missing:
-        raise AssertionError(f"gh stub has no tree for head(s) {missing}")
-    payload = {
-        "prs": prs,
-        "trees": trees,
-        "check_errors": {str(k): v for k, v in (check_errors or {}).items()},
-        "review_errors": {str(k): v for k, v in (review_errors or {}).items()},
-        "repo": REPO,
-    }
-    state.write_text(json.dumps(payload), encoding="utf-8")
-    landed_state = json.loads(state.read_text(encoding="utf-8"))
-    if landed_state["check_errors"] != payload["check_errors"]:
-        raise AssertionError("plant: check_errors did not land in stub state")
-    if landed_state["review_errors"] != payload["review_errors"]:
-        raise AssertionError("plant: review_errors did not land in stub state")
-    stub.write_text(ROW_GH_STUB, encoding="utf-8")
-    if "check_errors" not in stub.read_text(encoding="utf-8"):
-        raise AssertionError("plant: GH_STUB write dropped check_errors")
-    stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
-    old_path = os.environ["PATH"]
-    old_state = os.environ.get("GH_STUB_STATE")
-    os.environ["PATH"] = str(tmp) + os.pathsep + old_path
-    os.environ["GH_STUB_STATE"] = str(state)
-    try:
-        which = shutil.which("gh")
-        if which is None or Path(which).resolve() != stub.resolve():
-            raise AssertionError(f"stub gh not first on PATH: {which}")
-        yield tmp
-    finally:
-        os.environ["PATH"] = old_path
-        if old_state is None:
-            os.environ.pop("GH_STUB_STATE", None)
-        else:
-            os.environ["GH_STUB_STATE"] = old_state
-        shutil.rmtree(tmp, ignore_errors=True)
 
 
 ROW_HEADER = re.compile(r"^#(\d+)\b")
@@ -376,8 +214,11 @@ class CollectRows(unittest.TestCase):
         *,
         derive: bool = False,
         trees: dict | None = None,
+        world: World | None = None,
+        extra: dict[str, str] | None = None,
+        argv: list[str] | None = None,
     ):
-        """Invoke main() against the PATH stub. expected_checks is pinned
+        """Invoke main() against the planted gh. expected_checks is pinned
         unless derive=True, which runs the real derivation on the planted
         head tree.
 
@@ -386,39 +227,49 @@ class CollectRows(unittest.TestCase):
         """
         stdout = io.StringIO()
         stderr = io.StringIO()
-        argv = ["pr_overview.py", "--repo", REPO]
+        argv = argv if argv is not None else ["pr_overview.py", "--repo", REPO]
         code = 0
         used_trees = trees if trees is not None else self.trees
-        patches = [
-            mock.patch.object(sys, "argv", argv),
-            mock.patch.object(self.overview.sys, "argv", argv),
-        ]
-        if not derive:
-            patches.insert(
-                0,
-                mock.patch.object(
-                    self.overview,
-                    "expected_checks",
-                    return_value=frozenset({OK_CHECK}),
-                ),
+        own = world is None
+        if own:
+            world = World()
+        try:
+            gh_extra = plant_gh(
+                world, prs, used_trees,
+                check_errors=check_errors,
+                review_errors=review_errors,
             )
-        with gh_on_path(
-            prs, used_trees,
-            check_errors=check_errors,
-            review_errors=review_errors,
-        ), non_git_cwd():
-            with contextlib.ExitStack() as stack:
-                for patch in patches:
-                    stack.enter_context(patch)
-                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(
-                    stderr
-                ):
-                    try:
-                        returned = self.overview.main()
-                        code = 0 if returned is None else int(returned)
-                    except SystemExit as exc:
-                        code = 0 if exc.code is None else int(exc.code)
-        return code, stdout.getvalue(), stderr.getvalue()
+            if extra:
+                gh_extra = {**gh_extra, **extra}
+            patches = [
+                mock.patch.object(sys, "argv", argv),
+                mock.patch.object(self.overview.sys, "argv", argv),
+            ]
+            if not derive:
+                patches.insert(
+                    0,
+                    mock.patch.object(
+                        self.overview,
+                        "expected_checks",
+                        return_value=frozenset({OK_CHECK}),
+                    ),
+                )
+            with in_world(world, gh_extra):
+                with contextlib.ExitStack() as stack:
+                    for patch in patches:
+                        stack.enter_context(patch)
+                    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(
+                        stderr
+                    ):
+                        try:
+                            returned = self.overview.main()
+                            code = 0 if returned is None else int(returned)
+                        except SystemExit as exc:
+                            code = 0 if exc.code is None else int(exc.code)
+            return code, stdout.getvalue(), stderr.getvalue(), world
+        finally:
+            if own:
+                world.close()
 
     def test_a_pr_with_no_checks_reported_is_a_row_with_no_checks(self):
         prs = self.pair(empty_checks=True)
@@ -429,7 +280,7 @@ class CollectRows(unittest.TestCase):
         self.assertIn("no checks reported", errors["10"]["stderr"])
         self.assertEqual(errors["10"]["stdout"], "")
         self.assertNotEqual(errors["10"]["rc"], 0)
-        code, stdout, stderr = self.run_board(prs, errors)
+        code, stdout, stderr, _world = self.run_board(prs, errors)
         self.assertEqual(code, 0, stderr or stdout)
         self.assertEqual(row_headers(stdout), [10, 11], stdout)
         self.assertIn("checks: no checks", checks_line_for(stdout, 10))
@@ -445,7 +296,7 @@ class CollectRows(unittest.TestCase):
         self.assertEqual(len(prs), 2)
         errors = {"10": auth_error()}
         self.assertIn("authentication", errors["10"]["stderr"].lower())
-        code, stdout, stderr = self.run_board(prs, errors)
+        code, stdout, stderr, _world = self.run_board(prs, errors)
         self.assertEqual(code, 0, stderr or stdout)
         self.assertEqual(row_headers(stdout), [10, 11], stdout)
         blocking = blocking_line_for(stdout, 10)
@@ -460,7 +311,7 @@ class CollectRows(unittest.TestCase):
         self.assertEqual(len(prs), 2)
         errors = {"10": auth_error(), "11": auth_error()}
         self.assertEqual(len(errors), 2)
-        code, stdout, stderr = self.run_board(prs, errors)
+        code, stdout, stderr, _world = self.run_board(prs, errors)
         self.assertEqual(code, 2, stderr or stdout)
         self.assertIn("none of 2", stderr)
         self.assertRegex(
@@ -477,7 +328,7 @@ class CollectRows(unittest.TestCase):
         self.assertEqual(len(prs), 2)
         errors = {"10": auth_error()}
         self.assertIn("authentication", errors["10"]["stderr"].lower())
-        code, stdout, stderr = self.run_board(
+        code, stdout, stderr, _world = self.run_board(
             prs, check_errors=None, review_errors=errors,
         )
         self.assertEqual(code, 0, stderr or stdout)
@@ -491,9 +342,6 @@ class CollectRows(unittest.TestCase):
 
     def test_repo_slug_from_conf_is_the_default_repo(self):
         prs = self.pair()
-        conf_dir = Path(tempfile.mkdtemp(prefix="pr-overview-laneconf-"))
-        argv_log = conf_dir / "gh-argv.jsonl"
-        conf = conf_dir / "lane.conf"
         text = (
             "LANE_NAME='lanex'\n"
             "TRUNK_BRANCH='trunkx'\n"
@@ -512,58 +360,24 @@ class CollectRows(unittest.TestCase):
             "WALL_DEFAULT='900'\n"
             "SCOPE_CAP='1024'\n"
         )
-        conf.write_text(text, encoding="utf-8")
-        self.assertEqual(conf.read_text(encoding="utf-8"), text)
-        argv_log.write_text("", encoding="utf-8")
-        stdout = io.StringIO()
-        stderr = io.StringIO()
-        argv = ["pr_overview.py"]
-        code = 0
-        try:
-            with gh_on_path(prs, self.trees), non_git_cwd():
-                stub = Path(shutil.which("gh") or "")
-                original = stub.read_text(encoding="utf-8")
-                marker = "args = sys.argv[1:]\n"
-                self.assertIn(marker, original)
-                inject = (
-                    "from pathlib import Path as _LaneConfPath\n"
-                    f"_LaneConfPath({str(argv_log)!r}).open('a').write("
-                    "json.dumps(args) + '\\n')\n"
-                )
-                stub.write_text(
-                    original.replace(marker, marker + inject, 1),
-                    encoding="utf-8",
-                )
-                planted = stub.read_text(encoding="utf-8")
-                self.assertIn("org/projx", text)
-                self.assertIn("_LaneConfPath", planted)
-                with mock.patch.dict(
-                    os.environ, {"LANE_CONF": str(conf)},
-                ), mock.patch.object(
-                    self.overview,
-                    "expected_checks",
-                    return_value=frozenset({OK_CHECK}),
-                ), mock.patch.object(
-                    sys, "argv", argv,
-                ), mock.patch.object(
-                    self.overview.sys, "argv", argv,
-                ), contextlib.redirect_stdout(
-                    stdout,
-                ), contextlib.redirect_stderr(stderr):
-                    try:
-                        returned = self.overview.main()
-                        code = 0 if returned is None else int(returned)
-                    except SystemExit as exc:
-                        code = 0 if exc.code is None else int(exc.code)
-            log = argv_log.read_text(encoding="utf-8")
-            self.assertEqual(code, 0, stderr.getvalue() or stdout.getvalue())
+        self.assertIn("org/projx", text)
+        with World() as world:
+            conf = world.plant_text(world.path("lane.conf"), text)
+            self.assertEqual(conf.read_text(encoding="utf-8"), text)
+            code, stdout, stderr, world = self.run_board(
+                prs,
+                check_errors=None,
+                world=world,
+                extra={"LANE_CONF": str(conf)},
+                argv=["pr_overview.py"],
+            )
+            log = "\n".join(json.dumps(c["argv"]) for c in world.tools.calls("gh"))
+            self.assertEqual(code, 0, stderr or stdout)
             self.assertIn("org/projx", log)
             self.assertNotIn(
                 "uscient/agentscient", log,
                 f"overview still used the literal slug: {log!r}",
             )
-        finally:
-            shutil.rmtree(conf_dir, ignore_errors=True)
 
     def test_derivation_yields_lane_and_app_from_the_planted_workflow(self):
         files = snapshot_live_derivation()
@@ -571,15 +385,12 @@ class CollectRows(unittest.TestCase):
         self.assertEqual(files[".github/workflows/ci.yml"], TWO_JOB_WORKFLOW)
         self.assertIn("\n  lane:\n", TWO_JOB_WORKFLOW)
         self.assertIn("\n  app:\n", TWO_JOB_WORKFLOW)
-        tmp = Path(tempfile.mkdtemp(prefix="pr-overview-derive-"))
-        try:
+        with World() as world:
             for rel, text in files.items():
-                path = tmp / rel
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(text, encoding="utf-8")
+                path = world.plant_text(world.cwd / rel, text)
                 self.assertEqual(path.read_text(encoding="utf-8"), text)
             try:
-                names = frozenset(self.overview.expected_checks(tmp))
+                names = frozenset(self.overview.expected_checks(world.cwd))
             except self.overview.Unavailable as exc:
                 self.fail(
                     "derivation refused planted lane/app jobs: "
@@ -587,8 +398,6 @@ class CollectRows(unittest.TestCase):
                 )
             self.assertEqual(names, frozenset({"lane", "app"}))
             self.assertEqual(len(names), 2)
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)
 
     def test_derivation_yields_renamed_jobs_from_the_planted_workflow(self):
         files = snapshot_live_derivation()
@@ -598,15 +407,12 @@ class CollectRows(unittest.TestCase):
         self.assertIn("\n  lint:\n", RENAMED_JOB_WORKFLOW)
         self.assertNotIn("\n  lane:\n", RENAMED_JOB_WORKFLOW)
         self.assertNotIn("\n  app:\n", RENAMED_JOB_WORKFLOW)
-        tmp = Path(tempfile.mkdtemp(prefix="pr-overview-derive-renamed-"))
-        try:
+        with World() as world:
             for rel, text in files.items():
-                path = tmp / rel
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(text, encoding="utf-8")
+                path = world.plant_text(world.cwd / rel, text)
                 self.assertEqual(path.read_text(encoding="utf-8"), text)
             try:
-                names = frozenset(self.overview.expected_checks(tmp))
+                names = frozenset(self.overview.expected_checks(world.cwd))
             except self.overview.Unavailable as exc:
                 self.fail(
                     "derivation refused planted audit/lint jobs: "
@@ -615,8 +421,6 @@ class CollectRows(unittest.TestCase):
             self.assertEqual(names, frozenset({"audit", "lint"}))
             self.assertNotEqual(names, frozenset({"lane", "app"}))
             self.assertEqual(len(names), 2)
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)
 
     def test_ready_sentence_counts_both_lane_and_app(self):
         files = snapshot_live_derivation()
@@ -637,7 +441,7 @@ class CollectRows(unittest.TestCase):
             [c["name"] for c in prs[0]["checks"]],
             ["lane", "app"],
         )
-        code, stdout, stderr = self.run_board(
+        code, stdout, stderr, _world = self.run_board(
             prs, check_errors=None, derive=True, trees=trees,
         )
         self.assertEqual(code, 0, stderr or stdout)

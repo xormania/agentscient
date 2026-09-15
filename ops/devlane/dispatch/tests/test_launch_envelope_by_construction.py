@@ -26,6 +26,8 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
+
 ENVELOPES = ls.FIXTURES_DIR / "envelopes"
 ENVELOPE_PY = ls.APP.parents[0] / "task" / "envelope.py"
 NINE = (
@@ -55,6 +57,22 @@ def _spend(rec):
 
 
 class _U10Launch(ls._TempLaunch):
+    """The shared launch fixture owns its World and tool registry."""
+
+    world: World
+
+    def setUp(self):
+        super().setUp()
+        self.assertIsInstance(self.world, World)
+
+    def _plant_knobs(self, **kwargs):
+        """Case extras on the entered world; each knob is proven landed."""
+        for key, value in kwargs.items():
+            os.environ[key] = value
+            self.assertEqual(
+                os.environ.get(key), value, f"knob {key} did not land",
+            )
+
     def _argv_list(self, witness):
         argv = [str(p) for p in witness["argv"]]
         self.assertTrue(argv, "witness argv is empty")
@@ -141,6 +159,10 @@ class _U10Launch(ls._TempLaunch):
         self.assertTrue(path.is_file(), f"fixture missing: {path}")
         body = path.read_bytes()
         self.assertTrue(body, f"fixture empty: {path}")
+        planted = self.world.plant_bytes(
+            self.world.tmp / "envelopes" / name, body,
+        )
+        self.assertEqual(planted.read_bytes(), body)
         return body
 
     def _fixture_text(self, name):
@@ -247,8 +269,10 @@ class ArgvAsksForTheEnvelopeByConstruction(_U10Launch):
             len(planted), 9,
             "plant: the wrapper is not itself a nine-key envelope",
         )
-        os.environ["TASK_LAUNCH_STDOUT"] = "token"
-        os.environ["TASK_LAUNCH_TOKEN"] = body.rstrip("\n")
+        self._plant_knobs(
+            TASK_LAUNCH_STDOUT="token",
+            TASK_LAUNCH_TOKEN=body.rstrip("\n"),
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -335,10 +359,12 @@ class ArgvAsksForTheEnvelopeByConstruction(_U10Launch):
 class ClaudeWrapperIsTheFirstEnvelopeSource(_U10Launch):
     def test_structured_output_is_the_envelope(self):
         """Scenario: a claude wrapper with structured_output is unwrapped as the envelope"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "claude"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "structured_output"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-claude-structured"
-        os.environ["TASK_LAUNCH_WRAPPER_DECOY"] = "u10-decoy-scan"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="claude",
+            TASK_LAUNCH_WRAPPER_FIELD="structured_output",
+            TASK_LAUNCH_NOTE="u10-claude-structured",
+            TASK_LAUNCH_WRAPPER_DECOY="u10-decoy-scan",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )
@@ -360,10 +386,12 @@ class ClaudeWrapperIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_result_string_is_parsed_when_structured_output_is_absent(self):
         """Scenario: a claude wrapper with the envelope only in result text is unwrapped"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "claude"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "result"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-claude-result-string"
-        os.environ["TASK_LAUNCH_WRAPPER_DECOY"] = "u10-decoy-scan"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="claude",
+            TASK_LAUNCH_WRAPPER_FIELD="result",
+            TASK_LAUNCH_NOTE="u10-claude-result-string",
+            TASK_LAUNCH_WRAPPER_DECOY="u10-decoy-scan",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )
@@ -388,10 +416,12 @@ class ClaudeWrapperIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_wrapper_without_envelope_is_claude_result_subtype(self):
         """Scenario: a claude wrapper with no envelope is claude-result subtype"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "claude"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "none"
-        os.environ["TASK_LAUNCH_WRAPPER_SUBTYPE"] = "error_max_turns"
-        os.environ["TASK_LAUNCH_WRAPPER_IS_ERROR"] = "1"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="claude",
+            TASK_LAUNCH_WRAPPER_FIELD="none",
+            TASK_LAUNCH_WRAPPER_SUBTYPE="error_max_turns",
+            TASK_LAUNCH_WRAPPER_IS_ERROR="1",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )
@@ -410,11 +440,13 @@ class ClaudeWrapperIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_is_error_wins_over_structured_output(self):
         """Scenario: a claude wrapper with is_error true is claude-result even when structured_output is present"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "claude"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "structured_output"
-        os.environ["TASK_LAUNCH_WRAPPER_SUBTYPE"] = "error_max_turns"
-        os.environ["TASK_LAUNCH_WRAPPER_IS_ERROR"] = "1"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-truncated-structured"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="claude",
+            TASK_LAUNCH_WRAPPER_FIELD="structured_output",
+            TASK_LAUNCH_WRAPPER_SUBTYPE="error_max_turns",
+            TASK_LAUNCH_WRAPPER_IS_ERROR="1",
+            TASK_LAUNCH_NOTE="u10-truncated-structured",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )
@@ -440,8 +472,10 @@ class ClaudeWrapperIsTheFirstEnvelopeSource(_U10Launch):
         planted = json.loads(body)
         self.assertEqual(planted.get("subtype"), "error_max_turns")
         self.assertTrue(planted.get("is_error"))
-        os.environ["TASK_LAUNCH_STDOUT"] = "token"
-        os.environ["TASK_LAUNCH_TOKEN"] = body
+        self._plant_knobs(
+            TASK_LAUNCH_STDOUT="token",
+            TASK_LAUNCH_TOKEN=body,
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )
@@ -459,9 +493,11 @@ class ClaudeWrapperIsTheFirstEnvelopeSource(_U10Launch):
 class GrokObjectIsTheEnvelope(_U10Launch):
     def test_stdout_object_matching_schema_is_the_envelope(self):
         """Scenario: a grok trailing nested-invalid object loses to an earlier valid envelope"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "grok"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-grok-object"
-        os.environ["TASK_LAUNCH_WRAPPER_DECOY"] = "u10-decoy-scan"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="grok",
+            TASK_LAUNCH_NOTE="u10-grok-object",
+            TASK_LAUNCH_WRAPPER_DECOY="u10-decoy-scan",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -496,11 +532,13 @@ class GrokObjectIsTheEnvelope(_U10Launch):
 
     def test_null_verdict_on_invalid_is_not_schema_invalid(self):
         """Scenario: a legal envelope with a null verdict is not schema-invalid"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "grok"
-        os.environ["TASK_LAUNCH_VERDICT"] = "null"
-        os.environ["TASK_LAUNCH_STATUS"] = "invalid"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-null-verdict"
-        os.environ["TASK_LAUNCH_WRAPPER_DECOY_FIRST"] = "u10-decoy-first"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="grok",
+            TASK_LAUNCH_VERDICT="null",
+            TASK_LAUNCH_STATUS="invalid",
+            TASK_LAUNCH_NOTE="u10-null-verdict",
+            TASK_LAUNCH_WRAPPER_DECOY_FIRST="u10-decoy-first",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -536,10 +574,12 @@ class GrokObjectIsTheEnvelope(_U10Launch):
 
     def test_optional_commit_is_not_schema_invalid(self):
         """Scenario: a legal envelope with optional commit is not schema-invalid"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "grok"
-        os.environ["TASK_LAUNCH_ENVELOPE_COMMIT"] = "1"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-with-commit"
-        os.environ["TASK_LAUNCH_WRAPPER_DECOY_FIRST"] = "u10-decoy-first"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="grok",
+            TASK_LAUNCH_ENVELOPE_COMMIT="1",
+            TASK_LAUNCH_NOTE="u10-with-commit",
+            TASK_LAUNCH_WRAPPER_DECOY_FIRST="u10-decoy-first",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -574,9 +614,11 @@ class GrokObjectIsTheEnvelope(_U10Launch):
 
     def test_object_with_an_extra_key_is_schema_invalid(self):
         """Scenario: a grok stdout object that fails the schema is schema-invalid"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "grok"
-        os.environ["TASK_LAUNCH_WRAPPER_INVALID"] = "extra"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-grok-extra"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="grok",
+            TASK_LAUNCH_WRAPPER_INVALID="extra",
+            TASK_LAUNCH_NOTE="u10-grok-extra",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -595,8 +637,10 @@ class GrokObjectIsTheEnvelope(_U10Launch):
 
     def test_object_with_a_missing_key_is_schema_invalid(self):
         """Scenario: a grok stdout object that fails the schema is schema-invalid"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "grok"
-        os.environ["TASK_LAUNCH_WRAPPER_INVALID"] = "missing"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="grok",
+            TASK_LAUNCH_WRAPPER_INVALID="missing",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -615,8 +659,10 @@ class GrokObjectIsTheEnvelope(_U10Launch):
         brace = body.find("{")
         self.assertGreater(brace, 0, "plant: object begins mid-line")
         self.assertNotEqual(body[brace - 1], "\n")
-        os.environ["TASK_LAUNCH_STDOUT"] = "token"
-        os.environ["TASK_LAUNCH_TOKEN"] = body
+        self._plant_knobs(
+            TASK_LAUNCH_STDOUT="token",
+            TASK_LAUNCH_TOKEN=body,
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -632,12 +678,12 @@ class GrokObjectIsTheEnvelope(_U10Launch):
 
     def test_fallback_scan_object_that_fails_the_schema_is_schema_invalid(self):
         """Scenario: a grok fallback-scan object that fails the schema is schema-invalid"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "grok"
-        os.environ["TASK_LAUNCH_WRAPPER_NARRATION"] = (
-            "working, then the object."
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="grok",
+            TASK_LAUNCH_WRAPPER_NARRATION="working, then the object.",
+            TASK_LAUNCH_WRAPPER_INVALID="extra",
+            TASK_LAUNCH_NOTE="u10-grok-fallback-extra",
         )
-        os.environ["TASK_LAUNCH_WRAPPER_INVALID"] = "extra"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-grok-fallback-extra"
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -661,8 +707,10 @@ class GrokObjectIsTheEnvelope(_U10Launch):
         self.assertNotEqual(body[brace - 1], 10, "plant: no newline before {")
         planted = json.loads(body[brace:])
         self.assertEqual(planted.get("job"), "author-tests")
-        os.environ["TASK_LAUNCH_STDOUT"] = "token"
-        os.environ["TASK_LAUNCH_TOKEN"] = body.decode("utf-8")
+        self._plant_knobs(
+            TASK_LAUNCH_STDOUT="token",
+            TASK_LAUNCH_TOKEN=body.decode("utf-8"),
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -685,9 +733,11 @@ class GrokObjectIsTheEnvelope(_U10Launch):
 class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
     def test_envelope_is_read_from_the_dash_o_file(self):
         """Scenario: a codex last-message file is the first envelope source"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "codex"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "file"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-codex-file"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="codex",
+            TASK_LAUNCH_WRAPPER_FIELD="file",
+            TASK_LAUNCH_NOTE="u10-codex-file",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="codex", stage="plan",
         )
@@ -708,10 +758,12 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_file_wins_over_a_disagreeing_agent_message(self):
         """Scenario: a codex last-message file wins over a disagreeing agent_message"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "codex"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "both"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-codex-file-wins"
-        os.environ["TASK_LAUNCH_WRAPPER_AGENT_NOTE"] = "u10-codex-agent-loses"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="codex",
+            TASK_LAUNCH_WRAPPER_FIELD="both",
+            TASK_LAUNCH_NOTE="u10-codex-file-wins",
+            TASK_LAUNCH_WRAPPER_AGENT_NOTE="u10-codex-agent-loses",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="codex", stage="plan",
         )
@@ -733,9 +785,11 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_last_agent_message_is_used_when_the_file_is_absent(self):
         """Scenario: a codex last agent_message is used when the file is absent"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "codex"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "agent_message"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-codex-agent-message"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="codex",
+            TASK_LAUNCH_WRAPPER_FIELD="agent_message",
+            TASK_LAUNCH_NOTE="u10-codex-agent-message",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="codex", stage="plan",
         )
@@ -759,8 +813,10 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
         """Scenario: a codex last agent_message is used when the file is absent"""
         body = self._fixture_text(CODEX_NDJSON_FIXTURE)
         self.assertIn("agent_message", body)
-        os.environ["TASK_LAUNCH_STDOUT"] = "token"
-        os.environ["TASK_LAUNCH_TOKEN"] = body.rstrip("\n")
+        self._plant_knobs(
+            TASK_LAUNCH_STDOUT="token",
+            TASK_LAUNCH_TOKEN=body.rstrip("\n"),
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="codex", stage="plan",
         )
@@ -774,8 +830,10 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_absent_file_and_no_agent_message_is_no_last_message(self):
         """Scenario: a missing codex last-message file with nothing else is no-last-message"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "codex"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "none"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="codex",
+            TASK_LAUNCH_WRAPPER_FIELD="none",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="codex", stage="plan",
         )
@@ -795,9 +853,11 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_resume_clears_the_previous_last_message_file(self):
         """Scenario: a resumed codex attempt clears the previous last-message file"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "codex"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "file"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-codex-attempt-1"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="codex",
+            TASK_LAUNCH_WRAPPER_FIELD="file",
+            TASK_LAUNCH_NOTE="u10-codex-attempt-1",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="codex", stage="plan",
         )
@@ -806,8 +866,10 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
         self.assertTrue(last.is_file(), "plant: attempt 1 wrote the file")
         first = json.loads(last.read_text(encoding="utf-8"))
         self.assertEqual(first.get("note"), "u10-codex-attempt-1")
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-codex-attempt-2"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "agent_message"
+        self._plant_knobs(
+            TASK_LAUNCH_NOTE="u10-codex-attempt-2",
+            TASK_LAUNCH_WRAPPER_FIELD="agent_message",
+        )
         self.start_witness.unlink(missing_ok=True)
         self.witness.unlink()
         code, out, err = self.run_main(["resume", rec["id"]])
@@ -829,10 +891,12 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
 
     def test_last_message_file_is_written_on_nonzero_exit(self):
         """Scenario: a codex last-message file is written on a non-zero exit"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "codex"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "file"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-codex-nonzero"
-        os.environ["TASK_LAUNCH_EXIT"] = "1"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="codex",
+            TASK_LAUNCH_WRAPPER_FIELD="file",
+            TASK_LAUNCH_NOTE="u10-codex-nonzero",
+            TASK_LAUNCH_EXIT="1",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="codex", stage="plan",
         )
@@ -868,7 +932,7 @@ class CodexLastMessageFileIsTheFirstEnvelopeSource(_U10Launch):
 class EnvelopeParseOnlyWhenNothingParsed(_U10Launch):
     def test_prose_stdout_is_still_envelope_parse(self):
         """Scenario: envelope-parse remains only when nothing at all parsed"""
-        os.environ["TASK_LAUNCH_STDOUT"] = "prose"
+        self._plant_knobs(TASK_LAUNCH_STDOUT="prose")
         rec, *_ = self._dispatch_closed(
             job="plan", harness="grok", stage="plan",
         )
@@ -896,10 +960,12 @@ class EnvelopeParseOnlyWhenNothingParsed(_U10Launch):
 class StampRefIsOverwrittenOnUnwrap(_U10Launch):
     def test_wrapper_stamp_ref_is_replaced_with_the_snapshot_sha(self):
         """Scenario: the launcher overwrites stamp.ref on an unwrapped envelope"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "claude"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "structured_output"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-stamp-overwrite"
-        os.environ["TASK_LAUNCH_WRAPPER_DECOY"] = "u10-decoy-scan"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="claude",
+            TASK_LAUNCH_WRAPPER_FIELD="structured_output",
+            TASK_LAUNCH_NOTE="u10-stamp-overwrite",
+            TASK_LAUNCH_WRAPPER_DECOY="u10-decoy-scan",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )
@@ -919,10 +985,12 @@ class StampRefIsOverwrittenOnUnwrap(_U10Launch):
 class ClaudeWrapperSpendIsSessionSpend(_U10Launch):
     def test_wrapper_usage_is_session_spend(self):
         """Scenario: claude wrapper usage is session.spend"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "claude"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "structured_output"
-        os.environ["TASK_LAUNCH_NOTE"] = "u10-spend-from-wrapper"
-        os.environ["TASK_LAUNCH_WRITE_STREAM"] = "0"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="claude",
+            TASK_LAUNCH_WRAPPER_FIELD="structured_output",
+            TASK_LAUNCH_NOTE="u10-spend-from-wrapper",
+            TASK_LAUNCH_WRITE_STREAM="0",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )
@@ -940,11 +1008,13 @@ class ClaudeWrapperSpendIsSessionSpend(_U10Launch):
 
     def test_claude_result_still_records_wrapper_spend(self):
         """Scenario: claude-result still records session.spend from the wrapper"""
-        os.environ["TASK_LAUNCH_WRAPPER"] = "claude"
-        os.environ["TASK_LAUNCH_WRAPPER_FIELD"] = "none"
-        os.environ["TASK_LAUNCH_WRAPPER_SUBTYPE"] = "error_max_turns"
-        os.environ["TASK_LAUNCH_WRAPPER_IS_ERROR"] = "1"
-        os.environ["TASK_LAUNCH_WRITE_STREAM"] = "0"
+        self._plant_knobs(
+            TASK_LAUNCH_WRAPPER="claude",
+            TASK_LAUNCH_WRAPPER_FIELD="none",
+            TASK_LAUNCH_WRAPPER_SUBTYPE="error_max_turns",
+            TASK_LAUNCH_WRAPPER_IS_ERROR="1",
+            TASK_LAUNCH_WRITE_STREAM="0",
+        )
         rec, *_ = self._dispatch_closed(
             job="plan", harness="claude", stage="plan",
         )

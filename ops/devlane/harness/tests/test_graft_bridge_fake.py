@@ -7,11 +7,11 @@ not import the adapter. Ordinary runs need neither Node nor network.
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
 from pathlib import Path
 
 import support  # noqa: F401  # sys.path: harness dir
+from ops.testkit import World, run
 
 FAKE = Path(__file__).resolve().parent / "fakes" / "graft_bridge.py"
 
@@ -28,12 +28,12 @@ def load_fake():
 class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
     def setUp(self):
         self.fake = load_fake()
-        self._td = tempfile.TemporaryDirectory()
-        self.home = Path(self._td.name)
+        self.world = World(prefix="graft-bridge-")
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
         self.install = self.fake.plant_install(self.home / "install")
         self.root = self.home / "src"
-        (self.root / "ops").mkdir(parents=True)
-        (self.root / "ops" / "lane.md").write_text("ops source\n", encoding="utf-8")
+        self.world.plant_text(self.root / "ops" / "lane.md", "ops source\n")
         self.cache = self.home / "cache"
         self.build_req = {
             "op": "build",
@@ -47,9 +47,6 @@ class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
             "tool": "graft_repo_map",
             "arguments": {},
         }
-
-    def tearDown(self):
-        self._td.cleanup()
 
     def transcript(self):
         path = self.fake.transcript_path(self.install)
@@ -99,18 +96,16 @@ class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
 
     def test_empty_stdin_is_a_provider_error_in_the_transcript(self):
         node = self.install / "node" / "bin" / "node"
-        import subprocess
-
-        proc = subprocess.run(
+        result = run(
             [str(node), str(self.install / "graft" / "bridge.mjs"),
              str(self.install / "graft")],
-            input="",
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=self.home,
+            env=self.world.env(),
+            stdin="",
+            timeout=60,
         )
-        self.assertEqual(proc.returncode, 0)
-        body = json.loads(proc.stdout)
+        self.assertEqual(result.exit, 0)
+        body = json.loads(result.stdout)
         self.assertEqual(body["ok"], False)
         self.assertIn("empty", body["error"])
         self.assertIsNone(self.transcript()[-1]["request"])
@@ -160,8 +155,7 @@ class BridgeFakeSpeaksTheClosedProtocol(unittest.TestCase):
 
     def test_ambient_graft_config_is_refused(self):
         cfg = self.root / ".graft" / "config.json"
-        cfg.parent.mkdir()
-        cfg.write_text("{}\n", encoding="utf-8")
+        self.world.plant_text(cfg, "{}\n")
         body = json.loads(self.fake.invoke(self.install, self.build_req)[1])
         self.assertEqual(body["ok"], False)
         self.assertIn("ambient", body["error"])

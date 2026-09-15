@@ -1,3 +1,4 @@
+# testkit: exempt the kit suite's planted refuser, a subject
 #!/usr/bin/env python3
 """A twenty-line program that speaks the wire: `serve NAME` prints the
 name; anything else refuses `arguments` on stderr, exit 2, stdout empty.

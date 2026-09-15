@@ -19,8 +19,16 @@ from pathlib import Path
 
 import launch_support as ls
 
+from ops.testkit import World
 
-class RecordShapeFromAClosedDispatch(ls._TempLaunch):
+
+class _KitLaunch(ls._TempLaunch):
+    """The shared fixture's hermetic world, made explicit in this family."""
+
+    world: World
+
+
+class RecordShapeFromAClosedDispatch(_KitLaunch):
     """R1 — the file on disk is the contract's ordered record."""
 
     def test_closed_record_keys_are_the_contracted_order(self):
@@ -62,7 +70,7 @@ class RecordShapeFromAClosedDispatch(ls._TempLaunch):
         )
 
 
-class FollowsAndUnitLand(ls._TempLaunch):
+class FollowsAndUnitLand(_KitLaunch):
     """R2 / plan (q). follows is the dispatch-graph edge, not
     context.prior. unit defaults to the lineage branch."""
 
@@ -88,7 +96,7 @@ class FollowsAndUnitLand(ls._TempLaunch):
         self.assertNotIn("prior", rec)
 
 
-class ModelRanComesFromTheStream(ls._TempLaunch):
+class ModelRanComesFromTheStream(_KitLaunch):
     """R3 / plan (g) — requested is the alias; ran is the stream.
 
     The ran-model is baked into the fake CLI; TASK_LAUNCH_RAN_MODEL is
@@ -162,7 +170,7 @@ class ModelRanComesFromTheStream(ls._TempLaunch):
         self.assertNotEqual(rec["snapshot"]["ref_sha"], bogus)
 
 
-class BriefCheckRederives(ls._TempLaunch):
+class BriefCheckRederives(_KitLaunch):
     """R4 / plan (m) — brief --check re-renders from jobs.json@ref_sha
     + scope + input digests."""
 
@@ -220,7 +228,7 @@ class BriefCheckRederives(ls._TempLaunch):
         self.assertEqual(copied.read_bytes(), body)
 
 
-class CapsEqualWires(ls._TempLaunch):
+class CapsEqualWires(_KitLaunch):
     """R5 / plan (o)."""
 
     def test_record_caps_equal_wires_budget_and_name_their_source(self):
@@ -253,7 +261,7 @@ class CapsEqualWires(ls._TempLaunch):
         )
 
 
-class BehindTipIsACount(ls._TempLaunch):
+class BehindTipIsACount(_KitLaunch):
     """R6 — behind_tip is rev-list --count ref_sha..lineage."""
 
     def test_behind_tip_matches_rev_list_count(self):
@@ -281,7 +289,7 @@ GROK_USAGE_RUNS = [[
 ]]
 
 
-class EnvelopeSpendIsFilledFromTheSessionStore(ls._TempLaunch):
+class EnvelopeSpendIsFilledFromTheSessionStore(_KitLaunch):
     """result.envelope.spend is filled by the launcher from session.spend
     when the store resolved; the harness's zeros are never the record's
     figure. An unresolved spend starts with UNREACHABLE: and names the

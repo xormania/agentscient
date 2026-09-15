@@ -24,6 +24,7 @@ verbatim from the repaired ops/conductor/ladder-lever.md:
 The tool ops/conductor/tools/ladder.py is the subject and is not read
 here. Tests reuse _LadderFixture and its stubbed dispatcher, launcher,
 landing and findings tools from test_ladder_lever.py.
+Worlds, plants and subprocesses go through ops/testkit.
 """
 
 from __future__ import annotations
@@ -31,14 +32,11 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
-import sys
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
+from test_ladder_lever import BRANCH, _LadderFixture
 
-from test_ladder_lever import BRANCH, _LadderFixture  # noqa: E402
+from ops.testkit import World, plant_bytes
 
 START_FORM = "SCOPE BRANCH [PLAN] [--input PATH]... or resume LADDER_ID"
 NEEDED_INPUT = "supply a readable input file"
@@ -54,12 +52,13 @@ class _InputFixture(_LadderFixture):
     """Helpers for start-time --input, on the existing ladder fixture."""
 
     def plant_start_inputs(self, *files: tuple[str, str]) -> list[Path]:
+        self.assertIsInstance(self.world, World)
         self.assertTrue(files, "plant: no start inputs given")
         paths: list[Path] = []
         for rel, body in files:
             path = self.repo / rel
             data = body.encode("utf-8")
-            self._plant_bytes(path, data)
+            plant_bytes(path, data)
             self.git("add", "--", rel)
             paths.append(path)
         self.git("commit", "-m", "plant start inputs\n")
@@ -351,7 +350,7 @@ class InputResume(_InputFixture):
         path = self.plant_start_input(ALPHA_REL, ALPHA_BODY)
         digest = self.file_digest(path)
         ladder_id = self._stop_after_tests_with_input(path)
-        self._plant_bytes(path, CHANGED_BODY.encode("utf-8"))
+        plant_bytes(path, CHANGED_BODY.encode("utf-8"))
         self.assertEqual(path.read_text(encoding="utf-8"), CHANGED_BODY)
         self.assertNotEqual(self.file_digest(path), digest)
         self.git("add", "--", ALPHA_REL)

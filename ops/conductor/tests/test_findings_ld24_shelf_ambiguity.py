@@ -14,11 +14,11 @@ producer wrote the change and this test (grant 145).
 from __future__ import annotations
 
 import importlib.util
-import shutil
 import sys
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "ops" / "conductor" / "tools" / "findings.py"
@@ -46,25 +46,26 @@ def _load():
 
 class ShelfAmbiguity(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix="ld-twentyfour-")
-        self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name).resolve()
+        self.world = World(prefix="ld-twentyfour-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.cwd
         self.shelf = self.root / ".dev" / "ladder-inputs"
         self.shelf.mkdir(parents=True)
-        self.jobs = self.root.parent / (self.root.name + "-jobs")
+        self.jobs = self.world.path("jobs")
         self.jobs.mkdir(exist_ok=True)
-        self.addCleanup(shutil.rmtree, self.jobs, True)
-        (self.shelf / "scope-discipline.md").write_text(DISCIPLINE, encoding="utf-8")
+        self.world.plant_text(self.shelf / "scope-discipline.md", DISCIPLINE)
         self.resolver = _load().work_order_scope
 
     def plant(self, name: str) -> Path:
         order = self.shelf / f"{name}.md"
-        order.write_text(WORK_ORDER.format(name=name), encoding="utf-8")
-        (self.shelf / f"{name}.scope.md").write_text(
-            SENTENCE.format(name=name), encoding="utf-8",
+        self.world.plant_text(order, WORK_ORDER.format(name=name))
+        self.world.plant_text(
+            self.shelf / f"{name}.scope.md",
+            SENTENCE.format(name=name),
         )
-        (self.shelf / f"plan-{name}.md").write_text(
-            PLAN.format(name=name), encoding="utf-8",
+        self.world.plant_text(
+            self.shelf / f"plan-{name}.md",
+            PLAN.format(name=name),
         )
         self.assertRegex(order.read_text(encoding="utf-8"), r"(?m)^1\. ")
         return order
@@ -85,7 +86,10 @@ class ShelfAmbiguity(unittest.TestCase):
         job_in = self.jobs / "in"
         job_in.mkdir()
         for name in SLICE_FILES:
-            shutil.copyfile(self.shelf / name, job_in / name)
+            self.world.plant_text(
+                job_in / name,
+                (self.shelf / name).read_text(encoding="utf-8"),
+            )
         inputs = [str(job_in / name) for name in SLICE_FILES]
         self.assertEqual(
             self.resolver(inputs, self.root),

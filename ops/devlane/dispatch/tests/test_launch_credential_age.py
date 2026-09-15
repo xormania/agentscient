@@ -10,6 +10,8 @@ import os
 
 import launch_support as ls
 
+from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
+
 
 def _stamp(hours_ago):
     at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=hours_ago)
@@ -20,9 +22,8 @@ class AnAgedGrokCredentialIsRefusedBeforeTheMint(ls._TempLaunch):
     def plant_credential(self, hours_ago):
         auth = self.home / ".grok" / "auth.json"
         self.assertTrue(auth.is_file(), "plant: the fixture's credential is present")
-        auth.write_text(json.dumps({"https://auth.x.ai::client": {
-            "key": "k", "refresh_token": "r", "create_time": _stamp(hours_ago)}}) + "\n",
-            encoding="utf-8")
+        self.world.plant_text(auth, json.dumps({"https://auth.x.ai::client": {
+            "key": "k", "refresh_token": "r", "create_time": _stamp(hours_ago)}}) + "\n")
         self.assertIn("create_time", auth.read_text(encoding="utf-8"), "plant: stamp written")
 
     def test_a_credential_past_its_lifetime_refuses_naming_the_login(self):

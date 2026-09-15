@@ -29,9 +29,10 @@ from __future__ import annotations
 
 import ast
 import json
-import tempfile
 import unittest
 from pathlib import Path
+
+from ops.testkit import World
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -150,18 +151,21 @@ class TheRealTree(unittest.TestCase):
 
 class PlantedTrees(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="state-placement-"))
-        self.tools = self.tmp / "tools"
-        self.placement = self.tmp / "placement"
+        self.world = World(prefix="state-placement-")
+        self.addCleanup(self.world.close)
+        self.tools = self.world.path("tools")
+        self.placement = self.world.path("placement")
         self.tools.mkdir()
         self.placement.mkdir()
 
     def plant(self, name: str, source: str, state: dict | None) -> None:
-        (self.tools / name).write_text(source, encoding="utf-8")
+        self.world.plant_text(self.tools / name, source)
         data = {"placement": "migrated"}
         if state is not None:
             data["state"] = state
-        (self.placement / f"{name}.json").write_text(json.dumps(data), encoding="utf-8")
+        self.world.plant_text(
+            self.placement / f"{name}.json", json.dumps(data),
+        )
 
     def test_a_clean_sqlite_tool_passes(self):
         self.plant("a.py", "import sqlite3\n", {"engine": "sqlite"})

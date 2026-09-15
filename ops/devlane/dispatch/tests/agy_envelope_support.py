@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import json
 
+from ops.testkit import World
+
 # Distinct from the worker stamp placeholder so a copied ref cannot pass.
 LAUNCHER_REF = "fc9ad2c015d47c85b405018521b57fa57e212d90"
 CONVERSATION_ID = "00000000-0000-4000-8000-000000000001"
@@ -165,6 +167,11 @@ def dumps(obj):
 def ndjson_bytes(*objs):
     parts = [dumps(obj) for obj in objs]
     return ("".join(part + "\n" for part in parts)).encode("utf-8")
+
+
+def plant_ndjson(world: World, target, *objs):
+    """Plant framed fixture bytes through the world's proven plant."""
+    return world.plant_bytes(target, ndjson_bytes(*objs))
 
 
 def stream_with_decoys(*middle, lead=None, trail=None):

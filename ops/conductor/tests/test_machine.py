@@ -20,13 +20,13 @@ from __future__ import annotations
 import importlib.util
 import os
 import sqlite3
-import subprocess
 import sys
-import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
+
+from ops.testkit import World, run
 
 REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
@@ -44,28 +44,27 @@ def load_module(path: Path):
     conf that no longer exists. The real one is put first for this load
     and whatever was there is put back by the caller's cleanup."""
     sys.modules.pop("instrument", None)
-    sys.path.insert(0, str(TOOLS))
+    tool_dir = path.parent
+    sys.path.insert(0, str(tool_dir))
     try:
         spec = importlib.util.spec_from_file_location("machine_under_test", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     finally:
-        sys.path.remove(str(TOOLS))
+        sys.path.remove(str(tool_dir))
     return module
 
 
 class _Scratch(unittest.TestCase):
     def setUp(self):
+        self.assertTrue(MODULE.is_file(), f"RED: module is absent: {MODULE}")
         # Cleanups, not tearDown: a setUp that errors skips tearDown and
         # would leave this scratch environment on every later suite in
         # the process (measured 2026-09-13: seven skills, watchdog and
         # corpus tests red behind one engine setUp error).
-        environ = dict(os.environ)
         modules = {name: sys.modules.get(name) for name in ("instrument", "machine_under_test")}
 
         def restore():
-            os.environ.clear()
-            os.environ.update(environ)
             for name, module in modules.items():
                 if module is None:
                     sys.modules.pop(name, None)
@@ -73,34 +72,33 @@ class _Scratch(unittest.TestCase):
                     sys.modules[name] = module
 
         self.addCleanup(restore)
-        self.tmp = Path(tempfile.mkdtemp(prefix="machine-"))
-        self.xdg = self.tmp / "xdg"
-        self.conf = self.tmp / "lane.conf"
-        self.conf.write_text("LANE_NAME='testlane'\n", encoding="utf-8")
-        os.environ["XDG_STATE_HOME"] = str(self.xdg)
+        self.world = World(prefix="machine-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.tmp = self.world.root
+        self.xdg = self.world.xdg_state
+        self.conf = self.world.plant_text("lane.conf", "LANE_NAME='testlane'\n")
         os.environ["LANE_CONF"] = str(self.conf)
         os.environ.pop("WF_AGENT", None)
         self.store = self.xdg / "testlane" / "state.db"
+        self.module = self.world.stage(
+            MODULE, siblings=("instrument.py", "laneconf.py")
+        )
 
     def env(self, identity: str | None = None) -> dict[str, str]:
-        env = {
-            "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-            "HOME": str(self.tmp / "home"),
-            "XDG_STATE_HOME": str(self.xdg),
-            "LANE_CONF": str(self.conf),
-        }
+        extra = {"LANE_CONF": str(self.conf)}
         if identity:
-            env["WF_AGENT"] = identity
-        return env
+            extra["WF_AGENT"] = identity
+        return self.world.env(extra)
 
     def cli(self, *argv: str, identity: str | None = None):
-        return subprocess.run(
-            [sys.executable, str(MODULE), *argv],
-            env=self.env(identity), capture_output=True, text=True, check=False,
+        return run(
+            [sys.executable, str(self.module), *argv],
+            cwd=self.world.cwd, env=self.env(identity), timeout=60,
         )
 
     def assert_refusal(self, proc, klass: str) -> None:
-        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertEqual(proc.exit, 2, proc.stdout + proc.stderr)
         self.assertEqual(proc.stdout, "", "a refusal keeps stdout empty")
         lines = [ln for ln in proc.stderr.splitlines() if ln.strip()]
         self.assertEqual(len(lines), 1, proc.stderr)
@@ -132,7 +130,7 @@ def a_machine(machine):
 class TheDeclaration(_Scratch):
     def setUp(self):
         super().setUp()
-        self.machine = load_module(MODULE)
+        self.machine = load_module(self.module)
         self.probe = a_machine(self.machine)
 
     def test_declare_writes_the_machine_and_its_transitions_as_rows(self):
@@ -191,7 +189,7 @@ class TheDeclaration(_Scratch):
 class TheSubjects(_Scratch):
     def setUp(self):
         super().setUp()
-        self.machine = load_module(MODULE)
+        self.machine = load_module(self.module)
         self.probe = a_machine(self.machine)
         self.conn = self.machine.connect(create=True)
         self.machine.declare(self.conn, self.probe)
@@ -401,7 +399,7 @@ class TheSubjects(_Scratch):
 class TheCli(_Scratch):
     def setUp(self):
         super().setUp()
-        self.machine = load_module(MODULE)
+        self.machine = load_module(self.module)
         self.probe = a_machine(self.machine)
 
     def test_an_unknown_verb_refuses_arguments(self):
@@ -409,7 +407,7 @@ class TheCli(_Scratch):
 
     def test_machines_on_an_absent_store_says_so_and_creates_nothing(self):
         proc = self.cli("machines")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), "no state store")
         self.assertFalse(self.store.exists())
 
@@ -417,14 +415,14 @@ class TheCli(_Scratch):
         with self.machine.connect(create=True) as conn:
             self.machine.declare(conn, self.probe)
         proc = self.cli("machines")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         self.assertEqual(proc.stdout.strip(), "probe v1 initial=open places=open,taken,done")
 
     def test_show_prints_the_transition_table(self):
         with self.machine.connect(create=True) as conn:
             self.machine.declare(conn, self.probe)
         proc = self.cli("show", "probe")
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         lines = proc.stdout.strip().splitlines()
         self.assertEqual(lines[0], "take: open -> taken; actor any; evidence none; failure taken; hold take")
         self.assertEqual(len(lines), 3)
@@ -440,7 +438,7 @@ class TheCli(_Scratch):
             sid = self.machine.create(conn, self.probe, AGENT)
             self.machine.move(conn, self.probe, sid, "take", AGENT, note="lane/x")
         proc = self.cli("history", "probe", str(sid))
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         lines = proc.stdout.strip().splitlines()
         self.assertEqual(len(lines), 2)
         self.assertIn("create -> open", lines[0])

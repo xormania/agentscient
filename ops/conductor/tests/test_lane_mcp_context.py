@@ -14,9 +14,11 @@ records and registries, and invoke the documented CLI as a subprocess:
 check|serve|query TOOL [JSON]`. No live dispatch store, tracked
 record, real job registry, network, or harness call.
 
-v2 is not implemented. A missing entrypoint is already pinned by
+World owns HOME, the XDG roots and TMPDIR; every subprocess goes
+through run with a timeout. A missing entrypoint is already pinned by
 test_lane_mcp.TestLaneMcpPresence; this file stages the same
-copy-tool-bytes stand-in so each assertion fails on the v2 promise.
+copy-tool-bytes stand-in so each assertion fails on the v2 promise
+when the subject is absent.
 """
 
 from __future__ import annotations
@@ -28,11 +30,7 @@ import re
 import sys
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
-
-from test_lane_mcp import (  # noqa: E402
+from test_lane_mcp import (
     CONSUMER,
     COUNTS,
     FINDING,
@@ -44,7 +42,10 @@ from test_lane_mcp import (  # noqa: E402
     NOTE,
     OMISSIONS,
     PROMPT,
+    READ,
+    RUN_CAP,
     SCHEMA,
+    TOOL,
     TOOLS,
     TRANSCRIPT,
     VERDICT,
@@ -53,6 +54,12 @@ from test_lane_mcp import (  # noqa: E402
     notify,
     rpc,
 )
+
+from ops.testkit import Timeout, World, run
+
+# World.stage copies the subject (and siblings) into the world; an
+# absent file still plants the exit-0 stand-in used to prove red.
+_SUBJECT = TOOL
 
 REPO = Path(__file__).resolve().parents[3]
 V1_EXAMPLE = REPO / "ops" / "conductor" / "lane-mcp.example.json"
@@ -149,8 +156,122 @@ def fit_omission_forms(n: int, source: dict) -> list[dict]:
     return forms
 
 
+class _Proc:
+    """Kit Result plus the CompletedProcess names the inherited fixture reads."""
+
+    def __init__(self, result):
+        self.argv = result.argv
+        self.exit = result.exit
+        self.returncode = result.exit
+        self.stdout = result.stdout
+        self.stderr = result.stderr
+        self.duration = result.duration
+        self.cwd = result.cwd
+        self._result = result
+
+    def refusal(self, *, exit=2):
+        return self._result.refusal(exit=exit)
+
+
 class _V2Fixture(_LaneMcpFixture):
-    """v1 fixture plus version-2 config, records and registries."""
+    """v1 fixture plus version-2 config, records and registries.
+
+    World owns the temporary roots; invoke goes through run.
+    """
+
+    def setUp(self):
+        self.world = World(prefix="lane-mcp-context-")
+        self.home = self.world.home
+        self.scratch = self.world.path("stage")
+        siblings = tuple(
+            path.name
+            for path in (
+                READ,
+                READ.with_name("instrument.py"),
+                READ.with_name("laneconf.py"),
+            )
+            if path.is_file()
+        )
+        self.staged = self.world.stage(
+            _SUBJECT,
+            "lane_mcp.py",
+            siblings=siblings if _SUBJECT.is_file() else (),
+        )
+        self.work = self.world.path("work")
+        self.work.mkdir()
+        self.cwd = self.world.cwd
+        self.store = self.work / "store"
+        self.state_dir = self.work / "monitor"
+        self.db = self.state_dir / "monitor.db"
+        self.rollout = self.work / "rollout.jsonl"
+        self.config_path = self.work / "config.json"
+        self.plant_config()
+        self.assertFalse(
+            (self.home / ".local" / "state" / "agentscient" / "dispatch").exists(),
+            "plant: isolated store must start absent",
+        )
+
+    def tearDown(self):
+        self.world.close()
+
+    def _plant_bytes(self, path: Path, data: bytes) -> None:
+        self.world.plant_bytes(path, data)
+
+    def env(self, extra=None):
+        env = self.world.env()
+        env.pop("WF_AGENT", None)
+        env.pop("CLAUDE_SESSION_ID", None)
+        if extra:
+            for key, value in extra.items():
+                if value is None:
+                    env.pop(key, None)
+                else:
+                    env[key] = value
+        return env
+
+    def invoke(
+        self,
+        args,
+        *,
+        config=None,
+        stdin=None,
+        extra_env=None,
+        cap=RUN_CAP,
+        minus_b=True,
+    ):
+        cfg = self.config_path if config is None else config
+        py = [sys.executable]
+        if minus_b:
+            py.append("-B")
+        argv = [*py, str(self.staged), "--config", str(cfg), *args]
+        try:
+            return _Proc(
+                run(
+                    argv,
+                    cwd=self.cwd,
+                    env=self.env(extra_env),
+                    stdin=stdin,
+                    timeout=cap,
+                )
+            )
+        except Timeout as exc:
+            self.fail(f"timed out: {argv}: {exc}")
+
+    def load_query(self, proc):
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertTrue(proc.stdout.strip(), "stdout empty")
+        try:
+            payload = json.loads(proc.stdout)
+        except ValueError:
+            self.fail(f"stdout is not JSON: {proc.stdout!r}")
+        self.assertIsInstance(payload, dict, payload)
+        return payload
+
+    def assert_refusal(self, proc, class_token=None):
+        refusal = proc.refusal()
+        if class_token is not None:
+            self.assertEqual(refusal.cls, class_token, refusal.line)
+        return refusal.line
 
     def plant_v2_config(
         self,

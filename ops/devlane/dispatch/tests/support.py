@@ -13,6 +13,8 @@ import importlib.util
 import sys
 from pathlib import Path
 
+from ops.testkit import PlantFailed
+
 APP = Path(__file__).resolve().parents[1]
 REPO = APP.parents[2]
 
@@ -31,7 +33,7 @@ def load(name):
     path = APP / f"{name}.py"
     spec = importlib.util.spec_from_file_location(f"task_{name}", path)
     if spec is None or spec.loader is None:
-        raise RuntimeError(f"cannot load {path}")
+        raise PlantFailed(f"INVALID: cannot load {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

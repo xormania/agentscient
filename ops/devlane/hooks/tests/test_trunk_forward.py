@@ -23,14 +23,13 @@ producer is absent and this docstring says so.
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
 import support
+
+from ops.testkit import World, run
 
 HOOK = support.CLAUDE_DIR / "trunk-forward.py"
 REPO = Path(__file__).resolve().parents[4]
@@ -40,18 +39,19 @@ LANE_CONF = "LANE_NAME='agentscient'\nTRUNK_BRANCH='dev'\nRELEASE_BRANCH='master
 class _Fixture(unittest.TestCase):
     def setUp(self):
         self.assertTrue(HOOK.is_file(), f"absent: {HOOK}")
-        self.tmp = Path(tempfile.mkdtemp(prefix="trunk-forward-"))
-        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
-        self.home = self.tmp / "home"
-        self.home.mkdir()
-        self.env = support.isolated_env(self.home)
+        self.world = World(prefix="trunk-forward-")
+        self.addCleanup(self.world.close)
+        self.tmp = self.world.root
+        self.env = self.world.env({
+            "TESTKIT_DIR": str(support.WORKTREE_ROOT / "ops" / "testkit"),
+        })
         seed = self.tmp / "seed"
         seed.mkdir()
         support.git(seed, self.env, "-c", "init.defaultBranch=dev", "init", "-q")
         support.configure_identity(seed, self.env)
         (seed / "ops").mkdir()
-        (seed / "ops" / "lane.conf").write_text(LANE_CONF, encoding="utf-8")
-        (seed / "README.md").write_text("seed\n", encoding="utf-8")
+        self.world.plant_text(seed / "ops" / "lane.conf", LANE_CONF)
+        self.world.plant_text(seed / "README.md", "seed\n")
         support.git(seed, self.env, "add", "-A")
         support.git(seed, self.env, "commit", "-q", "-m", "seed")
         self.bare = self.tmp / "origin.git"
@@ -74,16 +74,17 @@ class _Fixture(unittest.TestCase):
         env = dict(self.env)
         env["CLAUDE_PROJECT_DIR"] = str(project_dir or self.main)
         payload = json.dumps({"hook_event_name": "SessionStart", "source": source, "cwd": str(self.main)})
-        return subprocess.run([sys.executable, str(HOOK)], input=payload, cwd=str(self.tmp), env=env,
-                              capture_output=True, text=True, check=False, timeout=120)
+        return run(
+            [sys.executable, str(HOOK)], stdin=payload, cwd=self.tmp, env=env,
+            timeout=120,
+        )
 
     def one_line(self, proc):
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         lines = [line for line in proc.stdout.splitlines() if line.strip()]
         self.assertEqual(len(lines), 1, proc.stdout)
         self.assertTrue(lines[0].startswith("trunk-forward: "), lines[0])
         return lines[0]
-
 
 class TheCleanTrunkMoves(_Fixture):
     def test_a_clean_trunk_behind_its_remote_is_fast_forwarded_and_both_shas_are_printed(self):
@@ -113,7 +114,7 @@ class TheCleanTrunkMoves(_Fixture):
 
 class TheTrunkStaysWhenItMust(_Fixture):
     def test_uncommitted_changes_hold_the_trunk_and_the_line_says_so(self):
-        (self.main / "README.md").write_text("edited\n", encoding="utf-8")
+        self.world.plant_text(self.main / "README.md", "edited\n")
         self.land("one")
         old = self.head(self.main)
         line = self.one_line(self.run_hook())
@@ -165,6 +166,11 @@ class TheTrunkStaysWhenItMust(_Fixture):
 
 
 class TheSettingsBindIt(unittest.TestCase):
+    def setUp(self):
+        self.world = World(prefix="trunk-forward-settings-")
+        self.world.enter()
+        self.addCleanup(self.world.close)
+
     def test_settings_bind_the_hook_at_every_session_start_before_the_engine(self):
         settings = json.loads((REPO / ".claude" / "settings.json").read_text(encoding="utf-8"))
         rows = [r for r in settings["hooks"]["SessionStart"] if not r.get("matcher")]
