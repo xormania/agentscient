@@ -351,6 +351,70 @@ class TheVocabularyCoversTheLaneRows(_Engine):
                 self.allowed(self.run_event("PreToolUse", "Write", {"file_path": str(tests / "test_late_import.py"), "content": late_import}, env=env))
 
 
+class TheDoneGate(_Engine):
+    """Owner, 2026-09-15: a session reported a plan's slices "all done"
+    with 210 of 226 test modules still off the kit; "whatever it says -
+    is the problem we to solve - right fucking now"; "I need confidence
+    that my orders are being carried out". No gate read a done said in
+    chat. This row reads the reply at Stop: a reply that says done,
+    complete, finished, landed, merged or solved carries one of three
+    deliverable.py lines or is sent back with the lock's target lines in
+    the reason. stop_hook_active passes; three blocks per session_id
+    and the fourth passes, the target lines logged."""
+
+    def stop(self, message, session="s1", active=False):
+        return self.run_event("Stop", tool_name=None,
+                              extra={"session_id": session, "stop_hook_active": active,
+                                     "last_assistant_message": message})
+
+    def gate(self):
+        self.plant(row("done-gate", event="Stop", tools=(), when={"pred": "reply_claims_done"}))
+
+    def test_a_reply_that_says_done_without_a_lock_line_is_sent_back_with_the_lock_reading(self):
+        self.gate()
+        reason = self.refusal(self.stop("All 21 slices landed; the plan is done."), "done-gate", event="Stop")
+        self.assertIn("deliverable.py done", reason)
+        self.assertIn("the plan is done", reason)
+        self.assertIn("lock", reason)
+
+    def test_a_sha_or_pr_number_is_not_the_lock_reading(self):
+        """The reply that started this carried "#216 at aba8600a" and no
+        lock line; the claim law's readings do not satisfy this row."""
+        self.gate()
+        self.refusal(self.stop("The kit plan is complete: #216 merged at aba8600a1234."), "done-gate", event="Stop")
+
+    def test_the_three_deliverable_lines_pass(self):
+        self.gate()
+        for line in (
+            "done lane/session-x: modules=222 on_kit=222 exempt=0 off_kit=0",
+            "target: expected the measure to read off_kit=0; found modules=222 on_kit=15 off_kit=205; needed keep going",
+            "target lane/session-x: until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short",
+        ):
+            with self.subTest(line=line):
+                self.allowed(self.stop(f"The migration is done for this family.\n{line}\nNext family follows."))
+
+    def test_a_reply_that_claims_nothing_passes_and_a_quoted_claim_is_not_the_writers(self):
+        self.gate()
+        self.allowed(self.stop("Reading the launcher's review base now; nothing to report yet."))
+        self.allowed(self.stop('The owner said "get it done"; I have taken T-5 and started the red.'))
+
+    def test_stop_hook_active_passes(self):
+        self.gate()
+        self.allowed(self.stop("The plan is done.", active=True))
+
+    def test_three_blocks_per_session_then_the_fourth_passes_and_another_session_still_blocks(self):
+        self.gate()
+        for _ in range(3):
+            self.refusal(self.stop("Everything is finished."), "done-gate", event="Stop")
+        self.allowed(self.stop("Everything is finished."))
+        self.refusal(self.stop("Everything is finished.", session="s2"), "done-gate", event="Stop")
+        counter = self.home / ".local" / "state" / "agentscient" / "done-gate.json"
+        self.assertTrue(counter.is_file(), "the cap is counted per session under the lane's state directory")
+        self.allowed(self.stop("done lane/x: off_kit=0"))
+        self.refusal(self.stop("Everything is finished."), "done-gate", event="Stop")
+        self.assertEqual(json.loads(counter.read_text())["s1"], 1, "a pass resets the session's count")
+
+
 class TheLiveRegistryIsEvaluable(unittest.TestCase):
     def test_every_engine_row_names_known_predicates_and_events(self):
         data = json.loads(LIVE_REGISTRY.read_text(encoding="utf-8"))
