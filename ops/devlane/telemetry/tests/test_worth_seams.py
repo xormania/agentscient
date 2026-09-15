@@ -5,38 +5,40 @@ silently failed to plant answers a question about nothing.
 """
 
 import json
-import subprocess
 import sys
-import tempfile
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import ClassVar
 from urllib.parse import quote
 
+from ops.testkit import World, run
+
 WORTH = Path(__file__).resolve().parents[1] / "worth.py"
 NOW = "2026-08-22T12:00:00.000Z"
+TIMEOUT = 60
 
 
 class SeamCase(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="worth-seams-"))
-        self.addCleanup(
-            lambda: subprocess.run(["rm", "-rf", str(self.tmp)], check=False))
-        self.repo = self.tmp / "repo"
+        self.world = World(prefix="worth-seams-", ambient=("TZ",))
+        self.addCleanup(self.world.close)
+        self.world.require("git")
+        # Kit gap: worth.py locates conductor siblings from Path(__file__).
+        self.worth_py = WORTH
+        self.repo = self.world.root / "repo"
         self.repo.mkdir()
-        subprocess.run(["git", "-C", str(self.repo), "init", "-q", "-b",
-                        "dev"], check=True)
-        self.claude = self.tmp / "claude"
-        self.codex = self.tmp / "codex"
-        self.grok = self.tmp / "grok"
+        self.world.git("init", "-q", "-b", "dev", cwd=self.repo)
+        self.claude = self.world.root / "claude"
+        self.codex = self.world.root / "codex"
+        self.grok = self.world.root / "grok"
 
     def write_lines(self, path, rows):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("".join(json.dumps(r) + "\n" for r in rows))
-        planted = [json.loads(line) for line in path.read_text().splitlines()]
+        content = "".join(json.dumps(r) + "\n" for r in rows)
+        planted_path = self.world.plant_text(path, content)
+        planted = [json.loads(line) for line in planted_path.read_text().splitlines()]
         self.assertEqual(planted, rows, "the plant did not land intact")
-        return path
+        return planted_path
 
     def claude_row(self, mid, stamp, usage):
         return {"type": "assistant", "timestamp": stamp,
@@ -46,12 +48,12 @@ class SeamCase(unittest.TestCase):
     def grok_session(self, name, updates=None, raw_updates=None):
         session = self.grok / "sessions" / quote(str(self.repo), safe="") / name
         session.mkdir(parents=True)
-        (session / "summary.json").write_text(json.dumps(
+        self.world.plant_text(session / "summary.json", json.dumps(
             {"info": {"id": name, "cwd": str(self.repo)},
              "created_at": "2026-08-22T10:00:00.000000000Z",
              "updated_at": "2026-08-22T10:20:00.000000000Z"}))
         if raw_updates is not None:
-            (session / "updates.jsonl").write_text(raw_updates)
+            self.world.plant_text(session / "updates.jsonl", raw_updates)
             self.assertEqual((session / "updates.jsonl").read_text(),
                              raw_updates)
         elif updates is not None:
@@ -59,15 +61,18 @@ class SeamCase(unittest.TestCase):
         return session
 
     def worth(self, verb, *args):
-        proc = subprocess.run(
-            [sys.executable, str(WORTH), verb, *args, "--now", NOW,
+        proc = run(
+            [sys.executable, str(self.worth_py), verb, *args, "--now", NOW,
              "--repo", str(self.repo),
              "--claude-dir", str(self.claude),
              "--codex-dir", str(self.codex),
              "--grok-dir", str(self.grok),
              "--format", "json"],
-            capture_output=True, text=True, check=False)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=TIMEOUT,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
         return json.loads(proc.stdout)
 
     def slug(self):
@@ -212,22 +217,18 @@ class SeamGitCase(SeamCase):
     def commit(self, files, subject, when):
         for rel, content in files.items():
             path = self.repo / rel
-            path.parent.mkdir(parents=True, exist_ok=True)
             if isinstance(content, bytes):
-                path.write_bytes(content)  # test-guard: allow
-                self.assertEqual(path.read_bytes(), content)
+                self.world.plant_bytes(path, content)
             else:
-                path.write_text(content)
-                self.assertEqual(path.read_text(), content)
-        env = {"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when,
-               "GIT_AUTHOR_NAME": "seam", "GIT_AUTHOR_EMAIL": "s@x",
-               "GIT_COMMITTER_NAME": "seam", "GIT_COMMITTER_EMAIL": "s@x"}
-        import os
-        subprocess.run(["git", "-C", str(self.repo), "add", "-A"],
-                       check=True)
-        subprocess.run(["git", "-C", str(self.repo), "commit", "-q",
-                        "-m", subject], check=True,
-                       env={**os.environ, **env})
+                self.world.plant_text(path, content)
+        extra = {"GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when,
+                 "GIT_AUTHOR_NAME": "seam", "GIT_AUTHOR_EMAIL": "s@x",
+                 "GIT_COMMITTER_NAME": "seam", "GIT_COMMITTER_EMAIL": "s@x"}
+        env = self.world.env(extra=extra)
+        run(["git", "add", "-A"], cwd=self.repo, env=env, timeout=TIMEOUT,
+            expect=0)
+        run(["git", "commit", "-q", "-m", subject], cwd=self.repo, env=env,
+            timeout=TIMEOUT, expect=0)
 
 
 class CodexBaselineSubtraction(SeamCase):
@@ -367,22 +368,19 @@ class ResultsSideSeams(SeamGitCase):
 
     def test_every_merge_entry_names_its_sha_and_subject(self):
         self.commit({"a.txt": "x\n"}, "base", "2026-08-22T09:00:00Z")
-        subprocess.run(["git", "-C", str(self.repo), "switch", "-q",
-                        "-c", "side"], check=True)
+        run(["git", "switch", "-q", "-c", "side"], cwd=self.repo,
+            env=self.world.env(), timeout=TIMEOUT, expect=0)
         self.commit({"b.txt": "y\n"}, "side work", "2026-08-22T09:30:00Z")
-        subprocess.run(["git", "-C", str(self.repo), "switch", "-q",
-                        "dev"], check=True)
-        import os
-        subprocess.run(["git", "-C", str(self.repo), "merge", "-q",
-                        "--no-ff", "-m", "Merge pull request #7 from x/side",
-                        "side"], check=True,
-                       env={**os.environ,
-                            "GIT_AUTHOR_DATE": "2026-08-22T10:30:00Z",
-                            "GIT_COMMITTER_DATE": "2026-08-22T10:30:00Z",
-                            "GIT_AUTHOR_NAME": "seam",
-                            "GIT_AUTHOR_EMAIL": "s@x",
-                            "GIT_COMMITTER_NAME": "seam",
-                            "GIT_COMMITTER_EMAIL": "s@x"})
+        run(["git", "switch", "-q", "dev"], cwd=self.repo,
+            env=self.world.env(), timeout=TIMEOUT, expect=0)
+        extra = {"GIT_AUTHOR_DATE": "2026-08-22T10:30:00Z",
+                 "GIT_COMMITTER_DATE": "2026-08-22T10:30:00Z",
+                 "GIT_AUTHOR_NAME": "seam", "GIT_AUTHOR_EMAIL": "s@x",
+                 "GIT_COMMITTER_NAME": "seam", "GIT_COMMITTER_EMAIL": "s@x"}
+        run(["git", "merge", "-q", "--no-ff",
+             "-m", "Merge pull request #7 from x/side", "side"],
+            cwd=self.repo, env=self.world.env(extra=extra), timeout=TIMEOUT,
+            expect=0)
         data = self.worth("report")
         merges = data["results"]["merges"]
         self.assertEqual(len(merges), 1)
