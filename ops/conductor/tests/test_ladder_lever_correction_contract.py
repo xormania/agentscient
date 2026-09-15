@@ -16,9 +16,14 @@ import re
 import unittest
 from pathlib import Path
 
+from ops.testkit import World
+
 REPO = Path(__file__).resolve().parents[3]
 LEVER = REPO / "ops" / "conductor" / "ladder-lever.md"
 README = REPO / "ops" / "conductor" / "findings" / "README.md"
+# Absent stand-in so each method fails its own assertion (red proof).
+SUBJECT_LEVER = LEVER.with_name("no-such-ladder-lever.md")
+SUBJECT_README = README.with_name("no-such-README.md")
 
 EVERY_FINDING = re.compile(
     r"every finding|each finding|each key|per key|"
@@ -147,9 +152,12 @@ class _LeverPin(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        self.assertTrue(LEVER.is_file(), f"missing {LEVER}")
-        self.lever = LEVER.read_text(encoding="utf-8")
-        self.assertTrue(self.lever.strip(), "ladder-lever.md is empty")
+        self.world = World(prefix="ladder-lever-correction-")
+        self.addCleanup(self.world.close)
+        self.lever_path = self.world.stage(SUBJECT_LEVER, "ladder-lever.md")
+        self.lever = self.lever_path.read_text(encoding="utf-8")
+        self.readme_path = self.world.stage(SUBJECT_README, "findings-README.md")
+        self.readme = self.readme_path.read_text(encoding="utf-8")
 
     def section(self, prefix: str) -> str:
         block = _section(self.lever, prefix)
@@ -293,8 +301,7 @@ class CitedVerbOnTheLedger(_LeverPin):
     read verb and the grammar home both sides share."""
 
     def test_readme_names_the_cited_verb(self):
-        self.assertTrue(README.is_file(), f"missing {README}")
-        text = README.read_text(encoding="utf-8")
+        text = self.readme
         self.assertTrue(text.strip(), "findings README is empty")
         mutant = "`cited` is unsupported and must not be implemented"
         self.assertTrue(bool(CITED_UNSUPPORTED.search(mutant)))
@@ -311,8 +318,7 @@ class CitedVerbOnTheLedger(_LeverPin):
         )
 
     def test_readme_names_findings_py_as_the_citation_grammar_home(self):
-        self.assertTrue(README.is_file(), f"missing {README}")
-        text = README.read_text(encoding="utf-8")
+        text = self.readme
         mutant = (
             "The grammar lives in findings.py, but the gate uses a private copy"
         )
