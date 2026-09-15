@@ -7,10 +7,10 @@ import importlib.util
 import json
 import os
 import re
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
+
+from ops.testkit import World, plant_text, run
 
 HARNESS = Path(__file__).resolve().parents[1]
 GRAFT_PY = HARNESS / "graft.py"
@@ -73,34 +73,12 @@ def write_conf(path: Path, **overrides: object) -> Path:
     lines = ["# scratch lane conf\n"]
     for name, value in keys.items():
         lines.append(f"{name}='{value}'\n")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("".join(lines), encoding="utf-8")
-    return path
+    return plant_text(path, "".join(lines), recognisable="# scratch lane conf")
 
 
-def git(repo: Path, *args: str) -> subprocess.CompletedProcess:
-    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
-    env.update({
-        "GIT_AUTHOR_NAME": "graft-test",
-        "GIT_AUTHOR_EMAIL": "graft-test@example.invalid",
-        "GIT_COMMITTER_NAME": "graft-test",
-        "GIT_COMMITTER_EMAIL": "graft-test@example.invalid",
-        "GIT_CONFIG_GLOBAL": os.devnull,
-        "GIT_CONFIG_SYSTEM": os.devnull,
-        "GIT_CONFIG_NOSYSTEM": "1",
-        "GIT_TERMINAL_PROMPT": "0",
-    })
-    proc = subprocess.run(
-        ["git", *args],
-        cwd=repo,
-        env=env,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(f"git {args} failed: {proc.stderr}")
-    return proc
+def git(repo: Path, *args: str):
+    with World(prefix="graft-git-") as world:
+        return world.git(*args, cwd=repo, timeout=60)
 
 
 def plant_ops_root(path: Path, files: dict[str, str] | None = None) -> Path:
@@ -112,24 +90,20 @@ def plant_ops_root(path: Path, files: dict[str, str] | None = None) -> Path:
     git(path, "config", "commit.gpgsign", "false")
     for rel, body in files.items():
         dest = path / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        dest.write_text(body, encoding="utf-8")
+        plant_text(dest, body)
     git(path, "add", "-A")
     git(path, "commit", "-m", "ops")
     return path
 
 
 def run_cli(argv, *, env=None, cwd=None) -> tuple[int, str, str]:
-    merged = dict(os.environ if env is None else env)
-    proc = subprocess.run(
+    result = run(
         [sys.executable, str(GRAFT_PY), *list(argv)],
-        cwd=cwd,
-        env=merged,
-        capture_output=True,
-        text=True,
-        check=False,
+        cwd=cwd or Path.cwd(),
+        env=dict(os.environ if env is None else env),
+        timeout=60,
     )
-    return proc.returncode, proc.stdout, proc.stderr
+    return result.exit, result.stdout, result.stderr
 
 
 def call_public(test, name, *args, **kwargs):
@@ -187,31 +161,18 @@ class GraftCase:
     """Temp HOME, scratch lane conf, optional fake install and ops root."""
 
     def setUp(self):
-        self._td = tempfile.TemporaryDirectory()
-        self.home = Path(self._td.name)
-        self._saved = {
-            k: os.environ.get(k)
-            for k in (
-                "HOME", "WF_AGENT", "LANE_CONF", "GRAFT_INSTALL",
-                "XDG_STATE_HOME", "PATH",
-            )
-        }
-        os.environ["HOME"] = str(self.home)
-        os.environ["XDG_STATE_HOME"] = str(self.home / "state")
+        self.world = World(prefix="graft-case-")
+        self.world.enter()
+        self.home = self.world.home
         os.environ["WF_AGENT"] = AGENT
-        self.conf = write_conf(self.home / "lane.conf")
+        self.conf = write_conf(self.world.xdg_config / "lane.conf")
         os.environ["LANE_CONF"] = str(self.conf)
         os.environ["GRAFT_INSTALL"] = ""
         self.fake = load_fake()
         self.pin = load_pin()
 
     def tearDown(self):
-        for key, value in self._saved.items():
-            if value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = value
-        self._td.cleanup()
+        self.world.close()
 
     def set_install(self, value: str) -> None:
         os.environ["GRAFT_INSTALL"] = value
