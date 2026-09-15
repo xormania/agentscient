@@ -8,7 +8,6 @@ remote-tracking ref.
 
 import sys
 import unittest
-from pathlib import Path
 
 import support
 
@@ -52,8 +51,11 @@ class PrecheckScope(unittest.TestCase):
         self.assertEqual(self._rev("origin/main"), self.fixture.old_sha)
 
     def _subject(self):
-        """Red: absent stand-in (exit 0, no output) so each method fails."""
-        return self.world.stage(self.world.root / "absent-precheck.py")
+        self.assertTrue(
+            SCRIPT.is_file(),
+            f"INVALID: context-precheck.py missing: {SCRIPT}",
+        )
+        return self.world.stage(SCRIPT, siblings=("command_shape.py",))
 
     def _rev(self, name: str) -> str:
         return self.world.git(
