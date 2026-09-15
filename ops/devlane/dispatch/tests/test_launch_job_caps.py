@@ -97,7 +97,7 @@ class JobTimeoutIsRecordedWhenEnvIsAbsent(ls._TempLaunch):
         caps = _caps(self, rec)
         self.assertEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
-        self.assertEqual(caps["timeout_source"], "default")
+        self.assertEqual(caps["timeout_source"], "job")
 
 
 class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
@@ -111,7 +111,7 @@ class EnvTimeoutWinsOverTheJobCap(ls._TempLaunch):
         self.assertEqual(float(caps["timeout"]), float(ENV_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), float(JOB_TIMEOUT))
         self.assertNotEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
-        self.assertEqual(caps["timeout_source"], "job")
+        self.assertEqual(caps["timeout_source"], "DISPATCH_TIMEOUT")
 
 
 class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
@@ -125,7 +125,7 @@ class DefaultTimeoutWhenNeitherLayerAnswers(ls._TempLaunch):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _caps(self, rec)
         self.assertEqual(float(caps["timeout"]), DEFAULT_TIMEOUT)
-        self.assertEqual(caps["timeout_source"], "job")
+        self.assertEqual(caps["timeout_source"], "default")
 
 
 class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
@@ -161,7 +161,7 @@ class JobsJsonCarriesExactlyTheFivePolicyCaps(unittest.TestCase):
             f"expected {len(POLICY_CAPS)} jobs with caps, got {carrying!r}",
         )
         self.assertEqual(set(carrying), set(POLICY_CAPS))
-        self.assertNotEqual(carrying, POLICY_CAPS)
+        self.assertEqual(carrying, POLICY_CAPS)
 
 
 class AuthorTestsPromptContainsTheCommitOnRedClause(unittest.TestCase):
@@ -185,7 +185,7 @@ class AuthorTestsPromptContainsTheCommitOnRedClause(unittest.TestCase):
         prompt = spec.get("prompt")
         self.assertIsInstance(prompt, str)
         self.assertTrue(prompt.strip(), "author-tests prompt is empty")
-        self.assertNotIn(COMMIT_ON_RED, prompt)
+        self.assertIn(COMMIT_ON_RED, prompt)
 
 
 class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
@@ -200,7 +200,7 @@ class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
         self.dispatch(self.argv_for(job="plan", harness="grok", stage="plan"))
         elapsed = time.monotonic() - started
         rec = self.read_record()
-        self.assertGreaterEqual(
+        self.assertLess(
             elapsed, 4,
             f"job cap {LOOP_TIMEOUT}s must not wait out 8s, "
             f"let alone 900s: elapsed={elapsed}",
@@ -271,7 +271,7 @@ class JobTurnCapReachesTheGrokArgvAndTheRecord(ls._TempLaunch):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _turn_caps(self, rec)
         self.assertEqual(caps["turns"], JOB_TURNS)
-        self.assertEqual(caps["turns_source"], "none")
+        self.assertEqual(caps["turns_source"], "job")
         self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
         witness = self.read_start_witness()
         self.assertEqual(_max_turns_value(self, witness["argv"]), str(JOB_TURNS))
@@ -287,7 +287,7 @@ class JobTurnCapReachesTheClaudeArgv(ls._TempLaunch):
         plant_job_turns(self, "plan", JOB_TURNS)
         rec, *_ = self.launch_ok(job="plan", harness="claude", stage="plan")
         caps = _turn_caps(self, rec)
-        self.assertEqual(caps["turns"], JOB_TURNS + 1)
+        self.assertEqual(caps["turns"], JOB_TURNS)
         self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
         witness = self.read_start_witness()
         self.assertEqual(_max_turns_value(self, witness["argv"]), str(JOB_TURNS))
@@ -305,7 +305,7 @@ class CodexHasNoTurnFlagAndTheRecordSaysSo(ls._TempLaunch):
         caps = _turn_caps(self, rec)
         self.assertEqual(caps["turns"], JOB_TURNS)
         self.assertEqual(caps["turns_source"], "job")
-        self.assertEqual(caps["turns_argv"], ["--max-turns", str(JOB_TURNS)])
+        self.assertEqual(caps["turns_argv"], [])
         self.assertIn("codex", caps.get("turns_note", ""))
         self.assertNotIn("--max-turns", self.read_start_witness()["argv"])
 
@@ -320,7 +320,7 @@ class NoTurnCapIsDeclaredNotInferred(ls._TempLaunch):
         self.assertNotIn("caps", jobs["plan"])
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _turn_caps(self, rec)
-        self.assertIsNotNone(caps["turns"])
+        self.assertIsNone(caps["turns"])
         self.assertEqual(caps["turns_source"], "none")
         self.assertEqual(caps["turns_argv"], [])
         self.assertNotIn("--max-turns", self.read_start_witness()["argv"])
@@ -336,7 +336,7 @@ class EnvTurnsWinOverTheJobCap(ls._TempLaunch):
         rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
         caps = _turn_caps(self, rec)
         self.assertEqual(caps["turns"], ENV_TURNS)
-        self.assertEqual(caps["turns_source"], "job")
+        self.assertEqual(caps["turns_source"], "DISPATCH_TURNS")
         self.assertEqual(_max_turns_value(self, self.read_start_witness()["argv"]),
                          str(ENV_TURNS))
 
@@ -365,7 +365,7 @@ class JobsJsonCarriesTheTurnPolicy(unittest.TestCase):
             if isinstance(spec, dict) and isinstance(spec.get("caps"), dict)
             and "turns" in spec["caps"]
         }
-        self.assertNotEqual(carrying, POLICY_TURNS)
+        self.assertEqual(carrying, POLICY_TURNS)
         for name, turns in carrying.items():
             self.assertIsInstance(turns, int, name)
             self.assertNotIsInstance(turns, bool, name)
