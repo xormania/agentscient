@@ -85,6 +85,12 @@ HAND_STDOUT = (
     "status: open=2, settled=4\nrecurrence by class:\n  other=2\n"
     "debt: open=2, settled-unverified=0, settled-late=0\n"
 )
+LOCK_STDOUT = (
+    '{\n  "branches": [\n    "lane/session-a",\n    "lane/session-b"\n  ],\n'
+    '  "why": "owner 2026-09-15: every test family onto the kit",\n'
+    '  "by": "Owner <owner@example.test>",\n  "at": "2026-09-15T05:00:00Z"\n}\n'
+    "target lane/session-b: until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short\n"
+)
 PR_NUMBER = "42"
 PR_TITLE = "Onboard the lever"
 RUNNING_ID = "20260901T120000Z-run-alpha"
@@ -433,6 +439,9 @@ class _OnboardFixture(unittest.TestCase):
         ledger_stdout: str = HAND_STDOUT,
         ledger_stderr: str = "",
         ledger_exit: int = 0,
+        lock_stdout: str = LOCK_STDOUT,
+        lock_stderr: str = "",
+        lock_exit: int = 0,
     ) -> None:
         locations = (
             self.scratch,
@@ -451,6 +460,12 @@ class _OnboardFixture(unittest.TestCase):
                 stdout=ledger_stdout,
                 stderr=ledger_stderr,
                 exit_code=ledger_exit,
+            )
+            self._plant_py_stub(
+                folder / "deliverable.py",
+                stdout=lock_stdout,
+                stderr=lock_stderr,
+                exit_code=lock_exit,
             )
 
     def _gh_preamble(self) -> str:
@@ -732,6 +747,9 @@ class _OnboardFixture(unittest.TestCase):
         register_exit: int = 0,
         ledger_stderr: str = "",
         ledger_exit: int = 0,
+        lock_stdout: str = LOCK_STDOUT,
+        lock_stderr: str = "",
+        lock_exit: int = 0,
     ) -> None:
         self.ensure_git()
         self.plant_law(omit=omit_law, empty=empty_law)
@@ -740,6 +758,9 @@ class _OnboardFixture(unittest.TestCase):
             register_exit=register_exit,
             ledger_stderr=ledger_stderr,
             ledger_exit=ledger_exit,
+            lock_stdout=lock_stdout,
+            lock_stderr=lock_stderr,
+            lock_exit=lock_exit,
         )
         self.plant_gh(exit_code=gh_exit, stderr=gh_stderr)
         handwork = self.store.parent / "handwork.db"
@@ -1018,6 +1039,55 @@ class HappyPath(_OnboardFixture):
             self.assertIn("pr", argv)
             self.assertIn("list", argv)
             self.assertNotIn("checks", argv)
+
+
+class TheLockLine(_OnboardFixture):
+    """Owner, 2026-09-15: a session's compaction summary froze a plan's
+    paraphrase of the order and the brief after it carried the handoff's
+    version of done, while the brief never printed the lock or its why.
+    The state section carries the lock: the branches, the owner's words,
+    and every target with its live reading, from deliverable.py show."""
+
+    def plant_lock(self) -> None:
+        lock = self.store.parent / "deliverable.json"
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_text('{"branches": ["lane/session-a"], "why": "planted"}\n', encoding="utf-8")
+
+    def test_the_lock_prints_with_its_why_and_every_target_reading(self):
+        self.ready()
+        self.plant_lock()
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        lock = self.labelled_line(stdout, "lock")
+        self.assertIn("lane/session-a, lane/session-b", lock)
+        self.assertIn("owner 2026-09-15: every test family onto the kit", lock)
+        target = self.labelled_line(stdout, "target lane/session-b")
+        self.assertIn("until off_kit=0; reading modules=222 on_kit=15 exempt=2 off_kit=205; short", target)
+        state_i = self.heading_index(stdout, "== state")
+        handoffs_i = self.heading_index(stdout, "== handoffs")
+        lock_i = next(i for i, ln in enumerate(stdout.splitlines()) if ln.startswith("lock: "))
+        self.assertLess(state_i, lock_i)
+        self.assertLess(lock_i, handoffs_i)
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_no_lock_is_a_measured_fact_and_the_lever_is_not_run(self):
+        self.ready(lock_stdout="LEVER_RAN_UNIQUE_9c1e\n")
+        self.assertFalse((self.store.parent / "deliverable.json").exists(), "INVALID: a lock was planted")
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        self.assertEqual(self.labelled_line(stdout, "lock"), "lock: none")
+        self.assertNotIn("LEVER_RAN_UNIQUE_9c1e", stdout, "the lever is not run when the lock file is absent")
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+
+    def test_a_lever_that_fails_is_unavailable_and_counts_an_absence(self):
+        self.ready(lock_stdout="", lock_stderr="tooling: expected instrument.py beside this tool; found absent; needed restore it",
+                   lock_exit=2)
+        self.plant_lock()
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "lock")
+        self.assertIn("unavailable", line)
+        self.assertIn("tooling", line)
+        self.assertEqual(proc.returncode, 1, self.combined(proc))
 
 
 class MissingLaw(_OnboardFixture):

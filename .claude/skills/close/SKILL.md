@@ -90,7 +90,13 @@ checked after is the record that was wrong today.
    done <branch>` prints it or refuses `target` with the reading found,
    and that line is pasted here before the word done is written anywhere
    (owner, 2026-09-15: a session reported a plan's slices all done with
-   the target short; the named work is never the target).
+   the target short; the named work is never the target). The measure
+   was shown to the owner before the work started, in one line:
+   "I will count this done when <the until text>; it reads <the reading> now";
+   a close whose target the owner never saw measured is a close on the
+   session's own paraphrase. At Stop, the engine's done-gate row sends
+   back a reply that says done without one of the three deliverable.py
+   lines, three times per session, then passes with the reading logged.
 
 6b. **Handoffs.** What this branch still has claimed, then the package for
    whoever comes next, both in the state engine's store and never in a

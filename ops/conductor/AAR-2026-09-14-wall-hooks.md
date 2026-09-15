@@ -311,3 +311,49 @@ lands: `python3 ops/conductor/tools/deliverable.py show`, the target
 line beside the lock; `deliverable.py done lane/session-20260914-b`
 answers the order's question with exit 0 or the refusal. Not measured:
 the ratchet floor, session -b's half.
+
+## Sixth thread: the done gate at Stop, the brief prints the lock
+
+Owner, 2026-09-15: "I need confidence that my orders are being carried
+out - otherwise its treason"; then "work with the other two sessions -
+one is tackling the issue head on - help it and let it help you. We
+have to get this solved". Grants 238 (other) and 239 (wall). Session
+-ab's consolidated reading: the plan narrowed the order ("not this
+plan's slices"), the compaction summary froze the paraphrase, the
+brief after it never printed the lock or the owner's words, and no
+gate read a done said in chat. The split, agreed by message: session
+-ab took the deliverable skill's `/goal` and shown-finish-line text and
+the prompt-based Stop hook in settings (#220); this session the
+deterministic row, the brief and the close page; session -b keeps the
+migration and the ratchet floor.
+
+- **The done-gate row** (`b5d5483d`, red `3f4b6ab2`): at Stop, a reply
+  that says done, complete, finished, landed, merged, solved, ready for
+  review, implemented, verified or fixed passes only with one of three
+  deliverable.py lines: `done lane/...`, the done verb's `target:
+  expected the measure to read ...` refusal, or show's `target <branch>:
+  until ...; reading ...; met|short`. A sha, #PR or run id is not that
+  reading, agreed with session -ab against the claim law's wider set: the
+  reply that started this carried "#216 merged at <sha>" and no lock
+  line, and would have passed the wider set. Quoted spans and lines
+  opening with > are not the writer's claim. `stop_hook_active` passes;
+  three blocks per session_id in `done-gate.json` under the lane's state
+  directory, the fourth passes with the reading logged; never a session
+  bricked (Claude Code overrides after eight).
+- **The brief prints the lock** (`fd26567f`): `lock: <branches> — <the
+  owner's words>` then every target line from `deliverable.py show`, the
+  reading taken at onboard; after a compaction the owner's words ride
+  the brief, not a paraphrase.
+- **The close page**: the measure is shown before the work starts,
+  "I will count this done when <the until text>; it reads <the reading> now".
+- **On itself**: this branch's target on the lock, set before the first
+  write, read `stop_row=0 onboard_lock=0 close_line=0 ready=0/3; short`
+  and reads `ready=3/3; met` at `fd26567f`.
+
+Readings: red at `287364c3` (`3f4b6ab2`): `test_engine.py` Ran 25,
+FAILED (failures=8); `test_onboard_lever.py` Ran 37, FAILED
+(failures=3). Green with the same commands: Ran 25 OK at `b5d5483d`,
+Ran 37 OK at `fd26567f`; `test_boundaries.py` Ran 6 OK; `engine.py
+lint` 8 engine rows, no unknown; ruff clean on the four files. The
+whole hooks suite: Ran 310 tests, OK; the whole conductor suite:
+Ran 1175 tests, FAILED (failures=2): the three count rows re-pinned in the records commit, and the doctor read-only probe reading this session own live probe of the gate during the run, Ran 21 OK alone, the read-never-creates fix in a10150fc. Hook refusals in this thread: 0.

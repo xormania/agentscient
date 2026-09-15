@@ -419,8 +419,100 @@ def p_unittest_path_form(ctx):
     return None
 
 
+DONE_WORDS = re.compile(
+    r"\b(all done|done|complete|completed|finished|landed|merged|solved|ready for review|implemented|verified|fixed)\b",
+    re.IGNORECASE)
+LOCK_LINES = re.compile(
+    r"^(done lane/|target: expected the measure to read|target \S+: until .*; reading .*; (?:met|short)\s*$)",
+    re.MULTILINE)
+DONE_GATE_CAP = 3
+DONE_GATE_COUNTER = "done-gate.json"
+
+
+def _done_gate_counter(ctx):
+    return os.path.join(matrix.STATE_DIR, ctx.lane or "lane", DONE_GATE_COUNTER)
+
+
+def _done_gate_count(ctx, session, value=None):
+    """The session's consecutive blocks; sets it when ``value`` is given."""
+    path = _done_gate_counter(ctx)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            counts = json.load(fh)
+        if not isinstance(counts, dict):
+            counts = {}
+    except (OSError, ValueError):
+        counts = {}
+    if value is None:
+        return int(counts.get(session, 0) or 0)
+    counts[session] = value
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(counts, fh)
+    return value
+
+
+def _lock_reading(ctx):
+    """The lock's target lines from deliverable.py show, or what stood in
+    their place: no lock, no target, or the lever unavailable."""
+    lever = os.path.join(ctx.root, "ops", "conductor", "tools", "deliverable.py")
+    if not os.path.isfile(lever):
+        return "the lock is unavailable: no deliverable.py in this checkout"
+    try:
+        proc = subprocess.run([sys.executable, lever, "show"],  # noqa: S603 - fixed argv, a read
+                              cwd=ctx.root, capture_output=True, text=True, timeout=120, check=False)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return f"the lock is unavailable: {type(error).__name__}"
+    if proc.returncode != 0:
+        return f"the lock is unavailable: {proc.stderr.strip()[:160] or f'exit {proc.returncode}'}"
+    targets = [ln.strip() for ln in proc.stdout.splitlines() if ln.startswith("target ")]
+    if targets:
+        return "the lock reads: " + " | ".join(targets)
+    if proc.stdout.strip() == "no lock":
+        return "the lock reads: no lock"
+    return "the lock reads: branches named, no measured target (set one: deliverable.py add BRANCH --why ... --measure CMD --until TEXT)"
+
+
+def p_reply_claims_done(ctx):
+    """Owner, 2026-09-15 ("I need confidence that my orders are being
+    carried out"): at Stop, a reply that says done, complete, finished,
+    landed, merged or solved carries a deliverable.py line, or it is sent
+    back with the lock's target lines. A quoted span or a line opening
+    with > is not the writer's claim. stop_hook_active passes; after
+    DONE_GATE_CAP consecutive blocks for one session_id the stop passes
+    and the reading is logged, never a session bricked."""
+    if ctx.event != "Stop" or ctx.payload.get("stop_hook_active"):
+        return None
+    session = str(ctx.payload.get("session_id") or "unknown")
+    message = str(ctx.payload.get("last_assistant_message") or "")
+    if LOCK_LINES.search(message):
+        _done_gate_count(ctx, session, 0)
+        return None
+    claim = None
+    for line in message.splitlines():
+        if line.lstrip().startswith(">"):
+            continue
+        bare = matrix.QUOTED.sub("", line)
+        if DONE_WORDS.search(bare):
+            claim = line.strip()[:160]
+            break
+    if claim is None:
+        _done_gate_count(ctx, session, 0)
+        return None
+    blocks = _done_gate_count(ctx, session)
+    reading = _lock_reading(ctx)
+    if blocks >= DONE_GATE_CAP:
+        _done_gate_count(ctx, session, 0)
+        miss.log_miss(ctx.cwd, "done-gate", f"cap {DONE_GATE_CAP} reached for {session}; {reading}", hook="engine")
+        return None
+    _done_gate_count(ctx, session, blocks + 1)
+    return (f'the reply says "{claim}" with no deliverable.py line (run python3 ops/conductor/tools/deliverable.py '
+            f'done <branch> and paste its line, or its target refusal); {reading}')
+
+
 PREDICATES = {
     "always": p_always,
+    "reply_claims_done": p_reply_claims_done,
     "tool_in": p_tool_in,
     "command_matches": p_command_matches,
     "response_matches": p_response_matches,
