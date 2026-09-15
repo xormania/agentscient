@@ -15,12 +15,34 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-import tempfile
 import unittest
+
+from ops.testkit import World, plant_text
 
 import support  # noqa: F401  (puts the harness dir on sys.path)
 
 import isolation
+
+# RED STAND-IN: empty registry and wrong seams so each method fails its
+# own pin. Removed after the red proof.
+isolation.HARNESSES = {}
+
+
+def _red_build_home(harness, root, env=None):
+    raise isolation.NotIsolated("stand-in-empty-registry")
+
+
+def _red_isolated(harness, root, env=None):
+    return {}, []
+
+
+def _red_dispatch_env(harness, home=None, env=None):
+    return {}
+
+
+isolation.build_home = _red_build_home
+isolation.isolated = _red_isolated
+isolation.dispatch_env = _red_dispatch_env
 
 
 AUTH_REL = ".gemini/antigravity-cli/antigravity-oauth-token"
@@ -53,26 +75,14 @@ def _tree_paths(root: Path) -> list[str]:
     return paths
 
 
-def _plant_operator_home(base: Path, *, token: bool) -> Path:
-    home = base / "operator-home"
-    cli = home / ".gemini" / "antigravity-cli"
-    cli.mkdir(parents=True)
-    settings = home / SETTINGS_REL
-    history = home / HISTORY_REL
+def _plant_operator_home(world: World, *, token: bool) -> Path:
+    home = world.root / "operator-home"
+    plant_text(home / SETTINGS_REL, SETTINGS_CANARY)
+    plant_text(home / HISTORY_REL, HISTORY_CANARY)
     skills = home / SKILLS_REL
-    settings.write_text(SETTINGS_CANARY, encoding="utf-8")
-    history.write_text(HISTORY_CANARY, encoding="utf-8")
     skills.mkdir()
     if token:
-        auth = home / AUTH_REL
-        auth.write_text(SYNTHETIC_TOKEN, encoding="utf-8")
-        planted = auth.read_text(encoding="utf-8")
-        if planted != SYNTHETIC_TOKEN:
-            raise AssertionError("token plant did not land")
-    if settings.read_text(encoding="utf-8") != SETTINGS_CANARY:
-        raise AssertionError("settings canary plant did not land")
-    if history.read_text(encoding="utf-8") != HISTORY_CANARY:
-        raise AssertionError("history canary plant did not land")
+        plant_text(home / AUTH_REL, SYNTHETIC_TOKEN)
     if not skills.is_dir() or skills.is_symlink():
         raise AssertionError("skills directory plant did not land")
     return home
@@ -131,10 +141,9 @@ class AgyIsolationTests(unittest.TestCase):
         self.assertTrue(unresolved.strip())
 
     def test_build_home_links_only_the_oauth_token_and_excludes_canaries(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            operator = _plant_operator_home(base, token=True)
-            root = base / "scratch"
+        with World(prefix="agy-iso-") as world:
+            operator = _plant_operator_home(world, token=True)
+            root = world.root / "scratch"
             root.mkdir()
             self.assertEqual(SYNTHETIC_TOKEN, (operator / AUTH_REL).read_text(encoding="utf-8"))
             self.assertEqual(SETTINGS_CANARY, (operator / SETTINGS_REL).read_text(encoding="utf-8"))
@@ -155,12 +164,11 @@ class AgyIsolationTests(unittest.TestCase):
             self.assertTrue((operator / SKILLS_REL).is_dir())
 
     def test_isolated_homes_for_two_jobs_are_fresh_and_independent(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            operator = _plant_operator_home(base, token=True)
+        with World(prefix="agy-iso-") as world:
+            operator = _plant_operator_home(world, token=True)
             env = {"HOME": str(operator)}
-            root_a = base / "job-a"
-            root_b = base / "job-b"
+            root_a = world.root / "job-a"
+            root_b = world.root / "job-b"
             root_a.mkdir()
             root_b.mkdir()
 
@@ -182,16 +190,15 @@ class AgyIsolationTests(unittest.TestCase):
             self._assert_measured_agy_home(home_a, operator / AUTH_REL)
             self._assert_measured_agy_home(home_b, operator / AUTH_REL)
             marker = home_a / "job-marker"
-            marker.write_text("job-a-only\n", encoding="utf-8")
+            plant_text(marker, "job-a-only\n")
             self.assertEqual("job-a-only\n", marker.read_text(encoding="utf-8"))
             self.assertFalse((home_b / "job-marker").exists())
             self._assert_measured_agy_home(home_b, operator / AUTH_REL)
 
     def test_build_home_refuses_missing_auth_and_leaves_precreated_root_empty(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            operator = _plant_operator_home(base, token=False)
-            root = base / "scratch"
+        with World(prefix="agy-iso-") as world:
+            operator = _plant_operator_home(world, token=False)
+            root = world.root / "scratch"
             root.mkdir()
             before = list(root.iterdir())
             self.assertEqual(0, len(before))
@@ -213,8 +220,8 @@ class AgyIsolationTests(unittest.TestCase):
             )
 
     def test_explicit_env_does_not_fall_back_to_the_real_home(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary) / "scratch"
+        with World(prefix="agy-iso-") as world:
+            root = world.root / "scratch"
             root.mkdir()
             with self.assertRaises(isolation.NotIsolated) as raised:
                 isolation.build_home("agy", root, env={"PATH": "/usr/bin"})
@@ -242,10 +249,9 @@ class AgyIsolationTests(unittest.TestCase):
         self.assertEqual(home, actual["HOME"])
 
     def test_isolated_returns_home_env_under_root(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            base = Path(temporary)
-            operator = _plant_operator_home(base, token=True)
-            root = base / "scratch"
+        with World(prefix="agy-iso-") as world:
+            operator = _plant_operator_home(world, token=True)
+            root = world.root / "scratch"
             root.mkdir()
             try:
                 env, flags = isolation.isolated(
