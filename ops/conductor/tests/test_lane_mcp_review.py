@@ -5,20 +5,22 @@ Reuses the fixture in test_lane_mcp.py. The tools are not read here.
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import sys
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
-
-from test_lane_mcp import (  # noqa: E402
+from test_lane_mcp import (
     CONSUMER,
     JOB,
+    READ,
+    RUN_CAP,
+    TOOL,
     _LaneMcpFixture,
     rpc,
 )
+
+from ops.testkit import Timeout, World, run
 
 # CPython 3.12 json.loads RecursionError is above ~16000 nested objects.
 NEST_DEPTH = 20000
@@ -29,6 +31,84 @@ def _nested_json(depth: int = NEST_DEPTH) -> bytes:
 
 
 class TestLaneMcpReview(_LaneMcpFixture):
+    def setUp(self):
+        self.world = World(prefix="lane-mcp-review-")
+        self.home = self.world.home
+        self.scratch = self.world.path("stage")
+        siblings = tuple(
+            path.name
+            for path in (READ, READ.with_name("instrument.py"))
+            if path.is_file()
+        )
+        self.staged = self.world.stage(
+            TOOL,
+            "lane_mcp.py",
+            siblings=siblings if TOOL.is_file() else (),
+        )
+        self.work = self.world.path("work")
+        self.work.mkdir()
+        self.cwd = self.world.cwd
+        self.store = self.work / "store"
+        self.state_dir = self.work / "monitor"
+        self.db = self.state_dir / "monitor.db"
+        self.rollout = self.work / "rollout.jsonl"
+        self.config_path = self.work / "config.json"
+        self.plant_config()
+
+    def tearDown(self):
+        self.world.close()
+
+    def _plant_bytes(self, path: Path, data: bytes) -> None:
+        self.world.plant_bytes(path, data)
+
+    def env(self, extra=None):
+        env = self.world.env()
+        env.pop("WF_AGENT", None)
+        env.pop("CLAUDE_SESSION_ID", None)
+        if extra:
+            for key, value in extra.items():
+                if value is None:
+                    env.pop(key, None)
+                else:
+                    env[key] = value
+        return env
+
+    def invoke(
+        self,
+        args,
+        *,
+        config=None,
+        stdin=None,
+        extra_env=None,
+        cap=RUN_CAP,
+        minus_b=True,
+    ):
+        cfg = self.config_path if config is None else config
+        py = [sys.executable]
+        if minus_b:
+            py.append("-B")
+        argv = [*py, str(self.staged), "--config", str(cfg), *args]
+        try:
+            return run(
+                argv,
+                cwd=self.cwd,
+                env=self.env(extra_env),
+                stdin=stdin,
+                timeout=cap,
+            )
+        except Timeout as exc:
+            self.fail(f"timed out: {argv}: {exc}")
+
+    def load_query(self, proc):
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertTrue(proc.stdout.strip(), "stdout empty")
+        try:
+            payload = json.loads(proc.stdout)
+        except ValueError:
+            self.fail(f"stdout is not JSON: {proc.stdout!r}")
+        self.assertIsInstance(payload, dict, payload)
+        return payload
+
     def _insert_event_evidence(self, event_id: int, evidence: str) -> None:
         con = sqlite3.connect(str(self.db))
         try:
@@ -145,7 +225,7 @@ class TestLaneMcpReview(_LaneMcpFixture):
         rec = self.plant_record(raw=nested)
         self.assertEqual(rec.read_bytes(), nested)
         served = self._serve_tool_then_ping("lane_record", {"id": JOB})
-        self.assertEqual(served.returncode, 0, served.stderr)
+        self.assertEqual(served.exit, 0, served.stderr)
         objs = self.rpc_objects(served)
         called = self.rpc_by_id(objs, 2)
         self.assertNotIn("error", called, called)
@@ -186,7 +266,7 @@ class TestLaneMcpReview(_LaneMcpFixture):
                     tool, arguments = "lane_usage", {}
                     expect = ("unknown", "unavailable")
                 served = self._serve_tool_then_ping(tool, arguments)
-                self.assertEqual(served.returncode, 0, served.stderr)
+                self.assertEqual(served.exit, 0, served.stderr)
                 objs = self.rpc_objects(served)
                 called = self.rpc_by_id(objs, 2)
                 self.assertNotIn("error", called, called)

@@ -16,15 +16,10 @@ import hashlib
 import json
 import os
 import stat
-import sys
 import unittest
 from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
-
-from test_ladder_lever import (  # noqa: E402
+from test_ladder_lever import (
     SKEPTIC_BODY,
     SKEPTIC_FINDINGS,
     WELL_FORMED_SKEPTIC_CLAIM,
@@ -32,6 +27,8 @@ from test_ladder_lever import (  # noqa: E402
     WELL_FORMED_SKEPTIC_FINDING,
     _LadderFixture,
 )
+
+from ops.testkit import World, run  # noqa: F401 - inherited fixture uses both
 
 SENTINEL = "CUSTODY_TARGET_UNTOUCHED_aa32\n"
 
@@ -171,7 +168,7 @@ class CustodyRefusesASymlink(_CustodyFixture):
         inputs_dir = self.ladder_inputs_dir(ladder_id)
         inputs_dir.mkdir(parents=True, exist_ok=True)
         target = self.root / "outside-skeptic-aa32.md"
-        target.write_text(SENTINEL, encoding="utf-8")
+        self.world.plant_text(target, SENTINEL)
         self.assertEqual(target.read_text(encoding="utf-8"), SENTINEL)
         link = inputs_dir / SKEPTIC_FINDINGS
         if link.exists() or link.is_symlink():

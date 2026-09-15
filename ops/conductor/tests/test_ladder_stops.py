@@ -11,20 +11,16 @@ are ops/conductor/tests/ladder_faults_stops.py.
 
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass, field
-from pathlib import Path
 
-_TESTS = Path(__file__).resolve().parent
-if str(_TESTS) not in sys.path:
-    sys.path.insert(0, str(_TESTS))
-
-from test_ladder_lever import (  # noqa: E402
+from test_ladder_lever import (
     WELL_FORMED_SKEPTIC_COUNTS,
     WELL_FORMED_SKEPTIC_FINDING,
     _LadderFixture,
 )
-from test_ladder_lever_undisposed import _UndisposedFixture  # noqa: E402
+from test_ladder_lever_undisposed import _UndisposedFixture
+
+from ops.testkit import World, run  # noqa: F401 - inherited fixture uses both
 
 ZERO_COUNTS = {"p1": 0, "p2": 0, "p3": 0, "opinions": 0}
 PROSE_CLAIM = "Contract item 9 requires a fresh check"
