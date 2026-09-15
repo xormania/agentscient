@@ -2,12 +2,12 @@
 
 import importlib.util
 import json
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 from urllib.parse import quote
+
+from ops.testkit import World, run
 
 HERE = Path(__file__).resolve()
 USAGE = HERE.parents[1] / "usage.py"
@@ -17,6 +17,7 @@ REPO = "/home/work/projects/uscient/agentscient"
 MODEL = "grok-4.6"
 GROK_GAP = "grok usage not yet parsed: updates.jsonl turn_completed"
 MARKER = "GROKREADERCONTENTMARKER"
+RUN_TIMEOUT = 60
 
 RESET_USAGE = [
     {
@@ -163,19 +164,15 @@ def load_module(testcase):
     return module
 
 
-def write_jsonl(path, entries):
-    path.write_text(
-        "".join(json.dumps(entry) + "\n" for entry in entries)
-    )
+def jsonl_text(entries):
+    return "".join(json.dumps(entry) + "\n" for entry in entries)
 
 
 class GrokUsageReader(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(
-            prefix="grok-usage-reader-"
-        )
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.world = World(prefix="grok-usage-reader-")
+        self.addCleanup(self.world.close)
+        self.root = self.world.root
         self.grok = self.root / "grok"
         self.module = load_module(self)
 
@@ -186,8 +183,8 @@ class GrokUsageReader(unittest.TestCase):
             / quote(REPO, safe="")
             / session_id
         )
-        session.mkdir(parents=True)
-        (session / "summary.json").write_text(
+        self.world.plant_text(
+            session / "summary.json",
             json.dumps(
                 {
                     "info": {"id": session_id, "cwd": REPO},
@@ -197,7 +194,7 @@ class GrokUsageReader(unittest.TestCase):
                     "current_model_id": MODEL,
                     "session_summary": f"Private content {MARKER}",
                 }
-            )
+            ),
         )
         entries = [
             {
@@ -225,14 +222,14 @@ class GrokUsageReader(unittest.TestCase):
             }
             for index, value in enumerate(usage)
         )
-        write_jsonl(session / "updates.jsonl", entries)
+        self.world.plant_text(session / "updates.jsonl", jsonl_text(entries))
         return session
 
     def rows(self):
         return list(self.module.grok_sessions(self.grok, REPO))
 
     def run_usage(self, *args):
-        return subprocess.run(
+        return run(
             [
                 sys.executable,
                 str(USAGE),
@@ -246,14 +243,14 @@ class GrokUsageReader(unittest.TestCase):
                 "--repo",
                 REPO,
             ],
-            capture_output=True,
-            text=True,
-            check=False,
+            cwd=self.world.cwd,
+            env=self.world.env(),
+            timeout=RUN_TIMEOUT,
         )
 
     def json_document(self, *args):
         proc = self.run_usage(*args)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.exit, 0, proc.stderr)
         try:
             return json.loads(proc.stdout)
         except json.JSONDecodeError as error:
@@ -372,7 +369,7 @@ class GrokUsageReader(unittest.TestCase):
 
         plain_report = self.run_usage("report")
         self.assertEqual(
-            plain_report.returncode,
+            plain_report.exit,
             0,
             plain_report.stderr,
         )
@@ -382,7 +379,7 @@ class GrokUsageReader(unittest.TestCase):
 
         plain_sessions = self.run_usage("sessions")
         self.assertEqual(
-            plain_sessions.returncode,
+            plain_sessions.exit,
             0,
             plain_sessions.stderr,
         )
