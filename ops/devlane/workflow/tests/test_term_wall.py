@@ -15,9 +15,13 @@ class TermWallFixture:
     WORLD = World
 
     def setUp(self):
-        self.world = self.WORLD(prefix="term-wall-")
+        try:
+            self.world = self.WORLD(host_path=False, prefix="term-wall-")
+        except TypeError:
+            self.world = self.WORLD(prefix="term-wall-")
         self.addCleanup(self.world.close)
         self.root = self.world.cwd
+        self.world.tools.wrap("git")
         self._git("init", "-q")
 
     def _git(self, *arguments):
@@ -30,7 +34,7 @@ class TermWallFixture:
         )
 
     def _environment(self, pattern=PATTERN):
-        extra = {}
+        extra = {"PATH": str(self.world.bin)}
         if pattern is not None:
             extra["TERM_WALL"] = pattern
         return self.world.env(extra)
