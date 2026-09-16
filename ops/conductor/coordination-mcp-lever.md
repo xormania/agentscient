@@ -14,8 +14,10 @@ this server.
 
 Settled against the coordination core (package B,
 `ops/conductor/tools/coordination.py`) from its contract
-`ops/conductor/coordination-lever.md` at 537f3a35 on
-`lane/session-20260916-c`, read 2026-09-16. Every tool in §3 names the core
+`ops/conductor/coordination-lever.md`, and against the core itself at
+05b8aebe on `lane/session-20260916-c`, read 2026-09-16. The seam of §7 and
+the mock of §8 are settled against that head, and this line moves with
+them. Every tool in §3 names the core
 verb it projects. Where this contract and the core's diverge, the divergence
 is listed in §9 and ruled on by the Lead, not resolved here.
 
@@ -60,10 +62,21 @@ same shape the read server already proves:
   the guard's exemptions are hard-coded in `laneconf.py`, which is wall, and
   a server name is this contract's to choose (the Lead's ruling C1,
   2026-09-16).
-- `initialize` refuses a `protocolVersion` that is not a string with -32602:
-  a malformed request, not an unknown version to negotiate past. `ping`
-  accepts extra members, as JSON-RPC allows, and answers an empty result;
-  `tools/call` refuses an unknown top-level parameter with -32602.
+- **Every method names the members it accepts and refuses the rest with
+  -32602.** A member a method does not name is a malformed request, not
+  something to ignore politely:
+
+  | method | accepted members |
+  |---|---|
+  | `initialize` | `protocolVersion`, a string; `capabilities`, an object; `clientInfo`, an object. All three optional, none of another type |
+  | `ping` | anything. It is a liveness check, JSON-RPC allows extra members, and it answers an empty result |
+  | `tools/list` | none |
+  | `resources/list` | none |
+  | `tools/call` | `name`, a string; `arguments`, an object |
+  | `resources/read` | `uri` |
+
+  `params._meta` is stripped before this is judged, so it is accepted
+  everywhere and counts against no method's list.
 - Instructions: acting server; every mutation needs a binding; evidence is
   not authority; the wire carries every refusal.
 - `params._meta` is accepted as an object on every method, ignored, never
@@ -137,8 +150,10 @@ resolves the caller by the id in its own environment:
    older `CLAUDE_SESSION_ID`, which nothing here sets — LD-50).
 2. The id keys the participants row, the way `instrument.stored_identity()`
    keys `session_identity` in the lane's state store today.
-3. No row for that id refuses class `identity`, naming the id it looked for
-   and the verb that binds one. An unset id refuses class `session`.
+3. No row for that id refuses class `participant`, naming the id it looked
+   for and the verb that binds one — the class the core's own resolver
+   emits. An unset id refuses class `session`. Class `identity` appears
+   nowhere on this surface: this server reads no `WF_AGENT`, by ruling.
 
 **Resolved per call, never cached at startup.** Measured the same day: when a
 session is cleared, a new server process is spawned carrying the new session
@@ -183,9 +198,10 @@ Slice two closes it, and the probe for each harness is already taken
 
 A config binding (§2.1) wins where present, because the launcher issued it
 for one assignment. Absent a config, the session binding (§2.2) applies.
-Absent both, every mutation refuses class `identity`; reads that carry no
-participant-specific content still answer, because a layer able to refuse a
-read is itself a finding (`docs/wire.md`).
+Absent both, every call refuses class `session`, mutations and reads alike,
+because this server's reads are a participant's own and it has no anonymous
+page to serve. That is what the implementation does and what the registry's
+third provocation asserts.
 
 ## 3. The tool catalogue
 
@@ -201,10 +217,13 @@ not a string the caller supplies.
 
 ### Slice one — coordination state
 
-Each row names the core verb it projects. The projection is thin: it
-validates its arguments, resolves the binding, checks the capability, and
-calls the one verb. It holds no policy of its own, and it never collapses
-two core transitions into one tool.
+Each row names the core verb it projects. The projection is thin and judges
+a call in one order, the same order §3's paragraph below gives and the same
+one the code runs: the tool must be one this server carries; the binding's
+capability list must carry it; the request must not name its own authority;
+the arguments must match the closed schema; the binding resolves; the core
+verb must exist. It holds no policy of its own, and it never collapses two
+core transitions into one tool.
 
 | tool | core verb | mutation | may call | notes |
 |---|---|---|---|---|
@@ -226,7 +245,7 @@ two core transitions into one tool.
 | `coord_outstanding` | `outstanding` | no | any bound participant | requests and findings not yet resolved |
 | `coord_observe` | `observe` | yes | producer | an observation against an assignment and a revision; it carries `generation` like every other assignment write, and an explicit `stale` flag, because the core refuses class `revision` when the assignment has moved on and `stale` is the caller saying so on purpose |
 
-**The order a call is judged in**: the tool must be one this server carries; the request must not name its own authority, which is malformed whoever asks; the binding's capability list must carry the tool; the arguments must match the closed schema; the binding resolves; the core verb must exist. The capability is judged before the arguments because it is about the tool and not its shape, and the capability refusal says so in its remedy.
+**The order a call is judged in**: the tool must be one this server carries; the binding's capability list must carry it; the request must not name its own authority; the arguments must match the closed schema; the binding resolves; the core verb must exist. The capability is judged first of all because it is about the tool and not about anything in the request, so an unauthorised caller learns neither the argument table nor which keys are forbidden. The capability refusal says so in its remedy.
 
 **Every writing tool on an assignment carries `generation`**, the integer the
 caller believes, exactly as the core's verbs do. The core's gate reads the
@@ -341,10 +360,20 @@ it is named and sent to the Lead for a wall session, never written here.
 
 ## 6. Bounds
 
-- One response is capped; an overflowing payload answers with the same
-  `unavailable` reading the read server uses rather than a truncated object
-  that reads as complete.
-- Every page carries an explicit cursor; no unbounded list is returned.
+- One response is capped at 16384 bytes, **measured on the serialised
+  response and not on the payload inside it**: a `tools/call` result carries
+  its payload twice, as content text and as `structuredContent`, so a
+  payload under the bound can still leave a response over it. A response
+  over the bound is rebuilt around the `unavailable` reading, which names
+  the bound, rather than truncated into an object that reads as complete.
+- **Paging is this server's own.** The core's verbs do not page: they return
+  the whole list, ordered by id. This server takes the `cursor` out of the
+  arguments, never forwards it to a core verb that would refuse it, orders
+  the rows by id, and returns at most 50 of them with `cursor` set to the
+  last id when rows remain and to null when they do not. The paged verbs and
+  the key each returns its list under are named in the server, so a verb
+  that renamed its list refuses class `state` instead of quietly returning
+  an unpaged whole.
 - A call into the core is in-process and carries no timeout: a timeout on a
   function call in this process would measure nothing a caller could act on
   (struck at the Lead's disposition of X#3, 2026-09-16). The dispatch
@@ -378,11 +407,6 @@ under a grant).
 
 ## 9. What this contract does not settle
 
-- How the core spells the verb `return`, which is a reserved word and
-  cannot be a Python function of that name. This server asks the core for
-  `return` and then for `return_`, and refuses class `state` naming the
-  verb when neither is there, rather than guessing a third spelling. The
-  core's author settles it.
 - The automatic route from a cross-harness event to a management session
   (the objective's package D).
 - Cross-harness demonstration beyond Codex and Grok; agy has no MCP.
@@ -392,15 +416,14 @@ under a grant).
 
 Raised, not resolved here (the Lead's instruction, 2026-09-16):
 
-1. **A dispatched worker cannot be bound.** *Ruled 2026-09-16: package B
-   adds a bind taking an explicit session id, callable only by a
-   dispatcher-role participant and recording the issuer and the
-   assignment.* The core's `bind` binds *the calling session*: `resolve()`
-   reads `instrument.session()` and the participants row is keyed on that
-   id. A Codex or Grok worker sets no session id in its environment at all,
-   so until that verb lands a worker has no participant and every mutation
-   it attempts refuses. §2.3 states the limit and the per-harness probe
-   that closes it in slice two.
+1. **A dispatched worker cannot be bound — closed in the core, open here.**
+   The core carries `core_bind_for` at 05b8aebe, a bind taking an explicit
+   session id, so the material this contract said was missing now exists.
+   What remains is this server's and the launcher's: slice two binds the
+   worker's minted session id before launch and sets it in the worker's
+   environment, per §2.3. Until that lands a config binding is validated,
+   its capability list enforced and its participant row checked, and the
+   call then refuses class `state` naming what is missing.
 2. **`capability` is a class the core does not have.** The binding's
    allowlist is this server's own narrowing and needs a refusal of its own;
    the alternative is to drop the allowlist and let the core's `role` gate
@@ -413,9 +436,10 @@ Raised, not resolved here (the Lead's instruction, 2026-09-16):
 4. **`coord_assign` is withdrawn**, split into `coord_draft` and
    `coord_offer`, because the core separates creating an assignment from
    naming its recipient and a thin projection does not merge transitions.
-5. **The core's `resolve()` depends on a fact this package measured.** It
-   reads `instrument.session()` inside whatever process calls it, including
-   this server's. That works because `CLAUDE_CODE_SESSION_ID` is inherited
-   by a project-registered MCP server (§2.2, measured 2026-09-16). If that
-   ever stops being true, both packages lose their binding at once, so the
-   probe belongs in a corpus row rather than in this prose.
+5. **The core's `bound_participant` depends on a fact this package
+   measured.** It reads `instrument.session()` inside whatever process
+   calls it, including this server's. That works because
+   `CLAUDE_CODE_SESSION_ID` is inherited by a project-registered MCP server
+   (§2.2, measured 2026-09-16). If that ever stops being true, both packages
+   lose their binding at once, which is why §8's suite plants the id in a
+   world and asserts the binding came back from it.

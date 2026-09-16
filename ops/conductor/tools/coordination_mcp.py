@@ -40,9 +40,16 @@ except ModuleNotFoundError:
 PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
 LATEST_PROTOCOL = PROTOCOLS[-1]
 MAX_LINE = 65_536
-# The whole-response bound. A payload over it answers the unavailable
-# reading rather than a truncated object that would read as complete.
+# The whole-response bound, measured on the serialised response and not
+# on the payload inside it: tools/call carries the payload twice, as
+# content text and as structuredContent, so a payload under the bound can
+# still leave a response over it (G2#1 with X2#3). A response over the
+# bound answers the unavailable reading rather than a truncated object
+# that would read as complete.
 RESPONSE_BYTES = 16_384
+# Rows per page. The core's verbs do not page: they return the whole list
+# ordered by id, and the paging below is this server's own.
+PAGE_ROWS = 50
 # JSON-RPC's implementation-defined server-error range is -32000..-32099.
 # A domain refusal on resources/read answers with this code, its message
 # the wire line and its data the four parts.
@@ -176,6 +183,14 @@ CATALOGUE = (
          "is the caller saying so on purpose."),
 )
 BY_NAME = {tool.name: tool for tool in CATALOGUE}
+# What a paged verb calls its list, at coordination.py 05b8aebe: the key
+# is named here rather than guessed, so a verb that renames its list
+# fails loudly instead of returning an unpaged whole.
+PAGE_KEY = {
+    "coord_assignments": "assignments",
+    "coord_inbox": "messages",
+    "coord_outstanding": "outstanding",
+}
 
 # The read tools a resource mirrors. Resources are reads by construction:
 # a mutation has no URI, so no client can act through resources/read.
@@ -192,16 +207,45 @@ def canonical(payload) -> str:
                       ensure_ascii=False)
 
 
-def bounded(payload) -> dict:
-    """The payload, or the unavailable reading when it is over the bound.
-
-    A truncated object would read as a complete answer; the reading says
-    it could not be delivered and names the bound.
-    """
-    if len(canonical(payload).encode("utf-8")) <= RESPONSE_BYTES:
-        return payload
+def unavailable() -> dict:
+    """The reading a response over the bound answers with."""
     return {"state": "unavailable", "reason": "over the response bound",
             "bound": RESPONSE_BYTES}
+
+
+def over_bound(message) -> bool:
+    """Whether a whole serialised response is over the bound."""
+    return len(canonical(message).encode("utf-8")) > RESPONSE_BYTES
+
+
+def paged(name: str, payload, cursor):
+    """One page of a verb's list result, and the cursor for the next.
+
+    The core's verbs return the whole list ordered by id; the paging is
+    this server's, so a caller that asks for a page gets one and a caller
+    that does not still gets a bounded answer. The cursor is the last id
+    returned, and a page that ends the list carries none.
+    """
+    key = PAGE_KEY.get(name)
+    if key is None:
+        return payload
+    if not isinstance(payload, dict) or not isinstance(payload.get(key), list):
+        refuse("state", f"a list under `{key}` from the core verb",
+               f"{type(payload).__name__} without it",
+               f"the core verb behind {name} no longer returns `{key}`")
+    rows = payload[key]
+    ordered = sorted(
+        rows, key=lambda row: row.get("id", 0) if isinstance(row, dict) else 0)
+    if cursor is not None:
+        ordered = [row for row in ordered
+                   if isinstance(row, dict) and row.get("id", 0) > cursor]
+    page = ordered[:PAGE_ROWS]
+    answer = dict(payload)
+    answer[key] = page
+    last = page[-1].get("id") if page and isinstance(page[-1], dict) else None
+    answer["cursor"] = (
+        str(last) if last is not None and len(ordered) > len(page) else None)
+    return answer
 
 
 # -- the config binding ----------------------------------------------------
@@ -397,8 +441,9 @@ def resolve_binding(config, tool: Tool):
 def check_named_authority(tool: Tool, arguments) -> None:
     """A request may not name its own authority, whoever is asking.
 
-    This runs before the capability and the binding, because it is a
-    malformed request and not a permission question.
+    It runs after the capability check: an unauthorised caller learns
+    that its binding does not carry the tool and nothing whatever about
+    the tool's arguments, not even which ones are forbidden (G2#4).
     """
     if not isinstance(arguments, dict):
         return
@@ -452,12 +497,25 @@ def call(config, name, arguments) -> dict:
     if tool is None:
         refuse("arguments", "a tool this server carries", repr(name),
                f"choose one of {sorted(BY_NAME)}")
-    check_named_authority(tool, arguments)
     check_capability(config, tool)
+    check_named_authority(tool, arguments)
     checked = check_arguments(tool, arguments)
+    cursor = _cursor(tool, checked)
     conn, participant = resolve_binding(config, tool)
     verb = _verb(_core(), tool.verb)
-    return bounded(verb(conn, participant, **checked))
+    return paged(tool.name, verb(conn, participant, **checked), cursor)
+
+
+def _cursor(tool: Tool, arguments: dict):
+    """Take the cursor out of the arguments: it is this server's, and the
+    core's verbs do not take one."""
+    if "cursor" not in arguments:
+        return None
+    raw = arguments.pop("cursor")
+    if not isinstance(raw, str) or not raw.isdigit():
+        refuse("arguments", "a cursor of decimal digits", repr(raw),
+               f"pass the cursor a previous {tool.name} page returned")
+    return int(raw)
 
 
 # -- the transport ---------------------------------------------------------
@@ -499,6 +557,20 @@ def _error(identifier, code, message, data=None) -> dict:
 
 def _result(identifier, result) -> dict:
     return {"jsonrpc": "2.0", "id": identifier, "result": result}
+
+
+def _call_result(identifier, payload) -> dict:
+    return _result(identifier, {
+        "content": [{"type": "text", "text": canonical(payload)}],
+        "structuredContent": payload,
+        "isError": False,
+    })
+
+
+def _read_result(identifier, uri, payload) -> dict:
+    return _result(identifier, {"contents": [
+        {"uri": uri, "mimeType": "application/json",
+         "text": canonical(payload)}]})
 
 
 def _refusal_error(identifier, refusal: Refusal) -> dict:
@@ -551,11 +623,19 @@ def _dispatch(config, request) -> dict | None:
     if notification:
         return None
     if method == "initialize":
+        # Every method names the members it accepts and refuses the rest
+        # (X2#4). `ping` is the one exception, by ruling: it is a liveness
+        # check and JSON-RPC lets it carry anything.
+        if not set(params) <= {"protocolVersion", "capabilities", "clientInfo"}:
+            return _error(identifier, -32602, "Invalid params")
         requested = params.get("protocolVersion")
         # A protocolVersion that is not a string is a malformed request,
         # not an unknown version to negotiate past.
         if requested is not None and not isinstance(requested, str):
             return _error(identifier, -32602, "Invalid params")
+        for name in ("capabilities", "clientInfo"):
+            if name in params and not isinstance(params[name], dict):
+                return _error(identifier, -32602, "Invalid params")
         selected = requested if requested in PROTOCOLS else LATEST_PROTOCOL
         return _result(identifier, {
             "protocolVersion": selected,
@@ -569,8 +649,12 @@ def _dispatch(config, request) -> dict | None:
         # ping is a liveness check, not a domain call.
         return _result(identifier, {})
     if method == "tools/list":
+        if params:
+            return _error(identifier, -32602, "Invalid params")
         return _result(identifier, {"tools": _schemas()})
     if method == "resources/list":
+        if params:
+            return _error(identifier, -32602, "Invalid params")
         return _result(identifier, {"resources": _resources()})
     if method == "tools/call":
         if set(params) not in ({"name"}, {"name", "arguments"}) or not isinstance(
@@ -580,11 +664,12 @@ def _dispatch(config, request) -> dict | None:
             payload = call(config, params["name"], params.get("arguments", {}))
         except Refusal as exc:
             return _refusal_result(identifier, exc)
-        return _result(identifier, {
-            "content": [{"type": "text", "text": canonical(payload)}],
-            "structuredContent": payload,
-            "isError": False,
-        })
+        message = _call_result(identifier, payload)
+        if over_bound(message):
+            # Measured on the whole response: this one carries the payload
+            # twice, so the payload's own size never settles it.
+            message = _call_result(identifier, unavailable())
+        return message
     if method == "resources/read":
         if set(params) != {"uri"}:
             return _error(identifier, -32602, "Invalid params")
@@ -592,9 +677,10 @@ def _dispatch(config, request) -> dict | None:
             payload = _read_resource(config, params["uri"])
         except Refusal as exc:
             return _refusal_error(identifier, exc)
-        return _result(identifier, {"contents": [
-            {"uri": params["uri"], "mimeType": "application/json",
-             "text": canonical(payload)}]})
+        message = _read_result(identifier, params["uri"], payload)
+        if over_bound(message):
+            message = _read_result(identifier, params["uri"], unavailable())
+        return message
     return _error(identifier, -32601, "Method not found")
 
 
@@ -690,7 +776,10 @@ def main() -> int:
                            "unparseable", "pass the declared arguments as JSON")
             else:
                 arguments = {}
-            print(canonical(call(config, rest[0], arguments)))
+            payload = call(config, rest[0], arguments)
+            if over_bound(payload):
+                payload = unavailable()
+            print(canonical(payload))
             return 0
         refuse("arguments", "check, serve, or call TOOL [JSON]",
                repr([verb, *rest]), "use the declared verb and arguments")

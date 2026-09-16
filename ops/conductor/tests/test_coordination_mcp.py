@@ -211,7 +211,19 @@ def _participants(conn, participant, **arguments):
 
 
 def _assignments(conn, participant, **arguments):
-    return {"verb": "assignments", "rows": ["x" * 512 for _ in range(64)]}
+    """The whole list, ordered by id, exactly as the core returns it: the
+    core does not page, so a server that forwarded a cursor to it would
+    fail here on an unexpected argument."""
+    if arguments:
+        raise TypeError(f"the core verb takes no {sorted(arguments)}")
+    return {"assignments": [{"id": number, "title": f"t{number}"}
+                            for number in range(1, 131)]}
+
+
+def _show(conn, participant, **arguments):
+    """A payload comfortably under the response bound on its own, and over
+    it once tools/call carries it twice."""
+    return {"blob": "x" * 12000}
 
 
 CORE = {
@@ -220,6 +232,7 @@ CORE = {
     "resolve": _message_resolve,
     "participants": _participants,
     "assignments": _assignments,
+    "show": _show,
 }
 
 # The CLI wrappers live beside the table and are not this server's layer.
@@ -371,20 +384,33 @@ class CoordinationMcpCli(unittest.TestCase):
                 result)
             self.assertIn("coordination", refusal.line)
 
-    def test_the_capability_refusal_says_arguments_come_after(self):
-        """G#4 and X#6: the remedy must not read as `your arguments are
-        wrong`; the caller needs the capability first, and the refusal
-        says the arguments are judged once it is held."""
+    def test_an_unauthorised_caller_learns_nothing_about_arguments(self):
+        """Pins: a caller whose binding lacks the tool is refused class
+        capability whatever it puts in the arguments, so it learns neither
+        the argument table nor the forbidden-key table.
+
+        Planted fault: the call carries a forbidden authority key, which
+        the server checked first until G2#4
+        (20260916T084259Z-review-grok-62fa82#4) ran this very call and got
+        class arguments back. Catches any return to that order.
+        """
         with World() as world:
             subject = Subject(world)
             config = subject.config(binding())
-            result = subject.run("call", "coord_observe", config=config)
-            refusal = refusal_wire(
-                RefusalCase(id="capability-remedy", argv=(), cls="capability",
-                            origin="G#4 with X#6, disposed together"),
-                result)
-            self.assertIn("arguments are checked once the capability is held",
-                          refusal.line)
+            for arguments in (None, json.dumps({"role": "lead"}),
+                              json.dumps({"assignment": "A-1"})):
+                with self.subTest(arguments=arguments):
+                    argv = ["call", "coord_observe"]
+                    if arguments is not None:
+                        argv.append(arguments)
+                    result = subject.run(*argv, config=config)
+                    refusal = refusal_wire(
+                        RefusalCase(id=f"capability-first-{arguments}", argv=(),
+                                    cls="capability",
+                                    origin="G2#4, 20260916T084259Z-review-grok-62fa82#4"),
+                        result)
+                    self.assertIn("arguments are checked once the capability is held",
+                                  refusal.line)
 
     def test_a_carried_capability_passes_the_allowlist(self):
         """The clean neighbour of capability-not-carried: same config, a tool
@@ -451,6 +477,51 @@ class CoordinationMcpTransport(unittest.TestCase):
                         subject, self.initialize(protocol=wanted))
                     self.assertEqual(
                         answer(answers)["result"]["protocolVersion"], wanted)
+
+    def test_each_method_refuses_a_member_it_does_not_accept(self):
+        """Pins: initialize accepts protocolVersion, capabilities and
+        clientInfo and nothing else, capabilities and clientInfo are
+        objects, and the two list methods accept no members at all.
+
+        Planted faults: an unknown member, a list where an object is
+        declared, a string where an object is declared, and a member on a
+        list method. Every one was accepted before X2#4
+        (20260916T084315Z-review-codex-b317d7#4).
+        """
+        faults = (
+            ("initialize-unknown-member",
+             {"protocolVersion": LATEST, "bogus": 1}),
+            ("initialize-capabilities-not-an-object",
+             {"protocolVersion": LATEST, "capabilities": []}),
+            ("initialize-clientinfo-not-an-object",
+             {"protocolVersion": LATEST, "clientInfo": "bad"}),
+        )
+        with World() as world:
+            subject = Subject(world)
+            for name, params in faults:
+                with self.subTest(fault=name):
+                    _result, answers = self.serve(subject, {
+                        "jsonrpc": "2.0", "id": 20, "method": "initialize",
+                        "params": params})
+                    self.assertEqual(answer(answers)["error"]["code"], -32602)
+            for method in ("tools/list", "resources/list"):
+                with self.subTest(fault=f"{method}-with-a-member"):
+                    _result, answers = self.serve(subject, {
+                        "jsonrpc": "2.0", "id": 21, "method": method,
+                        "params": {"bogus": 1}})
+                    self.assertEqual(answer(answers)["error"]["code"], -32602)
+
+    def test_a_clean_initialize_still_negotiates(self):
+        """The clean neighbour of the case above: every declared member,
+        each of the declared type, answers a negotiated result."""
+        with World() as world:
+            subject = Subject(world)
+            _result, answers = self.serve(subject, {
+                "jsonrpc": "2.0", "id": 22, "method": "initialize",
+                "params": {"protocolVersion": LATEST, "capabilities": {},
+                           "clientInfo": {"name": "t", "version": "1"}}})
+            self.assertEqual(
+                answer(answers)["result"]["protocolVersion"], LATEST)
 
     def test_ping_carrying_extra_members_still_answers(self):
         """X#4's other half: JSON-RPC allows them and the contract says so."""
@@ -716,17 +787,77 @@ class CoordinationMcpCore(unittest.TestCase):
                 result)
             self.assertIn("outstanding", refusal.line)
 
-    def test_a_payload_over_the_bound_answers_the_unavailable_reading(self):
-        """X#3: a truncated object would read as a complete answer."""
+    def test_a_response_over_the_bound_answers_the_unavailable_reading(self):
+        """Pins: the bound is measured on the serialised JSON-RPC response,
+        not on the payload inside it.
+
+        Planted fault: a payload of about 12,000 bytes, which is under the
+        16,384 bound on its own and over it once tools/call carries it
+        twice, as content text and as structuredContent. Measured at
+        40d340b2: payload 12,013 bytes, response 24,140 bytes, and the
+        server answered it whole (G2#1 and X2#3).
+        """
         with World() as world:
             subject = Subject(world)
             subject.core(STUB_CORE)
-            result = subject.run("call", "coord_assignments", session=SESSION)
-            self.assertEqual(result.exit, 0, result.stderr)
-            answered = payload(result)
-            self.assertEqual(answered.get("state"), "unavailable")
-            self.assertEqual(answered.get("bound"), RESPONSE_BYTES)
-            self.assertNotIn("rows", answered)
+            result = run(subject.argv("serve"), cwd=world.root,
+                         env=subject.env(session=SESSION),
+                         stdin=json.dumps({
+                             "jsonrpc": "2.0", "id": 30, "method": "tools/call",
+                             "params": {"name": "coord_show",
+                                        "arguments": {"assignment": "A-1"}}}) + "\n",
+                         timeout=TIMEOUT)
+            answered = json.loads(result.stdout.splitlines()[0])
+            self.assertLessEqual(
+                len(json.dumps(answered, separators=(",", ":")).encode("utf-8")),
+                RESPONSE_BYTES,
+                "the whole response is over the bound it declares")
+            self.assertEqual(
+                answered["result"]["structuredContent"].get("state"),
+                "unavailable")
+
+    def test_a_paged_read_returns_one_page_and_a_cursor(self):
+        """Pins: the server pages the verb's whole list itself, ordered by
+        id, and returns the last id as the cursor while rows remain.
+
+        Planted fault: the stub verb raises TypeError on any argument, so a
+        server that forwarded the cursor to the core fails here; and it
+        returns 130 rows, so a server that returned the list whole fails on
+        the count. Before this, cursor was a schema word nothing read
+        (X2#3).
+        """
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE)
+            first = payload(subject.run("call", "coord_assignments",
+                                        session=SESSION))
+            self.assertEqual(len(first["assignments"]), 50)
+            self.assertEqual(first["assignments"][0]["id"], 1)
+            self.assertEqual(first["cursor"], "50")
+            second = payload(subject.run(
+                "call", "coord_assignments", json.dumps({"cursor": "50"}),
+                session=SESSION))
+            self.assertEqual(second["assignments"][0]["id"], 51)
+            self.assertEqual(second["cursor"], "100")
+            last = payload(subject.run(
+                "call", "coord_assignments", json.dumps({"cursor": "100"}),
+                session=SESSION))
+            self.assertEqual(len(last["assignments"]), 30)
+            self.assertIsNone(last["cursor"])
+
+    def test_a_cursor_that_is_not_digits_refuses_arguments(self):
+        """The planted fault beside the page above: a cursor the server
+        cannot have issued."""
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE)
+            result = subject.run(
+                "call", "coord_assignments", json.dumps({"cursor": "../etc"}),
+                session=SESSION)
+            refusal_wire(
+                RefusalCase(id="cursor-not-digits", argv=(), cls="arguments",
+                            origin="X2#3, the cursor is the server's own"),
+                result)
 
 
 if __name__ == "__main__":
