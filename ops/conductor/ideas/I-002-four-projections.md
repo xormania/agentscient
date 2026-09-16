@@ -12,6 +12,8 @@
 
 ## What was heard
 
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
+
 One service per capability; a Console command, a TUI view, an MCP
 resource, and an API resource are views of it, generated from the same
 contract. The wire holds on all four. MCP stays the read-only context

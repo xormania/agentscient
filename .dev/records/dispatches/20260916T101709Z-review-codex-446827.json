@@ -1,0 +1,210 @@
+{
+  "id": "20260916T101709Z-review-codex-446827",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-e",
+  "lineage": {
+    "branch": "lane/session-20260916-e",
+    "base_sha": "4fe1cc5a7cda3454e17a447091cc7a4594f9a8c3"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T10:17:09Z",
+    "closed": "2026-09-16T10:27:37Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "4fe1cc5a7cda3454e17a447091cc7a4594f9a8c3",
+    "ref_sha": "4fe1cc5a7cda3454e17a447091cc7a4594f9a8c3",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-17-26-01a0a9b8-a77a-7ff2-a514-d5435f523df7.jsonl"
+  },
+  "session": {
+    "id": "01a0a9b8-a77a-7ff2-a514-d5435f523df7",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-17-26-01a0a9b8-a77a-7ff2-a514-d5435f523df7.jsonl",
+    "stream_sha256_at_close": "9a21bc92e25fa702d75d562055dba04dc5ded366ae8bd954387f5fe81ea16097",
+    "spend": {
+      "input": 2934600,
+      "cached": 2817664,
+      "output": 14808,
+      "total": 2949408,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-17-26-01a0a9b8-a77a-7ff2-a514-d5435f523df7.jsonl",
+      "messages": 295
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-e/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "PR #246, docs-only MCP guidance rewrite. Check: (1) AGENTS.md 'read-only by construction', ops/README.md 'remains a read-only context', ops/conductor/stack.md 'read-only by import graph' are each absent (grep -c = 0); (2) D-MCP-1's wording (decisions.seed.json, AGENTS.md) matches the owner's 'mcp is no longer read only' directive, not a drifted paraphrase; (3) none of the 14 added supersession sentences quote the three superseded phrases verbatim; (4) decisions.seed.json: the merge kept the 7 seed-only rows LD-40 named (D-CI-3, D-FIXTURE-1, D-LADDER-2, D-LEARN-2, D-REPAIR-1, D-SCOPE-1, D-SERIAL-1) and added D-LANES-1/D-MCP-1/D-PATTERN-1 by id, not a blind export overwrite; (5) AGENTS.md's new Ground-rules bullet (D-PATTERN-1) quotes the owner's words verbatim.\n",
+    "inputs": [],
+    "sha256": "b04cd7d447c8224b727df722b3132a8c8144e32a12436c9bd2b357be86b48371",
+    "bytes": 10394,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/lane-mcp.json",
+      "sha256": "ea1b9a6c6f17a95bc23f9f4620ec9611a1a42088f21b75363527953fec69b4e2",
+      "job_ids": [
+        "20260916T101132Z-review-grok-4c55d5"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "ee98616ad88f5098f2845b147d05d98c0459fef953319cd45fb8a8a092dcab8e"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T10:17:25Z",
+      "ended": "2026-09-16T10:27:37Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "4fe1cc5a7cda3454e17a447091cc7a4594f9a8c3",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "approve",
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 2949408,
+        "out": 14808,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "4fe1cc5a7cda3454e17a447091cc7a4594f9a8c3",
+        "started": null,
+        "ended": "2026-09-16T10:27:11Z"
+      },
+      "note": "reused: agentscient-lane brief/jobs/changes/findings, Graft repo map, and ops/bin/suites.sh. All five requested checks passed; the supplied patch matched the commit diff byte-for-byte and the worktree remained clean. The full suite exited 1 on sandbox/path/ref-environment failures unrelated to changed implementation files. \ud83c\udf31 graft saved ~1,420,265 tokens this turn."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T101709Z-review-codex-446827/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-17-26-01a0a9b8-a77a-7ff2-a514-d5435f523df7.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T10:27:37.146Z"
+    }
+  },
+  "status": "closed"
+}
