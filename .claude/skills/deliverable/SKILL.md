@@ -136,6 +136,14 @@ message or a PR is that line and nothing else. `remove` refuses a
 short target too, unless `--unmet '<the owner's words>'` says why the
 work stops short, and prints that reason with the lift.
 
+**One deliverable per session, then a fresh session** (T-56, measured
+2026-09-15 at dev 564ab769: two sessions spent 73% and 75% of their
+input tokens on requests above 400k context, and a 400k cap would have
+cost 77% and 78% of what they did). After `remove`, the session ends;
+the next thread is taken by a fresh session, never by this one. The
+backstop is `autoCompactWindow` in `.claude/settings.json`; the test is
+the next window's `worth.py waste` mean context under 300k.
+
 `remove` lifts this session's branches and leaves every other session's
 in place; the last branch removed lifts the lock. `clear` wipes every
 session's entry at once and is for a host with one session. The lock is
