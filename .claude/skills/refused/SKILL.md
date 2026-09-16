@@ -64,7 +64,7 @@ page (or against `deliverable` for its row) in the skills registry, so
 | `findings.py disposition ... observation` | the vocabulary is open, fixed, addressed, deferred, ruled, fix-round, opinion; an observation is `deferred` with the reason (pitfall 5). |
 | `correction: ... no --answers key named` | the write job follows a review; dispose each finding it answers with a contract citation, then pass `--answers <record>#<n>` per key. |
 | `identity` | `export WF_AGENT='Name <address>'` before a writing verb. |
-| the harness classifier blocks a push or a declare text | never rewrite a pushed branch; cut a new branch and leave the old one (pitfall 10). |
+| the harness classifier blocks a push or a declare text | never rewrite a pushed branch; cut a new branch and leave the old one (pitfall 10). A `hand.py declare` denied as "Self-Modification" (grant 260, 2026-09-16) passed unchanged on retry after the terminal's "approved": send the denied command to the Lead as text and continue; the edge and its mechanism, an allow rule in the owner's settings, are in `ops/conductor/harness-capabilities.md` §Claude Code. Never rephrase the lever's command to get past the classifier. |
 
 ## CI walls
 
