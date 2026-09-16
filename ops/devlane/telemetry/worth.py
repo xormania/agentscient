@@ -879,31 +879,49 @@ def _lever_readings(args, window):
              if row.get("job") == "author-tests"
              and isinstance(row.get("cached"), (int, float))]
     return {
-        "context": (_mean(contexts), len(contexts)),
-        "refusals": (_mean(refusals), len(refusals)),
-        # The denominator is what can be absent: no merge in the window
-        # is nothing to divide by, not a zero rate.
-        "landed": ((len(rows) / landed) if landed else None, landed),
-        "dispatch-cached": (_mean([row["cached"] for row in tests]), len(tests)),
+        "context": {"figure": _mean(contexts), "n": len(contexts)},
+        "refusals": {"figure": _mean(refusals), "n": len(refusals)},
+        # A rate has two populations, and either can be absent. No merge
+        # in the window is nothing to divide by; no dispatch is nothing
+        # to divide, and a rate of zero from an empty numerator is not an
+        # improvement (LD-54).
+        "landed": {"figure": (len(rows) / landed) if landed else None,
+                   "n": landed, "dispatches": len(rows)},
+        "dispatch-cached": {"figure": _mean([row["cached"] for row in tests]),
+                            "n": len(tests)},
     }
+
+
+def _usable(reading):
+    """A figure stands on its populations: every count the row declares
+    must be above zero, or the row has no result to report."""
+    if reading.get("figure") is None:
+        return False
+    counts = [reading.get("n")] + [
+        value for key, value in reading.items()
+        if key not in ("figure", "n") and isinstance(value, int)
+    ]
+    return all(counts)
 
 
 def _verdict(kind, limit, base, win):
     """Mechanical, never a judgment. An arm that could not look has no
     result; a fall measured against nothing is not a fall."""
-    base_figure, base_n = base
-    win_figure, win_n = win
-    if not win_n or win_figure is None:
+    if not _usable(win):
         return "UNREACHABLE"
     if kind == "falling":
-        if not base_n or base_figure is None:
+        if not _usable(base):
             return "UNREACHABLE"
-        return "met" if win_figure < base_figure else "short"
-    return "met" if win_figure < limit else "short"
+        return "met" if win["figure"] < base["figure"] else "short"
+    return "met" if win["figure"] < limit else "short"
 
 
-def _side(figure, n):
-    return {"figure": "unrecorded" if figure is None else figure, "n": n}
+def _side(reading):
+    """Every count the reading declares, and the figure only where the
+    counts hold it up."""
+    out = dict(reading)
+    out["figure"] = reading["figure"] if _usable(reading) else "unrecorded"
+    return out
 
 
 def cmd_compare(args, baseline_iso, window_iso):
@@ -924,8 +942,8 @@ def cmd_compare(args, baseline_iso, window_iso):
             "figure": spec["figure"],
             "threshold": (f"under {limit}" if kind == "under"
                           else "falling against the baseline"),
-            "baseline": _side(*base),
-            "window": _side(*win),
+            "baseline": _side(base),
+            "window": _side(win),
             "verdict": _verdict(kind, limit, base, win),
         })
     stamp = stamp_block(args.repo, window_iso, args.now)
@@ -943,11 +961,18 @@ def cmd_compare(args, baseline_iso, window_iso):
           f"window=[{window_iso[0]}, {window_iso[1]})")
     print()
     for row in levers:
-        base, win = row["baseline"], row["window"]
         print(f"{row['lever']:16s} {row['verdict']:12s} "
-              f"baseline={base['figure']} n={base['n']} "
-              f"window={win['figure']} n={win['n']} "
+              f"baseline={_plain_side(row['baseline'])} "
+              f"window={_plain_side(row['window'])} "
               f"({row['threshold']})")
+
+
+def _plain_side(side):
+    """figure, then every count the row declares, so a rate never shows
+    a figure without both of its populations."""
+    counts = " ".join(f"{key}={value}" for key, value in side.items()
+                      if key != "figure")
+    return f"{side['figure']} {counts}"
 
 
 def _range(raw, label):

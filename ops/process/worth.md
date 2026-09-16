@@ -189,6 +189,11 @@ The residual lives in the AAR; the owner re-sets the target there.
    never 0. A baseline `n` of zero leaves a falling lever UNREACHABLE
    too: there is nothing to fall from. The levers are declared as one
    data table in the source, so adding one is a row and not a branch.
+   A lever whose figure is a rate carries the count of **both** halves
+   and reads `UNREACHABLE` when either is zero: `landed` prints
+   `dispatches` beside `n`, because a rate of zero produced by an empty
+   numerator is not an improvement (LD-54, measured 2026-09-16: a window
+   with one merged PR and no dispatch read `met` at 0.0).
    `--top` is refused, class `arguments`, naming compare: it ranks
    nothing, and a flag accepted and ignored is a claim the verb does
    not keep. `--format json` emits `stamp`, `baseline`, `window` and `levers`,
