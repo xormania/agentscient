@@ -26,6 +26,7 @@ import subprocess
 import sys
 import time
 import unittest
+from dataclasses import dataclass
 from pathlib import Path
 
 import worker_conf
@@ -117,19 +118,6 @@ def _bash_single_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
 
 
-def _jobs_roots_to_guard() -> list[Path]:
-    roots: list[Path] = []
-    snap = REPO.resolve()
-    if snap.name == "snapshot":
-        jobs_root = snap.parent.parent
-        if jobs_root.name == "dispatch":
-            roots.append(jobs_root)
-    home_default = Path.home() / ".local" / "state" / "agentscient" / "dispatch"
-    if home_default not in roots:
-        roots.append(home_default)
-    return roots
-
-
 def expected_launch_argv(
     *,
     pin: Path | str,
@@ -189,22 +177,6 @@ class _WrapperFixture(unittest.TestCase):
         self._conf_bytes = REAL_CONF.read_bytes() if self._conf_existed else None
         self._old_existed = OLD_CONF.exists()
         self._old_bytes = OLD_CONF.read_bytes() if self._old_existed else None
-        # LD-16 (2026-09-11): the CI runner shares the host store with running
-        # ladders; a job directory minted mid-run is not this tool's write.
-        # The shared guard declares exactly that exclusion.
-        self._guarded = []
-        self._store_watches = []
-        for root in _jobs_roots_to_guard():
-            if root.is_dir():
-                watch = self._world.watch(
-                    root,
-                    tolerate_new=(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$",),
-                    contents=False,
-                )
-                before = watch.before[str(root)]
-                self._guarded.append((root, before))
-                self._store_watches.append(watch)
-
         root = self._world.root
         self.home = self._world.home
         self.xdg = self._world.xdg_state
@@ -212,6 +184,25 @@ class _WrapperFixture(unittest.TestCase):
         self.scratch = root / "scratch"
         for path in (self.jobs_root, self.scratch):
             path.mkdir()
+
+        # S5, 2026-09-16: what is watched is this world's own jobs root.
+        # The subject runs under the world's HOME and XDG_STATE_HOME, so
+        # the operator's live store is not reachable from it, and the
+        # host-store watch that stood here is deleted rather than
+        # exempted: it failed whenever another session's dispatch minted
+        # a directory or a launcher log in a store shared with the runner
+        # (LD-69), which was never this tool's write. LD-16's exclusion
+        # for a concurrently minted job directory is kept on the world
+        # root, where the rows can plant one on purpose.
+        self._guarded = []
+        self._store_watches = []
+        watch = self._world.watch(
+            self.jobs_root,
+            tolerate_new=(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$",),
+            contents=False,
+        )
+        self._guarded.append((self.jobs_root, watch.before[str(self.jobs_root)]))
+        self._store_watches.append(watch)
 
         self.marker = self.scratch / "launched.marker"
         self.pin = self._world.tools.plant("sentinel-launch")
@@ -274,11 +265,6 @@ class _WrapperFixture(unittest.TestCase):
             self.assertEqual(OLD_CONF.exists(), self._old_existed)
             if self._old_existed:
                 self.assertEqual(OLD_CONF.read_bytes(), self._old_bytes)
-            for watch in self._store_watches:
-                watch.assert_unchanged(
-                    self,
-                    f"host dispatch directory changed: {watch.paths[0]}",
-                )
         finally:
             pass
 
@@ -552,6 +538,210 @@ class _WrapperFixture(unittest.TestCase):
             self.assertIn(item, line, line)
         self.assert_no_launch()
         return line
+
+    def _plant_jobs_launcher(self, record_id: str) -> None:
+        """A launcher that mints ``record_id`` under the wrapper's DISPATCH_JOBS."""
+        self._plant_python_sentinel(
+            self.pin,
+            "import os, pathlib, sys\n"
+            "jobs = os.environ.get('DISPATCH_JOBS') or ''\n"
+            "if not jobs:\n"
+            "    sys.stderr.write('plant: DISPATCH_JOBS missing\\n')\n"
+            "    sys.exit(3)\n"
+            f"pathlib.Path(jobs).joinpath({record_id!r})"
+            ".mkdir(parents=True, exist_ok=True)\n"
+            f"sys.stdout.write('record: {record_id}\\n')\n"
+            "sys.stdout.flush()\n",
+        )
+
+    def _printed_record_id(self, proc: subprocess.CompletedProcess) -> str:
+        for line in (proc.stdout or "").splitlines():
+            if line.startswith("record: "):
+                return line.split(" ", 1)[1].strip()
+        self.fail(f"wrapper printed no record id: {proc.stdout!r}")
+
+    def classify_jobs_entries(self, record_id: str) -> tuple[set[str], set[str]]:
+        """Split ``jobs_root`` names into this run's record and everything else."""
+        names = {path.name for path in self.jobs_root.iterdir()}
+        ours = {name for name in names if name == record_id}
+        return ours, names - ours
+
+    def watched_jobs_paths(self) -> list[Path]:
+        return [path for watch in self._store_watches for path in watch.paths]
+
+    def _host_home(self) -> Path:
+        return Path.home().resolve()
+
+    def _is_under(self, path: Path | str, root: Path) -> bool:
+        try:
+            Path(path).expanduser().resolve().relative_to(root)
+        except (ValueError, OSError):
+            return False
+        return True
+
+    def _host_paths_in_env(self, env: dict[str, str]) -> list[tuple[str, str]]:
+        """Env entries whose value sits under the process home, PATH excepted."""
+        host = self._host_home()
+        leaked: list[tuple[str, str]] = []
+        for key, value in env.items():
+            if key == "PATH" or not value:
+                continue
+            if not (value.startswith("/") or value.startswith("~")):
+                continue
+            if self._is_under(value, host):
+                leaked.append((key, value))
+        return leaked
+
+
+@dataclass(frozen=True)
+class HermeticStoreRow:
+    """One S5 row: id, origin (LD-16 / LD-69 / issue 6), the method that runs it."""
+
+    id: str
+    origin: str
+    method: str
+
+
+HERMETIC_STORE_ROWS = [
+    HermeticStoreRow("record-lands-in-world-jobs", "LD-69", "test_record_lands_in_world_jobs"),
+    HermeticStoreRow("jobs-root-under-world-state", "issue 6", "test_jobs_root_under_world_state"),
+    HermeticStoreRow("concurrent-entry-not-ours", "LD-16", "test_concurrent_entry_not_ours"),
+    HermeticStoreRow(
+        "host-store-untouched-by-construction",
+        "LD-69",
+        "test_host_store_untouched_by_construction",
+    ),
+]
+
+
+class RowHermeticStore(_WrapperFixture):
+    """S5: the fixture watches the world's jobs root, never a host path.
+
+    Each row executes the wrapper and asserts what it did. Origin rows:
+    LD-16, LD-69, issue 6. The ld16 suite stays until cases.py sidebyside
+    shows these rows catch every fault it caught.
+    """
+
+    RECORD_ID = "20260916T000000Z-wrap-grok-s5a1b2"
+    PLANTED_LAUNCHER = ".launcher.abcdef"
+    PLANTED_RECORD = "20260101T000000Z-tests-grok-a1d016"
+
+    def test_record_lands_in_world_jobs(self):
+        """id: record-lands-in-world-jobs origin: LD-69"""
+        before = {path.name for path in self.jobs_root.iterdir()}
+        self.assertEqual(before, set())
+        self._plant_jobs_launcher(self.RECORD_ID)
+        proc = self.invoke(self.full_flags("--detach", dry_run=False), timeout=8)
+        try:
+            self.assertEqual(proc.returncode, 0, self.combined(proc))
+            printed = self._printed_record_id(proc)
+            self.assertEqual(printed, self.RECORD_ID, proc.stdout)
+            ours, not_ours = self.classify_jobs_entries(printed)
+            self.assertEqual(ours, {printed})
+            self.assertEqual(not_ours, set())
+            self.assertEqual(
+                {path.name for path in self.jobs_root.iterdir()},
+                {printed},
+                "wrapper run must leave exactly the printed record under the world jobs root",
+            )
+        finally:
+            self._reap_reported_pid(proc)
+
+    def test_jobs_root_under_world_state(self):
+        """id: jobs-root-under-world-state origin: issue 6"""
+        host = str(self._host_home())
+        dry = self.invoke(
+            self.full_flags(dry_run=True),
+            extra_env={"DISPATCH_JOBS": None},
+        )
+        self.assertEqual(dry.returncode, 0, self.combined(dry))
+        argv, env_delta = self.parse_dry_run(dry)
+        for item in argv:
+            self.assertNotIn(host, item, f"dry-run argv carries the host home: {argv!r}")
+        for key, value in env_delta.items():
+            self.assertNotIn(
+                host, value, f"dry-run env {key}={value!r} carries the host home"
+            )
+        self._plant_jobs_launcher(self.RECORD_ID)
+        proc = self.invoke(
+            self.full_flags("--detach", dry_run=False),
+            extra_env={"DISPATCH_JOBS": None},
+            timeout=8,
+        )
+        try:
+            self.assertEqual(proc.returncode, 0, self.combined(proc))
+            printed = self._printed_record_id(proc)
+            expected_root = self.xdg / "agentscient" / "dispatch"
+            record = expected_root / printed
+            self.assertTrue(
+                record.is_dir(),
+                f"jobs root must resolve under the world's XDG_STATE_HOME; "
+                f"missing {record}",
+            )
+            self.assertTrue(
+                self._is_under(record, self.xdg.resolve()),
+                f"record {record} is not under XDG_STATE_HOME {self.xdg}",
+            )
+            self.assertNotIn(host, str(record.resolve()))
+            self.assertFalse(
+                self.jobs_root.joinpath(printed).exists(),
+                "DISPATCH_JOBS was unset; the fixture jobs_root is not the default",
+            )
+        finally:
+            self._reap_reported_pid(proc)
+
+    def test_concurrent_entry_not_ours(self):
+        """id: concurrent-entry-not-ours origin: LD-16"""
+        watched = self.watched_jobs_paths()
+        self.assertEqual(
+            [path.resolve() for path in watched],
+            [self.jobs_root.resolve()],
+            f"fixture must watch only the world's jobs root, never a host path: {watched!r}",
+        )
+        for path in watched:
+            self.assertFalse(
+                self._is_under(path, self._host_home()),
+                f"fixture watches a path under the host home: {path}",
+            )
+        planted_launcher = self.jobs_root / self.PLANTED_LAUNCHER
+        planted_record = self.jobs_root / self.PLANTED_RECORD
+        planted_launcher.mkdir()
+        planted_record.mkdir()
+        self.assertTrue(planted_launcher.is_dir())
+        self.assertTrue(planted_record.is_dir())
+        self._plant_jobs_launcher(self.RECORD_ID)
+        proc = self.invoke(self.full_flags("--detach", dry_run=False), timeout=8)
+        try:
+            self.assertEqual(proc.returncode, 0, self.combined(proc))
+            printed = self._printed_record_id(proc)
+            ours, not_ours = self.classify_jobs_entries(printed)
+            self.assertEqual(ours, {printed})
+            self.assertEqual(not_ours, {self.PLANTED_LAUNCHER, self.PLANTED_RECORD})
+            self.assertNotIn(printed, not_ours)
+        finally:
+            self._reap_reported_pid(proc)
+
+    def test_host_store_untouched_by_construction(self):
+        """id: host-store-untouched-by-construction origin: LD-69"""
+        env = self.env()
+        leaked = self._host_paths_in_env(env)
+        self.assertEqual(
+            leaked,
+            [],
+            f"environment handed to the wrapper carries a path under the host home: {leaked}",
+        )
+        self.assertEqual(Path(env["HOME"]).resolve(), self.home.resolve())
+        self.assertNotEqual(self.home.resolve(), self._host_home())
+        proc = self.invoke(self.full_flags(dry_run=True))
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv, env_delta = self.parse_dry_run(proc)
+        host = str(self._host_home())
+        for item in argv:
+            self.assertNotIn(host, item, f"wrapper argv carries the host home: {argv!r}")
+        for key, value in env_delta.items():
+            self.assertNotIn(
+                host, value, f"wrapper env delta {key}={value!r} carries the host home"
+            )
 
 
 class Row1FullFlagSetArgv(_WrapperFixture):
