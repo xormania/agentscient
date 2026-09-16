@@ -31,6 +31,7 @@ id and nothing else.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import sqlite3
 import sys
@@ -101,6 +102,17 @@ def parse(rest, count, *, required=(), optional=()):
     return positionals, options
 
 
+def _settle(conn) -> None:
+    """Fold the write-ahead log back into the store, so the role is readable
+    from `state.db` alone. The boundary row opens the store read-only on
+    every dispatch; a main file that is stale until the next checkpoint is
+    a reading that depends on when someone last looked."""
+    # A checkpoint another connection holds open is not this command's
+    # failure: the move is committed either way.
+    with contextlib.suppress(sqlite3.Error):
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+
+
 def _subject(conn, *, create):
     """The one subject of the role machine, or None. The machine holds a
     single subject on a host: the question "who dispatches" has one
@@ -151,6 +163,7 @@ def _set(rest) -> int:
     move = "hand" if row["place"] == "named" else "set"
     machine.move(conn, ROLE, sid, move, agent, evidence=options["why"],
                  note=named, ttl_s=_ttl_seconds(options))
+    _settle(conn)
     print(f"dispatcher {named} by {agent}")
     return EXIT_DONE
 
@@ -164,6 +177,7 @@ def _clear(rest) -> int:
         refuse("place", "a Dispatcher named", "none",
                "nothing to clear; dispatcher.py set names one")
     machine.move(conn, ROLE, sid, "clear", agent, evidence=options["why"])
+    _settle(conn)
     print("no Dispatcher named")
     return EXIT_DONE
 
