@@ -1,13 +1,15 @@
-Move the devlane/workflow test family onto World(host_path=False) with planted fakes
-for every tool the subject calls.
-Modules (30 failing rows): ops/devlane/workflow/tests/test_term_wall.py (15),
-test_term_wall_archives.py (13), test_suites_ruff.py (2).
-Do not touch anything outside the modules named. No new dependency; stdlib only.
-Rules: docs/tests.md 4 (a world is hermetic by default, ambient explicit and named),
-5 (every subprocess through testkit run, with a timeout), 6 (a fake is planted through
-the registry and logs every call; no program embedded in a test module).
-Input list and remedy: ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md
-on this branch. Re-measure the family before you start; the counts there are from
-lane/session-20260916-g at e948141a and move as the sweep lands.
-Green means: the family passes from the repository root under the strict world.
-Commit on this branch with Source: and Co-Authored-By: trailers.
+Make this exit 0 from the repository root:
+  python3 -m unittest discover -s ops/devlane/workflow/tests -t .
+Move that family onto World(host_path=False), planting a fake for every
+tool the subject calls. 30 rows: test_term_wall 15,
+test_term_wall_archives 13, test_suites_ruff 2.
+THE SUBJECT IS THE TEST FILES. This job's standing line 'do not edit the
+files the tests live in' is inverted here and only here: edit those files,
+do NOT edit the implementation they exercise.
+docs/tests.md rules 4 (hermetic by default, ambient named), 5 (subprocess
+through testkit run, with a timeout), 6 (fakes planted through the
+registry, logging each call; no program in a test module).
+List and remedy: ops/conductor/handoff/
+HANDOFF-2026-09-16-hermetic-path-sweep.md on this branch. Re-measure
+first; its counts are from lane/session-20260916-g at e948141a.
+Commit here with Source: and Co-Authored-By: trailers. Nothing else.
