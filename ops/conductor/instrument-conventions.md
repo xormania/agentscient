@@ -34,8 +34,15 @@ accompanies a refusal.
 ## Identity
 
 Writing verbs require an agent in `Name <address>` form and refuse class
-`identity` without one. Two keys carry it, in this order:
-`WF_AGENT_OVERRIDE` first, then `WF_AGENT`. The override exists because
+`identity` without one. Three sources carry it, in this order:
+`WF_AGENT_OVERRIDE`, then the row this session bound for itself with
+`instrument.py identity --set 'Name <addr>'`, then `WF_AGENT`. The
+session's own row outranks the ambient key because a session chose it
+and nobody chose the ambient one; the override outranks the row because
+a single command may always say otherwise. An absent store is an answer
+— no session bound a name here — and a store that exists and cannot be
+read refuses class `store` rather than falling through. The override
+exists because
 the ambient key is not always the command's own — a settings file may
 bind `WF_AGENT` for every session on a host, and nothing reading the
 environment can tell that from a value the command meant. A malformed

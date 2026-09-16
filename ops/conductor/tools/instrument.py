@@ -9,10 +9,11 @@ copies this replaces: eighteen refuse helpers with four behaviours,
 twelve identity checks with four regexes, five clocks, four lane-name
 readers with a hand-rolled fallback parser each.
 
-    instrument.py identity                       print WF_AGENT in Name <address> form, else refuse
+    instrument.py identity                       print this command's agent, else refuse
+    instrument.py identity --set "Name <addr>"   bind an agent to this session in the store
     instrument.py refuse CLASS EXPECTED FOUND NEEDED   emit one refusal line, exit 2
 
-The two verbs exist for shell levers, so a script speaks the same wire
+The three verbs exist for shell levers, so a script speaks the same wire
 as the tools without a copy of the format string.
 
 How a tool imports it: the tool appends its own directory to sys.path
@@ -29,6 +30,7 @@ import importlib.util
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -45,6 +47,10 @@ IDENTITY_NEEDED = "export WF_AGENT='Your Model Name <noreply@vendor>'"
 OVERRIDE_NEEDED = (
     "WF_AGENT_OVERRIDE='Your Model Name <noreply@vendor>' on the command, "
     "or unset it to use WF_AGENT"
+)
+STORED_NEEDED = (
+    "instrument.py identity --set 'Your Model Name <noreply@vendor>' to "
+    "rebind this session, or remove the row"
 )
 GIT = shutil.which("git") or "git"
 
@@ -104,6 +110,12 @@ def identity() -> str:
             refuse("identity", "WF_AGENT_OVERRIDE in the Name <address> form",
                    override, OVERRIDE_NEEDED)
         return override
+    bound = stored_identity()
+    if bound:
+        if IDENTITY.fullmatch(bound) is None:
+            refuse("identity", "a stored identity in the Name <address> form",
+                   f"{bound} in {state_db()}", STORED_NEEDED)
+        return bound
     value = os.environ.get("WF_AGENT", "")
     if IDENTITY.fullmatch(value) is None:
         refuse("identity", "WF_AGENT in the Name <address> form", value or "unset",
@@ -210,6 +222,92 @@ def state_dir() -> Path:
     return state_root() / lane_name()
 
 
+def state_db() -> Path:
+    """The lane's one state store. Rows, not files (the state skill)."""
+    return state_dir() / "state.db"
+
+
+SESSION_IDENTITY = """
+CREATE TABLE IF NOT EXISTS session_identity (
+    session_id TEXT PRIMARY KEY,
+    agent      TEXT NOT NULL,
+    at         TEXT NOT NULL
+)
+"""
+
+
+def stored_identity() -> str:
+    """The agent this session bound to itself, or "" when it bound none.
+
+    A read, and it never creates the store: a host where no session has
+    bound a name has looked and found nothing, and the ambient key
+    answers. A store that exists and cannot be read is the other case
+    entirely and refuses class `store`, because "could not look" must
+    never arrive dressed as an answer (docs/wire.md, absence discipline).
+    """
+    try:
+        path = state_db()
+    except Refusal:
+        # No lane conf means no lane, so no lane state directory and so
+        # no store. That is found-nothing, not could-not-look: a staged
+        # copy of this module with no conf must still be able to name its
+        # agent from the environment rather than refuse on a store it
+        # could never have had.
+        return ""
+    key = session("")
+    if not key or not path.is_file():
+        return ""
+    try:
+        with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as con:
+            if not con.execute(
+                "SELECT 1 FROM sqlite_master"
+                " WHERE type = 'table' AND name = 'session_identity'"
+            ).fetchone():
+                return ""
+            row = con.execute(
+                "SELECT agent FROM session_identity WHERE session_id = ?", (key,)
+            ).fetchone()
+    except sqlite3.DatabaseError as error:
+        refuse("store", "a readable state store", f"{path}: {error}",
+               "repair or remove the store, or name the agent with "
+               "WF_AGENT_OVERRIDE for this command")
+    return row[0] if row else ""
+
+
+def set_identity(agent: str) -> str:
+    """Bind an agent to this session; return the session id it was bound to.
+
+    The one writing verb of this module, and it takes no identity of its
+    own: it is how a session acquires one. The row is keyed on the
+    session, so two sessions on one host never overwrite each other, and
+    a second call replaces this session's row rather than adding one.
+    """
+    if IDENTITY.fullmatch(agent.strip()) is None:
+        refuse("identity", "an agent in the Name <address> form",
+               agent.strip() or "unset", IDENTITY_NEEDED)
+    key = session("")
+    if not key:
+        # A row keyed on the word `unknown` would be shared by every
+        # session that has no id, which is worse than no row at all.
+        refuse("session", "a session id in the environment", "unset",
+               "run under a harness that sets CLAUDE_CODE_SESSION_ID, or "
+               "name the agent with WF_AGENT_OVERRIDE for one command")
+    path = state_db()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(path, isolation_level=None) as con:
+        con.execute("BEGIN IMMEDIATE")
+        con.execute(SESSION_IDENTITY)
+        con.execute(
+            "INSERT INTO session_identity (session_id, agent, at)"
+            " VALUES (?, ?, ?)"
+            " ON CONFLICT(session_id) DO UPDATE SET"
+            " agent = excluded.agent, at = excluded.at",
+            (key, agent.strip(), stamp()),
+        )
+        con.execute("COMMIT")
+    return key
+
+
 def run(
     argv: list[str],
     *,
@@ -244,9 +342,15 @@ def main(argv: list[str]) -> int:
         if verb == "identity" and len(argv) == 2:
             print(identity())
             return EXIT_DONE
+        if verb == "identity" and len(argv) == 4 and argv[2] == "--set":
+            key = set_identity(argv[3])
+            print(f"identity: {argv[3].strip()} bound to session {key}")
+            return EXIT_DONE
         if verb == "refuse" and len(argv) == 6:
             refuse(*argv[2:6])
-        refuse("arguments", "identity, or refuse CLASS EXPECTED FOUND NEEDED",
+        refuse("arguments",
+               "identity, identity --set 'Name <addr>', or refuse CLASS "
+               "EXPECTED FOUND NEEDED",
                " ".join(argv[1:]) or "no verb", "name one verb with its arguments")
     except Refusal as refusal:
         return emit(refusal)
