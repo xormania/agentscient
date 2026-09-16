@@ -783,9 +783,18 @@ def cmd_waste(args, window, window_iso):
     counts = {harness: sum(s.get("kind") != "gap"
                            for s in sessions.values())
               for harness, sessions in per_harness.items()}
+    # The census counts the window; the sessions array is the top-N
+    # ranking, so the two differ whenever --top truncates or a session
+    # carried no usage. State what was listed rather than leaving the
+    # reader to infer the difference (LD-45).
+    shown = {harness: sum(entry.get("kind") == "session"
+                          and entry.get("harness") == harness
+                          for _, entry in listed)
+             for harness in counts}
     stamp = stamp_block(str(args.repo), window_iso, args.now,
                         harness_sessions=counts)
-    data = {"stamp": stamp, "sessions": [entry for _, entry in listed],
+    data = {"stamp": stamp, "listed": shown,
+            "sessions": [entry for _, entry in listed],
             "signals": signals}
     if dispatches:
         data["dispatches"] = {
@@ -800,7 +809,8 @@ def cmd_waste(args, window, window_iso):
         n_dispatches = sum(row.get("harness") == harness
                            for row in dispatches)
         suffix = f" dispatches={n_dispatches}" if n_dispatches else ""
-        lines.append(f"{harness:7s} sessions={counts[harness]}{suffix}")
+        lines.append(f"{harness:7s} sessions={counts[harness]}"
+                     f" listed={shown[harness]}{suffix}")
     lines.append("")
     for _, entry in listed:
         if entry.get("kind") == "dispatch":

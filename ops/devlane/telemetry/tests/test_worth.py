@@ -1403,6 +1403,41 @@ class WorthContractTests(unittest.TestCase):
             ["leader", "tie-a"],
         )
 
+    def test_waste_declares_the_listing_against_the_session_census(self):
+        """Origin LD-45: the stamp counts the window's sessions while the
+        sessions array is the top-N ranking, so the two figures differ by
+        design. The output declares how many it listed against how many it
+        counted; a reader never has to infer the difference."""
+        inside = "2026-08-22T11:00:00.000Z"
+        for index in range(7):
+            self._plant_claude(f"census-{index}", [{
+                "timestamp": inside,
+                "output": 100 + index,
+            }])
+
+        data = self._json_worth("waste")
+        self._assert_key_number(data["stamp"]["sessions"], ("claude",), 7)
+        shown = [row for row in data["sessions"]
+                 if row.get("kind") == "session"]
+        self.assertEqual(len(shown), 5, "the default top did not truncate")
+        self.assertIn("listed", data, "waste did not declare its listing")
+        self.assertEqual(data["listed"]["claude"], 5)
+        self.assertEqual(data["listed"]["codex"], 0)
+        self.assertEqual(data["listed"]["grok"], 0)
+
+        plain = self._run_worth("waste")
+        self.assertEqual(plain.returncode, 0, plain.stderr)
+        line = self._line_for_harness(plain.stdout, "claude")
+        self._assert_plain_number(line, ("sessions",), 7)
+        self._assert_plain_number(line, ("listed",), 5)
+
+        whole = self._json_worth("waste", "--top", "99")
+        self._assert_key_number(whole["stamp"]["sessions"], ("claude",), 7)
+        self.assertEqual(whole["listed"]["claude"], 7)
+        whole_plain = self._run_worth("waste", "--top", "99")
+        self.assertEqual(whole_plain.returncode, 0, whole_plain.stderr)
+        self._assert_plain_json_parity(whole_plain.stdout, whole)
+
     def test_waste_emits_deterministic_cache_churn_and_heavy_turn_signals(self):
         self._plant_claude("claude-heavy", [
             {
@@ -1566,7 +1601,7 @@ class WorthContractTests(unittest.TestCase):
 
         for verb, keys in (
             ("report", {"stamp", "cost", "results"}),
-            ("waste", {"stamp", "sessions", "signals"}),
+            ("waste", {"stamp", "listed", "sessions", "signals"}),
         ):
             with self.subTest(verb=verb):
                 plain = self._run_worth(verb)
