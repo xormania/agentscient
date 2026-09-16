@@ -299,6 +299,43 @@ def _credential_created(path, field):
     return max(stamps) if stamps else None
 
 
+def credential_reading(harness, env=None):
+    """The host credential an age rule governs: where it is, when it was
+    created, how old it is, and the limit and remedy the entry declares.
+
+    Public so a caller outside this module reads a credential without
+    reaching for private names. Absence is declared, never an age of
+    zero: a missing file or a file carrying no stamp comes back with
+    `unresolved` and `age_hours` None.
+
+    None when the harness declares no age rule at all — there is no
+    lifetime to read.
+    """
+    env = os.environ if env is None else env
+    spec = HARNESSES.get(harness)
+    if spec is None:
+        raise NotIsolated(f"{harness!r} has no isolation entry")
+    rule = spec.get("credential_age")
+    if not rule:
+        return None
+    src = _real_home(harness, env, given=True) / rule["file"]
+    out = {"harness": harness, "file": rule["file"], "path": str(src),
+           "field": rule["field"], "max_hours": rule["max_hours"],
+           "remedy": rule["remedy"], "created": None, "age_hours": None}
+    if not src.exists():
+        out["unresolved"] = f"no {rule['file']} at {src}"
+        return out
+    created = _credential_created(src, rule["field"])
+    if created is None:
+        out["unresolved"] = f"{src} carries no {rule['field']} stamp"
+        return out
+    when, raw = created
+    out["created"] = raw
+    out["age_hours"] = (datetime.datetime.now(datetime.timezone.utc)
+                        - when).total_seconds() / 3600
+    return out
+
+
 def check_credential_age(harness, spec, name, src):
     """LD-18: refuse a credential older than its measured refresh lifetime.
 
