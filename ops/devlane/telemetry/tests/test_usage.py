@@ -193,6 +193,11 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
     starts at the root keeps the root in its cwd set forever. The rule
     is still wrong, and an exact compare on a path is the kind of wrong
     that is invisible until the day it is not.
+
+    All four readers have rows here. The agy ones arrived a commit later
+    than the rest: f60f00b0 changed that site with the other three and
+    declared the gap rather than leave one reader inconsistent, and this
+    is the gap closed.
     """
 
     SUB = REPO + "/ops/conductor"
@@ -209,6 +214,11 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
              "--claude-dir", str(self.home / "claude"),
              "--codex-dir", str(self.home / "codex"),
              "--grok-dir", str(self.home / "grok"),
+             # The agy reader runs only when a root is named; the other
+             # three have defaults. A root that does not exist answers
+             # with no captures, which is what the rows that plant no
+             # agy capture want.
+             "--agy-dir", str(self.home / "captures"),
              "--repo", REPO, "--json"],
             cwd=self.world.cwd, env=self.world.env(), timeout=30,
         )
@@ -253,6 +263,23 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
             "updated_at": "2026-08-21T10:20:00.000000000Z",
             "current_model_id": "grok-4.6"}))
 
+    def plant_agy(self, name, cwd):
+        """A captured native stdout: the init frame binds the session to
+        its cwd, the result frame carries the usage. Two complete NDJSON
+        lines are what the reader calls terminal; a truncated last line
+        is a different fact and belongs to a different row."""
+        raw = (json.dumps({"event": "init", "conversation_id": name,
+                           "init": {"cwd": cwd, "model": "grok-4.6"}}) + "\n"
+               + json.dumps({"event": "result",
+                             "result": {"conversation_id": name,
+                                        "num_turns": 2,
+                                        "usage": {"input_tokens": 5,
+                                                  "cache_read_tokens": 1,
+                                                  "output_tokens": 2,
+                                                  "total_tokens": 8}}}) + "\n")
+        self.world.plant_text(
+            self.home / "captures" / name / "raw.out", raw)
+
     def test_a_claude_session_run_from_a_subdirectory_counts(self):
         self.plant_claude("inside", self.SUB)
         self.assertIn("inside", self.ids())
@@ -263,6 +290,10 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
 
     def test_a_grok_session_run_from_a_subdirectory_counts(self):
         self.plant_grok("inside", self.SUB)
+        self.assertIn("inside", self.ids())
+
+    def test_an_agy_session_run_from_a_subdirectory_counts(self):
+        self.plant_agy("inside", self.SUB)
         self.assertIn("inside", self.ids())
 
     def test_a_sibling_path_that_merely_shares_a_prefix_is_not_the_repo(self):
@@ -276,16 +307,18 @@ class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
         self.plant_claude("stranger", self.SIBLING)
         self.plant_codex("stranger-c", self.SIBLING)
         self.plant_grok("stranger-g", self.SIBLING)
+        self.plant_agy("stranger-a", self.SIBLING)
         found = self.ids()
-        for name in ("stranger", "stranger-c", "stranger-g"):
+        for name in ("stranger", "stranger-c", "stranger-g", "stranger-a"):
             self.assertNotIn(name, found)
 
     def test_the_repo_itself_still_counts(self):
         self.plant_claude("root", REPO)
         self.plant_codex("root-c", REPO)
         self.plant_grok("root-g", REPO)
+        self.plant_agy("root-a", REPO)
         found = self.ids()
-        for name in ("root", "root-c", "root-g"):
+        for name in ("root", "root-c", "root-g", "root-a"):
             self.assertIn(name, found)
 
 
