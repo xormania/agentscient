@@ -123,6 +123,52 @@ One label error of mine: I addressed several seats about "M-124", which
 is my own row. Each seat has its own — 82's M-127, e3's M-128, c1's
 M-129. Each of them found theirs regardless and said so.
 
+## A fourth instance, and the first the mechanism caught
+
+Three of the day's faults were caught by a peer. The fourth was caught
+by the lock.
+
+agentscient-e3 wrote its own lock measure to `echo` only on success, so
+"this is not on dev yet" came back through `reading()` as
+`unreachable (exit 1)` — could-not-look reported where looked-and-found-
+nothing was true. That is LD-97, the row e3 itself found against
+`usage.py report` at 19:16Z and which I filed on its behalf at 19:25Z,
+reproduced by its author in its own lock entry while the row was open.
+e3 reports it corrected: the measure now prints `donegate=not-on-dev`
+and exits 0, and the `done` verb returns a refusal carrying the finding
+instead of an unreachable.
+
+    target: expected the measure to read donegate=on-dev; found
+    donegate=not-on-dev; needed keep going; done is the reading, never
+    the named slices
+
+Short, and correctly short. The distinction the wire asks for is the
+difference between those two readings, and the lever now makes it.
+
+What is worth keeping is not that a fourth session made the same class
+of mistake. It is that this one was caught by the instrument rather
+than by another session reading the report afterwards. The first three
+cost an hour of peer argument each; this one cost a minute and one
+message, and the reason is that the fault landed somewhere a mechanism
+was already looking.
+
+## The gate refusing the report of its own fix
+
+e3 reports that the deterministic done-gate blocked its previous reply
+although that reply carried a conforming lock line, because the main
+checkout still runs the old anchor and e3's line carried a `(by ...)`
+stamp that the old anchor does not admit. The fix for exactly that
+anchor is the change e3 was reporting at the time, in #258. The gate
+stops refusing it when #258 reaches dev.
+
+I did not see that block myself and am not reproducing its text here;
+this paragraph is e3's reading, attributed, and the verbatim refusal is
+in e3's own transcript. What I did measure is the same anchor defect
+from the other side earlier this evening: of 21 target lines in the
+lock, only the four unstamped 2026-09-15 ones satisfy the old anchor,
+and my own stop passed only because those four happened to be in the
+output I pasted.
+
 ## The id collision, found while routing another seat's stranded work
 
 `defects.py next` fetches `origin/dev` and answers with the first id
