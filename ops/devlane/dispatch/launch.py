@@ -603,6 +603,29 @@ LANE_MCP_TOOLS = ("lane_brief", "lane_jobs", "lane_changes", "lane_findings",
                   "lane_record", "lane_alerts", "lane_usage")
 LANE_MCP_REL = Path("ops/conductor/tools/lane_mcp.py")
 LANE_MCP_ABSENT = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}
+COORD_MCP_SERVER = "coordination"
+COORD_MCP_REL = Path("ops/conductor/tools/coordination_mcp.py")
+COORD_MCP_CONFIG_VERSION = 1
+# The capability list is declared here and proved against the server's own
+# catalogue by a case, rather than read out of the server at launch: the
+# launcher reaches ops/conductor as a lever and never as an import, so a
+# drift between the two is caught by a test and not by a worker.
+COORD_MCP_TOOLS = (
+    "coord_accept", "coord_ack", "coord_assignments", "coord_brief",
+    "coord_claim", "coord_draft", "coord_inbox", "coord_observe",
+    "coord_offer", "coord_outstanding", "coord_release", "coord_resolve",
+    "coord_return", "coord_send", "coord_show", "coord_submit",
+    "coord_verify",
+)
+# Codex today. The A-87 trial is a codex worker and the Lead scoped this
+# slice to that launch; claude and grok take their servers by other routes
+# and are named here rather than left to read as "nothing to wire".
+COORD_MCP_HARNESSES = ("codex",)
+COORD_MCP_ABSENT = {
+    "unresolved": "snapshot has no ops/conductor/tools/coordination_mcp.py"}
+COORD_MCP_UNBOUND = {
+    "unresolved": "the dispatch named no assignment, so the core bound no "
+                  "participant for this worker to act as"}
 BRIEF_MARK = "== what exists (measured at launch) =="
 BRIEF_CAP = 8000
 REUSE_RE = re.compile(r"reused:\s*(.+)", re.DOTALL)
@@ -616,6 +639,26 @@ REUSE_CLAUSE = (
     "(owner, 2026-09-12: \"stop you or other agents from going outside the "
     "architecture, duplicating, or worse - ignoring\")."
 )
+
+
+def _acting_clause(meta):
+    """What a wired worker is told it holds.
+
+    A registered server the brief never names is what the A-87 trial
+    already proved insufficient: the worker reached for a shell it could
+    not write from and the assignment stayed unclaimed.
+    """
+    return (
+        f"The acting MCP server `{COORD_MCP_SERVER}` carries this lane's "
+        f"coordination verbs (tools: {', '.join(COORD_MCP_TOOLS)}). You are "
+        f"bound to it as participant {meta['participant']}, dispatched for "
+        f"assignment {meta['assignment']}. Read `coord_brief` first, then "
+        f"`coord_claim` the assignment before you work it and `coord_submit` "
+        f"the evidence when you are done; `coord_release` it instead if you "
+        f"stop short. These are the only verbs that move the assignment: a "
+        f"shell cannot, and work reported anywhere else is work the lane "
+        f"cannot see."
+    )
 
 
 def _same_unit_records(repo, unit, exclude):
@@ -657,8 +700,50 @@ def _lane_mcp(job_dir, snapshot, job_id, repo, unit, follows):
             "server": server, "tools": list(LANE_MCP_TOOLS)}, server
 
 
-def _mcp_argv(harness, server, job_dir):
-    """The argv tokens that hand a harness the lane MCP server; [] for none."""
+def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
+                      assignment, branch, stamp):
+    """Write the acting config for this dispatch; return (meta, server argv).
+
+    Every absence is declared with the reason, because the three that can
+    happen here read alike from the record otherwise: a harness this slice
+    does not wire, a snapshot without the tool, and a dispatch that bound
+    no participant.
+    """
+    if harness not in COORD_MCP_HARNESSES:
+        return {"unresolved": f"the acting server is wired for "
+                              f"{', '.join(COORD_MCP_HARNESSES)} today; this "
+                              f"dispatch is {harness}"}, None
+    tool = Path(snapshot) / COORD_MCP_REL
+    if not tool.is_file():
+        return dict(COORD_MCP_ABSENT), None
+    if not participant:
+        return dict(COORD_MCP_UNBOUND), None
+    cfg = Path(job_dir) / "coordination-mcp.json"
+    cfg.write_text(json.dumps({
+        "version": COORD_MCP_CONFIG_VERSION,
+        "participant": participant,
+        "assignment": assignment,
+        "branch": branch,
+        "worktree": str(Path(snapshot).resolve()),
+        "record": job_id,
+        "capabilities": list(COORD_MCP_TOOLS),
+        "issued_at": stamp,
+    }, indent=1) + "\n", encoding="utf-8")
+    server = ["python3", "-B", str(tool.resolve()),
+              "--config", str(cfg.resolve()), "serve"]
+    return {"config": str(cfg.resolve()), "sha256": _sha(cfg),
+            "participant": participant, "assignment": assignment,
+            "server": server, "tools": list(COORD_MCP_TOOLS)}, server
+
+
+def _codex_mcp_argv(key, server):
+    """The two `-c` overrides that register one server with codex."""
+    return ["-c", f'mcp_servers.{key}.command="{server[0]}"',
+            "-c", f"mcp_servers.{key}.args={json.dumps(server[1:])}"]
+
+
+def _mcp_argv(harness, server, job_dir, coord=None):
+    """The argv tokens that hand a harness its MCP servers; [] for none."""
     if not server:
         return []
     if harness == "claude":
@@ -667,8 +752,10 @@ def _mcp_argv(harness, server, job_dir):
             "command": server[0], "args": server[1:]}}}, indent=1) + "\n", encoding="utf-8")
         return ["--mcp-config", str(path.resolve())]
     if harness == "codex":
-        return ["-c", f'mcp_servers.{LANE_MCP_KEY}.command="{server[0]}"',
-                "-c", f"mcp_servers.{LANE_MCP_KEY}.args={json.dumps(server[1:])}"]
+        tokens = _codex_mcp_argv(LANE_MCP_KEY, server)
+        if coord:
+            tokens += _codex_mcp_argv(COORD_MCP_SERVER, coord)
+        return tokens
     return []
 
 
@@ -687,6 +774,32 @@ def _grok_mcp_config(home, server):
     return str(path)
 
 
+def _relocate_coordination(rec, job_dir, relocated_from):
+    """The acting config, rebased onto the bound job.
+
+    Same defect class as the lane config's (Codex review of PR #158,
+    2026-09-12): the config names the store it was written in, and the
+    server argv names the config, so a resumed worker would be handed a
+    path that moved. `record` is the job id and does not move with it.
+    """
+    coord = (rec.get("brief") or {}).get("coordination")
+    if not isinstance(coord, dict) or not coord.get("config"):
+        return
+    job_dir = Path(job_dir)
+    cfg = job_dir / "coordination-mcp.json"
+    prior = Path(coord["config"])
+    if prior != cfg and prior.is_file() and not cfg.exists():
+        cfg.write_text(prior.read_text(encoding="utf-8"), encoding="utf-8")
+    if cfg.is_file():
+        coord["config"] = str(cfg.resolve())
+        coord["sha256"] = _sha(cfg)
+    server = coord.get("server")
+    if isinstance(server, list) and relocated_from:
+        coord["server"] = [
+            token.replace(relocated_from, str(job_dir))
+            if isinstance(token, str) else token for token in server]
+
+
 def _relocate_mcp(rec, job_dir, relocated_from):
     """A retained job moved to another dispatch store keeps an MCP config on
     disk that names the old store, so a resumed server reports prior records
@@ -694,6 +807,7 @@ def _relocate_mcp(rec, job_dir, relocated_from):
     2026-09-12). Rewrite lane-mcp.json, the record's server argv and grok's
     config.toml to the bound job; the record's own paths were rebased by
     _bind_record."""
+    _relocate_coordination(rec, job_dir, relocated_from)
     mcp = (rec.get("brief") or {}).get("mcp")
     if not isinstance(mcp, dict) or not mcp.get("config"):
         return
@@ -904,12 +1018,12 @@ def _resolve_turns(job_caps):
 
 def _argv(name, model, effort, session, prompt, flags, sandbox, resume=False,
           project_allow=(), project_deny=(), writable_out=False, executable=None,
-          turns=None, mcp=None):
+          turns=None, mcp=None, coord=None):
     if mcp and name == "claude":
         project_allow = (*project_allow, f"mcp__{LANE_MCP_SERVER}")
     argv = _argv_base(name, model, effort, session, prompt, flags, sandbox, resume,
                       project_allow, project_deny, writable_out, executable)
-    extra = _mcp_argv(name, mcp, Path(prompt).parent)
+    extra = _mcp_argv(name, mcp, Path(prompt).parent, coord)
     if name == "codex" and argv and argv[-1] == "-":
         argv = [*argv[:-1], *extra, "-"]
     else:
@@ -1033,6 +1147,18 @@ def _child_env(base, additions, job_id, session=None):
         env.pop("CLAUDE_SESSION_ID", None)
     env.update(additions)
     return env
+
+
+def _bound_participant(line):
+    """The participant id out of bind-for's line, or None.
+
+    The lever's line is prose around the id; the acting config takes the
+    id alone, and the server refuses class `config` on anything that is
+    not PT-n, so a line this cannot read is a wiring fault and not a
+    participant.
+    """
+    found = re.search(r"\bPT-[1-9][0-9]*\b", line or "")
+    return found.group(0) if found else None
 
 
 def _bind_worker(session, assignment, harness, agent):
@@ -1638,7 +1764,13 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                  writable_out=rec["role"] == "read",
                  executable=rec["harness"].get("worker", {}).get("executable"),
                  turns=(rec.get("caps") or {}).get("turns"),
-                 mcp=((rec.get("brief") or {}).get("mcp") or {}).get("server"))
+                 # The run path rebuilds the argv from the record and
+                 # overwrites what record.build put there, so a server named
+                 # only at build time never reaches the child. Both planes
+                 # are taken from the record here for that reason.
+                 mcp=((rec.get("brief") or {}).get("mcp") or {}).get("server"),
+                 coord=((rec.get("brief") or {}).get("coordination")
+                        or {}).get("server"))
     rec["harness"]["argv"] = argv
     rec["model"]["effort_argv"] = _effort_argv(
         harness, rec["model"]["effort_requested"])
@@ -1985,9 +2117,26 @@ def _launch(args):
     turns_argv = _turns_argv(args.harness, turns)
     prompt_text = _render(job["prompt"], values)
     prompt_text += _turns_budget(turns)
+    session = None if args.harness == "agy" else str(uuid.uuid4())
+    bound = None
+    if args.assignment:
+        if not session:
+            _refuse("binding",
+                    "a session id to bind the worker under",
+                    f"none, because {args.harness} is launched "
+                    f"without one",
+                    "dispatch an assignment on a harness the "
+                    "launcher mints a session for")
+        bound = _bind_worker(session, args.assignment,
+                             args.harness, agent)
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
+    coord_meta, coord_server = _coordination_mcp(
+        job_dir, snapshot, args.harness, job_id,
+        _bound_participant(bound), args.assignment, lineage, stamp)
     prompt_text += "\n\n" + _what_exists(snapshot, jobs, mcp_meta)
+    if coord_server:
+        prompt_text += "\n\n" + _acting_clause(coord_meta)
     # Dispatch names its copies even when the shared template omits inputs.
     if copied:
         prompt_text += "\n\nInput files: " + values["inputs"]
@@ -2014,18 +2163,6 @@ def _launch(args):
     project_allow = project_deny = ()
     if args.harness == "claude":
         permissions, project_allow, project_deny = _project_permissions(snapshot)
-    session = None if args.harness == "agy" else str(uuid.uuid4())
-    bound = None
-    if args.assignment:
-        if not session:
-            _refuse("binding",
-                    "a session id to bind the worker under",
-                    f"none, because {args.harness} is launched "
-                    f"without one",
-                    "dispatch an assignment on a harness the "
-                    "launcher mints a session for")
-        bound = _bind_worker(session, args.assignment,
-                             args.harness, agent)
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
     rec = record.build({
@@ -2047,7 +2184,8 @@ def _launch(args):
                                   project_allow, project_deny,
                                   writable_out=role == "read",
                                   executable=worker["executable"],
-                                  turns=turns, mcp=mcp_server)},
+                                  turns=turns, mcp=mcp_server,
+                                  coord=coord_server)},
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
@@ -2060,6 +2198,10 @@ def _launch(args):
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,
                   "mcp": mcp_meta,
+                  # The acting plane, beside the read plane. A dispatch
+                  # that wired nothing says which of the three reasons
+                  # it was, never an empty object.
+                  "coordination": coord_meta,
                   **({"graft": graft_metadata} if graft_metadata is not None else {})},
         "caps": {"cap-out": wires.budget(role), "source": "wires.py",
                  "turns": turns, "turns_source": turns_source,

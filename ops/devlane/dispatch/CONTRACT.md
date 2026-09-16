@@ -1186,6 +1186,27 @@ absence is historical and must not be read as "none answered".
   record store were that class, each launched bare after the session
   that knew the `DISPATCH_TIMEOUT` compensation had ended (finding:
   20260901T004909Z-tests-grok-3a7479).
+- `brief.coordination` is the acting plane beside that read plane
+  (D-MCP-1, owner 2026-09-16: "mcp is no longer read only - that's the
+  directive"). A codex dispatch that names an assignment receives two
+  further `-c mcp_servers.coordination.*` overrides and a config at
+  `<job>/coordination-mcp.json`, carrying exactly the eight keys the
+  acting server declares: `version`, `participant` (the `PT-n` `bind-for`
+  minted for this worker's session, never an agent string and never the
+  dispatcher's own id), `assignment`, `branch`, `worktree`, `record` (the
+  record id), `capabilities` and `issued_at`. `server` is the exact argv
+  (`python3 -B <snapshot>/ops/conductor/tools/coordination_mcp.py --config
+  <config> serve`). The capability list is declared in the launcher and
+  proved against the server's own catalogue by a case, because the
+  launcher reaches `ops/conductor` as a lever and never as an import.
+  The brief names the verbs the worker holds: a registered server the
+  brief never mentions is what the A-87 trial proved insufficient.
+  Every absence is declared with its reason, and there are three --
+  a harness this does not wire (`codex` alone today; claude and grok each
+  record themselves by name), a snapshot without the tool, and a dispatch
+  that bound no participant. A relocated job has this config rebased with
+  the lane one, so PR #158's defect does not recur in it.
+
 - `brief.mcp` is the lane MCP handed to the worker (owner, 2026-09-12:
   "enforce usage - not doc it"): `config` is `<job>/lane-mcp.json`, a
   version-2 lane MCP config with `consumer` = the record id, `job_ids` =
