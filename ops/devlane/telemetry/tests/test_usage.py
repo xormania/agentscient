@@ -129,6 +129,60 @@ class SessionsAreNormalised(Fixtures):
         self.assertEqual(row["model"], "grok-4.6")
 
 
+class TheRepoPathIsResolvedAtTheBoundary(unittest.TestCase):
+    """Origin LD-44 / T-63: `--repo .` from inside the checkout read no
+    sessions at all, because collect() handed the readers a relative path
+    to compare against the transcripts' absolute cwd. Silence is not a
+    declaration: the relative form must read what the absolute one reads.
+    worth.py took abspath at the boundary in abf766b5; usage.py takes the
+    same one."""
+
+    def setUp(self):
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+        self.repo = self.world.cwd / "checkout"
+        # Planting the file makes the directory and proves it landed.
+        self.world.plant_text(self.repo / "README.md", "checkout fixture\n")
+        slug = "-" + "-".join(str(self.repo).strip("/").split("/"))
+        self.world.plant_text(
+            self.home / "claude" / slug / "eeee.jsonl",
+            line(timestamp="2026-08-21T10:00:00.000Z",
+                 message={"model": "claude-fable-5",
+                          "usage": {"input_tokens": 7,
+                                    "cache_creation_input_tokens": 0,
+                                    "cache_read_input_tokens": 0,
+                                    "output_tokens": 11}}))
+
+    def _sessions(self, repo_arg, cwd):
+        proc = run(
+            [sys.executable, str(USAGE), "sessions", "--json",
+             "--claude-dir", str(self.home / "claude"),
+             "--codex-dir", str(self.home / "codex"),
+             "--grok-dir", str(self.home / "grok"),
+             "--repo", repo_arg],
+            cwd=cwd,
+            env=self.world.env(),
+            timeout=30,
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        return [row["session"] for row in json.loads(proc.stdout)["sessions"]]
+
+    def test_a_relative_repo_reads_what_the_absolute_one_reads(self):
+        self.assertEqual(
+            self._sessions(str(self.repo), self.repo), ["eeee"],
+            "the absolute form did not read the planted session",
+        )
+        self.assertEqual(
+            self._sessions(".", self.repo), ["eeee"],
+            "--repo . read no sessions for the checkout it ran in",
+        )
+        self.assertEqual(
+            self._sessions("checkout", self.world.cwd), ["eeee"],
+            "a relative path named from the parent read no sessions",
+        )
+
+
 class TheReportAggregates(Fixtures):
     def test_totals_per_harness_and_the_gap_stated(self):
         proc = self.run_usage("report")

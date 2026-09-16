@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from urllib.parse import quote
@@ -507,6 +508,12 @@ def main(argv=None) -> int:
     parser.add_argument("--grok-dir", default=str(home / ".grok"))
     parser.add_argument("--agy-dir", help="explicit dispatch capture root")
     args = parser.parse_args(argv)
+    if args.repo is not None:
+        # The readers compare this against the transcripts' absolute cwd,
+        # so a relative form (`.` from the checkout) matched nothing and
+        # the report read an empty store as an answer. Resolve once here,
+        # the boundary worth.py resolves at (LD-44).
+        args.repo = os.path.abspath(str(args.repo))
     return cmd_sessions(args) if args.verb == "sessions" else cmd_report(args)
 
 
