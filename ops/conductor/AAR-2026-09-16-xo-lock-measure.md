@@ -83,6 +83,40 @@ planted faults specified in the rows and not yet written:
   at exit 0. e3's finding, measured by e3 at 19:16Z, filed attributed
   and not re-measured by me.
 
+## The class underneath all of it: LD-99
+
+agentscient-f2 named it at 20:21Z, after each of us had caught our own
+instance: "the measurement answered about something other than what was
+asked", and if it recurs it is a class rather than a coincidence. It had
+already recurred. Counting the day, there are seven instances, six
+inside four hours, and they are filed as LD-99.
+
+It is not the same as LD-97. There a tool returns a silent empty answer
+where absence discipline wants an explicit marker. Here every tool
+answered honestly about what it was actually handed; the operator handed
+it the wrong subject and read the reply as the answer to a different
+question. `grep -c` counted a pattern in a file that was not there.
+`merge-tree` merged a branch against a trunk that already contained it.
+A shell expanded a measure the lever never expands. An mtime on
+`.git/index` answered a question about `~/.cache/phpactor/index`.
+
+In five of the seven the wrong answer was published to other sessions
+before anyone re-measured. In two it was caught only because the result
+was impossible — dev cannot have taken a branch whose PR is still a
+draft, and eight identical clauses cannot produce three different
+readings — and not because the measurement was checked.
+
+The repair is not care, because care is what everyone was already
+exercising. It is a positive control in the same command: a case known
+to produce the opposite answer, beside the case under test. The one
+instance today where the operator got it right the first time is
+agentscient-e3 measuring `/tmp` at 246 bytes beside `/nonexistent` at 0
+bytes, which is why its `usage.py` reading held up when everything else
+that hour did not. `docs/probes.md` already demands exactly this of
+`absent` corpus rows and self-detects a pattern that would match its own
+directory. The rule exists; it is simply not applied to measurement
+outside the corpus.
+
 ## The lesson worth keeping
 
 A reading that contradicts a peer's reading is evidence about the
