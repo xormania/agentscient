@@ -57,6 +57,52 @@ cached-read and output figures whose ratio breached, and
 largest step between its cumulative counts) or run. A human or an
 agent decides what to change; the tool only points.
 
+## worth compare — two windows, the levers as rows
+
+    python3 ops/devlane/telemetry/worth.py compare --repo PATH \
+        --baseline SINCE..UNTIL --window SINCE..UNTIL \
+        [--now ISO] [--format plain|json] [--claude-dir DIR]
+
+Reads the same stores as `report` and `waste`, over two windows, and
+prints one row per declared lever: its name, each window's figure with
+the population behind it, and a verdict. It answers whether the number
+we set out to move moved, in the units the stores hold rather than the
+units a brief wished for.
+
+The levers, declared as data (T-62, owner 2026-09-15 on token
+efficiency):
+
+| lever | figure | threshold |
+|---|---|---|
+| `context` | mean context tokens per Claude session | under 300,000 |
+| `refusals` | refusals per Claude session | falling against the baseline |
+| `landed` | dispatches per landed PR | falling against the baseline |
+| `dispatch-cached` | mean cached tokens per author-tests dispatch | under 3,000,000 |
+
+A verdict is mechanical, never a judgment: `UNREACHABLE` when the
+window's `n` is zero — an arm that could not look has no result — else
+`met` or `short` against the threshold. A falling threshold reads
+`met` only when the window figure is strictly below the baseline's and
+both windows have `n` above zero.
+
+One unit is a trap, named here rather than left for a reviewer.
+`messages` is raw JSONL events for codex and the harness's own
+`num_messages` for grok, and neither is a model turn. Measured
+2026-09-15: the nine heaviest codex author-tests runs read 549 to 786
+messages against 71 to 98 true turns, while the one grok run read 579
+messages against 1 turn by grok's own unit, which counts a whole
+dispatch as one. The two harnesses do not even overcount the same way.
+No figure here is called turns, and a lever wanting turns cannot be
+built from `messages`.
+
+`dispatch-cached` reads short against 3,000,000 by construction in
+every window measured so far: 2.9M to 3.9M of each run's growth is
+reasoning and assistant text no output clip reaches. The verb does not
+carry that residual — computing it is a rollout parse with a resend
+model behind it, while compare reads stores, and a figure the verb
+cannot reproduce from its own sources is a claim without a reading.
+The residual lives in the AAR; the owner re-sets the target there.
+
 ## Behavior contract (tests are authored from this section alone)
 
 1. **Time is an input.** `--now ISO` is accepted by both subcommands;
@@ -123,6 +169,24 @@ agent decides what to change; the tool only points.
    on unusable arguments (malformed ISO, until <= since, unknown
    format) or missing configured `CLAUDE_DIR`; stderr carries the reason,
    with the missing key using the `conf-key` refusal class.
+
+9. **compare takes two windows and declares its population.**
+   `--baseline SINCE..UNTIL` and `--window SINCE..UNTIL` are both
+   required; each is two ISO 8601 stamps separated by `..`, inclusive
+   lower and exclusive upper, and a malformed range or `until <=
+   since` refuses with exit 2 like any other unusable argument. Every
+   lever row carries `n` for each window — the sessions or dispatches
+   the figure was measured over — and a row whose window `n` is zero
+   reads `UNREACHABLE` with its figures `unrecorded`, never `met` and
+   never 0. A baseline `n` of zero leaves a falling lever UNREACHABLE
+   too: there is nothing to fall from. The levers are declared as one
+   data table in the source, so adding one is a row and not a branch.
+   `--top` is refused, class `arguments`, naming compare: it ranks
+   nothing, and a flag accepted and ignored is a claim the verb does
+   not keep. `--format json` emits `stamp`, `baseline`, `window` and `levers`,
+   and every plain figure appears in it. The stamp carries the repo
+   HEAD short sha, the branch and both windows. Exit 0 on success
+   including when every row is UNREACHABLE.
 
 ## Reading it
 
