@@ -10,7 +10,7 @@ record it came from; a claim with no reading says not measured.
 
 The owner, 2026-09-15: "I want better token use effeciencies more than
 anything right now". Read from the three session transcripts under
-~/.claude/projects/-home-scientdb-projects-uscient-agentscient/ by a script
+the Claude projects directory for this checkout by a script
 summing each assistant message's usage block, at dev 564ab769:
 
 | session | requests | mean context per request | largest | cached tokens re-read | output |
