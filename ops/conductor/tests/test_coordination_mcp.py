@@ -70,6 +70,7 @@ REPO = Path(__file__).resolve().parents[3]
 TOOLS = REPO / "ops" / "conductor" / "tools"
 TOOL = TOOLS / "coordination_mcp.py"
 CORE_TOOL = TOOLS / "coordination.py"
+LEVER = REPO / "ops" / "conductor" / "coordination-mcp-lever.md"
 LOCK_LEVER = TOOLS / "deliverable.py"
 SIBLINGS = ("instrument.py",)
 
@@ -900,6 +901,62 @@ class CoordinationMcpMockFidelity(unittest.TestCase):
             self.assertEqual(
                 inspect.signature(stub.bound_participant),
                 inspect.signature(real.bound_participant))
+
+
+class TheProjectionNamesEveryCoreVerb(unittest.TestCase):
+    """A verb the core grows is advertised or named unprojected, never neither.
+
+    Why it exists, measured on this branch: the core gave `offer` a
+    generation gate at 73e47041 and the catalogue did not follow, so
+    `coord_offer` was the one assignment write an MCP caller could make
+    without naming the generation it believes. The same merge carried
+    `revoke` and `undelivered`, which this server neither advertises nor
+    names. Both were found by a person reading two files side by side,
+    which is what this case replaces: the core is package B's and moves
+    without asking this package, so the lag is the normal case and not the
+    accident.
+
+    The contract already promises that what slice one leaves out is "named
+    so the omission is visible rather than discovered". Nothing held it to
+    that promise. This does.
+
+    Planted fault: delete any name from the contract's unprojected list, or
+    add a verb to the core without deciding either way, and the subTest for
+    that verb fails naming it. The second case is the other direction of the
+    same obligation — a name in the list that the core does not have is a
+    dangling citation, and it fails too.
+    """
+
+    def unprojected(self):
+        """The verbs the contract says slice one leaves out, read from it."""
+        text = LEVER.read_text(encoding="utf-8")
+        marker = "Not projected in slice one"
+        self.assertIn(marker, text,
+                      "the contract no longer names what it leaves out")
+        start = text.index(marker)
+        end = text.index("\n\n", start)
+        return set(re.findall(r"`([\w-]+)`", text[start:end]))
+
+    def test_every_core_verb_is_advertised_or_named_unprojected(self):
+        core = load_core()
+        advertised = {verb for _name, verb, _mutates in CATALOGUE}
+        named = self.unprojected()
+        for verb in sorted(core.CORE):
+            with self.subTest(verb=verb):
+                self.assertTrue(
+                    verb in advertised or verb in named,
+                    f"the core's `{verb}` is neither projected by this server "
+                    f"nor named in the contract's unprojected list, so a "
+                    f"caller learns it exists only by reading the core")
+
+    def test_the_unprojected_list_names_no_verb_the_core_lacks(self):
+        core = load_core()
+        for verb in sorted(self.unprojected()):
+            with self.subTest(verb=verb):
+                self.assertIn(
+                    verb, core.CORE,
+                    f"the contract leaves out `{verb}`, which the core does "
+                    f"not have: a dangling citation reads as coverage")
 
 
 class CoordinationMcpRealCore(unittest.TestCase):

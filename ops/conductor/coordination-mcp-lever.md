@@ -234,7 +234,7 @@ core transitions into one tool.
 | `coord_assignments` | `assignments` | no | any bound participant | `--state`, `--to`, `--mine` |
 | `coord_show` | `show` | no | any bound participant | the row, its marking, observations and open messages |
 | `coord_draft` | `draft` | yes | lead, coordinator | creates the assignment only; it does not name a recipient |
-| `coord_offer` | `offer` | yes | lead, coordinator | names the recipient |
+| `coord_offer` | `offer` | yes | lead, coordinator | names the recipient; generation required, like every other assignment write |
 | `coord_claim` | `claim` | yes | the named recipient | branch and generation required; two simultaneous claims cannot both win (AC-03) |
 | `coord_release` | `release` | yes | holder-or-lapsed | bumps the generation |
 | `coord_submit` | `submit` | yes | holder | the candidate, with its revision |
@@ -258,12 +258,18 @@ silently applied. A tool schema that omits it would make every MCP caller a
 stale holder waiting to happen.
 
 Not projected in slice one, and named so the omission is visible rather than
-discovered: `bind`, `who`, `participants`, `reassign`, `reopen`,
-`supersede`, `deliver`, `withdraw`, `observations`, `ask`, `answer`,
-`decide`, `decision`, `decisions`, `reserve`, `free`, `resources`,
-`coverage`. Decision support and resource reservation are required operation
-groups of the objective's §7 and are a later slice of this package, not a
-gap in the core.
+discovered: `bind`, `bind-for`, `who`, `participants`, `grant`, `revoke`,
+`reassign`, `reopen`, `supersede`, `deliver`, `undelivered`, `withdraw`,
+`observations`, `ask`, `answer`, `decide`, `decision`, `decisions`,
+`reserve`, `free`, `resources`, `coverage`. Decision support and resource
+reservation are required operation groups of the objective's §7 and are a
+later slice of this package, not a gap in the core. The participant
+administration group — `bind`, `bind-for`, `grant`, `revoke` — is withheld
+for a reason of its own and not merely deferred: this server's authority is
+the session id it inherits, so a tool that binds a participant or moves a
+role would let a caller widen the authority it was judged under, in the one
+projection where the caller chooses the arguments and the server chooses
+nothing. It stays on the CLI, where a person runs it.
 
 Every mutation above is a write to the lane's state store through the
 coordination core — **pending** the core's contract for its function names.
