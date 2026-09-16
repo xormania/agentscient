@@ -12,12 +12,12 @@ for the edges, `docs/tests.md` for the kit, and
 Symfony application, container, service or vendor directory is reachable from
 this server.
 
-Function names in §3 are marked **pending** where they bind to the
-coordination core (package B, `ops/conductor/tools/coordination.py`, contract
-`ops/conductor/coordination-lever.md`), which was being built by another
-session when this was written and had not landed. Every pending name is a
-placeholder for the core's own spelling and is settled from the core's
-contract, never guessed.
+Settled against the coordination core (package B,
+`ops/conductor/tools/coordination.py`) from its contract
+`ops/conductor/coordination-lever.md` at 537f3a35 on
+`lane/session-20260916-c`, read 2026-09-16. Every tool in §3 names the core
+verb it projects. Where this contract and the core's diverge, the divergence
+is listed in §9 and ruled on by the Lead, not resolved here.
 
 Package letters differ between two documents and both are in use: the
 objective's package C is specialised dispatch, while the Lead's package C is
@@ -92,10 +92,18 @@ the client cannot reach it.
 - Its own version, starting at 1, and its own exact key set, refused the
   same way: version, participant, assignment, branch, worktree, record,
   capabilities, issued_at.
-- `participant` is an agent in the `Name <address>` form. `capabilities` is
-  the explicit list of tool names this binding may call — an allowlist, not
-  a role word, so a role's meaning can change without a worker silently
-  gaining reach.
+- `participant` is a participant id, `PT-n`, not an agent string. The core
+  is explicit that the agent string is attribution and never authority — it
+  exists to close exactly that defect, where the engine compares a holder
+  against `WF_AGENT` and three sessions sharing one value satisfy each
+  other's checks (`machine.py:255`). The server verifies the row exists and
+  refuses class `participant` when it does not.
+- `capabilities` is the explicit list of tool names this binding may call.
+  It **narrows and never widens**: the core's own role gate is authoritative,
+  and a capability present here grants nothing the participant's roles do not
+  already carry. It exists so a worker issued a binding for one assignment
+  cannot reach the rest of the catalogue even while holding a role that
+  could.
 - The config is written by the launcher, its sha256 stamped into the
   dispatch record beside the existing `mcp` block, so what a worker was
   permitted is a fact in the record rather than a claim.
@@ -161,21 +169,45 @@ not a string the caller supplies.
 
 ### Slice one — coordination state
 
-| tool | mutation | may call | what it does |
-|---|---|---|---|
-| `coord_brief` | no | any bound participant | the caller's own assignments, inbox count, open requests and evidence links, bounded |
-| `coord_assignments` | no | any bound participant | a bounded page of assignments in scope |
-| `coord_assign` | yes | lead, coordinator | create an assignment against an objective, with its holder |
-| `coord_claim` | yes | the named holder | accept an assignment; two simultaneous claims cannot both win (AC-03) |
-| `coord_release` | yes | holder, lead | release or hand back, with a reason |
-| `coord_report` | yes | holder | report progress or a blocker against the assignment |
-| `coord_message` | yes | any bound participant | send a durable message or request to a named participant |
-| `coord_inbox` | no | any bound participant | the caller's own undelivered and unacknowledged rows |
-| `coord_ack` | yes | the recipient | acknowledge receipt; acknowledgment never closes the underlying request (objective §9) |
-| `coord_resolve` | yes | the requester, or the holder of the request | record the resolution, separately from the acknowledgment |
-| `coord_evidence` | yes | producer | attach evidence to an assignment: a command, its reading, a sha |
-| `coord_verify` | yes | verifier | record independent verification; refused when the verifier is the producer (AC-11) |
-| `coord_accept` | yes | lead | accept or return a candidate |
+Each row names the core verb it projects. The projection is thin: it
+validates its arguments, resolves the binding, checks the capability, and
+calls the one verb. It holds no policy of its own, and it never collapses
+two core transitions into one tool.
+
+| tool | core verb | mutation | may call | notes |
+|---|---|---|---|---|
+| `coord_brief` | `brief` | no | any bound participant | held assignments, unresolved inbox, open decisions, stale observations |
+| `coord_assignments` | `assignments` | no | any bound participant | `--state`, `--to`, `--mine` |
+| `coord_show` | `show` | no | any bound participant | the row, its marking, observations and open messages |
+| `coord_draft` | `draft` | yes | lead, coordinator | creates the assignment only; it does not name a recipient |
+| `coord_offer` | `offer` | yes | lead, coordinator | names the recipient |
+| `coord_claim` | `claim` | yes | the named recipient | branch and generation required; two simultaneous claims cannot both win (AC-03) |
+| `coord_release` | `release` | yes | holder-or-lapsed | bumps the generation |
+| `coord_submit` | `submit` | yes | holder | the candidate, with its revision |
+| `coord_verify` | `verify` | yes | verifier, never the producer | refused class `producer` for a self-verification (AC-11) |
+| `coord_return` | `return` | yes | verifier or lead | keeps the holder |
+| `coord_accept` | `accept` | yes | lead, never the producer | the acceptance |
+| `coord_send` | `send` | yes | any bound participant | purpose `inform`, `request` or `finding` |
+| `coord_inbox` | `inbox` | no | any bound participant | the caller's own rows, by participant or role |
+| `coord_ack` | `ack` | yes | the recipient | acknowledgment never closes the obligation |
+| `coord_resolve` | `resolve` | yes | the recipient, or the holder of the named assignment | the obligation answered, separately from the ack |
+| `coord_outstanding` | `outstanding` | no | any bound participant | requests and findings not yet resolved |
+| `coord_observe` | `observe` | yes | producer | an observation against an assignment and a revision |
+
+**Every writing tool on an assignment carries `generation`**, the integer the
+caller believes, exactly as the core's verbs do. The core's gate reads the
+row under the write lock and refuses class `generation` with expected, found
+and needed when they differ, so a stale holder is refused rather than
+silently applied. A tool schema that omits it would make every MCP caller a
+stale holder waiting to happen.
+
+Not projected in slice one, and named so the omission is visible rather than
+discovered: `bind`, `who`, `participants`, `reassign`, `reopen`,
+`supersede`, `deliver`, `withdraw`, `observations`, `ask`, `answer`,
+`decide`, `decision`, `decisions`, `reserve`, `free`, `resources`,
+`coverage`. Decision support and resource reservation are required operation
+groups of the objective's §7 and are a later slice of this package, not a
+gap in the core.
 
 Every mutation above is a write to the lane's state store through the
 coordination core — **pending** the core's contract for its function names.
@@ -216,9 +248,24 @@ with expected, found and needed thrown away (`lane_mcp.py:335-336`). That is
 a defect of that server, recorded as a ledger row and **not** fixed in this
 package (the Lead's ruling, 2026-09-16).
 
-Refusal classes: `identity`, `session`, `authority`, `arguments`, `config`,
-`state`, `conflict`, `idempotency`. `authority` names the capability
-expected, the binding found, and the verb that would grant it.
+Refusal classes are the core's, surfaced unchanged: `arguments`,
+`identity`, `session`, `participant`, `role`, `id`, `unknown`, `generation`,
+`revision`, `producer`, `recipient`, `evidence`, `deliverable`, `store`, and
+the engine's `place`, `holder`, `taken` and `transition`. A projection that
+renamed a core refusal would make the same fault read as two different
+things depending on which surface met it.
+
+This server adds two of its own, for faults that exist only at its boundary:
+
+- `config` — the acting config is absent, unreadable, of an unknown version
+  or carries an unknown key.
+- `capability` — the binding's allowlist does not carry the tool being
+  called. It names the capability expected, the binding found, and that the
+  remedy is a new binding, not a retry. It is a narrowing check that runs
+  *before* the core's own `role` gate and never in place of it.
+
+A role or a participant supplied as a tool argument refuses class
+`arguments`, the core's own rule for the same fault (AC-02).
 
 Registered in `ops/conductor/registry/coordination_mcp.py.json` in the change
 that lands it, with hermetic refusal-provoking invocations — at least one for
@@ -287,9 +334,42 @@ under a grant).
 
 ## 9. What this contract does not settle
 
-- The core's function names and argument shapes (package B's contract).
-- Which participants exist and how a role is first granted; this server
-  reads a binding, it does not mint one.
 - The automatic route from a cross-harness event to a management session
   (the objective's package D).
 - Cross-harness demonstration beyond Codex and Grok; agy has no MCP.
+- Decision support and resource reservation as MCP tools: a later slice.
+
+### Divergences from the core, for the Lead
+
+Raised, not resolved here (the Lead's instruction, 2026-09-16):
+
+1. **A dispatched worker cannot be bound.** The core's `bind` binds *the
+   calling session*: `resolve()` reads `instrument.session()` and the
+   participants row is keyed on that id. A Codex or Grok worker sets no
+   session id in its environment at all, and nothing can bind a row on its
+   behalf, so a worker has no participant and every mutation it attempts
+   refuses class `participant`. The launcher already mints a session uuid
+   per dispatch (`launch.py:1934`), so the material exists; what is missing
+   is a core verb that binds a participant *for another session id*, issued
+   by the launcher before launch. That is a package B change and this
+   contract does not make it. Until it exists, the acting server is usable
+   by interactive sessions only, and the worker binding of §2.1 has nothing
+   to name.
+2. **`capability` is a class the core does not have.** The binding's
+   allowlist is this server's own narrowing and needs a refusal of its own;
+   the alternative is to drop the allowlist and let the core's `role` gate
+   be the only check, which would give a worker issued a binding for one
+   assignment the whole catalogue its roles allow. Named for a ruling.
+3. **`coord_report` is withdrawn.** The first draft of this contract had a
+   tool for a holder reporting progress. The core has no such verb, and a
+   projection that invented one would hold policy the core does not. A
+   holder reports with `coord_send --purpose inform` or `coord_observe`.
+4. **`coord_assign` is withdrawn**, split into `coord_draft` and
+   `coord_offer`, because the core separates creating an assignment from
+   naming its recipient and a thin projection does not merge transitions.
+5. **The core's `resolve()` depends on a fact this package measured.** It
+   reads `instrument.session()` inside whatever process calls it, including
+   this server's. That works because `CLAUDE_CODE_SESSION_ID` is inherited
+   by a project-registered MCP server (§2.2, measured 2026-09-16). If that
+   ever stops being true, both packages lose their binding at once, so the
+   probe belongs in a corpus row rather than in this prose.
