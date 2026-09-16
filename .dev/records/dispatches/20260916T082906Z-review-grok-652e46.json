@@ -1,0 +1,258 @@
+{
+  "id": "20260916T082906Z-review-grok-652e46",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-c",
+  "lineage": {
+    "branch": "lane/session-20260916-c",
+    "base_sha": "05b8aebe020979b677334ba61373c538ded9c27e"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T08:29:06Z",
+    "closed": "2026-09-16T08:47:56Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "05b8aebe020979b677334ba61373c538ded9c27e",
+    "ref_sha": "05b8aebe020979b677334ba61373c538ded9c27e",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "eee38dab-d789-4c77-817b-5edf711a9ca9",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok-stream/sessions/<snapshot-encoded>/eee38dab-d789-4c77-817b-5edf711a9ca9/summary.json"
+  },
+  "session": {
+    "id": "eee38dab-d789-4c77-817b-5edf711a9ca9",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok-stream/sessions/<snapshot-encoded>/eee38dab-d789-4c77-817b-5edf711a9ca9/summary.json",
+    "stream_sha256_at_close": "23c9a93f2b4e24da4b393ba802d6ca594796eefd024f6bc1b549e002862205d0",
+    "spend": {
+      "input": 1571720,
+      "cached": 1339648,
+      "output": 50884,
+      "total": 1622604,
+      "cost_usd_ticks": 4893524800,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok-stream/sessions/<snapshot-encoded>/eee38dab-d789-4c77-817b-5edf711a9ca9/summary.json",
+      "messages": 194
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Review the coordination core and its CLI (PR #243, lane/session-20260916-c, head 05b8aebe). Contract: ops/conductor/coordination-lever.md.\nAim skepticism at: the claim that authority is enforced inside the core's functions by a participant bound to the harness session id, never by the agent string, with generation and revision checks in the engine's gate; the seam of one function per verb keyed by wire name with the CLI as thin wrappers; the observe verb's hand-managed transaction and its --stale escape that lifts both the generation and the revision check; the dispatcher-only bind of a participant to a named session id; and that the tests and the module share one producer.\n",
+    "inputs": [],
+    "sha256": "e3bced0eac1555228bfbc5c02042669f0440013cfeebc483ee78978220063d5d",
+    "bytes": 10408,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/lane-mcp.json",
+      "sha256": "1a63e4e3a12a87115ac27539b2a5f85641131f255a183d04699a4b47eab08cc2",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "fa7dd2eb9b91f809855695504f2af5a44d029dd20163702dabd59b3a8c451bea"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T08:29:17Z",
+      "ended": "2026-09-16T08:47:56Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "05b8aebe020979b677334ba61373c538ded9c27e",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 5,
+        "p3": 2,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_observe",
+          "claim": "core_observe admits a current observation when assignments.revision is NULL (`if row['revision'] and \u2026`), and core_submit then writes the revision without staling those rows, so current evidence can name a candidate the assignment does not stand at. core_verify still passes: it compares --evidence to assignments.revision and never reads observations. This is the integrity hole 05b8aebe claimed to close for reopen, left open on the optional-revision draft path the contract still allows.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, tempfile, subprocess\nfrom pathlib import Path\nT=Path('ops/conductor/tools'); w=Path(tempfile.mkdtemp()); x=w/'xdg'; x.mkdir(); (w/'lane.conf').write_text(\"LANE_NAME='testlane'\\n\")\nS='Claude Opus 5 (1M context) <noreply@example.test>'\ndef env(s):\n    e=os.environ.copy(); e.update(XDG_STATE_HOME=str(x), LANE_CONF=str(w/'lane.conf'), WF_AGENT=S, CLAUDE_CODE_SESSION_ID=s); return e\ndef run(a,s='sess-lead'):\n    return subprocess.run([sys.executable,str(T/'coordination.py'),*a],cwd=w,env=env(s),text=True,capture_output=True)\ndef ok(a,s='sess-lead'):\n    p=run(a,s); assert p.returncode==0,p.stderr; return p.stdout\nsubprocess.run([sys.executable,str(T/'deliverable.py'),'add','lane/x','--why','t'],cwd=w,env=env('sess-lead'),text=True,capture_output=True)\nok(['bind','--roles','lead,coordinator,dispatcher']); ok(['bind','--roles','worker'],'sess-worker'); ok(['bind','--roles','verifier'],'sess-checker')\naid=ok(['draft','no rev','--outcome','gap']).split()[-1]\nok(['offer',aid,'--to','PT-2']); ok(['claim',aid,'--branch','lane/x','--generation','1'],'sess-worker')\nok(['observe',aid,'--observation','ran at deadbeef','--revision','deadbee','--generation','1'],'sess-worker')\nok(['submit',aid,'--evidence','a1b2c3d','--revision','a1b2c3d','--generation','1'],'sess-worker')\nprint(ok(['observations',aid]).strip()); print(run(['verify',aid,'--evidence','a1b2c3d','--generation','1'],'sess-checker').stdout.strip()); print(ok(['show',aid]).splitlines()[0])\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_bind_for",
+          "claim": "bind-for is dispatcher-only on the caller, but it upserts on session_id and overwrites roles of any existing row. participants prints those session ids, so a dispatcher can rebind the lead's session as worker and strip its authority. bind has no role gate, so the victim can restore, but the verb is not an issuance of a new binding; it is a rewrite of whoever holds that session id.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, tempfile, subprocess\nfrom pathlib import Path\nT=Path('ops/conductor/tools'); w=Path(tempfile.mkdtemp()); x=w/'xdg'; x.mkdir(); (w/'lane.conf').write_text(\"LANE_NAME='testlane'\\n\")\nS='Claude Opus 5 (1M context) <noreply@example.test>'\ndef env(s):\n    e=os.environ.copy(); e.update(XDG_STATE_HOME=str(x), LANE_CONF=str(w/'lane.conf'), WF_AGENT=S, CLAUDE_CODE_SESSION_ID=s); return e\ndef run(a,s='sess-lead'):\n    return subprocess.run([sys.executable,str(T/'coordination.py'),*a],cwd=w,env=env(s),text=True,capture_output=True)\ndef ok(a,s='sess-lead'):\n    p=run(a,s); assert p.returncode==0,p.stderr; return p.stdout\nok(['bind','--roles','lead,coordinator,dispatcher']); ok(['bind','--roles','worker'],'sess-worker')\naid=ok(['draft','a repair','--outcome','x']).split()[-1]\nprint(ok(['bind-for','--session','sess-lead','--roles','worker','--for',aid]).strip())\nprint('who', ok(['who']).strip()); p=run(['draft','after','--outcome','x']); print('draft', p.returncode, p.stderr.strip())\nprint(ok(['participants']))\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7CORE",
+          "claim": "Authority is not bound to instrument.session() inside the core functions. They trust the part dict the caller passes; core_bind also trusts a caller-supplied session_id. bound_participant is used by the CLI wrappers, not by CORE['decide'] and the other verbs. A projection that calls CORE with another participant's row confers that participant's authority, which is the opposite of the claim that the functions themselves bind a participant to the harness session id.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, tempfile, subprocess, importlib.util\nfrom pathlib import Path\nT=Path('ops/conductor/tools'); w=Path(tempfile.mkdtemp()); x=w/'xdg'; x.mkdir(); (w/'lane.conf').write_text(\"LANE_NAME='testlane'\\n\")\nS='Claude Opus 5 (1M context) <noreply@example.test>'\ndef env(s):\n    e=os.environ.copy(); e.update(XDG_STATE_HOME=str(x), LANE_CONF=str(w/'lane.conf'), WF_AGENT=S, CLAUDE_CODE_SESSION_ID=s); return e\ndef ok(a,s='sess-lead'):\n    p=subprocess.run([sys.executable,str(T/'coordination.py'),*a],cwd=w,env=env(s),text=True,capture_output=True); assert p.returncode==0,p.stderr; return p.stdout\nok(['bind','--roles','lead,coordinator,dispatcher']); ok(['bind','--roles','worker'],'sess-worker')\nos.environ.clear(); os.environ.update(env('sess-worker'))\nspec=importlib.util.spec_from_file_location('c', T/'coordination.py'); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\nwith m.writer() as conn:\n    real=m.bound_participant(conn); fake=dict(conn.execute('SELECT * FROM participants WHERE id=1').fetchone())\n    print('env session', os.environ.get('CLAUDE_CODE_SESSION_ID'), 'resolved', real['id'], real['roles'])\n    asked=m.CORE['ask'](conn, fake, question='ship?', alternatives='ship|hold')\n    d=m.CORE['decide'](conn, fake, decision=asked['decision'], choice='ship', rationale='because')\n    print('forged decide', d['choice'], d['decided_by'])\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7_hand_back",
+          "claim": "Assignment release still uses the engine's agent-string holder-or-lapsed check, and _hand_back calls require_holder with no lapse exception. A participant holder whose identity() no longer matches subjects.holder is refused by machine._check_actor; a non-holder cannot release after the ttl lapses. Submit used actor any plus a participant check to avoid this; release did not. Reassign from lead still recovers the hold, so the declared holder-or-lapsed actor on release is dead at the participant and live only as an agent-string gate.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, tempfile, subprocess, time\nfrom pathlib import Path\nT=Path('ops/conductor/tools'); w=Path(tempfile.mkdtemp()); x=w/'xdg'; x.mkdir(); (w/'lane.conf').write_text(\"LANE_NAME='testlane'\\n\")\nA='Claude Opus 5 (1M context) <noreply@example.test>'; B='Grok 4.6 <noreply@example.test>'\ndef env(s, ident=A):\n    e=os.environ.copy(); e.update(XDG_STATE_HOME=str(x), LANE_CONF=str(w/'lane.conf'), WF_AGENT=ident, CLAUDE_CODE_SESSION_ID=s); return e\ndef run(a,s='sess-lead',ident=A):\n    return subprocess.run([sys.executable,str(T/'coordination.py'),*a],cwd=w,env=env(s,ident),text=True,capture_output=True)\ndef ok(a,s='sess-lead',ident=A):\n    p=run(a,s,ident); assert p.returncode==0,p.stderr; return p.stdout\nsubprocess.run([sys.executable,str(T/'deliverable.py'),'add','lane/x','--why','t'],cwd=w,env=env('sess-lead'),text=True,capture_output=True)\nok(['bind','--roles','lead,coordinator']); ok(['bind','--roles','worker'],'sess-worker')\naid=ok(['draft','ttl','--outcome','x','--revision','a1b2c3d']).split()[-1]\nok(['offer',aid,'--to','PT-2']); ok(['claim',aid,'--branch','lane/x','--generation','1','--ttl','0'],'sess-worker')\ntime.sleep(1.1)\np=run(['release',aid,'--why','died','--generation','1']); print('lead after lapse', p.returncode, p.stderr.strip())\np=run(['release',aid,'--why','blocked','--generation','1'],'sess-worker',B); print('holder other agent', p.returncode, p.stderr.strip())\nprint('holder same agent', ok(['release',aid,'--why','back','--generation','1'],'sess-worker').strip())\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_return",
+          "claim": "core_return passes --findings to the engine as evidence without reading(), so any non-empty string is accepted. submit/verify/accept/resolve all call reading() for the pinned shapes (sha, #N, dispatch id, P- row). The suite never invokes the return verb, so the gap is untested. There is also no gate: the generation check runs before BEGIN IMMEDIATE.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, tempfile, subprocess\nfrom pathlib import Path\nT=Path('ops/conductor/tools'); w=Path(tempfile.mkdtemp()); x=w/'xdg'; x.mkdir(); (w/'lane.conf').write_text(\"LANE_NAME='testlane'\\n\")\nS='Claude Opus 5 (1M context) <noreply@example.test>'\ndef env(s):\n    e=os.environ.copy(); e.update(XDG_STATE_HOME=str(x), LANE_CONF=str(w/'lane.conf'), WF_AGENT=S, CLAUDE_CODE_SESSION_ID=s); return e\ndef run(a,s='sess-lead'):\n    return subprocess.run([sys.executable,str(T/'coordination.py'),*a],cwd=w,env=env(s),text=True,capture_output=True)\ndef ok(a,s='sess-lead'):\n    p=run(a,s); assert p.returncode==0,p.stderr; return p.stdout\nsubprocess.run([sys.executable,str(T/'deliverable.py'),'add','lane/x','--why','t'],cwd=w,env=env('sess-lead'),text=True,capture_output=True)\nok(['bind','--roles','lead,coordinator']); ok(['bind','--roles','worker'],'sess-worker'); ok(['bind','--roles','verifier'],'sess-checker')\naid=ok(['draft','r','--outcome','x','--revision','a1b2c3d']).split()[-1]\nok(['offer',aid,'--to','PT-2']); ok(['claim',aid,'--branch','lane/x','--generation','1'],'sess-worker')\nok(['submit',aid,'--evidence','a1b2c3d','--revision','a1b2c3d','--generation','1'],'sess-worker')\np=run(['return',aid,'--findings','because I said so','--generation','1'],'sess-checker')\nprint(p.returncode, p.stdout.strip(), p.stderr.strip())\nPY"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/coordination-lever.md \u00a7Instrument",
+          "claim": "The instrument table for observe still lists only --observation and --revision (plus optional execution/artifact/requirement/environment). The prose, the refusals table, the module docstring, and the CLI all require --generation and admit --stale. A projection built from the table misses both flags; a caller following the table is refused arguments for the missing generation.",
+          "reproduce": "python3 - <<'PY'\nfrom pathlib import Path\nlines=Path('ops/conductor/coordination-lever.md').read_text().splitlines()\nrow=[ln for ln in lines if ln.startswith('| `observe A-n')]\nprint(row[0])\nassert '--generation' not in row[0] and '--stale' not in row[0]\nprint('prose has generation', any('observe' in ln and 'generation' in ln for ln in lines))\nprint('CLI required', 'required=(\"observation\", \"revision\", \"generation\")' in Path('ops/conductor/tools/coordination.py').read_text())\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/coordination.py \u00a7do_who",
+          "claim": "who is a read. With no store, assignments and brief print 'no store' and exit 0; who calls bound_participant(reader()) and refuses class participant.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, tempfile, subprocess\nfrom pathlib import Path\nT=Path('ops/conductor/tools'); w=Path(tempfile.mkdtemp()); x=w/'xdg'; x.mkdir(); (w/'lane.conf').write_text(\"LANE_NAME='testlane'\\n\")\ne=os.environ.copy(); e.update(XDG_STATE_HOME=str(x), LANE_CONF=str(w/'lane.conf'), WF_AGENT='Claude Opus 5 (1M context) <noreply@example.test>', CLAUDE_CODE_SESSION_ID='sess-lead')\nfor verb in ('who','assignments','brief'):\n    p=subprocess.run([sys.executable,str(T/'coordination.py'),verb],cwd=w,env=e,text=True,capture_output=True)\n    print(verb, p.returncode, repr(p.stdout), repr(p.stderr))\nPY"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/coordination.py \u00a7core_verify",
+          "claim": "core_verify refuses class revision when --evidence is not exactly assignments.revision. A P- row, #N or dispatch-record reading is a valid evidence shape on submit, then cannot verify a sha candidate. The check also ignores observation rows, so it is not 'the observation it rests on'.",
+          "reproduce": "python3 - <<'PY'\nimport os, sys, tempfile, subprocess\nfrom pathlib import Path\nT=Path('ops/conductor/tools'); w=Path(tempfile.mkdtemp()); x=w/'xdg'; x.mkdir(); (w/'lane.conf').write_text(\"LANE_NAME='testlane'\\n\")\nS='Claude Opus 5 (1M context) <noreply@example.test>'\ndef env(s):\n    e=os.environ.copy(); e.update(XDG_STATE_HOME=str(x), LANE_CONF=str(w/'lane.conf'), WF_AGENT=S, CLAUDE_CODE_SESSION_ID=s); return e\ndef run(a,s='sess-lead'):\n    return subprocess.run([sys.executable,str(T/'coordination.py'),*a],cwd=w,env=env(s),text=True,capture_output=True)\ndef ok(a,s='sess-lead'):\n    p=run(a,s); assert p.returncode==0,p.stderr; return p.stdout\nsubprocess.run([sys.executable,str(T/'deliverable.py'),'add','lane/x','--why','t'],cwd=w,env=env('sess-lead'),text=True,capture_output=True)\nok(['bind','--roles','lead,coordinator']); ok(['bind','--roles','worker'],'sess-worker'); ok(['bind','--roles','verifier'],'sess-checker')\naid=ok(['draft','with rev','--outcome','x','--revision','a1b2c3d']).split()[-1]\nok(['offer',aid,'--to','PT-2']); ok(['claim',aid,'--branch','lane/x','--generation','1'],'sess-worker')\nok(['submit',aid,'--evidence','P-probe-1','--revision','a1b2c3d','--generation','1'],'sess-worker')\np=run(['verify',aid,'--evidence','P-probe-1','--generation','1'],'sess-checker')\nprint(p.returncode, p.stderr.strip())\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 1622604,
+        "out": 50884,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "05b8aebe020979b677334ba61373c538ded9c27e",
+        "started": "2026-09-16T08:29:06Z",
+        "ended": "2026-09-16T08:45:56Z"
+      },
+      "note": "reused: lane MCP (lane_brief, lane_jobs, lane_changes; records none), graft (graft_repo_map, graft_file_api), ops/testkit env recipe (XDG_STATE_HOME + LANE_CONF + real deliverable.py lock), machine.py _check_actor, I-034, coordination-lever.md. Looked-and-held: set(CORE)==set(VERBS) (36 verbs, return is the key); CLI wrappers parse/resolve/print; bind-for role check refuses a worker; observe --stale lands marked and default observations/coverage exclude it; observe BEGIN IMMEDIATE serializes with machine.move (isolation_level=None). One-producer tests+module is declared in the commits and the contract Lint line; the untested return verb and the NULL-revision observe path are the cost of that grant."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T082906Z-review-grok-652e46/home/grok-stream/sessions/<snapshot-encoded>/eee38dab-d789-4c77-817b-5edf711a9ca9/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T08:47:55.099Z"
+    }
+  },
+  "status": "closed"
+}
