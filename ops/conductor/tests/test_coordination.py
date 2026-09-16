@@ -77,6 +77,18 @@ class _Scratch(unittest.TestCase):
         )
         self.assertEqual(proc.exit, 0, proc.stderr)
 
+    def gen(self, aid) -> str:
+        """The generation the assignment stands at, read and not assumed.
+
+        Every move bumps it, so a row that means "now" asks. A row that
+        means a generation the assignment has moved past captures this
+        before the move that stales it."""
+        import re
+        shown = self.ok("show", aid, session=LEAD)
+        found = re.search(r"generation (\d+)", shown)
+        self.assertIsNotNone(found, f"show printed no generation: {shown!r}")
+        return found.group(1)
+
     def core(self, session_id=LEAD):
         """The module, imported fresh against this world's state root."""
         import importlib.util
@@ -111,22 +123,23 @@ class _Scratch(unittest.TestCase):
         out = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
                       "--revision", "a1b2c3d", session=LEAD)
         aid = out.split()[-1]
-        self.ok("offer", aid, "--to", to, session=LEAD)
+        self.ok("offer", aid, "--to", to, "--generation", self.gen(aid),
+                session=LEAD)
         return aid
 
     def held(self):
         self.lock()
         aid = self.offered()
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), session=WORKER)
         return aid
 
     def submitted(self):
         aid = self.held()
         self.ok("observe", aid, "--observation", "the suite ran",
-                "--revision", "a1b2c3d", "--generation", "1",
+                "--revision", "a1b2c3d", "--generation", self.gen(aid),
                 "--execution", "20260916T010203Z-job-x", session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
-                "--generation", "1", session=WORKER)
+                "--generation", self.gen(aid), session=WORKER)
         return aid
 
 
@@ -166,9 +179,9 @@ class Assignments(_Scratch):
     def test_the_vertical_path_reaches_accepted(self):
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
-        self.ok("accept", aid, "--evidence", "a1b2c3d", "--generation", "1",
+        self.ok("accept", aid, "--evidence", "a1b2c3d", "--generation", self.gen(aid),
                 session=LEAD)
         self.assertIn("accepted", self.ok("show", aid, session=LEAD))
 
@@ -176,14 +189,15 @@ class Assignments(_Scratch):
         self.bind_three()
         out = self.ok("draft", "a repair", "--outcome", "it refuses", session=LEAD)
         aid = out.split()[-1]
-        proc = self.run_tool("offer", aid, "--to", "PT-2", session=WORKER)
+        proc = self.run_tool("offer", aid, "--to", "PT-2", "--generation",
+                             self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("worker-offers", (), "role", named=("lead",)), proc)
 
     def test_a_claim_by_another_participant_refuses_recipient(self):
         self.lock()
         self.bind_three()
         aid = self.offered(to="PT-2")
-        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", "1",
+        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid),
                              session=CHECKER)
         refusal_wire(RefusalCase("wrong-claimant", (), "recipient"), proc)
 
@@ -191,12 +205,12 @@ class Assignments(_Scratch):
         self.bind_three()
         aid = self.offered()
         proc = self.run_tool("claim", aid, "--branch", "lane/not-on-the-board",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("claim-off-lock", (), "deliverable"), proc)
 
     def test_a_second_claim_refuses_taken(self):
         aid = self.held()
-        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", "1",
+        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid),
                              session=WORKER)
         refusal_wire(RefusalCase("second-claim", (), "taken"), proc)
 
@@ -206,42 +220,44 @@ class GenerationAndRevision(_Scratch):
         """AC-03: the place alone returns to `held`, so the generation is
         what refuses the old holder."""
         aid = self.held()
+        stale = self.gen(aid)
         self.ok("reassign", aid, "--to", "PT-3", "--why", "the worker went quiet",
-                "--generation", "1", session=LEAD)
+                "--generation", stale, session=LEAD)
         proc = self.run_tool("submit", aid, "--evidence", "a1b2c3d",
-                             "--revision", "a1b2c3d", "--generation", "1",
+                             "--revision", "a1b2c3d", "--generation", stale,
                              session=WORKER)
         refusal_wire(RefusalCase("stale-generation", (), "generation",
-                                 named=("1", "2")), proc)
+                                 named=(stale, self.gen(aid))), proc)
 
     def test_release_bumps_the_generation(self):
         aid = self.held()
-        self.ok("release", aid, "--why", "blocked on the wall", "--generation", "1",
-                session=WORKER)
-        self.assertIn("generation 2", self.ok("show", aid, session=LEAD))
+        before = int(self.gen(aid))
+        self.ok("release", aid, "--why", "blocked on the wall", "--generation",
+                str(before), session=WORKER)
+        self.assertIn(f"generation {before + 1}", self.ok("show", aid, session=LEAD))
 
     def test_verify_refuses_an_observation_of_another_revision(self):
         self.lock()
         self.bind_three()
         aid = self.offered()
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), session=WORKER)
         self.ok("observe", aid, "--observation", "ran at the old tree",
-                "--revision", "a1b2c3d", "--generation", "1", session=WORKER)
+                "--revision", "a1b2c3d", "--generation", self.gen(aid), session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
-                "--generation", "1", session=WORKER)
+                "--generation", self.gen(aid), session=WORKER)
         proc = self.run_tool("verify", aid, "--candidate", "9999999",
                              "--evidence", "20260916T010203Z-job-v",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("stale-revision", (), "revision"), proc)
 
     def test_reopen_stales_the_observations_and_keeps_them(self):
         """AC-10: a changed candidate needs reassessment; the old row stays."""
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
         self.ok("reopen", aid, "--revision", "beefbee", "--why", "the candidate moved",
-                "--generation", "1", session=LEAD)
+                "--generation", self.gen(aid), session=LEAD)
         current = self.ok("observations", aid, session=LEAD)
         self.assertNotIn("the suite ran", current)
         self.assertIn("the suite ran", self.ok("observations", aid, "--all", session=LEAD))
@@ -254,17 +270,17 @@ class Producers(_Scratch):
         self.ok("grant", "PT-2", "--roles", "verifier", session=LEAD)
         proc = self.run_tool("verify", aid, "--candidate", "a1b2c3d",
                              "--evidence", "20260916T010203Z-job-v",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("self-verify", (), "producer"), proc)
 
     def test_the_producer_cannot_accept_its_own_candidate(self):
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
         self.ok("grant", "PT-2", "--roles", "lead", session=LEAD)
         proc = self.run_tool("accept", aid, "--evidence", "a1b2c3d",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("self-accept", (), "producer"), proc)
 
 
@@ -436,7 +452,7 @@ class DispatchedWorkers(_Scratch):
     def test_a_dispatched_worker_can_record_its_own_findings(self):
         aid = self.dispatched()
         done = self.as_worker("observe", aid, "--observation", "the row refuses",
-                              "--revision", "a1b2c3d", "--generation", "1")
+                              "--revision", "a1b2c3d", "--generation", self.gen(aid))
         self.assertEqual(done.exit, 0, done.stderr)
         self.assertIn("the row refuses", self.ok("observations", aid, session=LEAD))
 
@@ -549,23 +565,24 @@ class ObservationsBindToARevision(_Scratch):
         generation 1 and revision a1b2c3d."""
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
+        self.stale = self.gen(aid)
         self.ok("reopen", aid, "--revision", "beefbee", "--why", "the candidate moved",
-                "--generation", "1", session=LEAD)
+                "--generation", self.stale, session=LEAD)
         return aid
 
     def test_an_observation_refuses_a_generation_the_assignment_moved_past(self):
         aid = self.reopened()
         proc = self.run_tool("observe", aid, "--observation", "the suite ran",
-                             "--revision", "beefbee", "--generation", "1",
+                             "--revision", "beefbee", "--generation", self.stale,
                              session=WORKER)
         refusal_wire(RefusalCase("observe-stale-generation", (), "generation"), proc)
 
     def test_an_observation_refuses_a_revision_that_is_not_the_current_one(self):
         aid = self.reopened()
         proc = self.run_tool("observe", aid, "--observation", "the suite ran",
-                             "--revision", "a1b2c3d", "--generation", "2",
+                             "--revision", "a1b2c3d", "--generation", self.gen(aid),
                              session=WORKER)
         refusal_wire(RefusalCase("observe-old-revision", (), "revision"), proc)
 
@@ -575,7 +592,7 @@ class ObservationsBindToARevision(_Scratch):
         evidence of the candidate that replaced it."""
         aid = self.reopened()
         self.ok("observe", aid, "--observation", "ran before the move",
-                "--revision", "a1b2c3d", "--generation", "1", "--stale",
+                "--revision", "a1b2c3d", "--generation", self.stale, "--stale",
                 session=WORKER)
         every = self.ok("observations", aid, "--all", session=LEAD)
         self.assertIn("ran before the move", every)
@@ -587,7 +604,7 @@ class ObservationsBindToARevision(_Scratch):
         """The clean neighbour: the same verb, the readings that agree."""
         aid = self.reopened()
         self.ok("observe", aid, "--observation", "the suite ran again",
-                "--revision", "beefbee", "--generation", "2", session=WORKER)
+                "--revision", "beefbee", "--generation", self.gen(aid), session=WORKER)
         self.assertIn("the suite ran again", self.ok("observations", aid, session=LEAD))
 
 
@@ -622,6 +639,7 @@ class TheGateUnderTheLock(_Scratch):
 
     def test_return_re_checks_the_generation_inside_the_lock(self):
         aid = self.submitted()
+        believed = self.gen(aid)
         module = self.core(CHECKER)
         seen, wrapped = self.racing(module, aid)
         with unittest.mock.patch.object(module, "require_generation", wrapped):
@@ -629,7 +647,7 @@ class TheGateUnderTheLock(_Scratch):
                 part = module.bound_participant(conn)
                 with self.assertRaises(module.Refusal) as caught:
                     module.CORE["return"](conn, part, agent=SHARED, assignment=aid,
-                                          findings="a1b2c3d", generation="1")
+                                          findings="a1b2c3d", generation=believed)
         self.assertEqual(seen["n"], 2, "the gate must check again under the lock")
         self.assertTrue(caught.exception.line().startswith("generation:"),
                         caught.exception.line())
@@ -638,6 +656,7 @@ class TheGateUnderTheLock(_Scratch):
         """A refusal inside the gate rolls the whole move back: the place
         is the one the winner left, not the one the loser asked for."""
         aid = self.submitted()
+        believed = self.gen(aid)
         module = self.core(CHECKER)
         _seen, wrapped = self.racing(module, aid)
         with unittest.mock.patch.object(module, "require_generation", wrapped):
@@ -645,7 +664,7 @@ class TheGateUnderTheLock(_Scratch):
                 part = module.bound_participant(conn)
                 with self.assertRaises(module.Refusal):
                     module.CORE["return"](conn, part, agent=SHARED, assignment=aid,
-                                          findings="a1b2c3d", generation="1")
+                                          findings="a1b2c3d", generation=believed)
         self.assertIn("submitted", self.ok("show", aid, session=LEAD))
 
 
@@ -658,7 +677,7 @@ class TheReturnVerb(_Scratch):
     def test_return_sends_the_candidate_back_to_its_holder(self):
         aid = self.submitted()
         printed = self.ok("return", aid, "--findings", "#243",
-                          "--generation", "1", session=CHECKER).strip()
+                          "--generation", self.gen(aid), session=CHECKER).strip()
         self.assertEqual(printed, f"returned {aid} to PT-2")
         shown = self.ok("show", aid, session=LEAD)
         self.assertIn("held", shown)
@@ -667,7 +686,7 @@ class TheReturnVerb(_Scratch):
     def test_the_findings_are_a_reading_and_not_a_sentence(self):
         aid = self.submitted()
         proc = self.run_tool("return", aid, "--findings", "because I said so",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("return-prose-findings", (), "evidence"), proc)
 
     def test_every_pinned_reading_shape_is_admitted_as_findings(self):
@@ -675,13 +694,13 @@ class TheReturnVerb(_Scratch):
         for shape in ("a1b2c3d", "#243", "20260916T010203Z-job-x", "P-probe-1"):
             with self.subTest(shape=shape):
                 aid = self.submitted()
-                self.ok("return", aid, "--findings", shape, "--generation", "1",
+                self.ok("return", aid, "--findings", shape, "--generation", self.gen(aid),
                         session=CHECKER)
 
     def test_a_worker_cannot_return_a_candidate(self):
         aid = self.submitted()
         proc = self.run_tool("return", aid, "--findings", "#243",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("return-by-worker", (), "role",
                                  named=("verifier",)), proc)
 
@@ -690,16 +709,17 @@ class TheReturnVerb(_Scratch):
         caller holding generation 1 reads class generation and not class
         place — which is why the check sits in the verb at all."""
         aid = self.held()
-        self.ok("release", aid, "--why", "blocked on the wall", "--generation", "1",
+        stale = self.gen(aid)
+        self.ok("release", aid, "--why", "blocked on the wall", "--generation", stale,
                 session=WORKER)
         proc = self.run_tool("return", aid, "--findings", "#243",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", stale, session=CHECKER)
         refusal_wire(RefusalCase("return-stale-generation", (), "generation"), proc)
 
     def test_return_refuses_a_candidate_that_was_never_submitted(self):
         aid = self.held()
         proc = self.run_tool("return", aid, "--findings", "#243",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("return-from-held", (), "place"), proc)
 
     def test_return_refuses_an_assignment_the_store_does_not_hold(self):
@@ -716,7 +736,7 @@ class TheReturnVerb(_Scratch):
 
     def test_return_refuses_without_its_findings(self):
         aid = self.submitted()
-        proc = self.run_tool("return", aid, "--generation", "1", session=CHECKER)
+        proc = self.run_tool("return", aid, "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("return-no-findings", (), "arguments"), proc)
 
 
@@ -735,14 +755,15 @@ class TheCandidateAnObservationNames(_Scratch):
         self.bind_three()
         aid = self.ok("draft", "no candidate yet", "--outcome", "the gap",
                       session=LEAD).split()[-1]
-        self.ok("offer", aid, "--to", "PT-2", session=LEAD)
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        self.ok("offer", aid, "--to", "PT-2", "--generation", self.gen(aid),
+                session=LEAD)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), session=WORKER)
         return aid
 
     def test_observe_refuses_an_assignment_that_names_no_revision(self):
         aid = self.no_candidate_yet()
         proc = self.run_tool("observe", aid, "--observation", "ran at deadbee",
-                             "--revision", "deadbee", "--generation", "1",
+                             "--revision", "deadbee", "--generation", self.gen(aid),
                              session=WORKER)
         refusal_wire(RefusalCase("observe-no-candidate", (), "revision"), proc)
 
@@ -751,14 +772,14 @@ class TheCandidateAnObservationNames(_Scratch):
         With no candidate at all there is nothing it could be history of."""
         aid = self.no_candidate_yet()
         proc = self.run_tool("observe", aid, "--observation", "ran at deadbee",
-                             "--revision", "deadbee", "--generation", "1", "--stale",
+                             "--revision", "deadbee", "--generation", self.gen(aid), "--stale",
                              session=WORKER)
         refusal_wire(RefusalCase("observe-no-candidate-stale", (), "revision"), proc)
 
     def test_the_clean_neighbour_an_assignment_that_names_its_candidate(self):
         aid = self.held()
         self.ok("observe", aid, "--observation", "the suite ran", "--revision",
-                "a1b2c3d", "--generation", "1", session=WORKER)
+                "a1b2c3d", "--generation", self.gen(aid), session=WORKER)
         self.assertIn("the suite ran", self.ok("observations", aid, session=LEAD))
 
     def test_submit_stales_a_current_observation_of_another_revision(self):
@@ -766,6 +787,7 @@ class TheCandidateAnObservationNames(_Scratch):
         verb can now produce this row, but a store written before the gate
         can hold one. It is planted directly and submit must mark it."""
         aid = self.no_candidate_yet()
+        believed = self.gen(aid)
         module = self.core(WORKER)
         number = int(aid.split("-")[1])
         with module.writer() as conn:
@@ -778,7 +800,7 @@ class TheCandidateAnObservationNames(_Scratch):
         with module.writer() as conn:
             module.CORE["submit"](conn, module.bound_participant(conn), agent=SHARED,
                                   assignment=aid, evidence="a1b2c3d",
-                                  revision="a1b2c3d", generation="1")
+                                  revision="a1b2c3d", generation=believed)
         every = self.ok("observations", aid, "--all", session=LEAD)
         self.assertIn("ran at deadbee", every, "the row is kept, never deleted")
         self.assertIn("[stale:", every)
@@ -802,38 +824,38 @@ class TheCandidateAndTheReading(_Scratch):
     def submitted_with(self, evidence):
         aid = self.held()
         self.ok("submit", aid, "--evidence", evidence, "--revision", "a1b2c3d",
-                "--generation", "1", session=WORKER)
+                "--generation", self.gen(aid), session=WORKER)
         return aid
 
     def test_a_candidate_submitted_with_a_corpus_row_can_be_verified(self):
         aid = self.submitted_with("P-probe-1")
         printed = self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                          "P-probe-1", "--generation", "1", session=CHECKER).strip()
+                          "P-probe-1", "--generation", self.gen(aid), session=CHECKER).strip()
         self.assertEqual(printed, f"verified {aid} by PT-3")
 
     def test_a_candidate_submitted_with_a_dispatch_record_can_be_verified(self):
         aid = self.submitted_with("20260916T010203Z-job-x")
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1", session=CHECKER)
+                "20260916T010203Z-job-v", "--generation", self.gen(aid), session=CHECKER)
 
     def test_the_candidate_must_be_the_one_the_assignment_stands_at(self):
         aid = self.submitted_with("a1b2c3d")
         proc = self.run_tool("verify", aid, "--candidate", "9999999", "--evidence",
-                             "20260916T010203Z-job-v", "--generation", "1",
+                             "20260916T010203Z-job-v", "--generation", self.gen(aid),
                              session=CHECKER)
         refusal_wire(RefusalCase("verify-wrong-candidate", (), "revision"), proc)
 
     def test_the_evidence_must_still_be_a_reading(self):
         aid = self.submitted_with("a1b2c3d")
         proc = self.run_tool("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                             "it looked fine to me", "--generation", "1",
+                             "it looked fine to me", "--generation", self.gen(aid),
                              session=CHECKER)
         refusal_wire(RefusalCase("verify-prose-evidence", (), "evidence"), proc)
 
     def test_verify_refuses_without_its_candidate(self):
         aid = self.submitted_with("a1b2c3d")
         proc = self.run_tool("verify", aid, "--evidence", "20260916T010203Z-job-v",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("verify-no-candidate", (), "arguments"), proc)
 
     def test_the_verification_reading_is_what_the_marking_records(self):
@@ -841,7 +863,7 @@ class TheCandidateAndTheReading(_Scratch):
         marking carries the run that verified, not the candidate's sha."""
         aid = self.submitted_with("a1b2c3d")
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1", session=CHECKER)
+                "20260916T010203Z-job-v", "--generation", self.gen(aid), session=CHECKER)
         self.assertIn("20260916T010203Z-job-v", self.ok("show", aid, session=LEAD))
 
 
@@ -984,7 +1006,7 @@ class TheHolderIsAParticipant(_Scratch):
         agent string it runs under is not what makes it the holder."""
         aid = self.held()
         self.assertIn(f"released {aid}", self.ok(
-            "release", aid, "--why", "blocked on a question", "--generation", "1",
+            "release", aid, "--why", "blocked on a question", "--generation", self.gen(aid),
             session=WORKER, identity=self.OTHER))
 
     def test_a_lapsed_hold_is_released_by_another_participant(self):
@@ -993,18 +1015,18 @@ class TheHolderIsAParticipant(_Scratch):
         import time
         self.lock()
         aid = self.offered()
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", "--ttl", "0",
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), "--ttl", "0",
                 session=WORKER)
         time.sleep(1.2)
         self.assertIn(f"released {aid}", self.ok(
             "release", aid, "--why", "the worker stopped answering",
-            "--generation", "1", session=LEAD))
+            "--generation", self.gen(aid), session=LEAD))
 
     def test_a_live_hold_refuses_another_participant(self):
         """The clean neighbour: while the lease stands, the holder holds."""
         aid = self.held()
         proc = self.run_tool("release", aid, "--why", "I want it back",
-                             "--generation", "1", session=LEAD)
+                             "--generation", self.gen(aid), session=LEAD)
         refusal_wire(RefusalCase("release-not-the-holder", (), "holder"), proc)
 
     def test_a_resource_is_freed_by_its_holder_under_another_agent_string(self):
@@ -1182,3 +1204,112 @@ class TheDocumentedFormsParse(_Scratch):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EveryMoveBumpsTheGeneration(_Scratch):
+    """The generation is what refuses a caller acting on a view the
+    assignment has moved past, and it only does that if every move moves
+    it.
+
+    Grok reproduced the hole against b1d868b0: return and submit both
+    left the generation alone, so a verifier that began a return against
+    one submission had it land on the next one, with the marking reading
+    `return submitted -> held by PT-3; evidence a1b2c3d` after
+    `submit held -> submitted by PT-2; evidence beefbee`. The Daybreak
+    audit found the same shape in `supersede`, which stated no generation
+    at all. Ruled by the Lead, 2026-09-16: every move bumps it, so a
+    delayed verb refuses on the gate it already has.
+    """
+
+    def test_each_transition_bumps_the_generation(self):
+        self.lock()
+        self.bind_three()
+        aid = self.ok("draft", "the whole ladder", "--outcome", "one bump a move",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        seen = [int(self.gen(aid))]
+        for argv, who in (
+            (("offer", aid, "--to", "PT-2"), LEAD),
+            (("claim", aid, "--branch", BRANCH), WORKER),
+            (("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d"), WORKER),
+            (("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+              "20260916T010203Z-job-v"), CHECKER),
+            (("accept", aid, "--evidence", "a1b2c3d"), LEAD),
+        ):
+            self.ok(*argv, "--generation", self.gen(aid), session=who)
+            seen.append(int(self.gen(aid)))
+        self.assertEqual(seen, list(range(seen[0], seen[0] + len(seen))),
+                         f"a move left the generation where it was: {seen}")
+
+    def test_a_delayed_return_refuses_the_submission_it_never_saw(self):
+        """Grok's sequence, run through the CLI: the verifier reads the
+        generation, a competing return and a resubmit go past it, and the
+        return it then makes is of a candidate it never looked at."""
+        aid = self.submitted()
+        believed = self.gen(aid)
+        self.ok("return", aid, "--findings", "#243", "--generation", believed,
+                session=LEAD)
+        self.ok("submit", aid, "--evidence", "beefbee", "--revision", "a1b2c3d",
+                "--generation", self.gen(aid), session=WORKER)
+        proc = self.run_tool("return", aid, "--findings", "a1b2c3d",
+                             "--generation", believed, session=CHECKER)
+        refusal_wire(RefusalCase("delayed-return", (), "generation"), proc)
+
+    def test_a_delayed_submit_refuses_after_a_return(self):
+        """The other half of the same race: the holder's resubmit is of a
+        candidate the return has already sent back."""
+        aid = self.submitted()
+        believed = self.gen(aid)
+        self.ok("return", aid, "--findings", "#243", "--generation", believed,
+                session=CHECKER)
+        proc = self.run_tool("submit", aid, "--evidence", "beefbee",
+                             "--revision", "a1b2c3d", "--generation", believed,
+                             session=WORKER)
+        refusal_wire(RefusalCase("delayed-submit", (), "generation"), proc)
+
+    def test_supersede_states_the_generation_it_believes(self):
+        """The Daybreak audit's ABA: release returns the assignment to
+        `offered` at a new generation, and the coordinator's stale view
+        supersedes the assignment that now stands there."""
+        self.lock()
+        self.bind_three()
+        old = self.ok("draft", "the older", "--outcome", "x", "--revision",
+                      "a1b2c3d", session=LEAD).split()[-1]
+        new = self.ok("draft", "the newer", "--outcome", "x", "--revision",
+                      "beefbee", session=LEAD).split()[-1]
+        self.ok("offer", old, "--to", "PT-2", "--generation", self.gen(old),
+                session=LEAD)
+        self.ok("claim", old, "--branch", BRANCH, "--generation", self.gen(old),
+                session=WORKER)
+        believed = self.gen(old)
+        self.ok("release", old, "--why", "retry", "--generation", believed,
+                session=WORKER)
+        proc = self.run_tool("supersede", old, "--by", new, "--generation",
+                             believed, session=LEAD)
+        refusal_wire(RefusalCase("supersede-stale-generation", (), "generation"), proc)
+
+    def test_supersede_refuses_without_a_generation(self):
+        self.lock()
+        self.bind_three()
+        old = self.ok("draft", "the older", "--outcome", "x", session=LEAD).split()[-1]
+        new = self.ok("draft", "the newer", "--outcome", "x", session=LEAD).split()[-1]
+        self.ok("offer", old, "--to", "PT-2", "--generation", self.gen(old),
+                session=LEAD)
+        proc = self.run_tool("supersede", old, "--by", new, session=LEAD)
+        refusal_wire(RefusalCase("supersede-no-generation", (), "arguments"), proc)
+
+    def test_offer_refuses_without_a_generation(self):
+        """The other verb the audit of the table found: it moves the
+        assignment and stated nothing about the view it moved from."""
+        self.bind_three()
+        aid = self.ok("draft", "a repair", "--outcome", "x",
+                      session=LEAD).split()[-1]
+        proc = self.run_tool("offer", aid, "--to", "PT-2", session=LEAD)
+        refusal_wire(RefusalCase("offer-no-generation", (), "arguments"), proc)
+
+    def test_the_clean_neighbour_a_current_view_still_moves_it(self):
+        """A verb that states the generation the assignment stands at is
+        not refused: the gate is a stale-view check, not a second lock."""
+        aid = self.submitted()
+        self.ok("return", aid, "--findings", "#243", "--generation", self.gen(aid),
+                session=CHECKER)
+        self.assertIn("held", self.ok("show", aid, session=LEAD))

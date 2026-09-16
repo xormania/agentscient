@@ -226,11 +226,22 @@ place it held before cannot by itself refuse the old holder. Two
 columns close it:
 
 - `generation` starts at 1 and is bumped, in the same transaction as
-  the move, by `release`, `reassign` and `reopen` — every transition
-  that changes who may act. Every writing verb on an assignment states
-  the generation it believes; the gate reads the row under the write
-  lock and refuses class `generation` with expected, found and needed
-  when they differ. A stale holder is refused, not silently applied.
+  the move, by **every** transition. Bumping it only where the holder
+  changed left the verbs that do not change the holder — `submit`,
+  `verify`, `return`, `accept` — moving an assignment while its
+  generation stood still, so a verifier that began a `return` against
+  one submission had it land on the next one; and `supersede` and
+  `offer` stated no generation at all, so a coordinator's stale view of
+  an `offered` assignment superseded the one that stands there now. One
+  bump a move closes both, because a delayed verb then refuses on the
+  gate it already has. Every writing verb on an assignment states the
+  generation it believes; the verb reads it first, so a stale caller
+  reads class `generation` and not class `place`, and the gate reads the
+  row again under the write lock and refuses class `generation` with
+  expected, found and needed when they differ. A stale holder is
+  refused, not silently applied. The cost is stated rather than hidden:
+  a caller running a chain of verbs re-reads the generation between
+  them, from `show`, because every one of them moved it.
 - `revision` is the candidate the work is against. `submit` states the
   revision it produced; `verify` names it as `--candidate` and refuses
   class `revision` when it is not the assignment's. `reopen` sets a new
@@ -352,7 +363,7 @@ reconciliation the caller still owes.
 | `who` | this session's participant and roles; `no store` and exit 0 when there is none |
 | `participants [--role R]` | one line per participant |
 | `draft TITLE --outcome TEXT [--requirement REF] [--revision SHA] [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]` | prints `assignment A-n` |
-| `offer A-n --to WHO` | names the recipient |
+| `offer A-n --to WHO --generation N` | names the recipient |
 | `claim A-n --branch B --generation N [--ttl MIN]` | takes the hold |
 | `release A-n --why TEXT --generation N` | gives it back; bumps the generation |
 | `reassign A-n --to WHO --why TEXT --generation N` | lead or coordinator; bumps the generation |
@@ -361,7 +372,7 @@ reconciliation the caller still owes.
 | `return A-n --findings REF --generation N` | back to the holder |
 | `accept A-n --evidence READING --generation N` | the lead's acceptance |
 | `reopen A-n --revision SHA --why TEXT --generation N` | a changed candidate; stales the observations |
-| `supersede A-n --by A-m` | an offered assignment replaced |
+| `supersede A-n --by A-m --generation N` | an offered assignment replaced |
 | `assignments [--state S] [--to WHO] [--mine]` | one line each, oldest first |
 | `show A-n` | the row, its marking, its observations and its open messages |
 | `send --to WHO --purpose P --body TEXT [--assignment A-n] [--decision DC-n] [--reply-to M-n] [--artifact REF]` | prints `message M-n queued` |

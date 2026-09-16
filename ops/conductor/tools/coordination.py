@@ -21,7 +21,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py who | participants [--role R]
     coordination.py draft TITLE --outcome TEXT [--requirement REF] [--revision SHA]
                               [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]
-    coordination.py offer A-n --to WHO
+    coordination.py offer A-n --to WHO --generation N
     coordination.py claim A-n --branch B --generation N [--ttl MIN]
     coordination.py release A-n --why TEXT --generation N
     coordination.py reassign A-n --to WHO --why TEXT --generation N
@@ -30,7 +30,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py return A-n --findings REF --generation N
     coordination.py accept A-n --evidence READING --generation N
     coordination.py reopen A-n --revision SHA --why TEXT --generation N
-    coordination.py supersede A-n --by A-m
+    coordination.py supersede A-n --by A-m --generation N
     coordination.py assignments [--state S] [--to WHO] [--mine] | show A-n|M-n
     coordination.py send --to WHO --purpose P --body TEXT [--assignment A-n]
                          [--decision DC-n] [--reply-to M-n] [--artifact REF]
@@ -394,6 +394,35 @@ def decision_row(conn, did: int):
     return row
 
 
+def advance(conn, aid: int, transition: str, part, *, evidence=None, note=None,
+            ttl_s=None, gate=None):
+    """Every move on an assignment bumps its generation, inside the move.
+
+    The generation is what refuses a caller acting on a view the
+    assignment has moved past, and it only does that if every move moves
+    it. Grok reproduced the hole against b1d868b0: `return` and `submit`
+    both left it where it was, so a verifier that began a return against
+    one submission had it land on the next one. The Daybreak audit found
+    the same shape in `supersede`, which stated no generation at all.
+    Ruled by the Lead, 2026-09-16: one bump a move, so a delayed verb
+    refuses on the gate it already has.
+
+    The bump runs last inside the caller's own gate, so it is in the
+    engine's `BEGIN IMMEDIATE` with the rest of the move and a refusal
+    from the gate rolls it back with everything else.
+    """
+
+    def bump(subject):
+        if gate is not None:
+            gate(subject)
+        conn.execute(
+            "UPDATE assignments SET generation = generation + 1 WHERE id = ?", (aid,)
+        )
+
+    return machine.move(conn, ASSIGNMENT, aid, transition, actor(part),
+                        evidence=evidence, note=note, ttl_s=ttl_s, gate=bump)
+
+
 def require_generation(row, stated: str) -> int:
     """The stated generation against the row's, before the engine sees the
     place: a reassignment returns the subject to a place it held before,
@@ -661,17 +690,19 @@ def core_draft(conn, part, *, agent, title, outcome, requirement=None, revision=
     return assignment_dict(assignment_row(conn, sid))
 
 
-def core_offer(conn, part, *, agent, assignment, to) -> dict:
+def core_offer(conn, part, *, agent, assignment, to, generation) -> dict:
     same_session(part)
     require_role(part, ("lead", "coordinator"))
     _, aid = parse_id(assignment, "A")
-    assignment_row(conn, aid)
+    row = assignment_row(conn, aid)
+    require_generation(row, generation)
     recipient = recipient_of(conn, to)
 
     def gate(_subject):
+        require_generation(assignment_row(conn, aid), generation)
         conn.execute("UPDATE assignments SET recipient = ? WHERE id = ?", (recipient, aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "offer", actor(part), note=recipient, gate=gate)
+    advance(conn, aid, "offer", part, note=recipient, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -695,8 +726,7 @@ def core_claim(conn, part, *, agent, assignment, branch, generation, ttl=None) -
             (part["id"], branch, aid),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, "claim", actor(part), note=branch,
-                 ttl_s=ttl_s, gate=gate)
+    advance(conn, aid, "claim", part, note=branch, ttl_s=ttl_s, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -721,11 +751,11 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
         live = assignment_row(conn, aid)
         require_generation(live, generation)
         conn.execute(
-            "UPDATE assignments SET generation = generation + 1, holder = NULL, "
-            "recipient = ? WHERE id = ?", (recipient, aid),
+            "UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
+            (recipient, aid),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, transition, actor(part), evidence=why, gate=gate)
+    advance(conn, aid, transition, part, evidence=why, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -770,7 +800,7 @@ def core_submit(conn, part, *, agent, assignment, evidence, revision, generation
              aid, revision),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, "submit", actor(part), evidence=evidence, gate=gate)
+    advance(conn, aid, "submit", part, evidence=evidence, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -804,7 +834,7 @@ def core_verify(conn, part, *, agent, assignment, candidate, evidence,
         conn.execute("UPDATE assignments SET verified_by = ? WHERE id = ?",
                      (part["id"], aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "verify", actor(part), evidence=evidence, gate=gate)
+    advance(conn, aid, "verify", part, evidence=evidence, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -827,7 +857,7 @@ def core_return(conn, part, *, agent, assignment, findings, generation) -> dict:
     def gate(_subject):
         require_generation(assignment_row(conn, aid), generation)
 
-    machine.move(conn, ASSIGNMENT, aid, "return", actor(part), evidence=findings, gate=gate)
+    advance(conn, aid, "return", part, evidence=findings, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -846,7 +876,7 @@ def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
         conn.execute("UPDATE assignments SET accepted_by = ? WHERE id = ?",
                      (part["id"], aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "accept", actor(part), evidence=evidence, gate=gate)
+    advance(conn, aid, "accept", part, evidence=evidence, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -862,8 +892,8 @@ def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> 
         live = assignment_row(conn, aid)
         require_generation(live, generation)
         conn.execute(
-            "UPDATE assignments SET generation = generation + 1, revision = ?, "
-            "verified_by = NULL WHERE id = ?", (revision, aid),
+            "UPDATE assignments SET revision = ?, verified_by = NULL WHERE id = ?",
+            (revision, aid),
         )
         conn.execute(
             "UPDATE observations SET applicability = 'stale', stale_reason = ? "
@@ -871,23 +901,31 @@ def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> 
             (f"the candidate moved to {revision}: {why}", aid),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, "reopen", actor(part), evidence=revision, gate=gate)
+    advance(conn, aid, "reopen", part, evidence=revision, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
-def core_supersede(conn, part, *, agent, assignment, by) -> dict:
+def core_supersede(conn, part, *, agent, assignment, by, generation) -> dict:
+    """Superseding is a writing verb on an assignment like any other.
+
+    It moves an `offered` assignment, and `offered` is exactly the place
+    a `release` or a `reassign` returns one to, so the place alone cannot
+    tell the assignment that stands there now from the one the caller
+    read. The Daybreak audit reproduced that ABA against b1d868b0.
+    """
     same_session(part)
     require_role(part, ("lead", "coordinator"))
     _, aid = parse_id(assignment, "A")
     _, newer = parse_id(by, "A")
-    assignment_row(conn, aid)
+    row = assignment_row(conn, aid)
+    require_generation(row, generation)
     assignment_row(conn, newer)
 
     def gate(_subject):
+        require_generation(assignment_row(conn, aid), generation)
         conn.execute("UPDATE assignments SET superseded_by = ? WHERE id = ?", (newer, aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "supersede", actor(part),
-                 evidence=f"A-{newer}", gate=gate)
+    advance(conn, aid, "supersede", part, evidence=f"A-{newer}", gate=gate)
     shown = assignment_dict(assignment_row(conn, aid))
     shown["superseded_by"] = f"A-{newer}"
     return shown
@@ -1412,10 +1450,10 @@ def do_draft(rest):
 
 def do_offer(rest):
     agent = identity()
-    (raw,), opts = parse(rest, 1, required=("to",))
+    (raw,), opts = parse(rest, 1, required=("to", "generation"))
     with writer() as conn:
         shown = CORE["offer"](conn, bound_participant(conn), agent=agent, assignment=raw,
-                              to=opts["to"])
+                              to=opts["to"], generation=opts["generation"])
     print(f"offered {shown['assignment']} to {shown['recipient']}")
 
 
@@ -1501,10 +1539,10 @@ def do_reopen(rest):
 
 def do_supersede(rest):
     agent = identity()
-    (raw,), opts = parse(rest, 1, required=("by",))
+    (raw,), opts = parse(rest, 1, required=("by", "generation"))
     with writer() as conn:
         shown = CORE["supersede"](conn, bound_participant(conn), agent=agent, assignment=raw,
-                                  by=opts["by"])
+                                  by=opts["by"], generation=opts["generation"])
     print(f"superseded {shown['assignment']} by {shown['superseded_by']}")
 
 
