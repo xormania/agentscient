@@ -837,9 +837,165 @@ def cmd_waste(args, window, window_iso):
     print("\n".join(lines))
 
 
+# --------------------------------------------------------------------
+# compare: two windows, the levers as rows (ops/process/worth.md
+# "worth compare" and Behavior contract item 9). The levers are data:
+# adding one is a row here, never a branch below.
+# --------------------------------------------------------------------
+
+LEVERS = (
+    {"lever": "context", "threshold": ("under", 300_000),
+     "figure": "mean context tokens per Claude session"},
+    {"lever": "refusals", "threshold": ("falling", None),
+     "figure": "refusals per Claude session"},
+    {"lever": "landed", "threshold": ("falling", None),
+     "figure": "dispatches per landed PR"},
+    {"lever": "dispatch-cached", "threshold": ("under", 3_000_000),
+     "figure": "mean cached tokens per author-tests dispatch"},
+)
+
+
+def _mean(values):
+    return sum(values) / len(values) if values else None
+
+
+def _claude_figures(sessions, key):
+    """One number per Claude session, skipping the rows that could not
+    be read: an unrecorded session is not a zero."""
+    return [row[key] for row in (sessions.get("claude") or {}).values()
+            if isinstance(row.get(key), (int, float))
+            and not isinstance(row.get(key), bool)]
+
+
+def _lever_readings(args, window):
+    """Every lever's figure and its population, for one window."""
+    sessions = gather(args, window)
+    rows = dispatch_rows(args.dispatch_dir, args.repo, window)
+    results = repo_results(args.repo, window)
+    contexts = _claude_figures(sessions, "avg_context")
+    refusals = _claude_figures(sessions, "refusals")
+    landed = len(results.get("prs") or [])
+    tests = [row for row in rows
+             if row.get("job") == "author-tests"
+             and isinstance(row.get("cached"), (int, float))]
+    return {
+        "context": {"figure": _mean(contexts), "n": len(contexts)},
+        "refusals": {"figure": _mean(refusals), "n": len(refusals)},
+        # A rate has two populations, and either can be absent. No merge
+        # in the window is nothing to divide by; no dispatch is nothing
+        # to divide, and a rate of zero from an empty numerator is not an
+        # improvement (LD-54).
+        "landed": {"figure": (len(rows) / landed) if landed else None,
+                   "n": landed, "dispatches": len(rows)},
+        "dispatch-cached": {"figure": _mean([row["cached"] for row in tests]),
+                            "n": len(tests)},
+    }
+
+
+def _usable(reading):
+    """A figure stands on its populations: every count the row declares
+    must be above zero, or the row has no result to report."""
+    if reading.get("figure") is None:
+        return False
+    counts = [reading.get("n")] + [
+        value for key, value in reading.items()
+        if key not in ("figure", "n") and isinstance(value, int)
+    ]
+    return all(counts)
+
+
+def _verdict(kind, limit, base, win):
+    """Mechanical, never a judgment. An arm that could not look has no
+    result; a fall measured against nothing is not a fall."""
+    if not _usable(win):
+        return "UNREACHABLE"
+    if kind == "falling":
+        if not _usable(base):
+            return "UNREACHABLE"
+        return "met" if win["figure"] < base["figure"] else "short"
+    return "met" if win["figure"] < limit else "short"
+
+
+def _side(reading):
+    """Every count the reading declares, and the figure only where the
+    counts hold it up."""
+    out = dict(reading)
+    out["figure"] = reading["figure"] if _usable(reading) else "unrecorded"
+    return out
+
+
+def cmd_compare(args, baseline_iso, window_iso):
+    baseline = (parse_iso(baseline_iso[0], "baseline since"),
+                parse_iso(baseline_iso[1], "baseline until"))
+    window = (parse_iso(window_iso[0], "window since"),
+              parse_iso(window_iso[1], "window until"))
+    base_readings = _lever_readings(args, baseline)
+    win_readings = _lever_readings(args, window)
+    levers = []
+    for spec in LEVERS:
+        name = spec["lever"]
+        kind, limit = spec["threshold"]
+        base = base_readings[name]
+        win = win_readings[name]
+        levers.append({
+            "lever": name,
+            "figure": spec["figure"],
+            "threshold": (f"under {limit}" if kind == "under"
+                          else "falling against the baseline"),
+            "baseline": _side(base),
+            "window": _side(win),
+            "verdict": _verdict(kind, limit, base, win),
+        })
+    stamp = stamp_block(args.repo, window_iso, args.now)
+    payload = {
+        "stamp": stamp,
+        "baseline": {"since": baseline_iso[0], "until": baseline_iso[1]},
+        "window": {"since": window_iso[0], "until": window_iso[1]},
+        "levers": levers,
+    }
+    if args.format == "json":
+        print(json.dumps(payload, indent=1, sort_keys=True))
+        return
+    print(plain_stamp(stamp))
+    print(f"baseline=[{baseline_iso[0]}, {baseline_iso[1]}) "
+          f"window=[{window_iso[0]}, {window_iso[1]})")
+    print()
+    for row in levers:
+        print(f"{row['lever']:16s} {row['verdict']:12s} "
+              f"baseline={_plain_side(row['baseline'])} "
+              f"window={_plain_side(row['window'])} "
+              f"({row['threshold']})")
+
+
+def _plain_side(side):
+    """figure, then every count the row declares, so a rate never shows
+    a figure without both of its populations."""
+    counts = " ".join(f"{key}={value}" for key, value in side.items()
+                      if key != "figure")
+    return f"{side['figure']} {counts}"
+
+
+def _range(raw, label):
+    """SINCE..UNTIL, both halves present, upper exclusive and after."""
+    parts = str(raw).split("..")
+    if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
+        raise SystemExit2(
+            f"{label}: expected SINCE..UNTIL, two ISO 8601 stamps"
+            f" separated by '..'; found {raw!r}; needed both halves")
+    since = parse_iso(parts[0], f"{label} since")
+    until = parse_iso(parts[1], f"{label} until")
+    if until <= since:
+        raise SystemExit2(
+            f"{label}: expected until after since; found"
+            f" {parts[1]} at or before {parts[0]}; needed a window with width")
+    return (parts[0], parts[1])
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="worth.py", description=__doc__)
-    parser.add_argument("verb", choices=("report", "waste"))
+    parser.add_argument("verb", choices=("report", "waste", "compare"))
+    parser.add_argument("--baseline")
+    parser.add_argument("--window")
     parser.add_argument("--repo", required=True)
     parser.add_argument("--now")
     parser.add_argument("--since")
@@ -856,7 +1012,14 @@ def main(argv=None):
         "DISPATCH_JOBS",
         str(default_state / laneconf.get("LANE_NAME") / "dispatch"),
     ))
+    raw = list(sys.argv[1:] if argv is None else argv)
     args = parser.parse_args(argv)
+    if args.verb == "compare" and any(
+            item == "--top" or item.startswith("--top=") for item in raw):
+        print("compare: expected no --top; found --top; needed drop it —"
+              " compare ranks nothing and declares every lever",
+              file=sys.stderr)
+        return 2
     # One resolution for every reader: a transcript carries an absolute
     # cwd, and a relative --repo (".", the usual shape from the checkout)
     # matched nothing and read sessions=0 (T-56). Resolved here so the
@@ -895,7 +1058,21 @@ def main(argv=None):
     until_iso = args.until or args.now
     window = (since, until)
     window_iso = (since_iso, until_iso)
-    if args.verb == "report":
+    if args.verb == "compare":
+        try:
+            if not args.baseline or not args.window:
+                raise SystemExit2(
+                    "compare: expected --baseline SINCE..UNTIL and --window"
+                    " SINCE..UNTIL; found"
+                    f" baseline={args.baseline!r} window={args.window!r};"
+                    " needed both, neither implied")
+            baseline_range = _range(args.baseline, "baseline")
+            window_range = _range(args.window, "window")
+        except SystemExit2 as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        cmd_compare(args, baseline_range, window_range)
+    elif args.verb == "report":
         cmd_report(args, window, window_iso)
     else:
         cmd_waste(args, window, window_iso)
