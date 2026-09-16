@@ -58,6 +58,12 @@ every one of those lines once. The silence belongs to the condition and
 not to the name: each backlog name is held with the kind and input
 fingerprint it was found in, and a record whose kind or fingerprint
 changes is no longer that condition, so it speaks again in every family.
+A directory whose inputs cannot be read is fingerprinted by its reason —
+the refusal's own words and the no-follow metadata of every watched
+input, none of them opened — so one unreadable condition replaced by
+another is a change and speaks; a family that fingerprinted as nothing
+would be keyed to the name after all (the Daybreak audit,
+20260916T092226Z-review-codex-12e47c, 2026-09-16).
 Only what changes after start speaks — a record that closes, a directory
 that appears, a backlog directory that gains a record, an amended
 record, inputs that become unreadable — and all of it is reported
@@ -85,10 +91,13 @@ to the condition present at start, not to the name"; LD-70).
   `state.json`'s pid is not a live process whose command line carries
   the harness name (a reused pid is not the worker; EPERM is alive).
   The record is then never counted as running.
-- An `unobservable <id>` line reports missing or unusable worker identity.
-  That job is excluded from running counts and long-running warnings. Later
-  ticks reread worker state and may establish a live worker; missing state is
-  not a permanently cached judgment.
+- `worker unobservable <id>: no usable worker PID, no exit written` —
+  missing or unusable worker identity. That job is excluded from running
+  counts and long-running warnings. Later ticks reread worker state and
+  may establish a live worker; missing state is not a permanently cached
+  judgment. The line begins with `worker`; a filter anchored on
+  `unobservable` drops it, which is what round two of #244 found in the
+  watch skill.
 - `exit written, not collected <id>: <k> min since exit, record still <status>`
   — after the record has been settling for two ticks.
 - `long <id>: <m> min running, wall <w> min` — at the warn fraction of

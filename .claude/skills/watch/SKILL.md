@@ -73,7 +73,7 @@ Every stdout line of a monitored command becomes a message in the chat,
 so arm the watchdog and filter to the lines you would act on:
 
 ```
-Monitor(description: "lane watchdog: stalls, deviations, no record copy, CI", timeout_ms: 1800000,
+Monitor(description: "lane watchdog: stalls, deviations, no record copy, harness gone, watchdog errors, CI", timeout_ms: 1800000,
   command: "python3 ops/conductor/tools/watchdog.py --tick 120 2>&1 | grep -E --line-buffered 'stall |deviation |no record copy |harness gone |watchdog error|ci fail |ci cancel '")
 ```
 
@@ -94,14 +94,20 @@ agentscient-c8 on 2026-09-16. Pass only the conditions that cannot be a
 replay:
 
 ```sh
-... | grep -E --line-buffered '^(stall |ci fail |ci cancel |harness gone |exit written|unobservable |long |heartbeat|watchdog error)'
+... | grep -E --line-buffered '^(stall |ci fail |ci cancel |harness gone |exit written|worker unobservable |long |heartbeat|launchers |watchdog )'
 ```
 
 Key on the line's own condition word, never on a record id it carries: a
 stall line names the old record its quiet is measured from, and a date
-filter would drop the line you most want. The cost is that live
-deviations go with the replay until the checkout carries the fix; take
-those by hand with `--once`.
+filter would drop the line you most want. Key on the word the tool
+prints, too: the line reads `worker unobservable`, and an earlier
+version of this filter anchored `unobservable ` and dropped it in
+silence (codex, round two of #244). Every line
+`ops/conductor/watchdog-lever.md` §The lines names is a row in
+`ops/conductor/tests/test_watch_skill.py`, passed or declared a replay,
+so the next line added there cannot go missing here. The cost is that
+live deviations, `closed` and `no record copy` go with the replay until
+the checkout carries the fix; take those by hand with `--once`.
 
 ## The monitor instrument — events that outlive the session
 

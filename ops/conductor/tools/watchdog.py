@@ -433,6 +433,41 @@ def input_fingerprint(path):
     return tuple(fingerprint)
 
 
+def error_fingerprint(path, exc):
+    """Why a job directory's inputs cannot be read, in the same shape a
+    readable one has: the refusal's own words, then no-follow metadata
+    for every watched input. Nothing is opened or read — each row only
+    says what that name is — so one unreadable condition is told from
+    another and a condition replaced after start speaks again (LD-70;
+    the Daybreak audit, 20260916T092226Z-review-codex-12e47c#2: every
+    error entry carried None, so the whole family was one condition)."""
+    rows = [("error", type(exc).__name__, str(exc))]
+    try:
+        dir_fd = _open_directory(path)
+    except OSError as open_exc:
+        rows.append(("", None, getattr(open_exc, "errno", None)))
+        return tuple(rows)
+    try:
+        for name in WATCHED_INPUTS:
+            try:
+                file_stat = os.lstat(name, dir_fd=dir_fd)
+            except OSError as stat_exc:
+                rows.append((name, None, getattr(stat_exc, "errno", None)))
+                continue
+            rows.append((
+                name,
+                file_stat.st_dev,
+                file_stat.st_ino,
+                file_stat.st_mode,
+                file_stat.st_size,
+                file_stat.st_mtime_ns,
+                file_stat.st_ctime_ns,
+            ))
+    finally:
+        os.close(dir_fd)
+    return tuple(rows)
+
+
 def retained_size(root, *, exclude=()):
     """Account for a retained Python object graph without recursive descent."""
     seen = {id(value) for value in exclude}
@@ -576,7 +611,7 @@ def entries(store, caps, closed_cache=None):
                 closed_cache.pop(path.name, None)
             entry = Entry(path, "error", {}, {}, False, caps)
             entry.error = exc
-            entry.fingerprint = None
+            entry.fingerprint = error_fingerprint(path, exc)
             errors.append(entry)
             continue
         if stat_mode.S_ISDIR(path_stat.st_mode) or stat_mode.S_ISLNK(path_stat.st_mode):
@@ -603,7 +638,7 @@ def entries(store, caps, closed_cache=None):
                 closed_cache.pop(d.name, None)
             entry = Entry(d, "error", {}, {}, False, caps)
             entry.error = exc
-            entry.fingerprint = None
+            entry.fingerprint = error_fingerprint(d, exc)
             yield entry
             continue
         exit_row = next(row for row in fingerprint if row[0] == "exit")

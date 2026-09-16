@@ -1880,6 +1880,11 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
             1,
             proc.stdout,
         )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")),
+            1,
+            proc.stdout,
+        )
 
     def test_a_backlog_directory_whose_inputs_become_unreadable_is_said(self):
         """Codex's case (ee08a7#1): a no-copy directory at start whose
@@ -1900,6 +1905,44 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
         )
         self.assertEqual(
             len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")),
+            1,
+            proc.stdout,
+        )
+
+    def test_one_unreadable_condition_replaced_by_another_is_said(self):
+        """The Daybreak audit's case (12e47c#2): a directory unreadable
+        at start because record.json is a symlink, then unreadable
+        because record.json is a directory. The reason changed, so the
+        condition changed, and the silence is keyed to the condition and
+        not to the name — the error family is not one condition. The
+        control is the backlog row above, where the same directory is
+        left alone and says nothing."""
+        job_dir = self.plant_unreadable(UNREADABLE_ID)
+
+        def to_a_directory():
+            path = job_dir / "record.json"
+            path.unlink()
+            path.mkdir()
+            self.assertTrue(path.is_dir(), "plant: record.json is a directory")
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=to_a_directory,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")),
             1,
             proc.stdout,
         )
