@@ -57,11 +57,15 @@ CONFIG_BYTES = 65_536
 PARTICIPANT_RE = re.compile(r"PT-[1-9][0-9]{0,8}")
 # The core exposes its verbs through a table keyed by the verb's wire
 # name; a projection calls by string and never imports a function named
-# for a verb. The participant resolver is not a verb and is reached as a
-# module function, so the message verb `resolve` and the participant
-# resolver never collide.
-CORE_TABLE = "VERBS"
-CORE_RESOLVE = "resolve"
+# for a verb. Settled against coordination.py at 05b8aebe: `CORE` is that
+# table, each entry taking a store handle and the resolved participant,
+# while `VERBS` beside it holds the CLI wrappers and is the wrong layer
+# for this server. The participant resolver is `bound_participant`, not a
+# verb, so the wire name `resolve` is the message verb alone.
+CORE_TABLE = "CORE"
+CORE_RESOLVE = "bound_participant"
+CORE_WRITER = "writer"
+CORE_READER = "reader"
 PARTICIPANTS_VERB = "participants"
 INSTRUCTIONS = (
     "Acting server: these tools change durable state. Every mutation needs a "
@@ -164,10 +168,12 @@ CATALOGUE = (
          "Requests and findings not yet resolved."),
     Tool("coord_observe", "observe", True,
          {"assignment": _text(), "observation": _text(), "revision": _text(),
-          "generation": _INT, "execution": _text(), "artifact": _text(),
-          "requirement": _text(), "environment": _text()},
+          "generation": _INT, "stale": _BOOL, "execution": _text(),
+          "artifact": _text(), "requirement": _text(), "environment": _text()},
          ("assignment", "observation", "revision", "generation"),
-         "Record an observation against an assignment and a revision."),
+         "Record an observation against an assignment and a revision. The core "
+         "refuses class revision when the assignment has moved on, and `stale` "
+         "is the caller saying so on purpose."),
 )
 BY_NAME = {tool.name: tool for tool in CATALOGUE}
 
@@ -296,9 +302,21 @@ def _verb(core, wire: str):
 
 # -- the binding -----------------------------------------------------------
 
-def _participant_rows(core):
+def _store(core, tool: Tool):
+    """The store handle the core hands out: a writer for a mutation, a
+    reader for a read. The core owns the store; this server opens none."""
+    name = CORE_WRITER if tool.mutates else CORE_READER
+    opener = getattr(core, name, None)
+    if not callable(opener):
+        refuse("state", f"the core's store opener `{name}`",
+               "absent from coordination.py",
+               f"land `{name}` in the core")
+    return opener()
+
+
+def _participant_rows(core, conn):
     """Every participant the core holds; a read, so it needs no binding."""
-    return _verb(core, PARTICIPANTS_VERB)()
+    return _verb(core, PARTICIPANTS_VERB)(conn, None)
 
 
 def _row_named(rows, wanted: str):
@@ -339,8 +357,9 @@ def resolve_binding(config, tool: Tool):
         # The row must exist before anything else is said about it: a
         # config naming a participant the core does not hold is a
         # different fault from the slice-one bind gap, and reads as one.
+        core = _core()
         named = config["participant"]
-        if _row_named(_participant_rows(_core()), named) is None:
+        if _row_named(_participant_rows(core, _store(core, tool)), named) is None:
             refuse("participant", f"a participant row for {named}",
                    "the core holds none",
                    "bind the participant before issuing this config")
@@ -363,12 +382,14 @@ def resolve_binding(config, tool: Tool):
     # The participant resolver is a module function, not a verb: it
     # refuses class session or participant itself, and those refusals
     # surface unchanged.
-    resolver = getattr(_core(), CORE_RESOLVE, None)
+    core = _core()
+    resolver = getattr(core, CORE_RESOLVE, None)
     if not callable(resolver):
         refuse("state", f"the core's participant resolver `{CORE_RESOLVE}`",
                "absent from coordination.py",
                "land the participant resolution of package B")
-    return resolver()
+    conn = _store(core, tool)
+    return conn, resolver(conn)
 
 
 # -- arguments -------------------------------------------------------------
@@ -434,9 +455,9 @@ def call(config, name, arguments) -> dict:
     check_named_authority(tool, arguments)
     check_capability(config, tool)
     checked = check_arguments(tool, arguments)
-    binding = resolve_binding(config, tool)
+    conn, participant = resolve_binding(config, tool)
     verb = _verb(_core(), tool.verb)
-    return bounded(verb(binding, **checked))
+    return bounded(verb(conn, participant, **checked))
 
 
 # -- the transport ---------------------------------------------------------

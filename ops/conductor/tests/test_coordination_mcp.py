@@ -102,6 +102,8 @@ GENERATION_TOOLS = (
     "coord_claim", "coord_release", "coord_submit", "coord_verify",
     "coord_return", "coord_accept", "coord_observe",
 )
+# coord_observe also carries the core's explicit stale flag (05b8aebe).
+STALE_TOOL = "coord_observe"
 # Every paged read carries an explicit cursor (X#3).
 PAGED_TOOLS = ("coord_assignments", "coord_inbox", "coord_outstanding")
 
@@ -152,11 +154,13 @@ class Subject:
         return self.world.plant_text(self.path.parent / "coordination.py", body)
 
 
-# The core exposes its verbs through a table keyed by wire name, and the
-# participant resolver is a module function that is not a verb (X#1).
-# The stub keeps both, with different bodies, so a projection that looked
-# the verb up on the module would call the resolver and fail the case.
-STUB_CORE = '''"""A stand-in for the coordination core: a verb table and a resolver."""
+# The contract-verified mock of the core, in the shape coordination.py
+# carries at 05b8aebe: CORE keyed by wire name, each entry taking a store
+# handle and the resolved participant; VERBS beside it for the CLI, which
+# is the wrong layer for this server and is planted here so a projection
+# that reached for it fails; and bound_participant, the resolver, which
+# is not a verb, so the wire name `resolve` is the message verb alone.
+STUB_CORE = '''"""A stand-in for the coordination core, in its 05b8aebe shape."""
 
 
 class Refusal(Exception):
@@ -167,8 +171,16 @@ def _answer(verb, participant, arguments):
     return {"verb": verb, "participant": participant, "arguments": arguments}
 
 
-def resolve():
-    """The participant resolver. Not a verb, and not in the table.
+def writer():
+    return {"store": "writer"}
+
+
+def reader():
+    return {"store": "reader"}
+
+
+def bound_participant(conn):
+    """The participant resolver. Not a verb, and not in CORE.
 
     It reads the session id from its own environment, as
     instrument.session() does; echoing it proves the id reached this
@@ -177,45 +189,48 @@ def resolve():
     import os
 
     return {"participant": "PT-1", "roles": ["lead", "worker"],
-            "session": os.environ.get("CLAUDE_CODE_SESSION_ID", "")}
+            "store": conn, "session": os.environ.get("CLAUDE_CODE_SESSION_ID", "")}
 
 
-def _brief(participant, **arguments):
+def _brief(conn, participant, **arguments):
     return _answer("brief", participant, arguments)
 
 
-def _submit(participant, **arguments):
+def _submit(conn, participant, **arguments):
     return _answer("submit", participant, arguments)
 
 
-def _message_resolve(participant, **arguments):
+def _message_resolve(conn, participant, **arguments):
     """The core's message verb. Shares its wire name with the resolver
     above and must never be confused with it."""
     return _answer("message-resolve", participant, arguments)
 
 
-def _participants():
+def _participants(conn, participant, **arguments):
     return [{"id": "PT-7", "roles": ["worker"]}]
 
 
-def _assignments(participant, **arguments):
+def _assignments(conn, participant, **arguments):
     return {"verb": "assignments", "rows": ["x" * 512 for _ in range(64)]}
 
 
-VERBS = {
+CORE = {
     "brief": _brief,
     "submit": _submit,
     "resolve": _message_resolve,
     "participants": _participants,
     "assignments": _assignments,
 }
+
+# The CLI wrappers live beside the table and are not this server's layer.
+VERBS = {"brief": lambda *a, **k: {"verb": "the-cli-wrapper"}}
 '''
 
 # A core whose table is there but whose participant list holds nobody.
 STUB_CORE_NO_ROWS = STUB_CORE.replace(
     'return [{"id": "PT-7", "roles": ["worker"]}]', "return []")
 # A core that is present but exposes no verb table at all.
-STUB_CORE_NO_TABLE = STUB_CORE.replace("VERBS = {", "NOT_THE_TABLE = {")
+STUB_CORE_NO_TABLE = STUB_CORE.replace("CORE = {", "NOT_THE_TABLE = {")
 
 
 def answer(answers, identifier=None):
@@ -662,10 +677,32 @@ class CoordinationMcpCore(unittest.TestCase):
             result = subject.run("call", "coord_brief", session=SESSION)
             refusal = refusal_wire(
                 RefusalCase(id="table-absent", argv=(), cls="state",
-                            named=("VERBS",),
+                            named=("CORE",),
                             origin="X#1 and the seam ruling, 2026-09-16"),
                 result)
-            self.assertIn("VERBS", refusal.line)
+            self.assertIn("CORE", refusal.line)
+
+    def test_the_cli_wrapper_table_is_not_this_server_s_layer(self):
+        """The core keeps VERBS beside CORE for its own CLI. A projection
+        that reached for it would call a wrapper that prints and exits."""
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE)
+            result = subject.run("call", "coord_brief", session=SESSION)
+            self.assertEqual(result.exit, 0, result.stderr)
+            self.assertNotEqual(payload(result).get("verb"), "the-cli-wrapper")
+
+    def test_the_store_handle_reaches_the_verb(self):
+        """The core owns the store; this server opens none and passes the
+        handle the core gave it, a writer for a mutation and a reader for
+        a read (05b8aebe)."""
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE)
+            result = subject.run("call", "coord_brief", session=SESSION)
+            self.assertEqual(
+                payload(result).get("participant", {}).get("store"),
+                {"store": "reader"})
 
     def test_a_verb_absent_from_the_table_refuses_state_and_names_it(self):
         with World() as world:

@@ -224,7 +224,7 @@ two core transitions into one tool.
 | `coord_ack` | `ack` | yes | the recipient | acknowledgment never closes the obligation |
 | `coord_resolve` | `resolve` | yes | the recipient, or the holder of the named assignment | the obligation answered, separately from the ack |
 | `coord_outstanding` | `outstanding` | no | any bound participant | requests and findings not yet resolved |
-| `coord_observe` | `observe` | yes | producer | an observation against an assignment and a revision; it carries `generation` like every other assignment write |
+| `coord_observe` | `observe` | yes | producer | an observation against an assignment and a revision; it carries `generation` like every other assignment write, and an explicit `stale` flag, because the core refuses class `revision` when the assignment has moved on and `stale` is the caller saying so on purpose |
 
 **The order a call is judged in**: the tool must be one this server carries; the request must not name its own authority, which is malformed whoever asks; the binding's capability list must carry the tool; the arguments must match the closed schema; the binding resolves; the core verb must exist. The capability is judged before the arguments because it is about the tool and not its shape, and the capability refusal says so in its remedy.
 
@@ -357,7 +357,7 @@ it is named and sent to the Lead for a wall session, never written here.
 
 | edge | counterparty | how it is verified |
 |---|---|---|
-| core | `coordination.py` (package B) | contract-verified; a mock implementing the core's contract stands in while it is built |
+| core | `coordination.py` (package B) at `05b8aebe` | contract-verified. The core exposes `CORE`, one function per verb keyed by wire name, each taking a store handle and the resolved participant; `VERBS` beside it is the CLI's own layer and this server never reaches for it. The resolver is `bound_participant`, which is not a verb, so the wire name `resolve` is the message verb alone. The store is opened by the core's `writer()` for a mutation and `reader()` for a read: this server opens none. A mock in that shape stands in for the tests |
 | state | the lane state store through the core | the core's own gate; this server originates no schema |
 | launcher | `launch.py` verbs, slice two only | the launcher's records are the counterparty; reconciliation is proven on planted crashes |
 | read server | none | independence is the claim: `lane_mcp.py` is not imported, and its suite is green before and after |
