@@ -29,7 +29,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py submit A-n --evidence READING --revision SHA --generation N
     coordination.py verify A-n --candidate SHA --evidence READING --generation N
     coordination.py return A-n --findings REF --generation N
-    coordination.py accept A-n --evidence READING --generation N
+    coordination.py accept A-n --evidence READING --generation N [--exception TEXT]
     coordination.py reopen A-n --revision SHA --why TEXT --generation N
     coordination.py supersede A-n --by A-m --generation N
     coordination.py assignments [--state S] [--to WHO] [--mine] | show A-n|M-n
@@ -48,6 +48,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py decision DC-n | decisions [--open]
     coordination.py reserve NAME --for A-n [--ttl MIN] | free NAME --why TEXT | resources
     coordination.py coverage [--requirement REF] | brief
+    coordination.py entry [--role R]
 
 Reads need no identity and no participant and never create the store.
 """
@@ -87,6 +88,82 @@ except ModuleNotFoundError:
 
 LOCK = "deliverable.json"
 ROLES = ("lead", "coordinator", "dispatcher", "worker", "verifier")
+ENTRY = {
+    "lead": (
+        "decide what is asked, accept what the evidence carries",
+        (
+            "read coverage: requirement, candidate, examination, acceptance or the gap",
+            "decide an open question from its own row, with the alternatives it names",
+            ("accept only what the gate allows, and record a permitted exception "
+             "in the acceptance rather than leaving it unsaid"),
+        ),
+        (
+            "coverage",
+            "decisions --open",
+            "decide DC-n --choice TEXT --rationale TEXT",
+            "accept A-n --evidence READING --generation N",
+        ),
+    ),
+    "coordinator": (
+        "place the work and clear what blocks it",
+        (
+            "read the open assignments and the resources they contend for",
+            "offer work to a participant, and reassign what a blocked holder cannot move",
+            "clear a dependency before it becomes a stall, and say so in the row",
+        ),
+        (
+            "assignments --state open",
+            "resources",
+            "offer A-n --to WHO --generation N",
+            "reassign A-n --to WHO --why TEXT --generation N",
+        ),
+    ),
+    "dispatcher": (
+        "launch against held work and reconcile what is uncertain",
+        (
+            "read what is outstanding before launching anything",
+            "launch against an assignment a participant holds, never against a title",
+            "reconcile a launch whose outcome is uncertain rather than launching again",
+        ),
+        (
+            "outstanding",
+            "assignments --state held",
+            ("observe A-n --observation TEXT --revision SHA --generation N "
+             "--execution REC"),
+        ),
+    ),
+    "worker": (
+        "recover your obligations, then move the work you hold",
+        (
+            ("read the brief: what you hold, what runs against it, what is owed "
+             "both ways, what is open, and whether your evidence still applies"),
+            "claim what is offered on a branch the deliverable lock names",
+            "observe what the work measures, and submit the candidate with its revision",
+            "ask rather than guess; a question is a row, not a message in a transcript",
+        ),
+        (
+            "brief",
+            "claim A-n --branch BRANCH --generation N",
+            "observe A-n --observation TEXT --revision SHA --generation N",
+            "submit A-n --evidence READING --revision SHA --generation N",
+            "ask --question TEXT --alternatives TEXT",
+        ),
+    ),
+    "verifier": (
+        "examine a candidate against the requirement's own words",
+        (
+            "read coverage for the requirement, not for the title",
+            "examine the candidate you did not produce; a role label is not independence",
+            "observe what you found, then verify it or return it with the findings",
+        ),
+        (
+            "coverage --requirement REF",
+            "observations A-n --all",
+            "verify A-n --candidate SHA --evidence READING --generation N",
+            "return A-n --findings REF --generation N",
+        ),
+    ),
+}
 PURPOSES = ("inform", "request", "finding")
 OBLIGATIONS = ("request", "finding")
 ID = re.compile(r"^(PT|DC|A|M|E|R)-(\d+)$")
@@ -315,6 +392,22 @@ def bound_participant(conn):
         refuse("participant", "a participant bound to this session", key,
                "bind --roles ROLE[,ROLE] first")
     return row
+
+
+def maybe_participant(conn):
+    """The participant of this session, or None, without refusing.
+
+    Every other read resolves through bound_participant, which refuses a
+    session that has not bound. `entry` is the read a session takes
+    before it can bind, so it asks this instead (coordination-roles.md
+    §The entry points).
+    """
+    key = session("")
+    if not key or conn is None:
+        return None
+    return conn.execute(
+        "SELECT * FROM participants WHERE session_id = ?", (key,)
+    ).fetchone()
 
 
 def same_session(conn, part):
@@ -576,6 +669,7 @@ def observation_dict(row) -> dict:
 def decision_dict(row) -> dict:
     return {
         "decision": f"DC-{row['id']}", "id": row["id"], "question": row["question"],
+        "asked_by": f"PT-{row['asked_by']}",
         "alternatives": row["alternatives"], "counter": row["counter"],
         "unknowns": row["unknowns"], "consequence": row["consequence"],
         "choice": row["choice"], "rationale": row["rationale"],
@@ -1024,14 +1118,67 @@ def core_return(conn, part, *, agent, assignment, findings, generation) -> dict:
     return assignment_dict(assignment_row(conn, aid))
 
 
-def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
+def acceptance_evidence(conn, row, *, exception=None) -> dict:
+    """AC-10: a missing examination and stale evidence both stop an
+    acceptance that nothing supports.
+
+    Read against the applicable revision, which is the candidate the
+    assignment stands at. An observation of an earlier candidate is
+    history: `reopen` stales what was read against the revision it
+    replaced, and holding that against the new candidate would make an
+    assignment unacceptable for ever. What refuses is a reading of *this*
+    candidate that has gone stale — something moved under evidence that
+    was supposed to cover what is being accepted.
+
+    An observation carries its own requirement or none; one taken against
+    the assignment as a whole counts for the requirement the assignment
+    names, and one taken against a different requirement does not.
+
+    `exception` is the Lead's explicitly permitted exception (objective
+    §11). It does not lift the gate quietly: the acceptance records it,
+    and `show` reads it back beside the transition.
+    """
+    applicable = row["revision"]
+    observations = conn.execute(
+        "SELECT * FROM observations WHERE assignment = ? ORDER BY id", (row["id"],)
+    ).fetchall()
+    of_candidate = [entry for entry in observations
+                    if not applicable or entry["revision"] == applicable]
+    required = row["requirement"]
+    current = [entry for entry in of_candidate
+               if entry["applicability"] == "current"
+               and (not required or entry["requirement"] in (None, required))]
+    stale = [entry for entry in of_candidate if entry["applicability"] == "stale"]
+    if not current and exception is None:
+        refuse("evidence",
+               f"an examination of {required or 'the outcome'} at the applicable "
+               f"revision {applicable or 'unstated'}",
+               f"none of the {len(observations)} observation(s) of A-{row['id']}",
+               "an independent observation of this candidate before acceptance, "
+               "or a permitted exception recorded with --exception")
+    if stale and exception is None:
+        refuse("evidence",
+               f"every observation of {applicable} current at acceptance",
+               f"{len(stale)} stale: "
+               + (stale[0]["stale_reason"] or "reason unstated"),
+               "reassess the changed candidate, or record a permitted exception "
+               "with --exception")
+    return {"current": len(current), "stale": len(stale)}
+
+
+def core_accept(conn, part, *, agent, assignment, evidence, generation,
+                exception=None) -> dict:
     part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     evidence = reading(evidence, "the acceptance")
+    if exception is not None and not exception.strip():
+        refuse("arguments", "words in --exception", "an exception with no words",
+               "say what the permitted exception is, or leave the option out")
     row = assignment_row(conn, aid)
     require_generation(row, generation)
     require_role(part, ("lead",))
     not_the_producer(part, row, "accepts")
+    standing = acceptance_evidence(conn, row, exception=exception)
 
     def gate(_subject):
         live = assignment_row(conn, aid)
@@ -1039,8 +1186,13 @@ def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
         conn.execute("UPDATE assignments SET accepted_by = ? WHERE id = ?",
                      (part["id"], aid))
 
-    advance(conn, aid, "accept", part, evidence=evidence, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    advance(conn, aid, "accept", part, evidence=evidence, gate=gate,
+            note=f"exception: {exception.strip()}" if exception else None)
+    shown = assignment_dict(assignment_row(conn, aid))
+    shown["evidence"] = standing
+    if exception:
+        shown["exception"] = exception.strip()
+    return shown
 
 
 def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> dict:
@@ -1501,9 +1653,77 @@ def core_coverage(conn, part, *, requirement=None) -> dict:
     return {"coverage": coverage}
 
 
+def dispatch_store():
+    """The dispatcher's store, read here and never written."""
+    return state_dir() / "dispatch"
+
+
+def executions_of(held) -> dict:
+    """The live dispatch records for the work this participant holds.
+
+    Joined by the assignment id the record's lineage carries, and, while
+    the dispatcher writes no id, by the branch the claim named — every
+    record in the store today carries `lineage.branch` and no assignment
+    (20260916T113912Z-review-claude-5a8da1). The store belongs to another
+    instrument, so a brief that could not open it says so: `none` for a
+    store that is not there would read as a participant with nothing
+    running (docs/wire.md, absence discipline).
+    """
+    root = dispatch_store()
+    if not root.is_dir():
+        return {"executions": None, "executions_store": "absent",
+                "executions_reason": f"no dispatch store at {root}"}
+    try:
+        directories = sorted(root.iterdir())
+    except OSError as exc:
+        return {"executions": None, "executions_store": "unreadable",
+                "executions_reason": f"{root}: {exc.strerror or exc}"}
+    by_id = {row["assignment"]: row for row in held}
+    by_branch = {row["branch"]: row for row in held if row["branch"]}
+    found, unreadable = [], []
+    for directory in directories:
+        path = directory / "record.json"
+        if not path.is_file():
+            continue
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            unreadable.append(directory.name)
+            continue
+        if not isinstance(record, dict):
+            unreadable.append(directory.name)
+            continue
+        lineage = record.get("lineage")
+        lineage = lineage if isinstance(lineage, dict) else {}
+        row = by_id.get(lineage.get("assignment"))
+        joined = "the assignment id in its lineage"
+        if row is None:
+            row = by_branch.get(lineage.get("branch"))
+            joined = "the branch its lineage names"
+        if row is None:
+            continue
+        found.append({
+            "execution": record.get("id") or directory.name,
+            "assignment": row["assignment"],
+            "status": record.get("status") or "unstated",
+            "job": record.get("job"), "role": record.get("role"),
+            "at": record.get("at"), "base_sha": lineage.get("base_sha"),
+            "joined_by": joined,
+        })
+    reading = {"executions": found, "executions_store": "read"}
+    if unreadable:
+        reading["executions_unreadable"] = unreadable
+    return reading
+
+
 def core_brief(conn, part) -> dict:
     """What a restarted or compacted participant reads to recover its
-    obligations (AC-12): held work, unresolved inbox, open decisions."""
+    obligations (AC-12), in five readings: the assignments it holds, the
+    executions live against them, the requests owed in both directions,
+    the open decision rows themselves, and whether its own evidence still
+    applies. A count is not something a restarted session can act on, so
+    the decisions and the observations are rows here; the counts stay
+    beside them for the readers that had only counts."""
     part = same_session(conn, part)
     if conn is None:
         return no_store(brief=None)
@@ -1518,18 +1738,86 @@ def core_brief(conn, part) -> dict:
     decisions = conn.execute(
         "SELECT * FROM decisions WHERE decided_at IS NULL ORDER BY id"
     ).fetchall()
-    stale = conn.execute(
-        "SELECT COUNT(*) AS n FROM observations WHERE producer = ? "
-        "AND applicability = 'stale'", (part["id"],)
-    ).fetchone()["n"]
-    return {
+    observations = conn.execute(
+        "SELECT * FROM observations WHERE producer = ? ORDER BY id", (part["id"],)
+    ).fetchall()
+    stale = [row for row in observations if row["applicability"] == "stale"]
+    holdings = [assignment_dict(row) for row in held]
+    obligations = [row for row in messages if row["purpose"] in OBLIGATIONS]
+    shown = {
         "participant": participant_dict(part),
-        "held": [assignment_dict(row) for row in held],
+        "held": holdings,
         "unresolved": [message_dict(row) for row in messages
                        if addressed(part, row["recipient"])],
+        "owed": [message_dict(row) for row in obligations
+                 if addressed(part, row["recipient"])],
+        "awaited": [message_dict(row) for row in obligations
+                    if row["sender"] == part["id"]],
+        "decisions": [decision_dict(row) for row in decisions],
         "decisions_open": len(decisions),
-        "observations_stale": stale,
+        "evidence": {
+            "current": [observation_dict(row) for row in observations
+                        if row["applicability"] == "current"],
+            "stale": [observation_dict(row) for row in stale],
+        },
+        "observations_stale": len(stale),
     }
+    shown.update(executions_of(holdings))
+    return shown
+
+
+def core_entry(conn, part, *, role=None) -> dict:
+    """What a session of this role does first, here, now.
+
+    Three parts, and each is a reading rather than a recital: the role's
+    duties, the state this session is in, and the next steps with the
+    argument each verb needs. It never refuses an absent store — a
+    participant that cannot bind yet is the reader this verb exists for
+    — and it never refuses for want of an identity, because it writes
+    nothing (docs/wire.md: a layer able to refuse a read is itself a
+    finding).
+    """
+    part = same_session(conn, part)
+    if role is not None and role not in ROLES:
+        refuse("arguments", "a known role", role, "one of " + ", ".join(ROLES))
+    if role:
+        named = [role]
+    elif part is not None:
+        named = [name for name in ROLES if name in part["roles"].split(",")]
+    else:
+        named = list(ROLES)
+    state = {"bound": part is not None, "store": "read" if conn is not None else "absent"}
+    if part is not None:
+        state["participant"] = f"PT-{part['id']}"
+        state["roles"] = part["roles"]
+        state["held"] = conn.execute(
+            "SELECT COUNT(*) AS n FROM assignments a JOIN subjects s ON s.id = a.id "
+            "WHERE a.holder = ? AND s.place NOT IN ('accepted', 'superseded')",
+            (part["id"],),
+        ).fetchone()["n"]
+        messages = conn.execute(
+            "SELECT m.*, s.place FROM messages m JOIN subjects s ON s.id = m.id "
+            "WHERE s.place = 'open' ORDER BY m.id"
+        ).fetchall()
+        obligations = [row for row in messages if row["purpose"] in OBLIGATIONS]
+        state["owed"] = len([row for row in obligations
+                             if addressed(part, row["recipient"])])
+        state["awaited"] = len([row for row in obligations
+                                if row["sender"] == part["id"]])
+        state["decisions_open"] = conn.execute(
+            "SELECT COUNT(*) AS n FROM decisions WHERE decided_at IS NULL"
+        ).fetchone()["n"]
+    blocks = []
+    for name in named:
+        headline, duties, steps = ENTRY[name]
+        first = list(steps)
+        if part is None or name not in part["roles"].split(","):
+            first.insert(0, f"bind --roles {name}")
+        blocks.append({"role": name, "headline": headline,
+                       "duties": list(duties), "next": first})
+    return {"state": state, "roles": blocks,
+            "contract": "ops/conductor/coordination-roles.md",
+            "ladder": "ops/conductor/coordination-lever.md"}
 
 
 CORE = {
@@ -1549,7 +1837,7 @@ CORE = {
     "observations": core_observations, "ask": core_ask, "answer": core_answer,
     "decide": core_decide, "decision": core_decision, "decisions": core_decisions,
     "reserve": core_reserve, "free": core_free, "resources": core_resources,
-    "coverage": core_coverage, "brief": core_brief,
+    "coverage": core_coverage, "brief": core_brief, "entry": core_entry,
 }
 
 
@@ -1718,11 +2006,16 @@ def do_return(rest):
 
 def do_accept(rest):
     agent = identity()
-    (raw,), opts = parse(rest, 1, required=("evidence", "generation"))
+    (raw,), opts = parse(rest, 1, required=("evidence", "generation"),
+                         optional=("exception",))
     with writer() as conn:
         shown = CORE["accept"](conn, bound_participant(conn), agent=agent, assignment=raw,
-                               evidence=opts["evidence"], generation=opts["generation"])
-    print(f"accepted {shown['assignment']} by {shown['accepted_by']}")
+                               evidence=opts["evidence"], generation=opts["generation"],
+                               exception=opts.get("exception"))
+    line = f"accepted {shown['assignment']} by {shown['accepted_by']}"
+    if shown.get("exception"):
+        line += f", under a recorded exception: {shown['exception']}"
+    print(line)
 
 
 def do_reopen(rest):
@@ -2075,8 +2368,67 @@ def do_brief(rest):
         print(f"  {message_line(row)}")
     if not shown["unresolved"]:
         print("  none")
-    print(f"decisions open: {shown['decisions_open']}")
-    print(f"observations of mine gone stale: {shown['observations_stale']}")
+    if shown["executions"] is None:
+        print(f"executions: could not look — {shown['executions_reason']}")
+    elif not shown["executions"]:
+        print("executions: none")
+    else:
+        print("executions:")
+        for row in shown["executions"]:
+            print(f"  {row['execution']} {row['status']} for {row['assignment']}"
+                  f" ({row['job'] or 'job unstated'}, joined by {row['joined_by']})")
+    for label, rows in (("requests owed by me", shown["owed"]),
+                        ("requests I am waiting on", shown["awaited"])):
+        if not rows:
+            print(f"{label}: none")
+            continue
+        print(f"{label}:")
+        for row in rows:
+            state = "acknowledged, not resolved" if row["acked_at"] else "not acknowledged"
+            print(f"  {row['message']} {row['purpose']} from {row['sender']} "
+                  f"to {row['recipient']}: {row['body']} ({state})")
+    if not shown["decisions"]:
+        print("decisions open: none")
+    else:
+        print("decisions open:")
+        for row in shown["decisions"]:
+            print(f"  {row['decision']} asked by {row['asked_by']}"
+                  f": {row['question']} ({row['alternatives']})")
+    evidence = shown["evidence"]["current"] + shown["evidence"]["stale"]
+    if not evidence:
+        print("evidence of mine: none")
+    else:
+        print("evidence of mine:")
+        for row in shown["evidence"]["current"]:
+            print(f"  {row['observation']} current at {row['revision']}: {row['text']}")
+        for row in shown["evidence"]["stale"]:
+            print(f"  {row['observation']} stale: taken at {row['revision']}, "
+                  f"{row['stale_reason'] or 'reason unstated'}")
+    return EXIT_DONE
+
+
+def do_entry(rest):
+    _, opts = parse(rest, 0, optional=("role",))
+    conn = reader()
+    shown = CORE["entry"](conn, maybe_participant(conn), role=opts.get("role"))
+    state = shown["state"]
+    print("entry point for the coordination lane")
+    if state["bound"]:
+        print(f"state: bound as {state['participant']}, roles {state['roles']}; "
+              f"{state['held']} assignment held, {state['owed']} request owed by me, "
+              f"{state['awaited']} awaited, {state['decisions_open']} decision open")
+    else:
+        print("state: not bound in this session; the store is "
+              + ("read" if state["store"] == "read" else "absent"))
+    for block in shown["roles"]:
+        print(f"{block['role']} — {block['headline']}")
+        print("  duties:")
+        for line in block["duties"]:
+            print(f"    - {line}")
+        print("  next:")
+        for line in block["next"]:
+            print(f"    - {line}")
+    print(f"contract: {shown['contract']}; the ladder it stands on: {shown['ladder']}")
     return EXIT_DONE
 
 
@@ -2096,7 +2448,7 @@ VERBS = {
     "observations": do_observations, "ask": do_ask, "answer": do_answer,
     "decide": do_decide, "decision": do_decision, "decisions": do_decisions,
     "reserve": do_reserve, "free": do_free, "resources": do_resources,
-    "coverage": do_coverage, "brief": do_brief,
+    "coverage": do_coverage, "brief": do_brief, "entry": do_entry,
 }
 
 

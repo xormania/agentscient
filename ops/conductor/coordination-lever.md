@@ -408,7 +408,7 @@ reconciliation the caller still owes.
 | `submit A-n --evidence READING --revision SHA --generation N` | the candidate |
 | `verify A-n --candidate SHA --evidence READING --generation N` | an independent verifier's pass: the candidate it ran against and a reading of the run |
 | `return A-n --findings REF --generation N` | back to the holder |
-| `accept A-n --evidence READING --generation N` | the lead's acceptance |
+| `accept A-n --evidence READING --generation N [--exception TEXT]` | the lead's acceptance |
 | `reopen A-n --revision SHA --why TEXT --generation N` | a changed candidate; stales the observations |
 | `supersede A-n --by A-m --generation N` | an offered assignment replaced |
 | `assignments [--state S] [--to WHO] [--mine]` | one line each, oldest first |
@@ -433,6 +433,7 @@ reconciliation the caller still owes.
 | `resources` | one line per resource and its holder |
 | `coverage [--requirement REF]` | requirement → assignment → candidate → observation → verification → acceptance or gap |
 | `brief` | this session's bounded picture: held assignments, unresolved inbox, open decisions, stale observations |
+| `entry [--role R]` | what a session of each role does first: duties, this session's state, the next steps (`coordination-roles.md`) |
 
 `brief` is what a restarted or compacted participant reads to recover
 its obligations (AC-12). Reads print `no store` and exit 0 when the
