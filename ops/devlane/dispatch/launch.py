@@ -604,7 +604,12 @@ LANE_MCP_TOOLS = ("lane_brief", "lane_jobs", "lane_changes", "lane_findings",
 LANE_MCP_REL = Path("ops/conductor/tools/lane_mcp.py")
 LANE_MCP_ABSENT = {"unresolved": "snapshot has no ops/conductor/tools/lane_mcp.py"}
 COORD_MCP_SERVER = "coordination"
-COORD_MCP_REL = Path("ops/conductor/tools/coordination_mcp.py")
+# The launcher's own tree, never the worker's snapshot: this script's
+# `import coordination` resolves from `sys.path[0]`, its own directory, so
+# running it from a path the worker can write would let a worker-rewritten
+# core answer with the dispatcher's own authority (finding 1 of
+# 20260916T151749Z-review-codex-ef6db7).
+COORD_MCP_PINNED = APP.parents[1] / "conductor" / "tools" / "coordination_mcp.py"
 COORD_MCP_CONFIG_VERSION = 1
 # The capability list is declared here and proved against the server's own
 # catalogue by a case, rather than read out of the server at launch: the
@@ -622,7 +627,8 @@ COORD_MCP_TOOLS = (
 # and are named here rather than left to read as "nothing to wire".
 COORD_MCP_HARNESSES = ("codex",)
 COORD_MCP_ABSENT = {
-    "unresolved": "snapshot has no ops/conductor/tools/coordination_mcp.py"}
+    "unresolved": "the launcher's own tree has no "
+                  "ops/conductor/tools/coordination_mcp.py"}
 COORD_MCP_UNBOUND = {
     "unresolved": "the dispatch named no assignment, so the core bound no "
                   "participant for this worker to act as"}
@@ -713,7 +719,7 @@ def _coordination_mcp(job_dir, snapshot, harness, job_id, participant,
         return {"unresolved": f"the acting server is wired for "
                               f"{', '.join(COORD_MCP_HARNESSES)} today; this "
                               f"dispatch is {harness}"}, None
-    tool = Path(snapshot) / COORD_MCP_REL
+    tool = COORD_MCP_PINNED
     if not tool.is_file():
         return dict(COORD_MCP_ABSENT), None
     if not participant:
@@ -788,9 +794,23 @@ def _relocate_coordination(rec, job_dir, relocated_from):
     job_dir = Path(job_dir)
     cfg = job_dir / "coordination-mcp.json"
     prior = Path(coord["config"])
-    if prior != cfg and prior.is_file() and not cfg.exists():
+    # A whole job directory moved by shutil already carries this file to
+    # `cfg`; `prior`, the path the record wrote at dispatch time, is gone.
+    # Only a config that reached the new job by some other route is copied
+    # here — either way the JSON below is read from `cfg`, never `prior`,
+    # so its `worktree` field is rebased whichever way it arrived.
+    if not cfg.is_file() and prior != cfg and prior.is_file():
         cfg.write_text(prior.read_text(encoding="utf-8"), encoding="utf-8")
     if cfg.is_file():
+        try:
+            data = json.loads(cfg.read_text(encoding="utf-8"))
+        except ValueError:
+            data = None
+        if (isinstance(data, dict)
+                and isinstance(data.get("worktree"), str) and relocated_from):
+            data["worktree"] = data["worktree"].replace(
+                relocated_from, str(job_dir))
+            cfg.write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
         coord["config"] = str(cfg.resolve())
         coord["sha256"] = _sha(cfg)
     server = coord.get("server")

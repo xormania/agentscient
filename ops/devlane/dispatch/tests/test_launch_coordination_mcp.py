@@ -32,8 +32,11 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import uuid
+from pathlib import Path
 
 import launch_support as ls
 
@@ -114,6 +117,43 @@ class _Acting(ls.CoordinationCore, ls._TempLaunch):
 
     def acting(self, rec):
         return (rec.get("brief") or {}).get("coordination") or {}
+
+
+class TheActingServerIsSourcedFromThePinnedTreeNotTheSnapshot(_Acting):
+    """Finding 1 of 20260916T151749Z-review-codex-ef6db7.
+
+    `_coordination_mcp` read its server from the worker's own snapshot
+    (`Path(snapshot) / COORD_MCP_REL`), and that script's own `import
+    coordination` resolves from `sys.path[0]`, its own directory — the
+    same worker-writable tree. A worker that rewrote either file before
+    the server started would have the acting server, and everything it
+    does with the dispatcher's own authority, run its own code instead.
+    The Lead's ruling: the server runs from a path the worker cannot
+    write, the launcher's pinned tree rather than the snapshot.
+    """
+
+    def test_a_worker_owned_tree_on_the_snapshot_is_not_the_source(self):
+        """Red at ec736ffa/6213c35a: the planted worker-owned file is
+        exactly the one the server argv names and runs.
+
+        Planted fault: revert `_coordination_mcp`'s `tool` to
+        `Path(snapshot) / COORD_MCP_REL` and this fails again.
+        """
+        poison = "\n# a worker-owned line, never trusted: POISON-1\n"
+        self._write("ops/conductor/tools/coordination_mcp.py",
+                    ACTING.read_text(encoding="utf-8") + poison)
+        self._commit("plant a worker-owned coordination_mcp.py")
+        rec, _witness, _aid = self.dispatched()
+        server = self.acting(rec)["server"]
+        script = Path(server[2])
+        self.assertTrue(script.is_file(), f"the server names no file: {server!r}")
+        self.assertNotIn(
+            "POISON-1", script.read_text(encoding="utf-8"),
+            f"the acting server ran the worker's own planted tree: {script}")
+        self.assertEqual(
+            script.resolve(), ACTING.resolve(),
+            f"the acting server did not source from the launcher's own "
+            f"pinned tree: {server!r}")
 
 
 class TheEdgeToTheActingServerIsDeclaredAndChecked(_Acting):
@@ -220,6 +260,120 @@ class ADispatchThatBoundNothingWiresNothing(_Acting):
         self.assertNotIn(f"mcp_servers.{SERVER}", argv)
         self.assertIn(f"mcp_servers.{LANE_KEY}", argv,
                       "the lane server was dropped along with the acting one")
+
+
+class TheActingBindingResolvesTheDispatchedWorkersOwnSession(_Acting):
+    """Finding 2 of 20260916T151749Z-review-codex-ef6db7.
+
+    `resolve_binding` found the participant row a config named and then
+    refused unconditionally, citing the slice-one gap (contract section 9,
+    divergence 1) — but package B's core verb, `core_bind_for`, had already
+    landed at b1d868b0, so the worker `bind-for` minted a participant for
+    could never call a verb through the very config the launcher wrote it.
+    The fix checks the row's session against the caller's own rather than
+    refusing every config-bound call outright.
+    """
+
+    def call(self, config_path, session_id, tool="coord_brief", arguments=None):
+        env = dict(os.environ)
+        env["WF_AGENT"] = ls.FIXTURE_DISPATCHER
+        if session_id is None:
+            env.pop(ls.SESSION_KEY, None)
+        else:
+            env[ls.SESSION_KEY] = session_id
+        return subprocess.run(
+            [sys.executable, str(ACTING), "--config", str(config_path),
+             "call", tool, json.dumps(arguments or {})],
+            capture_output=True, text=True, timeout=60,
+            cwd=str(ls.REPO), env=env)
+
+    def test_the_worker_its_own_config_names_can_call_through_it(self):
+        """Red at ec736ffa/6213c35a: this refused class state unconditionally
+        for every config-bound call, including the worker's own.
+
+        Planted fault: restore the unconditional `refuse("state", ...)` in
+        `resolve_binding`'s config branch and this call refuses again.
+        """
+        rec, witness, _aid = self.dispatched()
+        # Not `rec["session"]["id"]`: for a codex worker that field is
+        # overwritten with the harness's own self-reported rollout id once
+        # the stream is read (launch.py, `found_id`), while `bind-for` was
+        # given the id minted before the child ran, and that id lands in
+        # the child's own environment under this same key. That is the
+        # session the store bound the participant to.
+        minted = (witness.get("env") or {}).get(ls.SESSION_KEY)
+        self.assertTrue(minted, "the worker's own environment carries no "
+                                 "minted session id")
+        config_path = self.acting(rec)["config"]
+        done = self.call(config_path, minted)
+        self.assertEqual(
+            done.returncode, 0,
+            f"the worker's own config, called under the session it was "
+            f"minted for, still refused: {done.stderr!r}")
+
+    def test_a_config_named_for_a_different_session_still_refuses(self):
+        """The fix checks the session rather than dropping the check."""
+        rec, _witness, _aid = self.dispatched()
+        config_path = self.acting(rec)["config"]
+        done = self.call(config_path, str(uuid.uuid4()))
+        self.assertEqual(
+            done.returncode, 2,
+            f"a config bound to one session answered under another: "
+            f"stdout={done.stdout!r} stderr={done.stderr!r}")
+        self.assertEqual(done.stderr.split(":", 1)[0], "state")
+
+
+class ARelocatedCoordinationConfigIsRewiredOnResume(_Acting):
+    """Finding 3 of 20260916T151749Z-review-codex-ef6db7.
+
+    Same defect class as PR #158's lane-mcp.json (Codex review,
+    2026-09-12) — a retained job moved to another dispatch store keeps a
+    config naming the old store's path — left unfixed in this PR's own
+    sibling: `_relocate_coordination` byte-copied coordination-mcp.json
+    instead of parsing and rebasing its `worktree` field the way
+    `_relocate_mcp` already rebases lane-mcp.json's `dispatch_store`.
+    """
+
+    def relocate(self, rec):
+        old_job = Path(rec["snapshot"]["root"]).parent
+        new_store = self.home / "jobs-moved"
+        new_store.mkdir()
+        shutil.move(str(old_job), str(new_store / rec["id"]))
+        self.assertFalse(old_job.exists(), "plant: the job left the old store")
+        new_job = new_store / rec["id"]
+        self.assertTrue(
+            (new_job / "coordination-mcp.json").is_file(),
+            "plant: the acting config moved with the job")
+        os.environ["DISPATCH_JOBS"] = str(new_store)
+        self.addCleanup(os.environ.__setitem__, "DISPATCH_JOBS", str(self.jobs_root))
+        self.witness.unlink(missing_ok=True)
+        code, out, err = self.run_main(["resume", rec["id"]])
+        self.assertEqual(code, 0, self.combined(out, err))
+        return old_job, new_job
+
+    def test_the_configs_worktree_field_names_the_new_job(self):
+        """Red at ec736ffa/6213c35a: the byte-copy leaves the old job's
+        path inside `worktree` after the resume rewires everything else.
+
+        Planted fault: restore the plain `cfg.write_text(prior.read_text(...))`
+        copy in `_relocate_coordination` and this fails again.
+        """
+        rec, _witness, _aid = self.dispatched()
+        old_job, new_job = self.relocate(rec)
+        cfg = new_job / "coordination-mcp.json"
+        data = json.loads(cfg.read_text(encoding="utf-8"))
+        self.assertNotIn(
+            str(old_job), data["worktree"],
+            f"the acting config still names the old job's path: "
+            f"{data['worktree']!r}")
+        self.assertTrue(
+            Path(data["worktree"]).is_relative_to(new_job),
+            f"the acting config's worktree left the new job's tree "
+            f"entirely: {data['worktree']!r}")
+        record = self.read_record()
+        coord = record["brief"]["coordination"]
+        self.assertEqual(coord["config"], str(cfg.resolve()))
+        self.assertEqual(coord["sha256"], ls.sha256_file(cfg))
 
 
 class TheBriefNamesTheActingTools(_Acting):
