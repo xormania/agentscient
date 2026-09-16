@@ -35,8 +35,9 @@ there would not run when the MCP projection calls the same function.
                          [--decision DC-n] [--reply-to M-n] [--artifact REF]
     coordination.py deliver M-n --ref REF | ack M-n | resolve M-n --evidence READING
     coordination.py withdraw M-n --why TEXT | inbox [--unresolved] | outstanding [--to WHO]
-    coordination.py observe A-n --observation TEXT --revision SHA [--execution REC]
-                            [--artifact REF] [--requirement REF] [--environment TEXT]
+    coordination.py observe A-n --observation TEXT --revision SHA --generation N
+                            [--stale] [--execution REC] [--artifact REF]
+                            [--requirement REF] [--environment TEXT]
     coordination.py observations A-n [--all]
     coordination.py ask --question TEXT --alternatives TEXT [--assignment A-n]
     coordination.py answer DC-n [--counter TEXT] [--unknowns TEXT] [--consequence TEXT]
@@ -262,7 +263,7 @@ def reader():
 
 # -- participants ------------------------------------------------------------
 
-def resolve(conn):
+def bound_participant(conn):
     """The participant acting on this command, from the session id alone."""
     key = session("")
     if not key:
@@ -867,17 +868,55 @@ def core_outstanding(conn, part, *, to=None) -> dict:
     return {"outstanding": [message_dict(row) for row in shown]}
 
 
-def core_observe(conn, part, *, assignment, observation, revision, execution=None,
-                 artifact=None, requirement=None, environment=None) -> dict:
+def core_observe(conn, part, *, assignment, observation, revision, generation,
+                 stale=False, execution=None, artifact=None, requirement=None,
+                 environment=None) -> dict:
+    """An observation names the candidate it was made against.
+
+    Raised by the Codex review of package C and ruled by the Lead session
+    on 2026-09-16: without these two checks a participant that had not
+    seen a reopen could append an observation of the old revision and it
+    read as current evidence of the new one. The checks and the insert
+    take the write lock together, the way the engine's own move does, so
+    a reopen committing between the read and the insert cannot slip
+    between them.
+
+    Filing the row as stale is the declared escape and it is not a pass:
+    the row lands marked, carrying the revision it was made against, so
+    it is readable as history and never as evidence of what replaced it.
+    Both checks lift for it, because a reopen moves the generation and
+    the revision together and an old observation could otherwise never be
+    filed at all.
+    """
     _, aid = parse_id(assignment, "A")
-    assignment_row(conn, aid)
-    cursor = conn.execute(
-        "INSERT INTO observations(assignment, producer, requirement, execution, "
-        "revision, environment, observation, artifact, applicability, at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'current', ?)",
-        (aid, part["id"], requirement, execution, revision, environment,
-         observation, artifact, stamp()),
-    )
+    if not str(generation).isdigit():
+        refuse("arguments", "--generation as a whole number", str(generation),
+               "the generation printed by show")
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        row = assignment_row(conn, aid)
+        reason = None
+        if stale:
+            reason = (f"filed as stale by PT-{part['id']}: observed at {revision}, "
+                      f"the assignment stands at {row['revision'] or 'no revision'} "
+                      f"at generation {row['generation']}")
+        else:
+            require_generation(row, generation)
+            if row["revision"] and revision != row["revision"]:
+                refuse("revision", f"the current revision {row['revision']} of A-{aid}",
+                       revision,
+                       "observe the candidate that stands, or file it with --stale")
+        cursor = conn.execute(
+            "INSERT INTO observations(assignment, producer, requirement, execution, "
+            "revision, environment, observation, artifact, applicability, "
+            "stale_reason, at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (aid, part["id"], requirement, execution, revision, environment,
+             observation, artifact, "stale" if stale else "current", reason, stamp()),
+        )
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
     row = conn.execute(
         "SELECT * FROM observations WHERE id = ?", (cursor.lastrowid,)
     ).fetchone()
@@ -1139,7 +1178,7 @@ def do_bind_for(rest):
         optional=("harness", "endpoint", "probe"),
     )
     with writer() as conn:
-        shown = core_bind_for(conn, resolve(conn), agent=agent,
+        shown = core_bind_for(conn, bound_participant(conn), agent=agent,
                               session_id=opts["session"], roles=opts["roles"],
                               assignment=opts["for"], harness=opts.get("harness"),
                               endpoint=opts.get("endpoint"), probe=opts.get("probe"))
@@ -1149,7 +1188,7 @@ def do_bind_for(rest):
 
 def do_who(rest):
     parse(rest, 0)
-    shown = core_who(None, resolve(reader()))
+    shown = core_who(None, bound_participant(reader()))
     print(f"participant {shown['participant']} {shown['roles']} "
           f"session {shown['session']}")
 
@@ -1181,7 +1220,7 @@ def do_draft(rest):
         optional=("requirement", "revision", "depends", "duty", "scope", "inputs"),
     )
     with writer() as conn:
-        shown = core_draft(conn, resolve(conn), agent=agent, title=title,
+        shown = core_draft(conn, bound_participant(conn), agent=agent, title=title,
                            outcome=opts["outcome"], requirement=opts.get("requirement"),
                            revision=opts.get("revision"), depends=opts.get("depends"),
                            duty=opts.get("duty"), scope=opts.get("scope"),
@@ -1193,7 +1232,7 @@ def do_offer(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("to",))
     with writer() as conn:
-        shown = core_offer(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_offer(conn, bound_participant(conn), agent=agent, assignment=raw,
                            to=opts["to"])
     print(f"offered {shown['assignment']} to {shown['recipient']}")
 
@@ -1202,7 +1241,7 @@ def do_claim(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("branch", "generation"), optional=("ttl",))
     with writer() as conn:
-        shown = core_claim(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_claim(conn, bound_participant(conn), agent=agent, assignment=raw,
                            branch=opts["branch"], generation=opts["generation"],
                            ttl=opts.get("ttl"))
     print(f"claimed {shown['assignment']} by {shown['holder']} on {shown['branch']}")
@@ -1212,7 +1251,7 @@ def do_release(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("why", "generation"))
     with writer() as conn:
-        shown = core_release(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_release(conn, bound_participant(conn), agent=agent, assignment=raw,
                              why=opts["why"], generation=opts["generation"])
     print(f"released {shown['assignment']} to {shown['recipient']}; "
           f"generation {shown['generation']}")
@@ -1222,7 +1261,7 @@ def do_reassign(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("to", "why", "generation"))
     with writer() as conn:
-        shown = core_reassign(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_reassign(conn, bound_participant(conn), agent=agent, assignment=raw,
                               to=opts["to"], why=opts["why"],
                               generation=opts["generation"])
     print(f"reassigned {shown['assignment']} to {shown['recipient']}; "
@@ -1233,7 +1272,7 @@ def do_submit(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("evidence", "revision", "generation"))
     with writer() as conn:
-        shown = core_submit(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_submit(conn, bound_participant(conn), agent=agent, assignment=raw,
                             evidence=opts["evidence"], revision=opts["revision"],
                             generation=opts["generation"])
     print(f"submitted {shown['assignment']} at {shown['revision']}")
@@ -1243,7 +1282,7 @@ def do_verify(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("evidence", "generation"))
     with writer() as conn:
-        shown = core_verify(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_verify(conn, bound_participant(conn), agent=agent, assignment=raw,
                             evidence=opts["evidence"], generation=opts["generation"])
     print(f"verified {shown['assignment']} by {shown['verified_by']}")
 
@@ -1252,7 +1291,7 @@ def do_return(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("findings", "generation"))
     with writer() as conn:
-        shown = core_return(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_return(conn, bound_participant(conn), agent=agent, assignment=raw,
                             findings=opts["findings"], generation=opts["generation"])
     print(f"returned {shown['assignment']} to {shown['holder']}")
 
@@ -1261,7 +1300,7 @@ def do_accept(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("evidence", "generation"))
     with writer() as conn:
-        shown = core_accept(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_accept(conn, bound_participant(conn), agent=agent, assignment=raw,
                             evidence=opts["evidence"], generation=opts["generation"])
     print(f"accepted {shown['assignment']} by {shown['accepted_by']}")
 
@@ -1270,7 +1309,7 @@ def do_reopen(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("revision", "why", "generation"))
     with writer() as conn:
-        shown = core_reopen(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_reopen(conn, bound_participant(conn), agent=agent, assignment=raw,
                             revision=opts["revision"], why=opts["why"],
                             generation=opts["generation"])
     print(f"reopened {shown['assignment']} at {shown['revision']}; "
@@ -1281,7 +1320,7 @@ def do_supersede(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("by",))
     with writer() as conn:
-        shown = core_supersede(conn, resolve(conn), agent=agent, assignment=raw,
+        shown = core_supersede(conn, bound_participant(conn), agent=agent, assignment=raw,
                                by=opts["by"])
     print(f"superseded {shown['assignment']} by {shown['superseded_by']}")
 
@@ -1295,7 +1334,7 @@ def assignment_line(row: dict) -> str:
 def do_assignments(rest):
     _, opts = parse(rest, 0, optional=("state", "to"), flags=("mine",))
     conn = reader()
-    part = resolve(conn) if opts.get("mine") else None
+    part = bound_participant(conn) if opts.get("mine") else None
     shown = core_assignments(conn, part, state=opts.get("state"), to=opts.get("to"))
     if shown.get("store") == "absent":
         print("no store")
@@ -1317,7 +1356,7 @@ def do_send(rest):
         optional=("assignment", "decision", "reply-to", "artifact"),
     )
     with writer() as conn:
-        shown = core_send(conn, resolve(conn), agent=agent, to=opts["to"],
+        shown = core_send(conn, bound_participant(conn), agent=agent, to=opts["to"],
                           purpose=opts["purpose"], body=opts["body"],
                           assignment=opts.get("assignment"),
                           decision=opts.get("decision"),
@@ -1329,7 +1368,7 @@ def do_deliver(rest):
     identity()
     (raw,), opts = parse(rest, 1, required=("ref",))
     with writer() as conn:
-        shown = core_deliver(conn, resolve(conn), message=raw, ref=opts["ref"])
+        shown = core_deliver(conn, bound_participant(conn), message=raw, ref=opts["ref"])
     print(f"delivered {shown['message']} ref {shown['delivery_ref']}")
 
 
@@ -1337,7 +1376,7 @@ def do_ack(rest):
     identity()
     (raw,), _ = parse(rest, 1)
     with writer() as conn:
-        shown = core_ack(conn, resolve(conn), message=raw)
+        shown = core_ack(conn, bound_participant(conn), message=raw)
     print(f"acknowledged {shown['message']} by {shown['acked_by']}; not resolved")
 
 
@@ -1345,7 +1384,7 @@ def do_resolve(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("evidence",))
     with writer() as conn:
-        shown = core_resolve(conn, resolve(conn), agent=agent, message=raw,
+        shown = core_resolve(conn, bound_participant(conn), agent=agent, message=raw,
                              evidence=opts["evidence"])
     print(f"resolved {shown['message']}: {shown['evidence']}")
 
@@ -1354,7 +1393,7 @@ def do_withdraw(rest):
     agent = identity()
     (raw,), opts = parse(rest, 1, required=("why",))
     with writer() as conn:
-        shown = core_withdraw(conn, resolve(conn), agent=agent, message=raw,
+        shown = core_withdraw(conn, bound_participant(conn), agent=agent, message=raw,
                               why=opts["why"])
     print(f"withdrew {shown['message']}")
 
@@ -1371,7 +1410,7 @@ def do_inbox(rest):
     if conn is None:
         print("no store")
         return EXIT_DONE
-    shown = core_inbox(conn, resolve(conn), unresolved=bool(opts.get("unresolved")))
+    shown = core_inbox(conn, bound_participant(conn), unresolved=bool(opts.get("unresolved")))
     if not shown["messages"]:
         print("no messages")
         return EXIT_DONE
@@ -1400,12 +1439,15 @@ def do_outstanding(rest):
 def do_observe(rest):
     identity()
     (raw,), opts = parse(
-        rest, 1, required=("observation", "revision"),
+        rest, 1, required=("observation", "revision", "generation"),
         optional=("execution", "artifact", "requirement", "environment"),
+        flags=("stale",),
     )
     with writer() as conn:
-        shown = core_observe(conn, resolve(conn), assignment=raw,
+        shown = core_observe(conn, bound_participant(conn), assignment=raw,
                              observation=opts["observation"], revision=opts["revision"],
+                             generation=opts["generation"],
+                             stale=bool(opts.get("stale")),
                              execution=opts.get("execution"),
                              artifact=opts.get("artifact"),
                              requirement=opts.get("requirement"),
@@ -1435,7 +1477,7 @@ def do_ask(rest):
     identity()
     _, opts = parse(rest, 0, required=("question", "alternatives"), optional=("assignment",))
     with writer() as conn:
-        shown = core_ask(conn, resolve(conn), question=opts["question"],
+        shown = core_ask(conn, bound_participant(conn), question=opts["question"],
                          alternatives=opts["alternatives"],
                          assignment=opts.get("assignment"))
     print(f"decision {shown['decision']}")
@@ -1445,7 +1487,7 @@ def do_answer(rest):
     identity()
     (raw,), opts = parse(rest, 1, optional=("counter", "unknowns", "consequence"))
     with writer() as conn:
-        shown = core_answer(conn, resolve(conn), decision=raw,
+        shown = core_answer(conn, bound_participant(conn), decision=raw,
                             counter=opts.get("counter"), unknowns=opts.get("unknowns"),
                             consequence=opts.get("consequence"))
     print(f"answered {shown['decision']}")
@@ -1455,7 +1497,7 @@ def do_decide(rest):
     identity()
     (raw,), opts = parse(rest, 1, required=("choice", "rationale"))
     with writer() as conn:
-        shown = core_decide(conn, resolve(conn), decision=raw, choice=opts["choice"],
+        shown = core_decide(conn, bound_participant(conn), decision=raw, choice=opts["choice"],
                             rationale=opts["rationale"])
     print(f"decided {shown['decision']}: {shown['choice']}")
 
@@ -1503,7 +1545,7 @@ def do_reserve(rest):
     agent = identity()
     (name,), opts = parse(rest, 1, required=("for",), optional=("ttl",))
     with writer() as conn:
-        shown = core_reserve(conn, resolve(conn), agent=agent, name=name,
+        shown = core_reserve(conn, bound_participant(conn), agent=agent, name=name,
                              assignment=opts["for"], ttl=opts.get("ttl"))
     print(f"reserved {shown['name']} for {shown['assignment']} by {shown['holder']}")
 
@@ -1512,7 +1554,7 @@ def do_free(rest):
     agent = identity()
     (name,), opts = parse(rest, 1, required=("why",))
     with writer() as conn:
-        shown = core_free(conn, resolve(conn), agent=agent, name=name, why=opts["why"])
+        shown = core_free(conn, bound_participant(conn), agent=agent, name=name, why=opts["why"])
     note = ("" if shown["reconciled"]
             else f"; {shown['previous_holder']}'s run is not reconciled")
     print(f"freed {shown['name']}{note}")
@@ -1585,7 +1627,7 @@ def do_brief(rest):
     if conn is None:
         print("no store")
         return EXIT_DONE
-    shown = core_brief(conn, resolve(conn))
+    shown = core_brief(conn, bound_participant(conn))
     who = shown["participant"]
     print(f"brief for {who['participant']} {who['roles']}")
     print("assignments held:")

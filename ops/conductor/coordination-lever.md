@@ -246,6 +246,19 @@ record id, `artifact` a sha, `#N` or a record id. An observation is
 never edited: `reopen` sets `applicability` and `stale_reason`, and the
 row's own text and scope stay as produced.
 
+`observe` names the generation the producer believes and the revision it
+observed. It refuses class `generation` when the stated generation is
+not the assignment's, and class `revision` when the assignment's current
+revision is not the one observed — otherwise a participant that had not
+seen a reopen could append an observation of the old candidate and it
+would read as current evidence of the new one. The checks and the insert
+take the write lock together, the way a transition does, so a reopen
+committing between them cannot slip through. Filing the row `--stale` is
+the declared escape and lifts both checks, because a reopen moves the
+generation and the revision together; the row lands marked, with the
+revision it was made against and the assignment's own in its reason, so
+it is history and never evidence of what replaced it.
+
     decisions(id INTEGER PRIMARY KEY AUTOINCREMENT, asked_by INTEGER NOT NULL,
               question TEXT NOT NULL, alternatives TEXT NOT NULL,
               assignment INTEGER, counter TEXT, unknowns TEXT,
@@ -325,7 +338,7 @@ store is absent: looked and found nothing.
 | id | an id not of the form `PT-n`, `A-n`, `M-n`, `E-n`, `DC-n` or `R-n`, or of the wrong kind for the verb |
 | unknown | an id the store does not hold |
 | generation | a move whose stated generation is not the assignment's |
-| revision | a verify whose observation names a revision other than the assignment's |
+| revision | a verify whose observation names a revision other than the assignment's, or an observe of a revision the assignment has moved past without `--stale` |
 | producer | a verify or accept by the participant that produced the candidate |
 | recipient | a claim by a participant the assignment was not offered to |
 | evidence | a reading with no known shape |

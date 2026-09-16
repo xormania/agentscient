@@ -102,8 +102,8 @@ class _Scratch(unittest.TestCase):
     def submitted(self):
         aid = self.held()
         self.ok("observe", aid, "--observation", "the suite ran",
-                "--revision", "a1b2c3d", "--execution", "20260916T010203Z-job-x",
-                session=WORKER)
+                "--revision", "a1b2c3d", "--generation", "1",
+                "--execution", "20260916T010203Z-job-x", session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
                 "--generation", "1", session=WORKER)
         return aid
@@ -200,7 +200,7 @@ class GenerationAndRevision(_Scratch):
         aid = self.offered()
         self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
         self.ok("observe", aid, "--observation", "ran at the old tree",
-                "--revision", "9999999", session=WORKER)
+                "--revision", "a1b2c3d", "--generation", "1", session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
                 "--generation", "1", session=WORKER)
         proc = self.run_tool("verify", aid, "--evidence", "9999999",
@@ -393,7 +393,7 @@ class DispatchedWorkers(_Scratch):
     def test_a_dispatched_worker_can_record_its_own_findings(self):
         aid = self.dispatched()
         done = self.as_worker("observe", aid, "--observation", "the row refuses",
-                              "--revision", "a1b2c3d")
+                              "--revision", "a1b2c3d", "--generation", "1")
         self.assertEqual(done.exit, 0, done.stderr)
         self.assertIn("the row refuses", self.ok("observations", aid, session=LEAD))
 
@@ -451,7 +451,7 @@ class TheCoreSeam(_Scratch):
             )
             self.assertIsInstance(part, dict)
             self.assertEqual(part["participant"], "PT-1")
-            bound = module.resolve(conn)
+            bound = module.bound_participant(conn)
             drafted = module.CORE["draft"](
                 conn, bound, agent=SHARED, title="a bounded repair",
                 outcome="the row refuses", revision="a1b2c3d",
@@ -465,7 +465,7 @@ class TheCoreSeam(_Scratch):
         module = self.core()
         with module.writer() as conn:
             module.core_bind(conn, None, agent=SHARED, session_id=LEAD, roles="worker")
-            part = module.resolve(conn)
+            part = module.bound_participant(conn)
             with self.assertRaises(module.Refusal) as caught:
                 module.CORE["draft"](
                     conn, part, agent=SHARED, title="a repair", outcome="it refuses",
@@ -475,6 +475,20 @@ class TheCoreSeam(_Scratch):
         for word in ("expected", "found", "needed"):
             self.assertIn(word, line)
         self.assertIn("lead", line)
+
+    def test_the_participant_resolver_is_not_the_resolve_verb(self):
+        """`resolve` is the wire name of the message verb. The participant
+        resolver is not a verb at all, so it must not answer to that name:
+        a projection mapping its tools by wire name would otherwise have
+        two things to choose between and no way to tell which. Ruled by
+        the Lead session, 2026-09-16."""
+        module = self.core()
+        self.assertFalse(
+            hasattr(module, "resolve"),
+            "the participant resolver must not wear the message verb's wire name",
+        )
+        self.assertTrue(callable(module.bound_participant))
+        self.assertIs(module.CORE["resolve"], module.core_resolve)
 
     def test_the_cli_prints_what_the_function_returned(self):
         """The wrapper parses argv, calls the function and prints; the id
@@ -486,6 +500,63 @@ class TheCoreSeam(_Scratch):
         with module.reader() as conn:
             row = conn.execute("SELECT id FROM assignments ORDER BY id").fetchone()
         self.assertEqual(printed, f"assignment A-{row['id']}")
+
+
+class ObservationsBindToARevision(_Scratch):
+    """An observation is evidence about a candidate, so it names the
+    candidate it was made against and the generation it believes.
+
+    Before this, observe inserted applicability 'current' without looking
+    at either, so a participant that had not seen a reopen could append
+    an observation of the old revision and it read as current evidence of
+    the new one. Raised by the Codex review of the MCP server (#242),
+    relayed by the Lead session, 2026-09-16.
+    """
+
+    def reopened(self):
+        """A-n at generation 2, revision beefbee; the worker still believes
+        generation 1 and revision a1b2c3d."""
+        aid = self.submitted()
+        self.ok("verify", aid, "--evidence", "a1b2c3d", "--generation", "1",
+                session=CHECKER)
+        self.ok("reopen", aid, "--revision", "beefbee", "--why", "the candidate moved",
+                "--generation", "1", session=LEAD)
+        return aid
+
+    def test_an_observation_refuses_a_generation_the_assignment_moved_past(self):
+        aid = self.reopened()
+        proc = self.run_tool("observe", aid, "--observation", "the suite ran",
+                             "--revision", "beefbee", "--generation", "1",
+                             session=WORKER)
+        refusal_wire(RefusalCase("observe-stale-generation", (), "generation"), proc)
+
+    def test_an_observation_refuses_a_revision_that_is_not_the_current_one(self):
+        aid = self.reopened()
+        proc = self.run_tool("observe", aid, "--observation", "the suite ran",
+                             "--revision", "a1b2c3d", "--generation", "2",
+                             session=WORKER)
+        refusal_wire(RefusalCase("observe-old-revision", (), "revision"), proc)
+
+    def test_an_observation_filed_as_stale_is_admitted_and_marked(self):
+        """The escape is explicit and it is not a pass: the row lands
+        marked stale, so it is readable as history and never as current
+        evidence of the candidate that replaced it."""
+        aid = self.reopened()
+        self.ok("observe", aid, "--observation", "ran before the move",
+                "--revision", "a1b2c3d", "--generation", "1", "--stale",
+                session=WORKER)
+        every = self.ok("observations", aid, "--all", session=LEAD)
+        self.assertIn("ran before the move", every)
+        self.assertIn("[stale:", every)
+        self.assertNotIn("ran before the move",
+                         self.ok("observations", aid, session=LEAD))
+
+    def test_an_observation_of_the_current_candidate_is_admitted(self):
+        """The clean neighbour: the same verb, the readings that agree."""
+        aid = self.reopened()
+        self.ok("observe", aid, "--observation", "the suite ran again",
+                "--revision", "beefbee", "--generation", "2", session=WORKER)
+        self.assertIn("the suite ran again", self.ok("observations", aid, session=LEAD))
 
 
 if __name__ == "__main__":
