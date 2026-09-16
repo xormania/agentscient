@@ -323,5 +323,9 @@ what, and the marking is append-only under the engine's two triggers.
 Inherited; no per-file row. Registry row:
 `ops/conductor/registry/coordination.py.json`. Tests:
 `ops/conductor/tests/test_coordination.py`, on the test kit
-(`docs/tests.md`), written by a producer other than this module's
-author.
+(`docs/tests.md`). The standing rule is that a module's tests are
+another producer's; this package lands under the hand grant instead,
+one producer with the second producer's absence declared in the commit
+and in the record (AGENTS.md §Ground rules, the dev-lane hand grant),
+and independent review follows by dispatched Grok and Codex. Ruled by
+the Lead session, 2026-09-16.
