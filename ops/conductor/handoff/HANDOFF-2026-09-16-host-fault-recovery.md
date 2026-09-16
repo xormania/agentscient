@@ -12,9 +12,17 @@ then at 16:5xZ "its not proven - but (i think docker personally) - full
 report coming to `~/wsl2-failure.md` - have XO look at it when it
 arrives and tell you what its sees". The XO was dead, so the recovery
 session read the report when it arrived at 17:01:00Z (7060 bytes, 109
-lines) and its reading is below.
+lines) and its reading is below; then at 17:05Z "you are lead".
 
-This session holds no role. It is off the board and binds nothing.
+This session was off the board until 17:05Z. On the owner's word it
+bound as PT-9 (worker, through the lever) and wrote `lead` onto its own
+row by hand under grant 288 at 17:05:59Z, the lever's `grant` being
+unusable with no live lead (LD-91); the row's `probe` column carries
+the owner's word. It took T-88. The harness classifier refused the
+revokes that would have cleared the dead holders' roles, so the store
+shows two leads, PT-2 dead and PT-9, and PT-3 and PT-7 still holding
+dispatcher and coordinator with no process behind them. PT-10
+(agentscient-c1, Sonnet) was granted dispatcher by PT-9 at 17:1xZ.
 
 ## The fault
 
@@ -51,7 +59,9 @@ host was dying. What the report says, quoted where it matters:
 - Hypothesis A, delayed VFS corruption from the 9p drvfs mount of the
   Google Drive: the `inc_nlink` warning at 15:18:33Z is the XO's
   `mkdir` of `projects/agentscient/archive/` on the mount at 15:19Z by
-  the XO's transcript, so the two readings agree on the minute.
+  the XO's transcript, so the two readings agree to within a minute; the warning's time is
+  single-sourced, the report's, because the journal of the failed boot
+  ends earlier (below).
 - Hypothesis B, an RCU path-walk race in kernel 6.18 under concurrent
   index traffic (phpactor's index, `.git/index`), independent of the
   Drive.
@@ -65,6 +75,29 @@ host was dying. What the report says, quoted where it matters:
   with explicit metadata options; and, because the WSL2 kernel boots
   with `panic=-1`, work committed to disk and version control often.
   The last one is what LD-92 and LD-93 ask for from the lane's side.
+
+The XO's independent reading (agentscient-43, taken 17:02Z to 17:12Z
+with uname, mount, journalctl, the dump itself, find on mtimes and
+stat, before it read the paragraph above): the dump at
+`%TEMP%\wsl-crashes\kernel-panic-1789574699-{c8c5d175-…}.txt` (4113
+bytes) carries the call trace and CR2 exactly as the report quotes them
+but is truncated at the top, no Oops header, no `Comm:`, no taint line,
+so it does not name the process that made the call. The one
+corroborated pre-panic fact on this host is the mount: `journalctl -b
+-1` ends at 15:15:00Z with the `mount -t drvfs G: /mnt/g` line, and
+the 15:18:33Z, 15:43:59Z and 16:04:09Z rows above are the report's
+alone. Under `~/.cache/phpactor/` no file has an mtime between 15:00Z
+and 16:05Z, so hypothesis B's stated premise is unsupported by mtimes,
+though a read-only walk writes nothing. No v9fs or 9p frame is in the
+trace and nothing shows the walked path was on the mount, so A has no
+9p evidence either; CR2 is canonical, not a poison pattern, and lies in
+neither the direct map nor the stack region, which is the shape of an
+overwritten pointer rather than a plain refcount race. "index"
+discriminates nothing (`~/.cache/phpactor/index` is a directory of that
+name; `.git/index` is a file last written 14:33:56Z). The report's libc
+offset arithmetic does not close (the base it implies is not
+page-aligned). Verdict: nothing reachable from this host discriminates
+A from B, and the hold on the mount is the right call either way.
 
 Standing instruction, owner 2026-09-16: "just don't mount it again
 for now". No session mounts G: or writes under
@@ -205,9 +238,9 @@ whether it is one.
 
 ## What only the owner can say
 
-- Whether to resume the Lead's session (the recommendation, above) or
-  to seat a new Lead, which needs the succession verb LD-91 proposes,
-  or the owner's word to override the store's chain once.
+- Decided at 17:05Z, owner: "you are lead". The recovery session is
+  the Lead, PT-9, by the one-time hand write LD-91 records; the resume
+  of d5c18547 is no longer the path.
 - The WSL2 cause, between the report's two hypotheses. The lane's
   reading favours A only in that the mount's `mkdir` warning is the
   XO's archive write to the minute; that is a coincidence in time, not
@@ -223,6 +256,9 @@ wrote this record, the four scopes, LD-91 to LD-93, the probe rows in
 `probes/probes-2026-09-16-host-fault-recovery.jsonl`, and the
 command-structure section "Finding the Lead after a host fault".
 
-Did not: bind in the store; push any other session's branch; mount or
+Then, from 17:05Z: bound as PT-9, wrote lead onto its row under grant
+288, took T-88, granted dispatcher to PT-10.
+
+Did not: push any other session's branch; mount or
 touch `/mnt/g`; dispatch; verify the #254 findings; read the transcripts
 of e0, db, 72, 47 or 61; write the day's AAR, which is the Lead's.

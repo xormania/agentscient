@@ -47,9 +47,9 @@ came from:
 | role | store role | who, 2026-09-16 | decides alone | brings upward | never |
 |---|---|---|---|---|---|
 | Owner | none; the owner types nothing into the levers | the terminal user | the mission, the tools, the hand grant, which is the owner's word ("hand grant ok'd", "get it done") plus the Lead's hand-written delegation, no lever, the register's ratification, the release merge into master | — | runs a lever |
-| Lead | `lead` (PT-2) | agentscient-11 | what is built and in what order; assignments (A-n) drafted and accepted from the brief; every flip to ready and every merge into dev (#243 merged at fecdd37c); rulings on the rules the gates enforce; role grants and revocations in the store; deadlines | to the owner: decisions that need the owner's hand (a forced push, a prune, a release), and the day's report | lets a session below it go to the owner |
+| Lead | `lead` (PT-2 until the 16:04:59Z panic; PT-9 from 17:05Z, on the owner's "you are lead") | agentscient-11, then the recovery session | what is built and in what order; assignments (A-n) drafted and accepted from the brief; every flip to ready and every merge into dev (#243 merged at fecdd37c); rulings on the rules the gates enforce; role grants and revocations in the store; deadlines | to the owner: decisions that need the owner's hand (a forced push, a prune, a release), and the day's report | lets a session below it go to the owner |
 | XO, the Coordinator and Chief of Staff | `coordinator` (PT-4), granted by the Lead | agentscient-0d | the board; sequencing and deadlines between sessions; chasing; reassigning work between idle sessions; forward merges and conflict resolution by the rules given; a finding rated p3 becomes a ledger row; any question a contract or the code answers; a dead session's worktree (pushed as it stood, the unfinished diff finished by the taker crediting the author) | to the Lead: a flip or merge, new surface on a merged package, a role change in the store, any rule the gates enforce, anything needing the owner's hand, any choice between two outcomes; one line each, recommendation first | runs reviews or audits; flips or merges; edits another session's branch; writes the work it coordinates |
-| Dispatcher | `dispatcher` (PT-3) | agentscient-c8 | the launch shape; the record id back to the requester and the XO at launch, the refusal verbatim otherwise | to the XO: a refusal it cannot answer, a run that dies | runs a dispatch for itself outside a request; lets any other session run `dispatch.sh` |
+| Dispatcher | `dispatcher` (PT-3 until the panic; PT-10 from 17:1xZ, granted by PT-9) | agentscient-c8, then agentscient-c1 | the launch shape; the record id back to the requester and the XO at launch, the refusal verbatim otherwise | to the XO: a refusal it cannot answer, a run that dies | runs a dispatch for itself outside a request; lets any other session run `dispatch.sh` |
 | Builder | `worker` | one per branch | its branch, its grant, its commits; the pre-flip gate before a head is reported | to the XO: every push (head, CI state, the one thing waited on), a line every half hour, a refused command as text | stops to wait for the owner; reports to its terminal user; opens a second branch |
 | Verifier | `verifier` | an independent producer per candidate | its findings on a candidate it did not produce | to the Lead through the brief | verifies its own candidate (`not_the_producer`, coordination.py) |
 
@@ -187,7 +187,11 @@ rows it opened are LD-91, LD-92 and LD-93.
    take the seat: every later self-bind is `worker` alone and only a
    lead grants (LD-91). Until a successor verb exists, a session that
    finds a dead Lead is a recovery session: off the board, binding
-   nothing, writing records only, and it says so.
+   nothing, writing records only, and it says so. Measured once,
+   17:05Z the same day: the owner's word "you are lead" seated the
+   recovery session as PT-9 by a hand write under grant 288, the
+   lever's grant verb being unusable with no live lead; LD-91 carries
+   it, and the successor verb it proposes is still unbuilt.
 5. What a host fault loses: the scratchpads under `/tmp`, and with them
    any dispatch scope not yet launched (LD-92; a scope committed under
    `ops/conductor/handoff/scopes/` survives); the messages in flight;
