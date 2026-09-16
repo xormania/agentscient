@@ -882,8 +882,8 @@ class Watch:
         self.settling_since = {}
         self.launcher_pairs = set()
         self.ci_seen = set()
-        self.startup_closed = set()
-        self.startup_silent = set()
+        self.startup_backlog = {}
+        self.silent_now = set()
         self.closed_cache = ClosedCache()
         self.closed_scanned = {}
         self.forge_reading = None
@@ -893,17 +893,18 @@ class Watch:
         try:
             initial = list(entries(args.store, self.caps, self.closed_cache))
             if not args.report_existing:
-                self.startup_closed = {
-                    entry.name for entry in initial if entry.kind == "closed"
-                }
-                # Backlog is silent in every condition family, not only in
-                # the closed line (owner, 2026-09-16, through the Lead;
-                # LD-68): a record already closed, and a job directory
-                # already there with no record copy, say nothing at all
-                # unless --report-existing asks for them.
-                self.startup_silent = self.startup_closed | {
-                    entry.name for entry in initial
-                    if entry.kind in ("no-copy", "error")
+                # Backlog is silent in every condition family, and the
+                # silence belongs to the condition rather than to the
+                # name (owner, 2026-09-16, through the Lead; LD-70): a
+                # record already closed, a job directory already there
+                # with no record copy, and one whose inputs cannot be
+                # read say nothing while they stand as they were. Each
+                # name keeps the kind and fingerprint it was found in,
+                # so a change after start is a live condition again.
+                self.startup_backlog = {
+                    entry.name: (entry.kind, entry.fingerprint)
+                    for entry in initial
+                    if entry.kind in ("closed", "no-copy", "error")
                 }
         except OSError as exc:
             self.startup_error = exc
@@ -915,13 +916,23 @@ class Watch:
             return True
         return False
 
+    def hold_silence(self, all_entries):
+        """The names still standing in the condition they were backlog
+        in, read once per tick from the same entries the tick scans."""
+        self.silent_now = {
+            e.name for e in all_entries
+            if self.startup_backlog.get(e.name) == (e.kind, e.fingerprint)
+        }
+
     def silent(self, record_id):
-        """True for a record that was backlog when this watcher started:
-        already closed, or a job directory already there with no record
-        copy or with inputs that cannot be read. Nothing about it is
-        reported in any condition family unless --report-existing. Only
-        what changes after start speaks (owner, 2026-09-16; LD-68)."""
-        return record_id in self.startup_silent
+        """True while a record is still the backlog condition this
+        watcher found at start: already closed, a job directory with no
+        record copy, or one whose inputs cannot be read. Nothing about it
+        is reported in any condition family unless --report-existing. A
+        kind or fingerprint change after start is not that condition any
+        more and speaks in every family — only what changes after start
+        speaks (owner, 2026-09-16; LD-70)."""
+        return record_id in self.silent_now
 
     def deviation(self, kind, record_id):
         if self.silent(record_id):
@@ -1095,6 +1106,7 @@ class Watch:
         running = []
         settling = 0
         all_entries = list(entries(self.args.store, self.caps, self.closed_cache))
+        self.hold_silence(all_entries)
         for e in all_entries:
             if e.kind == "error":
                 self.deviation("unavailable", e.name)
@@ -1121,7 +1133,7 @@ class Watch:
                     if e.kind == "closed":
                         self.closed_scanned[e.name] = e.fingerprint
             if e.kind == "closed":
-                if e.name not in self.startup_closed:
+                if not self.silent(e.name):
                     self.once(("closed", e.name), f"closed {e.name} {e.summary()} after {e.minutes(e.closed_at)} min")
                 if scan_ok and (needs_scan or not e.from_closed_cache):
                     cache_closed(
@@ -1277,9 +1289,9 @@ class Watch:
         ignored = (
             "unreachable"
             if self.startup_error is not None
-            else str(len(self.startup_closed))
+            else str(len(self.startup_backlog))
         )
-        say(f"watchdog armed: store {self.args.store}, {ignored} closed records ignored, tick {self.args.tick:g}s")
+        say(f"watchdog armed: store {self.args.store}, {ignored} records ignored as backlog, tick {self.args.tick:g}s")
         while True:
             try:
                 self.run_tick()
@@ -1299,7 +1311,7 @@ def parse_args(argv):
     parser.add_argument("--forge-every", default=str(DEFAULT_FORGE_EVERY), help="ticks between forge readings")
     parser.add_argument("--warn-fraction", type=float, default=DEFAULT_WARN_FRACTION, help="fraction of the wall at which a run is long")
     parser.add_argument("--once", action="store_true", help="one tick, then exit 0")
-    parser.add_argument("--report-existing", action="store_true", help="report records already closed at start")
+    parser.add_argument("--report-existing", action="store_true", help="report the backlog once: records closed at start, directories with no record copy, and directories whose inputs are unreadable")
     parser.add_argument("--no-forge", action="store_true", help="do not ask the forge")
     return parser.parse_args(argv)
 

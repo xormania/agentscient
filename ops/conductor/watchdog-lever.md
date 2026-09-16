@@ -54,14 +54,19 @@ directory whose inputs cannot be read. Nothing about backlog is
 reported — not the `closed` line, not a `deviation` line, not
 `no record copy`, not `drift`, not the `watchdog error` line for its
 unreadable inputs. `--report-existing` asks for backlog and reports
-every one of those lines once. Only what changes after start speaks: a
-record that closes, a directory that appears, inputs that become
-unreadable while the process runs are live and are reported without the
-flag (owner, 2026-09-16, through the Lead: "a watcher reports nothing
-about a record that was already closed when it started, in every
-condition family"; and, the same day, "anything the watcher can see when
-it starts, closed, no-copy, unreadable, is silent without
---report-existing"; LD-68).
+every one of those lines once. The silence belongs to the condition and
+not to the name: each backlog name is held with the kind and input
+fingerprint it was found in, and a record whose kind or fingerprint
+changes is no longer that condition, so it speaks again in every family.
+Only what changes after start speaks — a record that closes, a directory
+that appears, a backlog directory that gains a record, an amended
+record, inputs that become unreadable — and all of it is reported
+without the flag (owner, 2026-09-16, through the Lead: "a watcher
+reports nothing about a record that was already closed when it started,
+in every condition family"; the same day, "anything the watcher can see
+when it starts, closed, no-copy, unreadable, is silent without
+--report-existing"; and, on the review of that change, "silence is keyed
+to the condition present at start, not to the name"; LD-70).
 
 - `closed <id> status=<s> env=<envelope status> changed=<n> after <m> min`
   — `m` from `at.launched` to `at.closed`; `changed` is the count of
@@ -105,14 +110,17 @@ it starts, closed, no-copy, unreadable, is silent without
   deviations counts deviation lines printed since the process started.
 - `watchdog error: <type>: <message> (tick <t>; the loop continues)` —
   any exception in a tick; the loop never dies quietly.
-- `watchdog armed: store <path>, <n> closed records ignored, tick <s>s`
-  — the first line, always.
+- `watchdog armed: store <path>, <n> records ignored as backlog, tick
+  <s>s` — the first line, always. `<n>` counts every name held silent at
+  start, in all three families, and is `unreachable` when the store could
+  not be read.
 
 ## Deviations
 
-A closed record is compared unless it was already closed when the watcher
-started: backlog says nothing in this family either, and
-`--report-existing` is what asks for it (§The lines; LD-68). Each
+A closed record is compared unless it is still the backlog condition the
+watcher found at start: backlog says nothing in this family either, and
+`--report-existing` is what asks for it. A record amended after start is
+not that condition any more and is compared (§The lines; LD-70). Each
 matching comparison prints once per record:
 
 - `deviation assumption <id>` — an envelope note or finding contains
@@ -237,7 +245,7 @@ declared dead, launcher counting remains a labeled heuristic, and this
 instrument writes no state. Those separate semantic changes are not
 smuggled into an efficiency fix. Historical deviations were still
 reported when this efficiency fix landed; that carve-out was withdrawn
-on 2026-09-16 (LD-68) and backlog is now silent in every condition
+on 2026-09-16 (LD-70) and backlog is now silent in every condition
 family — see the rule in §The lines, which governs.
 
 The cache, notification-key set, and last-scanned fingerprints live only for

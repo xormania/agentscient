@@ -18,7 +18,7 @@ python3 ops/conductor/tools/watchdog.py --tick 60 --heartbeat-every 5
 It reads the dispatch store, the ladders, the deliverable lock and, unless
 `--no-forge`, the forge; it writes nothing. Each line prints once per
 record or key for the life of the process, after the first line, `watchdog
-armed: store <path>, <n> closed records ignored, tick <s>s`.
+armed: store <path>, <n> records ignored as backlog, tick <s>s`.
 
 | flag | what it does |
 |:--|:--|
@@ -26,7 +26,7 @@ armed: store <path>, <n> closed records ignored, tick <s>s`.
 | `--once` | one tick, exit 0 — the way to take a reading now |
 | `--forge-every N` | ask the forge on tick 1 and every N ticks (default 1) |
 | `--no-forge` | never ask the forge; the heartbeat says `not watched` |
-| `--report-existing` | report the backlog: everything already closed at start |
+| `--report-existing` | report the backlog once: closed at start, no record copy, unreadable inputs |
 | `--heartbeat-every N` | the running/settling/launchers/PRs line; default 6 |
 | `--warn-fraction F` | when a run is `long`; default two thirds of its wall |
 
@@ -34,8 +34,10 @@ What each line means, and what a session does with it:
 
 - `stall <branch>: no dispatch running, <m> min since <id|the lock>` — a
   deliverable branch nobody is working: pick it up, or lift it from the
-  lock with a reason. `stall <b>: ladder <id> stopped <reason> at <stage>`
-  is a ladder waiting on a decision, not a dead process.
+  lock with a reason. The id is the record the quiet is measured from,
+  usually an old one, so never filter stall lines by the date in the id.
+  `stall <b>: ladder <id> stopped <reason> at <stage>` is a ladder
+  waiting on a decision, not a dead process.
 - `deviation <kind> <id>` — a closed record disagrees with its brief:
   assumption (assumed, substituted or stubbed), bucket and size (more
   changed than the bucket line allows), lock (a lockfile nobody named),
@@ -53,13 +55,17 @@ What each line means, and what a session does with it:
   failing or cancelled check on an open PR into the trunk, and `drift PR
   #<n>: head <b> outside the deliverable` for a PR the lock does not name.
 - `watchdog error: <type>: <message> (tick <t>; the loop continues)` — the
-  tick failed, the loop did not. Two of these in a row is a defect row.
+  tick failed, the loop did not (`watchdog-lever.md` §The lines: the loop
+  never dies quietly). Read the record it names.
 
-Backlog is silent: a record already closed when the watchdog started says
-nothing at all, in every family — closed, deviation, no record copy,
-drift — unless `--report-existing`, which reports all of it once (LD-68,
-fixed in the same change as this page). Ask for backlog deliberately when
-you take over a lane; leave the flag off for what happens from now on.
+Backlog is silent: whatever the watchdog can already see when it starts —
+a record closed, a directory with no record copy, one whose inputs cannot
+be read — says nothing in any family unless `--report-existing`, which
+reports all of it once (LD-70). The silence belongs to the condition, not
+to the name: a muted record whose kind or fingerprint changes speaks
+again, so a backlog directory that gains a record, an amended record and
+inputs that turn unreadable are all live. Ask for backlog when you take
+over a lane; leave the flag off for what happens from now on.
 
 ## Carrying it into a session — the harness Monitor tool
 
@@ -67,24 +73,35 @@ Every stdout line of a monitored command becomes a message in the chat,
 so arm the watchdog and filter to the lines you would act on:
 
 ```
-Monitor(description: "lane watchdog: stalls, deviations, CI", timeout_ms: 1800000,
-  command: "python3 ops/conductor/tools/watchdog.py --tick 120 --no-forge 2>&1 | grep -E --line-buffered 'stall |deviation |no record copy |harness gone |watchdog error'")
+Monitor(description: "lane watchdog: stalls, deviations, no record copy, CI", timeout_ms: 1800000,
+  command: "python3 ops/conductor/tools/watchdog.py --tick 120 2>&1 | grep -E --line-buffered 'stall |deviation |no record copy |harness gone |watchdog error|ci fail |ci cancel '")
 ```
 
-`--line-buffered`, or the matches sit in grep's buffer unseen. A monitor
-expires at `timeout_ms` (30 minutes is the ceiling); re-arm it, and read an
-expiry with no events as too narrow a filter, not a quiet lane.
+The description names exactly what the filter passes, and the forge stays
+on or no `ci` line can exist to match. `--line-buffered`, or the matches
+sit in grep's buffer unseen. A monitor expires at `timeout_ms`; re-arm
+it, and read an expiry with no events as too narrow a filter, not a quiet
+lane. The surface itself — the call shape, one notification per stdout
+line, a 200ms batch window, a five-minute default, a thirty-minute
+ceiling, and the automatic stop when a source floods — was measured in
+this session on 2026-09-16 and is a row in
+`ops/conductor/harness-capabilities.md`; no probe re-checks it on a
+cadence, which is a named gap.
 
-On a checkout without the LD-68 fix the first tick replays every
+On a checkout without the LD-70 fix the first tick replays every
 historical condition — 328 lines at dev 46639344, measured by
-agentscient-c8 on 2026-09-16. Drop any line naming a record id not
-stamped today:
+agentscient-c8 on 2026-09-16. Pass only the conditions that cannot be a
+replay:
 
 ```sh
-... | awk -v today="$(date -u +%Y%m%d)" '$0 !~ /[0-9]{8}T[0-9]{6}Z/ || $0 ~ today {print; fflush()}'
+... | grep -E --line-buffered '^(stall |ci fail |ci cancel |harness gone |exit written|unobservable |long |heartbeat|watchdog error)'
 ```
 
-A line naming no record — stall, ci, heartbeat, the error line — passes.
+Key on the line's own condition word, never on a record id it carries: a
+stall line names the old record its quiet is measured from, and a date
+filter would drop the line you most want. The cost is that live
+deviations go with the replay until the checkout carries the fix; take
+those by hand with `--once`.
 
 ## The monitor instrument — events that outlive the session
 
@@ -94,10 +111,10 @@ python3 ops/conductor/tools/monitor.py run --once
 python3 ops/conductor/tools/monitor.py digest --consumer lead --limit 20 [--ack]
 ```
 
-- `check` validates the whole registry before any source or state is
-  touched, prints `{"valid":true,"monitors":N,...}`, and creates no state.
+- `check` validates the registry before any source or state is touched,
+  prints `{"valid":true,"monitors":N,...}`, and creates no state.
 - `run --once` observes what is due, enqueues events, persists dedup and
-  cooldown, prints counts `observations,events,unavailable`, and needs an
+  cooldown, prints `observations,events,unavailable`, and needs an
   identity (`WF_AGENT`); `--loop` is silent between events.
 - `digest --consumer ID` returns that consumer's events in increasing id
   order with a `more` flag, 10 events and 4096 bytes by default; reading

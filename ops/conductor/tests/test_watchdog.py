@@ -58,7 +58,7 @@ CLOSE_TRIP_ID = "20260904T100500Z-code-grok-aa3106"
 CLOSE_UNK_ID = "20260904T100600Z-code-grok-aa3107"
 CLOSE_LIVE_ID = "20260904T100700Z-code-grok-aa3108"
 NOCOPY_ID = "20260904T100800Z-code-grok-aa3109"
-UNREADABLE_ID = "20260904T100900Z-code-grok-aa3110"
+UNREADABLE_ID = "20260904T101900Z-code-grok-aa3119"
 LONG_REC_ID = "20260904T100900Z-code-grok-aa3110"
 LONG_JOB_ID = "20260904T101000Z-code-grok-aa3111"
 LONG_UNK_ID = "20260904T101100Z-code-grok-aa3112"
@@ -175,7 +175,9 @@ def _result(result: Result) -> _Result:
 
 
 # PIN_ARMED: first stdout line is always
-# `watchdog armed: store <path>, <n> closed records ignored, tick <s>s`.
+# `watchdog armed: store <path>, <n> records ignored as backlog, tick
+# <s>s`, where n counts the startup set in every family, not the closed
+# kinds alone (LD-70 round three).
 # PIN_ONCE: `--once` is one tick, exit 0, and does not sleep the tick.
 # PIN_STORE_ORDER: `--store`, else DISPATCH_JOBS, else
 # `$XDG_STATE_HOME/agentscient/dispatch`, else
@@ -198,12 +200,12 @@ def _result(result: Result) -> _Result:
 # with a 40-minute threshold.
 # PIN_NOCOPY: `no record copy <id>: cannot judge` once per process.
 # A job directory already there at start is backlog: silent unless
-# `--report-existing` (LD-68), and so is one whose inputs cannot be read
+# `--report-existing` (LD-70), and so is one whose inputs cannot be read
 # (`watchdog error: InputUnavailable` and `deviation unavailable`).
 # PIN_ERROR: `watchdog error: <type>: <message> (tick <t>; the loop
 # continues)` and `--once` still exits 0. A job directory whose inputs
 # were already unreadable at start is backlog: silent unless
-# `--report-existing` (LD-68).
+# `--report-existing` (LD-70).
 # PIN_CI: `ci <fail|cancel> #<pr> at <sha>: <check>` once per pull
 # request head and check name; every failing or cancelled check.
 # PIN_HEARTBEAT: `heartbeat: running=<id m/wall, ...>; settling=<n>;
@@ -234,7 +236,7 @@ def _result(result: Result) -> _Result:
 # ladder stage retried, or a ladder stopped), minutes (a stage beyond
 # the calibration row by a stated factor). A record already closed
 # when the watcher started prints none of them unless
-# `--report-existing` is given (LD-68). A clean store prints none.
+# `--report-existing` is given (LD-70). A clean store prints none.
 # PIN_HEARTBEAT_DEVIATIONS: the heartbeat carries deviations=<n> since
 # start.
 
@@ -781,9 +783,9 @@ class _WatchdogFixture(unittest.TestCase):
             store_s in first or store_r in first,
             f"armed line does not name the store {store}: {first!r}",
         )
-        self.assertIn("closed records ignored", first)
+        self.assertIn("records ignored as backlog", first)
         if ignored is not None:
-            self.assertIn(f"{ignored} closed records ignored", first)
+            self.assertIn(f"{ignored} records ignored as backlog", first)
         if tick is not None:
             self.assertIn(f"tick {tick}", first)
         return first
@@ -1341,7 +1343,7 @@ class NoCopy(_WatchdogFixture):
     """A job directory with no record.json is said once, never inferred.
 
     A directory already there when the watcher starts is backlog and is
-    asked for with --report-existing (LD-68); one that appears while it
+    asked for with --report-existing (LD-70); one that appears while it
     runs is live and needs no flag.
     """
 
@@ -1360,7 +1362,7 @@ class NoCopy(_WatchdogFixture):
     def test_a_directory_that_appears_after_start_is_said_without_the_flag(
         self,
     ):
-        """LD-68: the flag is for backlog. A job directory that appears
+        """LD-70: the flag is for backlog. A job directory that appears
         while the watcher runs is a live condition and is unchanged."""
         self.ensure_store()
 
@@ -1483,7 +1485,7 @@ class TickError(_WatchdogFixture):
     """A tick that raises prints the error line; --once still exits 0.
 
     The directory is planted before the run, so it is backlog and the
-    line is asked for with --report-existing (LD-68); the live half is
+    line is asked for with --report-existing (LD-70); the live half is
     ClosedAtStartIsSilent's
     test_an_unreadable_directory_that_appears_after_start_is_said.
     """
@@ -1631,7 +1633,7 @@ class ReadOnly(_WatchdogFixture):
 
 
 class ClosedAtStartIsSilent(_WatchdogFixture):
-    """Backlog is silent in every condition family (LD-68).
+    """Backlog is silent in every condition family (LD-70).
 
     Owner, 2026-09-16, through the Lead: a watcher reports nothing about
     a record that was already closed when it started — the closed line,
@@ -1683,10 +1685,28 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
             "plant: the no-copy directory has no record",
         )
 
+    def test_the_armed_line_counts_every_backlog_family(self):
+        """The first line a session reads says how much is muted, so it
+        counts the startup set — two closed records, one directory with
+        no record copy, one with unreadable inputs — and not the closed
+        kinds alone (grok-61ba2a#3)."""
+        self.plant_backlog()
+        proc = self.once()
+        first = self.assert_armed(proc, store=self.store, ignored=4)
+        self.assertIn("records ignored as backlog", first)
+
+    def test_the_report_existing_help_names_every_backlog_family(self):
+        """The flag's own help names what it governs (codex-ee08a7#5)."""
+        proc = self.invoke(["--help"])
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        help_text = " ".join((proc.stdout or "").split())
+        for word in ("closed", "no record copy", "unreadable"):
+            self.assertIn(word, help_text, help_text)
+
     def test_backlog_prints_no_deviation_and_no_record_copy_line(self):
         self.plant_backlog()
         proc = self.once(extra=["--heartbeat-every", "1"])
-        self.assert_armed(proc, store=self.store, ignored=2)
+        self.assert_armed(proc, store=self.store, ignored=4)
         self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
         self.assertEqual(
@@ -1745,6 +1765,145 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
             proc.stdout,
         )
 
+    def test_a_fresh_record_after_start_prints_its_closed_line_and_deviation(
+        self,
+    ):
+        """The control for the four rows below: a name the watcher never
+        saw speaks in both families, so silence in those rows is a
+        reading and not a fixture that cannot reach the behaviour."""
+        self.ensure_store()
+
+        def plant_it():
+            self.plant_dev_job(
+                ENV_TRIP_ID,
+                job=JOB_CHECK,
+                files=(KEEP_A, KEEP_B),
+                env_status="tripped",
+                findings=[FINDING_LOST],
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=plant_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, f"closed {ENV_TRIP_ID} ")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, ENV_TRIP_ID)), 1, proc.stdout
+        )
+
+    def test_a_no_copy_directory_that_gains_a_record_after_start_speaks(self):
+        """The startup condition was no record copy; a closed record is a
+        change after start, so the closed line and the deviation both
+        speak (Lead, 2026-09-16: "a no-copy directory that gains a closed
+        tripped record prints its closed line and its deviation")."""
+        self.plant_no_copy(NOCOPY_ID)
+
+        def close_it():
+            self.plant_dev_job(
+                NOCOPY_ID,
+                job=JOB_CHECK,
+                files=(KEEP_A, KEEP_B),
+                env_status="tripped",
+                findings=[FINDING_LOST],
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=close_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, f"closed {NOCOPY_ID} ")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, NOCOPY_ID)), 1, proc.stdout
+        )
+
+    def test_an_amended_record_after_start_reports_its_new_deviation(self):
+        """A record closed and clean at start, amended to a tripped
+        envelope while the watcher runs: the fingerprint changed, so the
+        record is no longer the thing that was muted."""
+        self.plant_dev_job(ENV_TRIP_ID, job=JOB_CHECK, files=(KEEP_A, KEEP_B))
+
+        def amend():
+            self.plant_dev_job(
+                ENV_TRIP_ID,
+                job=JOB_CHECK,
+                files=(KEEP_A, KEEP_B),
+                env_status="tripped",
+                findings=[FINDING_LOST],
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=amend,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, ENV_TRIP_ID)), 1, proc.stdout
+        )
+
+    def test_inputs_that_become_unreadable_after_start_are_said(self):
+        """A record readable and closed at start whose record.json is
+        replaced by a symlink: the kind changed, so the error line
+        speaks."""
+        job_dir = self.plant_dev_job(
+            CLOSE_OK_ID, job=JOB_CHECK, files=(KEEP_A, KEEP_B)
+        )
+
+        def make_unreadable():
+            target = job_dir / "record.real.json"
+            self.world.plant_text(target, "{}\n")
+            link = job_dir / "record.json"
+            link.unlink()
+            link.symlink_to(target)
+            self.assertTrue(link.is_symlink(), "plant: record.json is a symlink")
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=make_unreadable,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+
+    def test_a_backlog_directory_whose_inputs_become_unreadable_is_said(self):
+        """Codex's case (ee08a7#1): a no-copy directory at start whose
+        record.json appears as a directory. The kind changed from
+        no-copy to error, so it is not the condition that was muted."""
+        job_dir = self.plant_no_copy(NOCOPY_ID)
+
+        def make_unreadable():
+            path = job_dir / "record.json"
+            path.mkdir()
+            self.assertTrue(path.is_dir(), "plant: record.json is a directory")
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=make_unreadable,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+
     def test_a_record_that_closes_after_start_still_reports_its_deviation(self):
         proc_pid = self.spawn_named(HARNESS)
         launched = utc_ago(6)
@@ -1783,7 +1942,7 @@ class Deviations(_WatchdogFixture):
 
     Pins are from the deviations contract (input), not from the tool.
     Every record here is planted before the run, so this family asks
-    for its lines with --report-existing (LD-68); their silence
+    for its lines with --report-existing (LD-70); their silence
     without the flag is ClosedAtStartIsSilent's charge.
     Invocations are --once --no-forge --report-existing on a
     temporary XDG_STATE_HOME.
@@ -1791,7 +1950,7 @@ class Deviations(_WatchdogFixture):
 
     def once(self, extra=None, **kw):
         # The planted records are all closed before the tool starts;
-        # the flag is what asks for backlog (LD-68).
+        # the flag is what asks for backlog (LD-70).
         return super().once(extra=["--report-existing", *(extra or [])], **kw)
 
     def test_clean_store_prints_no_deviation_lines_and_heartbeat_count_zero(
