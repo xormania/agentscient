@@ -161,8 +161,9 @@ names who held each role and what moved.
 
 ## Finding the Lead after a host fault
 
-Measured once, 2026-09-16, after the WSL2 instance restarted between
-15:28Z and 15:31Z and took every session with it (the Lead, the XO, the
+Measured once, 2026-09-16, after the WSL2 kernel panicked at
+16:04:59Z (the owner's report, `~/wsl2-failure.md`) and took every
+session with it (the Lead, the XO, the
 Dispatcher, every builder, and the harness scratchpads under `/tmp`).
 The reading is in
 `ops/conductor/handoff/HANDOFF-2026-09-16-host-fault-recovery.md`; the

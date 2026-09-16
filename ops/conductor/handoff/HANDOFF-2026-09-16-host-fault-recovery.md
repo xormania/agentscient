@@ -7,7 +7,12 @@ then. The owner's words that opened it: "you were the lead agent and the
 wsl2 terminal faulted - not a normal onboard - you need to find the
 session"; "its a lesson - let's learn"; "you worry about the sessions -
 i'll worry the wsl2 cause"; "its may be the cause" (of the Google Drive
-mount); "i'll know more soon"; "just don't mount it again for now".
+mount); "i'll know more soon"; "just don't mount it again for now";
+then at 16:5xZ "its not proven - but (i think docker personally) - full
+report coming to `~/wsl2-failure.md` - have XO look at it when it
+arrives and tell you what its sees". The XO was dead, so the recovery
+session read the report when it arrived at 17:01:00Z (7060 bytes, 109
+lines) and its reading is below.
 
 This session holds no role. It is off the board and binds nothing.
 
@@ -23,12 +28,46 @@ This session holds no role. It is off the board and binds nothing.
 | 15:25:28 | security audit of #254 ended (record 20260916T151749Z-review-codex-ef6db7) | its `out/last-message.json` |
 | 15:28:03 | the last write anyone made: that record's `exit` file | its mtime |
 | 15:31 | the last write to the Lead's transcript file | its mtime |
+| 15:18:33 | kernel warning in `v9fs_vfs_mkdir_dotl`, `fs/inode.c:474 inc_nlink`, kernel tainted `G W`; the moment the XO made the archive directory on the 9p mount | the owner's report |
+| 15:43:59 | `wsl-pro-service` deactivated; runner listeners idle; syslog quiet | the owner's report |
+| 16:04:09 | the last indexing cycle of the phpactor language server under `~/.cache/phpactor/index/` | the owner's report |
+| 16:04:59.237 | kernel panic, `terminate_walk+0x6b` during `fstatat` of a path component `"index"`, `CR2: ffffa5d6a66b74d5`; the VM halted | the owner's report, from the dump under `%TEMP%\wsl-crashes\` |
+| 16:07 to 16:10 | WSL restarted; ext4 journals on `/dev/sde` and `/dev/sdf` recovered; `system.journal` corrupted by the panic and rotated | the owner's report |
 | about 16:14:44 | this instance's first claude process, pid 1644 | `ps -o etime` at 16:16:43Z |
 | 16:16:43 | `/tmp/claude-1006/…/` holds one session directory, this one; `/run/user/1006/cc-socks/` one socket, 1644; `mount` shows no `/mnt/g` | this session |
 
-The Google Drive mount is the owner's suspect for the cause and the
-owner's to investigate. Standing instruction, owner 2026-09-16: "just
-don't mount it again for now". No session mounts G: or writes under
+The cause is the owner's to investigate and is not proven. The first
+version of this record put the fault between 15:28Z and 15:31Z from
+the last file writes; the owner's report (`~/wsl2-failure.md`, not
+committed: it carries host paths and a user name) puts the kernel
+panic at 16:04:59Z. The half hour before it was quiet because every
+session was waiting on another, see the board below, not because the
+host was dying. What the report says, quoted where it matters:
+
+- The root failure: "a Linux Kernel Panic caused by a fatal page fault
+  in the kernel VFS function `terminate_walk` during an `fstatat`
+  syscall on an `"index"` path component". The Windows host stayed
+  up; no BSOD, no sleep, no OOM.
+- Hypothesis A, delayed VFS corruption from the 9p drvfs mount of the
+  Google Drive: the `inc_nlink` warning at 15:18:33Z is the XO's
+  `mkdir` of `projects/agentscient/archive/` on the mount at 15:19Z by
+  the XO's transcript, so the two readings agree on the minute.
+- Hypothesis B, an RCU path-walk race in kernel 6.18 under concurrent
+  index traffic (phpactor's index, `.git/index`), independent of the
+  Drive.
+- Docker: the report shows Docker Desktop only observing the reset
+  (`WSAECONNRESET`, `Wsl/Service/0x80072746`) at 16:04:59.400Z, and
+  its heartbeats proving the host awake; it names Docker as neither
+  hypothesis. The owner's own suspicion was Docker ("i think docker
+  personally"); the report does not support it as written.
+- Its recommendations: no direct drvfs mount of a cloud-synced
+  virtual drive, `rclone mount` over FUSE instead, or a drvfs mount
+  with explicit metadata options; and, because the WSL2 kernel boots
+  with `panic=-1`, work committed to disk and version control often.
+  The last one is what LD-92 and LD-93 ask for from the lane's side.
+
+Standing instruction, owner 2026-09-16: "just don't mount it again
+for now". No session mounts G: or writes under
 `/mnt/g` until the owner says otherwise. The Drive copy of the bundle
 exists and is unreachable from WSL until then; the staging copy is at
 `~/.local/state/agentscient/archive/agentscient-20260916.bundle`, same
@@ -153,13 +192,26 @@ transcript shows no send after 15:24:15Z and c8's none after 15:18Z.
 Looked and found no message in flight between those three; the other
 sessions' transcripts were not read.
 
+**A stall before the panic, worth the Lead's eye.** The audits ended
+at 15:21:37Z and 15:25:28Z. The Dispatcher's last turn was 15:18:27Z,
+"Idle, holding."; the Lead and the XO were both waiting on "c8's
+audit records" from 15:24Z on. Nothing read the two finished records
+until this session did at 16:2xZ. So the chain stood still for the
+forty minutes before the panic with its two blockers already answered
+on disk: a detached dispatch ends and nobody is told unless a watch
+is armed (the watch skill and the watchdog exist for this and were
+not running on those records). Not a new row here; the Lead decides
+whether it is one.
+
 ## What only the owner can say
 
 - Whether to resume the Lead's session (the recommendation, above) or
   to seat a new Lead, which needs the succession verb LD-91 proposes,
   or the owner's word to override the store's chain once.
-- The WSL2 cause. The Drive mount is the suspect; nothing else new
-  touched the host between 15:15Z and the fault by these readings.
+- The WSL2 cause, between the report's two hypotheses. The lane's
+  reading favours A only in that the mount's `mkdir` warning is the
+  XO's archive write to the minute; that is a coincidence in time, not
+  a proof.
 - When, if ever, G: may be mounted again.
 
 ## What this session did and did not do
