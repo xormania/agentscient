@@ -27,7 +27,8 @@ class Environment(unittest.TestCase):
             leaked = {k for k in os.environ if k in env and env[k] == os.environ[k]
                       and k != "PATH" and not k.startswith("GIT_")}
             self.assertEqual(leaked, set(), f"host values reached the world: {sorted(leaked)}")
-            self.assertTrue(env["PATH"].startswith(str(world.bin) + os.pathsep))
+            # Origin: LD-72, PR #241. A bare world's PATH is bin alone.
+            self.assertEqual(env["PATH"], str(world.bin))
 
     def test_home_xdg_tmpdir_cwd_are_under_the_root(self):
         with World() as world:
