@@ -40,7 +40,7 @@ CHECKER = "sess-e-checker"
 BRANCH = "lane/session-20260916-e-trial"
 
 
-class _World(unittest.TestCase):
+class CoordinationWorld(unittest.TestCase):
     """One world per row: its own HOME, its own XDG state, its own store."""
 
     def setUp(self):
@@ -131,7 +131,7 @@ class _World(unittest.TestCase):
         return record_id
 
 
-class Executions(_World):
+class Executions(CoordinationWorld):
     """AC-12: what is running against the work this participant holds."""
 
     def test_the_brief_names_the_live_execution_of_held_work(self):
@@ -175,7 +175,7 @@ class Executions(_World):
         self.assertNotIn("could not look", brief)
 
 
-class Requests(_World):
+class Requests(CoordinationWorld):
     """AC-12: what is owed, in both directions."""
 
     def test_the_brief_carries_requests_in_both_directions(self):
@@ -199,7 +199,7 @@ class Requests(_World):
         self.assertIn(mid, brief)
 
 
-class Decisions(_World):
+class Decisions(CoordinationWorld):
     """AC-12: the open decision rows, not a count of them."""
 
     def test_the_open_decision_rows_are_rows_and_not_a_count(self):
@@ -224,7 +224,7 @@ class Decisions(_World):
         self.assertIn("decisions open: none", brief)
 
 
-class Evidence(_World):
+class Evidence(CoordinationWorld):
     """AC-12: whether this participant's own readings still apply."""
 
     def test_stale_evidence_names_its_reason_and_the_revision(self):
@@ -246,7 +246,7 @@ class Evidence(_World):
         self.assertNotIn("stale:", brief)
 
 
-class Restart(_World):
+class Restart(CoordinationWorld):
     """AC-12: an interrupted session reconstructs its work from the
     record, because there is nowhere else for it to come from."""
 

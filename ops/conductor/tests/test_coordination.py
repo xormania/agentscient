@@ -1218,6 +1218,13 @@ class EveryMoveBumpsTheGeneration(_Scratch):
         self.bind_three()
         aid = self.ok("draft", "the whole ladder", "--outcome", "one bump a move",
                       "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        # The acceptance at the end of this walk rests on an examination
+        # of the candidate (AC-10, coordination-roles.md §The acceptance
+        # gate). `observe` is not a transition and bumps nothing, so the
+        # five moves below are the five this row measures.
+        self.ok("observe", aid, "--observation", "the suite ran",
+                "--revision", "a1b2c3d", "--generation", self.gen(aid),
+                session=CHECKER)
         seen = [int(self.gen(aid))]
         for argv, who in (
             (("offer", aid, "--to", "PT-2"), LEAD),

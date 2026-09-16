@@ -408,7 +408,7 @@ reconciliation the caller still owes.
 | `submit A-n --evidence READING --revision SHA --generation N` | the candidate |
 | `verify A-n --candidate SHA --evidence READING --generation N` | an independent verifier's pass: the candidate it ran against and a reading of the run |
 | `return A-n --findings REF --generation N` | back to the holder |
-| `accept A-n --evidence READING --generation N` | the lead's acceptance |
+| `accept A-n --evidence READING --generation N [--exception TEXT]` | the lead's acceptance |
 | `reopen A-n --revision SHA --why TEXT --generation N` | a changed candidate; stales the observations |
 | `supersede A-n --by A-m --generation N` | an offered assignment replaced |
 | `assignments [--state S] [--to WHO] [--mine]` | one line each, oldest first |

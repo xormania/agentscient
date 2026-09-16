@@ -100,19 +100,25 @@ whole measure of this verb.
 ## The acceptance gate
 
 AC-10: missing requirements and stale evidence prevent an unsupported
-acceptance. `accept` therefore refuses, before the role and producer
-checks it already makes, when either holds:
+acceptance. `accept` therefore refuses, after the role and producer
+checks it already makes and before the move, when either holds. The
+order is authority first: a participant that may not accept at all
+learns that, and not what the evidence lacks.
 
 - **no current examination.** The assignment names a requirement and no
   observation of the applicable revision is `current` for it. Class
   `evidence`: expected an examination of the requirement at the
   applicable revision; found none; needed an independent observation
   before acceptance.
-- **stale evidence.** An observation of this assignment is `stale` —
-  the candidate or a dependency changed after it was taken. Class
-  `evidence`: expected every observation of the applicable revision to
-  be current; found N stale; needed reassessment of the changed
-  candidate, or an exception recorded.
+- **stale evidence.** An observation *of the applicable revision* is
+  `stale` — something moved under evidence that was supposed to cover
+  the candidate being accepted. Class `evidence`: expected every
+  observation of the applicable revision current at acceptance; found N
+  stale with the first one's reason; needed reassessment of the changed
+  candidate, or an exception recorded. A reading of an earlier candidate
+  is history and never blocks: `reopen` stales what it replaces, and
+  holding that against the new candidate would make an assignment
+  unacceptable for ever.
 
 Both are refusals of the acceptance, not of the work: the candidate
 stays where it is and the ladder is untouched.
