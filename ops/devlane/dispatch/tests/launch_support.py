@@ -139,6 +139,11 @@ env_keys = [
     "GIT_EDITOR", "EDITOR", "PYTHONUNBUFFERED", "PYTHONIOENCODING",
     "LC_ALL", "WF_LANE", "DISPATCH_JOB", "CODEX_HOME", "GROK_HOME",
     "HOME", "CLAUDE_CONFIG_DIR", "WF_AGENT", "TMPDIR",
+    # The session id the launcher minted for this worker. It is in
+    # the shot so an assertion about the worker's environment can
+    # fail for the right reason: without the key here, a test would
+    # read an absent value whether the launcher set it or not.
+    "CLAUDE_SESSION_ID",
 ]
 env_shot = {k: os.environ[k] for k in env_keys if k in os.environ}
 
