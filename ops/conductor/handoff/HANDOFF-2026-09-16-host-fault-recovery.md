@@ -265,3 +265,58 @@ Then, from 17:05Z: bound as PT-9, wrote lead onto its row under grant
 Did not: push any other session's branch; mount or
 touch `/mnt/g`; dispatch; verify the #254 findings; read the transcripts
 of e0, db, 72, 47 or 61; write the day's AAR, which is the Lead's.
+
+## Resume drill, written 18:38Z on the owner's word
+
+Owner, 2026-09-16: "make sure that if terminals reboot again - we can
+resume with minimal difficulty". What survives a reboot: the store at
+`~/.local/state/agentscient/state.db` (participants, assignments,
+messages M-106 to M-116 carrying the day's rules, observation E-1 on
+A-87), every worktree under `~/projects/uscient/wt/` with its local
+commits (ce30599b on `-ci` and ec736ffa on `-launcher` are on disk,
+unpushed, and survived the 16:04:59Z panic that way), origin, and each
+session's transcript under `~/.claude/projects/<project-slug>/<session
+id>.jsonl`. What does not: `/tmp` (every scratchpad), the harness
+sockets under `/run/user/<uid>/cc-socks/`, and every process.
+
+The seven seats at 18:38Z, from `participants` (the store) and the
+harness peer list, each with the command that brings it back. Run from
+`~/projects/uscient/agentscient`, the CO first, then the XO, then the
+rest in any order:
+
+| seat | peer | model | store | session id | holds | resume |
+|---|---|---|---|---|---|---|
+| CO (Lead) | agentscient-16 | Fable 5.1 | PT-9 lead | 68f8b671-73af-4ef0-9548-23aca04bf33c | lane/session-20260916-recover at 7cc81a69, grant 288, T-88 | `claude --resume 68f8b671-73af-4ef0-9548-23aca04bf33c` |
+| XO | agentscient-43 | Opus 5 (1M) | PT-11 coordinator | c6ddcf78-71db-445a-8b32-f2b9fbd8aacc | the board, T-89/T-95 once it has a branch, the research read | `claude --resume c6ddcf78-71db-445a-8b32-f2b9fbd8aacc` |
+| Dispatcher | agentscient-c1 | Sonnet 5 | PT-10 dispatcher | 8c0d191a-dbdc-4aa8-b712-9e47526fce7b | the launch shape; blocked on `dispatcher.py set` | `claude --resume 8c0d191a-dbdc-4aa8-b712-9e47526fce7b` |
+| Builder | agentscient-86 | Sonnet 5 | PT-12 | 3e9eeaf6-1b6e-48a8-92a3-8e9ade19b499 | #254's three fixes, red measured at 6213c35a | `claude --resume 3e9eeaf6-1b6e-48a8-92a3-8e9ade19b499` |
+| Builder | agentscient-f2 | Opus 5 (1M) | PT-13 | 11d60a61-e090-4b90-bc4b-3a4974192126 | the lock wire row, S2 with the LD-86..90 shape row first, T-103's map, the laneconf row | `claude --resume 11d60a61-e090-4b90-bc4b-3a4974192126` |
+| Builder | agentscient-82 | Sonnet 5 | PT-14 | 0df97ec9-dd50-48ea-9c1a-c94f0010e54d | T-98 (reading done), the census (done), scope-fall-in.txt | `claude --resume 0df97ec9-dd50-48ea-9c1a-c94f0010e54d` |
+| Builder, wall | agentscient-e3 | Opus 5 (1M) | PT-15 | 56629fa4-9e16-4170-a21e-bb92613839c3 | T-99 read (done), delete-scope preflight (done), the LD-81 blast radius (done), the chain-of-command hook rows | `claude --resume 56629fa4-9e16-4170-a21e-bb92613839c3` |
+
+None of the seven has a branch of its own yet except the CO; every
+write waits on the owner's grant word, so a reboot before it loses no
+work. After resume each seat runs `coordination.py who`, `inbox` and
+`brief` before it says anything: the rules of the day are in its inbox,
+not in its memory.
+
+If a seat does not resume, a fresh session falls in: it binds as worker,
+reports to the XO, and the XO re-places the slice from the store. If the
+CO's session does not resume, the owner names a lead in words and that
+session seats itself by the one hand write LD-91 records, because the
+store's `grant` verb needs a live lead and no successor verb exists yet.
+If the XO's session does not resume, the CO grants coordinator to the
+session the owner names.
+
+Not measured: that `claude --resume` restores a session that died in a
+kernel panic. The 16:04:59Z sessions were not resumed; the owner seated
+new ones instead. The first reboot after this drill measures it.
+
+The owner's queue at 18:38Z, so a resumed CO does not re-derive it: the
+hand-grant word for the six seats below the CO; the push of ce30599b
+from `wt/ag-session-20260916-ci`; `dispatcher.py set` in the
+Dispatcher's terminal (the state engine's dispatcher machine still names
+dead PT-3); `coordination.py revoke` allowed in the CO's terminal (lead
+from PT-2, dispatcher from PT-3, coordinator from PT-7, verifier from
+PT-6, on the XO's 18:35:33Z liveness reading: every pre-fault session
+last wrote before 16:02Z).

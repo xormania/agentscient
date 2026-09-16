@@ -30,3 +30,7 @@ mechanism-neutral, and the refusal names AGENTS.md's "never a deleted
 branch" instead of a retirement index that does not exist. Added
 `scope-fall-in.txt` and `chain-tests-draft.diff`, the fall-in the owner
 asked for at 18:1xZ, for the XO to delegate.
+
+`pr255-proof-draft.md`: the XO's replacement Proof text for #255 once
+ce30599b is pushed, moved out of the Lead's `/tmp` scratchpad at 18:38Z
+so a reboot does not lose it (LD-92).
