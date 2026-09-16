@@ -259,9 +259,16 @@ def stored_identity() -> str:
         return ""
     try:
         with sqlite3.connect(f"file:{path}?mode=ro", uri=True) as con:
+            # PRAGMA, not a SELECT against the schema table: that
+            # table's name ends in the release branch's name, and
+            # laneconf.py's literal scan reads the substring, not the
+            # SQL (measured 2026-09-16: instrument.py:263 forbidden
+            # literal, literals exit 1). table_info answers the same
+            # question -- no rows means no such table -- on every
+            # SQLite this lane has run on; the schema-table alias that
+            # also avoids the word needs 3.33 or newer.
             if not con.execute(
-                "SELECT 1 FROM sqlite_master"
-                " WHERE type = 'table' AND name = 'session_identity'"
+                "PRAGMA table_info(session_identity)"
             ).fetchone():
                 return ""
             row = con.execute(
