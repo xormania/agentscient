@@ -1947,6 +1947,94 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
             proc.stdout,
         )
 
+    def plant_unreadable_with_inputs(self, rec_id: str, *, outside=None) -> Path:
+        """An unreadable job directory that also carries the copied plan:
+        in its own `in/`, or through an `in` symlink to a directory
+        outside the store."""
+        job_dir = self.plant_unreadable(rec_id)
+        if outside is None:
+            (job_dir / "in").mkdir(parents=True, exist_ok=True)
+            self.world.plant_text(job_dir / "in" / "plan.md", "a plan\n")
+        else:
+            outside.mkdir(parents=True, exist_ok=True)
+            self.world.plant_text(outside / "plan.md", "a plan\n")
+            (job_dir / "in").symlink_to(outside)
+            self.assertTrue(
+                (job_dir / "in").is_symlink(), "plant: in is a symlink"
+            )
+        return job_dir
+
+    def test_a_file_outside_the_store_does_not_wake_a_backlog_directory(self):
+        """Arm A, the red (grok 965afa#1, codex 48ebeb#2): the job's `in`
+        is a symlink to a directory outside the store, and the file it
+        points at is rewritten after start. The reader refuses to cross
+        that link, so nothing about the condition has changed and the
+        backlog directory says nothing."""
+        outside = self.world.tmp / "outside-the-store"
+        self.plant_unreadable_with_inputs(UNREADABLE_ID, outside=outside)
+
+        def rewrite_outside():
+            (outside / "plan.md").write_text(
+                "rewritten from outside the store\n", encoding="utf-8"
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=rewrite_outside,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            self.named_lines(proc, "watchdog error: InputUnavailable"),
+            [],
+            proc.stdout,
+        )
+        self.assertEqual(
+            self.named_lines(proc, "deviation unavailable"), [], proc.stdout
+        )
+
+    def test_a_backlog_directory_reached_across_a_symlink_is_silent(self):
+        """Arm B, the muted baseline: the same shape with nothing
+        touched says nothing, so arm A's silence is not silence about
+        everything."""
+        outside = self.world.tmp / "outside-the-store"
+        self.plant_unreadable_with_inputs(UNREADABLE_ID, outside=outside)
+        proc = self.loop(["--tick", "0.15", "--no-forge"], seconds=0.9)
+        self.assertEqual(
+            self.named_lines(proc, "watchdog error: InputUnavailable"),
+            [],
+            proc.stdout,
+        )
+        self.assertEqual(
+            self.named_lines(proc, "deviation unavailable"), [], proc.stdout
+        )
+
+    def test_the_jobs_own_copied_plan_rewritten_after_start_is_said(self):
+        """Arm C, the control that proves the rows can look: the copied
+        plan is a watched input inside the job, so rewriting it is a
+        change in the condition and speaks."""
+        job_dir = self.plant_unreadable_with_inputs(UNREADABLE_ID)
+
+        def rewrite_inside():
+            (job_dir / "in" / "plan.md").write_text(
+                "rewritten inside the job\n", encoding="utf-8"
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=rewrite_inside,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")), 1, proc.stdout
+        )
+
     def test_a_record_that_closes_after_start_still_reports_its_deviation(self):
         proc_pid = self.spawn_named(HARNESS)
         launched = utc_ago(6)

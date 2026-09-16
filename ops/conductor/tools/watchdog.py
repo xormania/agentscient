@@ -433,6 +433,31 @@ def input_fingerprint(path):
     return tuple(fingerprint)
 
 
+def _lstat_watched(dir_fd, relative):
+    """State one watched name under a no-follow walk: every directory on
+    the way is opened with O_NOFOLLOW and only the last name is stated
+    against it, so a symlinked component refuses instead of being
+    crossed. os.lstat with a dir_fd follows every component but the last,
+    which let a file outside the store move a backlog directory's
+    fingerprint (20260916T100908Z-review-grok-965afa#1,
+    20260916T100931Z-review-codex-48ebeb#2)."""
+    parts = Path(relative).parts
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise InputUnavailable("job input unavailable")
+    directories = []
+    try:
+        for part in parts[:-1]:
+            directories.append(
+                _open_directory(part, dir_fd=directories[-1] if directories else dir_fd)
+            )
+        return os.lstat(
+            parts[-1], dir_fd=directories[-1] if directories else dir_fd
+        )
+    finally:
+        for fd in reversed(directories):
+            os.close(fd)
+
+
 def error_fingerprint(path, exc):
     """Why a job directory's inputs cannot be read, in the same shape a
     readable one has: the refusal's own words, then no-follow metadata
@@ -450,7 +475,7 @@ def error_fingerprint(path, exc):
     try:
         for name in WATCHED_INPUTS:
             try:
-                file_stat = os.lstat(name, dir_fd=dir_fd)
+                file_stat = _lstat_watched(dir_fd, name)
             except OSError as stat_exc:
                 rows.append((name, None, getattr(stat_exc, "errno", None)))
                 continue
