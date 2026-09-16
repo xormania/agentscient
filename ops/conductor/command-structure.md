@@ -159,6 +159,41 @@ T-n --why` (the structure outlives the session; the thread is never
 closed by a session that leaves the role open) and the day's AAR
 names who held each role and what moved.
 
+## Finding the Lead after a host fault
+
+Measured once, 2026-09-16, after the WSL2 instance restarted between
+15:28Z and 15:31Z and took every session with it (the Lead, the XO, the
+Dispatcher, every builder, and the harness scratchpads under `/tmp`).
+The reading is in
+`ops/conductor/handoff/HANDOFF-2026-09-16-host-fault-recovery.md`; the
+rows it opened are LD-91, LD-92 and LD-93.
+
+1. `python3 ops/conductor/tools/coordination.py participants` names who
+   holds `lead` and the harness session id it is bound to. That id is
+   the key: the store binds a participant to the session id, not to the
+   model or the terminal.
+2. The session's transcript is
+   `~/.claude/projects/<project-slug>/<session-id>.jsonl`; its last
+   timestamp is when the Lead last spoke, and its last turns say what it
+   was waiting on. Read it for the queue, never for the state of the
+   tree; re-measure the tree.
+3. Liveness is process state: `ps` for a `claude` process and the
+   socket under `/run/user/<uid>/cc-socks/`. A session whose process is
+   gone is dead, whatever the peer list said before.
+4. If the Lead is dead, the remedy is outside the store:
+   `claude --resume <session-id>` from the project directory brings the
+   same session id back and with it the seat. A fresh session cannot
+   take the seat: every later self-bind is `worker` alone and only a
+   lead grants (LD-91). Until a successor verb exists, a session that
+   finds a dead Lead is a recovery session: off the board, binding
+   nothing, writing records only, and it says so.
+5. What a host fault loses: the scratchpads under `/tmp`, and with them
+   any dispatch scope not yet launched (LD-92; a scope committed under
+   `ops/conductor/handoff/scopes/` survives); the messages in flight;
+   and every part of the board that lived in messages rather than in
+   the store (LD-93). Dispatch records under the lane's state survive,
+   and a worker that exited before the fault has its result there.
+
 ## What is not measured
 
 No session has yet restarted into the XO or Lead role from this page
