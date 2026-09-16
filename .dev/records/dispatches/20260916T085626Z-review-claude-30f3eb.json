@@ -1,0 +1,252 @@
+{
+  "id": "20260916T085626Z-review-claude-30f3eb",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-a",
+  "lineage": {
+    "branch": "lane/session-20260916-a",
+    "base_sha": "46639344d5623c36a96ed27436952db3786f8084"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "plan",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T08:56:26Z",
+    "closed": null
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "46639344d5623c36a96ed27436952db3786f8084",
+    "ref_sha": "46639344d5623c36a96ed27436952db3786f8084",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/snapshot"
+  },
+  "harness": {
+    "name": "claude",
+    "worker": {
+      "name": "claude",
+      "executable": "/home/scientdb/.local/bin/claude",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "flags",
+      "flags": [
+        "--setting-sources",
+        "project,local",
+        "--strict-mcp-config",
+        "--disable-slash-commands"
+      ],
+      "store": "/home/scientdb/.claude/.claude/projects",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      }
+    },
+    "sandbox": "acceptEdits",
+    "containment": "policy",
+    "permissions": {
+      "source": ".claude/settings.json",
+      "sha256": "c61b8c1434338cbc8b373f74fcccbb58f901c37d48ed6c57c6fb0bf51ff90876",
+      "allow": 8,
+      "deny": 21,
+      "dropped": [
+        "Bash(git *)",
+        "Bash(gh pr *)",
+        "Bash(gh run *)",
+        "Bash(gh variable list *)",
+        "Bash(composer *)",
+        "Bash(php *)",
+        "Bash(bash ops/bin/*)"
+      ],
+      "applied": "argv"
+    },
+    "argv": [
+      "/home/scientdb/.local/bin/claude",
+      "--setting-sources",
+      "project,local",
+      "--strict-mcp-config",
+      "--disable-slash-commands",
+      "--session-id",
+      "cb9879c8-960f-4c13-98f1-1b7ca5538375",
+      "--print",
+      "--permission-mode",
+      "acceptEdits",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/out",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in",
+      "--add-dir",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/context",
+      "--allowedTools",
+      "Bash(python3 -m unittest *)",
+      "Bash(python3 -m pytest *)",
+      "Bash(python3 -m ruff *)",
+      "Bash(python3 ops/*)",
+      "Bash(ruff check *)",
+      "Bash(ruff format --check *)",
+      "Bash(cue vet *)",
+      "Bash(cue export *)",
+      "Bash(cue eval *)",
+      "Bash(cue version)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git status *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-files *)",
+      "Bash(git grep *)",
+      "Bash(git blame *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(wc *)",
+      "Bash(uniq *)",
+      "Bash(diff *)",
+      "Bash(sha256sum *)",
+      "Bash(jq *)",
+      "Bash(which *)",
+      "Bash(test *)",
+      "Bash(cd *)",
+      "Bash(cd *)",
+      "Bash(bin/console *)",
+      "Bash(vendor/bin/phpunit*)",
+      "Bash(sh ops/devlane/hooks/install.sh*)",
+      "Bash(python3 ops/*)",
+      "Bash(python3 -m unittest *)",
+      "Bash(ruff *)",
+      "Bash(cue *)",
+      "mcp__agentscient-lane",
+      "--disallowedTools",
+      "WebFetch",
+      "WebSearch",
+      "Agent",
+      "Task",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease*)",
+      "Bash(git push --delete *)",
+      "Bash(git push * --delete *)",
+      "Bash(git push * :*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --delete *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --hard*)",
+      "Bash(git filter-branch*)",
+      "Bash(git commit --amend*)",
+      "Bash(git worktree remove *)",
+      "Bash(git worktree prune*)",
+      "Bash(gh pr merge --squash*)",
+      "Bash(gh pr merge --rebase*)",
+      "Bash(gh pr merge * --delete-branch*)",
+      "Bash(gh pr merge * -d*)",
+      "Bash(gh pr merge * --squash*)",
+      "Bash(gh pr merge * --rebase*)",
+      "--model",
+      "claude-fable-5-1",
+      "--effort",
+      "high",
+      "--output-format",
+      "json",
+      "--json-schema",
+      "{\"type\":\"object\",\"properties\":{\"job\":{\"type\":\"string\"},\"status\":{\"type\":\"string\",\"enum\":[\"ok\",\"invalid\",\"tripped\"]},\"verdict\":{\"type\":[\"string\",\"null\"],\"enum\":[\"approve\",\"changes\",null]},\"counts\":{\"type\":\"object\",\"properties\":{\"p1\":{\"type\":\"integer\",\"minimum\":0},\"p2\":{\"type\":\"integer\",\"minimum\":0},\"p3\":{\"type\":\"integer\",\"minimum\":0},\"opinions\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"p1\",\"p2\",\"p3\",\"opinions\"],\"additionalProperties\":false},\"findings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"severity\":{\"type\":\"string\",\"enum\":[\"p1\",\"p2\",\"p3\"]},\"where\":{\"type\":\"string\"},\"claim\":{\"type\":\"string\"},\"reproduce\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"severity\",\"where\",\"claim\",\"reproduce\"],\"additionalProperties\":false}},\"artifacts\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}},\"spend\":{\"type\":\"object\"},\"stamp\":{\"type\":\"object\",\"properties\":{\"ref\":{\"type\":\"string\"},\"started\":{\"type\":[\"string\",\"null\"]},\"ended\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"ref\"],\"additionalProperties\":false},\"note\":{\"type\":[\"string\",\"null\"]},\"commit\":{\"type\":\"object\",\"properties\":{\"subject\":{\"type\":\"string\"},\"body\":{\"type\":\"string\"}},\"required\":[\"subject\",\"body\"],\"additionalProperties\":false}},\"required\":[\"job\",\"status\",\"verdict\",\"counts\",\"findings\",\"artifacts\",\"spend\",\"stamp\",\"note\"],\"additionalProperties\":false}",
+      "--mcp-config",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/mcp.json",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "claude-fable-5-1",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--effort",
+      "high"
+    ],
+    "ran": null,
+    "read_from": null,
+    "note": "no stream found"
+  },
+  "session": {
+    "id": "cb9879c8-960f-4c13-98f1-1b7ca5538375",
+    "stream": null,
+    "stream_sha256_at_close": null
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Inputs: issues-report.md (12 numbered live operating issues, measured today), coordination-objective.md, coordination-lever.md, instrument-conventions.md.\n\nGroup the 12 issues into classes by the mechanism that produces them, not by which tool or PR surfaced them (e.g. \"single mutable record with no history\" is one mechanism even if it shows up in the deliverable lock and the ledger id mint). For each class:\n- name it in plain words, no metaphor;\n- name one design pattern that removes the mechanism;\n- name which existing instrument or the coordination core already carries that pattern, or say none does;\n- say plainly what would change to apply it;\n- say what it costs;\n- say what it does not cover, plainly.\n\nEnd with an ordering of the classes by how many of the 12 issues each pattern removes, most first. Read only; do not propose code. Under 100 lines.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/issues-report.md",
+        "sha256": "de214e9fd5d48de72ef46bd96d821aa420f400a49d84ff65a31f644657772beb"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/coordination-objective.md",
+        "sha256": "99c0d1a13e47216f50162df3f8dff4449ca79e9012e1d86eb710245a044c057e"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/coordination-lever.md",
+        "sha256": "ea32563f5313a519a5f45f4fb298e0a8dbc2e2e1816248a3f0ee56caabd5fd6f"
+      },
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/in/instrument-conventions.md",
+        "sha256": "ca1f6f0d246300163bd11da2f6b81cf3c53610335d311a87e78c6150c39cbfc8"
+      }
+    ],
+    "sha256": "17d0eb56bc38541748ef40cafd8365afbbb4820328059c45af3f3ebdfcd8900e",
+    "bytes": 11363,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/lane-mcp.json",
+      "sha256": "eb2d8d63e1a23971214839ba9a7ad7823c0ed8e3b6987e481a74a395d9908e2b",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T085626Z-review-claude-30f3eb/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "29a7b9ae51829f875b6d9bbde7ec43d8f047c832fa669dc71d3ac2d981d03bf2"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true
+  },
+  "overrides": [],
+  "attempts": [],
+  "result": null,
+  "status": "launched"
+}
