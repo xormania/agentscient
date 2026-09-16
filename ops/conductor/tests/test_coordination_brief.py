@@ -246,5 +246,50 @@ class Evidence(_World):
         self.assertNotIn("stale:", brief)
 
 
+class Restart(_World):
+    """AC-12: an interrupted session reconstructs its work from the
+    record, because there is nowhere else for it to come from."""
+
+    def test_a_restarted_session_rebinds_and_reads_back_its_obligations(self):
+        aid = self.held()
+        self.ok("observe", aid, "--observation", "the ten rows read Ran 10 OK",
+                "--revision", "a1b2c3d", "--generation", self.gen(aid), session=WORKER)
+        self.ok("send", "--to", "PT-2", "--purpose", "request",
+                "--body", "name the reading the candidate rests on", session=LEAD)
+        self.ok("send", "--to", "lead", "--purpose", "request",
+                "--body", "which revision do I build the gate on", session=WORKER)
+        self.ok("ask", "--question", "does the gate refuse or warn?",
+                "--alternatives", "refuse|warn", session=WORKER)
+        record = self.plant_execution(
+            "20260916T131500Z-code-claude-restart",
+            {"assignment": aid, "branch": BRANCH, "base_sha": "a1b2c3da1b2c3d"},
+        )
+        before = self.ok("brief", session=WORKER)
+
+        # The restart: the session comes back the way a restarted harness
+        # does, binding its id again, and reads. Every process above has
+        # exited; nothing of the work is in this reader but the store.
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        after = self.ok("brief", session=WORKER)
+
+        self.assertEqual(before, after, "the restarted session reads something else")
+        for token in (aid, record, "name the reading the candidate rests on",
+                      "which revision do I build the gate on", "DC-1",
+                      "current at a1b2c3d"):
+            self.assertIn(token, after, "the recovered brief dropped something")
+
+    def test_the_recovered_reading_comes_from_the_store_and_nowhere_else(self):
+        """Moving the store aside empties the brief. A reading that
+        survived that would be memory wearing a record's clothes."""
+        aid = self.held()
+        self.assertIn(aid, self.ok("brief", session=WORKER))
+        moved = self.store.with_name("state.db.moved")
+        self.store.rename(moved)
+        self.assertTrue(moved.is_file() and not self.store.exists())
+        proc = self.run_tool("brief", session=WORKER)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "no store")
+
+
 if __name__ == "__main__":
     unittest.main()
