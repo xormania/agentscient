@@ -951,7 +951,7 @@ class Watch:
         self.startup_error = None
         self.deviations = 0
         try:
-            initial = list(entries(args.store, self.caps, self.closed_cache))
+            initial = entries(args.store, self.caps, self.closed_cache)
             if not args.report_existing:
                 # Backlog is silent in every condition family, and the
                 # silence belongs to the condition rather than to the
