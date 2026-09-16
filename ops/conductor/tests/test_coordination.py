@@ -84,6 +84,7 @@ class _Scratch(unittest.TestCase):
         self.ok("bind", "--roles", "verifier", session=CHECKER)
 
     def offered(self, to="PT-2"):
+        self.bind_three()
         out = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
                       "--revision", "a1b2c3d", session=LEAD)
         aid = out.split()[-1]
@@ -350,6 +351,62 @@ class Wire(_Scratch):
         proc = self.run_tool("draft", "a repair", "--outcome", "it refuses",
                              session=LEAD)
         refusal_wire(RefusalCase("unbound", (), "participant"), proc)
+
+
+class DispatchedWorkers(_Scratch):
+    """A dispatched Codex or Grok worker has no harness session id of its
+    own, so it could hold no participant and every mutation it made
+    refused class participant. The launcher mints a session id per
+    dispatch; a dispatcher binds a participant to it. Raised by
+    agentscient-1c against the contract at 537f3a35."""
+
+    MINTED = "dispatch-7f3a4c21"
+
+    def as_worker(self, *argv, sid=None):
+        """The worker's environment: the older CLAUDE_SESSION_ID key, which
+        is what the launcher sets and instrument.session() already admits."""
+        env = self.world.env(extra={"LANE_CONF": str(self.conf)})
+        env["WF_AGENT"] = SHARED
+        env["CLAUDE_SESSION_ID"] = sid or self.MINTED
+        return run([sys.executable, str(TOOL), *argv],
+                   cwd=self.world.cwd, env=env, timeout=60)
+
+    def dispatched(self):
+        self.lock()
+        self.ok("bind", "--roles", "lead,coordinator,dispatcher", session=LEAD)
+        aid = self.ok("draft", "review the core", "--outcome", "findings",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        self.ok("bind-for", "--session", self.MINTED, "--roles", "worker",
+                "--for", aid, session=LEAD)
+        return aid
+
+    def test_a_dispatched_worker_holds_a_participant_of_its_own(self):
+        self.dispatched()
+        who = self.as_worker("who")
+        self.assertEqual(who.exit, 0, who.stderr)
+        self.assertIn("worker", who.stdout)
+        self.assertIn(self.MINTED, who.stdout)
+        self.assertNotIn("PT-1 ", who.stdout)
+
+    def test_a_dispatched_worker_can_record_its_own_findings(self):
+        aid = self.dispatched()
+        done = self.as_worker("observe", aid, "--observation", "the row refuses",
+                              "--revision", "a1b2c3d")
+        self.assertEqual(done.exit, 0, done.stderr)
+        self.assertIn("the row refuses", self.ok("observations", aid, session=LEAD))
+
+    def test_only_a_dispatcher_binds_a_participant_for_another_session(self):
+        self.bind_three()
+        proc = self.run_tool("bind-for", "--session", self.MINTED, "--roles", "worker",
+                             "--for", "A-1", session=WORKER)
+        refusal_wire(RefusalCase("worker-binds-for", (), "role",
+                                 named=("dispatcher",)), proc)
+
+    def test_the_binding_records_its_issuer_and_its_assignment(self):
+        aid = self.dispatched()
+        listed = self.ok("participants", session=LEAD)
+        self.assertIn("bound by PT-1", listed)
+        self.assertIn(f"for {aid}", listed)
 
 
 if __name__ == "__main__":

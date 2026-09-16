@@ -12,11 +12,27 @@ assignment between sessions, or keeps a message an agent still owes an
 answer to.
 
 Package B is this core and its CLI projection. The MCP action
-projection is package C, built over the same module by another
-session. Every function named here takes typed arguments and the
-resolved participant, returns a dict, and raises `instrument.Refusal`
-with expected, found and needed; both projections are therefore thin
-and neither holds authority of its own.
+projection is built over the same module by another session.
+
+**The seam, as built, and the part of it that is not.** Every verb is
+reached through one table, `VERBS`, keyed by the verb's wire name, so a
+projection calls `VERBS["return"]` by the string and never imports a
+function named for a verb — `return` is a Python keyword and a
+projection guessing `return` then `return_` is two guesses wearing a
+refusal (ruled by the Lead session, 2026-09-16). The functions behind
+the table are spelled `do_<verb>` and that spelling is private; the
+table is the entry point.
+
+What is **not** built, declared rather than implied: those functions
+take an argv list and print, and they return an exit class, not a dict.
+The authority checks — participant, role, holder, generation, revision,
+producer — are inside them and run whoever calls them, which is the
+property that matters and is proven by the suite. The typed-argument,
+dict-returning form this contract first promised is a declared gap for
+the next slice. Until it is built, a projection either drives the CLI
+and reads its wire, or calls `VERBS[verb](argv)` and captures stdout;
+neither is the thin seam intended, and the mock a projection builds
+against must be told which it is.
 
 ## Conventions
 
@@ -75,6 +91,28 @@ boundary.
 `dispatcher`, `worker`, `verifier`. A verb whose authority the bound
 roles do not carry refuses class `role`, naming the roles held and the
 role needed.
+
+### A participant for a session that cannot bind itself
+
+A dispatched Codex or Grok worker has no harness session id in its
+environment, so `bind` — which binds the calling session — leaves it
+with no participant, and every mutation it attempts refuses class
+`participant`. Raised by the acting-server session against this contract
+at `537f3a35`. The launcher already mints a session id per dispatch, so
+the material exists.
+
+`bind-for --session ID --roles R[,R] --for A-n` binds a participant to a
+session id the caller names. Only a participant holding `dispatcher` may
+issue one; another refuses class `role`. The row records `bound_by`, the
+issuing participant, and `bound_for`, the assignment it was issued for,
+and `participants` prints both, so a participant nobody dispatched is
+visible as such. `bind` is unchanged and stays the interactive session's
+verb.
+
+Setting that id into the worker's environment is the launcher's half and
+belongs to the MCP package's second slice, not here. It is set as
+`CLAUDE_SESSION_ID`, the older key `instrument.session()` already admits
+(instrument.py), so `instrument.py` does not change.
 
 ## The assignment machine
 
@@ -229,6 +267,7 @@ reconciliation the caller still owes.
 | verb | effect |
 |---|---|
 | `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n` |
+| `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
 | `who` | this session's participant and roles |
 | `participants [--role R]` | one line per participant |
 | `draft TITLE --outcome TEXT [--requirement REF] [--revision SHA] [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]` | prints `assignment A-n` |
