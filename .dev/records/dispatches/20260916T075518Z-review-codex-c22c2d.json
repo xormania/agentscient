@@ -1,0 +1,247 @@
+{
+  "id": "20260916T075518Z-review-codex-c22c2d",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-d",
+  "lineage": {
+    "branch": "lane/session-20260916-d",
+    "base_sha": "98ffbc9826ff15e84cd6984d28b0502cf62063fe"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T07:55:18Z",
+    "closed": "2026-09-16T08:08:51Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+    "ref_sha": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T03-55-33-01a0a936-c308-7833-b95f-ca739a112998.jsonl"
+  },
+  "session": {
+    "id": "01a0a936-c308-7833-b95f-ca739a112998",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T03-55-33-01a0a936-c308-7833-b95f-ca739a112998.jsonl",
+    "stream_sha256_at_close": "50bae0d0456dac88c7c4614c7c73bd1fa967562ee87aaf41a69880434060e044",
+    "spend": {
+      "input": 2730296,
+      "cached": 2603648,
+      "output": 26833,
+      "total": 2757129,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T03-55-33-01a0a936-c308-7833-b95f-ca739a112998.jsonl",
+      "messages": 334
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Review the acting coordination MCP server, slice one (PR #242, lane/session-20260916-d, head 98ffbc98).\nContracts: ops/conductor/coordination-mcp-lever.md and the core contract ops/conductor/coordination-lever.md (on lane/session-20260916-c at 537f3a35).\nAim skepticism at: the claim that authority is enforced in the server by participant, capability and generation, never by a hook; the decision to check capability before argument validation; the requirement that every refusal on every path, including resources/read, carries the wire line (docs/wire.md).\n",
+    "inputs": [],
+    "sha256": "c47c586d54ba81cd5a399ce0fa26f99b934a7779ab6a3e9217221838989df1b1",
+    "bytes": 10269,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/lane-mcp.json",
+      "sha256": "e76a466d63b1245f800cac9fab79aa0c3ad6c02aa227c9f84e26fd06339baa43",
+      "job_ids": [
+        "20260916T075500Z-review-grok-c7a708"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "c8f1b29b1f4535efee4016bd8b0de5cdb06950a19d435bab57b6c8fede095d59"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T07:55:32Z",
+      "ended": "2026-09-16T08:08:51Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 1,
+        "p2": 4,
+        "p3": 1,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p1",
+          "where": "ops/conductor/tools/coordination_mcp.py:238-251,292-297,345-356 \u2194 coordination.py@7a1a7320:265,515-1250",
+          "claim": "The delivered coordination core exposes `resolve(conn)` and CLI-oriented `do_*` verbs, while this server invokes `resolve()` without a connection and searches only for bare `verb`/`verb_` functions. Composition raises an uncaught TypeError before authorization; `coord_resolve` also collides with the participant resolver. Consequently valid tools/call and resources/read requests can terminate without a JSON-RPC result or refusal-wire line.",
+          "reproduce": "nl -ba ops/conductor/tools/coordination_mcp.py | sed -n '238,297p'; git -C /home/scientdb/projects/uscient/agentscient show 7a1a7320:ops/conductor/tools/coordination.py | rg -n '^def (resolve|do_(brief|submit|resolve|observe))\\('"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py:142-147; ops/conductor/coordination-mcp-lever.md:222-227 \u2194 coordination.py@7a1a7320:938-956",
+          "claim": "`coord_observe` is an assignment write but omits `generation`; the delivered core also inserts an observation as `current` without checking generation or matching its revision to the assignment. A stale participant can therefore append an old-revision observation after `reopen`, defeating the stated stale-generation and observation-freshness guarantees.",
+          "reproduce": "sed -n '142,147p' ops/conductor/tools/coordination_mcp.py; git -C /home/scientdb/projects/uscient/agentscient show 7a1a7320:ops/conductor/tools/coordination.py | sed -n '938,958p'"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py:87-90,133-140,345-356,458-486",
+          "claim": "None of the contract's three runtime bounds is implemented: list tools have no cursor, core calls are direct and have no timeout, and responses pass straight to stdout without a size cap or overflow reading. A slow core blocks the single request loop, while a large assignment/message result produces an unbounded response.",
+          "reproduce": "PYTHONDONTWRITEBYTECODE=1 python3 -c \"import sys; sys.path.insert(0,'ops/conductor/tools'); import coordination_mcp as m; m._send({'x':'x'*70000})\" | wc -c"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/coordination_mcp.py:409-449",
+          "claim": "Method-specific parameter validation is absent for initialize, ping, tools/list, and resources/list. For example, an unknown ping parameter and a non-string initialize protocolVersion both return successful results instead of the contract's -32602 Invalid params response.",
+          "reproduce": "printf '%s\\n' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\",\"params\":{\"bogus\":1}}' '{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"initialize\",\"params\":{\"protocolVersion\":[]}}' | PYTHONDONTWRITEBYTECODE=1 python3 -B ops/conductor/tools/coordination_mcp.py serve"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/registry/coordination_mcp.py.json:1; ops/conductor/coordination-mcp-lever.md:295-298",
+          "claim": "The contract requires conformance invocations for both `config` and `identity`, but the registry contains `config` and `arguments`, both marked `identity:false`. The conventions suite therefore does not classify this mutation server as a writing instrument and cannot detect a missing or malformed identity refusal.",
+          "reproduce": "sed -n '1p' ops/conductor/registry/coordination_mcp.py.json"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/conductor/tools/coordination_mcp.py:256-269,302-356",
+          "claim": "Capability-first validation can return a misleading privilege-expansion remedy for a request that is independently malformed: an empty allowlist plus missing coord_observe arguments says to obtain that capability, and only after it is granted reports the missing arguments. Caller-supplied authority keys are exceptionally validated before capability, so the ordering is also non-uniform and does not provide the claimed argument-shape concealment.",
+          "reproduce": null
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 2757129,
+        "out": 26833,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "98ffbc9826ff15e84cd6984d28b0502cf62063fe",
+        "started": "2026-09-16T07:55:18Z",
+        "ended": "2026-09-16T08:06:12Z"
+      },
+      "note": "reused: agentscient-lane lane_brief/lane_jobs/lane_changes/lane_findings, Graft repo map, and the existing coordination MCP acceptance suite; in/ was present and empty; the targeted 20-test suite passed, but it does not compose the delivered core."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T075518Z-review-codex-c22c2d/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T03-55-33-01a0a936-c308-7833-b95f-ca739a112998.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T08:08:51.069Z"
+    }
+  },
+  "status": "closed"
+}
