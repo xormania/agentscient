@@ -96,6 +96,13 @@ harness's caching makes structural, not a session's fault.
   was not yet fetched; the T-31 class; cannot be re-settled.
 - The lock's `grep -c` measure with zero matches exits 1 and reads
   `unreachable`; the measure needs a trailing `; :` to read short.
+- The lead's `deliverable.py set lane/...-b lane/...-d lane/...-c`
+  replaced all three branches' targets with the lead's closing-AAR
+  measure, with no signal to the two sessions whose work had already
+  merged; both had to lift their entries with `--unmet`, putting a
+  false "unmet" in the record of sessions that shipped (H-13 T-71,
+  the Opus session). Rule until a target belongs to its branch's holder:
+  beside other sessions, `add` and never `set`.
 - `test_skills_registry.TestEvents` tearDown snapshots the live state
   directory and tripped twice while three sessions wrote it; CI, alone
   on its runner, was green. H-14 T-67.
@@ -123,4 +130,5 @@ T-61 (the Serena orphans, owner), T-57 (the prompt-based Stop hook,
 owner); H-14 T-62 (the next-window comparison, the test of all of it),
 T-63 (LD-44), T-64 (clipped-sweep off the wire), T-65 (ids from the
 working directory), T-66 (lock-lift and settle), T-67 (the live-state
-teardown), T-68 (levers 5 and 6), T-69 (the standing instruction).
+teardown), T-68 (levers 5 and 6), T-69 (the standing instruction); H-13
+T-71 (`set` reaches across sessions).
