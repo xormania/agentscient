@@ -103,7 +103,16 @@ Measured on 2026-09-16 and kept as duties:
    green on that same head. Three PRs met the `pr-proof` refusal on
    2026-09-16 (#242, #244, #243 at eb95208d) for lacking it.
 4. The Dispatcher's launch shape, written once and reused:
-   `HAND_GRANT=<id> bash -c 'cd <wt> && export LAUNCHER_PIN=<wt>/ops/devlane/dispatch/launch.py && export DISPATCH_TIMEOUT=1800 && export WF_AGENT="<Name <address>>" && exec ops/bin/dispatch.sh --job <job> --harness <h> --scope-file <path> --worktree <wt> --detach'`.
+   `HAND_GRANT=<id> bash -c 'cd <wt> && export LAUNCHER_PIN=<wt>/ops/devlane/dispatch/launch.py && export DISPATCH_TIMEOUT=1800 && export WF_AGENT="<Name <address>>" && exec ops/bin/dispatch.sh --job <job> --harness <h> --scope-file <path> --worktree <wt> --for <assignment> --detach'`.
+   `--for <assignment>` is a standing part of the shape whenever the
+   scope names one, not a note beside it: `launch.py`'s `_bind_worker`
+   only binds the worker's session to its assignment when the launch
+   line carries that flag (`test_a_dispatch_naming_an_assignment_
+   leaves_a_bound_participant` pins it), and A-87's trial worker ran
+   unbound for want of it, refusing its own `coordination.py claim`
+   until `bind-for` was run by hand after the fact
+   (2026-09-16, record 20260916T142321Z-code-codex-285306, bound late
+   as PT-8).
    Three refusals stood between the Dispatcher and its first launch
    on 2026-09-16 (the harness classifier without `HAND_GRANT` leading;
    `dispatch.sh` wanting `--branch` or `--worktree`; the `dispatch-env`
