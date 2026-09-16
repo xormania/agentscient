@@ -48,6 +48,8 @@ MAX_LINE = 65_536
 # bound answers the unavailable reading rather than a truncated object
 # that would read as complete.
 RESPONSE_BYTES = 16_384
+# The most of a caller-chosen value a refusal will echo back.
+ECHO_BYTES = 200
 # Rows per page. The core's verbs do not page: they return the whole list
 # ordered by id, and the paging below is this server's own.
 PAGE_ROWS = 50
@@ -124,8 +126,11 @@ CATALOGUE = (
          "This session's bounded picture: held assignments, unresolved inbox, "
          "open decisions, stale observations."),
     Tool("coord_assignments", "assignments", False,
-         {"state": _text(), "to": _text(), "mine": _BOOL, "cursor": _CURSOR}, (),
-         "A bounded page of assignments, oldest first."),
+         {"state": _text(), "to": _text(), "cursor": _CURSOR}, (),
+         "A bounded page of assignments this participant holds, oldest first. "
+         "There is no `mine`: the CLI's flag chooses whether to pass the bound "
+         "participant, and this server always passes it, so the filter is "
+         "always on."),
     Tool("coord_show", "show", False, {"assignment": _text()}, ("assignment",),
          "One assignment: its row, its marking, its observations and its open messages.",
          renames={"assignment": "target"}),
@@ -225,15 +230,44 @@ def canonical(payload) -> str:
                       ensure_ascii=False)
 
 
-def unavailable() -> dict:
-    """The reading a response over the bound answers with."""
-    return {"state": "unavailable", "reason": "over the response bound",
-            "bound": RESPONSE_BYTES}
+# What a core verb calls the thing it just created or moved. A response
+# over the bound keeps these and withholds the rest: a mutation that
+# committed must never answer as though nothing happened, or the caller
+# retries and the core writes a second row (A#2).
+IDENTITY_KEYS = ("assignment", "message", "observation", "decision",
+                 "resource", "participant", "cursor")
+
+
+def unavailable(payload=None) -> dict:
+    """The reading a response over the bound answers with.
+
+    It carries the identity of whatever the call created or moved, so the
+    caller can find the row it cannot be shown. Withholding a body is a
+    bounded answer; withholding an id is a lost write.
+    """
+    reading = {"state": "unavailable", "reason": "the body was withheld",
+               "bound": RESPONSE_BYTES}
+    if isinstance(payload, dict):
+        for key in IDENTITY_KEYS:
+            value = payload.get(key)
+            if isinstance(value, (str, int)) and not isinstance(value, bool):
+                reading[key] = value
+    return reading
 
 
 def over_bound(message) -> bool:
     """Whether a whole serialised response is over the bound."""
     return len(canonical(message).encode("utf-8")) > RESPONSE_BYTES
+
+
+def clip(value) -> str:
+    """A bounded slice of a value the caller chose, for a refusal to name.
+
+    A refusal that echoed the whole of an attacker-chosen string carried
+    it past the bound the server declares (beb7b6#4).
+    """
+    text = repr(value)
+    return text if len(text) <= ECHO_BYTES else text[:ECHO_BYTES] + "...(clipped)"
 
 
 def paged(name: str, payload, cursor):
@@ -565,7 +599,7 @@ def call(config, name, arguments) -> dict:
     the arguments, the binding, then the one core verb."""
     tool = BY_NAME.get(name)
     if tool is None:
-        refuse("arguments", "a tool this server carries", repr(name),
+        refuse("arguments", "a tool this server carries", clip(name),
                f"choose one of {sorted(BY_NAME)}")
     check_capability(config, tool)
     check_named_authority(tool, arguments)
@@ -614,9 +648,25 @@ def _schemas() -> list:
 
 
 def _resources() -> list:
-    return [{"uri": uri, "name": name, "description": description,
-             "mimeType": "application/json"}
-            for uri, name, description in RESOURCES]
+    """The listed resources, each proven a read before it is offered.
+
+    Section 0 promises that a client cannot act through `resources/read`.
+    The promise is kept here rather than in prose: a row naming a tool
+    this server marks as a mutation refuses class `state`, so the table
+    cannot quietly grow one (grok#4, a95a8d#6).
+    """
+    listed = []
+    for uri, name, description in RESOURCES:
+        tool = BY_NAME.get(name)
+        if tool is None:
+            refuse("state", "a resource naming a tool this server carries",
+                   f"{uri} names {name}", "correct the resource table")
+        if tool.mutates:
+            refuse("state", "a resource naming a read", f"{uri} names {name}, "
+                   "a mutation", "mutations travel only through tools/call")
+        listed.append({"uri": uri, "name": name, "description": description,
+                       "mimeType": "application/json"})
+    return listed
 
 
 def _error(identifier, code, message, data=None) -> dict:
@@ -699,11 +749,13 @@ def _dispatch(config, request) -> dict | None:
         # check and JSON-RPC lets it carry anything.
         if not set(params) <= {"protocolVersion", "capabilities", "clientInfo"}:
             return _error(identifier, -32602, "Invalid params")
-        requested = params.get("protocolVersion")
-        # A protocolVersion that is not a string is a malformed request,
-        # not an unknown version to negotiate past.
-        if requested is not None and not isinstance(requested, str):
+        # A protocolVersion that is present and not a string is a
+        # malformed request, not an unknown version to negotiate past.
+        # `null` is present: absent is the only way to omit it (a95a8d#3).
+        if "protocolVersion" in params and not isinstance(
+                params["protocolVersion"], str):
             return _error(identifier, -32602, "Invalid params")
+        requested = params.get("protocolVersion")
         for name in ("capabilities", "clientInfo"):
             if name in params and not isinstance(params[name], dict):
                 return _error(identifier, -32602, "Invalid params")
@@ -726,10 +778,17 @@ def _dispatch(config, request) -> dict | None:
     if method == "resources/list":
         if params:
             return _error(identifier, -32602, "Invalid params")
-        return _result(identifier, {"resources": _resources()})
+        try:
+            return _result(identifier, {"resources": _resources()})
+        except Refusal as exc:
+            return _refusal_error(identifier, exc)
     if method == "tools/call":
         if set(params) not in ({"name"}, {"name", "arguments"}) or not isinstance(
                 params.get("name"), str):
+            return _error(identifier, -32602, "Invalid params")
+        # `arguments` is an object or it is not this method's parameter: a
+        # malformed one is a protocol fault, not a domain refusal (a95a8d#3).
+        if "arguments" in params and not isinstance(params["arguments"], dict):
             return _error(identifier, -32602, "Invalid params")
         try:
             payload = call(config, params["name"], params.get("arguments", {}))
@@ -744,8 +803,10 @@ def _dispatch(config, request) -> dict | None:
         message = _call_result(identifier, payload)
         if over_bound(message):
             # Measured on the whole response: this one carries the payload
-            # twice, so the payload's own size never settles it.
-            message = _call_result(identifier, unavailable())
+            # twice, so the payload's own size never settles it. The
+            # reading keeps the identity of what the call created, because
+            # the core has already committed it.
+            message = _call_result(identifier, unavailable(payload))
         return message
     if method == "resources/read":
         if set(params) != {"uri"}:
@@ -758,7 +819,7 @@ def _dispatch(config, request) -> dict | None:
             return _error(identifier, -32603, f"Internal error: {type(exc).__name__}")
         message = _read_result(identifier, params["uri"], payload)
         if over_bound(message):
-            message = _read_result(identifier, params["uri"], unavailable())
+            message = _read_result(identifier, params["uri"], unavailable(payload))
         return message
     return _error(identifier, -32601, "Method not found")
 
@@ -767,11 +828,27 @@ def _read_resource(config, uri) -> dict:
     for listed, name, _description in RESOURCES:
         if uri == listed:
             return call(config, name, {})
-    refuse("arguments", "a listed resource URI", repr(uri),
+    refuse("arguments", "a listed resource URI", clip(uri),
            f"select one of {[row[0] for row in RESOURCES]}")
 
 
 def _send(message) -> None:
+    """The one place a message leaves this server, and the one place the
+    bound is enforced.
+
+    Everything passes here: results, refusals, protocol errors, and the
+    answers to `ping` and the list methods, which carry whatever id the
+    caller chose. A message that cannot be sent within the bound is
+    replaced by one that says so, with a null id, because an id too large
+    to send cannot be echoed to correlate it (a95a8d#1, beb7b6#4).
+    """
+    if over_bound(message):
+        message = {"jsonrpc": "2.0", "id": None, "error": {
+            "code": DOMAIN_REFUSAL,
+            "message": (f"state: expected a response within {RESPONSE_BYTES} "
+                        f"bytes; found one over it; needed ask for less, or "
+                        f"send a smaller request id"),
+            "data": {"bound": RESPONSE_BYTES}}}
     sys.stdout.write(canonical(message) + "\n")
     sys.stdout.flush()
 

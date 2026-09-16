@@ -36,7 +36,10 @@ A second stdio MCP server beside the read server, whose tools act.
   suite stay as they are, and that its behaviour did not move is proven by
   running its own tests with the same command before and after.
 - Mutations travel **only** through `tools/call`. Resources on this server
-  are reads, and no resource read ever mutates.
+  are reads, and the promise is kept in code rather than in this sentence:
+  `resources/list` proves every row of its table names a tool this server
+  marks as a read, and refuses class `state` naming the row if one does
+  not. The table cannot quietly grow a mutation (grok#4, a95a8d#6).
 - The server acts, but it is not authority: it refuses rather than guesses,
   on the wire, and every refusal says expected, found and needed.
 
@@ -361,11 +364,22 @@ it is named and sent to the Lead for a wall session, never written here.
 ## 6. Bounds
 
 - One response is capped at 16384 bytes, **measured on the serialised
-  response and not on the payload inside it**: a `tools/call` result carries
-  its payload twice, as content text and as `structuredContent`, so a
-  payload under the bound can still leave a response over it. A response
-  over the bound is rebuilt around the `unavailable` reading, which names
-  the bound, rather than truncated into an object that reads as complete.
+  response at the one point a message leaves this server**. Everything
+  passes there: results, refusals, protocol errors, and the answers to
+  `ping` and the list methods, which carry whatever id the caller chose. A
+  message that cannot be sent within the bound is replaced by one that says
+  so, with a null id, because an id too large to send cannot be echoed to
+  correlate it. Bounding only the successful results left a caller able to
+  pass the bound with a large request id (a95a8d#1, beb7b6#4).
+- **A mutation's identity survives the bound.** The core commits before the
+  response is measured, so a result rebuilt around the `unavailable`
+  reading keeps the id of what the call created or moved and withholds only
+  the body. Replacing the whole result lost the new row's id, and the
+  caller's retry wrote a second one: a bound that protects output size by
+  losing writes is worse than no bound (A#2).
+- **A refusal echoes a bounded slice of a value the caller chose**, never
+  the whole of it, so a refusal cannot be made to carry an attacker's
+  string past the bound (beb7b6#4).
 - **Paging is this server's own.** The core's verbs do not page: they return
   the whole list, ordered by id. This server takes the `cursor` out of the
   arguments, never forwards it to a core verb that would refuse it, orders
@@ -434,6 +448,23 @@ under a grant).
   (the objective's package D).
 - Cross-harness demonstration beyond Codex and Grok; agy has no MCP.
 - Decision support and resource reservation as MCP tools: a later slice.
+
+### What round three left open
+
+- **A read is not read-only, and this package could not close it.** The
+  core's `reader()` opens the store read-write, executes the schema and runs
+  the migration, so a read creates tables and an unbound read repairs a store
+  before refusing (grok#2, beb7b6#3, both p2, against 4853d96a). The Lead
+  disposed it as a fix here and the change was written — the reader opening
+  SQLite's read-only mode, running no migration, and refusing class `state`
+  on a store whose schema is absent — but applying it edits
+  `ops/conductor/tools/coordination.py`, package B's file, and this session's
+  harness refused that write: "Permission for this action was denied by the
+  Claude Code auto mode classifier. Reason: [Modify Shared Resources]". The
+  refusal is right: another package owns that file. The change is not
+  applied, the finding is not closed, and §7's claim that a read gets
+  `reader()` remains true only about which opener is named, not about what it
+  does.
 
 ### Divergences from the core, for the Lead
 

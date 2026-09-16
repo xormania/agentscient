@@ -303,6 +303,18 @@ STUB_CORE_NO_ROWS = STUB_CORE.replace(
 STUB_CORE_NO_TABLE = STUB_CORE.replace("CORE = {", "NOT_THE_TABLE = {")
 
 
+def serve_once(subject, request):
+    """One JSON-RPC request over the staged server's stdio, the answers back.
+
+    A module-level helper because two classes need it: the transport cases
+    and the resource case, which stages a faulted copy of the server.
+    """
+    result = run(subject.argv("serve"), cwd=subject.world.root,
+                 env=subject.env(), stdin=json.dumps(request) + chr(10),
+                 timeout=TIMEOUT)
+    return [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
+
+
 def answer(answers, identifier=None):
     """The one answer a case reads, or an assertion naming what was absent.
 
@@ -851,8 +863,15 @@ class CoordinationMcpMockFidelity(unittest.TestCase):
     """
 
     def test_every_stub_verb_has_the_real_core_s_signature(self):
-        """Pins: the mock cannot accept an argument the core would refuse,
-        nor refuse one the core accepts.
+        """Pins the stub's call SHAPE against the core's, and nothing more.
+
+        What it proves: the stub takes the same keywords, with the same
+        defaults and the same names. What it does not prove, corrected
+        here after grok#3 and a95a8d#5 said so: that the stub refuses the
+        VALUES the core refuses. A signature-equal `submit` stub still
+        answers success for generation='nope', which the core refuses
+        class arguments. Only the real-core cases below hold behaviour;
+        this one holds shape.
 
         Planted fault: the previous stub took **arguments on every verb,
         which is what hid X2#1 and X2#2 through two review rounds. Any
@@ -1056,22 +1075,39 @@ class CoordinationMcpRealCore(unittest.TestCase):
 
     def test_no_resource_reaches_a_mutating_tool(self):
         """Pins: the promise of section 0, that a client cannot act through
-        resources/read, which was never tested.
+        resources/read, asked of the running server and of its own table.
 
-        Planted fault: a resource mapped to a mutating tool. The case this
-        replaces compared a URI's last segment against tool names — two
-        vocabularies that cannot collide, so it passed over a planted
-        mutating resource and would have passed over a real one.
+        Planted fault: a mutating row added to the server's RESOURCES in a
+        staged copy of its source, which must make resources/list refuse
+        class state. The case this replaces compared two test-local
+        constants and never ran the subject — the fault this file's own
+        rule names, committed in the fix for that very fault (grok#4,
+        a95a8d#6).
         """
-        for uri, name, _description in RESOURCE_ROWS:
-            with self.subTest(uri=uri):
-                self.assertIn(name, TOOL_NAMES)
-                self.assertNotIn(name, MUTATIONS,
-                                 f"{uri} reaches the mutating tool {name}")
-        planted = (*RESOURCE_ROWS, ("coord://draft", "coord_draft", "planted"))
-        caught = [name for _uri, name, _d in planted if name in MUTATIONS]
-        self.assertEqual(caught, ["coord_draft"],
-                         "the check cannot see a mutating resource")
+        with World() as world:
+            subject = Subject(world)
+            listed = answer(serve_once(
+                subject, {"jsonrpc": "2.0", "id": 40,
+                          "method": "resources/list"}))["result"]["resources"]
+            self.assertTrue(listed, "the server lists no resources at all")
+            names = {item["name"] for item in listed}
+            self.assertFalse(names & set(MUTATIONS),
+                             f"a listed resource reaches a mutation: {names}")
+
+            # The fault, planted in the server's own table.
+            source = subject.path.read_text(encoding="utf-8")
+            anchor = 'RESOURCES = (\n'
+            self.assertIn(anchor, source, "the server's resource table moved")
+            planted = source.replace(
+                anchor,
+                anchor + '    ("coord://draft", "coord_draft", "planted"),\n',
+                1)
+            subject.path.write_text(planted, encoding="utf-8")
+            error = answer(serve_once(
+                subject, {"jsonrpc": "2.0", "id": 41,
+                          "method": "resources/list"}))["error"]
+            self.assertEqual(error["data"]["class"], "state",
+                             "the server listed a mutating resource")
 
     def test_a_config_naming_a_participant_the_core_lacks_refuses_participant(self):
         """Pins: a config binding whose participant the core does not hold
@@ -1102,6 +1138,65 @@ class CoordinationMcpRealCore(unittest.TestCase):
             RefusalCase(id="bind-gap", argv=(), cls="state",
                         origin="contract 2.3, the declared limit"),
             result)
+
+    def schemas(self):
+        """Every tool's advertised properties, asked of the server itself.
+
+        A table of schemas kept in this file would be the fault this round
+        is about: the case must read what the server advertises, not what
+        the case remembers.
+        """
+        result = run([sys.executable, "-B", str(TOOL), "serve"],
+                     cwd=self.world.cwd, env=self.env(LEAD_SESSION),
+                     stdin=json.dumps({"jsonrpc": "2.0", "id": 1,
+                                       "method": "tools/list"}) + chr(10),
+                     timeout=TIMEOUT)
+        listed = json.loads(result.stdout.splitlines()[0])["result"]["tools"]
+        return {item["name"]: item["inputSchema"]["properties"]
+                for item in listed}
+
+    def test_every_advertised_keyword_composes_against_the_core(self):
+        """Pins: everything this server advertises, the core accepts.
+
+        Planted fault: `mine`, which the catalogue advertised and
+        core_assignments never took, so a caller sending it was refused
+        class state — a seam mismatch wearing a domain refusal (grok#1,
+        a95a8d#2). This sends every advertised keyword of every tool to
+        the real core and fails on class `state`, which is the class the
+        composition uses when the seam does not line up. A domain refusal
+        is fine here: the point is that the call reaches the core's own
+        gates rather than dying at the projection.
+        """
+        self.bound()
+        sample = {
+            "assignment": "A-1", "branch": FIXTURE_BRANCH, "generation": 1,
+            "ttl": 60, "why": "a reason", "evidence": FIXTURE_REVISION,
+            "candidate": FIXTURE_REVISION, "revision": FIXTURE_REVISION,
+            "findings": "#242", "title": "a title", "outcome": "an outcome",
+            "requirement": "R-1", "depends": "A-2", "duty": "a duty",
+            "scope": "a scope", "inputs": "in/x", "to": "PT-2",
+            "purpose": "inform", "body": "a body", "decision": "DC-1",
+            "reply_to": "M-1", "artifact": FIXTURE_REVISION, "message": "M-1",
+            "observation": "a reading", "execution": "20260916T010203Z-job-x",
+            "environment": "the world", "state": "held", "cursor": "1",
+            "stale": False, "unresolved": True,
+        }
+        schemas = self.schemas()
+        self.assertTrue(schemas, "the server advertises no tools")
+        for name, schema in sorted(schemas.items()):
+            with self.subTest(tool=name):
+                arguments = {key: sample[key] for key in schema
+                             if key in sample}
+                self.assertEqual(
+                    sorted(arguments), sorted(schema),
+                    f"this case has no sample value for {sorted(set(schema) - set(sample))}")
+                result = self.mcp("call", name, json.dumps(arguments),
+                                  session=LEAD_SESSION)
+                if result.exit == 0:
+                    continue
+                self.assertFalse(
+                    result.stderr.startswith("state:"),
+                    f"{name} does not compose against the core: {result.stderr}")
 
     def test_the_server_needs_no_agent_identity_of_its_own(self):
         """Pins: the binding is the session's, not WF_AGENT's. Every call
