@@ -313,5 +313,20 @@
   "standing": "ratified",
   "superseded_by": null,
   "supersedes": null
+ },
+ {
+  "blocked_on": null,
+  "created_at": "2026-09-16T10:31:20.902944Z",
+  "created_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "decided_at": null,
+  "decided_by": null,
+  "evidence": null,
+  "home": "ops/conductor/harness-capabilities.md",
+  "id": "D-MONITOR-1",
+  "question": "The harness Monitor surface (the background-tasks row of ops/conductor/harness-capabilities.md, line 27: one notification per stdout line, 200ms batching, a 5-minute default and 30-minute ceiling, flood suppression) is consumed through its contract row with no cadence probe until one is written: a declared gap, visible, which outranks an imaginary cover (docs/concerns.md). A reviewer citing the gap cites this row instead of restating it (raised three times on #244, latest 20260916T101003Z-review-codex-a99b52#2). The row is superseded by the landing of the probe that re-checks the surface on a cadence.",
+  "recorded_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "standing": "proposed",
+  "superseded_by": null,
+  "supersedes": null
  }
 ]
