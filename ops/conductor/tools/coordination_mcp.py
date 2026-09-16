@@ -22,6 +22,7 @@ import sys
 
 sys.dont_write_bytecode = True
 
+import inspect  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
 import re  # noqa: E402
@@ -88,15 +89,23 @@ class Tool:
     """One row of the catalogue: the tool, the core verb's wire name, the
     mutation flag and the closed argument object it accepts."""
 
-    __slots__ = ("mutates", "name", "properties", "required", "summary", "verb")
+    __slots__ = ("mutates", "name", "properties", "renames", "required",
+                 "strings", "summary", "verb")
 
-    def __init__(self, name, verb, mutates, properties, required, summary):
+    def __init__(self, name, verb, mutates, properties, required, summary,
+                 renames=None, strings=()):
         self.name = name
         self.verb = verb
         self.mutates = mutates
         self.properties = properties
         self.required = required
         self.summary = summary
+        # What the core spells differently, declared here rather than
+        # discovered at the call: `show` takes a `target`, and the core's
+        # generation gate parses a string because its own CLI hands it
+        # argv. The wire keeps the type a JSON caller would expect.
+        self.renames = dict(renames or {})
+        self.strings = tuple(strings)
 
 
 def _text(description=None):
@@ -118,7 +127,8 @@ CATALOGUE = (
          {"state": _text(), "to": _text(), "mine": _BOOL, "cursor": _CURSOR}, (),
          "A bounded page of assignments, oldest first."),
     Tool("coord_show", "show", False, {"assignment": _text()}, ("assignment",),
-         "One assignment: its row, its marking, its observations and its open messages."),
+         "One assignment: its row, its marking, its observations and its open messages.",
+         renames={"assignment": "target"}),
     Tool("coord_draft", "draft", True,
          {"title": _text(), "outcome": _text(), "requirement": _text(),
           "revision": _text(), "depends": _text(), "duty": _text(),
@@ -132,28 +142,36 @@ CATALOGUE = (
          {"assignment": _text(), "branch": _text(), "generation": _INT,
           "ttl": _INT},
          ("assignment", "branch", "generation"),
-         "Take the hold. The branch must be named in the deliverable lock."),
+         "Take the hold. The branch must be named in the deliverable lock.",
+         strings=("generation",)),
     Tool("coord_release", "release", True,
          {"assignment": _text(), "why": _text(), "generation": _INT},
          ("assignment", "why", "generation"),
-         "Give the hold back; bumps the generation."),
+         "Give the hold back; bumps the generation.", strings=("generation",)),
     Tool("coord_submit", "submit", True,
          {"assignment": _text(), "evidence": _text(), "revision": _text(),
           "generation": _INT},
          ("assignment", "evidence", "revision", "generation"),
-         "Submit the candidate with the reading it rests on."),
+         "Submit the candidate with the reading it rests on.",
+         strings=("generation",)),
     Tool("coord_verify", "verify", True,
-         {"assignment": _text(), "evidence": _text(), "generation": _INT},
-         ("assignment", "evidence", "generation"),
-         "An independent verifier's pass. Never the producer's own."),
+         {"assignment": _text(), "candidate": _text(), "evidence": _text(),
+          "generation": _INT},
+         ("assignment", "candidate", "evidence", "generation"),
+         "An independent verifier's pass, never the producer's own. Two "
+         "readings that are not the same reading: `candidate` is the revision "
+         "verified, `evidence` the reading of the verification run.",
+         strings=("generation",)),
     Tool("coord_return", "return", True,
          {"assignment": _text(), "findings": _text(), "generation": _INT},
          ("assignment", "findings", "generation"),
-         "Return the candidate to its holder with findings."),
+         "Return the candidate to its holder with findings.",
+         strings=("generation",)),
     Tool("coord_accept", "accept", True,
          {"assignment": _text(), "evidence": _text(), "generation": _INT},
          ("assignment", "evidence", "generation"),
-         "The lead's acceptance. Never the producer's own."),
+         "The lead's acceptance. Never the producer's own.",
+         strings=("generation",)),
     Tool("coord_send", "send", True,
          {"to": _text(), "purpose": _text("inform, request or finding"),
           "body": _text(), "assignment": _text(), "decision": _text(),
@@ -180,7 +198,7 @@ CATALOGUE = (
          ("assignment", "observation", "revision", "generation"),
          "Record an observation against an assignment and a revision. The core "
          "refuses class revision when the assignment has moved on, and `stale` "
-         "is the caller saying so on purpose."),
+         "is the caller saying so on purpose.", strings=("generation",)),
 )
 BY_NAME = {tool.name: tool for tool in CATALOGUE}
 # What a paged verb calls its list, at coordination.py 05b8aebe: the key
@@ -363,11 +381,22 @@ def _participant_rows(core, conn):
     return _verb(core, PARTICIPANTS_VERB)(conn, None)
 
 
-def _row_named(rows, wanted: str):
+PARTICIPANTS_KEY = "participants"
+
+
+def _row_named(payload, wanted: str):
+    """The participant row the core holds under `wanted`, or None.
+
+    The core answers {"participants": [...]} and each row names itself
+    `participant` as `PT-n`, its integer `id` beside it. A lookup that
+    read a bare list, or compared the integer id to `PT-n`, reported
+    every existing participant absent (X2#2, measured at 40d340b2).
+    """
+    rows = payload.get(PARTICIPANTS_KEY) if isinstance(payload, dict) else payload
     if not isinstance(rows, (list, tuple)):
         return None
     for row in rows:
-        if isinstance(row, dict) and row.get("id") == wanted:
+        if isinstance(row, dict) and row.get("participant") == wanted:
             return row
     return None
 
@@ -438,6 +467,47 @@ def resolve_binding(config, tool: Tool):
 
 # -- arguments -------------------------------------------------------------
 
+def compose(verb, tool: Tool, participant, arguments) -> dict:
+    """The keywords the core verb takes, from the arguments this server
+    checked, and every one of them checked against the core's signature
+    first.
+
+    The core asks for an `agent` on the verbs whose marking records one;
+    it is attribution, and it comes from the bound participant's own row,
+    never from the request. A keyword the core does not accept, or a
+    required keyword this server does not supply, refuses class `state`
+    naming it, so a core that moves is a refusal on the wire and not a
+    TypeError raised into a client that would see no response (X2#1).
+    """
+    kwargs = {}
+    for name, value in arguments.items():
+        kwargs[tool.renames.get(name, name)] = (
+            str(value) if name in tool.strings else value)
+    try:
+        parameters = inspect.signature(verb).parameters
+    except (TypeError, ValueError):
+        refuse("state", f"a readable signature for core verb `{tool.verb}`",
+               "the core verb is not introspectable",
+               "expose the verb as a function in the core's table")
+    keyword = {name: parameter for name, parameter in parameters.items()
+               if parameter.kind is inspect.Parameter.KEYWORD_ONLY}
+    if "agent" in keyword and "agent" not in kwargs and participant is not None:
+        kwargs["agent"] = participant["agent"]
+    stranger = sorted(set(kwargs) - set(keyword))
+    if stranger:
+        refuse("state", f"core verb `{tool.verb}` taking {sorted(keyword)}",
+               f"this server passes {stranger}",
+               f"settle {tool.name} against the core's signature")
+    missing = sorted(
+        name for name, parameter in keyword.items()
+        if parameter.default is inspect.Parameter.empty and name not in kwargs)
+    if missing:
+        refuse("state", f"every required keyword of core verb `{tool.verb}`",
+               f"missing {missing}",
+               f"settle {tool.name} against the core's signature")
+    return kwargs
+
+
 def check_named_authority(tool: Tool, arguments) -> None:
     """A request may not name its own authority, whoever is asking.
 
@@ -503,7 +573,8 @@ def call(config, name, arguments) -> dict:
     cursor = _cursor(tool, checked)
     conn, participant = resolve_binding(config, tool)
     verb = _verb(_core(), tool.verb)
-    return paged(tool.name, verb(conn, participant, **checked), cursor)
+    kwargs = compose(verb, tool, participant, checked)
+    return paged(tool.name, verb(conn, participant, **kwargs), cursor)
 
 
 def _cursor(tool: Tool, arguments: dict):
@@ -664,6 +735,12 @@ def _dispatch(config, request) -> dict | None:
             payload = call(config, params["name"], params.get("arguments", {}))
         except Refusal as exc:
             return _refusal_result(identifier, exc)
+        except Exception as exc:  # noqa: BLE001 — a server answers, always
+            # A fault inside the core is not this server's to interpret,
+            # but a client that receives no response at all cannot even
+            # retry (X2#1). The type is named; the message is not, because
+            # it is not this server's to disclose.
+            return _error(identifier, -32603, f"Internal error: {type(exc).__name__}")
         message = _call_result(identifier, payload)
         if over_bound(message):
             # Measured on the whole response: this one carries the payload
@@ -677,6 +754,8 @@ def _dispatch(config, request) -> dict | None:
             payload = _read_resource(config, params["uri"])
         except Refusal as exc:
             return _refusal_error(identifier, exc)
+        except Exception as exc:  # noqa: BLE001 — a server answers, always
+            return _error(identifier, -32603, f"Internal error: {type(exc).__name__}")
         message = _read_result(identifier, params["uri"], payload)
         if over_bound(message):
             message = _read_result(identifier, params["uri"], unavailable())

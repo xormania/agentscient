@@ -15,8 +15,8 @@ this server.
 Settled against the coordination core (package B,
 `ops/conductor/tools/coordination.py`) from its contract
 `ops/conductor/coordination-lever.md`, and against the core itself at
-05b8aebe on `lane/session-20260916-c`, read 2026-09-16. The seam of §7 and
-the mock of §8 are settled against that head, and this line moves with
+b1d868b0 on `lane/session-20260916-c`, merged into this branch. The seam of
+§7 and the suite of §8 run against that head, and this line moves with
 them. Every tool in §3 names the core
 verb it projects. Where this contract and the core's diverge, the divergence
 is listed in §9 and ruled on by the Lead, not resolved here.
@@ -235,7 +235,7 @@ core transitions into one tool.
 | `coord_claim` | `claim` | yes | the named recipient | branch and generation required; two simultaneous claims cannot both win (AC-03) |
 | `coord_release` | `release` | yes | holder-or-lapsed | bumps the generation |
 | `coord_submit` | `submit` | yes | holder | the candidate, with its revision |
-| `coord_verify` | `verify` | yes | verifier, never the producer | refused class `producer` for a self-verification (AC-11) |
+| `coord_verify` | `verify` | yes | verifier, never the producer | refused class `producer` for a self-verification (AC-11). Two readings that are not the same: `candidate` is the revision verified, `evidence` the reading of the verification run |
 | `coord_return` | `return` | yes | verifier or lead | keeps the holder |
 | `coord_accept` | `accept` | yes | lead, never the producer | the acceptance |
 | `coord_send` | `send` | yes | any bound participant | purpose `inform`, `request` or `finding` |
@@ -384,9 +384,32 @@ it is named and sent to the Lead for a wall session, never written here.
 
 ## 7. The edges this server declares
 
+**How a call is composed.** The core spells three things differently from
+this server's wire, and the projection adapts rather than asking the core
+to change or guessing:
+
+- The core takes an `agent` on the verbs whose marking records one. It is
+  attribution, never authority, and it comes from the bound participant's
+  own row — never from the request.
+- The core calls the subject of `show` a `target`; the wire keeps
+  `assignment`, and the tool declares the rename.
+- The core's generation gate parses a string, because its own CLI hands it
+  argv. The wire keeps `generation` an integer, which is what a JSON
+  caller expects, and the tool declares the conversion.
+
+**Every keyword is checked against the core's own signature before the
+call.** A keyword the core does not accept, or a required keyword this
+server does not supply, refuses class `state` naming it. So a core that
+moves is a refusal on the wire, not a `TypeError` raised into a client
+that would receive no response at all. Beyond that, any fault inside the
+core answers -32603 naming the exception's type and not its message: a
+server answers, always.
+
+
+
 | edge | counterparty | how it is verified |
 |---|---|---|
-| core | `coordination.py` (package B) at `05b8aebe` | contract-verified. The core exposes `CORE`, one function per verb keyed by wire name, each taking a store handle and the resolved participant; `VERBS` beside it is the CLI's own layer and this server never reaches for it. The resolver is `bound_participant`, which is not a verb, so the wire name `resolve` is the message verb alone. The store is opened by the core's `writer()` for a mutation and `reader()` for a read: this server opens none. A mock in that shape stands in for the tests |
+| core | `coordination.py` (package B) at `b1d868b0` | verified against the counterparty itself, not a mock of it. `CORE` is one function per verb keyed by wire name, each taking a store handle and the resolved participant; `VERBS` beside it is the CLI's own layer and this server never reaches for it. The resolver is `bound_participant`, which is not a verb, so the wire name `resolve` is the message verb alone. The store is opened by the core's `writer()` for a mutation and `reader()` for a read: this server opens none |
 | state | the lane state store through the core | the core's own gate; this server originates no schema |
 | launcher | `launch.py` verbs, slice two only | the launcher's records are the counterparty; reconciliation is proven on planted crashes |
 | read server | none | independence is the claim: `lane_mcp.py` is not imported, and its suite is green before and after |
@@ -417,7 +440,7 @@ under a grant).
 Raised, not resolved here (the Lead's instruction, 2026-09-16):
 
 1. **A dispatched worker cannot be bound — closed in the core, open here.**
-   The core carries `core_bind_for` at 05b8aebe, a bind taking an explicit
+   The core carries `core_bind_for` at b1d868b0, a bind taking an explicit
    session id, so the material this contract said was missing now exists.
    What remains is this server's and the launcher's: slice two binds the
    worker's minted session id before launch and sets it in the worker's

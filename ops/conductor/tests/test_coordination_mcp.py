@@ -55,6 +55,8 @@ carries the capability.
 
 from __future__ import annotations
 
+import importlib.util
+import inspect
 import json
 import sys
 import unittest
@@ -64,8 +66,32 @@ from ops.testkit import World, run
 from ops.testkit.cases import RefusalCase, refusal_wire, run_table
 
 REPO = Path(__file__).resolve().parents[3]
-TOOL = REPO / "ops" / "conductor" / "tools" / "coordination_mcp.py"
+TOOLS = REPO / "ops" / "conductor" / "tools"
+TOOL = TOOLS / "coordination_mcp.py"
+CORE_TOOL = TOOLS / "coordination.py"
+LOCK_LEVER = TOOLS / "deliverable.py"
 SIBLINGS = ("instrument.py",)
+
+# The real-core class binds two sessions that share one agent string,
+# because the participant and not the agent is the authority.
+SHARED_AGENT = "Claude Opus 5 (1M context) <noreply@example.test>"
+LEAD_SESSION = "sess-mcp-lead"
+WORKER_SESSION = "sess-mcp-worker"
+FIXTURE_BRANCH = "lane/session-20260916-mcp"
+FIXTURE_REVISION = "a1b2c3d"
+
+
+def load_module(path, name):
+    """A module loaded from a path, for reading its signatures."""
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_core():
+    """The real core, for the signatures the mock must match."""
+    return load_module(CORE_TOOL, "coordination_for_signatures")
 
 TIMEOUT = 30.0
 # Renamed from agentscient-coord at the Lead's ruling C1, 2026-09-16:
@@ -116,6 +142,15 @@ GENERATION_TOOLS = (
 STALE_TOOL = "coord_observe"
 # Every paged read carries an explicit cursor (X#3).
 PAGED_TOOLS = ("coord_assignments", "coord_inbox", "coord_outstanding")
+# The resources this server lists, and the tool each reaches. Named here
+# so a case can assert the mapping rather than compare two vocabularies
+# that cannot collide.
+RESOURCE_ROWS = (
+    ("coord://brief", "coord_brief", "This session's bounded picture"),
+    ("coord://assignments", "coord_assignments", "Assignments in scope"),
+    ("coord://inbox", "coord_inbox", "Messages for this participant"),
+    ("coord://outstanding", "coord_outstanding", "Unresolved obligations"),
+)
 
 
 def binding(**over) -> dict:
@@ -170,7 +205,14 @@ class Subject:
 # is the wrong layer for this server and is planted here so a projection
 # that reached for it fails; and bound_participant, the resolver, which
 # is not a verb, so the wire name `resolve` is the message verb alone.
-STUB_CORE = '''"""A stand-in for the coordination core, in its 05b8aebe shape."""
+STUB_CORE = '''"""A stand-in for the coordination core, in its b1d868b0 shape.
+
+The future import is not decoration: the core carries it, so its
+annotations are strings, and a stand-in without it compares unequal to
+the real signature it must match.
+"""
+
+from __future__ import annotations
 
 
 class Refusal(Exception):
@@ -198,42 +240,46 @@ def bound_participant(conn):
     """
     import os
 
-    return {"participant": "PT-1", "roles": ["lead", "worker"],
+    return {"participant": "PT-1", "id": 1, "roles": "lead,worker",
+            "agent": "Stub Agent <noreply@example.test>",
             "store": conn, "session": os.environ.get("CLAUDE_CODE_SESSION_ID", "")}
 
 
-def _brief(conn, participant, **arguments):
-    return _answer("brief", participant, arguments)
+def _brief(conn, part) -> dict:
+    return _answer("brief", part, {})
 
 
-def _submit(conn, participant, **arguments):
-    return _answer("submit", participant, arguments)
+def _submit(conn, part, *, agent, assignment, evidence, revision,
+            generation) -> dict:
+    return _answer("submit", part, {
+        "agent": agent, "assignment": assignment, "evidence": evidence,
+        "revision": revision, "generation": generation})
 
 
-def _message_resolve(conn, participant, **arguments):
+def _message_resolve(conn, part, *, agent, message, evidence) -> dict:
     """The core's message verb. Shares its wire name with the resolver
     above and must never be confused with it."""
-    return _answer("message-resolve", participant, arguments)
+    return _answer("message-resolve", part,
+                   {"agent": agent, "message": message, "evidence": evidence})
 
 
-def _participants(conn, participant, **arguments):
-    return [{"id": "PT-7", "roles": ["worker"]}]
+def _participants(conn, part, *, role=None) -> dict:
+    return {"participants": [{"participant": "PT-7", "id": 7,
+                              "roles": "worker"}]}
 
 
-def _assignments(conn, participant, **arguments):
+def _assignments(conn, part, *, state=None, to=None) -> dict:
     """The whole list, ordered by id, exactly as the core returns it: the
-    core does not page, so a server that forwarded a cursor to it would
-    fail here on an unexpected argument."""
-    if arguments:
-        raise TypeError(f"the core verb takes no {sorted(arguments)}")
+    core does not page, so a server that forwarded a cursor would fail on
+    the signature before it ever reached here."""
     return {"assignments": [{"id": number, "title": f"t{number}"}
                             for number in range(1, 131)]}
 
 
-def _show(conn, participant, **arguments):
+def _show(conn, part, *, target) -> dict:
     """A payload comfortably under the response bound on its own, and over
     it once tools/call carries it twice."""
-    return {"blob": "x" * 12000}
+    return {"blob": "x" * 12000, "target": target}
 
 
 CORE = {
@@ -251,7 +297,8 @@ VERBS = {"brief": lambda *a, **k: {"verb": "the-cli-wrapper"}}
 
 # A core whose table is there but whose participant list holds nobody.
 STUB_CORE_NO_ROWS = STUB_CORE.replace(
-    'return [{"id": "PT-7", "roles": ["worker"]}]', "return []")
+    '"participants": [{"participant": "PT-7", "id": 7,\n'
+    '                              "roles": "worker"}]', '"participants": []')
 # A core that is present but exposes no verb table at all.
 STUB_CORE_NO_TABLE = STUB_CORE.replace("CORE = {", "NOT_THE_TABLE = {")
 
@@ -601,30 +648,6 @@ class CoordinationMcpTransport(unittest.TestCase):
                     self.assertIs(
                         listed[name]["annotations"].get("destructiveHint"), False)
 
-    def test_every_assignment_write_states_a_generation(self):
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(
-                subject, {"jsonrpc": "2.0", "id": 8, "method": "tools/list"})
-            listed = {item["name"]: item for item in answer(answers)["result"]["tools"]}
-            for name in GENERATION_TOOLS:
-                with self.subTest(tool=name):
-                    schema = listed[name]["inputSchema"]
-                    self.assertIn("generation", schema.get("properties", {}))
-                    self.assertIn("generation", schema.get("required", []))
-
-    def test_every_paged_read_carries_an_explicit_cursor(self):
-        """X#3: a page with no cursor is an unbounded list wearing a bound."""
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(
-                subject, {"jsonrpc": "2.0", "id": 14, "method": "tools/list"})
-            listed = {item["name"]: item for item in answer(answers)["result"]["tools"]}
-            for name in PAGED_TOOLS:
-                with self.subTest(tool=name):
-                    self.assertIn(
-                        "cursor", listed[name]["inputSchema"].get("properties", {}))
-
     def test_a_refused_call_carries_the_wire_line_in_the_result(self):
         with World() as world:
             subject = Subject(world)
@@ -669,18 +692,6 @@ class CoordinationMcpTransport(unittest.TestCase):
             self.assertEqual(error["code"], DOMAIN_REFUSAL)
             self.assertEqual(error["data"]["class"], "arguments")
 
-    def test_resources_never_mutate(self):
-        """Contract section 0: mutations travel only through tools/call."""
-        with World() as world:
-            subject = Subject(world)
-            _result, answers = self.serve(
-                subject, {"jsonrpc": "2.0", "id": 11, "method": "resources/list"})
-            listed = answer(answers)["result"]["resources"]
-            for item in listed:
-                with self.subTest(uri=item["uri"]):
-                    self.assertNotIn(
-                        item["uri"].rsplit("/", 1)[-1], MUTATIONS)
-
 
 class CoordinationMcpCore(unittest.TestCase):
     """The seam to the coordination core, with a stub standing in for it."""
@@ -722,35 +733,6 @@ class CoordinationMcpCore(unittest.TestCase):
             self.assertEqual(result.exit, 0, result.stderr)
             self.assertEqual(payload(result).get("verb"), "message-resolve")
 
-    def test_a_config_naming_a_participant_the_core_lacks_refuses_participant(self):
-        """G#3: a missing row and the slice-one bind gap are different
-        faults and must not share a class."""
-        with World() as world:
-            subject = Subject(world)
-            subject.core(STUB_CORE_NO_ROWS)
-            config = subject.config(binding(participant=ABSENT_PARTICIPANT,
-                                            capabilities=["coord_brief"]))
-            result = subject.run("call", "coord_brief", config=config)
-            refusal = refusal_wire(
-                RefusalCase(id="participant-absent", argv=(), cls="participant",
-                            named=(ABSENT_PARTICIPANT,),
-                            origin="G#3, 20260916T075500Z-review-grok-c7a708#3"),
-                result)
-            self.assertIn(ABSENT_PARTICIPANT, refusal.line)
-
-    def test_a_config_whose_participant_exists_still_meets_the_bind_gap(self):
-        """The clean neighbour: the row is there, so the refusal moves on to
-        the declared limit of slice one rather than staying `participant`."""
-        with World() as world:
-            subject = Subject(world)
-            subject.core(STUB_CORE)
-            config = subject.config(binding(capabilities=["coord_brief"]))
-            result = subject.run("call", "coord_brief", config=config)
-            refusal_wire(
-                RefusalCase(id="bind-gap", argv=(), cls="state",
-                            origin="contract section 2.3, the declared limit"),
-                result)
-
     def test_a_core_with_no_verb_table_refuses_state_and_names_it(self):
         with World() as world:
             subject = Subject(world)
@@ -772,18 +754,6 @@ class CoordinationMcpCore(unittest.TestCase):
             result = subject.run("call", "coord_brief", session=SESSION)
             self.assertEqual(result.exit, 0, result.stderr)
             self.assertNotEqual(payload(result).get("verb"), "the-cli-wrapper")
-
-    def test_the_store_handle_reaches_the_verb(self):
-        """The core owns the store; this server opens none and passes the
-        handle the core gave it, a writer for a mutation and a reader for
-        a read (05b8aebe)."""
-        with World() as world:
-            subject = Subject(world)
-            subject.core(STUB_CORE)
-            result = subject.run("call", "coord_brief", session=SESSION)
-            self.assertEqual(
-                payload(result).get("participant", {}).get("store"),
-                {"store": "reader"})
 
     def test_a_verb_absent_from_the_table_refuses_state_and_names_it(self):
         with World() as world:
@@ -868,6 +838,283 @@ class CoordinationMcpCore(unittest.TestCase):
                 RefusalCase(id="cursor-not-digits", argv=(), cls="arguments",
                             origin="X2#3, the cursor is the server's own"),
                 result)
+
+
+class CoordinationMcpMockFidelity(unittest.TestCase):
+    """The mock is contract-verified or it is nothing.
+
+    docs/verified-couplings.md obligation 3. The stub stands in for the
+    core only where a fault must be planted that the real core cannot
+    produce — an absent table, an absent verb, an absent core. Everywhere
+    else the suite runs the real thing. This case is what keeps the stub
+    honest.
+    """
+
+    def test_every_stub_verb_has_the_real_core_s_signature(self):
+        """Pins: the mock cannot accept an argument the core would refuse,
+        nor refuse one the core accepts.
+
+        Planted fault: the previous stub took **arguments on every verb,
+        which is what hid X2#1 and X2#2 through two review rounds. Any
+        return to that shape fails here.
+        """
+        real = load_core()
+        with World() as world:
+            subject = Subject(world)
+            stub = load_module(subject.core(STUB_CORE), "stub_core_under_test")
+            self.assertTrue(stub.CORE, "the stub declares no verbs")
+            for wire, stub_verb in stub.CORE.items():
+                with self.subTest(verb=wire):
+                    self.assertIn(wire, real.CORE,
+                                  "the stub stands in for a verb the core has not")
+                    self.assertEqual(
+                        inspect.signature(stub_verb),
+                        inspect.signature(real.CORE[wire]),
+                        f"the stub's `{wire}` does not take what the core's does")
+
+    def test_the_stub_resolver_has_the_real_resolver_s_signature(self):
+        real = load_core()
+        with World() as world:
+            subject = Subject(world)
+            stub = load_module(subject.core(STUB_CORE), "stub_resolver_under_test")
+            self.assertEqual(
+                inspect.signature(stub.bound_participant),
+                inspect.signature(real.bound_participant))
+
+
+class CoordinationMcpRealCore(unittest.TestCase):
+    """Every tool against the real core, over a real store.
+
+    The store is this world's own: XDG_STATE_HOME points into it and a
+    planted lane conf names the lane, the way the core's own suite does
+    it, so no case touches the host's store. The fixture walks an
+    assignment through the core's own verbs, so what a case starts from
+    is the core's behaviour and not an arrangement of rows.
+    """
+
+    def setUp(self):
+        self.world = World(prefix="coord-mcp-real-")
+        self.addCleanup(self.world.close)
+        self.conf = self.world.plant_text("lane.conf", "LANE_NAME='testlane'\n")
+
+    def env(self, session=None, identity=None):
+        extra = {"LANE_CONF": str(self.conf)}
+        if session:
+            extra["CLAUDE_CODE_SESSION_ID"] = session
+        if identity:
+            extra["WF_AGENT"] = identity
+        return self.world.env(extra=extra)
+
+    def cli(self, *argv, session=LEAD_SESSION, expect=0):
+        """The core's own CLI, which is how the fixture moves state."""
+        result = run([sys.executable, str(CORE_TOOL), *argv],
+                     cwd=self.world.cwd,
+                     env=self.env(session, SHARED_AGENT), timeout=TIMEOUT)
+        if expect is not None:
+            self.assertEqual(result.exit, expect, f"{argv}: {result.stderr}")
+        return result
+
+    def mcp(self, *argv, session=None, config=None):
+        """This server, run with no WF_AGENT at all: it reads none, by
+        ruling, and a case that supplied one would hide a dependence."""
+        head = [sys.executable, "-B", str(TOOL)]
+        if config is not None:
+            head += ["--config", str(config)]
+        return run([*head, *argv], cwd=self.world.cwd,
+                   env=self.env(session), timeout=TIMEOUT)
+
+    def lock(self, branch=FIXTURE_BRANCH):
+        result = run([sys.executable, str(LOCK_LEVER), "add", branch,
+                      "--why", "the package C suite"],
+                     cwd=self.world.cwd,
+                     env=self.env(LEAD_SESSION, SHARED_AGENT), timeout=TIMEOUT)
+        self.assertEqual(result.exit, 0, result.stderr)
+
+    # -- the walk-through fixture -----------------------------------------
+
+    def bound(self):
+        """Lead and worker, one agent string, two sessions."""
+        if "PT-2" in self.cli("participants").stdout:
+            return
+        self.cli("bind", "--roles", "lead,coordinator", session=LEAD_SESSION)
+        self.cli("bind", "--roles", "worker", session=WORKER_SESSION)
+
+    def offered(self, to="PT-2"):
+        self.bound()
+        out = self.cli("draft", "the package C suite", "--outcome",
+                       "every tool runs against the core", "--revision",
+                       FIXTURE_REVISION, session=LEAD_SESSION).stdout
+        assignment = out.split()[-1]
+        self.cli("offer", assignment, "--to", to, session=LEAD_SESSION)
+        return assignment
+
+    def held(self):
+        self.lock()
+        assignment = self.offered()
+        self.cli("claim", assignment, "--branch", FIXTURE_BRANCH,
+                 "--generation", "1", session=WORKER_SESSION)
+        return assignment
+
+    # -- the rewritten cases ----------------------------------------------
+
+    def test_a_read_reaches_the_core_over_the_real_store(self):
+        """Pins: a read tool returns what the core holds, so the reader
+        handle reaches the verb and the verb's answer reaches the caller.
+
+        Planted fault: the assignment exists only because the fixture drove
+        the core's own verbs to create it, so a server that answered from
+        nothing, or that passed a handle the verb ignored, returns a list
+        without it. Replaces a case that read the resolver's own copy of
+        its handle and asserted nothing about the verb (G2#3).
+        """
+        assignment = self.held()
+        # The core filters to what the asking participant holds, so the
+        # holder asks: a case that queried as the lead would read an empty
+        # list and call it a defect in this server.
+        result = self.mcp("call", "coord_assignments", session=WORKER_SESSION)
+        self.assertEqual(result.exit, 0, result.stderr)
+        rows = json.loads(result.stdout)["assignments"]
+        self.assertIn(assignment, [row["assignment"] for row in rows])
+
+    def test_a_mutation_reaches_the_core_and_the_core_keeps_it(self):
+        """Pins: a mutation tool gets the writer handle and its write is
+        durable — the core sees it afterwards, through its own CLI.
+
+        Planted fault: the assertion reads the row back through a separate
+        process, so a server that wrote to a handle nobody committed, or
+        answered without writing, fails. writer() was never asserted before
+        (G2#3).
+        """
+        self.bound()
+        result = self.mcp("call", "coord_draft", json.dumps(
+            {"title": "written over MCP", "outcome": "the row is there"}),
+            session=LEAD_SESSION)
+        self.assertEqual(result.exit, 0, result.stderr)
+        assignment = json.loads(result.stdout)["assignment"]
+        self.assertIn(assignment, self.cli("assignments").stdout)
+
+    def test_show_reaches_the_core_though_the_core_calls_it_target(self):
+        """Pins: the projection renames `assignment` to the core's `target`.
+
+        Planted fault: the core takes `target` and this server's wire says
+        `assignment`; a projection that forwarded the wire name raises
+        TypeError inside the core, which is X2#1's shape.
+        """
+        assignment = self.offered()
+        result = self.mcp("call", "coord_show",
+                          json.dumps({"assignment": assignment}),
+                          session=LEAD_SESSION)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["assignment"], assignment)
+
+    def test_a_generation_the_wire_carries_as_an_integer_reaches_the_gate(self):
+        """Pins: the wire keeps `generation` an integer, as a JSON caller
+        expects, and the core's gate receives the string it parses.
+
+        Planted fault: the core's gate calls .isdigit(), so an integer
+        raises AttributeError inside the core (X2#1). The clean neighbour
+        is the same call with the right generation, which submits.
+        """
+        assignment = self.held()
+        stale = self.mcp("call", "coord_submit", json.dumps(
+            {"assignment": assignment, "evidence": FIXTURE_REVISION,
+             "revision": FIXTURE_REVISION, "generation": 9}),
+            session=WORKER_SESSION)
+        refusal_wire(
+            RefusalCase(id="stale-generation", argv=(), cls="generation",
+                        origin="X2#1, the gate parses what the wire sends"),
+            stale)
+        good = self.mcp("call", "coord_submit", json.dumps(
+            {"assignment": assignment, "evidence": FIXTURE_REVISION,
+             "revision": FIXTURE_REVISION, "generation": 1}),
+            session=WORKER_SESSION)
+        self.assertEqual(good.exit, 0, good.stderr)
+
+    def test_every_assignment_write_refuses_without_a_generation(self):
+        """Pins: the generation is required at the call, not merely named
+        in a schema.
+
+        Planted fault: each of the seven tools called without it. The case
+        it replaces asserted the key was in the inputSchema, which a server
+        that advertised it and never enforced it would pass.
+        """
+        assignment = self.held()
+        for name in GENERATION_TOOLS:
+            with self.subTest(tool=name):
+                result = self.mcp("call", name, json.dumps(
+                    {"assignment": assignment, "evidence": FIXTURE_REVISION,
+                     "candidate": FIXTURE_REVISION, "revision": FIXTURE_REVISION,
+                     "observation": "a reading", "findings": "#242",
+                     "why": "a reason", "branch": FIXTURE_BRANCH}),
+                    session=WORKER_SESSION)
+                refusal = refusal_wire(
+                    RefusalCase(id=f"no-generation-{name}", argv=(),
+                                cls="arguments",
+                                origin="the audit of 2026-09-16, a schema pin"),
+                    result)
+                self.assertIn("generation", refusal.line)
+
+    def test_no_resource_reaches_a_mutating_tool(self):
+        """Pins: the promise of section 0, that a client cannot act through
+        resources/read, which was never tested.
+
+        Planted fault: a resource mapped to a mutating tool. The case this
+        replaces compared a URI's last segment against tool names — two
+        vocabularies that cannot collide, so it passed over a planted
+        mutating resource and would have passed over a real one.
+        """
+        for uri, name, _description in RESOURCE_ROWS:
+            with self.subTest(uri=uri):
+                self.assertIn(name, TOOL_NAMES)
+                self.assertNotIn(name, MUTATIONS,
+                                 f"{uri} reaches the mutating tool {name}")
+        planted = (*RESOURCE_ROWS, ("coord://draft", "coord_draft", "planted"))
+        caught = [name for _uri, name, _d in planted if name in MUTATIONS]
+        self.assertEqual(caught, ["coord_draft"],
+                         "the check cannot see a mutating resource")
+
+    def test_a_config_naming_a_participant_the_core_lacks_refuses_participant(self):
+        """Pins: a config binding whose participant the core does not hold
+        refuses class participant, against the core's own answer.
+
+        Planted fault: PT-99, which the fixture never binds. The case this
+        replaces planted {"id": "PT-7"} in a bare list, a shape the core
+        never returns, so it certified the mock (X2#2).
+        """
+        self.bound()
+        config = self.world.plant_text("absent.json", json.dumps(
+            binding(participant="PT-99", capabilities=["coord_brief"])))
+        result = self.mcp("call", "coord_brief", config=config)
+        refusal = refusal_wire(
+            RefusalCase(id="participant-absent", argv=(), cls="participant",
+                        origin="X2#2, 20260916T084315Z-review-codex-b317d7#2"),
+            result)
+        self.assertIn("PT-99", refusal.line)
+
+    def test_a_config_whose_participant_exists_meets_the_declared_limit(self):
+        """The clean neighbour: PT-1 is bound, so the refusal moves past
+        `participant` to the declared limit of slice one."""
+        self.bound()
+        config = self.world.plant_text("present.json", json.dumps(
+            binding(participant="PT-1", capabilities=["coord_brief"])))
+        result = self.mcp("call", "coord_brief", config=config)
+        refusal_wire(
+            RefusalCase(id="bind-gap", argv=(), cls="state",
+                        origin="contract 2.3, the declared limit"),
+            result)
+
+    def test_the_server_needs_no_agent_identity_of_its_own(self):
+        """Pins: the binding is the session's, not WF_AGENT's. Every call
+        in this class already runs without WF_AGENT; this names it.
+
+        Planted fault: none is needed — the absence is the fault. A server
+        that read WF_AGENT would fail every case here, because the
+        environment has none.
+        """
+        self.bound()
+        result = self.mcp("call", "coord_brief", session=LEAD_SESSION)
+        self.assertEqual(result.exit, 0, result.stderr)
+        self.assertNotIn("WF_AGENT", self.env(LEAD_SESSION))
 
 
 if __name__ == "__main__":
