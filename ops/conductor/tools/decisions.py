@@ -9,6 +9,7 @@ import os
 import re
 import sqlite3
 import sys
+from pathlib import Path
 
 # The shared instrument module sits beside this file; its directory goes
 # on the path so the import resolves however this file was loaded: as
@@ -33,6 +34,11 @@ HARNESS_ADDRESSES = (
 )
 STANDINGS = ("proposed", "ratified", "rejected", "superseded")
 WRITE_VERBS = {"add", "ratify", "reject", "supersede", "note"}
+DECISION_COLUMNS = (
+    "id", "question", "home", "standing", "blocked_on", "decided_by",
+    "decided_at", "evidence", "recorded_by", "supersedes",
+    "superseded_by", "created_at", "created_by",
+)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS decisions (
@@ -61,6 +67,46 @@ CREATE TABLE IF NOT EXISTS events (
 """
 
 
+def seed_path() -> Path | None:
+    path = Path(__file__).resolve()
+    if tuple(part.name for part in path.parents[:3]) != (
+        "tools", "conductor", "ops",
+    ):
+        return None
+    return path.parents[1] / "decisions.seed.json"
+
+
+def read_seed() -> list[dict[str, object]] | None:
+    path = seed_path()
+    if path is None or not path.is_file():
+        return None
+    try:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        refuse(
+            "seed", "a readable JSON decision list", str(error),
+            f"repair {path}",
+        )
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        refuse(
+            "seed", "a JSON list of decision objects", type(rows).__name__,
+            f"repair {path}",
+        )
+    return rows
+
+
+def load_seed(connection: sqlite3.Connection, rows: list[dict[str, object]]) -> None:
+    connection.executemany(
+        "INSERT INTO decisions "
+        "(id, question, home, standing, blocked_on, decided_by, decided_at, "
+        "evidence, recorded_by, supersedes, superseded_by, created_at, created_by) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(id) DO NOTHING",
+        [tuple(row.get(column) for column in DECISION_COLUMNS) for row in rows],
+    )
+    connection.commit()
+
+
 def validate_id(value: str) -> None:
     if not ID_RE.fullmatch(value):
         refuse(
@@ -73,7 +119,8 @@ def validate_id(value: str) -> None:
 
 def connect(*, write: bool, absent_ok: bool = False) -> sqlite3.Connection:
     db_path = state_dir() / "decisions.db"
-    if write:
+    seed = read_seed()
+    if write or seed is not None:
         db_path.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(db_path)
         connection.executescript(SCHEMA)
@@ -93,6 +140,8 @@ def connect(*, write: bool, absent_ok: bool = False) -> sqlite3.Connection:
             "seed the store (the tracked seed export names its birth rows)",
         )
     connection.row_factory = sqlite3.Row
+    if seed is not None:
+        load_seed(connection, seed)
     return connection
 
 
@@ -289,13 +338,38 @@ def note(args: argparse.Namespace, agent: str) -> None:
     print(args.id)
 
 
-def export_rows() -> None:
+def decision_rows(connection: sqlite3.Connection) -> list[dict[str, object]]:
+    return [
+        row_dict(row)
+        for row in connection.execute("SELECT * FROM decisions ORDER BY id")
+    ]
+
+
+def write_rows(path: Path, rows: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(rows, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+
+
+def rewrite_seed() -> None:
+    path = seed_path()
+    if path is None:
+        return
     with connect(write=False) as connection:
-        rows = [
-            row_dict(row)
-            for row in connection.execute("SELECT * FROM decisions ORDER BY id")
-        ]
-    print(json.dumps(rows, sort_keys=True, separators=(",", ":")))
+        rows = decision_rows(connection)
+    write_rows(path, rows)
+
+
+def export_rows(write_to: Path | None = None) -> None:
+    with connect(write=False) as connection:
+        rows = decision_rows(connection)
+    if write_to is not None:
+        write_rows(write_to, rows)
+        print(f"wrote {len(rows)} row(s) to {write_to}")
+    else:
+        print(json.dumps(rows, sort_keys=True, separators=(",", ":")))
 
 
 def report() -> None:
@@ -350,7 +424,8 @@ def parser() -> argparse.ArgumentParser:
     note_parser = commands.add_parser("note")
     note_parser.add_argument("id")
     note_parser.add_argument("text")
-    commands.add_parser("export")
+    export_parser = commands.add_parser("export")
+    export_parser.add_argument("--write", nargs="?", const="")
     commands.add_parser("report")
     return root
 
@@ -372,9 +447,20 @@ def main() -> int:
         elif args.verb == "note":
             note(args, agent)
         elif args.verb == "export":
-            export_rows()
+            write_to = None
+            if args.write is not None:
+                write_to = Path(args.write) if args.write else seed_path()
+                if write_to is None:
+                    refuse(
+                        "seed", "a tool under ops/conductor/tools",
+                        str(Path(__file__).resolve()),
+                        "supply an explicit path after --write",
+                    )
+            export_rows(write_to)
         else:
             report()
+        if args.verb in WRITE_VERBS:
+            rewrite_seed()
     except Refusal as error:
         return emit(error)
     return 0
