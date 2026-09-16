@@ -20,8 +20,18 @@ its sources. Three primitives and one pattern on them:
   TMPDIR, the working directory, a hermetic environment, planted files
   and tools, owned child processes, and before/after snapshots of
   declared paths. Hermetic by default: nothing from the host reaches a
-  subject unless it is named in `ambient=`. Owned children are reaped at
-  close. A plant proves it landed.
+  subject unless it is named — values in `ambient=`, tools in
+  `ambient_tools=`. Under `host_path=False` a subject's PATH is the
+  world's own bin and nothing else, so a tool the case neither planted nor
+  named is absent, and `run` says so on the wire instead of falling
+  through to the operator's copy of it (LD-72). That is the shape this
+  contract asks for and the default it will carry; it is not the default
+  on 2026-09-16, because it turns 1,339 rows red across 95 modules, listed
+  at `d8219578` in
+  `ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md`. Until
+  that sweep lands, `host_path` defaults to True and the host's PATH
+  follows the world's bin; the kit's own rows run strict and pin both
+  values. Owned children are reaped at close. A plant proves it landed.
 - **run** (`command.py`): one call, one result shape (argv, exit, stdout,
   stderr, duration, cwd), one timeout policy: expiry kills and reaps the
   child and raises, naming the argv. A result reads its own refusal line
@@ -66,12 +76,17 @@ refusal, and the kit's own suite proves it from a temporary directory.
 8. The kit is wall (D-TESTKIT-1): written under a grant of class `wall`,
    in a session whose deliverable is the wall and which writes nothing
    else. Its tests are written by a producer other than its author.
+9. A case executes the subject's behaviour and asserts what it did. A
+   case that pins a schema word, a mock's shape, a name, or an assertion
+   that cannot fail is a declared gap wearing a pass; it is rewritten to
+   run the subject against a planted fault, or dropped.
 
 ## Invariants
 
 The names a tests job's note joins with `reused:`:
 
-- `testkit.world` — hermetic by default, ambient by name, children reaped.
+- `testkit.world` — hermetic by default, ambient by name, PATH the
+  world's own bin under `host_path=False`, children reaped.
 - `testkit.run` — one result shape, one timeout policy, the wire parsed.
 - `testkit.fakes` — fakes driven by data, an append-only call log.
 - `testkit.refusal-wire` — exit as declared, stdout empty, one stderr
