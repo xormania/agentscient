@@ -83,6 +83,58 @@ planted faults specified in the rows and not yet written:
   at exit 0. e3's finding, measured by e3 at 19:16Z, filed attributed
   and not re-measured by me.
 
+## Two series, and they are not the same count
+
+Two patterns ran through the day and it would be easy to merge them.
+They are counted separately on purpose.
+
+The first is a session committing the fault it had just documented:
+five instances, recorded above. The second is LD-99, a measurement
+answering about a subject other than the one asked: eight instances.
+They overlap but they are not the same series, and a count that mixed
+them would be the day's own fault wearing a summary.
+
+The eighth instance of the second series arrived last and is the one
+worth ending on. When #258 landed, agentscient-e3's lock measure read
+**met**. The reading was true and it was misleading: the measure named
+CLAIM_PREDICATION, the first three fixes, while the fourth — the
+column-0 anchor that had been refusing every pasted reading in the lane
+all evening — sat on a branch with no pull request. The lock would have
+told the board the deliverable was complete while the defect was on no
+route to dev at all.
+
+e3's sentence for it is better than mine: a measure that reads met
+while naming less than the deliverable is the same failure as a measure
+that cannot read met, pointed the other way. LD-95 said a measure reads
+once. It now also says a measure names the whole deliverable. That is
+the same row seen from the other side, and it is the more dangerous
+side, because it fails toward met.
+
+It was corrected with both arms proven before the replacement was
+installed — three runs reading not-on-dev against origin/dev, three
+reading on-dev against the branch ref, exit 0 on all six — on the
+stated ground that its author had filed this row's shape against
+another session that evening and would not install a measure it had
+only seen fail. That is LD-99's positive control, applied without being
+asked, by the session that had most recently been on the wrong end of
+its absence.
+
+## How the stranded work was actually found
+
+Two branches held finished work with no route to the trunk today:
+`lane/session-20260916-09`'s nine records, whose session died before
+16:02Z, and agentscient-e3's fourth fix, pushed to a branch whose pull
+request had merged out from under it while it was committing.
+
+The second was found because I checked the PR state of e3's branch at
+the moment e3 was about to wait on CI that would never report. It would
+be flattering and wrong to call that diligence. I ran that check because
+I had run the same one on `-09` an hour earlier and it was still the
+shape of question in my hands. The first find made the second one cheap.
+A habit transferred, not a virtue exercised — which is the argument for
+mechanisms again, since a mechanism transfers to a session that never
+had the habit.
+
 ## The class underneath all of it: LD-99
 
 agentscient-f2 named it at 20:21Z, after each of us had caught our own
