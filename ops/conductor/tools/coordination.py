@@ -500,6 +500,7 @@ def observation_dict(row) -> dict:
 def decision_dict(row) -> dict:
     return {
         "decision": f"DC-{row['id']}", "id": row["id"], "question": row["question"],
+        "asked_by": f"PT-{row['asked_by']}",
         "alternatives": row["alternatives"], "counter": row["counter"],
         "unknowns": row["unknowns"], "consequence": row["consequence"],
         "choice": row["choice"], "rationale": row["rationale"],
@@ -1276,9 +1277,77 @@ def core_coverage(conn, part, *, requirement=None) -> dict:
     return {"coverage": coverage}
 
 
+def dispatch_store():
+    """The dispatcher's store, read here and never written."""
+    return state_dir() / "dispatch"
+
+
+def executions_of(held) -> dict:
+    """The live dispatch records for the work this participant holds.
+
+    Joined by the assignment id the record's lineage carries, and, while
+    the dispatcher writes no id, by the branch the claim named — every
+    record in the store today carries `lineage.branch` and no assignment
+    (20260916T113912Z-review-claude-5a8da1). The store belongs to another
+    instrument, so a brief that could not open it says so: `none` for a
+    store that is not there would read as a participant with nothing
+    running (docs/wire.md, absence discipline).
+    """
+    root = dispatch_store()
+    if not root.is_dir():
+        return {"executions": None, "executions_store": "absent",
+                "executions_reason": f"no dispatch store at {root}"}
+    try:
+        directories = sorted(root.iterdir())
+    except OSError as exc:
+        return {"executions": None, "executions_store": "unreadable",
+                "executions_reason": f"{root}: {exc.strerror or exc}"}
+    by_id = {row["assignment"]: row for row in held}
+    by_branch = {row["branch"]: row for row in held if row["branch"]}
+    found, unreadable = [], []
+    for directory in directories:
+        path = directory / "record.json"
+        if not path.is_file():
+            continue
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            unreadable.append(directory.name)
+            continue
+        if not isinstance(record, dict):
+            unreadable.append(directory.name)
+            continue
+        lineage = record.get("lineage")
+        lineage = lineage if isinstance(lineage, dict) else {}
+        row = by_id.get(lineage.get("assignment"))
+        joined = "the assignment id in its lineage"
+        if row is None:
+            row = by_branch.get(lineage.get("branch"))
+            joined = "the branch its lineage names"
+        if row is None:
+            continue
+        found.append({
+            "execution": record.get("id") or directory.name,
+            "assignment": row["assignment"],
+            "status": record.get("status") or "unstated",
+            "job": record.get("job"), "role": record.get("role"),
+            "at": record.get("at"), "base_sha": lineage.get("base_sha"),
+            "joined_by": joined,
+        })
+    reading = {"executions": found, "executions_store": "read"}
+    if unreadable:
+        reading["executions_unreadable"] = unreadable
+    return reading
+
+
 def core_brief(conn, part) -> dict:
     """What a restarted or compacted participant reads to recover its
-    obligations (AC-12): held work, unresolved inbox, open decisions."""
+    obligations (AC-12), in five readings: the assignments it holds, the
+    executions live against them, the requests owed in both directions,
+    the open decision rows themselves, and whether its own evidence still
+    applies. A count is not something a restarted session can act on, so
+    the decisions and the observations are rows here; the counts stay
+    beside them for the readers that had only counts."""
     same_session(part)
     if conn is None:
         return no_store(brief=None)
@@ -1293,18 +1362,32 @@ def core_brief(conn, part) -> dict:
     decisions = conn.execute(
         "SELECT * FROM decisions WHERE decided_at IS NULL ORDER BY id"
     ).fetchall()
-    stale = conn.execute(
-        "SELECT COUNT(*) AS n FROM observations WHERE producer = ? "
-        "AND applicability = 'stale'", (part["id"],)
-    ).fetchone()["n"]
-    return {
+    observations = conn.execute(
+        "SELECT * FROM observations WHERE producer = ? ORDER BY id", (part["id"],)
+    ).fetchall()
+    stale = [row for row in observations if row["applicability"] == "stale"]
+    holdings = [assignment_dict(row) for row in held]
+    obligations = [row for row in messages if row["purpose"] in OBLIGATIONS]
+    shown = {
         "participant": participant_dict(part),
-        "held": [assignment_dict(row) for row in held],
+        "held": holdings,
         "unresolved": [message_dict(row) for row in messages
                        if addressed(part, row["recipient"])],
+        "owed": [message_dict(row) for row in obligations
+                 if addressed(part, row["recipient"])],
+        "awaited": [message_dict(row) for row in obligations
+                    if row["sender"] == part["id"]],
+        "decisions": [decision_dict(row) for row in decisions],
         "decisions_open": len(decisions),
-        "observations_stale": stale,
+        "evidence": {
+            "current": [observation_dict(row) for row in observations
+                        if row["applicability"] == "current"],
+            "stale": [observation_dict(row) for row in stale],
+        },
+        "observations_stale": len(stale),
     }
+    shown.update(executions_of(holdings))
+    return shown
 
 
 CORE = {
@@ -1823,8 +1906,42 @@ def do_brief(rest):
         print(f"  {message_line(row)}")
     if not shown["unresolved"]:
         print("  none")
-    print(f"decisions open: {shown['decisions_open']}")
-    print(f"observations of mine gone stale: {shown['observations_stale']}")
+    if shown["executions"] is None:
+        print(f"executions: could not look — {shown['executions_reason']}")
+    elif not shown["executions"]:
+        print("executions: none")
+    else:
+        print("executions:")
+        for row in shown["executions"]:
+            print(f"  {row['execution']} {row['status']} for {row['assignment']}"
+                  f" ({row['job'] or 'job unstated'}, joined by {row['joined_by']})")
+    for label, rows in (("requests owed by me", shown["owed"]),
+                        ("requests I am waiting on", shown["awaited"])):
+        if not rows:
+            print(f"{label}: none")
+            continue
+        print(f"{label}:")
+        for row in rows:
+            state = "acknowledged, not resolved" if row["acked_at"] else "not acknowledged"
+            print(f"  {row['message']} {row['purpose']} from {row['sender']} "
+                  f"to {row['recipient']}: {row['body']} ({state})")
+    if not shown["decisions"]:
+        print("decisions open: none")
+    else:
+        print("decisions open:")
+        for row in shown["decisions"]:
+            print(f"  {row['decision']} asked by {row['asked_by']}"
+                  f": {row['question']} ({row['alternatives']})")
+    evidence = shown["evidence"]["current"] + shown["evidence"]["stale"]
+    if not evidence:
+        print("evidence of mine: none")
+    else:
+        print("evidence of mine:")
+        for row in shown["evidence"]["current"]:
+            print(f"  {row['observation']} current at {row['revision']}: {row['text']}")
+        for row in shown["evidence"]["stale"]:
+            print(f"  {row['observation']} stale: taken at {row['revision']}, "
+                  f"{row['stale_reason'] or 'reason unstated'}")
     return EXIT_DONE
 
 
