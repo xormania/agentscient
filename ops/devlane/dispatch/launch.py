@@ -860,6 +860,19 @@ def _turns_note(harness, turns):
             f"its --help names none); caps.turns is recorded, the wall cap governs")
 
 
+def _turns_budget(turns):
+    """The turn budget as words in the brief. A harness with no turn flag
+    (codex, agy) cannot be capped by argv; every worker can be told the
+    number and what to do on reaching it. Empty where no cap is declared —
+    a budget is never guessed."""
+    if turns is None:
+        return ""
+    return (f"\n\nTurn budget: {turns} turns for this job, and the brief is "
+            f"the only place a harness without a turn flag is told.\n"
+            f"On reaching it, stop and report status short, naming in note "
+            f"what you finished and what is left; do not continue past it.")
+
+
 def _resolve_turns(job_caps):
     """caps.turns resolves like caps.timeout: DISPATCH_TURNS from the
     environment, else the job's own caps.turns, else none — declared."""
@@ -1884,7 +1897,11 @@ def _launch(args):
     values = {"ref": ref_sha, "base": base_sha, "diff": diff_path, "into": str(snapshot.resolve()),
               "out": str((job_dir / "out").resolve()),
               "inputs": " ".join(item["path"] for item in copied), "scope": args.scope or ""}
+    turns, turns_source = _resolve_turns(job.get("caps"))
+    turns_note = _turns_note(args.harness, turns)
+    turns_argv = _turns_argv(args.harness, turns)
     prompt_text = _render(job["prompt"], values)
+    prompt_text += _turns_budget(turns)
     mcp_meta, mcp_server = _lane_mcp(job_dir, snapshot, job_id, repo, args.unit or lineage,
                                      args.follows)
     prompt_text += "\n\n" + _what_exists(snapshot, jobs, mcp_meta)
@@ -1917,8 +1934,6 @@ def _launch(args):
     session = None if args.harness == "agy" else str(uuid.uuid4())
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
-    turns, turns_source = _resolve_turns(job.get("caps"))
-    turns_note = _turns_note(args.harness, turns)
     rec = record.build({
         "id": job_id, "lane": "dev", "stage": stage, "unit": args.unit or lineage,
         "lineage": {"branch": lineage, "base_sha": tip}, "follows": args.follows,
@@ -1949,7 +1964,8 @@ def _launch(args):
                   **({"graft": graft_metadata} if graft_metadata is not None else {})},
         "caps": {"cap-out": wires.budget(role), "source": "wires.py",
                  "turns": turns, "turns_source": turns_source,
-                 "turns_argv": _turns_argv(args.harness, turns),
+                 "turns_argv": turns_argv,
+                 "turns_applied": bool(turns_argv),
                  **({"turns_note": turns_note} if turns_note else {})},
         "overrides": overrides, "attempts": [], "result": None, "status": "launched"})
     if args.harness == "agy":
