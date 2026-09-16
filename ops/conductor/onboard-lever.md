@@ -98,8 +98,15 @@ line (an unperformed read is named, never silent):
   branches named and the owner's words on one line, then every measured
   target on its own `target <branch>: until ...; reading ...; met|short`
   line, the reading taken now. `lock: none` when no lock is set, a
-  measured fact; `lock: unavailable: <reason>` when the lever cannot
-  report, counted unmeasured. Owner, 2026-09-15: a brief that never
+  measured fact; `lock: unavailable: <reason>` when the lever reports a
+  failure, counted unmeasured. A read that expires is retried once with
+  a longer bound, and if that expires too the line reads
+  `lock: UNREACHABLE: <first>, retried and <second>`, also counted: the
+  brief that could not look says so, and never in a word that reads as
+  no lock (LD-48, measured 2026-09-16 under five concurrent sessions).
+  The bounds are `ONBOARD_TIMEOUT` and `ONBOARD_RETRY_TIMEOUT` seconds,
+  5 and 20 unless the environment names otherwise. Owner, 2026-09-15: a
+  brief that never
   printed the lock let a plan's paraphrase of the order stand in for the
   order after a compaction; the owner's words and the reading now ride
   every brief.

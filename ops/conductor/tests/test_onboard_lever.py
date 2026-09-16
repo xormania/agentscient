@@ -937,6 +937,56 @@ class TheLockLine(_OnboardFixture):
         self.assertIn("tooling", line)
         self.assertEqual(proc.exit, 1, self.combined(proc))
 
+    def plant_slow_lock_lever(self, seconds: float) -> None:
+        """A deliverable.py that answers, but later than the first bound."""
+        fake = self.world.tools.plant(
+            "deliverable-slow", stdout=LOCK_STDOUT, exit=0, delay=seconds,
+        )
+        for folder in (self.staged.parent,
+                       self.repo / "ops" / "conductor" / "tools"):
+            self._plant_bytes(folder / "deliverable.py", fake.read_bytes())
+
+    def test_a_lock_read_that_times_out_is_retried_once_with_a_longer_bound(self):
+        """Origin LD-48: the brief printed the lock line unavailable after a
+        5s bound expired under five concurrent sessions, while
+        deliverable.py show answered on a direct retry a moment later.
+        Contention on the store read as an absent lock. The read is retried
+        once, with a longer bound, before anything is reported."""
+        self.ready()
+        self.plant_lock()
+        self.plant_slow_lock_lever(1.5)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "20"})
+        # The fake logs every invocation before it sleeps, so the log
+        # separates a read that was retried from one that answered first
+        # time. Without the count this row passes at the base tree, where
+        # the bound is not overridable and 1.5s fits inside the standing 5s.
+        calls = self.world.tools.calls("deliverable-slow")
+        self.assertEqual(len(calls), 2,
+                         f"the lock read was not retried: {calls}")
+        line = self.labelled_line(proc.stdout or "", "lock")
+        self.assertIn("lane/session-a", line)
+        self.assertNotIn("UNREACHABLE", line)
+        self.assertNotIn("unavailable", line)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_lock_read_that_times_out_twice_is_unreachable_never_none(self):
+        """The other half of LD-48: when the longer retry expires too, the
+        line says UNREACHABLE and counts an absence. It never says none,
+        which is the answer for a lock that is not set, and it never says
+        unavailable, which is the answer for a lever that did report."""
+        self.ready()
+        self.plant_lock()
+        self.plant_slow_lock_lever(3)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "2"})
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "lock")
+        self.assertIn("UNREACHABLE", line)
+        self.assertIn("timed out", line)
+        self.assertNotIn("lock: none", stdout)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
 
 class MissingLaw(_OnboardFixture):
     """2. A missing law file prints ABSENT and counts it; exit 1."""

@@ -25,7 +25,21 @@ except ModuleNotFoundError:
     )
     raise SystemExit(2) from None
 
-TIMEOUT = 5
+def _bound(name: str, fallback: int) -> int:
+    """A read's bound in seconds. Overridable so a loaded host, and the
+    rows that prove the retry, can move it; anything that is not a
+    positive whole number is ignored, because a brief that refuses to
+    start over an environment variable helps nobody."""
+    try:
+        seconds = int(os.environ.get(name, ""))
+    except ValueError:
+        return fallback
+    return seconds if seconds > 0 else fallback
+
+
+TIMEOUT = _bound("ONBOARD_TIMEOUT", 5)
+RETRY_TIMEOUT = _bound("ONBOARD_RETRY_TIMEOUT", 20)
+TIMED_OUT = "timed out"
 LAW = (
     ("AGENTS.md", "the operating contract"),
     ("CONTRIB.md", "naming, PR bodies, fix commits, the review wire"),
@@ -47,8 +61,14 @@ def run(
     command: list[str],
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
+    timeout: int | None = None,
 ) -> tuple[str | None, str]:
-    """Run one bounded read, returning output or a printable absence reason."""
+    """Run one bounded read, returning output or a printable absence reason.
+
+    A reason that begins TIMED_OUT says the read could not look, which is
+    not the same as a sibling that looked and reported nothing.
+    """
+    bound = TIMEOUT if timeout is None else timeout
     try:
         result = subprocess.run(  # noqa: S603
             command,
@@ -56,13 +76,13 @@ def run(
             capture_output=True,
             text=True,
             check=False,
-            timeout=TIMEOUT,
+            timeout=bound,
             env=env,
         )
     except FileNotFoundError:
         return None, f"{command[0]} was not found"
     except subprocess.TimeoutExpired:
-        return None, f"timeout after {TIMEOUT}s"
+        return None, f"{TIMED_OUT} after {bound}s"
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip()
         reason = detail or f"exit {result.returncode} with no output"
@@ -162,6 +182,19 @@ def lock_lines(root: Path) -> tuple[list[str], bool]:
         return ["lock: none"], True
     tool = root / "ops/conductor/tools/deliverable.py"
     output, reason = run([sys.executable, str(tool), "show"], root)
+    if output is None and reason.startswith(TIMED_OUT):
+        # LD-48: under five concurrent sessions the first bound expired
+        # while deliverable.py show answered a direct retry a moment
+        # later, and the line read as though no lock were set. One longer
+        # retry before anything is reported, and a read that still could
+        # not look says UNREACHABLE -- never a word a reader takes for
+        # an answer.
+        first = reason
+        output, reason = run(
+            [sys.executable, str(tool), "show"], root, timeout=RETRY_TIMEOUT
+        )
+        if output is None and reason.startswith(TIMED_OUT):
+            return [f"lock: UNREACHABLE: {first}, retried and {reason}"], False
     if output is None:
         return [f"lock: unavailable: {reason}"], False
     if output.strip() == "no lock":
