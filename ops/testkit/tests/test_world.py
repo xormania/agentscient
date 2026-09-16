@@ -27,8 +27,11 @@ class Environment(unittest.TestCase):
             leaked = {k for k in os.environ if k in env and env[k] == os.environ[k]
                       and k != "PATH" and not k.startswith("GIT_")}
             self.assertEqual(leaked, set(), f"host values reached the world: {sorted(leaked)}")
-            # Origin: LD-72, PR #241. A bare world's PATH is bin alone.
-            self.assertEqual(env["PATH"], str(world.bin))
+        # Origin: LD-72, PR #241. The strict world's PATH is bin alone.
+        # The default carries the host's after it until the sweep lands;
+        # test_world_path.py pins both values of host_path.
+        with World(host_path=False) as strict:
+            self.assertEqual(strict.env()["PATH"], str(strict.bin))
 
     def test_home_xdg_tmpdir_cwd_are_under_the_root(self):
         with World() as world:

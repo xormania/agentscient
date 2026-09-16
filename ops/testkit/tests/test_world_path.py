@@ -1,29 +1,66 @@
-"""World PATH is the world's bin; host tools enter by ambient_tools or
-plant (LD-72, PR #241 comment 4023387510)."""
+"""A strict world's PATH is its own bin; host tools enter by ambient_tools
+or plant (LD-72, PR #241 comment 4023387510).
+
+``host_path`` chooses: False is the strict PATH these rows are about, and
+True, today's default, puts the host's PATH after the world's bin. Both
+values are pinned here, because the default moves to False once the sweep
+in ``ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md``
+lands, and one row should flip then, not a promise.
+"""
 
 from __future__ import annotations
 
 import os
 import unittest
 
-from ops.testkit import NotOnTheWire, PlantFailed, World, run
+from ops.testkit import NotOnTheWire, PlantFailed, World, hermetic_env, run
 from ops.testkit.command import parse_wire
 
 ORIGIN = "LD-72, PR #241 comment 4023387510"
 
 
+def strict_world(case, **kwargs):
+    """A world with the hermetic PATH. A kit that does not take the kwarg
+    fails the case rather than erroring it, so the red reads as a red."""
+    try:
+        return World(host_path=False, **kwargs)
+    except TypeError as exc:
+        case.fail(f"World(host_path=False) is not accepted: {exc}")
+
+
 class HermeticPath(unittest.TestCase):
     """Regression rows for LD-72: hermetic PATH, ambient_tools, the wire."""
 
-    def test_bare_world_path_is_exactly_the_worlds_bin(self):
+    def test_strict_world_path_is_exactly_the_worlds_bin(self):
         with self.subTest(id="bare-path", origin=ORIGIN):
-            with World() as world:
+            with strict_world(self) as world:
                 self.assertEqual(world.env()["PATH"], str(world.bin))
+
+    def test_host_path_defaults_on_and_follows_the_worlds_bin(self):
+        """Today's default, and the row that flips when the sweep lands."""
+        with self.subTest(id="host-path-default", origin=ORIGIN):
+            host = os.environ["PATH"]
+            with World() as world:
+                self.assertEqual(
+                    world.env()["PATH"], f"{world.bin}{os.pathsep}{host}"
+                )
+
+    def test_hermetic_env_takes_the_same_choice(self):
+        """The other door: an env built without a World."""
+        with self.subTest(id="hermetic-env-host-path", origin=ORIGIN):
+            with World() as world:
+                try:
+                    strict = hermetic_env(world.home, bin=world.bin, host_path=False)
+                    named = hermetic_env(world.home, bin=world.bin, host_path="/opt/x")
+                except TypeError as exc:
+                    self.fail(f"hermetic_env does not take host_path: {exc}")
+                self.assertEqual(strict["PATH"], str(world.bin))
+                self.assertEqual(named["PATH"], f"{world.bin}{os.pathsep}/opt/x")
 
     def test_unnamed_unplanted_tool_raises_plantfailed_on_the_wire(self):
         tool = "no-such-tool-ld72"
         with self.subTest(id="unplanted-wire", origin=ORIGIN):
-            with World() as world:
+            with strict_world(self) as world:
                 try:
                     result = run([tool], cwd=world.cwd, env=world.env())
                 except PlantFailed as exc:
