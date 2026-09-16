@@ -147,6 +147,31 @@ Lead ruled it out for this server, and the measurement says why. It remains
 the identity for hand-run CLI verbs, where the person running the command is
 the author.
 
+### 2.3 The declared limit of slice one
+
+**Slice one serves interactive sessions.** A dispatched worker cannot be
+bound until package B carries a bind that takes an explicit session id,
+callable by a dispatcher-role participant and recording its issuer (the
+Lead's ruling, 2026-09-16, asked of package B the same day). Until that
+lands, a config binding is validated and its capability list is enforced,
+and the call then refuses class `state` naming what is missing. This is
+the declared limit, not a silence: the server says which half of itself is
+not yet reachable.
+
+Slice two closes it, and the probe for each harness is already taken
+(measured 2026-09-16):
+
+- **Claude**: `claude --session-id <uuid>` exists — "Use a specific
+  session ID for the conversation (must be a valid UUID)" — and the
+  launcher already passes it (`launch.py:957`) with the uuid it mints per
+  dispatch (`launch.py:1934`). So the bound id and the id the worker's MCP
+  server inherits are the same value today, with no launcher change: what
+  is missing is only the bind before launch.
+- **Codex and Grok**: neither sets a session id in its environment. Slice
+  two sets the launcher's minted uuid as `CLAUDE_SESSION_ID`, the older
+  key `instrument.session()` already admits (LD-50), so the same
+  resolution path serves all three harnesses without a second mechanism.
+
 ### 2.3 Precedence
 
 A config binding (§2.1) wins where present, because the launcher issued it
@@ -334,6 +359,11 @@ under a grant).
 
 ## 9. What this contract does not settle
 
+- How the core spells the verb `return`, which is a reserved word and
+  cannot be a Python function of that name. This server asks the core for
+  `return` and then for `return_`, and refuses class `state` naming the
+  verb when neither is there, rather than guessing a third spelling. The
+  core's author settles it.
 - The automatic route from a cross-harness event to a management session
   (the objective's package D).
 - Cross-harness demonstration beyond Codex and Grok; agy has no MCP.
@@ -343,18 +373,15 @@ under a grant).
 
 Raised, not resolved here (the Lead's instruction, 2026-09-16):
 
-1. **A dispatched worker cannot be bound.** The core's `bind` binds *the
-   calling session*: `resolve()` reads `instrument.session()` and the
-   participants row is keyed on that id. A Codex or Grok worker sets no
-   session id in its environment at all, and nothing can bind a row on its
-   behalf, so a worker has no participant and every mutation it attempts
-   refuses class `participant`. The launcher already mints a session uuid
-   per dispatch (`launch.py:1934`), so the material exists; what is missing
-   is a core verb that binds a participant *for another session id*, issued
-   by the launcher before launch. That is a package B change and this
-   contract does not make it. Until it exists, the acting server is usable
-   by interactive sessions only, and the worker binding of §2.1 has nothing
-   to name.
+1. **A dispatched worker cannot be bound.** *Ruled 2026-09-16: package B
+   adds a bind taking an explicit session id, callable only by a
+   dispatcher-role participant and recording the issuer and the
+   assignment.* The core's `bind` binds *the calling session*: `resolve()`
+   reads `instrument.session()` and the participants row is keyed on that
+   id. A Codex or Grok worker sets no session id in its environment at all,
+   so until that verb lands a worker has no participant and every mutation
+   it attempts refuses. §2.3 states the limit and the per-harness probe
+   that closes it in slice two.
 2. **`capability` is a class the core does not have.** The binding's
    allowlist is this server's own narrowing and needs a refusal of its own;
    the alternative is to drop the allowlist and let the core's `role` gate
