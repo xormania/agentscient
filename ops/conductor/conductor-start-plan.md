@@ -208,7 +208,8 @@ of the declared workflow genus. The missing `wf.py` runtime does not
 block step 1 or 2. It does matter for creating recovery checkpoints
 and publishing handoff/AAR records (step 4).
 
-MCP stays the context-and-diagnostics plane, read-only. CLI parity is
+MCP stays the context-and-diagnostics plane, read-only. Superseded
+2026-09-16 (D-MCP-1): MCP acts as well as reads. CLI parity is
 required. MCP does not enforce root tool policy, dispatch, acknowledge
 alerts, write checkpoints, or publish refs.
 
@@ -220,7 +221,8 @@ Writable conductor tools are a separate discussion requiring deliberate
 admission of a revised MCP contract, typed bounded actions, trusted role/job/
 capability authorization, state and duplicate-request checks, recorded outcomes
 and live server/host approval diagnostics. Neither proposal changes today's
-read-only contract. Tool annotations and catalogue visibility alone cannot
+read-only contract. Superseded 2026-09-16 (D-MCP-1): MCP acts as well as
+reads. Tool annotations and catalogue visibility alone cannot
 prove unattended operation or enforce access through other harness tools.
 Any future handoff/AAR action remains owner-initiated.
 
@@ -299,6 +301,7 @@ silently closed:
    contracts before conduct startup; contract acceptance is not runtime proof.
 5. Worker context/MCP and two role-specific server entrypoints; writable MCP
    requires a separately admitted change to the standing read-only boundary.
+   Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
 
 
 ## Trusted conductor launch descriptor
@@ -439,7 +442,8 @@ An `Invalid params` response requires comparison of actual tools/list and
 request bytes from the connected client; it does not establish server absence.
 Diagnostics report this without rewriting host settings. MCP stays read-only;
 [tool decisions](permission-surface.md#normalized-conductor-tool-interface)
-govern other tools and canonical CLI delegation independently.
+govern other tools and canonical CLI delegation independently. Superseded
+2026-09-16 (D-MCP-1): MCP acts as well as reads.
 
 Resume revalidates custody and stationary policy, selection, source grants,
 v3 config/anchors, adapter, safe tokens and MCP catalogue before restoring

@@ -71,7 +71,8 @@ Test-file counts: `git ls-files "ops/devlane/<app>" | grep -c test_`.
   practiced-graph probe (container, profiler); the Agentscient Mate
   extension serves the dev-lane read surfaces (brief, registers,
   ledger, dispatch state) per the ruled MCP posture — context and
-  diagnostics read-only, levers act. Pre-1.0: pinned, probed,
+  diagnostics read-only, levers act. Superseded 2026-09-16 (D-MCP-1): MCP
+  acts as well as reads. Pre-1.0: pinned, probed,
   consumed through the triangle.
 - **capability registry**: 0 entries at `99334f7` — a genuine zero
   (`ops/capabilities/capabilities.json`). This census is its seed;

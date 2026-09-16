@@ -20,7 +20,7 @@ a silent one).
 | lifecycle hooks: pre-tool, post-tool, stop | the lane's law firing natively: trailer guard, clipped-sweep guard, backtick guard, delegation refusal, context guard | MEASURED 2026-09-01 (each fired at least once today) |
 | stop-hook wire: transcript_path, stop_hook_active, last_assistant_message; block-decision JSON; platform block cap | the context guard's whole mechanism | MEASURED 2026-09-01 (adversarial review verified fields against the live version) |
 | permission rules plus the auto-mode classifier | the acting surface's gate; the classifier is stochastic call-by-call | MEASURED 2026-09-01 (same command allowed then denied; one deterministic allow rule) |
-| project MCP registration (.mcp.json), read-only servers | the context-and-diagnostics plane ruling | DOCTRINE (workflow server precedent); probe UNPROBED |
+| project MCP registration (.mcp.json), read-only servers | the context-and-diagnostics plane ruling | DOCTRINE (workflow server precedent); probe UNPROBED; superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads |
 | skills and commands directories; description injection | the pipeline's entry points for two of three harnesses | DOCTRINE (AGENTS.md records the reach) |
 | cross-session messaging and idle notices | the baton; teammate coordination | MEASURED 2026-09-01 (delivery works; held-then-dropped failure mode measured once) |
 | background tasks with completion notifications | every watch and dispatch wait today | MEASURED 2026-09-01 (dozens of cycles) |
