@@ -27,6 +27,11 @@ DENY_MARKER = (
     "the ladder; found Write on AGENTS.md; needed freeze"
 )
 COMMAND_ERROR = "Bash failed with exit code 1: command not found: nosuch"
+WIRE_REFUSAL = (
+    "[engine:claim-unmeasured] claim-unmeasured: expected every paragraph "
+    "that claims to carry its reading; found a commit message with none; "
+    "needed the reading beside the claim"
+)
 
 
 def _plain_field(plain, name, value):
@@ -149,7 +154,7 @@ class WasteSessionBudgetRow(unittest.TestCase):
             ),
         ]
 
-    def _run_waste(self, *extra):
+    def _run_waste(self, *extra, repo=None, cwd=None):
         cmd = [
             sys.executable,
             str(worth_contract.WORTH),
@@ -159,7 +164,7 @@ class WasteSessionBudgetRow(unittest.TestCase):
             "--now",
             NOW,
             "--repo",
-            str(self.w.repo),
+            str(repo or self.w.repo),
             "--claude-dir",
             str(self.w.claude),
             "--codex-dir",
@@ -169,15 +174,15 @@ class WasteSessionBudgetRow(unittest.TestCase):
         ]
         return run(
             cmd,
-            cwd=self.w.root,
+            cwd=cwd or self.w.root,
             env=self.world.env(extra={"TZ": "Etc/GMT+11"}),
             timeout=30,
         )
 
-    def _waste(self, *extra):
-        plain = self._run_waste(*extra)
+    def _waste(self, *extra, repo=None, cwd=None):
+        plain = self._run_waste(*extra, repo=repo, cwd=cwd)
         self.assertEqual(plain.exit, 0, plain.stderr)
-        data_proc = self._run_waste(*extra, "--format", "json")
+        data_proc = self._run_waste(*extra, "--format", "json", repo=repo, cwd=cwd)
         self.assertEqual(data_proc.exit, 0, data_proc.stderr)
         data = json.loads(data_proc.stdout)
         return plain.stdout, data
@@ -255,6 +260,52 @@ class WasteSessionBudgetRow(unittest.TestCase):
         self.assertEqual(row["refusals"], 0)
         self.assertNotEqual(row["refusals"], "unrecorded")
         self.assertIsNotNone(_plain_field(plain, "refusals", 0), plain)
+
+    def test_relative_repo_path_is_resolved_before_the_cwd_filter(self):
+        """Scenario: waste --repo . from the checkout ranks its Claude sessions
+
+        origin: T-56 (AAR-2026-09-15 section Token use): waste --repo .
+        printed claude sessions=0 for a window in which three sessions ran,
+        and the absolute path found four. The cwd filter compared the
+        literal argument with the transcript's absolute cwd.
+        """
+        session_id, rows = self._budget_rows("relative-sess")
+        self._plant_transcript(session_id, rows)
+        plain, data = self._waste(repo=".", cwd=self.w.repo)
+        row = self._row(data, session_id)
+        self.assertEqual(row["turns"], 2)
+        self.assertIn(session_id, plain)
+
+    def test_refusals_count_wire_line_errors_without_the_deny_prefix(self):
+        """Scenario: an is_error tool result carrying the refusal wire is a refusal
+
+        origin: T-56 (AAR-2026-09-15 section Token use): the report read
+        refusals=0 for session 44f9de58 where 30 tool results carried
+        is_error and the refusal wire with no "hook returned a deny
+        decision" prefix. The same wire in a tool result that is not an
+        error is the clean neighbour and stays uncounted.
+        """
+        session_id = "wire-sess"
+        self._plant_transcript(session_id, [
+            self._assistant(
+                session_id,
+                "m1",
+                "2026-08-22T10:00:00.000Z",
+                {
+                    "input_tokens": 10,
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "output_tokens": 40,
+                },
+            ),
+            self._tool_result(session_id, "2026-08-22T10:00:05.000Z", WIRE_REFUSAL, True),
+            self._tool_result(session_id, "2026-08-22T10:00:10.000Z", WIRE_REFUSAL, False),
+            self._tool_result(session_id, "2026-08-22T10:00:15.000Z", COMMAND_ERROR, True),
+        ])
+        plain, data = self._waste()
+        row = self._row(data, session_id)
+        self.assertEqual(row["refusals"], 1)
+        self.assertIsNotNone(_plain_field(plain, "refusals", 1), plain)
 
     def test_unreadable_transcript_prints_unrecorded_never_zero(self):
         """Scenario: an unreadable transcript prints unrecorded for turns, avg_context, and refusals"""
