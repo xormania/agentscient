@@ -55,12 +55,6 @@ class DoctorFixture(unittest.TestCase):
     """Temp repo + HOME; live tree, live settings, live ledgers stay put."""
 
     def setUp(self):
-        self._real_home = Path.home()
-        self._real_state = self._real_home / ".local" / "state" / "agentscient"
-        self._state_listing = None
-        if self._real_state.is_dir():
-            self._state_listing = frozenset(os.listdir(self._real_state))
-
         self.world = World(prefix="co-doc-")
         self.addCleanup(self.world.close)
         self.home = self.world.home
@@ -101,13 +95,18 @@ class DoctorFixture(unittest.TestCase):
         for path in (self.repo_settings, self.repo_local, self.user_settings):
             self.world.plant_text(path, empty, recognisable="{")
 
-    def tearDown(self):
-        if self._state_listing is not None:
-            self.assertEqual(
-                frozenset(os.listdir(self._real_state)),
-                self._state_listing,
-                "live ~/.local/state/agentscient must be untouched",
-            )
+        # S5, 2026-09-16: the subject runs under this world's own HOME and
+        # XDG roots, so the operator's live state is not reachable from
+        # it. The snapshot of ~/.local/state/agentscient that stood here,
+        # and the tear-down that compared it, are deleted rather than
+        # exempted: they failed whenever another session wrote that
+        # directory while the suite ran, which was never this tool's
+        # write (LD-69's class). What replaces them is the construction
+        # itself, stated here.
+        env = self.world.env()
+        self.assertEqual(Path(env["HOME"]), self.home)
+        self.assertEqual(Path(env["XDG_STATE_HOME"]), self.world.xdg_state)
+        self.assertNotEqual(self.home.resolve(), Path.home().resolve())
 
     def _plant_subject(self, tools: Path) -> Path:
         src = TOOLS / CO_DOC
