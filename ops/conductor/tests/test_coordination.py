@@ -1154,9 +1154,7 @@ class TheDocumentedFormsParse(_Scratch):
             text = text.replace(placeholder, plain)
         out = []
         for token in text.replace("[", " ").replace("]", " ").split():
-            if token.startswith("--") or token == out[:1]:
-                out.append(token)
-            elif not out:
+            if not out or token.startswith("--"):
                 out.append(token)
             else:
                 self.assertIn(token, self.VALUES,
