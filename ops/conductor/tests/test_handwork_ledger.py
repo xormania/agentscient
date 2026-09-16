@@ -32,9 +32,6 @@ TOOL = REPO / "ops" / "conductor" / "tools" / "hand.py"
 # shared implementation); a staged copy run from a scratch directory
 # needs them staged too, or it refuses `tooling` before the contract.
 SIBLINGS = ("instrument.py", "laneconf.py")
-# Captured at import, before any test mutates a subprocess HOME.
-LIVE_STORE = Path.home() / ".local" / "state" / "agentscient" / "handwork.db"
-
 DISPATCH_PROBE = REPO / "ops" / "devlane" / "dispatch" / "launch.py"
 LAND_PROBE = REPO / "ops" / "conductor" / "tools" / "land.py"
 
@@ -81,12 +78,20 @@ RUN_TIMEOUT = 60
 
 
 class _LedgerFixture(unittest.TestCase):
-    """Isolated HOME, staged tool copy, live store frozen."""
+    """Isolated HOME, staged tool copy.
+
+    Every hand.py invocation here runs through self.env()/self.invoke(),
+    both routed through self.world.env(), which carries HOME redirected
+    to this World's own tree (docs/tests.md \xa7World). A subject run that
+    way cannot reach ~/.local/state/agentscient/handwork.db on the real
+    host, so watching that live path proved nothing about the subject and
+    only failed when another session's own hand.py declare or settle
+    wrote to its own live store mid-run (LD-80).
+    """
 
     def setUp(self):
         self.world = World(prefix="handwork-ledger-")
         self.addCleanup(self.world.close)
-        self._live = self.world.watch(LIVE_STORE)
         self.home = self.world.home
         self.scratch = self.world.root / "scratch"
         self.scratch.mkdir()
@@ -102,9 +107,6 @@ class _LedgerFixture(unittest.TestCase):
             self.world.root / "lane.conf",
             "LANE_NAME='agentscient'\n",
         )
-
-    def tearDown(self):
-        self._live.assert_unchanged(self, f"live store mutated: {LIVE_STORE}")
 
     def _stage_tool_bytes(self) -> None:
         siblings = SIBLINGS if TOOL.is_file() else ()
