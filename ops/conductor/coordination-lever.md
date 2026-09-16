@@ -433,6 +433,7 @@ reconciliation the caller still owes.
 | `resources` | one line per resource and its holder |
 | `coverage [--requirement REF]` | requirement → assignment → candidate → observation → verification → acceptance or gap |
 | `brief` | this session's bounded picture: held assignments, unresolved inbox, open decisions, stale observations |
+| `entry [--role R]` | what a session of each role does first: duties, this session's state, the next steps (`coordination-roles.md`) |
 
 `brief` is what a restarted or compacted participant reads to recover
 its obligations (AC-12). Reads print `no store` and exit 0 when the

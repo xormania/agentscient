@@ -48,6 +48,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py decision DC-n | decisions [--open]
     coordination.py reserve NAME --for A-n [--ttl MIN] | free NAME --why TEXT | resources
     coordination.py coverage [--requirement REF] | brief
+    coordination.py entry [--role R]
 
 Reads need no identity and no participant and never create the store.
 """
@@ -87,6 +88,82 @@ except ModuleNotFoundError:
 
 LOCK = "deliverable.json"
 ROLES = ("lead", "coordinator", "dispatcher", "worker", "verifier")
+ENTRY = {
+    "lead": (
+        "decide what is asked, accept what the evidence carries",
+        (
+            "read coverage: requirement, candidate, examination, acceptance or the gap",
+            "decide an open question from its own row, with the alternatives it names",
+            ("accept only what the gate allows, and record a permitted exception "
+             "in the acceptance rather than leaving it unsaid"),
+        ),
+        (
+            "coverage",
+            "decisions --open",
+            "decide DC-n --choice TEXT --rationale TEXT",
+            "accept A-n --evidence READING --generation N",
+        ),
+    ),
+    "coordinator": (
+        "place the work and clear what blocks it",
+        (
+            "read the open assignments and the resources they contend for",
+            "offer work to a participant, and reassign what a blocked holder cannot move",
+            "clear a dependency before it becomes a stall, and say so in the row",
+        ),
+        (
+            "assignments --state open",
+            "resources",
+            "offer A-n --to WHO --generation N",
+            "reassign A-n --to WHO --why TEXT --generation N",
+        ),
+    ),
+    "dispatcher": (
+        "launch against held work and reconcile what is uncertain",
+        (
+            "read what is outstanding before launching anything",
+            "launch against an assignment a participant holds, never against a title",
+            "reconcile a launch whose outcome is uncertain rather than launching again",
+        ),
+        (
+            "outstanding",
+            "assignments --state held",
+            ("observe A-n --observation TEXT --revision SHA --generation N "
+             "--execution REC"),
+        ),
+    ),
+    "worker": (
+        "recover your obligations, then move the work you hold",
+        (
+            ("read the brief: what you hold, what runs against it, what is owed "
+             "both ways, what is open, and whether your evidence still applies"),
+            "claim what is offered on a branch the deliverable lock names",
+            "observe what the work measures, and submit the candidate with its revision",
+            "ask rather than guess; a question is a row, not a message in a transcript",
+        ),
+        (
+            "brief",
+            "claim A-n --branch BRANCH --generation N",
+            "observe A-n --observation TEXT --revision SHA --generation N",
+            "submit A-n --evidence READING --revision SHA --generation N",
+            "ask --question TEXT --alternatives TEXT",
+        ),
+    ),
+    "verifier": (
+        "examine a candidate against the requirement's own words",
+        (
+            "read coverage for the requirement, not for the title",
+            "examine the candidate you did not produce; a role label is not independence",
+            "observe what you found, then verify it or return it with the findings",
+        ),
+        (
+            "coverage --requirement REF",
+            "observations A-n --all",
+            "verify A-n --candidate SHA --evidence READING --generation N",
+            "return A-n --findings REF --generation N",
+        ),
+    ),
+}
 PURPOSES = ("inform", "request", "finding")
 OBLIGATIONS = ("request", "finding")
 ID = re.compile(r"^(PT|DC|A|M|E|R)-(\d+)$")
@@ -315,6 +392,22 @@ def bound_participant(conn):
         refuse("participant", "a participant bound to this session", key,
                "bind --roles ROLE[,ROLE] first")
     return row
+
+
+def maybe_participant(conn):
+    """The participant of this session, or None, without refusing.
+
+    Every other read resolves through bound_participant, which refuses a
+    session that has not bound. `entry` is the read a session takes
+    before it can bind, so it asks this instead (coordination-roles.md
+    §The entry points).
+    """
+    key = session("")
+    if not key or conn is None:
+        return None
+    return conn.execute(
+        "SELECT * FROM participants WHERE session_id = ?", (key,)
+    ).fetchone()
 
 
 def same_session(conn, part):
@@ -1615,6 +1708,60 @@ def core_brief(conn, part) -> dict:
     return shown
 
 
+def core_entry(conn, part, *, role=None) -> dict:
+    """What a session of this role does first, here, now.
+
+    Three parts, and each is a reading rather than a recital: the role's
+    duties, the state this session is in, and the next steps with the
+    argument each verb needs. It never refuses an absent store — a
+    participant that cannot bind yet is the reader this verb exists for
+    — and it never refuses for want of an identity, because it writes
+    nothing (docs/wire.md: a layer able to refuse a read is itself a
+    finding).
+    """
+    part = same_session(conn, part)
+    if role is not None and role not in ROLES:
+        refuse("arguments", "a known role", role, "one of " + ", ".join(ROLES))
+    if role:
+        named = [role]
+    elif part is not None:
+        named = [name for name in ROLES if name in part["roles"].split(",")]
+    else:
+        named = list(ROLES)
+    state = {"bound": part is not None, "store": "read" if conn is not None else "absent"}
+    if part is not None:
+        state["participant"] = f"PT-{part['id']}"
+        state["roles"] = part["roles"]
+        state["held"] = conn.execute(
+            "SELECT COUNT(*) AS n FROM assignments a JOIN subjects s ON s.id = a.id "
+            "WHERE a.holder = ? AND s.place NOT IN ('accepted', 'superseded')",
+            (part["id"],),
+        ).fetchone()["n"]
+        messages = conn.execute(
+            "SELECT m.*, s.place FROM messages m JOIN subjects s ON s.id = m.id "
+            "WHERE s.place = 'open' ORDER BY m.id"
+        ).fetchall()
+        obligations = [row for row in messages if row["purpose"] in OBLIGATIONS]
+        state["owed"] = len([row for row in obligations
+                             if addressed(part, row["recipient"])])
+        state["awaited"] = len([row for row in obligations
+                                if row["sender"] == part["id"]])
+        state["decisions_open"] = conn.execute(
+            "SELECT COUNT(*) AS n FROM decisions WHERE decided_at IS NULL"
+        ).fetchone()["n"]
+    blocks = []
+    for name in named:
+        headline, duties, steps = ENTRY[name]
+        first = list(steps)
+        if part is None or name not in part["roles"].split(","):
+            first.insert(0, f"bind --roles {name}")
+        blocks.append({"role": name, "headline": headline,
+                       "duties": list(duties), "next": first})
+    return {"state": state, "roles": blocks,
+            "contract": "ops/conductor/coordination-roles.md",
+            "ladder": "ops/conductor/coordination-lever.md"}
+
+
 CORE = {
     "bind": core_bind, "bind-for": core_bind_for, "grant": core_grant,
     "revoke": core_revoke,
@@ -1632,7 +1779,7 @@ CORE = {
     "observations": core_observations, "ask": core_ask, "answer": core_answer,
     "decide": core_decide, "decision": core_decision, "decisions": core_decisions,
     "reserve": core_reserve, "free": core_free, "resources": core_resources,
-    "coverage": core_coverage, "brief": core_brief,
+    "coverage": core_coverage, "brief": core_brief, "entry": core_entry,
 }
 
 
@@ -2197,6 +2344,31 @@ def do_brief(rest):
     return EXIT_DONE
 
 
+def do_entry(rest):
+    _, opts = parse(rest, 0, optional=("role",))
+    conn = reader()
+    shown = CORE["entry"](conn, maybe_participant(conn), role=opts.get("role"))
+    state = shown["state"]
+    print("entry point for the coordination lane")
+    if state["bound"]:
+        print(f"state: bound as {state['participant']}, roles {state['roles']}; "
+              f"{state['held']} assignment held, {state['owed']} request owed by me, "
+              f"{state['awaited']} awaited, {state['decisions_open']} decision open")
+    else:
+        print("state: not bound in this session; the store is "
+              + ("read" if state["store"] == "read" else "absent"))
+    for block in shown["roles"]:
+        print(f"{block['role']} — {block['headline']}")
+        print("  duties:")
+        for line in block["duties"]:
+            print(f"    - {line}")
+        print("  next:")
+        for line in block["next"]:
+            print(f"    - {line}")
+    print(f"contract: {shown['contract']}; the ladder it stands on: {shown['ladder']}")
+    return EXIT_DONE
+
+
 VERBS = {
     "bind": do_bind, "bind-for": do_bind_for, "grant": do_grant,
     "revoke": do_revoke,
@@ -2213,7 +2385,7 @@ VERBS = {
     "observations": do_observations, "ask": do_ask, "answer": do_answer,
     "decide": do_decide, "decision": do_decision, "decisions": do_decisions,
     "reserve": do_reserve, "free": do_free, "resources": do_resources,
-    "coverage": do_coverage, "brief": do_brief,
+    "coverage": do_coverage, "brief": do_brief, "entry": do_entry,
 }
 
 
