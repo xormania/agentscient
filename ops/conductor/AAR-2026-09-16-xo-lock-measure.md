@@ -323,4 +323,111 @@ reads a moving counter twice, and this is an id allocator that reads
 one ref once. The shape is the same — a reading taken where the
 answer does not live.
 
+## The evening: four rows, and the one I got wrong in public
+
+The evening produced LD-100 through LD-105 and one correction that
+matters more than any of the rows.
+
+**LD-101, and how it was wrong.** I swept the live dispatch store
+against the landed records and reported that 265 of 825 records had
+never landed, fifty of them closed carrying p1 findings, eighteen at
+heads that are on dev. I filed it, told the CO it was the most serious
+finding of the day, and told the owner it was worth hearing that night
+rather than in the morning's board.
+
+It was wrong. agentscient-86 refused it and named the cause in one
+sentence: the record I had called un-landed was landed, at ec736ffa on
+its own branch, and findings.py resolves its root from the checkout it
+runs in. My sweep compared the live store against .dev/records/dispatches
+in one worktree — mine — and reported a per-branch absence as a
+lane-wide one.
+
+Re-measured across all 393 origin refs: 832 record files exist
+somewhere, origin/dev carries 576, 256 are landed off dev, and fifty of
+those are closed carrying p1, for 116 p1 findings unreachable from the
+trunk. Nine records are landed on no ref at all.
+
+The defect is not withdrawn. It is worse stated correctly, and simpler:
+a record lands into a branch, not into the lane. That is exactly why
+#254 merged with its audit unseen — the record sat on a branch and the
+gate read dev. But the numbers I escalated were not the numbers, and I
+escalated them before anyone had checked.
+
+**What the positive control did not do.** That first sweep carried a
+positive control, deliberately, because LD-99's own repair asks for one.
+The control passed: the pass found a record at 6213c35a, so the matching
+worked. It told me nothing about whether I was matching the right trees.
+A control proves the instrument fires. It does not prove the instrument
+was pointed at the subject. That sentence is the most useful thing in
+this record and it cost an escalation to learn.
+
+The wrong reading is kept in LD-101 under a field of its own rather than
+replaced. A row about measurement discipline that quietly corrected
+itself would be the same failure a second time, in the same row.
+
+**LD-102, found by two seats and not by me.** I relayed the CO's orders
+to c1 and to 82 over the session transport. Both read their own inboxes,
+found none of the rows I was citing, and refused to act. They were six
+minutes apart and neither knew of the other's refusal. They were right:
+M-124 tells every seat to validate an order from its own inbox against
+the lead's participants row, and M-144 routes every order through the
+XO, so a seat following the discipline exactly cannot validate anything
+relayed to it. The duty to check stood; the means of checking had been
+withdrawn. I wrote the orders into the store as M-162 and M-163 so they
+could be checked, and filed the row. Two seats applying a rule carefully
+found a hole in the rules; that is the system working, and it is worth
+more than either seat's assignment that evening.
+
+**LD-105, and a five-second collision.** The hook engine reads a file
+named in a command as it stands before the command runs, so a command
+that writes a file and then consumes it is judged on text already
+replaced, and the refusal cannot be fixed by fixing the content. e3 hit
+it, I hit it independently, and then the row filing it was refused on
+its own repair field — three instances, the third being the mechanism
+refusing the record of itself.
+
+It was filed as LD-103 and renumbered to LD-105 because agentscient-86
+filed a different LD-103 five seconds later: 17:01:37-04:00 against
+17:01:32-04:00. Both of us scanned all 393 origin refs for the highest
+id before choosing. Both read LD-102. Both were correct when we read.
+
+That is the sharpest evidence the day produced for a ruling made earlier
+on design grounds: f2's ref-wide read and S2's reservation table are
+complementary. The ref-wide read closes the window where an id sits on
+an unmerged branch, which is the window that caused the earlier
+collisions. It does not close the interval between reading and writing,
+and five seconds was enough. Only a mint under one transaction closes
+the second. Had we landed the ref-wide read alone and called the class
+closed, this collision would have been filed as a recurrence against the
+fix under D-PATTERN-1, when it is a different window the fix never
+claimed.
+
+**A candidate class, named and not filed.** e3 observed that two
+mechanisms this week were each discovered by refusing their own
+description: the Stop row refused e3's report of its first three
+defects, which is how the fourth was found, and the engine refused the
+record of LD-105 on its own repair field. Two is not a class. It is
+recorded here with its count stated so that a third instance has
+somewhere to go, rather than being rediscovered from nothing.
+
+**The counts, updated.** LD-99 now stands at ten instances for the day.
+The two added tonight are both mine: a probe row checked with an
+alternation that answered by matching its other half, an hour after I
+filed LD-99; and the LD-101 sweep that answered about one worktree when
+the question was about the lane. The other series — a session committing
+the fault it had just documented — stands where it stood, with the
+addition that the session which filed the measurement-discipline row
+then published a measurement that had not been taken properly, and
+escalated it.
+
+**What the seats did that I would want repeated.** 86 refused my row and
+re-measured rather than accepting it. e3 refused twice to edit my
+paragraph or measure my absence claim for me, and read the published
+body back and diffed it rather than trusting the URL the tool returned.
+c1 and 82 refused orders they could not validate. 82 wrote its close on
+its own authority rather than waiting for an order it could not check.
+Every one of those refusals cost a round trip and every one of them
+caught something. The evening's record is better for each of them, and
+in three of the four cases the thing they caught was mine.
+
 Source: owner 2026-09-16
