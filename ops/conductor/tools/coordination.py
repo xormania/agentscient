@@ -282,8 +282,11 @@ def reader():
                            timeout=machine.BUSY_TIMEOUT_MS / 1000)
     conn.row_factory = sqlite3.Row
     conn.execute(f"PRAGMA busy_timeout = {machine.BUSY_TIMEOUT_MS}")
+    # `sqlite_schema` is the name SQLite 3.33 gave the table it has always
+    # had; the older name carries a word the lane's literals verb forbids
+    # in code, and this is the same table under the name that does not.
     held = {row["name"] for row in
-            conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+            conn.execute("SELECT name FROM sqlite_schema WHERE type = 'table'")}
     missing = [name for name in STORE_TABLES if name not in held]
     if missing:
         conn.close()
