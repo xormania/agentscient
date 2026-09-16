@@ -425,6 +425,7 @@ DONE_WORDS = re.compile(
 LOCK_LINES = re.compile(
     r"^(done lane/|target: expected the measure to read|target \S+: until .*; reading .*; (?:met|short)\s*$)",
     re.MULTILINE)
+NO_LOCK_LINE = re.compile(r"^no lock\s*$", re.MULTILINE)
 DONE_GATE_CAP = 3
 DONE_GATE_COUNTER = "done-gate.json"
 
@@ -501,6 +502,12 @@ def p_reply_claims_done(ctx):
         return None
     blocks = _done_gate_count(ctx, session)
     reading = _lock_reading(ctx)
+    if reading == "the lock reads: no lock" and NO_LOCK_LINE.search(message):
+        # No entry, no target, no deliverable.py line to paste: show's own
+        # `no lock` line, pasted, is the reading (2026-09-15: the row blocked
+        # a truthful close after every entry was lifted).
+        _done_gate_count(ctx, session, 0)
+        return None
     if blocks >= DONE_GATE_CAP:
         _done_gate_count(ctx, session, 0)
         miss.log_miss(ctx.cwd, "done-gate", f"cap {DONE_GATE_CAP} reached for {session}; {reading}", hook="engine")

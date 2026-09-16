@@ -403,6 +403,27 @@ class TheDoneGate(_Engine):
         self.allowed(self.stop("Reading the launcher's review base now; nothing to report yet."))
         self.allowed(self.stop('The owner said "get it done"; I have taken T-5 and started the red.'))
 
+    def lever(self, stdout):
+        """A deliverable.py stub in the repo: show prints ``stdout``."""
+        tools = self.repo / "ops" / "conductor" / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        (tools / "deliverable.py").write_text(f"import sys\nsys.stdout.write({stdout!r})\n", encoding="utf-8")
+
+    def test_with_no_lock_at_all_the_pasted_no_lock_line_passes_and_with_a_lock_it_does_not(self):
+        """2026-09-15: the row blocked a session's truthful close after every
+        entry was lifted: with no lock there is no deliverable.py line to
+        paste, and the refused page's remedy (paste show's output) was one
+        the row did not honour. show's `no lock` line passes only while
+        the lock really reads no lock."""
+        self.gate()
+        self.lever("no lock\n")
+        reason = self.refusal(self.stop("Every deliverable is landed and lifted."), "done-gate", event="Stop")
+        self.assertIn("the lock reads: no lock", reason)
+        self.assertIn("no lock", reason)
+        self.allowed(self.stop("Every deliverable is landed and lifted.\nno lock\nNothing is held."))
+        self.lever("{\"branches\": [\"lane/x\"]}\ntarget lane/x: until off_kit=0; reading off_kit=5; short\n")
+        self.refusal(self.stop("Every deliverable is landed and lifted.\nno lock\n"), "done-gate", event="Stop")
+
     def test_stop_hook_active_passes(self):
         self.gate()
         self.allowed(self.stop("The plan is done.", active=True))

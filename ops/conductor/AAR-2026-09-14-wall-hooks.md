@@ -357,3 +357,56 @@ Ran 37 OK at `fd26567f`; `test_boundaries.py` Ran 6 OK; `engine.py
 lint` 8 engine rows, no unknown; ruff clean on the four files. The
 whole hooks suite: Ran 310 tests, OK; the whole conductor suite:
 Ran 1175 tests, FAILED (failures=2): the three count rows re-pinned in the records commit, and the doctor read-only probe reading this session own live probe of the gate during the run, Ran 21 OK alone, the read-never-creates fix in a10150fc. Hook refusals in this thread: 0.
+
+## Seventh thread: the gate in use, and the close
+
+Owner, 2026-09-15: "aar and handoff", after "work with the other two
+sessions - one is tackling the issue head on - help it and let it help
+you. We have to get this solved". Written at `126d27e8` on dev; every
+reading names its sha.
+
+- **#222 at `b123181b`**: the refused page carries the done-gate row
+  and the lifted-branch edge session -ab read live (a branch already
+  lifted from the lock gets `absent:` from the done verb; the page says
+  what to paste then). Two corpus rows pin it.
+- **Session -b's order, met on dev.** Its census lever landed in #223
+  (`5e00c406`); the lock's measure for `lane/session-20260914-b` was
+  re-set from the one-liner, which double-counted a module as both on
+  the kit and exempt and read `off_kit=-1`, to `testkit_ratchet.py
+  --census`, until `off_kit=0`. From the main checkout: `done
+  lane/session-20260914-b: modules=226 on_kit=216 exempt=10 off_kit=0`;
+  the ratchet reads `home_by_hand=8, embedded_programs=4,
+  run_without_timeout=0`, from 57, 30 and 185 when the order was given.
+  Session -b lifted its entry after; the lock reads `no lock` at the
+  close.
+- **The gate in use, both layers.** The prompt hook blocked this
+  session once (a reply saying the draft PR was open, read as a claim);
+  the engine row blocked this session once, correctly, on a relay of
+  "merged" with no lock line; the engine row blocked session -ab once,
+  correctly, quoting the lock's line; the prompt hook blocked session
+  -b once wrongly, a refusal line inside a code fence unread and "waits
+  for their run ids" read as a claim, while the engine row passed the
+  same reply: LD-43, corrected in session -ab's #224 (`126d27e8`), the
+  prompt hook now deferring to the row when unsure.
+- **Left named, not rewritten**: the merge-forward `21c3914a` on dev
+  carries git's default message and no trailer, from a `git merge
+  --no-edit` in this session; the later merge-forwards carry their
+  own messages.
+
+## Calibration, second
+
+- Tokens (`worth.py waste --since 2026-09-15T03:33Z`): this session
+  70.2M cached, 144,054 out, mean context about 594k over 118 turns.
+- Hook refusals logged on the host since 03:33Z, every session together
+  (the session column reads `unrecorded`): 22; done-gate 7,
+  clipped-sweep 4, claim-unmeasured 4, graft-first 3,
+  unguarded-replace 2, hand-write 2. This session's own from its
+  transcript: clipped-sweep 3, claim-unmeasured 0 at the hook (four
+  caught by the scanner before the commit), unguarded-replace 1,
+  hand-write 1, done-gate 2 (one prompt, one engine); 0 wrong.
+- PRs this round: #219 `287364c3`, #221 `ad11c6bb`, #222 `b123181b`,
+  each on the proof gate at the owner's standing word; with the three
+  sessions' others: #220 `c378f259`, #223 `5e00c406`, #224 `126d27e8`.
+- Grants 236, 238, 239, 240 settled on bare shas; 242 settles on this
+  commit. Corpus at `a79f067a`: pass 273, fail 0, unreachable 0;
+  suites exit 0 there.
