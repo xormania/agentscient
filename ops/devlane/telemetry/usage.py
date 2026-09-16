@@ -36,7 +36,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 GROK_GAP = "grok usage not yet parsed: updates.jsonl turn_completed"
 
@@ -169,6 +169,27 @@ def agy_read(path: Path, offset=0):
                               + ([] if model else ["native model unavailable"]))}
 
 
+def under(cwd: str | None, repo: str | None) -> bool:
+    """True when `cwd` is `repo` or a directory inside it.
+
+    Every reader here compared the two by string equality, so a session
+    that worked from a subdirectory counted for no repository at all.
+    The test is on path components, never on characters: `<repo>-other`
+    is a different checkout that merely shares a spelling, and a prefix
+    compare would absorb its spend into this one.
+
+    No repo asked for means every session answers. A repo asked for and
+    no cwd to compare is not an answer: it is a session that cannot be
+    placed, and it is not counted for this repository.
+    """
+    if not repo:
+        return True
+    if not cwd:
+        return False
+    here, root = Path(cwd), Path(repo)
+    return here == root or root in here.parents
+
+
 def agy_sessions(root: Path, repo: str | None):
     """Captured job roots (raw.out), or their isolated home/agy directory.
 
@@ -181,7 +202,7 @@ def agy_sessions(root: Path, repo: str | None):
     paths = [root / "raw.out"] if (root / "raw.out").is_file() else sorted(root.rglob("raw.out"))
     readings = [agy_read(path) for path in paths]
     for row in readings:
-        if repo and row["cwd"] != repo:
+        if not under(row["cwd"], repo):
             continue
         key = row["session"]
         if sum(other["session"] == key for other in readings) > 1:
@@ -206,11 +227,20 @@ def claude_sessions(root: Path, repo: str | None):
     if not root.is_dir():
         return
     for project in sorted(p for p in root.iterdir() if p.is_dir()):
+        named = True
         if repo:
             # Claude encodes the project path with '-' separators.
             slug = "-" + "-".join(repo.strip("/").split("/"))
             if project.name != slug:
-                continue
+                if not project.name.startswith(slug + "-"):
+                    continue
+                # The encoding flattens '/' and '-' alike, so a
+                # subdirectory of this repo and a sibling checkout whose
+                # name merely extends it spell one directory name. Admit
+                # it and let the cwd decide, which is the only exact
+                # truth available; `named` remembers that the directory
+                # name alone did not settle it.
+                named = False
         for f in sorted(project.glob("*.jsonl")):
             per_msg = {}
             model = None
@@ -241,9 +271,16 @@ def claude_sessions(root: Path, repo: str | None):
                 }
             if not per_msg:
                 continue
-            if repo and cwds and repo not in cwds:
+            inside = bool(repo) and any(under(cwd, repo) for cwd in cwds)
+            if repo and cwds and not inside:
                 # Two paths can flatten to one directory slug; the cwd
                 # stored in the entries is the truth.
+                continue
+            if repo and not named and not inside:
+                # The directory name only approximately matched and the
+                # entries carry no cwd under this repo, so nothing here
+                # places the session. Could not look is not an answer,
+                # and an unplaced session is not this repository's spend.
                 continue
             messages = len(per_msg)
             tokens = {key: sum(m[key] for m in per_msg.values())
@@ -276,7 +313,7 @@ def codex_sessions(root: Path, repo: str | None):
                 info = payload.get("info") or {}
                 last_count = info.get("total_token_usage") or last_count
             events += 1
-        if repo and meta.get("cwd") != repo:
+        if not under(meta.get("cwd"), repo):
             continue
         tokens = None
         if last_count:
@@ -370,7 +407,10 @@ def grok_sessions(root: Path, repo: str | None):
     if not sessions.is_dir():
         return
     for cwd_dir in sorted(p for p in sessions.iterdir() if p.is_dir()):
-        if repo and cwd_dir.name != quote(repo, safe=""):
+        # The directory name is the url-encoded cwd, so it is decoded
+        # before it is compared: encoding the repo and matching strings
+        # cannot see that a subdirectory is inside it.
+        if not under(unquote(cwd_dir.name), repo):
             continue
         for sdir in sorted(p for p in cwd_dir.iterdir() if p.is_dir()):
             summary = sdir / "summary.json"

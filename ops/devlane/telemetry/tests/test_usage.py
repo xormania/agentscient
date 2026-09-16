@@ -183,6 +183,112 @@ class TheRepoPathIsResolvedAtTheBoundary(unittest.TestCase):
         )
 
 
+class ACwdInsideTheRepoIsTheRepo(unittest.TestCase):
+    """The comparison is containment, not string equality.
+
+    All four readers asked whether the cwd was the repo path exactly, so
+    a session that worked from a subdirectory of the repo counted for no
+    repo at all. Measured 2026-09-16 across 243 claude sessions on this
+    host, no session is dropped by this today — every session that
+    starts at the root keeps the root in its cwd set forever. The rule
+    is still wrong, and an exact compare on a path is the kind of wrong
+    that is invisible until the day it is not.
+    """
+
+    SUB = REPO + "/ops/conductor"
+    SIBLING = REPO + "-other"
+
+    def setUp(self):
+        self.world = World()
+        self.addCleanup(self.world.close)
+        self.home = self.world.home
+
+    def usage(self, *args):
+        return run(
+            [sys.executable, str(USAGE), *args,
+             "--claude-dir", str(self.home / "claude"),
+             "--codex-dir", str(self.home / "codex"),
+             "--grok-dir", str(self.home / "grok"),
+             "--repo", REPO, "--json"],
+            cwd=self.world.cwd, env=self.world.env(), timeout=30,
+        )
+
+    def ids(self):
+        proc = self.usage("sessions")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        return sorted(s["session"] for s in json.loads(proc.stdout)["sessions"])
+
+    @staticmethod
+    def slug(cwd):
+        """Claude's own spelling of a cwd as a project directory name."""
+        return "-" + "-".join(cwd.strip("/").split("/"))
+
+    def plant_claude(self, name, cwd):
+        # The directory name matters: it is the first of the two filters,
+        # and inventing one would let a row pass or fail for a reason the
+        # defect has nothing to do with.
+        self.world.plant_text(
+            self.home / "claude" / self.slug(cwd) / f"{name}.jsonl",
+            line(timestamp="2026-08-21T10:00:00.000Z", cwd=cwd,
+                 message={"id": f"m-{name}", "model": "claude-fable-5",
+                          "usage": {"input_tokens": 10, "output_tokens": 20}}))
+
+    def plant_codex(self, name, cwd):
+        day = self.home / "codex" / "sessions" / "2026" / "08" / "21"
+        self.world.plant_text(
+            day / f"rollout-2026-08-21T10-00-00-{name}.jsonl",
+            line(timestamp="2026-08-21T10:00:00.000Z", type="session_meta",
+                 payload={"id": name, "cwd": cwd})
+            + line(timestamp="2026-08-21T10:02:00.000Z", type="event_msg",
+                   payload={"type": "token_count",
+                            "info": {"total_token_usage": {
+                                "input_tokens": 1, "cached_input_tokens": 0,
+                                "output_tokens": 1, "total_tokens": 2}}}))
+
+    def plant_grok(self, name, cwd):
+        gdir = self.home / "grok" / "sessions" / quote(cwd, safe="") / name
+        self.world.plant_text(gdir / "summary.json", json.dumps({
+            "info": {"id": name, "cwd": cwd}, "num_messages": 3,
+            "created_at": "2026-08-21T10:00:00.000000000Z",
+            "updated_at": "2026-08-21T10:20:00.000000000Z",
+            "current_model_id": "grok-4.6"}))
+
+    def test_a_claude_session_run_from_a_subdirectory_counts(self):
+        self.plant_claude("inside", self.SUB)
+        self.assertIn("inside", self.ids())
+
+    def test_a_codex_session_run_from_a_subdirectory_counts(self):
+        self.plant_codex("inside", self.SUB)
+        self.assertIn("inside", self.ids())
+
+    def test_a_grok_session_run_from_a_subdirectory_counts(self):
+        self.plant_grok("inside", self.SUB)
+        self.assertIn("inside", self.ids())
+
+    def test_a_sibling_path_that_merely_shares_a_prefix_is_not_the_repo(self):
+        # The containment test is on path components, not on characters:
+        # <repo>-other starts with the repo's spelling and is a different
+        # checkout. A prefix compare would silently absorb its spend. For
+        # claude this is the whole reason the cwd is consulted at all: the
+        # slug flattens '/' and '-' alike, so this sibling and a genuine
+        # subdirectory produce the same directory name, and only the cwd
+        # in the entries tells them apart.
+        self.plant_claude("stranger", self.SIBLING)
+        self.plant_codex("stranger-c", self.SIBLING)
+        self.plant_grok("stranger-g", self.SIBLING)
+        found = self.ids()
+        for name in ("stranger", "stranger-c", "stranger-g"):
+            self.assertNotIn(name, found)
+
+    def test_the_repo_itself_still_counts(self):
+        self.plant_claude("root", REPO)
+        self.plant_codex("root-c", REPO)
+        self.plant_grok("root-g", REPO)
+        found = self.ids()
+        for name in ("root", "root-c", "root-g"):
+            self.assertIn(name, found)
+
+
 class TheReportAggregates(Fixtures):
     def test_totals_per_harness_and_the_gap_stated(self):
         proc = self.run_usage("report")
