@@ -807,11 +807,12 @@ class ExistingReadersRoundTripTheFixtures(StoreBuilderCase):
         artifacts = self.build_all(self.root)
         usage = load_module(self, USAGE, "agentscient_usage_for_fixture_test")
 
+        place = usage.Placement(REPO)
         claude = list(
-            usage.claude_sessions(artifacts["claude_root"], REPO)
+            usage.claude_sessions(artifacts["claude_root"], place)
         )
-        codex = list(usage.codex_sessions(artifacts["codex_root"], REPO))
-        grok = list(usage.grok_sessions(artifacts["grok_root"], REPO))
+        codex = list(usage.codex_sessions(artifacts["codex_root"], place))
+        grok = list(usage.grok_sessions(artifacts["grok_root"], place))
 
         self.assertEqual(
             claude,
@@ -925,7 +926,13 @@ class ExistingReadersRoundTripTheFixtures(StoreBuilderCase):
             grok_dir=str(artifacts["grok_root"]),
             repo=REPO,
         )
-        aggregate = json.dumps(usage.collect(args), sort_keys=True)
+        # collect returns its rows and the placement that read them;
+        # the unplaced cwds are in the leak's reach too, so both go
+        # into the text this row searches.
+        rows, place = usage.collect(args)
+        aggregate = json.dumps(
+            {"rows": rows, "unplaced": sorted(place.unplaced)},
+            sort_keys=True)
         self.assertNotIn(
             MARKER,
             aggregate,
@@ -971,7 +978,8 @@ class ReadersRefuseSnapshotRewriteInflation(StoreBuilderCase):
 
     def usage_tokens(self):
         usage = load_module(self, USAGE, "agentscient_usage_reemit")
-        rows = list(usage.claude_sessions(self.root / "claude", REPO))
+        rows = list(usage.claude_sessions(
+            self.root / "claude", usage.Placement(REPO)))
         self.assertEqual(len(rows), 1)
         return rows[0]
 
@@ -1005,8 +1013,10 @@ class ReadersRefuseSnapshotRewriteInflation(StoreBuilderCase):
             cwd=actual, session_id=CLAUDE_SESSION, model=CLAUDE_MODEL,
             effort="high", marker=MARKER)
         usage = load_module(self, USAGE, "agentscient_usage_collision")
-        hit = list(usage.claude_sessions(self.root / "claude", actual))
-        miss = list(usage.claude_sessions(self.root / "claude", colliding))
+        hit = list(usage.claude_sessions(
+            self.root / "claude", usage.Placement(actual)))
+        miss = list(usage.claude_sessions(
+            self.root / "claude", usage.Placement(colliding)))
         self.assertEqual([len(hit), len(miss)], [1, 0],
                          "usage --repo trusted the lossy slug over the"
                          " cwd stored in the entries")

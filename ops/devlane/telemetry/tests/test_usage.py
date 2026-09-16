@@ -6,6 +6,7 @@ and Grok's summary.json — which records NO token usage, a gap the report
 must state rather than estimate around.
 """
 
+import importlib.util
 import json
 import sys
 import unittest
@@ -463,6 +464,75 @@ class TheReportAggregates(Fixtures):
         proc = self.run_usage("report")
         self.assertNotIn("SESSIONPROMPTTEXT", proc.stdout,
                          "session content leaked into the report")
+
+
+class AReaderTakesAPlacementAndSaysSo(unittest.TestCase):
+    """Origin: LD-66. cd1083a8 gave the four readers a Placement where they
+    took a repo path and left ten callers holding the old shape. Each of
+    them failed on the first attribute its reader touched, `place.repo` or
+    `place.holds`, and launch.py's failed inside a worker thread in
+    test_launch_watch: the traceback went to a log nobody was reading and
+    the test waited on a result that was never coming, so the lane job was
+    cancelled at 15m15s rather than reporting a failure. The planted faults
+    are the three shapes the callers passed; the clean neighbour is the
+    same call with a Placement.
+    """
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location(
+            "agentscient_usage_placement_rows", USAGE)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        self.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.module)
+        self.readers = (
+            self.module.agy_sessions,
+            self.module.claude_sessions,
+            self.module.codex_sessions,
+            self.module.grok_sessions,
+        )
+        # Every store reader the module holds, and no other: a fifth one
+        # added without a row here is the gap this class exists to close.
+        # cmd_sessions is not one of them — it is the `sessions` verb,
+        # which builds a Placement of its own and hands it to the four.
+        named = sorted(r.__name__ for r in self.readers)
+        found = sorted(
+            n for n in vars(self.module)
+            if n.endswith("_sessions") and not n.startswith("cmd_")
+            and callable(getattr(self.module, n))
+        )
+        self.assertEqual(named, found, "a reader with no row in this class")
+
+    def test_a_reader_handed_anything_but_a_placement_refuses(self):
+        for shape, value in (("NoneType", None),
+                             ("str", REPO),
+                             ("PosixPath", Path(REPO))):
+            for reader in self.readers:
+                with self.subTest(reader=reader.__name__, passed=shape):
+                    with self.assertRaises(TypeError) as caught:
+                        list(reader(Path(REPO) / "no-such-store", value))
+                    line = str(caught.exception)
+                    self.assertTrue(
+                        line.startswith("placement: "), f"no class token: {line}")
+                    for word in ("expected", "found", "needed"):
+                        self.assertIn(word, line, line)
+                    self.assertLess(
+                        line.index("expected"), line.index("found"), line)
+                    self.assertLess(
+                        line.index("found"), line.index("needed"), line)
+                    self.assertIn(reader.__name__, line, line)
+                    self.assertIn(shape, line, line)
+
+    def test_a_reader_handed_a_placement_answers_with_an_empty_list(self):
+        place = self.module.Placement(REPO)
+        # REPO is a path no checkout sits at, so the Placement asks git
+        # nothing and the readers answer on a store that is not there:
+        # looked and found nothing, which is an answer and not a raise.
+        self.assertIsNone(place.repo_common)
+        for reader in self.readers:
+            with self.subTest(reader=reader.__name__):
+                self.assertEqual(
+                    list(reader(Path(REPO) / "no-such-store", place)), [])
 
 
 if __name__ == "__main__":

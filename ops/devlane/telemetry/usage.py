@@ -261,6 +261,24 @@ class Placement:
         return found is not None and found == self.repo_common
 
 
+def placed(place, reader: str) -> "Placement":
+    """Refuse a reader's second argument that is not a Placement.
+
+    cd1083a8 gave the four readers a Placement where they took a repo path
+    and left ten callers handing over the old shape. Each failed deep in
+    the reader on the first attribute it touched, and one of them failed
+    inside a worker thread in test_launch_watch, where the traceback went
+    to a log nobody was reading and the test waited on a result that was
+    never coming. The wire's words, raised where the call is made: a
+    caller that cannot be read is told what it needed.
+    """
+    if not isinstance(place, Placement):
+        raise TypeError(
+            f"placement: expected a Placement for {reader}; "
+            f"found {type(place).__name__}; "
+            "needed usage.Placement(<repo path or None>)")
+    return place
+
 def agy_sessions(root: Path, place: "Placement"):
     """Captured job roots (raw.out), or their isolated home/agy directory.
 
@@ -268,6 +286,7 @@ def agy_sessions(root: Path, place: "Placement"):
     launch capture supplies those observations; no sidecar transcript format.
     Callers select a root explicitly; there is no personal-store default.
     """
+    place = placed(place, "agy_sessions")
     if root.name == "agy" and root.parent.name == "home":
         root = root.parent.parent
     paths = [root / "raw.out"] if (root / "raw.out").is_file() else sorted(root.rglob("raw.out"))
@@ -295,6 +314,7 @@ def _read_jsonl(path: Path):
 
 
 def claude_sessions(root: Path, place: "Placement"):
+    place = placed(place, "claude_sessions")
     if not root.is_dir():
         return
     repo = place.repo
@@ -360,6 +380,7 @@ def claude_sessions(root: Path, place: "Placement"):
 
 
 def codex_sessions(root: Path, place: "Placement"):
+    place = placed(place, "codex_sessions")
     sessions = root / "sessions"
     if not sessions.is_dir():
         return
@@ -471,6 +492,7 @@ def _grok_usage_events(updates_path):
 
 
 def grok_sessions(root: Path, place: "Placement"):
+    place = placed(place, "grok_sessions")
     sessions = root / "sessions"
     if not sessions.is_dir():
         return
