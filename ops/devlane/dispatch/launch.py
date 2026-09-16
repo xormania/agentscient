@@ -994,7 +994,17 @@ def _argv_base(name, model, effort, session, prompt, flags, sandbox, resume=Fals
     return argv
 
 
-def _child_env(base, additions, job_id):
+def _child_env(base, additions, job_id, session=None):
+    """The environment a dispatched child runs under.
+
+    `session` is the uuid this dispatch minted. It goes in as
+    CLAUDE_SESSION_ID, the key instrument.session() already admits, so a
+    worker of any harness can resolve the participant the launcher bound
+    for it. A claude child also gets it on its argv as --session-id; the
+    two are the same value on purpose, because a worker acting under one
+    id and recorded under the other would leave the store pointing at a
+    session that never ran.
+    """
     env = dict(base)
     for key in ("CLICOLOR_FORCE", "FORCE_COLOR", "CLAUDE_CONFIG_DIR"):
         env.pop(key, None)
@@ -1004,6 +1014,14 @@ def _child_env(base, additions, job_id):
                 "GIT_EDITOR": "true", "EDITOR": "true", "PYTHONUNBUFFERED": "1",
                 "PYTHONIOENCODING": "utf-8", "LC_ALL": "C.UTF-8",
                 "WF_LANE": "dev", "DISPATCH_JOB": job_id})
+    # A dispatch that minted no session id leaves the key absent rather
+    # than setting it empty: the server refuses class `session` on unset,
+    # and an empty string would be a caller naming a session that is not
+    # one.
+    if session:
+        env["CLAUDE_SESSION_ID"] = session
+    else:
+        env.pop("CLAUDE_SESSION_ID", None)
     env.update(additions)
     return env
 
@@ -1562,7 +1580,8 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
         harness, rec["model"]["effort_requested"])
     if harness == "codex":
         (job_dir / "out" / "last-message.json").unlink(missing_ok=True)
-    env = _child_env(os.environ, iso_env, rec["id"])
+    env = _child_env(os.environ, iso_env, rec["id"],
+                     session=(rec.get("session") or {}).get("id"))
     if harness == "agy":
         for key in ("XDG_CONFIG_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME",
                     "XDG_STATE_HOME", "XDG_RUNTIME_DIR", "TMPDIR"):
