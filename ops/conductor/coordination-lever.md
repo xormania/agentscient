@@ -33,7 +33,21 @@ which a process names another session is an argument by which it acts as
 one. `bind-for` still takes one, because minting a participant for a
 session that cannot bind itself is what it is for, and it is a
 dispatcher's verb and records its issuer. The boundary binds the
-effective caller; the argument carries it and never chooses it. Both projections are therefore thin and
+effective caller; the argument carries it and never chooses it.
+
+What the session id is, said plainly, because every sentence above rests
+on it. It is a bearer credential: any process holding it acts as the
+participant bound to it, and this instrument has no second factor, no
+expiry and no way to tell a session from something that learned its id.
+The id is in the environment of every process the harness starts and in
+the record of every dispatch, so it is about as secret as a process
+listing. It is not proof of who is calling; it is the name under which a
+caller's acts are recorded, and what the checks above buy is that a
+caller cannot act under a name it does not hold. Codex's audit named this
+(20260916T100839Z-review-codex-1833de#1, p1) and the owner accepted it on
+2026-09-16 rather than fixing it, redaction included. It is written here
+so that nobody reads "the participant is the authority" as a claim about
+identity that the code does not make. Both projections are therefore thin and
 neither holds authority of its own; the CLI verb parses argv, calls the
 function and prints, and the MCP action does the same with a result
 shape instead of a print.
