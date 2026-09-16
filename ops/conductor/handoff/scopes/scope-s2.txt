@@ -8,9 +8,10 @@ Read the brief first; it, not this file, is the specification.
 Tests run against isolated state - never the live store under
 ~/.local/state/agentscient - and prove the collision is refused by
 planting two concurrent minters.
-docs/tests.md rules 3 to 6 bind the tests: a fixture set of planted faults
-and clean neighbours, a hermetic world, every subprocess through testkit
-run with a timeout, fakes planted through the registry.
-Do not touch ops/bin/suites.sh, .github/workflows, probes.py, laneconf.py,
-boundaries.json, matrix.py or engine.py; those are wall and refuse.
+docs/tests.md rules 3 to 6 bind the tests: planted faults and clean
+neighbours, a hermetic world, every subprocess through testkit run with a
+timeout, fakes planted through the registry.
+Do not touch the wall paths AGENTS.md names (the CI workflow, the
+suite lever, the corpus runner, the closure levers, the hook registry
+and engine); wall, they refuse.
 Commit here with Source: and Co-Authored-By: trailers. Nothing else.
