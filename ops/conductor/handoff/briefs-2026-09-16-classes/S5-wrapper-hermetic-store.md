@@ -24,7 +24,7 @@ Every existing row of the table keeps its id; the fixture change is the only edi
 
 ## Not covered
 
-Whether the other copier suites watch the host store (the planner did not measure it; the builder measures `grep -rl live_store_guard ops` and records the count). The measure for the lock: `sh -c "git fetch -q origin; git show origin/dev:ops/conductor/tests/test_dispatch_wrapper.py | rg -q _jobs_roots_to_guard && echo s5=short || echo s5=on-dev"`, until `s5=on-dev`. The lock runs a measure with its cwd at the repository root; a measure never names another checkout with `-C` (codex 20260916T094142Z-review-codex-995043#1, upheld by grok 20260916T095437Z-adjudicate-grok-8c207d); once S3 lands, the same command as a JSON list.
+Whether the other copier suites watch the host store (the planner did not measure it; the builder measures `grep -rl live_store_guard ops` and records the count). The measure for the lock: `sh -c "git fetch -q origin; f=\$(git show origin/dev:ops/conductor/tests/test_dispatch_wrapper.py) || { echo s5=short; exit 0; }; printf %s \"\$f\" | rg -q _jobs_roots_to_guard && echo s5=short || echo s5=on-dev"`, until `s5=on-dev` (a failed show reads short, never met: the earlier polarity read a missing file as done, grok 20260916T102249Z-review-grok-9dd0ca#4). The lock runs a measure with its cwd at the repository root; a measure never names another checkout with `-C` (codex 20260916T094142Z-review-codex-995043#1, upheld by grok 20260916T095437Z-adjudicate-grok-8c207d); once S3 lands, the same command as a JSON list.
 
 ## Scope
 
