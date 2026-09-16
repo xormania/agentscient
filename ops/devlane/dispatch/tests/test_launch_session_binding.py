@@ -20,15 +20,37 @@ where a worker of any harness could read it.
   L3  the witness would see the key if it were set — the guard that keeps
       L1 from passing because the fixture is blind to it rather than
       because the launcher set anything
+
+The second half is the binding itself. The core's `bind-for` is the only
+verb that mints a participant for a session that cannot bind itself, and
+it records who issued it and for which assignment, so a participant nobody
+dispatched is visible as such. The launcher reaches it as a lever run as a
+subprocess whose refusal wire is read, never as an import: at 2eeb4707
+launch.py names ops/conductor seven times and every one is a path it
+points a worker at, and an import would put the core's module state and
+the store inside every case of this suite.
+
+  L4  a dispatch that names no assignment is unchanged, and binds nothing
+  L5  a bind-for that refuses stops the launch: the refusal is the
+      launcher's own, on the wire, and no worker ran
+  L6  a dispatch that names an assignment leaves a participant in the
+      store for the id it minted, carrying bound_for and bound_by
 """
 
 from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import uuid
 
 import launch_support as ls
 
 from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
 
 SESSION_KEY = "CLAUDE_SESSION_ID"
+CORE = ls.REPO / "ops" / "conductor" / "tools" / "coordination.py"
+DISPATCHER = "Launch Test Dispatcher <noreply@example.invalid>"
 
 
 class TheWorkerLearnsTheSessionIdItWasMintedFor(ls._TempLaunch):
@@ -50,7 +72,7 @@ class TheWorkerLearnsTheSessionIdItWasMintedFor(ls._TempLaunch):
         source = ls._FAKE_CLI
         self.assertIn("env_keys", source,
                       "the fake CLI no longer builds an env allowlist")
-        head, _, tail = source.partition("env_keys")
+        _before, _, tail = source.partition("env_keys")
         window, _, _ = tail.partition("]")
         self.assertIn(
             SESSION_KEY, window,
@@ -92,3 +114,107 @@ class TheWorkerLearnsTheSessionIdItWasMintedFor(ls._TempLaunch):
             env.get(SESSION_KEY), on_argv,
             f"the child was told one session on its argv ({on_argv!r}) and "
             f"another in its environment ({env.get(SESSION_KEY)!r})")
+
+
+class TheLauncherBindsTheWorkerItMints(ls._TempLaunch):
+    """L4 L5 L6."""
+
+    def core(self, *args, session=None, agent=DISPATCHER):
+        """The coordination lever, run the way the launcher runs it."""
+        env = dict(os.environ)
+        env["WF_AGENT"] = agent
+        if session:
+            env["CLAUDE_SESSION_ID"] = session
+        else:
+            env.pop("CLAUDE_SESSION_ID", None)
+        return subprocess.run(
+            [sys.executable, str(CORE), *args],
+            capture_output=True, text=True, timeout=60,
+            cwd=str(ls.REPO), env=env)
+
+    def dispatcher_session(self):
+        """A bound dispatcher in this world's own store, and its session id.
+
+        The store lives under the world's XDG_STATE_HOME, so nothing here
+        touches the host's. The first bind is the bootstrap: the core makes
+        the first participant a lead, and a lead may grant itself the
+        dispatcher role it needs to mint a worker.
+        """
+        key = str(uuid.uuid4())
+        done = self.core("bind", "--roles", "lead,dispatcher", session=key)
+        self.assertEqual(done.returncode, 0,
+                         f"bootstrap bind refused: {done.stderr!r}")
+        return key
+
+    def assignment(self, session):
+        drafted = self.core("draft", "a fixture assignment",
+                            "--outcome", "the launcher binds a worker for it",
+                            session=session)
+        self.assertEqual(drafted.returncode, 0,
+                         f"draft refused: {drafted.stderr!r}")
+        return drafted.stdout.split()[-1]
+
+    def participants(self, session):
+        shown = self.core("participants", session=session)
+        self.assertEqual(shown.returncode, 0,
+                         f"participants refused: {shown.stderr!r}")
+        return shown.stdout
+
+    def test_a_dispatch_that_names_no_assignment_is_unchanged(self):
+        """L4.
+
+        The binding is an addition, not a toll. A dispatch with no --for
+        must launch exactly as it did before, and must not create a store:
+        most of this lane's dispatches are reviews with no assignment
+        anywhere near them.
+        """
+        rec, witness, _out, _err = self.launch_ok(harness="claude")
+        self.assertTrue(witness.get("argv"), "the worker did not run")
+        self.assertIsNone(
+            (rec.get("session") or {}).get("bound"),
+            "a dispatch naming no assignment recorded a binding")
+
+    def test_a_refused_binding_stops_the_launch(self):
+        """L5.
+
+        The refusal is provoked by an assignment that does not exist in a
+        store the caller is not bound to, which is the state every fresh
+        world is in. What matters is not which class comes back but that
+        the launcher hands it on and the worker never starts: a worker
+        running unbound is the thing this whole change exists to prevent,
+        and a bind that failed silently would leave exactly that.
+        """
+        code, out, err = self.dispatch(
+            self.argv_for(harness="claude", extra=("--for", "A-1")))
+        text = self.combined(out, err)
+        self.assertNotEqual(code, 0, f"a refused binding still launched: {text!r}")
+        self.assertIn("expected", text.lower(), f"no wire line: {text!r}")
+        self.assertIn("found", text.lower(), f"no wire line: {text!r}")
+        self.assertIn("needed", text.lower(), f"no wire line: {text!r}")
+        self.assertFalse(
+            self.witness.is_file(),
+            "the harness CLI ran although the binding was refused")
+
+    def test_a_dispatch_naming_an_assignment_leaves_a_bound_participant(self):
+        """L6, the whole point: dispatched=1 rather than dispatched=0."""
+        key = self.dispatcher_session()
+        aid = self.assignment(key)
+        before = self.participants(key)
+        os.environ[SESSION_KEY] = key
+        self.addCleanup(os.environ.pop, SESSION_KEY, None)
+        rec, witness, _out, _err = self.launch_ok(
+            argv=self.argv_for(harness="claude", extra=("--for", aid)))
+        minted = (rec.get("session") or {}).get("id")
+        self.assertTrue(minted, "the record carries no minted session id")
+        after = self.participants(key)
+        self.assertNotEqual(
+            before, after,
+            "the store holds the same participants as before the dispatch")
+        self.assertIn(
+            minted, after,
+            f"no participant in the store carries the session {minted!r} the "
+            f"launcher minted; the worker ran unbound")
+        env = witness.get("env") or {}
+        self.assertEqual(
+            env.get(SESSION_KEY), minted,
+            "the worker was bound under one session and run under another")

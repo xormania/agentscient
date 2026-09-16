@@ -30,6 +30,15 @@ APP = Path(__file__).resolve().parent
 JOBS_PATH = APP.parent / "task" / "jobs.json"
 HARNESS_APP = APP.parent / "harness"
 TELEMETRY_APP = APP.parent / "telemetry"
+# The conductor lane's coordination core, reached as a lever run as a
+# subprocess and never imported. The dev lane already names ops/conductor
+# only as paths it points a worker at; an import would put the core's
+# module state and the lane's state store inside every case of this app's
+# suite, and would make a conductor refusal raise here instead of arriving
+# on the wire. The edge is the lever's CLI and its refusal wire, which the
+# conductor's conformance registry already asserts.
+COORDINATION = APP.parents[1] / "conductor" / "tools" / "coordination.py"
+BIND_TIMEOUT = 60
 REFUSAL = 3
 STAGES = ("plan", "tests", "check-tests", "code", "review", "adjudicate")
 OWNER_NAME = "xormania"
@@ -1026,6 +1035,61 @@ def _child_env(base, additions, job_id, session=None):
     return env
 
 
+def _bind_worker(session, assignment, harness, agent):
+    """Mint the worker's participant before the worker exists.
+
+    A dispatched worker has no harness session id of its own, so without
+    this it holds no participant and every coordination mutation it makes
+    refuses class `participant`. `bind-for` is the only verb that mints one
+    for a session that cannot bind itself, and it records who issued it and
+    for which assignment, so a participant nobody dispatched is visible as
+    such.
+
+    It runs before the child starts, never after: a bind that failed while
+    the worker ran would leave exactly the unbound worker this exists to
+    prevent. A refusal from the core is handed on with its own class and
+    its own three parts, because a launcher that renamed a conductor
+    refusal would make one fault read as two different things depending on
+    which surface met it.
+    """
+    env = dict(os.environ)
+    env["WF_AGENT"] = agent
+    # The lever runs as the dispatcher, which is this process's own
+    # session, so its session id is inherited and never set here. The
+    # worker's id is the --session argument: it is the subject of the verb,
+    # not the caller. Setting it in the environment made the lever resolve
+    # the caller as the worker's own unbound session and refuse class
+    # `participant` naming the uuid it had just minted.
+    try:
+        done = subprocess.run(
+            [sys.executable, str(COORDINATION), "bind-for",
+             "--session", session, "--roles", "worker",
+             "--for", assignment, "--harness", harness],
+            capture_output=True, text=True, timeout=BIND_TIMEOUT,
+            cwd=str(COORDINATION.parents[3]), env=env, check=False)
+    except subprocess.TimeoutExpired:
+        _refuse("binding", f"the coordination lever to answer within "
+                           f"{BIND_TIMEOUT}s",
+                "no answer at all",
+                "the lane's state store is held by another writer; retry once "
+                "it is free")
+    if done.returncode == 0:
+        return (done.stdout or "").strip()
+    line = (done.stderr or "").strip().splitlines()
+    wire = line[-1] if line else ""
+    match = re.match(r"(\w[\w-]*): expected (.*); found (.*); needed (.*)",
+                     wire)
+    if match:
+        # The core's own class and its own three parts, unrenamed.
+        _refuse(match.group(1), match.group(2), match.group(3), match.group(4))
+    _refuse("binding",
+            f"a wire refusal from {COORDINATION.name} bind-for, or exit 0",
+            f"exit {done.returncode} saying {wire!r}" if wire
+            else f"exit {done.returncode} and nothing on stderr",
+            "run the lever by hand with the same arguments and read what it "
+            "says; a worker is never launched unbound")
+
+
 def _attempt_state(job_dir, *, required=False):
     """Read the attempt boundary; old states without an offset start at zero."""
     path = job_dir / "state.json"
@@ -1951,6 +2015,17 @@ def _launch(args):
     if args.harness == "claude":
         permissions, project_allow, project_deny = _project_permissions(snapshot)
     session = None if args.harness == "agy" else str(uuid.uuid4())
+    bound = None
+    if args.assignment:
+        if not session:
+            _refuse("binding",
+                    "a session id to bind the worker under",
+                    f"none, because {args.harness} is launched "
+                    f"without one",
+                    "dispatch an assignment on a harness the "
+                    "launcher mints a session for")
+        bound = _bind_worker(session, args.assignment,
+                             args.harness, agent)
     wires = _module("wires", HARNESS_APP / "wires.py")
     tip = _git(repo, "rev-parse", lineage).stdout.strip()
     rec = record.build({
@@ -1976,7 +2051,12 @@ def _launch(args):
         "model": {"requested": args.model, "effort_requested": args.effort,
                   "effort_argv": _effort_argv(args.harness, args.effort),
                   "ran": None, "read_from": None, "note": "no stream found"},
-        "session": {"id": session, "stream": None, "stream_sha256_at_close": None},
+        # `bound` is the lever's own line when this dispatch bound a
+        # participant for the session above, and None when it named no
+        # assignment. A record that merely minted a session id and one
+        # that bound a participant to it are different facts.
+        "session": {"id": session, "stream": None,
+                    "stream_sha256_at_close": None, "bound": bound},
         "brief": {"template": {"path": str(JOBS_PATH), "sha256": _sha(JOBS_PATH)},
                   "scope": args.scope, "inputs": copied, "sha256": _sha(prompt), "bytes": prompt.stat().st_size,
                   "mcp": mcp_meta,
@@ -3000,6 +3080,11 @@ def _launch_parser():
     p.add_argument("--scope")
     p.add_argument("--input", action="append", default=[])
     p.add_argument("--follows", action="append", default=[])
+    # The assignment this dispatch is work on, if it is work on
+    # one. Naming it binds the worker to it; leaving it out is a
+    # dispatch with no assignment, which most reviews are, and
+    # changes nothing.
+    p.add_argument("--for", dest="assignment")
     p.add_argument("--answers", action="append", default=[])
     p.add_argument("--override", action="append", default=[])
     return p
