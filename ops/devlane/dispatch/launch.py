@@ -1764,6 +1764,10 @@ def _run_attempt(rec, job_dir, *, job_caps=None, resume=False, reason=None):
                  writable_out=rec["role"] == "read",
                  executable=rec["harness"].get("worker", {}).get("executable"),
                  turns=(rec.get("caps") or {}).get("turns"),
+                 # The run path rebuilds the argv from the record and
+                 # overwrites what record.build put there, so a server named
+                 # only at build time never reaches the child. Both planes
+                 # are taken from the record here for that reason.
                  mcp=((rec.get("brief") or {}).get("mcp") or {}).get("server"),
                  coord=((rec.get("brief") or {}).get("coordination")
                         or {}).get("server"))
