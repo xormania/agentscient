@@ -34,10 +34,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 
 GROK_GAP = "grok usage not yet parsed: updates.jsonl turn_completed"
 
