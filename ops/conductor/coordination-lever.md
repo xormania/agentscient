@@ -395,6 +395,7 @@ reconciliation the caller still owes.
 | `withdraw M-n --why TEXT` | the sender takes it back |
 | `inbox [--unresolved]` | messages to this participant or its roles |
 | `outstanding [--to WHO]` | requests and findings not yet resolved |
+| `undelivered [--to WHO]` | queued to the caller and not yet delivered |
 | `observe A-n --observation TEXT --revision SHA --generation N [--stale] [--execution REC] [--artifact REF] [--requirement REF] [--environment TEXT]` | prints `observation E-n` |
 | `observations A-n [--all]` | current observations, `--all` includes stale |
 | `ask --question TEXT --alternatives TEXT [--assignment A-n]` | prints `decision DC-n` |

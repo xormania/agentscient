@@ -21,6 +21,7 @@ both readings are quoted in the commit that carries it.
 from __future__ import annotations
 
 import os
+import sqlite3
 import sys
 import time
 import unittest
@@ -1511,3 +1512,237 @@ class TheBootstrapIsOneRoot(_Scratch):
         listed = self.ok("participants", session=LEAD)
         self.assertIn("PT-1 lead,coordinator", listed)
         self.assertIn("PT-2 worker", listed)
+
+
+class AnEmptyRevisionIsNotARevision(_Scratch):
+    """A revision is the identity of the candidate the work is against,
+    and the empty string is not an identity.
+
+    Every revision gate is spelled `if row["revision"] and ...`, so the
+    column holding something falsy lifts all of them: the hole the
+    no-revision repair closed reopened one character to the left. Grok
+    and Codex both reproduced it against b1d868b0 — `submit --revision ''`
+    exit 0, `show` reading `revision none`, and then `verify --candidate
+    deadbee` exit 0 against a submission that named no candidate at all.
+    """
+
+    def test_submit_refuses_an_empty_revision(self):
+        aid = self.held()
+        proc = self.run_tool("submit", aid, "--evidence", "a1b2c3d",
+                             "--revision", "", "--generation", self.gen(aid),
+                             session=WORKER)
+        refusal_wire(RefusalCase("submit-empty-revision", (), "revision"), proc)
+
+    def test_submit_refuses_a_revision_of_whitespace(self):
+        aid = self.held()
+        proc = self.run_tool("submit", aid, "--evidence", "a1b2c3d",
+                             "--revision", "   ", "--generation", self.gen(aid),
+                             session=WORKER)
+        refusal_wire(RefusalCase("submit-blank-revision", (), "revision"), proc)
+
+    def test_a_draft_refuses_an_empty_revision(self):
+        """`--revision` stays optional on a draft; naming it empty is not
+        the same as leaving it out."""
+        self.bind_three()
+        proc = self.run_tool("draft", "a repair", "--outcome", "x",
+                             "--revision", "", session=LEAD)
+        refusal_wire(RefusalCase("draft-empty-revision", (), "revision"), proc)
+
+    def test_reopen_refuses_an_empty_revision(self):
+        aid = self.submitted()
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
+                session=CHECKER)
+        proc = self.run_tool("reopen", aid, "--revision", "", "--why", "moved",
+                             "--generation", self.gen(aid), session=LEAD)
+        refusal_wire(RefusalCase("reopen-empty-revision", (), "revision"), proc)
+
+    def test_verify_refuses_an_assignment_that_stands_at_no_revision(self):
+        """The half a check on submit cannot reach: a store written before
+        that check can hold such a row, so it is planted directly and
+        verify must refuse it rather than compare against nothing."""
+        aid = self.submitted()
+        module = self.core(LEAD)
+        number = int(aid.split("-")[1])
+        conn = module.writer()
+        try:
+            conn.execute("UPDATE assignments SET revision = '' WHERE id = ?",
+                         (number,))
+        finally:
+            conn.close()
+        self.assertIn("revision none", self.ok("show", aid, session=LEAD))
+        proc = self.run_tool("verify", aid, "--candidate", "deadbee", "--evidence",
+                             "20260916T010203Z-job-v", "--generation", self.gen(aid),
+                             session=CHECKER)
+        refusal_wire(RefusalCase("verify-no-revision", (), "revision"), proc)
+
+    def test_the_clean_neighbour_a_named_revision_still_submits_and_verifies(self):
+        aid = self.held()
+        self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
+                "--generation", self.gen(aid), session=WORKER)
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
+                session=CHECKER)
+        self.assertIn("verified", self.ok("show", aid, session=LEAD))
+
+
+class BindForNamesWhoGrantedTheRoles(_Scratch):
+    """A participant above worker holds roles somebody granted, and the
+    row says who and when.
+
+    `grant` writes `granted_by` and `granted_at`; `bind-for` wrote
+    neither, so a dispatcher could mint a verifier and the store carried
+    no record of the grant at all — the audit's fifth finding against
+    b1d868b0. `bound_by` is not that record: it says who ran the verb,
+    not that anything above worker was conferred.
+    """
+
+    MINTED = "dispatch-9c14ba77"
+
+    def minting(self, roles):
+        self.lock()
+        self.ok("bind", "--roles", "lead,coordinator,dispatcher", session=LEAD)
+        aid = self.ok("draft", "review the core", "--outcome", "findings",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        self.ok("bind-for", "--session", self.MINTED, "--roles", roles,
+                "--for", aid, session=LEAD)
+        module = self.core(LEAD)
+        conn = module.reader()
+        try:
+            return conn.execute(
+                "SELECT roles, granted_by, granted_at FROM participants "
+                "WHERE session_id = ?", (self.MINTED,)).fetchone()
+        finally:
+            conn.close()
+
+    def test_a_minted_role_above_worker_records_its_grantor(self):
+        row = self.minting("worker,verifier")
+        self.assertEqual("worker,verifier", row["roles"])
+        self.assertEqual(1, row["granted_by"],
+                         "the dispatcher that minted the roles is not recorded")
+        self.assertTrue(row["granted_at"], "the grant carries no stamp")
+
+    def test_a_minted_worker_records_no_grant_because_none_was_made(self):
+        """Announcing yourself is worth worker, so minting one confers
+        nothing and the row says nothing. Absence declared, not implied."""
+        row = self.minting("worker")
+        self.assertEqual("worker", row["roles"])
+        self.assertIsNone(row["granted_by"])
+        self.assertIsNone(row["granted_at"])
+
+    def test_the_minted_participant_still_reads_as_bound_by_its_issuer(self):
+        """The clean neighbour: recording the grant does not disturb what
+        bind-for already recorded."""
+        self.minting("worker,verifier")
+        self.assertIn("bound by PT-1", self.ok("participants", session=LEAD))
+
+
+class AReadOpensTheStoreReadOnly(_Scratch):
+    """A read never writes, and a store it cannot read is a refusal, not
+    a store it builds.
+
+    `reader()` connected read-write, ran `executescript(SCHEMA)` and then
+    `ensure_columns`, so every read of this instrument migrated the store
+    on the way past: the server session's reviewers found a read creating
+    tables and adding columns under a caller that had asked for nothing
+    of the kind (codex-beb7b6#3, grok-7bbe10#2). Reads need no identity,
+    which makes an unidentified writer of exactly the reach of a read.
+    """
+
+    def test_a_reader_cannot_write_through_its_connection(self):
+        self.bind_three()
+        module = self.core(LEAD)
+        conn = module.reader()
+        try:
+            with self.assertRaises(sqlite3.OperationalError) as caught:
+                conn.execute("INSERT INTO participants(session_id, agent, roles, "
+                             "bound_at) VALUES ('x', 'x', 'lead', 'x')")
+        finally:
+            conn.close()
+        self.assertIn("readonly", str(caught.exception))
+
+    def test_a_store_without_the_schema_refuses_class_state(self):
+        """"Could not look" is a marker, never a store built to order."""
+        module = self.core(LEAD)
+        path = module.machine.store_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(path).close()
+        proc = self.run_tool("participants", session=LEAD)
+        refusal_wire(RefusalCase("bare-store", (), "state"), proc)
+
+    def test_a_read_leaves_the_stores_bytes_unchanged(self):
+        """The pin the ruling asks for, over every file the store is: the
+        database, its write-ahead log and its shared-memory index."""
+        import hashlib
+        aid = self.submitted()
+        module = self.core(LEAD)
+        path = module.machine.store_path()
+
+        def digest():
+            return hashlib.sha256(path.read_bytes()).hexdigest()
+
+        def frames():
+            """The bytes the write-ahead log holds, which a read adds none
+            of. The log and the shared-memory index are apparatus, not
+            content: a read-only connection materialises both — the index
+            is how any reader finds the log's frames — and the writer had
+            checkpointed them away. A log of no frames is a log of
+            nothing, and that is what a read leaves behind."""
+            log = path.with_name(path.name + "-wal")
+            return log.stat().st_size if log.is_file() else 0
+
+        before = digest()
+        self.ok("assignments", session=LEAD)
+        self.ok("show", aid, session=LEAD)
+        self.ok("participants", session=LEAD)
+        self.assertEqual(before, digest(), "a read moved the store's bytes")
+        self.assertEqual(0, frames(), "a read wrote frames to the log")
+
+
+class TheQueueToMeNobodyHasDeliveredYet(_Scratch):
+    """`undelivered` is what a deliverer asks: the messages queued to the
+    calling participant that have not left the store yet.
+
+    It is package D's one piece in this file; the server session's
+    deliverer calls it. It closes no finding — it is a read the core
+    lacked, and `outstanding` is not it: an obligation stays outstanding
+    long after it was delivered, and an inform is never outstanding at
+    all yet still has to be carried.
+    """
+
+    def queued(self, purpose="request", to="PT-2"):
+        self.bind_three()
+        return self.ok("send", "--to", to, "--purpose", purpose,
+                       "--body", "read the core", session=LEAD).split()[1]
+
+    def test_it_lists_what_is_queued_to_me_and_not_delivered(self):
+        mid = self.queued()
+        listed = self.ok("undelivered", session=WORKER)
+        self.assertIn(mid, listed)
+        self.assertIn("read the core", listed)
+
+    def test_a_delivered_message_leaves_the_queue(self):
+        mid = self.queued()
+        self.ok("deliver", mid, "--ref", "750aa45e-a0c6", session=LEAD)
+        self.assertIn("none", self.ok("undelivered", session=WORKER))
+
+    def test_it_never_shows_another_participants_queue(self):
+        mid = self.queued()
+        self.assertNotIn(mid, self.ok("undelivered", session=LEAD))
+
+    def test_an_inform_is_carried_too_though_it_is_no_obligation(self):
+        """The line `outstanding` cannot answer: an inform has to be
+        delivered and is never outstanding."""
+        mid = self.queued(purpose="inform")
+        self.assertIn(mid, self.ok("undelivered", session=WORKER))
+        self.assertIn("none", self.ok("outstanding", session=LEAD))
+
+    def test_a_message_addressed_to_a_role_reaches_its_holder(self):
+        mid = self.queued(to="verifier")
+        self.assertIn(mid, self.ok("undelivered", session=CHECKER))
+        self.assertNotIn(mid, self.ok("undelivered", session=WORKER))
+
+    def test_with_no_store_it_says_so_rather_than_answering_none(self):
+        proc = self.run_tool("undelivered", session=LEAD)
+        self.assertEqual(0, proc.exit, proc.stderr)
+        self.assertIn("no store", proc.stdout)

@@ -36,6 +36,7 @@ there would not run when the MCP projection calls the same function.
                          [--decision DC-n] [--reply-to M-n] [--artifact REF]
     coordination.py deliver M-n --ref REF | ack M-n | resolve M-n --evidence READING
     coordination.py withdraw M-n --why TEXT | inbox [--unresolved] | outstanding [--to WHO]
+    coordination.py undelivered [--to WHO]
     coordination.py observe A-n --observation TEXT --revision SHA --generation N
                             [--stale] [--execution REC] [--artifact REF]
                             [--requirement REF] [--environment TEXT]
@@ -55,6 +56,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sqlite3
 import sys
 
 # The shared instrument module sits beside this file; its directory goes
@@ -254,13 +256,40 @@ def writer():
     return conn
 
 
+STORE_TABLES = tuple(sorted(set(
+    re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", SCHEMA)
+    + re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", machine.SCHEMA))))
+
+
 def reader():
-    """The store for a read, or None when there is nothing to read."""
-    if not machine.store_path().is_file():
+    """The store for a read, or None when there is nothing to read.
+
+    Read-only by the connection itself, and migrating nothing. It used to
+    connect read-write, run `executescript(SCHEMA)` and then
+    `ensure_columns`, so every read of this instrument created tables and
+    added columns on the way past — an unidentified writer of exactly the
+    reach of a read, because reads need no identity (codex-beb7b6#3,
+    grok-7bbe10#2). A store this module cannot read is a refusal, class
+    `state`, and never a store built to order: "could not look" is a
+    marker, not an empty answer (docs/wire.md, absence discipline).
+    """
+    path = machine.store_path()
+    if not path.is_file():
         return None
-    conn = machine.connect(create=False)
-    conn.executescript(SCHEMA)
-    ensure_columns(conn)
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
+                           timeout=machine.BUSY_TIMEOUT_MS / 1000)
+    conn.row_factory = sqlite3.Row
+    conn.execute(f"PRAGMA busy_timeout = {machine.BUSY_TIMEOUT_MS}")
+    held = {row["name"] for row in
+            conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    missing = [name for name in STORE_TABLES if name not in held]
+    if missing:
+        conn.close()
+        refuse("state", f"the coordination schema in the store at {path}",
+               "a store with no tables at all" if not held
+               else f"a store without {', '.join(missing)}",
+               "a writing verb creates the schema and migrates it; "
+               "a read does neither")
     return conn
 
 
@@ -551,6 +580,25 @@ def decision_dict(row) -> dict:
     }
 
 
+def named_revision(value, where: str) -> str:
+    """A revision is the identity of the candidate the work is against,
+    and the empty string is not an identity.
+
+    Every revision gate reads `if row["revision"] and ...`, so a falsy
+    column lifts all of them at once: Grok and Codex both submitted
+    `--revision ''` against b1d868b0 and then verified a candidate the
+    submission had never named. Leaving a revision out and naming an
+    empty one are different acts and the second says so.
+    """
+    text = (value or "").strip()
+    if not text:
+        refuse("revision", f"the revision {where} is against",
+               "an empty string" if value == "" else repr(value),
+               "name it; leaving it out where it is optional is a "
+               "different thing and reads as one")
+    return text
+
+
 def no_store(**rest) -> dict:
     """Could not look, said as a marker: a read with no store behind it
     returns this and never an empty list dressed as an answer
@@ -686,10 +734,18 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
             refuse("conflict", f"no participant for session {key}",
                    f"PT-{row['id']}, bound already",
                    "that session is bound; a lead grants roles with grant PT-n --roles R")
+        # Roles above worker are a grant, and a grant says who made it
+        # and when, the way `grant` does. `bound_by` is not that record:
+        # it says who ran the verb, not that anything was conferred. The
+        # audit minted a verifier through this verb against b1d868b0 and
+        # the store carried no grant at all (codex-1833de#5).
+        granted = part["id"] if set(named.split(",")) - {"worker"} else None
         pid = conn.execute(
             "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
-            "probe, bound_at, bound_by, bound_for) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (key, agent, harness, named, endpoint, probe, stamp(), part["id"], aid),
+            "probe, bound_at, bound_by, bound_for, granted_by, granted_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (key, agent, harness, named, endpoint, probe, stamp(), part["id"], aid,
+             granted, stamp() if granted else None),
         ).lastrowid
         conn.execute("COMMIT")
     except BaseException:
@@ -720,6 +776,8 @@ def core_draft(conn, part, *, agent, title, outcome, requirement=None, revision=
                depends=None, duty=None, scope=None, inputs=None) -> dict:
     part = same_session(conn, part)
     require_role(part, ("lead", "coordinator"))
+    if revision is not None:
+        revision = named_revision(revision, "the draft")
     sid = machine.create(conn, ASSIGNMENT, actor(part))
     conn.execute(
         "INSERT INTO assignments(id, title, outcome, requirement, scope, inputs, "
@@ -819,6 +877,7 @@ def core_submit(conn, part, *, agent, assignment, evidence, revision, generation
     row = assignment_row(conn, aid)
     require_generation(row, generation)
     require_holder(part, row)
+    revision = named_revision(revision, "the submission")
     if row["revision"] and revision != row["revision"]:
         refuse("revision", f"the applicable revision {row['revision']} of A-{aid}",
                revision, "submit against the applicable revision, or reopen it")
@@ -864,7 +923,15 @@ def core_verify(conn, part, *, agent, assignment, candidate, evidence,
     require_generation(row, generation)
     require_role(part, ("verifier", "lead"))
     not_the_producer(part, row, "verifies")
-    if row["revision"] and candidate != row["revision"]:
+    candidate = named_revision(candidate, "the verification")
+    if not row["revision"]:
+        # Defence in depth, and the half the check on submit cannot
+        # reach: a store written before that check can hold such a row,
+        # and comparing a candidate against nothing verified anything.
+        refuse("revision", f"a candidate named on A-{aid}", "none",
+               "submit names the revision the work is against; an "
+               "assignment standing at none cannot be verified")
+    if candidate != row["revision"]:
         refuse("revision", f"the applicable revision {row['revision']} of A-{aid}",
                candidate,
                "verify the candidate that was submitted, or reopen the assignment")
@@ -924,6 +991,7 @@ def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
 def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> dict:
     """A changed candidate: the observations go stale and keep their scope."""
     part = same_session(conn, part)
+    revision = named_revision(revision, "the reopen")
     _, aid = parse_id(assignment, "A")
     row = assignment_row(conn, aid)
     require_generation(row, generation)
@@ -1095,6 +1163,29 @@ def core_outstanding(conn, part, *, to=None) -> dict:
     shown = [row for row in rows if row["purpose"] in OBLIGATIONS
              and (not to or row["recipient"] == to)]
     return {"outstanding": [message_dict(row) for row in shown]}
+
+
+def core_undelivered(conn, part, *, to=None) -> dict:
+    """The messages queued to the calling participant that have not left
+    the store yet — what a deliverer asks before it carries anything.
+
+    `outstanding` is not this read and cannot stand in for it: an
+    obligation stays outstanding long after it was delivered, and an
+    inform is never outstanding at all yet still has to be carried. A
+    withdrawn message is not carried, so only the open ones are here.
+    Addressing is the inbox's rule: a participant by id, or a role its
+    holder answers to.
+    """
+    part = same_session(conn, part)
+    if conn is None:
+        return no_store(undelivered=[])
+    rows = conn.execute(
+        "SELECT m.*, s.place FROM messages m JOIN subjects s ON s.id = m.id "
+        "WHERE m.delivered_at IS NULL AND s.place = 'open' ORDER BY m.id"
+    ).fetchall()
+    shown = [row for row in rows if addressed(part, row["recipient"])
+             and (not to or row["recipient"] == to)]
+    return {"undelivered": [message_dict(row) for row in shown]}
 
 
 def core_observe(conn, part, *, assignment, observation, revision, generation,
@@ -1397,7 +1488,8 @@ CORE = {
     "assignments": core_assignments,
     "show": core_show, "send": core_send, "deliver": core_deliver, "ack": core_ack,
     "resolve": core_resolve, "withdraw": core_withdraw, "inbox": core_inbox,
-    "outstanding": core_outstanding, "observe": core_observe,
+    "outstanding": core_outstanding, "undelivered": core_undelivered,
+    "observe": core_observe,
     "observations": core_observations, "ask": core_ask, "answer": core_answer,
     "decide": core_decide, "decision": core_decision, "decisions": core_decisions,
     "reserve": core_reserve, "free": core_free, "resources": core_resources,
@@ -1681,6 +1773,21 @@ def do_inbox(rest):
     return EXIT_DONE
 
 
+def do_undelivered(rest):
+    _, opts = parse(rest, 0, optional=("to",))
+    conn = reader()
+    if conn is None:
+        print("no store")
+        return EXIT_DONE
+    shown = CORE["undelivered"](conn, bound_participant(conn), to=opts.get("to"))
+    if not shown["undelivered"]:
+        print("none undelivered")
+        return EXIT_DONE
+    for row in shown["undelivered"]:
+        print(message_line(row) + f", queued {row['queued_at']}")
+    return EXIT_DONE
+
+
 def do_outstanding(rest):
     _, opts = parse(rest, 0, optional=("to",))
     shown = CORE["outstanding"](reader(), None, to=opts.get("to"))
@@ -1917,7 +2024,8 @@ VERBS = {
     "reopen": do_reopen, "supersede": do_supersede, "assignments": do_assignments,
     "show": do_show, "send": do_send, "deliver": do_deliver, "ack": do_ack,
     "resolve": do_resolve, "withdraw": do_withdraw, "inbox": do_inbox,
-    "outstanding": do_outstanding, "observe": do_observe,
+    "outstanding": do_outstanding, "undelivered": do_undelivered,
+    "observe": do_observe,
     "observations": do_observations, "ask": do_ask, "answer": do_answer,
     "decide": do_decide, "decision": do_decision, "decisions": do_decisions,
     "reserve": do_reserve, "free": do_free, "resources": do_resources,
