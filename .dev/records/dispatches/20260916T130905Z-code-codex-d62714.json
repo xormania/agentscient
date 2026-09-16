@@ -1,0 +1,387 @@
+{
+  "id": "20260916T130905Z-code-codex-d62714",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/session-20260916-sweep",
+  "lineage": {
+    "branch": "lane/session-20260916-sweep",
+    "base_sha": "3c2d80127b224c43bed995237f86b981f40ce9c2"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "implement",
+  "role": "write",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T13:09:05Z",
+    "closed": "2026-09-16T13:21:27Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "3c2d80127b224c43bed995237f86b981f40ce9c2",
+    "ref_sha": "3c2d80127b224c43bed995237f86b981f40ce9c2",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260916-sweep/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-09-18-01a0aa56-01ab-7df2-8849-790c36ba020c.jsonl"
+  },
+  "session": {
+    "id": "01a0aa56-01ab-7df2-8849-790c36ba020c",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-09-18-01a0aa56-01ab-7df2-8849-790c36ba020c.jsonl",
+    "stream_sha256_at_close": "b29344ab4026c753e1cbb6e4265121096a55cdad0d7a9e3dcf146ca7847b6ee0",
+    "spend": {
+      "input": 2808792,
+      "cached": 2703104,
+      "output": 24903,
+      "total": 2833695,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-09-18-01a0aa56-01ab-7df2-8849-790c36ba020c.jsonl",
+      "messages": 322
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-sweep/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Make this exit 0 from the repository root:\n  python3 -m unittest discover -s ops/devlane/task/tests -p 'test_fileset.py'\n  python3 -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'\n  python3 -m unittest discover -s ops/devlane/task/tests -p 'test_verify.py'\nMove that family onto World(host_path=False), planting a fake for every\ntool the subject calls. 38 rows: test_fileset 34, test_run 3,\ntest_verify 1.\nTHE SUBJECT IS THE TEST FILES. This job's standing line 'do not edit the\nfiles the tests live in' is inverted here and only here: edit those files,\ndo NOT edit the implementation they exercise.\ndocs/tests.md rules 4 (hermetic, ambient named), 5 (testkit run, timeout),\n6 (fakes via registry, logging each call; no program in a test module).\nList and remedy: ops/conductor/handoff/\nHANDOFF-2026-09-16-hermetic-path-sweep.md on this branch. Re-measure\nfirst; its counts are from lane/session-20260916-g at e948141a.\nCommit here with Source: and Co-Authored-By: trailers. Nothing else.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/in/walkthrough.txt",
+        "sha256": "570050c545f1305810b0364217ffa70d72e7964b1a73c9dbf7db7b72f1f6a3e3"
+      }
+    ],
+    "sha256": "0701dbd7d1eeefe03669ee813233a968ca9823ec529b36f29971e3985aee9e4f",
+    "bytes": 11647,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/lane-mcp.json",
+      "sha256": "6c7fae8ad0db9eb413711eb611ae41fb1cb132db2526b6ae7c41ba1c94cdbf0f",
+      "job_ids": [
+        "20260916T130849Z-code-grok-ed5de0"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "b2e46b7c875059d3b35e515abdcf0ccf91b61f747496aceeddd6aaf152a206bd"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "DISPATCH_TIMEOUT"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T13:09:17Z",
+      "ended": "2026-09-16T13:21:26Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "3bc8897fbfe1dc49da26fb063cd51c2353ef775c",
+    "changed_paths": [
+      "ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md",
+      "ops/devlane/task/tests/test_fileset.py",
+      "ops/devlane/task/tests/test_run.py",
+      "ops/devlane/task/tests/test_verify.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "implement",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 26,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p3",
+          "where": "repository baseline",
+          "claim": "Confirmed the snapshot root, clean starting tree, base ref 3c2d80127b224c43bed995237f86b981f40ce9c2, and required files.",
+          "reproduce": "pwd; git rev-parse HEAD; git status --short; rg --files docs ops/devlane/task/tests ops/testkit ops/conductor/handoff"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/ navigation",
+          "claim": "Mapped the repository with the required Graft entry point.",
+          "reproduce": "python3 ops/devlane/harness/graft.py query --context ../context/graft.json graft_repo_map '{}'"
+        },
+        {
+          "severity": "p3",
+          "where": "contracts and inputs",
+          "claim": "Read walkthrough.txt, the five founding contracts, docs/tests.md, ops/README.md, and the named handoff in full.",
+          "reproduce": "for f in ../in/walkthrough.txt docs/wire.md docs/workflow.md docs/probes.md docs/concerns.md docs/verified-couplings.md docs/tests.md ops/README.md ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md; do sed -n '1,9999p' \"$f\"; done"
+        },
+        {
+          "severity": "p3",
+          "where": "initial measurement",
+          "claim": "Before editing, the named modules passed 34, 45, and 26 tests on the pre-strict kit.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_fileset.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_verify.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "testkit and test history",
+          "claim": "Inspected World, Tools, run, the three test modules, and their path-specific history.",
+          "reproduce": "git log -12 --oneline -- ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_verify.py; sed -n '1,260p' ops/testkit/world.py; sed -n '1,260p' ops/testkit/fakes.py"
+        },
+        {
+          "severity": "p3",
+          "where": "strict API search",
+          "claim": "Confirmed the current World lacks host_path and ambient_tools parameters while the scope requires future strict compatibility.",
+          "reproduce": "rg -n 'host_path|ambient_tools' ops/testkit ops/devlane/task/tests ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md"
+        },
+        {
+          "severity": "p3",
+          "where": "strict reference",
+          "claim": "The recorded strict reference e948141a was absent from this snapshot's object database.",
+          "reproduce": "git cat-file -t e948141a"
+        },
+        {
+          "severity": "p3",
+          "where": "scope records",
+          "claim": "Confirmed the detached snapshot corresponds to lane/session-20260916-sweep and located the exact task scope.",
+          "reproduce": "git branch -a; rg -n 'hermetic-path|test_fileset|host_path=False|ambient_tools' ops/conductor ops/devlane .claude"
+        },
+        {
+          "severity": "p3",
+          "where": "strict-kit planning record",
+          "claim": "Read the S6 ambient-sweep brief and confirmed registry fakes/wrappers are the declared remedy.",
+          "reproduce": "sed -n '1,60p' ops/conductor/handoff/briefs-2026-09-16-classes/S6-ambient-sweep.md"
+        },
+        {
+          "severity": "p3",
+          "where": "three test modules",
+          "claim": "Read the complete test-family sources before editing.",
+          "reproduce": "sed -n '1,760p' ops/devlane/task/tests/test_fileset.py; sed -n '1,1535p' ops/devlane/task/tests/test_run.py; sed -n '1,620p' ops/devlane/task/tests/test_verify.py"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_run.py",
+          "claim": "Located every World construction and the two orphan-process fixtures.",
+          "reproduce": "rg -n 'World\\(' ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_verify.py; rg -n '^class ' ops/devlane/task/tests/test_run.py"
+        },
+        {
+          "severity": "p3",
+          "where": "subject executable calls",
+          "claim": "Confirmed fileset calls bare git, run launches its declared argv and supervision tools, and verify launches argv plus git ref discovery.",
+          "reproduce": "rg -n 'subprocess|\\[\"git\"|_run_battery_once|Popen' ops/devlane/task/fileset.py ops/devlane/task/run.py ops/devlane/task/verify.py"
+        },
+        {
+          "severity": "p3",
+          "where": "patch anchoring",
+          "claim": "Re-read exact import and setup anchors after the initial patch context did not match; no partial edit landed.",
+          "reproduce": "sed -n '35,115p' ops/devlane/task/tests/test_fileset.py; sed -n '45,115p' ops/devlane/task/tests/test_run.py; sed -n '30,55p' ops/devlane/task/tests/test_verify.py; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "first edited measurement",
+          "claim": "The first registry-wrapper edit passed all three named modules.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_fileset.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_verify.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "first scoped diff",
+          "claim": "Verified the initial diff was whitespace-clean and identified remaining World/tool references.",
+          "reproduce": "git diff --check; rg -n 'World\\(|require\\(\"(git|sh|sleep)\"\\)|subprocess\\.(run|Popen)' ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_verify.py"
+        },
+        {
+          "severity": "p3",
+          "where": "strict compatibility simulation",
+          "claim": "A temporary strict-PATH compatibility shim exposed missing pre-entry tee wrapping and a PID-file race in test_run.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "ops/devlane/task/tests/test_run.py",
+          "claim": "Inspected the tee and orphan-process rows and enumerated all registry plant/wrap sites.",
+          "reproduce": "sed -n '1175,1230p' ops/devlane/task/tests/test_run.py; sed -n '1260,1335p' ops/devlane/task/tests/test_run.py; rg -n 'tools\\.(wrap|plant)\\(' ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_verify.py"
+        },
+        {
+          "severity": "p3",
+          "where": "strict compatibility remeasurement",
+          "claim": "After wrapping tee before entry and waiting for PID content, all three modules passed under the strict-PATH simulation.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_fileset.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_verify.py'"
+        },
+        {
+          "severity": "p3",
+          "where": "changed files",
+          "claim": "Ruff and git diff whitespace checks passed; only the three tests and required handoff were modified.",
+          "reproduce": "ruff check ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_verify.py; git diff --check; git status --short"
+        },
+        {
+          "severity": "p3",
+          "where": "scoped diff review",
+          "claim": "Reviewed the complete four-file diff after recording the handoff remedy.",
+          "reproduce": "git diff -- ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_verify.py ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md"
+        },
+        {
+          "severity": "p3",
+          "where": "final compact implementation",
+          "claim": "After replacing the temporary shim with conditional strict-API arguments, Ruff and whitespace checks remained clean.",
+          "reproduce": "ruff check ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_verify.py; git diff --check"
+        },
+        {
+          "severity": "p3",
+          "where": "commit attribution",
+          "claim": "Measured the configured repository identity and searched existing trailer conventions.",
+          "reproduce": "git log -20 --format='%B' | rg 'Co-Authored-By:.*(Codex|OpenAI)'; git config user.name; git config user.email"
+        },
+        {
+          "severity": "p3",
+          "where": "commit attribution",
+          "claim": "Confirmed GPT-5.6 Sol <noreply@openai.com> is the repository's existing Codex trailer form.",
+          "reproduce": "git log --all --format='%B' | rg -m 10 'Co-Authored-By:.*(Codex|OpenAI|GPT)'"
+        },
+        {
+          "severity": "p3",
+          "where": "final acceptance",
+          "claim": "The final test tree passed: test_fileset 34/34, test_run 45/45, and test_verify 26/26; all three commands exited 0.",
+          "reproduce": "python3 -m unittest discover -s ops/devlane/task/tests -p 'test_fileset.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_run.py'; python3 -m unittest discover -s ops/devlane/task/tests -p 'test_verify.py'"
+        },
+        {
+          "severity": "p3",
+          "where": ".git/index.lock",
+          "claim": "The requested commit was attempted but the sandbox refused creation of the read-only index lock.",
+          "reproduce": "git add ops/devlane/task/tests/test_fileset.py ops/devlane/task/tests/test_run.py ops/devlane/task/tests/test_verify.py ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md && git commit -m 'test(task): make PATH sweep hermetic'"
+        },
+        {
+          "severity": "p3",
+          "where": "final tree and out/COMMIT_MSG",
+          "claim": "Final status contains exactly four scoped modifications, diff whitespace is clean, HEAD remains the requested base, and the launcher commit message is present.",
+          "reproduce": "git status --short; git diff --check; git diff --name-only; git rev-parse HEAD; sed -n '1,80p' ../out/COMMIT_MSG"
+        }
+      ],
+      "artifacts": {
+        "handoff": "ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md",
+        "tests": "ops/devlane/task/tests/test_fileset.py, ops/devlane/task/tests/test_run.py, ops/devlane/task/tests/test_verify.py",
+        "commit_message": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/out/COMMIT_MSG",
+        "verification": "34 fileset tests, 45 run tests, and 26 verify tests passed; all named commands exited 0"
+      },
+      "spend": {
+        "harness": "codex",
+        "total": 2833695,
+        "out": 24903,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "3c2d80127b224c43bed995237f86b981f40ce9c2",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: testkit.world, testkit.run, testkit.fakes. Assumption: because this base predates World(host_path=False), conditional keyword arguments preserve current-tree execution while selecting the strict API when present; registry wrappers provide the declared executable dependencies. Commit was blocked only by the read-only .git index, so the launcher-ready message is in out/COMMIT_MSG. No out-of-scope follow-up was found. \ud83c\udf31 graft saved ~1,515,431 tokens this turn.",
+      "commit": {
+        "subject": "test(task): make PATH sweep hermetic",
+        "body": "Move the fileset, run, and verify families onto strict worlds when the strict testkit API is present. Route every real executable dependency through the registry so calls are logged, and close the task-family handoff row with the fresh 34/45/26 measurements.\n\nOne producer under the owner's direct hand grant for this job; the second producer is absent as declared by that grant.\n\nSource: owner 2026-09-16\nCo-Authored-By: GPT-5.6 Sol <noreply@openai.com>"
+      }
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T130905Z-code-codex-d62714/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T09-09-18-01a0aa56-01ab-7df2-8849-790c36ba020c.jsonl"
+    },
+    "reuse": "testkit.world, testkit.run, testkit.fakes. Assumption: because this base predates World(host_path=False), conditional keyword arguments preserve current-tree execution while selecting the strict API when present; registry wrappers provide the declared executable dependencies. Commit was blocked only by the read-only .git index, so the launcher-ready message is in out/COMMIT_MSG. No out-of-scope follow-up was found. \ud83c\udf31 graft saved ~1,515,431 tokens this turn.",
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T13:21:26.080Z"
+    }
+  },
+  "status": "closed"
+}
