@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import inspect
 import io
 import json
 import os
@@ -39,6 +40,9 @@ from ops.testkit import World
 fileset = support.load("fileset")
 
 _META = frozenset({"FILESET.md", "FILESET.diff"})
+_WORLD_ARGS = (
+    {"host_path": False} if "host_path" in inspect.signature(World).parameters else {}
+)
 
 
 def payload_paths(into) -> list[str]:
@@ -85,10 +89,10 @@ class _TempRepo(unittest.TestCase):
     """A throwaway git repo. Never the snapshot's own tree."""
 
     def setUp(self):
-        self.world = World(prefix="fileset-")
+        self.world = World(prefix="fileset-", **_WORLD_ARGS)
         self.addCleanup(self.world.close)
+        self.world.tools.wrap("git")
         self.world.enter()
-        self.world.require("git")
         self.home = self.world.home
         self.repo = self.world.cwd
         self.into = self.world.path("into")

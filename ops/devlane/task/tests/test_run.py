@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import inspect
 import io
 import json
 import os
@@ -63,6 +64,10 @@ run = support.load("run")
 import envelope  # noqa: E402
 import fileset  # noqa: E402
 import verify  # noqa: E402
+
+_WORLD_ARGS = (
+    {"host_path": False} if "host_path" in inspect.signature(World).parameters else {}
+)
 
 
 def _fake_stdout():
@@ -135,8 +140,10 @@ class _TempRun(unittest.TestCase):
     """A throwaway repo, HOME, PATH and fake CLIs. Never the snapshot tree."""
 
     def setUp(self):
-        self.world = World(prefix="task-run-")
+        self.world = World(prefix="task-run-", **_WORLD_ARGS)
         self.addCleanup(self.world.close)
+        self.world.tools.wrap("git")
+        self.world.tools.wrap("tee")
         self.world.enter()
         self.home = self.world.home
         self.repo = self.world.cwd / "repo"
@@ -1193,7 +1200,6 @@ class TheHarnessReceivesTheRenderedPrompt(_TempRun):
 
     def test_the_harness_receives_the_scope_and_the_ref(self):
         scope = "SCOPE-" + uuid.uuid4().hex
-        self.world.tools.wrap("tee")
         adapters = self.make_adapters()
         adapters["codex"]["argv"] = [str(self.world.bin / "tee")]
         adapters["codex"]["dials"] = {"model": []}
@@ -1287,7 +1293,7 @@ class ATrippedRunLeavesNothingBehind(unittest.TestCase):
                 and self._parent(pid) == os.getpid()
                 and marker in self._cmdline(pid)
             ]
-            if candidates and child_path.is_file():
+            if candidates and child_path.is_file() and child_path.stat().st_size:
                 parent = candidates[0]
                 break
             time.sleep(0.01)
@@ -1323,7 +1329,9 @@ class ATrippedRunLeavesNothingBehind(unittest.TestCase):
             return False
 
     def test_the_group_dies_even_when_the_parent_was_already_reaped(self):
-        with World(prefix="task-run-group-") as world:
+        with World(prefix="task-run-group-", **_WORLD_ARGS) as world:
+            world.tools.wrap("sh")
+            world.tools.wrap("sleep")
             proc, child = self._orphan_maker(world)
             self.addCleanup(
                 lambda: self._alive(child) and os.kill(child, signal.SIGKILL))
@@ -1338,7 +1346,9 @@ class ATrippedRunLeavesNothingBehind(unittest.TestCase):
                              "the descendant survived a tripped run")
 
     def test_the_group_is_recorded_at_launch(self):
-        with World(prefix="task-run-group-") as world:
+        with World(prefix="task-run-group-", **_WORLD_ARGS) as world:
+            world.tools.wrap("sh")
+            world.tools.wrap("sleep")
             proc, child = self._orphan_maker(world)
             self.addCleanup(
                 lambda: self._alive(child) and os.kill(child, signal.SIGKILL))

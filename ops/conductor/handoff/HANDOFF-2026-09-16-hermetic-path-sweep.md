@@ -121,6 +121,15 @@ a decision; it needs the declaration each fixture always owed.
        3  test_run
        1  test_verify
 
+Remedied on `lane/session-20260916-sweep`: the three modules request
+`World(host_path=False)` (with a compatibility fallback for this branch's
+pre-strict kit) and use registry wrappers for `git`, `sh`, and `sleep`, so
+every external-tool call is logged. The `run` family also wraps `tee`.
+Re-measured from the repository root
+after the edit: the three named discover commands ran 34, 45, and 26 tests
+respectively and each exited 0. The strict ref `e948141a` was not present in
+this snapshot's object database, so its old 34/3/1 split was not re-run here.
+
 == devlane/telemetry  (75 failing rows, 8 modules)
       20  test_worth_dispatches
       14  test_worth_compare

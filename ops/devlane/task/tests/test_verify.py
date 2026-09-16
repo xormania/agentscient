@@ -20,6 +20,7 @@ contract rule it pins:
 from __future__ import annotations
 
 import contextlib
+import inspect
 import io
 import json
 import os
@@ -37,6 +38,10 @@ from ops.testkit import World, run
 _fileset = support.load("fileset")
 sys.modules.setdefault("fileset", _fileset)
 verify = support.load("verify")
+
+_WORLD_ARGS = (
+    {"host_path": False} if "host_path" in inspect.signature(World).parameters else {}
+)
 
 
 def _cmdline_pids(marker: str) -> list[int]:
@@ -79,7 +84,8 @@ class _TempCwd(unittest.TestCase):
     """A throwaway cwd. Never the snapshot's own tree."""
 
     def setUp(self):
-        self.world = World()
+        self.world = World(**_WORLD_ARGS)
+        self.world.tools.wrap("git")
         self.root = self.world.root
         self.cwd = self.world.cwd
         self._markers: list[str] = []
@@ -411,7 +417,7 @@ class StampRefComesFromTheCwd(_TempCwd):
     def test_a_repo_cwd_stamps_git_head(self):
         repo = self.root / "repo"
         repo.mkdir()
-        git = self.world.require("git")
+        git = str(self.world.bin / "git")
 
         def git_run(*args):
             return run(
