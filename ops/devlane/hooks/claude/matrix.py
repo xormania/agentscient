@@ -1339,17 +1339,46 @@ def is_a_fix_for(message, rid, count):
                for line in lines)
 
 
-def voided_by(root, sha, head, rid, count, records_set):
-    """An empty string when every commit after the audited sha leaves the
-    audit standing, the reading of the first one that voids it when one does,
-    or None when git could not read the range. A commit stands when everything it touched
-    is inside the records set, or when it is a fix commit citing a finding of
-    this audit."""
-    listing = subprocess.run(["git", "-C", root, "log", "--reverse", "--format=%H", f"{sha}..{head}"],  # noqa: S603,S607 - fixed argv, a read
-                             capture_output=True, text=True, timeout=30, check=False)
+def ref_known(root, ref):
+    """True when this clone can resolve ``ref`` to a commit. A ref it does
+    not have is absent, never an empty exclusion read as one: the walk below
+    judges every commit in the range instead, which is the stricter reading."""
+    probe = subprocess.run(["git", "-C", root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],  # noqa: S603,S607 - fixed argv, a read
+                           capture_output=True, text=True, timeout=30, check=False)
+    return probe.returncode == 0 and bool(probe.stdout.strip())
+
+
+def branch_commits(root, sha, head, trunk):
+    """The branch's own commits after ``sha``, oldest first, or None when git
+    could not read the range.
+
+    A forward merge of the trunk never voids the audit: the dispatcher merges
+    the trunk into the branch before every launch, so a rule that judged
+    every commit in the range voided every branch that had dispatched
+    anything (agentscient-11, 2026-09-16, measured on #242). ``--first-parent``
+    keeps the walk on this branch's own line, ``--no-merges`` drops the merge
+    commits themselves, and ``--not origin/<trunk>`` drops what the trunk
+    already carries."""
+    argv = ["git", "-C", root, "log", "--reverse", "--first-parent", "--no-merges",
+            "--format=%H", f"{sha}..{head}"]
+    if trunk and ref_known(root, f"origin/{trunk}"):
+        argv += ["--not", f"origin/{trunk}"]
+    listing = subprocess.run(argv, capture_output=True, text=True, timeout=30, check=False)  # noqa: S603 - an argv this function built, a read
     if listing.returncode != 0:
         return None
-    for commit in listing.stdout.split():
+    return listing.stdout.split()
+
+
+def voided_by(root, sha, head, rid, count, records_set, trunk):
+    """An empty string when every commit of this branch after the audited sha
+    leaves the audit standing, the reading of the first one that voids it when
+    one does, or None when git could not read the range. A commit stands when
+    everything it touched is inside the records set, or when it is a fix
+    commit citing a finding of this audit."""
+    commits = branch_commits(root, sha, head, trunk)
+    if commits is None:
+        return None
+    for commit in commits:
         touched = subprocess.run(["git", "-C", root, "diff-tree", "--no-commit-id", "--name-only", "-r", commit],  # noqa: S603,S607 - fixed argv, a read
                                  capture_output=True, text=True, timeout=30, check=False)
         if touched.returncode != 0:
@@ -1405,7 +1434,8 @@ def audit_of(root, head, rid, record, conf, records_set):
         if not records_set:
             return ("the audit row declares no records set",
                     "add `records` to the audit row of ops/devlane/hooks/boundaries.json")
-        void = voided_by(root, sha, head, rid, len(findings), records_set)
+        void = voided_by(root, sha, head, rid, len(findings), records_set,
+                         conf.get("TRUNK_BRANCH"))
         if void is None:
             return (f"git could not read {sha[:8]}..{head[:8]}",
                     "could not look is not a pass; fetch the audited commit and retry")

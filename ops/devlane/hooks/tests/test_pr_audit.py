@@ -16,7 +16,14 @@ everything it touched is inside the records set the row declares, or it is
 a fix commit in CONTRIB.md's shape citing a finding of that audit — owner,
 2026-09-16: "you can't keep re-auditing after fixes - draw a line". The
 citation the gate parses is a `Finding:` line carrying the ledger key
-`<record id>#<n>`, beside the `Verified:` line that shape requires. The
+`<record id>#<n>`, beside the `Verified:` line that shape requires.
+
+Only the branch's own commits are judged: the gate walks
+`<audited>..<head>` first-parent, skipping merge commits and anything
+reachable from `origin/<trunk>`, so a forward merge of the trunk never
+voids the audit (agentscient-11, 2026-09-16, measured on #242 — the
+dispatcher merges the trunk forward before every launch, and the rule as
+written voided every branch that had dispatched anything). The
 merge verb does not carry the row: GitHub refuses to merge a draft, so the ready flip
 binds first and the `pr-proof` row binds the lineage after it.
 
@@ -336,6 +343,45 @@ class AuditAtTheHead(unittest.TestCase):
         head = self.commit("records: a hand-off after the audit")
         self.plant(body=self.GOOD, head=head)
         self.allowed(self.run_bash("gh pr ready 12"))
+
+    def merge_the_trunk_forward(self):
+        """What `dispatch.sh` does before every launch: the trunk moves
+        under the branch and is merged in. Answers the merge commit's sha."""
+        branch = self.world.git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        self.world.git("checkout", "-q", "-b", "trunkwork", self.audited)
+        self.world.plant_text(self.repo / "ops" / "bin" / "trunk.sh",
+                              "# a change another session landed on the trunk\n")
+        trunk_head = self.commit("lane: a lever another session landed on the trunk")
+        self.world.git("update-ref", "refs/remotes/origin/dev", trunk_head)
+        self.world.git("checkout", "-q", branch)
+        self.world.git("merge", "-q", "--no-ff", "-m",
+                       f"merge: dev forward into lane/fixture at {trunk_head[:8]}",
+                       "trunkwork")
+        head = self.world.git("rev-parse", "HEAD").stdout.strip()
+        self.assertNotEqual(head, trunk_head, "INVALID: no merge commit was made")
+        return head
+
+    def test_a_forward_merge_of_the_trunk_does_not_void_the_audit(self):
+        """agentscient-11, 2026-09-16, measured on #242: the dispatcher
+        merges the trunk forward before every launch, so judging what that
+        merge brings in voided every branch that had dispatched anything."""
+        self.close_audit()
+        head = self.merge_the_trunk_forward()
+        self.plant(body=self.GOOD, head=head)
+        self.allowed(self.run_bash("gh pr ready 12"))
+
+    def test_the_branchs_own_commit_after_a_forward_merge_still_voids_it(self):
+        """The clean neighbour of the row above: narrowing the walk to the
+        branch's own commits must not stop it reaching them."""
+        self.close_audit()
+        self.merge_the_trunk_forward()
+        self.world.plant_text(
+            self.repo / "ops" / "devlane" / "hooks" / "claude" / "after.py",
+            "# a change the audit never read\n")
+        head = self.commit("code: a change after the forward merge")
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("ops/devlane/hooks/claude/after.py", reason)
 
     def test_merge_does_not_carry_the_row(self):
         """Ruling of 2026-09-16, the owner's words being about ready: GitHub
