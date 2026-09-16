@@ -1299,7 +1299,7 @@ def audit_of(root, head, rid, record, conf, records_set):
         return (f"{rid} ran on harness {harness}, not {AUDIT_HARNESS}",
                 f"re-run it on the {AUDIT_HARNESS} harness at the model ops/lane.conf names")
     # The conf names the model, read at check time; the gate never carries a
-    # model string of its own (agentscient-11, 2026-09-16).
+    # model string of its own (2026-09-16).
     wanted = conf.get(AUDIT_MODEL_KEY)
     if not wanted:
         return (f"ops/lane.conf names no {AUDIT_MODEL_KEY}",
@@ -1453,9 +1453,9 @@ def pr_proof(toks, cwd):
         return deny("pr-proof", f"a green ci run on {head[:8]}",
                     f"conclusion {', '.join(str(r.get('conclusion')) for r in done)}",
                     "fix the branch until the run is green; the Proof rows are in it")
-    # Ready only (agentscient-11, 2026-09-16, on the owner's words): GitHub
-    # refuses to merge a draft, so the ready flip binds first, and the rows
-    # above bind the lineage after it.
+    # Ready only (2026-09-16, on the owner's words): GitHub refuses to merge
+    # a draft, so the ready flip binds first, and the rows above bind the
+    # lineage after it.
     if toks[2] == "ready":
         refused = audit_at_head(root, head, str(data.get("body") or ""))
         if refused is not None:
