@@ -15,6 +15,7 @@ import json
 import os
 import time
 import unittest
+from pathlib import Path
 
 import launch_support as ls
 
@@ -36,6 +37,8 @@ POLICY_TURNS = {
     "security-audit": 150,
     "implement": 200,
 }
+BUDGET_HEAD = "Turn budget:"
+BUDGET_STOP = "stop and report status short"
 JOB_TURNS = 37
 ENV_TURNS = 21
 JOB_TIMEOUT = 42
@@ -85,6 +88,25 @@ def plant_job_timeout(test, job, seconds):
     test.assertNotEqual(landed[job].get("caps"), prior)
     test.ref = test._commit(f"plant {job} caps.timeout={seconds}")
     return seconds
+
+
+def strip_job_caps(test, job):
+    """Remove ``caps`` from one job in the fixture catalog, so a job with
+    no declared cap can be launched now that jobs.json caps them all."""
+    test.assertIsInstance(test.world, World)
+    path = test.jobs_file
+    jobs = json.loads(path.read_text(encoding="utf-8"))
+    test.assertIn(job, jobs)
+    if "caps" not in jobs[job]:
+        return
+    spec = dict(jobs[job])
+    spec.pop("caps", None)
+    jobs[job] = spec
+    test.world.plant_text(path, json.dumps(jobs, indent=2) + "\n",
+                          recognisable=f'"{job}"')
+    landed = json.loads(path.read_text(encoding="utf-8"))
+    test.assertNotIn("caps", landed[job])
+    test.ref = test._commit(f"strip {job} caps")
 
 
 class JobTimeoutIsRecordedWhenEnvIsAbsent(ls._TempLaunch):
@@ -339,6 +361,91 @@ class EnvTurnsWinOverTheJobCap(ls._TempLaunch):
         self.assertEqual(caps["turns_source"], "DISPATCH_TURNS")
         self.assertEqual(_max_turns_value(self, self.read_start_witness()["argv"]),
                          str(ENV_TURNS))
+
+
+def _applied(test, caps):
+    """``turns_applied`` read as an assertion, so its absence is a failure
+    with a one-line message rather than a KeyError."""
+    test.assertIn("turns_applied", caps, f"caps carry no turns_applied: {sorted(caps)}")
+    return caps["turns_applied"]
+
+
+def _carries(test, text, needle):
+    """A membership assertion whose message names the needle and the size,
+    never the brief: a failing assertion that prints ten kilobytes of
+    prompt is the waste this change exists to cut."""
+    test.assertTrue(needle in text,
+                    f"{needle!r} absent from the {len(text)}-byte brief")
+
+
+def _prompt_text(test, rec):
+    """The composed brief, read from the job directory, so the assertion
+    holds for a harness that takes no --prompt-file."""
+    root = ((rec.get("snapshot") or {}).get("root") or "")
+    test.assertTrue(root, "record names no snapshot root")
+    prompt = Path(root).parent / "prompt.txt"
+    test.assertTrue(prompt.is_file(), f"no brief at {prompt}")
+    return prompt.read_text(encoding="utf-8")
+
+
+class TheBriefCarriesTheTurnBudget(ls._TempLaunch):
+    """Owner, 2026-09-15, on token efficiency. A harness with no turn flag
+    can still be told its budget, so the cap reaches every worker as words
+    even where it cannot reach one as argv. Belt and braces: the line is in
+    every brief, not only the flagless harnesses'."""
+
+    def test_the_grok_brief_names_the_budget_and_the_stop(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        text = _prompt_text(self, rec)
+        _carries(self, text, f"{BUDGET_HEAD} {JOB_TURNS} turns")
+        _carries(self, text, BUDGET_STOP)
+
+    def test_the_codex_brief_names_the_budget_though_no_flag_carries_it(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        self.assertEqual((rec.get("caps") or {}).get("turns_argv"), [])
+        text = _prompt_text(self, rec)
+        _carries(self, text, f"{BUDGET_HEAD} {JOB_TURNS} turns")
+        _carries(self, text, BUDGET_STOP)
+
+    def test_no_cap_means_no_budget_line_rather_than_a_guessed_one(self):
+        strip_job_caps(self, "plan")
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        self.assertIsNone((rec.get("caps") or {}).get("turns"))
+        text = _prompt_text(self, rec)
+        self.assertFalse(BUDGET_HEAD in text,
+                         f"{BUDGET_HEAD!r} present in a brief with no cap "
+                         f"({len(text)} bytes)")
+
+
+class TheRecordSaysWhetherTheCapWasApplied(ls._TempLaunch):
+    """The record said ``turns: 200`` for codex when nothing capped it — a
+    claim with no reading behind it. ``turns_applied`` separates what was
+    declared from what a flag actually carried (docs/wire.md, absence is
+    declared, never inferred)."""
+
+    def test_grok_records_the_cap_as_applied(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertIs(_applied(self, caps), True)
+
+    def test_codex_records_the_cap_as_declared_but_not_applied(self):
+        plant_job_turns(self, "plan", JOB_TURNS)
+        rec, *_ = self.launch_ok(job="plan", harness="codex", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertEqual(caps["turns"], JOB_TURNS)
+        self.assertIs(_applied(self, caps), False)
+        self.assertIn("codex", caps.get("turns_note", ""))
+
+    def test_no_cap_records_applied_false_beside_turns_none(self):
+        strip_job_caps(self, "plan")
+        rec, *_ = self.launch_ok(job="plan", harness="grok", stage="plan")
+        caps = _turn_caps(self, rec)
+        self.assertIsNone(caps["turns"])
+        self.assertIs(_applied(self, caps), False)
 
 
 class JobsJsonCarriesTheTurnPolicy(unittest.TestCase):
