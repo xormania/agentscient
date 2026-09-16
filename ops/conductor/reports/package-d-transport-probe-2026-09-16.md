@@ -71,3 +71,66 @@ the worker writing to the store through the acting server, exactly as
 above, and the deliverer carrying it. That makes the deliverer the single
 point where a cross-harness event becomes a session's notification, and
 the place every latency reading in the acceptance criterion is taken.
+
+## The live run, 2026-09-16, with the courier carrying it
+
+Two participants, two session ids, one host, a scratch store. The lead
+armed `courier.py watch --tick 2` as a session arms a Monitor, and the
+worker asked its question through the acting MCP server *after* the
+courier was already watching, so these are a real wait and not a replay.
+
+```
+the worker asked through the acting server: M-1
+the line reached the lead's session after 1041 ms, tick 2s:
+  2026-09-16T11:09:48.884560Z M-1 request from PT-2: may I change the contract's section 6?
+
+queued       2026-09-16T11:09:47.886495Z
+delivered    2026-09-16T11:09:48.884628Z ref courier:2026-09-16T11:09:48.884560Z:M-1
+acknowledged 2026-09-16T11:09:49.955375Z by PT-1
+```
+
+Queued to delivered, 998 ms against a 2 s tick. Delivered to
+acknowledged, 1071 ms. The printed line's stamp and the stored receipt's
+are 68 microseconds apart and the ref carries the line's own stamp, which
+is what "the line a session reads and the stamp the store keeps are one
+event" means when it is measured rather than asserted.
+
+`acknowledged` was absent until the lead's own `ack` ran. Nothing the
+courier does writes it, which is the point: delivery is the transport's
+fact and acknowledgment is the recipient's.
+
+## What the live run found in the courier
+
+The first run of this measurement showed `queued` and **no** `delivered`
+stamp, although the line had printed. The cause was the run's own
+impatience — it terminated the courier in the window between the print
+and the receipt — and it is worth recording because it demonstrates the
+property rather than a defect:
+
+**The courier is at-least-once, not exactly-once.** It prints, then
+records. A courier stopped between the two leaves a line a session has
+seen and a store that does not know it, and the next pass carries that
+message again, because the filter is `delivered_at is None`. A repeated
+line, never a silent loss. The other order — record, then print — would
+stamp a delivery no session ever saw, and nothing would ever carry it
+again. That is the failure worth preventing, so the order is deliberate
+and the tool's own comment now says so.
+
+## The calibration, and one declared gap
+
+Each fault planted in the tool, the suite run against it:
+
+| planted fault | caught by |
+|---|---|
+| prints but never records the delivery | 3 cases |
+| carries the whole inbox, delivered or not | 1 case |
+| acknowledges while delivering | 1 case |
+| carries every participant's messages, not its own | 4 cases |
+
+And the gap the calibration found, declared rather than discovered later:
+`undelivered()` has two paths, the core's own `undelivered` verb and
+`inbox` filtered on `delivered_at`. The core at b1d868b0 has no such
+verb, so the first path is unreachable today and a fault planted in it
+was caught by nothing. The cases exercise the path that runs. When
+package B lands the verb, the calibration is re-run against the other
+path before it is trusted.
