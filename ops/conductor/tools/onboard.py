@@ -90,6 +90,38 @@ def run(
     return result.stdout.strip(), ""
 
 
+def bounded_read(
+    command: list[str],
+    cwd: Path | None,
+    label: str,
+    env: dict[str, str] | None = None,
+    unavailable: str = "unavailable",
+) -> tuple[str | None, str]:
+    """One bounded read and, when it did not answer, the line that says so.
+
+    LD-48 taught the lock line to tell a read that could not look from a
+    lever that looked and reported a failure: under concurrent sessions
+    the first bound is what expires, and `unavailable` in that position
+    is taken for an answer by the reader after it. The line each read
+    prints then differs in the word only, so the rule is spelled once
+    here and the other three lines were the gap that repair declared:
+    one retry with the longer bound when the first expired, then
+    UNREACHABLE, which no reader takes for an answer.
+
+    A lever that ran and failed keeps `unavailable`: it looked. Callers
+    whose contract names another word for that case pass it.
+    """
+    output, reason = run(command, cwd, env)
+    if output is None and reason.startswith(TIMED_OUT):
+        first = reason
+        output, reason = run(command, cwd, env, timeout=RETRY_TIMEOUT)
+        if output is None and reason.startswith(TIMED_OUT):
+            return None, f"{label}: UNREACHABLE: {first}, retried and {reason}"
+    if output is None:
+        return None, f"{label}: {unavailable}: {reason}"
+    return output, ""
+
+
 def repository_root() -> Path:
     output, reason = run(["git", "rev-parse", "--show-toplevel"])
     if output is None:
@@ -153,9 +185,11 @@ def prs_line(root: Path) -> tuple[str, bool]:
     # optional state at an existing non-store location so onboarding remains
     # a read; authentication continues to come from the caller's normal env.
     gh_env["XDG_STATE_HOME"] = os.devnull
-    output, reason = run(command, root, gh_env)
+    output, absence = bounded_read(
+        command, root, "prs", gh_env, unavailable="gh unavailable"
+    )
     if output is None:
-        return f"prs: gh unavailable: {reason}", False
+        return absence, False
     try:
         rows = json.loads(output)
         if not isinstance(rows, list):
@@ -181,22 +215,13 @@ def lock_lines(root: Path) -> tuple[list[str], bool]:
         # directory (the doctor's read-only probe reads it that way).
         return ["lock: none"], True
     tool = root / "ops/conductor/tools/deliverable.py"
-    output, reason = run([sys.executable, str(tool), "show"], root)
-    if output is None and reason.startswith(TIMED_OUT):
-        # LD-48: under five concurrent sessions the first bound expired
-        # while deliverable.py show answered a direct retry a moment
-        # later, and the line read as though no lock were set. One longer
-        # retry before anything is reported, and a read that still could
-        # not look says UNREACHABLE -- never a word a reader takes for
-        # an answer.
-        first = reason
-        output, reason = run(
-            [sys.executable, str(tool), "show"], root, timeout=RETRY_TIMEOUT
-        )
-        if output is None and reason.startswith(TIMED_OUT):
-            return [f"lock: UNREACHABLE: {first}, retried and {reason}"], False
+    # LD-48, where the retry and the UNREACHABLE word were first needed;
+    # bounded_read holds the rule now, and every other read shares it.
+    output, absence = bounded_read(
+        [sys.executable, str(tool), "show"], root, "lock"
+    )
     if output is None:
-        return [f"lock: unavailable: {reason}"], False
+        return [absence], False
     if output.strip() == "no lock":
         return ["lock: none"], True
     lines = output.splitlines()
@@ -239,13 +264,17 @@ def dispatches_line() -> tuple[str, bool]:
             # The contract: an absent store says so — a measured fact,
             # not an unmeasurable source.
             return f"dispatches: ABSENT {store} (nothing running)", True
-        return f"dispatches: unavailable: {store} is not a readable directory", False
+        # The path is there and cannot be listed. That is neither the
+        # ABSENT above, which is a measured nothing, nor an empty store.
+        return f"dispatches: UNREACHABLE: {store} is not a readable directory", False
     try:
         records = sorted(
             (path for path in store.iterdir() if path.is_dir()), key=lambda path: path.name
         )
     except OSError as error:
-        return f"dispatches: unavailable: {error}", False
+        # A store that will not list is a store nobody read: running=none
+        # would be an answer, and there is none to give.
+        return f"dispatches: UNREACHABLE: {error}", False
     running = [path.name for path in records if dispatch_is_running(path)]
     closed = [path for path in records if (path / "exit").is_file()]
     newest = "none"
@@ -254,7 +283,9 @@ def dispatches_line() -> tuple[str, bool]:
         try:
             code = (record / "exit").read_text(encoding="utf-8").strip()
         except OSError as error:
-            return f"dispatches: unavailable: {error}", False
+            # exit=ABSENT is the reading for a file that holds nothing;
+            # a file that could not be read has no reading at all.
+            return f"dispatches: UNREACHABLE: {error}", False
         newest = f"{record.name} exit={code or 'ABSENT'}"
     active = ",".join(running) if running else "none"
     return f"dispatches: running={active}; newest-closed={newest}", True
@@ -268,9 +299,11 @@ def handoffs_lines(root: Path) -> tuple[list[str], bool]:
     if not store.is_file():
         return [f"handoffs: ABSENT {store} (none recorded)"], True
     tool = root / "ops/conductor/tools/handoff.py"
-    output, reason = run([sys.executable, str(tool), "brief"], root)
+    output, absence = bounded_read(
+        [sys.executable, str(tool), "brief"], root, "handoffs"
+    )
     if output is None:
-        return [f"handoffs: unavailable: {reason}"], False
+        return [absence], False
     lines = output.splitlines()
     if not lines or not lines[0].startswith("handoffs:"):
         return ["handoffs: invalid report: the brief does not open with handoffs:"], False
