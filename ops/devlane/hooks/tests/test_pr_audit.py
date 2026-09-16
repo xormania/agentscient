@@ -19,11 +19,18 @@ citation the gate parses is a `Finding:` line carrying the ledger key
 `<record id>#<n>`, beside the `Verified:` line that shape requires.
 
 Only the branch's own commits are judged: the gate walks
-`<audited>..<head>` first-parent, skipping merge commits and anything
-reachable from `origin/<trunk>`, so a forward merge of the trunk never
-voids the audit (agentscient-11, 2026-09-16, measured on #242 — the
-dispatcher merges the trunk forward before every launch, and the rule as
-written voided every branch that had dispatched anything). The
+`<audited>..<head> --not origin/<trunk>`, so a forward merge of the trunk
+never voids the audit (2026-09-16, measured on #242 — the dispatcher
+merges the trunk forward before every launch, and the rule as written
+voided every branch that had dispatched anything; the ruling and who made
+it are in CONTRIB.md's audit row). Every other commit of the range is
+judged one by one, merges included, and a merge's own content is its
+combined diff: what it resolved differently from every parent is content
+no parent carried and no audit read. The audited sha is a commit id
+before it reaches git, so a record value can never be read as an option.
+A commit that edits the audit's own record voids it whatever else it
+says, and a fix commit's exemption reaches only a commit at least one of
+whose touched paths a cited finding names. The
 merge verb does not carry the row: GitHub refuses to merge a draft, so the ready flip
 binds first and the `pr-proof` row binds the lineage after it.
 
@@ -293,7 +300,8 @@ class AuditAtTheHead(unittest.TestCase):
                    path="ops/devlane/hooks/claude/new.py"):
         """A commit in CONTRIB.md's fix-commit shape (### Fix commit)."""
         self.world.plant_text(self.repo / path, f"# the fix for {finding}\n")
-        body = f"hooks: the finding applied\n\nFinding: [P1] {finding} a.py: the claim\n"
+        body = (f"hooks: the finding applied\n\n"
+                f"Finding: [P1] {finding} {path}: the claim\n")
         if verified:
             body += f"Verified: `python3 -m unittest` at {self.audited}\n"
         return self.commit(body)
@@ -412,6 +420,183 @@ class AuditAtTheHead(unittest.TestCase):
         refuses to merge a draft, so the ready flip binds first."""
         self.plant(body="## What\n\nx\n\n## Proof\n\nP-FIX-1\n", head=self.audited)
         self.allowed(self.run_bash("gh pr merge 12 --merge"))
+
+    # -- the audited sha is a commit id, never a git option ----------------
+
+    def test_an_audited_sha_that_is_not_a_commit_id_refuses(self):
+        """Origin: 20260916T122524Z-review-codex-05a9f5#4 at aea65bb9. A
+        record value beginning `--output=` reached `git log` as an option:
+        git wrote that file, printed nothing, and the empty range read as
+        an audit nothing had voided."""
+        escaped = Path(self.world.root) / "escaped-by-git"
+        bad = f"--output={escaped}"
+        head = self.close_audit(
+            record=a_record(audited=self.audited, ref=bad, result_head=bad))
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("not a commit id", reason)
+        self.assertFalse(escaped.exists(), f"git wrote {escaped}")
+
+    def test_an_audited_sha_of_the_wrong_length_refuses(self):
+        """The clean neighbour: hex, but not a commit id either."""
+        head = self.close_audit(
+            record=a_record(audited=self.audited, ref="abc", result_head="abc"))
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("not a commit id", reason)
+
+    # -- a merge that is not the trunk's is judged -------------------------
+
+    def merge_a_topic(self, *, path):
+        """A branch merging a topic of its own. Not the trunk: its commits
+        are the branch's own, and nothing excludes them from the walk."""
+        branch = self.world.git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        self.world.git("checkout", "-q", "-b", "topic", self.audited)
+        self.world.plant_text(self.repo / path, "# a change the audit never read\n")
+        topic_head = self.commit("code: a change on a topic branch")
+        self.world.git("checkout", "-q", branch)
+        self.world.git("merge", "-q", "--no-ff", "-m", "merge: topic into lane/fixture",
+                       "topic")
+        head = self.world.git("rev-parse", "HEAD").stdout.strip()
+        self.assertNotEqual(head, topic_head, "INVALID: no merge commit was made")
+        return head
+
+    def test_a_merge_of_an_unaudited_topic_voids_the_audit(self):
+        """Origin: 20260916T122524Z-review-codex-05a9f5#5 at aea65bb9.
+        `--first-parent` with `--no-merges` skipped every merge, not only
+        the trunk's, so a branch could merge unaudited code and keep its
+        audit."""
+        self.close_audit()
+        head = self.merge_a_topic(path="ops/devlane/hooks/claude/topic.py")
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("ops/devlane/hooks/claude/topic.py", reason)
+
+    def test_a_merges_own_conflict_content_is_judged(self):
+        """The same finding at the merge commit itself. Both sides touch
+        only records, so the merge is the one commit left that can carry
+        the code path, and its combined diff is where that path shows."""
+        self.close_audit()
+        branch = self.world.git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        note = self.repo / "ops" / "conductor" / "handoff" / "note.md"
+        self.world.plant_text(note, "the note this branch wrote\n")
+        self.commit("records: a hand-off on the branch")
+        self.world.git("checkout", "-q", "-b", "sidework", self.audited)
+        self.world.plant_text(note, "the note the other branch wrote\n")
+        self.commit("records: a hand-off on the other branch")
+        self.world.git("checkout", "-q", branch)
+        attempt = self.world.git("merge", "--no-ff", "-m", "merge: sidework",
+                                 "sidework", check=False)
+        self.assertNotEqual(attempt.exit, 0, "INVALID: the merge did not conflict")
+        self.world.plant_text(note, "both notes, resolved\n")
+        self.world.plant_text(
+            self.repo / "ops" / "devlane" / "hooks" / "claude" / "smuggled.py",
+            "# code that rode in on the resolution\n")
+        head = self.commit("merge: sidework into lane/fixture")
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("ops/devlane/hooks/claude/smuggled.py", reason)
+
+    # -- the audit's own record is evidence, never a record it may edit ----
+
+    def test_rewriting_the_audits_own_record_voids_it(self):
+        """Origin: 20260916T122524Z-review-codex-05a9f5#6 at aea65bb9. The
+        `.dev/records/` prefix exempts the record's landing, and exempted
+        its later editing with it, so closed audit evidence could be
+        rewritten and the gate would still read the audit as standing."""
+        self.close_audit()
+        self.world.plant_text(
+            self.repo / RECORDS / f"{AUDIT}.json",
+            json.dumps(a_record(audited=self.audited, findings=0), indent=1))
+        head = self.commit("records: the audit record, edited after it closed")
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn(f"{RECORDS}/{AUDIT}.json", reason)
+
+    def test_rewriting_the_audits_own_record_in_a_fix_commit_voids_it(self):
+        """The clean neighbour: a citation is not a key to the evidence."""
+        self.close_audit()
+        self.world.plant_text(
+            self.repo / RECORDS / f"{AUDIT}.json",
+            json.dumps(a_record(audited=self.audited, findings=0), indent=1))
+        self.world.plant_text(self.repo / "ops" / "devlane" / "hooks" / "claude" / "new.py",
+                              "# the fix\n")
+        head = self.commit(f"hooks: the finding applied\n\n"
+                           f"Finding: [P1] {AUDIT}#1 new.py: the claim\n"
+                           f"Verified: `python3 -m unittest` at {self.audited}\n")
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn(f"{RECORDS}/{AUDIT}.json", reason)
+
+    def test_another_audits_record_is_still_a_record(self):
+        """The clean neighbour of both rows above: only this audit's own
+        record is its evidence; another record landing is a record."""
+        self.close_audit()
+        other = "20260916T130000Z-review-codex-ffffff"
+        self.world.plant_text(
+            self.repo / RECORDS / f"{other}.json",
+            json.dumps(a_record(audited=self.audited), indent=1))
+        head = self.commit("records: another dispatch record after the audit")
+        self.plant(body=self.GOOD, head=head)
+        self.allowed(self.run_bash("gh pr ready 12"))
+
+    # -- both members of a pair, and an envelope that is there -------------
+
+    def test_a_record_carrying_only_one_of_the_sha_pair_refuses(self):
+        """Origin: 20260916T122524Z-review-codex-05a9f5#7 at aea65bb9. One
+        present member was read as the pair agreeing, so a partial record
+        missing result.head was accepted. Measured 2026-09-16 over the 35
+        closed security-audit records under .dev/records/dispatches: 35 of
+        35 carry both members of both pairs and an envelope."""
+        record = a_record(audited=self.audited)
+        del record["result"]["head"]
+        head = self.close_audit(record=record)
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("result.head", reason)
+
+    def test_a_record_carrying_only_one_of_the_model_pair_refuses(self):
+        record = a_record(audited=self.audited)
+        del record["model"]["ran"]
+        head = self.close_audit(record=record)
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("model.ran", reason)
+
+    def test_a_record_with_no_findings_envelope_refuses(self):
+        """An absent findings array defaulted to empty, which reads as an
+        audit with nothing left to dispose. Silence is not a declaration."""
+        record = a_record(audited=self.audited)
+        del record["result"]["envelope"]
+        head = self.close_audit(record=record)
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("result.envelope.findings", reason)
+
+    # -- a fix commit is a fix for the place its finding names -------------
+
+    def test_a_fix_commit_touching_no_path_its_finding_names_voids_the_audit(self):
+        """Origin: 20260916T122524Z-review-codex-05a9f5#8 at aea65bb9. The
+        `Finding:` and `Verified:` text alone exempted the whole commit, so
+        unaudited code could ride in beside a nominal fix."""
+        self.close_audit()
+        head = self.fix_commit(finding=f"{AUDIT}#1",
+                               path="ops/devlane/hooks/claude/elsewhere.py")
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("ops/devlane/hooks/claude/elsewhere.py", reason)
+
+    def test_a_fix_commit_carries_its_test_file_beside_the_path_it_names(self):
+        """The rule is one touched path, never every touched path: an
+        honest fix commit carries its test file and its record beside the
+        code, and neither is named by any finding."""
+        self.close_audit()
+        self.world.plant_text(
+            self.repo / "ops" / "devlane" / "hooks" / "tests" / "test_new.py",
+            "# the row that proves the fix\n")
+        head = self.fix_commit(finding=f"{AUDIT}#1")
+        self.plant(body=self.GOOD, head=head)
+        self.allowed(self.run_bash("gh pr ready 12"))
 
     def test_a_grant_is_no_escape(self):
         head = self.close_audit(rows=((f"{AUDIT}#1", "open"), (f"{AUDIT}#2", "open")))

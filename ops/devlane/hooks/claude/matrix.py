@@ -1316,13 +1316,19 @@ def field(record, path):
 
 
 def agreed(record, paths, *, sha=False):
-    """(value, "") when the named fields carry one value between them, else
-    (None, what was found). Two fields that disagree are two answers, and an
-    audit is never read as met on two answers: the refusal names both."""
+    """(value, "") when every named field is present and they carry one value
+    between them, else (None, what was found). Two fields that disagree are
+    two answers, and an audit is never read as met on two answers: the
+    refusal names both. One present member is not agreement either: a partial
+    record missing `model.ran` or `result.head` was read as its pair agreeing
+    (20260916T122524Z-review-codex-05a9f5#7), so the absent ones are named.
+    Measured 2026-09-16 over the 35 closed security-audit records under
+    .dev/records/dispatches: 35 of 35 carry both members of both pairs."""
     seen = {path: field(record, path) for path in paths}
-    seen = {path: value for path, value in seen.items() if isinstance(value, str) and value}
-    if not seen:
-        return None, "absent"
+    absent = sorted(path for path, value in seen.items()
+                    if not (isinstance(value, str) and value))
+    if absent:
+        return None, "absent: " + ", ".join(absent)
     if len(set(seen.values())) > 1:
         return None, ", ".join(f"{path}={value[:8] if sha else value}"
                                for path, value in sorted(seen.items()))
@@ -1361,18 +1367,59 @@ def dispositions_at(root, head):
     return out
 
 
-def is_a_fix_for(message, rid, count):
+def is_a_fix_for(message, rid, findings, paths):
     """A fix commit in CONTRIB.md's shape (### Fix commit) that cites a
-    finding of this audit: a ``Finding:`` line carrying the ledger key
-    ``<record id>#<n>`` of one of its ``n`` findings, and the ``Verified:``
-    line that shape requires. Owner, 2026-09-16: "you can't keep
-    re-auditing after fixes - draw a line"."""
+    finding of this audit and touches a path that finding named: a
+    ``Finding:`` line carrying the ledger key ``<record id>#<n>``, the
+    ``Verified:`` line the shape requires, and at least one of ``paths``
+    among the paths the cited finding's ``where`` names. Owner, 2026-09-16:
+    "you can't keep re-auditing after fixes - draw a line".
+
+    The line is drawn at the place the finding named. The two text lines
+    alone exempted every other path riding in the same commit, so unaudited
+    code could arrive beside a nominal fix
+    (20260916T122524Z-review-codex-05a9f5#8). One touched path is enough and
+    not every one: an honest fix commit carries its test file and its record
+    beside the code, and no finding names those."""
     lines = [line.strip() for line in (message or "").splitlines()]
     if not any(line.startswith("Verified:") for line in lines):
         return False
-    keys = {f"{rid}#{n}" for n in range(1, count + 1)}
-    return any(line.startswith("Finding:") and any(key in line for key in keys)
-               for line in lines)
+    touched = set(paths)
+    for n, finding in enumerate(findings, 1):
+        key = f"{rid}#{n}"
+        if not any(line.startswith("Finding:") and key in line for line in lines):
+            continue
+        where = finding.get("where") if isinstance(finding, dict) else None
+        if touched & where_paths(where):
+            return True
+    return False
+
+
+COMMIT_ID = re.compile(r"\A[0-9a-f]{7,40}\Z")
+
+
+def a_commit_id(value):
+    """True when this is a commit id and nothing else. A record's sha reaches
+    `git log` as a range operand, so a value beginning with a dash is read as
+    an option instead: `--output=<path>` made git write that file, print
+    nothing, and the empty range read as an audit nothing had voided
+    (20260916T122524Z-review-codex-05a9f5#4)."""
+    return isinstance(value, str) and bool(COMMIT_ID.match(value))
+
+
+def where_paths(where):
+    """The repository paths a finding's `where` names. A `where` reads
+    `<path>:<lines>` joined by prose, so a token is a path when it carries a
+    separator and a suffix on its last segment; the lines after it are not
+    part of it."""
+    named = set()
+    for token in re.split(r"[\s,;()]+", where if isinstance(where, str) else ""):
+        token = token.strip().rstrip(".,;:")
+        if ":" in token:
+            token = token.split(":", 1)[0]
+        if "/" in token and "." in token.rsplit("/", 1)[-1]:
+            named.add(token)
+    return named
 
 
 def ref_known(root, ref):
@@ -1392,11 +1439,19 @@ def branch_commits(root, sha, head, trunk):
     the trunk into the branch before every launch, so a rule that judged
     every commit in the range voided every branch that had dispatched
     anything (2026-09-16, measured on #242; the ruling and who made it are
-    in CONTRIB.md's audit row). ``--first-parent`` keeps the walk on this
-    branch's own line, ``--no-merges`` drops the merge commits themselves,
-    and ``--not origin/<trunk>`` drops what the trunk already carries."""
-    argv = ["git", "-C", root, "log", "--reverse", "--first-parent", "--no-merges",
-            "--format=%H", f"{sha}..{head}"]
+    in CONTRIB.md's audit row). ``--not origin/<trunk>`` drops what the
+    trunk already carries, and nothing else is dropped. ``--first-parent``
+    with ``--no-merges`` dropped every merge rather than the trunk's, so a
+    branch could merge a topic carrying unaudited code and keep its audit
+    (#5 of the same audit); the merge commits are judged here too, by their
+    combined diff.
+
+    None when the range cannot be read, the audited sha included: it reaches
+    git as a range operand, so a value that is not a commit id is refused
+    before git sees it (#4 of the same audit)."""
+    if not (a_commit_id(sha) and a_commit_id(head)):
+        return None
+    argv = ["git", "-C", root, "log", "--reverse", "--format=%H", f"{sha}..{head}"]
     if trunk and ref_known(root, f"origin/{trunk}"):
         argv += ["--not", f"origin/{trunk}"]
     listing = subprocess.run(argv, capture_output=True, text=True, timeout=30, check=False)  # noqa: S603 - an argv this function built, a read
@@ -1405,21 +1460,45 @@ def branch_commits(root, sha, head, trunk):
     return listing.stdout.split()
 
 
-def voided_by(root, sha, head, rid, count, records_set, trunk):
-    """An empty string when every commit of this branch after the audited sha
-    leaves the audit standing, the reading of the first one that voids it when
-    one does, or None when git could not read the range. A commit stands when
-    everything it touched is inside the records set, or when it is a fix
-    commit citing a finding of this audit."""
+def edits(root, commit, path):
+    """True when this commit changed or removed a file that was already there.
+    An audit's record lands after the audit closes, so the commit that adds it
+    is the evidence arriving; only a later one changes what it says."""
+    changed = subprocess.run(["git", "-C", root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-c", "--diff-filter=MD", commit, "--", path],  # noqa: S603,S607 - fixed argv, a read
+                             capture_output=True, text=True, timeout=30, check=False)
+    return changed.returncode == 0 and bool(changed.stdout.strip())
+
+
+def voided_by(root, sha, head, rid, findings, records_set, trunk):
+    """An empty string when every commit this branch carries after the audited
+    sha leaves the audit standing, the reading of the first one that voids it
+    when one does, or None when git could not read the range. A commit stands
+    when everything it touched is inside the records set, or when it is a fix
+    commit citing a finding of this audit at a path that finding named.
+
+    This audit's own record is its evidence and never a record it may edit.
+    The `.dev/records/` prefix exempts the record's landing, which is right,
+    and exempted its later rewriting with it, which is not: closed audit
+    evidence could be edited after the fact and the gate would still read the
+    audit as standing (20260916T122524Z-review-codex-05a9f5#6). The commit
+    that adds the record stands; one that changes or removes it voids the
+    audit, and a citation does not lift that."""
     commits = branch_commits(root, sha, head, trunk)
     if commits is None:
         return None
+    evidence = f"{DISPATCH_RECORDS}{rid}.json"
     for commit in commits:
-        touched = subprocess.run(["git", "-C", root, "diff-tree", "--no-commit-id", "--name-only", "-r", commit],  # noqa: S603,S607 - fixed argv, a read
+        # `-c` answers the ordinary diff on an ordinary commit and the
+        # combined diff on a merge: what a merge resolved differently from
+        # every parent is content no parent carried and no audit read.
+        touched = subprocess.run(["git", "-C", root, "diff-tree", "--no-commit-id", "--name-only", "-r", "-c", commit],  # noqa: S603,S607 - fixed argv, a read
                                  capture_output=True, text=True, timeout=30, check=False)
         if touched.returncode != 0:
             return None
         paths = [path for path in touched.stdout.splitlines() if path]
+        if evidence in paths and edits(root, commit, evidence):
+            return (f"{commit[:8]} changed {evidence} after it, which is this audit's "
+                    "own record and is never a record a commit may edit")
         outside = [path for path in paths if not path.startswith(records_set)]
         if not outside:
             continue
@@ -1427,10 +1506,10 @@ def voided_by(root, sha, head, rid, count, records_set, trunk):
                                  capture_output=True, text=True, timeout=30, check=False)
         if message.returncode != 0:
             return None
-        if is_a_fix_for(message.stdout, rid, count):
+        if is_a_fix_for(message.stdout, rid, findings, paths):
             continue
         return (f"{commit[:8]} changed {outside[0]} after it, neither inside the records "
-                f"set nor a fix commit citing a finding of {rid}")
+                f"set nor a fix commit citing a finding of {rid} at a path it names")
     return ""
 
 
@@ -1465,12 +1544,20 @@ def audit_of(root, head, rid, record, conf, records_set):
     sha, disagreement = agreed(record, ("snapshot.ref_sha", "result.head"), sha=True)
     if sha is None:
         return f"{rid} audited sha {disagreement}", f"re-run the {AUDIT_JOB} at the head"
-    findings = field(record, "result.envelope.findings") or []
+    if not a_commit_id(sha):
+        return (f"{rid} audited sha {sha[:24]!r} is not a commit id",
+                (f"re-run the {AUDIT_JOB} at the head; the record's sha reaches git as "
+                 "a range operand and is 7 to 40 hex characters, never an option"))
+    findings = field(record, "result.envelope.findings")
+    if not isinstance(findings, list):
+        return (f"{rid} carries no result.envelope.findings array",
+                (f"commit the closed record of the {AUDIT_JOB} with its envelope; an "
+                 "absent findings array is not an audit with nothing left to dispose"))
     if sha != head:
         if not records_set:
             return ("the audit row declares no records set",
                     "add `records` to the audit row of ops/devlane/hooks/boundaries.json")
-        void = voided_by(root, sha, head, rid, len(findings), records_set,
+        void = voided_by(root, sha, head, rid, findings, records_set,
                          conf.get("TRUNK_BRANCH"))
         if void is None:
             return (f"git could not read {sha[:8]}..{head[:8]}",
@@ -1478,7 +1565,8 @@ def audit_of(root, head, rid, record, conf, records_set):
         if void:
             return (f"{rid} audited {sha[:8]}; {void}",
                     (f"re-run the {AUDIT_JOB} at {head[:8]}, or apply it as a fix "
-                     f"commit citing `Finding: {rid}#<n>` with its `Verified:` line"))
+                     f"commit citing `Finding: {rid}#<n>` with its `Verified:` line, "
+                     "at least one of whose touched paths that finding's `where` names"))
     disposed = dispositions_at(root, head)
     undisposed = [f"{rid}#{n}" for n in range(1, len(findings) + 1)
                   if (disposed.get(f"{rid}#{n}") or "open") == "open"]

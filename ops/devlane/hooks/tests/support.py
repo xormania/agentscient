@@ -333,10 +333,13 @@ DISPATCH_RECORDS = ".dev/records/dispatches"
 FINDINGS_EXPORT = "ops/conductor/findings/findings.jsonl"
 
 
+AUDIT_WHERE = "ops/devlane/hooks/claude/new.py"
+
+
 def security_audit_record(*, audited, findings=2, job="security-audit",
                           status="closed", harness="codex", ran=AUDIT_MODEL,
                           requested=AUDIT_MODEL, ref=None, result_head=None,
-                          base=None):
+                          base=None, where=AUDIT_WHERE):
     """A security-audit dispatch record shaped as launch.py writes one.
     The head is snapshot.ref_sha and result.head, which agree on a read-role
     job because it commits nothing; lineage.base_sha is the base."""
@@ -354,7 +357,7 @@ def security_audit_record(*, audited, findings=2, job="security-audit",
             "envelope": {
                 "job": job, "status": "ok", "verdict": "changes",
                 "findings": [
-                    {"severity": "p1", "where": f"a.py:{n}", "claim": f"finding {n}"}
+                    {"severity": "p1", "where": f"{where}:{n}", "claim": f"finding {n}"}
                     for n in range(1, findings + 1)],
             },
         },
