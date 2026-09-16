@@ -2,8 +2,13 @@
 
 Seat: PT-11, the XO (agentscient-43). Grant 290, provenance M-124 from
 PT-9, validated 19:14:35Z. Branch `lane/session-20260916-43`, cut from
-d919c982. Rows: LD-81, LD-82, LD-83, in commits 4031fe6a and 57ea17f6.
+d919c982. Rows: LD-95, LD-96, LD-97, in commits 4031fe6a and 57ea17f6.
 Threads: H-19, T-131 to T-135.
+
+The rows were filed as LD-81, LD-82 and LD-83 and renumbered to LD-95,
+LD-96 and LD-97 at 20:09Z, because the id lever handed out ids that
+were free on the trunk and taken elsewhere. See "The id collision"
+below.
 
 xo-aar-marker-2026-09-16-PT11
 
@@ -59,13 +64,13 @@ Not by a rule in a message. D-PATTERN-1 asks for a mechanism, a
 refusal, a planted fault, or a record, and this is the record, with the
 planted faults specified in the rows and not yet written:
 
-- **LD-81** — a measure reads once. A measure that invokes the same
+- **LD-95** — a measure reads once. A measure that invokes the same
   reader twice is not a measure. The tests field forbids, by name,
   proving anything about a measure by reconstructing it in a shell.
   The row carries all three wrong accounts, mine included, so the next
   session reads why the prohibition is there rather than just that it
   is.
-- **LD-82** — the gate that asks a session for a lock line asks it of a
+- **LD-96** — the gate that asks a session for a lock line asks it of a
   lever that is not a reliable read. `deliverable.py show` answered in
   full at 19:15:5xZ and timed out at 30s at 19:17:59Z from the same
   directory; the compaction onboard logged it UNREACHABLE after a 5s
@@ -74,7 +79,7 @@ planted faults specified in the rows and not yet written:
   it at 19:24Z, taking the lock to 24 branches. A session whose `show`
   times out cannot produce the line the gate asks for and cannot
   satisfy it by working.
-- **LD-83** — `usage.py report` answers an unusable path with silence
+- **LD-97** — `usage.py report` answers an unusable path with silence
   at exit 0. e3's finding, measured by e3 at 19:16Z, filed attributed
   and not re-measured by me.
 
@@ -117,5 +122,38 @@ beside it. e3 measured that independently — PT-9's transcript at
 One label error of mine: I addressed several seats about "M-124", which
 is my own row. Each seat has its own — 82's M-127, e3's M-128, c1's
 M-129. Each of them found theirs regardless and said so.
+
+## The id collision, found while routing another seat's stranded work
+
+`defects.py next` fetches `origin/dev` and answers with the first id
+free there. It answered LD-81 for me at 19:25:34Z, and LD-81 was
+genuinely absent from `d919c982`, the commit this branch was cut from
+— `git cat-file -e d919c982:ops/conductor/handoff/lane-defects/LD-81.md`
+reads ABSENT. By 20:08Z `origin/dev` had moved 21 commits to 5e707cfa
+and carried a different LD-81, about the conductor suite's per-test
+time. Two rows, one id, neither aware of the other.
+
+The trunk is only half of it. Measured at 20:07:55Z, branch
+`lane/session-20260916-09` holds seven commits that are on no other
+branch, has no pull request in any state
+(`gh pr list --state all --head` returns `[]`), and its last commit is
+stamped 2026-09-16T15:20:09Z. It carries LD-81 and LD-83 of its own,
+plus LD-84 through LD-90. Its session is PT-7, which last wrote before
+16:02Z. So five to nine records have no route to the trunk, and the
+ids they hold are invisible to the lever that hands out the next one.
+
+Counted across `origin/dev`, `lane/session-20260916-09`,
+`lane/session-20260916-f2` and this branch at 20:08Z, the highest id
+observed anywhere is 93, while `ledger.py next defects` answers 94 and
+agentscient-f2 read an LD-94 at 18:43:26Z that is on no origin branch.
+These three rows took 95, 96 and 97 to clear all of it.
+
+This is the collision S2 exists to close, measured live, with three
+seats inside it: PT-7's stranded rows, f2's LD-94 reading, and mine.
+It is also the second time today that a lever answered a question
+about the world by looking at one branch: LD-95 is a measure that
+reads a moving counter twice, and this is an id allocator that reads
+one ref once. The shape is the same — a reading taken where the
+answer does not live.
 
 Source: owner 2026-09-16
