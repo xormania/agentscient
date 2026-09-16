@@ -16,6 +16,37 @@ Class 1a of the 2026-09-16 issues: state kept as a flat file, or a git row, with
 - `defects.py`, and every shim over `ledger.py`, keeps its spelling; the ideas register (handwritten) reserves through `next` the same way.
 - `highest()` keeps its bounded fetch of `origin/<trunk>`: the reservation adds same-host atomicity, the fetch keeps cross-host awareness.
 
+  Amended 2026-09-16 under CO ruling M-155, beneath the line and not over it:
+  the bounded trunk fetch is no longer the whole of the read. `highest()` now
+  also reads every ref this repository holds, after a fetch of origin, so an id
+  taken on a branch that has not merged is not offered again. The two are
+  different mechanisms closing different windows, and this slice keeps both:
+  the reservation table closes the same-host race between two live sessions,
+  which a ref read cannot see because the second session has not committed yet;
+  the ref-wide read closes the unmerged-branch window, which the table cannot
+  see because the store is host-local and the brief's own "Not covered" says so.
+  The evidence for the second window, all 2026-09-16: ten ids on this repository
+  carried two different rows, LD-81 three; at 19:25:34Z a session filed LD-81,
+  LD-82 and LD-83 on ids `next` called free, the trunk moved 21 commits and
+  landed a different LD-81 underneath, and all three were renumbered by hand at
+  20:09:44Z in commit 16cd0e38. `lane/session-20260916-09` holds nine ids with
+  no pull request in any state and a session that last wrote before 16:02Z, so
+  its ids will never reach a merge for the add/add backstop to object to. S2 as
+  briefed is unchanged and stays open, to run through its four dispatched jobs;
+  nothing in the ref-wide read narrows it.
+
+  The lane took a collision through each window on 2026-09-16, which is why
+  neither mechanism is the other's substitute. Through the unmerged-branch
+  window: LD-81, LD-82 and LD-83 above. Through the read-to-write window:
+  LD-105, where two seats took LD-103 five seconds apart -- commit 9aaf761b at
+  17:01:32-04:00 and commit d66df982 at 17:01:37-04:00 -- both having scanned
+  all 393 origin refs for the highest id, both correctly reading LD-102, and
+  both correct at the instant they read. The ref-wide read does not prevent
+  that one and does not claim to; only a mint taken in one transaction does,
+  which is this brief's `reserve()`. Recorded here so that a collision through
+  the second window is not misfiled as a recurrence against the first window's
+  repair (D-PATTERN-1: a recurrence after a fix is a defect against the fix).
+
 ## Planted faults and the clean neighbour
 
 Faults file `ops/conductor/tests/ledger_faults.py`, the shape of `ladder_faults.py` (`Mutant` from the kit; `cases.py calibrate`):

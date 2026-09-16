@@ -14,9 +14,11 @@ merge-forwards since 2026-09-11 and pitfalls-20260911.md on one, each
 session appending its row at the same line of one table. A ledger here
 is a page whose table stops at a row, a directory of one file per row
 after it, an id shape and a field list. The next id is one past the
-highest in the table and the directory, so the only conflict left is the
-same id minted by two sessions before either lands: an add/add on one
-file that git names. defects.py is a shim over the defects ledger.
+highest in the table, the directory, and every ref this repository
+holds, so a row minted on a branch that has not merged is taken rather
+than offered again (2026-09-16, CO ruling M-155). The conflict left is a
+row written by hand, which the lever is never asked about: an add/add
+on one file that git names. defects.py is a shim over the defects ledger.
 
 Follows instrument-conventions.md: the lever works on the repository of
 its cwd and refuses `repository` outside one; writing verbs need an
@@ -144,9 +146,64 @@ def by_number(root: Path, spec: dict[str, object]) -> dict[int, list[str]]:
     return found
 
 
+def minted_anywhere(root: Path, spec: dict[str, object]) -> tuple[int, bool]:
+    """The highest id any commit in this repository ever added, over every
+    ref, in one spawn.
+
+    `highest` read the working tree, the page's table and origin/<trunk>.
+    A row minted on a branch that has not merged is in none of the three,
+    so two sessions minting between merges are handed the same number.
+    Measured on 2026-09-16 over 1,264 refs: ten ids carry two different
+    rows, LD-81 four; at 19:25:34Z one session filed LD-81, LD-82 and
+    LD-83 on ids `next` had just called free, and at 20:09:44Z renumbered
+    all three by hand after the trunk moved 21 commits and landed a
+    different LD-81 underneath it. Twelve ids existed off the trunk and
+    were invisible here.
+
+    `--all` is every ref under refs/, so a row that only ever lived in a
+    dispatch snapshot counts too, and `--no-renames` keeps a row that was
+    renumbered away counted under the number it vacated -- an id once
+    used is never handed out a second time.
+
+    Returns what it found and whether it could look. A git that cannot
+    answer is not a zero: on `False` the caller refuses class `refs`
+    rather than minting off a silence (docs/wire.md, absence discipline).
+    An operator who sets LEDGER_REFS=local has declared that limit
+    instead, and the answer is off this repository's refs alone.
+    """
+    entry = entry_re(spec)
+    # `--all` reads only the refs this repository already holds, and trunk_ref
+    # fetches origin/<trunk> by refspec, which leaves every other branch stale
+    # or absent -- so a row another session pushed to its own branch would still
+    # be invisible, which is the collision this reader exists to close. Fetch
+    # every branch first, and say so on stderr, never on stdout.
+    if os.environ.get("LEDGER_REFS") == "local":
+        # The operator has declared the limit rather than inheriting it: the
+        # answer is off this repository's refs alone and may be low.
+        print("LEDGER_REFS=local: ids read off this repository's refs alone; "
+              "a branch pushed since the last fetch is not among them",
+              file=sys.stderr)
+    elif git("remote", "get-url", "origin", cwd=root).returncode == 0:
+        if git("fetch", "-q", "origin", cwd=root, timeout=60).returncode != 0:
+            return 0, False
+        print("fetched origin", file=sys.stderr)
+    listed = git("log", "--all", "--no-renames", "--diff-filter=A", "--format=",
+                 "--name-only", "--", f"{spec['rows'].as_posix()}/", cwd=root,
+                 timeout=30)
+    if listed.returncode != 0:
+        return 0, False
+    top = 0
+    for line in listed.stdout.splitlines():
+        m = entry.search(line.strip())
+        if m:
+            top = max(top, int(m.group(1)))
+    return top, True
+
+
 def highest(root: Path, spec: dict[str, object]) -> int:
     """One past this is the next id: the highest over the page's table and
-    the rows directory, in the working tree and on origin/<trunk>.
+    the rows directory, in the working tree, on origin/<trunk>, and on
+    every other ref this repository holds (`minted_anywhere`).
 
     A register with no page (the ideas directory) is read from its rows
     alone; a number already held by two rows does not change what the
@@ -173,6 +230,18 @@ def highest(root: Path, spec: dict[str, object]) -> int:
                 m = entry.search(line.strip())
                 if m:
                     top = max(top, int(m.group(1)))
+    everywhere, looked = minted_anywhere(root, spec)
+    if not looked:
+        # Absence is declared, never inferred (docs/wire.md). An id minted off
+        # refs that could not be refreshed is low by an unknown amount, and the
+        # caller reads stdout, so stderr alone would not reach it.
+        refuse("refs",
+               "every id this repository's refs hold, after a fetch of origin",
+               "origin could not be reached, so the refs may be stale and the "
+               "next id low",
+               "run it where origin answers, or set LEDGER_REFS=local to mint "
+               "off this repository's refs alone and say so in the row")
+    top = max(top, everywhere)
     return top
 
 

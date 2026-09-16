@@ -264,6 +264,111 @@ class TheLedgerLever(unittest.TestCase):
         self.git("merge", "--no-edit", "lane/b")
         self.assertEqual(sorted(p.name for p in (self.repo / PITFALLS_ROWS).iterdir()), ["30.md", "31.md"])
 
+    def test_next_skips_an_id_taken_on_a_branch_the_trunk_has_not_merged(self):
+        """The charge: an id another session pushed to its own branch is
+        taken, and this lever must not hand it out a second time.
+
+        Before this row the lever read the working tree, the page's table
+        and origin/<trunk>, and nothing else, so a row minted on a branch
+        between two merges was invisible. Measured on the lane's own
+        repository on 2026-09-16 over 1,264 refs: ten ids carried two
+        different rows, LD-81 four, and twelve ids existed off the trunk.
+        At 19:25:34Z a session filed LD-81, LD-82 and LD-83 on ids `next`
+        had just called free and renumbered all three by hand at
+        20:09:44Z, after the trunk moved 21 commits underneath it.
+
+        Three arms: the planted fault (taken on an unmerged branch), the
+        vacated id (renumbered away, never re-issued), and the clean
+        neighbour (a ledger nothing touched, whose next id must not move).
+        """
+        self.git("config", "user.email", "fixture@example.invalid")
+        self.git("config", "user.name", "Fixture")
+        self.git("config", "commit.gpgsign", "false")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "seed")
+        origin = self.tmp / "origin.git"
+        self.git("init", "-q", "--bare", "-b", "dev", str(origin))
+        self.git("remote", "add", "origin", str(origin))
+        self.git("push", "-q", "origin", "dev")
+
+        # another session mints pitfall 30 on its own branch and pushes the
+        # branch, never the trunk
+        other = self.tmp / "other"
+        self.git("clone", "-q", str(origin), str(other))
+        for k, v in (("user.email", "fixture@example.invalid"),
+                     ("user.name", "Fixture"), ("commit.gpgsign", "false")):
+            self.git("config", k, v, cwd=other)
+        self.git("checkout", "-q", "-b", "lane/other", cwd=other)
+        env = dict(self.env, WF_AGENT="Other <other@example.test>")
+        minted = run([sys.executable, str(LEVER), "add", "pitfalls",
+                      "--what-bit", "a", "--do-instead", "b"],
+                     env=env, cwd=other, timeout=60)
+        self.assertEqual(minted.stdout.split()[0], "30", minted.stderr)
+        self.git("add", "-A", cwd=other)
+        self.git("commit", "-q", "-m", "other: 30", cwd=other)
+        self.git("push", "-q", "origin", "lane/other", cwd=other)
+
+        # the planted fault: 30 is on no trunk, and was handed out anyway
+        absent = run(["git", "-C", str(self.repo), "show",
+                      f"origin/dev:{(PITFALLS_ROWS / '30.md').as_posix()}"],
+                     cwd=self.repo, env=self.env, timeout=60)
+        self.assertNotEqual(absent.exit, 0,
+                            "the fixture is wrong if the trunk already carries 30")
+        proc = self.run_lever("next", "pitfalls", identity=False)
+        self.assertEqual(proc.stdout.strip(), "31",
+                         "30 is taken on a branch the trunk has not merged")
+        self.assertIn("fetched origin", proc.stderr,
+                      "the branch is only visible after a fetch, and the fetch "
+                      "is said on stderr")
+
+        # the vacated id: renumbering 30 to 40 must not free 30 or hide 40
+        self.git("mv", (PITFALLS_ROWS / "30.md").as_posix(),
+                 (PITFALLS_ROWS / "40.md").as_posix(), cwd=other)
+        self.git("commit", "-q", "-m", "other: 30 renumbered to 40", cwd=other)
+        self.git("push", "-q", "origin", "lane/other", cwd=other)
+        proc = self.run_lever("next", "pitfalls", identity=False)
+        self.assertEqual(proc.stdout.strip(), "41",
+                         "40 is taken and 30 was used; neither is handed out again")
+
+        # the clean neighbour: a ledger nothing has touched does not move
+        proc = self.run_lever("next", "defects", identity=False)
+        self.assertEqual(proc.stdout.strip(), "LD-36",
+                         "the reader must stay quiet on a ledger with no branch rows")
+
+    def test_next_refuses_when_origin_cannot_be_reached_and_says_the_way_round(self):
+        """The charge: minting reads every ref, which means it reads the
+        network, and an id read off refs that could not be refreshed is
+        low by an unknown amount. The caller reads stdout, so saying it on
+        stderr would not reach them: the read refuses on the wire instead.
+
+        Asked for by the XO on 2026-09-16 against this row, as the same
+        shape as an empty answer that reads as a confident one -- the
+        fault four sessions committed that day. Two arms: the planted
+        fault, an origin that cannot be reached; and the named remedy,
+        LEDGER_REFS=local, which is the operator declaring the limit
+        rather than inheriting it in silence.
+        """
+        self.git("config", "user.email", "fixture@example.invalid")
+        self.git("config", "user.name", "Fixture")
+        self.git("config", "commit.gpgsign", "false")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "seed")
+        self.git("remote", "add", "origin", str(self.tmp / "no-such-origin.git"))
+
+        self.assert_wire(self.run_lever("next", "pitfalls", identity=False), "refs")
+        self.assert_wire(
+            self.run_lever("add", "pitfalls", "--what-bit", "a", "--do-instead", "b"),
+            "refs")
+
+        env = dict(self.env, LEDGER_REFS="local")
+        proc = run([sys.executable, str(LEVER), "next", "pitfalls"],
+                   env=env, cwd=self.repo, timeout=60)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "30",
+                         "the declared-local read still answers off this repository")
+        self.assertIn("LEDGER_REFS=local", proc.stderr,
+                      "the limit is said, and said on stderr so stdout carries only the id")
+
 
 if __name__ == "__main__":
     unittest.main()
