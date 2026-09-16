@@ -142,7 +142,7 @@ and a 900s timeout as wall work (per-job detail is Fable's/Opus's to
 cite). No session-side clip hook: reading 10 shows at most 2.8% savings
 at 8,192 — not enough to justify wall work. `caps.output_bytes` is
 dropped outright (reading 12), not queued. Wall slice (caps on the four
-uncapped jobs, the brief line, LD-47) to agentscient-db, session -h.
+uncapped jobs, the brief line, LD-47) to the wall session, agentscient [48b89b], session -h.
 LD-45 (session-count stamp disagrees with its list, e9fa003e). LD-46
 (turn cap does not bind — filed as 60/87 raw `messages`; corrected
 above: true turns stay under cap at 71–98; LD-46 unedited, append-only).
@@ -179,7 +179,7 @@ the two counts was the wrong repair). LD-44/T-63 at 7c8c16a6 (`usage.py
 as an answer; not touched by abf766b5, which only fixed `worth.py`).
 Queued: T-71, LD-48, identity precedence, cwd-under-repo comparison.
 New defects: LD-48 at 8bfd7706 (the onboard brief reads lock contention
-under five sessions as an unavailable lock, agentscient-db). LD-49 at
+under five sessions as an unavailable lock, the wall session, agentscient [48b89b]). LD-49 at
 6fd0ba3b on lane/session-20260915-e (agentscient-1c): the lock records
 `by` only at the lock level, and `add` overwrites it, so `show` cannot
 say who added a given branch target.
