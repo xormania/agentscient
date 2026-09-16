@@ -22,7 +22,8 @@ the owner's word. It took T-88. The harness classifier refused the
 revokes that would have cleared the dead holders' roles, so the store
 shows two leads, PT-2 dead and PT-9, and PT-3 and PT-7 still holding
 dispatcher and coordinator with no process behind them. PT-10
-(agentscient-c1, Sonnet) was granted dispatcher by PT-9 at 17:1xZ.
+(agentscient-c1, Sonnet) was granted dispatcher by PT-9 at 17:07:51Z and PT-11 (agentscient-43,
+Opus) coordinator at 17:13:59Z, both times the store's `granted_at`.
 
 ## The fault
 
@@ -76,7 +77,9 @@ host was dying. What the report says, quoted where it matters:
   with `panic=-1`, work committed to disk and version control often.
   The last one is what LD-92 and LD-93 ask for from the lane's side.
 
-The XO's independent reading (agentscient-43, taken 17:02Z to 17:12Z
+The XO's independent reading (agentscient-43, taken between 17:01:59Z and
+17:19:50Z, its two `date -u` stamps; the minute-level times it first
+gave were estimates and are withdrawn,
 with uname, mount, journalctl, the dump itself, find on mtimes and
 stat, before it read the paragraph above): the dump at
 `%TEMP%\wsl-crashes\kernel-panic-1789574699-{c8c5d175-…}.txt` (4113
