@@ -1355,10 +1355,10 @@ def branch_commits(root, sha, head, trunk):
     A forward merge of the trunk never voids the audit: the dispatcher merges
     the trunk into the branch before every launch, so a rule that judged
     every commit in the range voided every branch that had dispatched
-    anything (agentscient-11, 2026-09-16, measured on #242). ``--first-parent``
-    keeps the walk on this branch's own line, ``--no-merges`` drops the merge
-    commits themselves, and ``--not origin/<trunk>`` drops what the trunk
-    already carries."""
+    anything (2026-09-16, measured on #242; the ruling and who made it are
+    in CONTRIB.md's audit row). ``--first-parent`` keeps the walk on this
+    branch's own line, ``--no-merges`` drops the merge commits themselves,
+    and ``--not origin/<trunk>`` drops what the trunk already carries."""
     argv = ["git", "-C", root, "log", "--reverse", "--first-parent", "--no-merges",
             "--format=%H", f"{sha}..{head}"]
     if trunk and ref_known(root, f"origin/{trunk}"):
