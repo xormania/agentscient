@@ -1,0 +1,224 @@
+{
+  "id": "20260916T093722Z-code-grok-7f0bcf",
+  "lane": "dev",
+  "stage": "code",
+  "unit": "lane/session-20260916-i",
+  "lineage": {
+    "branch": "lane/session-20260916-i",
+    "base_sha": "46639344d5623c36a96ed27436952db3786f8084"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "author-tests",
+  "role": "write",
+  "dispatched_by": "Claude Sonnet 5 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T09:37:22Z",
+    "closed": "2026-09-16T09:52:40Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "46639344d5623c36a96ed27436952db3786f8084",
+    "ref_sha": "46639344d5623c36a96ed27436952db3786f8084",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "f2bd91a9-6525-4b6f-8f21-c77398d67ec4",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/prompt.txt",
+      "--max-turns",
+      "200"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok-stream/sessions/<snapshot-encoded>/f2bd91a9-6525-4b6f-8f21-c77398d67ec4/summary.json"
+  },
+  "session": {
+    "id": "f2bd91a9-6525-4b6f-8f21-c77398d67ec4",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok-stream/sessions/<snapshot-encoded>/f2bd91a9-6525-4b6f-8f21-c77398d67ec4/summary.json",
+    "stream_sha256_at_close": "3cb80028c297d563d0b53beced40dcef238f8e86dbfbd34a1d8451f81867ba1f",
+    "spend": {
+      "input": 3025395,
+      "cached": 2884992,
+      "output": 50797,
+      "total": 3076192,
+      "cost_usd_ticks": 6895485600,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok-stream/sessions/<snapshot-encoded>/f2bd91a9-6525-4b6f-8f21-c77398d67ec4/summary.json",
+      "messages": 245
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "author-tests for S5 wrapper-hermetic-store. Subject: the fixture of ops/conductor/tests/test_dispatch_wrapper.py and ops/conductor/tests/test_dispatch_wrapper_ld16.py against ops/conductor/tools/dispatch.sh. Write rows by id: record-lands-in-world-jobs, jobs-root-under-world-state, concurrent-entry-not-ours, host-store-untouched-by-construction; the fixture watches only the world's jobs root and never a host path; a faults file dispatch_wrapper_faults.py with M-ignore-jobs-env and M-host-home on a copy of the wrapper. Keep every existing row id. Kit from the repository root; run with timeouts; each case executes the wrapper and asserts what it did; prove red at the ref on the fixture's host watch. The brief in --input carries the rest.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/in/brief.md",
+        "sha256": "eedad990b0fc3e391fda7384fcd0bd1a57ac43989359e11c5ed8a34940ddd769"
+      }
+    ],
+    "sha256": "0c7c140d6de66be3023c96ed9e76feca4e6701a75335fde5af4e1d8cbd5d7d17",
+    "bytes": 11003,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/lane-mcp.json",
+      "sha256": "630a9e1c537f35aa3762c45c6bf8a0e7fcf73e5ef37873012ddccf892a2bd818",
+      "job_ids": [],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 200,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "200"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T09:37:23Z",
+      "ended": "2026-09-16T09:52:40Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "461a7e0157ad899a21715bc2e423fb78fcf5de36",
+    "changed_paths": [
+      "ops/conductor/tests/dispatch_wrapper_faults.py",
+      "ops/conductor/tests/test_dispatch_wrapper.py"
+    ],
+    "residual_paths": [],
+    "envelope": {
+      "job": "author-tests",
+      "status": "ok",
+      "verdict": null,
+      "counts": {
+        "p1": 0,
+        "p2": 0,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [],
+      "artifacts": {
+        "tests": "ops/conductor/tests/test_dispatch_wrapper.py",
+        "faults": "ops/conductor/tests/dispatch_wrapper_faults.py",
+        "base": "46639344d5623c36a96ed27436952db3786f8084",
+        "faults_commit": "f5f27de0b5fd3836f7529c4c2d9caac6b9a06bf0",
+        "tests_commit": "461a7e0157ad899a21715bc2e423fb78fcf5de36",
+        "red": "FAIL: test_concurrent_entry_not_ours AssertionError fixture watches /home/scientdb/.local/state/agentscient/dispatch not <world>/jobs"
+      },
+      "spend": {
+        "harness": "grok",
+        "total": 3076192,
+        "out": 50797,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "46639344d5623c36a96ed27436952db3786f8084",
+        "started": "2026-09-16T09:37:22Z",
+        "ended": "2026-09-16T09:51:56Z"
+      },
+      "note": "S5 rows record-lands-in-world-jobs, jobs-root-under-world-state, concurrent-entry-not-ours, host-store-untouched-by-construction are in test_dispatch_wrapper.py; existing row ids unchanged; ld16 kept. concurrent-entry-not-ours is red at 46639344 on the fixture host watch. record-lands-in-world-jobs OK on clean, FAIL on M-ignore-jobs-env (printed id absent from world jobs). jobs-root-under-world-state OK on clean, FAIL on M-host-home (record missing under XDG_STATE_HOME). host-store-untouched-by-construction OK on the env dict, FAIL when HOME is leaked. Fixture host watch not flipped (implement). reused: testkit.world"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 3,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T093722Z-code-grok-7f0bcf/home/grok-stream/sessions/<snapshot-encoded>/f2bd91a9-6525-4b6f-8f21-c77398d67ec4/summary.json"
+    },
+    "reuse": "testkit.world",
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T09:52:38.769Z"
+    }
+  },
+  "status": "closed"
+}
