@@ -81,7 +81,14 @@ def read_jsonl(path):
 
 
 DENY_MARKER = "hook returned a deny decision"
-WIRE_PARTS = (": expected ", "; found ", "; needed ")
+# The refusal wire as a line: an optional [source] tag, the class token,
+# then expected, found and needed in that order. Anchored at a line start
+# so a result that quotes a wire line inside an assertion message is not
+# a refusal (review of 75f6e9cf).
+WIRE_LINE = re.compile(
+    r"^\s*(?:\[[^\]\n]*\]\s*)?[a-z][a-z0-9-]*: expected .*; found .*; needed ",
+    re.MULTILINE,
+)
 
 
 def _is_refusal_text(text):
@@ -89,7 +96,15 @@ def _is_refusal_text(text):
     (class: expected; found; needed) as a hook prints it since the
     marker stopped prefixing it (measured 2026-09-15 on session
     44f9de58: 30 wire refusals, none with the marker)."""
-    return DENY_MARKER in text or all(part in text for part in WIRE_PARTS)
+    return DENY_MARKER in text or WIRE_LINE.search(text) is not None
+
+
+def _in_repo(cwd, repo):
+    """A row is the repo's when its cwd is the root or a directory under
+    it; a sibling that shares the prefix without the separator is another
+    repository (measured 2026-09-15: 30 usage rows under ops/ and
+    ops/conductor/tools counted as no session's)."""
+    return isinstance(cwd, str) and (cwd == repo or cwd.startswith(repo + os.sep))
 
 
 def _tool_result_denied(message):
@@ -146,7 +161,7 @@ def claude_sessions(root, repo, window, include_unreadable=False):
         refusals = 0
         try:
             for row in rows:
-                if row.get("cwd") != repo:
+                if not _in_repo(row.get("cwd"), repo):
                     continue
                 message = row.get("message") or {}
                 usage = message.get("usage")
@@ -535,9 +550,7 @@ def plain_stamp(stamp):
 
 
 def gather(args, window, include_unreadable=False):
-    # A transcript carries an absolute cwd; a relative --repo (".", the
-    # usual shape from the checkout) matched nothing and read sessions=0.
-    repo = os.path.abspath(str(args.repo))
+    repo = str(args.repo)
     return {
         "claude": claude_sessions(
             args.claude_dir, repo, window, include_unreadable),
@@ -844,6 +857,11 @@ def main(argv=None):
         str(default_state / laneconf.get("LANE_NAME") / "dispatch"),
     ))
     args = parser.parse_args(argv)
+    # One resolution for every reader: a transcript carries an absolute
+    # cwd, and a relative --repo (".", the usual shape from the checkout)
+    # matched nothing and read sessions=0 (T-56). Resolved here so the
+    # session, dispatch and stamp halves see one path (review of 75f6e9cf).
+    args.repo = os.path.abspath(str(args.repo))
 
     try:
         if args.claude_dir is None:

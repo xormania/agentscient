@@ -30,11 +30,14 @@ test-definition count at each window edge with its delta.
 `--claude-dir` has no command-line default. When omitted it is read from
 `CLAUDE_DIR` in the lane configuration; a relative value is resolved against
 the user's home directory, and a missing key refuses as `conf-key`.
-`--repo` is taken as an absolute path: a relative value, `.` from the
-checkout being the usual shape, is resolved against the working directory
-before it is compared with a transcript's absolute `cwd` (measured
-2026-09-15: `--repo .` printed `claude sessions=0` for a window in which
-three sessions ran; the absolute path found four).
+`--repo` is taken as an absolute path, resolved once when the arguments
+are parsed, so the session, dispatch and stamp readers see one path: a
+relative value, `.` from the checkout being the usual shape, is resolved
+against the working directory (measured 2026-09-15: `--repo .` printed
+`claude sessions=0` for a window in which three sessions ran; the
+absolute path found four). A Claude row is the repo's when its `cwd` is
+the root or a directory under it; a sibling directory that shares the
+prefix without the separator is another repository.
 
 Ranks sessions by total tokens and names, for each: the harness, the
 session id, messages (or runs), out, and cached tokens. Claude rows also carry
@@ -97,10 +100,12 @@ agent decides what to change; the tool only points.
    (input plus both caches) over that population, and tool-result deny
    `refusals`. A refusal requires `is_error=true` and, in the result's
    text, either the deny marker (`hook returned a deny decision`) or the
-   refusal wire (`: expected `, `; found ` and `; needed ` all present):
-   a hook's refusal reaches the transcript without the marker (measured
+   refusal wire as a line: an optional `[source]` tag, the class token,
+   then `expected`, `found` and `needed`, anchored at a line start. A
+   hook's refusal reaches the transcript without the marker (measured
    2026-09-15 on session 44f9de58, 30 wire refusals, none marked). The
-   wire in a result that is not an error is not a refusal.
+   wire in a result that is not an error is not a refusal, and neither is
+   a wire line quoted inside an assertion message of an errored result.
    Malformed retained usage values, including negative and non-finite values,
    produce an explicit unrecorded gap. Zero and valid nonnegative numeric
    values retain their existing meaning. An
