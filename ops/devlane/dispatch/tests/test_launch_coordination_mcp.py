@@ -56,7 +56,7 @@ def catalogue():
     store inside a case.
     """
     text = ACTING.read_text(encoding="utf-8")
-    return sorted(set(re.findall(r'^    Tool\("([\w]+)"', text, re.M)))
+    return sorted(set(re.findall(r'^    Tool\("([\w]+)"', text, re.MULTILINE)))
 
 
 class _Acting(ls.CoordinationCore, ls._TempLaunch):
