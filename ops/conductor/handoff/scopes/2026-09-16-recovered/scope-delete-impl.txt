@@ -1,5 +1,5 @@
 Add the boundaries.json row that refuses an agent's deletion of a git ref,
-and the predicate it fires on. The rows that must go green are already
+and the shape it fires on. The rows that must go green are already
 written and committed by another producer in ops/devlane/hooks/tests/; run
 them, do not edit them, and do not add to them.
 
@@ -11,11 +11,13 @@ Each in its `git -C <path>` form too.
 
 Escape `ask`, not deny: deleting a branch destroys history and no agent
 forges the owner's click. boundaries.json line 567 carries that authority.
-The refusal names the retirement index as what must exist first and the
-owner as the only deleter.
+The refusal names AGENTS.md's "never a deleted branch" as the standing
+rule and the owner as the only deleter.
 
-This needs its own predicate. prune_targets at matrix.py:706 returns []
-unless the first token is rm, so widening it reaches no git command.
+Add the row as data in the force-push shape (boundaries.json, when.pred
+command_matches); write a predicate only if you can show the regex cannot
+express a shape. prune_targets at matrix.py:706 returns [] unless the
+first token is rm, so widening it reaches no git command.
 
 An ordinary push, a push of a new branch, git branch with no delete flag
 and a plain `rm -r` must all still pass; `rm -r` belongs to another row.

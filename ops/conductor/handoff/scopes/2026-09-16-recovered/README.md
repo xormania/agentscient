@@ -21,3 +21,12 @@ scope-delete-tests.txt first, then grok `implement` on
 scope-delete-impl.txt with the test file outside its scope. The
 delete-row scopes name wall paths (`ops/devlane/hooks/tests/`,
 `boundaries.json`) and so run in their own worktrees under a wall grant.
+
+Amended 2026-09-16 by the Lead (PT-9) on agentscient-e3's preflight
+(readings 18:14Z-18:20Z against dev d919c982): both delete scopes no
+longer order a predicate (the force-push row in boundaries.json is the
+precedent, matched by `command_matches`), the tests scope stays
+mechanism-neutral, and the refusal names AGENTS.md's "never a deleted
+branch" instead of a retirement index that does not exist. Added
+`scope-fall-in.txt` and `chain-tests-draft.diff`, the fall-in the owner
+asked for at 18:1xZ, for the XO to delegate.
