@@ -347,40 +347,6 @@ def _script_text(value) -> str:
     return ""
 
 
-def _live_fixture_roots() -> list[Path]:
-    paths: list[Path] = []
-    xdg = os.environ.get("XDG_STATE_HOME")
-    if xdg:
-        paths.append(Path(xdg) / "agentscient" / "fixtures")
-    paths.append(Path.home() / ".local" / "state" / "agentscient" / "fixtures")
-    unique: list[Path] = []
-    seen: set[Path] = set()
-    for path in paths:
-        resolved = path if not path.exists() else path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        unique.append(path)
-    return unique
-
-
-def _live_findings_stores() -> list[Path]:
-    paths: list[Path] = []
-    xdg = os.environ.get("XDG_STATE_HOME")
-    if xdg:
-        paths.append(Path(xdg) / "agentscient" / "findings.db")
-    paths.append(Path.home() / ".local" / "state" / "agentscient" / "findings.db")
-    unique: list[Path] = []
-    seen: set[Path] = set()
-    for path in paths:
-        resolved = path if not path.exists() else path.resolve()
-        if resolved in seen:
-            continue
-        seen.add(resolved)
-        unique.append(path)
-    return unique
-
-
 def _where(span: dict) -> str:
     path = span.get("path")
     lines = span.get("lines")
@@ -987,17 +953,25 @@ class SymfonyAppManifest(unittest.TestCase):
 
 
 class _RepoFreeze(unittest.TestCase):
-    """Live fixture roots, findings store, calibration export, and this repo stay put."""
+    """The tracked calibration export and this repo stay put.
+
+    Every subprocess this fixture runs (fixture.sh, git, composer, phpunit,
+    php) goes through self.env()/self.scratch_env()/self.git_env(), which
+    all route through self.world.env() and so carry HOME and
+    XDG_STATE_HOME redirected to this World's own tree (docs/tests.md
+    \xa7World; ops/testkit/world.py). A subject run that way cannot reach
+    ~/.local/state/agentscient/findings.db or .../fixtures on the real
+    host, so watching those paths proved nothing about the subject and
+    only failed when another session on the shared host wrote to its own
+    live store mid-run (LD-80).
+    """
 
     def setUp(self):
         self.world = World(prefix="symfony-app-")
         self.addCleanup(self.world.close)
         self.world.require("git")
         self.world.require("bash")
-        self._live = self.world.watch(
-            *(_live_fixture_roots() + _live_findings_stores() + [CALIBRATION]),
-            contents=False,
-        )
+        self._live = self.world.watch(CALIBRATION, contents=False)
         env = self.world.env()
         self._head_before = run(
             ["git", "rev-parse", "HEAD"],
@@ -1022,7 +996,7 @@ class _RepoFreeze(unittest.TestCase):
 
     def tearDown(self):
         self._live.assert_unchanged(
-            self, "live fixture, findings store, or tracked calibration.jsonl mutated"
+            self, "tracked calibration.jsonl mutated"
         )
         env = self.world.env()
         head_after = run(
