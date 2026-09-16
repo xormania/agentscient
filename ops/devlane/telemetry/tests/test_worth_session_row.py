@@ -32,6 +32,11 @@ WIRE_REFUSAL = (
     "that claims to carry its reading; found a commit message with none; "
     "needed the reading beside the claim"
 )
+QUOTED_REFUSAL = (
+    "FAIL: test_refuses_without_identity\n"
+    "AssertionError: 'identity: expected WF_AGENT; found unset; "
+    "needed set it' != ''"
+)
 
 
 def _plain_field(plain, name, value):
@@ -55,11 +60,11 @@ class WasteSessionBudgetRow(unittest.TestCase):
         self._write_jsonl = self.w._write_jsonl
         self._slug = self.w._slug
 
-    def _assistant(self, session_id, mid, timestamp, usage, content=None):
+    def _assistant(self, session_id, mid, timestamp, usage, content=None, cwd=None):
         return {
             "type": "assistant",
             "timestamp": timestamp,
-            "cwd": str(self.w.repo),
+            "cwd": str(cwd or self.w.repo),
             "sessionId": session_id,
             "message": {
                 "id": mid,
@@ -283,7 +288,10 @@ class WasteSessionBudgetRow(unittest.TestCase):
         refusals=0 for session 44f9de58 where 30 tool results carried
         is_error and the refusal wire with no "hook returned a deny
         decision" prefix. The same wire in a tool result that is not an
-        error is the clean neighbour and stays uncounted.
+        error is the clean neighbour and stays uncounted, and so is an
+        errored result that only quotes a wire line inside an assertion
+        message (review of 75f6e9cf by Claude Opus 5, P3: the shape a
+        failed lane suite produces).
         """
         session_id = "wire-sess"
         self._plant_transcript(session_id, [
@@ -301,11 +309,44 @@ class WasteSessionBudgetRow(unittest.TestCase):
             self._tool_result(session_id, "2026-08-22T10:00:05.000Z", WIRE_REFUSAL, True),
             self._tool_result(session_id, "2026-08-22T10:00:10.000Z", WIRE_REFUSAL, False),
             self._tool_result(session_id, "2026-08-22T10:00:15.000Z", COMMAND_ERROR, True),
+            self._tool_result(session_id, "2026-08-22T10:00:20.000Z", QUOTED_REFUSAL, True),
         ])
         plain, data = self._waste()
         row = self._row(data, session_id)
         self.assertEqual(row["refusals"], 1)
         self.assertIsNotNone(_plain_field(plain, "refusals", 1), plain)
+
+    def test_a_cwd_inside_the_repo_counts_and_a_sibling_prefix_does_not(self):
+        """Scenario: a session run from a directory inside the checkout is the checkout's
+
+        origin: review of 75f6e9cf (Claude Opus 5): exact equality on cwd
+        dropped rows whose cwd was ops/conductor/tools or ops under this
+        repo (30 usage rows over the store, measured 2026-09-15). A sibling
+        directory that shares the prefix without the separator is another
+        repository and stays out.
+        """
+        usage = {
+            "input_tokens": 10,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 40,
+        }
+        inside = self.w.repo / "ops" / "conductor" / "tools"
+        sibling = self.w.root / (self.w.repo.name + "-other")
+        self._plant_transcript("inside-sess", [
+            self._assistant("inside-sess", "m1", "2026-08-22T10:00:00.000Z", usage, cwd=inside),
+        ])
+        self._plant_transcript("sibling-sess", [
+            self._assistant("sibling-sess", "m1", "2026-08-22T10:00:00.000Z", usage, cwd=sibling),
+        ])
+        plain, data = self._waste()
+        row = self._row(data, "inside-sess")
+        self.assertEqual(row["turns"], 1)
+        self.assertEqual(
+            [r for r in data["sessions"] if isinstance(r, dict) and r.get("session") == "sibling-sess"],
+            [],
+        )
+        self.assertNotIn("sibling-sess", plain)
 
     def test_unreadable_transcript_prints_unrecorded_never_zero(self):
         """Scenario: an unreadable transcript prints unrecorded for turns, avg_context, and refusals"""
