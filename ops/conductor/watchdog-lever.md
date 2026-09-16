@@ -48,8 +48,31 @@ before it settles the record.
 ## The lines
 
 Each line is printed once per record (or per key) for the life of the
-process. Records already closed when the process starts are not
-reported unless `--report-existing`.
+process. Whatever the process can already see when it starts is backlog:
+a record already closed, a job directory with no record copy, and a job
+directory whose inputs cannot be read. Nothing about backlog is
+reported — not the `closed` line, not a `deviation` line, not
+`no record copy`, not `drift`, not the `watchdog error` line for its
+unreadable inputs. `--report-existing` asks for backlog and reports
+every one of those lines once. The silence belongs to the condition and
+not to the name: each backlog name is held with the kind and input
+fingerprint it was found in, and a record whose kind or fingerprint
+changes is no longer that condition, so it speaks again in every family.
+A directory whose inputs cannot be read is fingerprinted by its reason —
+the refusal's own words and the no-follow metadata of every watched
+input, none of them opened — so one unreadable condition replaced by
+another is a change and speaks; a family that fingerprinted as nothing
+would be keyed to the name after all (the Daybreak audit,
+20260916T092226Z-review-codex-12e47c, 2026-09-16).
+Only what changes after start speaks — a record that closes, a directory
+that appears, a backlog directory that gains a record, an amended
+record, inputs that become unreadable — and all of it is reported
+without the flag (owner, 2026-09-16, through the Lead: "a watcher
+reports nothing about a record that was already closed when it started,
+in every condition family"; the same day, "anything the watcher can see
+when it starts, closed, no-copy, unreadable, is silent without
+--report-existing"; and, on the review of that change, "silence is keyed
+to the condition present at start, not to the name"; LD-70).
 
 - `closed <id> status=<s> env=<envelope status> changed=<n> after <m> min`
   — `m` from `at.launched` to `at.closed`; `changed` is the count of
@@ -68,10 +91,13 @@ reported unless `--report-existing`.
   `state.json`'s pid is not a live process whose command line carries
   the harness name (a reused pid is not the worker; EPERM is alive).
   The record is then never counted as running.
-- An `unobservable <id>` line reports missing or unusable worker identity.
-  That job is excluded from running counts and long-running warnings. Later
-  ticks reread worker state and may establish a live worker; missing state is
-  not a permanently cached judgment.
+- `worker unobservable <id>: no usable worker PID, no exit written` —
+  missing or unusable worker identity. That job is excluded from running
+  counts and long-running warnings. Later ticks reread worker state and
+  may establish a live worker; missing state is not a permanently cached
+  judgment. The line begins with `worker`; a filter anchored on
+  `unobservable` drops it, which is what round two of #244 found in the
+  watch skill.
 - `exit written, not collected <id>: <k> min since exit, record still <status>`
   — after the record has been settling for two ticks.
 - `long <id>: <m> min running, wall <w> min` — at the warn fraction of
@@ -93,13 +119,18 @@ reported unless `--report-existing`.
   deviations counts deviation lines printed since the process started.
 - `watchdog error: <type>: <message> (tick <t>; the loop continues)` —
   any exception in a tick; the loop never dies quietly.
-- `watchdog armed: store <path>, <n> closed records ignored, tick <s>s`
-  — the first line, always.
+- `watchdog armed: store <path>, <n> records ignored as backlog, tick
+  <s>s` — the first line, always. `<n>` counts every name held silent at
+  start, in all three families, and is `unreachable` when the store could
+  not be read.
 
 ## Deviations
 
-Closed records are compared even when their ordinary `closed` line is
-suppressed at startup. Each matching comparison prints once per record:
+A closed record is compared unless it is still the backlog condition the
+watcher found at start: backlog says nothing in this family either, and
+`--report-existing` is what asks for it. A record amended after start is
+not that condition any more and is compared (§The lines; LD-70). Each
+matching comparison prints once per record:
 
 - `deviation assumption <id>` — an envelope note or finding contains
   one of `assumption`, `assume`, `substitute`, `stub`, or
@@ -218,10 +249,13 @@ ratification and not a new conductor or automatic-remediation service.
 - A store-directory enumeration failure reaches the existing watchdog
   error line and tick guard; it is not a successful zero-job reading.
 
-Unchanged: historical deviations are still reported, the current period
-is work plus sleep, missing PID is not declared dead, launcher counting
-remains a labeled heuristic, and this instrument writes no state. Those
-separate semantic changes are not smuggled into an efficiency fix.
+Unchanged: the current period is work plus sleep, missing PID is not
+declared dead, launcher counting remains a labeled heuristic, and this
+instrument writes no state. Those separate semantic changes are not
+smuggled into an efficiency fix. Historical deviations were still
+reported when this efficiency fix landed; that carve-out was withdrawn
+on 2026-09-16 (LD-70) and backlog is now silent in every condition
+family — see the rule in §The lines, which governs.
 
 The cache, notification-key set, and last-scanned fingerprints live only for
 the watchdog process. The 16 MiB ceiling covers the cache; notification and

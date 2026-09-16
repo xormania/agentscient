@@ -1,13 +1,17 @@
-"""LD-16 regression: a job directory minted while the wrapper suite runs
-is not the wrapper's write, so the suite's teardown guard must pass.
+"""LD-16 regression: a job directory of the declared shape is not an
+ordinary added name, so the shared live-store guard tolerates it while
+still failing on anything else.
 
-The wrapper fixture snapshots every jobs root it guards in setUp and
-compares in tearDown through the shared live-store guard. Here the
-guarded root is a temporary directory of this test's own, a job
-directory of the declared shape appears after the snapshot, and the
-fixture's own tearDown is the assertion: it runs before the cleanup
-that removes the planted directory. The negative half proves the guard
-still fails on an ordinary added name.
+The half of this file that rode on the dispatch wrapper's own tear-down
+was deleted by S5 on 2026-09-16 with the subject it watched: the wrapper
+fixture no longer snapshots a host store, because the wrapper runs under
+the world's HOME and XDG roots and cannot reach one. The fault that row
+carried, a directory minted mid-run by someone else, is carried by
+test_dispatch_wrapper.RowHermeticStore's concurrent-entry-not-ours,
+which plants a job directory and a launcher log in the world's own jobs
+root and asserts neither is read as this run's write. The two rows below
+are the guard's own behaviour and still have a subject: live_store_guard
+is used by the watchdog, ladder, land and onboard suites.
 
 Written by hand by the conductor (owner, 2026-09-11: "FIX IT"); the
 second producer the defect list asks for was not dispatched.
@@ -17,32 +21,9 @@ from __future__ import annotations
 
 import unittest
 
-import test_dispatch_wrapper as wrapper_suite
 from live_store_guard import assert_unchanged
 
-from ops.testkit import World
-
 PLANTED = "20260101T000000Z-tests-grok-a1d016"
-
-
-class AJobDirMintedMidRun(wrapper_suite._WrapperFixture):
-    def setUp(self):
-        self._own_world = World(prefix="ld16-jobs-")
-        self.addCleanup(self._own_world.close)
-        own = self._own_world.cwd
-        original = wrapper_suite._jobs_roots_to_guard
-        wrapper_suite._jobs_roots_to_guard = lambda: [own]
-        self.addCleanup(setattr, wrapper_suite, "_jobs_roots_to_guard", original)
-        super().setUp()
-        self.assertEqual([root for root, _ in self._guarded], [own])
-
-    def test_the_fixture_teardown_passes_with_a_new_job_dir(self):
-        root = self._guarded[0][0]
-        planted = root / PLANTED
-        planted.mkdir()
-        self.addCleanup(planted.rmdir)
-        self.assertTrue(planted.is_dir())
-        # tearDown is the assertion; cleanups run after it.
 
 
 class TheGuardStillFailsOnAnOrdinaryName(unittest.TestCase):

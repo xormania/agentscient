@@ -25,6 +25,7 @@ a silent one).
 | skills and commands directories; description injection | the pipeline's entry points for two of three harnesses | DOCTRINE (AGENTS.md records the reach) |
 | cross-session messaging and idle notices | the baton; teammate coordination | MEASURED 2026-09-01 (delivery works; held-then-dropped failure mode measured once) |
 | background tasks with completion notifications | every watch and dispatch wait today | MEASURED 2026-09-01 (dozens of cycles) |
+| the Monitor tool: one notification per stdout line, lines within 200ms batched into one, a 5-minute default deadline and a 30-minute ceiling, automatic stop when a source floods | the watch skill's live watch — a session is told each watchdog condition instead of polling | MEASURED 2026-09-16 on harness 2.1.273 (the Dispatcher probe's reading that morning; four spaced stdout lines arrived as four notifications with the exit reported, this session; the flood suppression notice read by agentscient-11 the same day). No probe re-checks it on a cadence: a named gap |
 | session transcript JSONL shape (assistant rows, typed content parts) | the context guard's fallback path; future mining | MEASURED 2026-09-01 (19.8MB parsed in 0.095s) |
 | headless and SDK invocation | the capture path for driving this harness as a worker | UNPROBED here (dispatch drives the other harnesses; this one unexercised today) |
 

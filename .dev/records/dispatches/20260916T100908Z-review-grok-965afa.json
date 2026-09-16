@@ -1,0 +1,223 @@
+{
+  "id": "20260916T100908Z-review-grok-965afa",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-f",
+  "lineage": {
+    "branch": "lane/session-20260916-f",
+    "base_sha": "e7315a156d178f372d88f92eb91a62508322f2d1"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "adversarial-review",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T10:09:08Z",
+    "closed": "2026-09-16T10:26:04Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "e7315a156d178f372d88f92eb91a62508322f2d1",
+    "ref_sha": "e7315a156d178f372d88f92eb91a62508322f2d1",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/snapshot"
+  },
+  "harness": {
+    "name": "grok",
+    "worker": {
+      "name": "grok",
+      "executable": "/home/scientdb/.local/bin/grok",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/wt/ag-session-20260916-f/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "GROK_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok",
+        "HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "always-approve",
+    "containment": "policy",
+    "argv": [
+      "/home/scientdb/.local/bin/grok",
+      "-s",
+      "d583dfae-0303-4104-b093-6a76065b7e27",
+      "--model",
+      "grok-4.6",
+      "--output-format",
+      "plain",
+      "--always-approve",
+      "--disable-web-search",
+      "--reasoning-effort",
+      "high",
+      "--prompt-file",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/prompt.txt",
+      "--max-turns",
+      "150"
+    ]
+  },
+  "model": {
+    "requested": "grok-4.6",
+    "effort_requested": "high",
+    "effort_argv": [
+      "--reasoning-effort",
+      "high"
+    ],
+    "ran": "grok-4.6",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok-stream/sessions/<snapshot-encoded>/d583dfae-0303-4104-b093-6a76065b7e27/summary.json"
+  },
+  "session": {
+    "id": "d583dfae-0303-4104-b093-6a76065b7e27",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok-stream/sessions/<snapshot-encoded>/d583dfae-0303-4104-b093-6a76065b7e27/summary.json",
+    "stream_sha256_at_close": "ac8d42fcc674479f260f83eefaa15ecc46267b79c520913817f6f3ba15ce0c61",
+    "spend": {
+      "input": 3150340,
+      "cached": 2870656,
+      "output": 49343,
+      "total": 3199683,
+      "cost_usd_ticks": 8934792000,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok-stream/sessions/<snapshot-encoded>/d583dfae-0303-4104-b093-6a76065b7e27/summary.json",
+      "messages": 291
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/wt/ag-session-20260916-f/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "Round three on #244 at head e7315a15 (lane/session-20260916-f), the final\nround before the ready proof. Report p1 and p2 only.\n\nRound two's ten findings were disposed 2026-09-16 09:40Z and applied in\naf6c4403: error entries fingerprint by their reason, so one unreadable\ncondition replaced by another speaks (12e47c#2); the watch page's\nfallback filter keys on 'worker unobservable ' and also passes\n'launchers ' and the armed line, with watchdog-lever.md's bullet\ncorrected (78168f#2); the live recipe's description names harness gone\nand watchdog errors (bf7932#1); both unreadable rows pin the deviation\nline beside the error line (78168f#5); the capability row names harness\n2.1.273 (78168f#3, 12e47c#3); LD-74 carries the audit's p1 ground\n(12e47c#1). 78168f#1 was rejected as a defect; bf7932#2 and 78168f#4\nstand corrected in LD-74.\n\nNew file: ops/conductor/tests/test_watch_skill.py. Judge the tree, not\nthis summary.\n",
+    "inputs": [],
+    "sha256": "b1fc83a59b220c4383c1304376fed19428bb9837975297ab66cd8193f0b109dd",
+    "bytes": 10706,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/lane-mcp.json",
+      "sha256": "5f592e0692e38273120278ec553ba33dfa0604c0b4fb9fc551e545b704592429",
+      "job_ids": [
+        "20260916T092226Z-review-codex-12e47c",
+        "20260916T091534Z-review-codex-78168f",
+        "20260916T091513Z-review-grok-bf7932",
+        "20260916T082610Z-review-codex-ee08a7",
+        "20260916T082553Z-review-grok-61ba2a"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ],
+      "grok_config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok/config.toml"
+    },
+    "graft": {
+      "state": "ready",
+      "descriptor": "context/graft.json",
+      "sha256": "d0902d721eb1e70e997f73c7e16cac76c4a6e891e57bb81ecb3f2edcee175134"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [
+      "--max-turns",
+      "150"
+    ],
+    "turns_applied": true,
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T10:09:22Z",
+      "ended": "2026-09-16T10:26:04Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "e7315a156d178f372d88f92eb91a62508322f2d1",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "adversarial-review",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 1,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tools/watchdog.py:436-468; ops/conductor/watchdog-lever.md:20-23",
+          "claim": "error_fingerprint claims no-follow metadata of every watched input and none opened, but os.lstat('in/plan.md', dir_fd=...) follows an intermediate in/ symlink. An unreadable-at-start job whose in/ is a symlink is therefore fingerprinted by the outside target's inode and mtime, so an edit of that outside file breaks LD-70 backlog silence even though the unreadable condition (in/ is still a symlink) did not change. _open_job_file walks in/ with O_NOFOLLOW; the new fingerprint path does not.",
+          "reproduce": "python3 - <<'PY'\nimport contextlib, io, os, sys, tempfile, time\nfrom pathlib import Path\nfrom types import SimpleNamespace\nsys.path.insert(0, 'ops/conductor/tools')\nos.environ['LANE_CONF'] = str(Path('ops/lane.conf').resolve())\nimport watchdog\nroot = Path(tempfile.mkdtemp())\nstore = root / 'dispatch'\njob = store / '20260916T100000Z-code-grok-inlink'\njob.mkdir(parents=True)\noutside = root / 'outside'\noutside.mkdir()\nplan = outside / 'plan.md'\nplan.write_text('secret\\n')\n(job / 'in').symlink_to(outside)\n(job / 'record.json').write_text('{\"id\":\"x\",\"status\":\"closed\",\"job\":\"check-tests\"}\\n')\na = SimpleNamespace(store=store, report_existing=False, no_forge=True, forge_every=1, heartbeat_every=99, warn_fraction=2/3, tick=1.0, once=False)\nw = watchdog.Watch(a)\nfp = w.startup_backlog[job.name][1]\nplan_row = [r for r in fp if r[0] == 'in/plan.md'][0]\nassert plan_row[2] == os.lstat(plan).st_ino\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    w.run_tick()\nassert w.silent(job.name) and 'InputUnavailable' not in buf.getvalue()\ntime.sleep(0.02)\nplan.write_text('secret2\\n')\nbuf = io.StringIO()\nwith contextlib.redirect_stdout(buf):\n    w.run_tick()\nassert not w.silent(job.name)\nassert 'InputUnavailable' in buf.getvalue() and 'deviation unavailable' in buf.getvalue()\nprint('ok')\nPY"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "grok",
+        "total": 3199683,
+        "out": 49343,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "e7315a156d178f372d88f92eb91a62508322f2d1",
+        "started": null,
+        "ended": null
+      },
+      "note": "reused: agentscient-lane lane_brief/jobs/changes/findings, Graft graft_repo_map, watchdog-lever.md, ops/testkit World/run, ClosedAtStartIsSilent and test_watch_skill. in/ empty (brief.inputs []). Round-two dispositions checked against the tree: 12e47c#2 speaks on record.json symlink to directory; fallback passes worker unobservable, launchers, and armed; live description names harness gone and watchdog errors; unreadable-transition rows pin deviation unavailable; capability row names harness 2.1.273; LD-74 carries the audit p1 ground. 12e47c#1 not re-raised (addressed, lever untouched). 78168f#1 not re-raised (ruled). Directory-open failures still share a generic fingerprint; not reported (exotic, same class as the rejected 78168f#1). Live Claude Monitor not exercised. Graft saved ~1426852 tokens this turn. python3 -m unittest discover -s ops/conductor/tests -p 'test_watch*.py': Ran 130 tests OK."
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 8,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100908Z-review-grok-965afa/home/grok-stream/sessions/<snapshot-encoded>/d583dfae-0303-4104-b093-6a76065b7e27/summary.json"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "turn_ended",
+      "at": "2026-09-16T10:26:03.607Z"
+    }
+  },
+  "status": "closed"
+}

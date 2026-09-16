@@ -58,6 +58,7 @@ CLOSE_TRIP_ID = "20260904T100500Z-code-grok-aa3106"
 CLOSE_UNK_ID = "20260904T100600Z-code-grok-aa3107"
 CLOSE_LIVE_ID = "20260904T100700Z-code-grok-aa3108"
 NOCOPY_ID = "20260904T100800Z-code-grok-aa3109"
+UNREADABLE_ID = "20260904T101900Z-code-grok-aa3119"
 LONG_REC_ID = "20260904T100900Z-code-grok-aa3110"
 LONG_JOB_ID = "20260904T101000Z-code-grok-aa3111"
 LONG_UNK_ID = "20260904T101100Z-code-grok-aa3112"
@@ -174,7 +175,9 @@ def _result(result: Result) -> _Result:
 
 
 # PIN_ARMED: first stdout line is always
-# `watchdog armed: store <path>, <n> closed records ignored, tick <s>s`.
+# `watchdog armed: store <path>, <n> records ignored as backlog, tick
+# <s>s`, where n counts the startup set in every family, not the closed
+# kinds alone (LD-70 round three).
 # PIN_ONCE: `--once` is one tick, exit 0, and does not sleep the tick.
 # PIN_STORE_ORDER: `--store`, else DISPATCH_JOBS, else
 # `$XDG_STATE_HOME/agentscient/dispatch`, else
@@ -196,8 +199,13 @@ def _result(result: Result) -> _Result:
 # `ops/devlane/task/jobs.json` (cwd = repo root), else `wall unknown`
 # with a 40-minute threshold.
 # PIN_NOCOPY: `no record copy <id>: cannot judge` once per process.
+# A job directory already there at start is backlog: silent unless
+# `--report-existing` (LD-70), and so is one whose inputs cannot be read
+# (`watchdog error: InputUnavailable` and `deviation unavailable`).
 # PIN_ERROR: `watchdog error: <type>: <message> (tick <t>; the loop
-# continues)` and `--once` still exits 0.
+# continues)` and `--once` still exits 0. A job directory whose inputs
+# were already unreadable at start is backlog: silent unless
+# `--report-existing` (LD-70).
 # PIN_CI: `ci <fail|cancel> #<pr> at <sha>: <check>` once per pull
 # request head and check name; every failing or cancelled check.
 # PIN_HEARTBEAT: `heartbeat: running=<id m/wall, ...>; settling=<n>;
@@ -226,8 +234,9 @@ def _result(result: Result) -> _Result:
 # refused (empty-comparison/scope-cap/conf-key/toolchain from the
 # record directory's log lines or the launcher's stderr), retry (a
 # ladder stage retried, or a ladder stopped), minutes (a stage beyond
-# the calibration row by a stated factor). Already-closed records
-# still print deviations on the first pass. A clean store prints none.
+# the calibration row by a stated factor). A record already closed
+# when the watcher started prints none of them unless
+# `--report-existing` is given (LD-70). A clean store prints none.
 # PIN_HEARTBEAT_DEVIATIONS: the heartbeat carries deviations=<n> since
 # start.
 
@@ -774,9 +783,9 @@ class _WatchdogFixture(unittest.TestCase):
             store_s in first or store_r in first,
             f"armed line does not name the store {store}: {first!r}",
         )
-        self.assertIn("closed records ignored", first)
+        self.assertIn("records ignored as backlog", first)
         if ignored is not None:
-            self.assertIn(f"{ignored} closed records ignored", first)
+            self.assertIn(f"{ignored} records ignored as backlog", first)
         if tick is not None:
             self.assertIn(f"tick {tick}", first)
         return first
@@ -1331,16 +1340,41 @@ class ClosedRecords(_WatchdogFixture):
 
 
 class NoCopy(_WatchdogFixture):
-    """A job directory with no record.json is said once, never inferred."""
+    """A job directory with no record.json is said once, never inferred.
+
+    A directory already there when the watcher starts is backlog and is
+    asked for with --report-existing (LD-70); one that appears while it
+    runs is live and needs no flag.
+    """
 
     def test_no_record_copy_is_said_once(self):
         self.plant_no_copy(NOCOPY_ID)
         self.assertFalse((self.store / NOCOPY_ID / "record.json").exists())
         proc = self.loop(
-            ["--tick", "0.15", "--no-forge"],
+            ["--tick", "0.15", "--no-forge", "--report-existing"],
             seconds=0.55,
         )
         self.assert_armed(proc, store=self.store)
+        lines = self.named_lines(proc, f"no record copy {NOCOPY_ID}:")
+        self.assertEqual(len(lines), 1, proc.stdout)
+        self.assertIn("cannot judge", lines[0])
+
+    def test_a_directory_that_appears_after_start_is_said_without_the_flag(
+        self,
+    ):
+        """LD-70: the flag is for backlog. A job directory that appears
+        while the watcher runs is a live condition and is unchanged."""
+        self.ensure_store()
+
+        def plant_it():
+            self.plant_no_copy(NOCOPY_ID)
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.75,
+            mutate=plant_it,
+            mutate_after=0.2,
+        )
         lines = self.named_lines(proc, f"no record copy {NOCOPY_ID}:")
         self.assertEqual(len(lines), 1, proc.stdout)
         self.assertIn("cannot judge", lines[0])
@@ -1448,14 +1482,20 @@ class LongRunning(_WatchdogFixture):
 
 
 class TickError(_WatchdogFixture):
-    """A tick that raises prints the error line; --once still exits 0."""
+    """A tick that raises prints the error line; --once still exits 0.
+
+    The directory is planted before the run, so it is backlog and the
+    line is asked for with --report-existing (LD-70); the live half is
+    ClosedAtStartIsSilent's
+    test_an_unreadable_directory_that_appears_after_start_is_said.
+    """
 
     def test_record_json_directory_prints_error_and_once_exits_0(self):
         job_dir = self.plant_job(ERR_ID, record_as_dir=True)
         rec_path = job_dir / "record.json"
         self.assertTrue(rec_path.is_dir(), "plant: record.json is a directory")
         self.assertFalse(rec_path.is_file())
-        proc = self.once()
+        proc = self.once(extra=["--report-existing"])
         text = self.combined(proc)
         err_lines = [
             ln for ln in text.splitlines() if ln.startswith("watchdog error:")
@@ -1592,13 +1632,457 @@ class ReadOnly(_WatchdogFixture):
         self.assertFalse(self.home_store.exists(), "tool created a HOME store")
 
 
+class ClosedAtStartIsSilent(_WatchdogFixture):
+    """Backlog is silent in every condition family (LD-70).
+
+    Owner, 2026-09-16, through the Lead: a watcher reports nothing about
+    a record that was already closed when it started — the closed line,
+    the deviation lines, no record copy, and drift — unless
+    `--report-existing` is given, and then it reports all of them once.
+    Live conditions are unchanged; drift is pinned beside the lock in
+    test_watchdog_deliverable.py.
+    """
+
+    def plant_unreadable(self, rec_id: str) -> Path:
+        """A job directory whose record.json is a symlink: the tool opens
+        job inputs with O_NOFOLLOW, so the reading is unavailable rather
+        than wrong."""
+        job_dir = self.ensure_store() / rec_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+        target = job_dir / "record.real.json"
+        self.world.plant_text(target, "{}\n")
+        link = job_dir / "record.json"
+        link.symlink_to(target)
+        self.assertTrue(link.is_symlink(), "plant: record.json is a symlink")
+        return job_dir
+
+    def plant_backlog(self) -> None:
+        self.plant_dev_job(
+            ASSUME_ID,
+            job=JOB_IMPLEMENT,
+            files=(KEEP_A, KEEP_B),
+            note=ASSUMPTION_NOTE,
+        )
+        self.plant_dev_job(
+            ENV_TRIP_ID,
+            job=JOB_CHECK,
+            files=(KEEP_A, KEEP_B),
+            env_status="tripped",
+            findings=[FINDING_LOST],
+        )
+        self.plant_no_copy(NOCOPY_ID)
+        self.plant_unreadable(UNREADABLE_ID)
+        self.assertTrue(
+            (self.store / ASSUME_ID / "record.json").exists(),
+            "plant: the assumption record is there",
+        )
+        self.assertTrue(
+            (self.store / ENV_TRIP_ID / "record.json").exists(),
+            "plant: the tripped-envelope record is there",
+        )
+        self.assertFalse(
+            (self.store / NOCOPY_ID / "record.json").exists(),
+            "plant: the no-copy directory has no record",
+        )
+
+    def test_the_armed_line_counts_every_backlog_family(self):
+        """The first line a session reads says how much is muted, so it
+        counts the startup set — two closed records, one directory with
+        no record copy, one with unreadable inputs — and not the closed
+        kinds alone (grok-61ba2a#3)."""
+        self.plant_backlog()
+        proc = self.once()
+        first = self.assert_armed(proc, store=self.store, ignored=4)
+        self.assertIn("records ignored as backlog", first)
+
+    def test_the_report_existing_help_names_every_backlog_family(self):
+        """The flag's own help names what it governs (codex-ee08a7#5)."""
+        proc = self.invoke(["--help"])
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        help_text = " ".join((proc.stdout or "").split())
+        for word in ("closed", "no record copy", "unreadable"):
+            self.assertIn(word, help_text, help_text)
+
+    def test_backlog_prints_no_deviation_and_no_record_copy_line(self):
+        self.plant_backlog()
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        self.assert_armed(proc, store=self.store, ignored=4)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
+        self.assertEqual(
+            self.named_lines(proc, f"no record copy {NOCOPY_ID}"),
+            [],
+            proc.stdout,
+        )
+        self.assertEqual(
+            self.named_lines(proc, "watchdog error: InputUnavailable"),
+            [],
+            proc.stdout,
+        )
+        self.assertEqual(self.heartbeat_deviation_count(proc), 0)
+
+    def test_report_existing_prints_the_whole_backlog_once(self):
+        self.plant_backlog()
+        proc = self.once(extra=["--heartbeat-every", "1", "--report-existing"])
+        self.assert_armed(proc, store=self.store, ignored=0)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        self.assertEqual(
+            len(self.deviation_lines(proc, ASSUME_ID)), 1, proc.stdout
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, ENV_TRIP_ID)), 1, proc.stdout
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, f"no record copy {NOCOPY_ID}")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, UNREADABLE_ID)), 1, proc.stdout
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(self.heartbeat_deviation_count(proc), 3)
+
+    def test_an_unreadable_directory_that_appears_after_start_is_said(self):
+        self.ensure_store()
+
+        def plant_it():
+            self.plant_unreadable(UNREADABLE_ID)
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.75,
+            mutate=plant_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+
+    def test_a_fresh_record_after_start_prints_its_closed_line_and_deviation(
+        self,
+    ):
+        """The control for the four rows below: a name the watcher never
+        saw speaks in both families, so silence in those rows is a
+        reading and not a fixture that cannot reach the behaviour."""
+        self.ensure_store()
+
+        def plant_it():
+            self.plant_dev_job(
+                ENV_TRIP_ID,
+                job=JOB_CHECK,
+                files=(KEEP_A, KEEP_B),
+                env_status="tripped",
+                findings=[FINDING_LOST],
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=plant_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, f"closed {ENV_TRIP_ID} ")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, ENV_TRIP_ID)), 1, proc.stdout
+        )
+
+    def test_a_no_copy_directory_that_gains_a_record_after_start_speaks(self):
+        """The startup condition was no record copy; a closed record is a
+        change after start, so the closed line and the deviation both
+        speak (Lead, 2026-09-16: "a no-copy directory that gains a closed
+        tripped record prints its closed line and its deviation")."""
+        self.plant_no_copy(NOCOPY_ID)
+
+        def close_it():
+            self.plant_dev_job(
+                NOCOPY_ID,
+                job=JOB_CHECK,
+                files=(KEEP_A, KEEP_B),
+                env_status="tripped",
+                findings=[FINDING_LOST],
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=close_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, f"closed {NOCOPY_ID} ")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, NOCOPY_ID)), 1, proc.stdout
+        )
+
+    def test_an_amended_record_after_start_reports_its_new_deviation(self):
+        """A record closed and clean at start, amended to a tripped
+        envelope while the watcher runs: the fingerprint changed, so the
+        record is no longer the thing that was muted."""
+        self.plant_dev_job(ENV_TRIP_ID, job=JOB_CHECK, files=(KEEP_A, KEEP_B))
+
+        def amend():
+            self.plant_dev_job(
+                ENV_TRIP_ID,
+                job=JOB_CHECK,
+                files=(KEEP_A, KEEP_B),
+                env_status="tripped",
+                findings=[FINDING_LOST],
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=amend,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, ENV_TRIP_ID)), 1, proc.stdout
+        )
+
+    def test_inputs_that_become_unreadable_after_start_are_said(self):
+        """A record readable and closed at start whose record.json is
+        replaced by a symlink: the kind changed, so the error line
+        speaks."""
+        job_dir = self.plant_dev_job(
+            CLOSE_OK_ID, job=JOB_CHECK, files=(KEEP_A, KEEP_B)
+        )
+
+        def make_unreadable():
+            target = job_dir / "record.real.json"
+            self.world.plant_text(target, "{}\n")
+            link = job_dir / "record.json"
+            link.unlink()
+            link.symlink_to(target)
+            self.assertTrue(link.is_symlink(), "plant: record.json is a symlink")
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=make_unreadable,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")),
+            1,
+            proc.stdout,
+        )
+
+    def test_a_backlog_directory_whose_inputs_become_unreadable_is_said(self):
+        """Codex's case (ee08a7#1): a no-copy directory at start whose
+        record.json appears as a directory. The kind changed from
+        no-copy to error, so it is not the condition that was muted."""
+        job_dir = self.plant_no_copy(NOCOPY_ID)
+
+        def make_unreadable():
+            path = job_dir / "record.json"
+            path.mkdir()
+            self.assertTrue(path.is_dir(), "plant: record.json is a directory")
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=make_unreadable,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")),
+            1,
+            proc.stdout,
+        )
+
+    def test_one_unreadable_condition_replaced_by_another_is_said(self):
+        """The Daybreak audit's case (12e47c#2): a directory unreadable
+        at start because record.json is a symlink, then unreadable
+        because record.json is a directory. The reason changed, so the
+        condition changed, and the silence is keyed to the condition and
+        not to the name — the error family is not one condition. The
+        control is the backlog row above, where the same directory is
+        left alone and says nothing."""
+        job_dir = self.plant_unreadable(UNREADABLE_ID)
+
+        def to_a_directory():
+            path = job_dir / "record.json"
+            path.unlink()
+            path.mkdir()
+            self.assertTrue(path.is_dir(), "plant: record.json is a directory")
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=to_a_directory,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")),
+            1,
+            proc.stdout,
+        )
+
+    def plant_unreadable_with_inputs(self, rec_id: str, *, outside=None) -> Path:
+        """An unreadable job directory that also carries the copied plan:
+        in its own `in/`, or through an `in` symlink to a directory
+        outside the store."""
+        job_dir = self.plant_unreadable(rec_id)
+        if outside is None:
+            (job_dir / "in").mkdir(parents=True, exist_ok=True)
+            self.world.plant_text(job_dir / "in" / "plan.md", "a plan\n")
+        else:
+            outside.mkdir(parents=True, exist_ok=True)
+            self.world.plant_text(outside / "plan.md", "a plan\n")
+            (job_dir / "in").symlink_to(outside)
+            self.assertTrue(
+                (job_dir / "in").is_symlink(), "plant: in is a symlink"
+            )
+        return job_dir
+
+    def test_a_file_outside_the_store_does_not_wake_a_backlog_directory(self):
+        """Arm A, the red (grok 965afa#1, codex 48ebeb#2): the job's `in`
+        is a symlink to a directory outside the store, and the file it
+        points at is rewritten after start. The reader refuses to cross
+        that link, so nothing about the condition has changed and the
+        backlog directory says nothing."""
+        outside = self.world.tmp / "outside-the-store"
+        self.plant_unreadable_with_inputs(UNREADABLE_ID, outside=outside)
+
+        def rewrite_outside():
+            (outside / "plan.md").write_text(
+                "rewritten from outside the store\n", encoding="utf-8"
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=rewrite_outside,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            self.named_lines(proc, "watchdog error: InputUnavailable"),
+            [],
+            proc.stdout,
+        )
+        self.assertEqual(
+            self.named_lines(proc, "deviation unavailable"), [], proc.stdout
+        )
+
+    def test_a_backlog_directory_reached_across_a_symlink_is_silent(self):
+        """Arm B, the muted baseline: the same shape with nothing
+        touched says nothing, so arm A's silence is not silence about
+        everything."""
+        outside = self.world.tmp / "outside-the-store"
+        self.plant_unreadable_with_inputs(UNREADABLE_ID, outside=outside)
+        proc = self.loop(["--tick", "0.15", "--no-forge"], seconds=0.9)
+        self.assertEqual(
+            self.named_lines(proc, "watchdog error: InputUnavailable"),
+            [],
+            proc.stdout,
+        )
+        self.assertEqual(
+            self.named_lines(proc, "deviation unavailable"), [], proc.stdout
+        )
+
+    def test_the_jobs_own_copied_plan_rewritten_after_start_is_said(self):
+        """Arm C, the control that proves the rows can look: the copied
+        plan is a watched input inside the job, so rewriting it is a
+        change in the condition and speaks."""
+        job_dir = self.plant_unreadable_with_inputs(UNREADABLE_ID)
+
+        def rewrite_inside():
+            (job_dir / "in" / "plan.md").write_text(
+                "rewritten inside the job\n", encoding="utf-8"
+            )
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.9,
+            mutate=rewrite_inside,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "deviation unavailable")), 1, proc.stdout
+        )
+
+    def test_a_record_that_closes_after_start_still_reports_its_deviation(self):
+        proc_pid = self.spawn_named(HARNESS)
+        launched = utc_ago(6)
+        job_dir = self.plant_job(CLOSE_LIVE_ID, pid=proc_pid, launched=launched)
+        rec_path = job_dir / "record.json"
+
+        def close_it():
+            payload = self.record_dict(
+                CLOSE_LIVE_ID,
+                status="closed",
+                launched=launched,
+                closed=utc_now(),
+                env_status="tripped",
+                changed_paths=[KEEP_A],
+            )
+            self.world.plant_text(
+                rec_path,
+                json.dumps(payload, indent=2) + "\n",
+            )
+            landed = json.loads(rec_path.read_text(encoding="utf-8"))
+            self.assertEqual(landed["status"], "closed")
+
+        proc = self.loop(
+            ["--tick", "0.3", "--no-forge"],
+            seconds=0.75,
+            mutate=close_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, CLOSE_LIVE_ID)), 1, proc.stdout
+        )
+
+
 class Deviations(_WatchdogFixture):
     """One deviation line per planted case; a clean store prints none.
 
     Pins are from the deviations contract (input), not from the tool.
-    Closed records still report deviations without --report-existing.
-    Invocations are --once --no-forge on a temporary XDG_STATE_HOME.
+    Every record here is planted before the run, so this family asks
+    for its lines with --report-existing (LD-70); their silence
+    without the flag is ClosedAtStartIsSilent's charge.
+    Invocations are --once --no-forge --report-existing on a
+    temporary XDG_STATE_HOME.
     """
+
+    def once(self, extra=None, **kw):
+        # The planted records are all closed before the tool starts;
+        # the flag is what asks for backlog (LD-70).
+        return super().once(extra=["--report-existing", *(extra or [])], **kw)
 
     def test_clean_store_prints_no_deviation_lines_and_heartbeat_count_zero(
         self,
@@ -1630,8 +2114,9 @@ class Deviations(_WatchdogFixture):
         self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(self.heartbeat_deviation_count(proc), 0)
         self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
-        self.assertFalse(
-            self.named_lines(proc, f"closed {CLEAN_ID}"),
+        self.assertEqual(
+            len(self.named_lines(proc, f"closed {CLEAN_ID} ")),
+            1,
             proc.stdout,
         )
 
