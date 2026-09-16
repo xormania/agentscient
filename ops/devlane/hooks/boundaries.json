@@ -299,6 +299,33 @@
    "engine": false
   },
   {
+   "class": "audit",
+   "boundary": "pr",
+   "actor": "session",
+   "trigger": "gh pr ready",
+   "evidence": "a closed security-audit record at the head, named under `## Proof`, on the codex harness at the model ops/lane.conf names in MODEL_CODEX_SECURITY_AUDIT, whose snapshot.ref_sha and result.head agree on the audited sha, with every commit since inside the records set below or a fix commit citing one of its findings, and every finding of its envelope disposed in the findings export at the head",
+   "gate": "audit_at_head",
+   "tests": [
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_ready_passes_with_a_closed_audit_at_the_head",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_an_open_finding_refuses_and_is_named",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_code_commit_after_the_audit_voids_it_and_names_the_path",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_fix_commit_citing_a_finding_of_the_audit_keeps_it_standing",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_grant_is_no_escape"
+   ],
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false,
+   "records": [
+    ".dev/records/",
+    "ops/conductor/handoff/",
+    "ops/conductor/findings/findings.jsonl"
+   ],
+   "owner": "2026-09-16: \"i'd like if you have daybreak security audits made required for draft pr's - and resolution required before they can be made ready for review\"; \"you can't keep re-auditing after fixes - draw a line\""
+  },
+  {
    "class": "trunk-commit",
    "boundary": "commit",
    "actor": "session",

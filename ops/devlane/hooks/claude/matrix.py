@@ -84,6 +84,21 @@ row that cannot look refuses: "could not look" is not a pass.
                     2026-09-12: "proof needs to be part of the
                     system - it has to generated and verified
                     at boundaries")
+    audit           gh pr ready while the head carries no closed  gh pr view, the record
+                    security audit: the ## Proof section names a  at the head, ops/lane.conf,
+                    security-audit record which, read at the      the findings export at
+                    head, is closed, ran on codex at the model    the head, git diff
+                    ops/lane.conf names in
+                    MODEL_CODEX_SECURITY_AUDIT, has its two head
+                    fields agreeing on a sha whose commits since
+                    all lie inside the row's records set, and
+                    has every finding of its envelope disposed
+                    in the findings export at the head; ready
+                    only, gh pr merge does not carry it; no
+                    grant escape (owner, 2026-09-16: "daybreak
+                    security audits made required for draft
+                    pr's - and resolution required before they
+                    can be made ready for review")
 
 Every refusal is also logged as a miss against the skill it names
 (``miss.py``: the deliverable row names ``deliverable``, every other row
@@ -1093,10 +1108,18 @@ PROOF_HEADING = re.compile(r"^##\s+Proof\b.*$", re.MULTILINE)
 PROOF_ID = re.compile(r"\bP-[A-Za-z0-9][A-Za-z0-9_-]*")
 PROBES_DIR = "ops/conductor/handoff/probes/"
 CI_WORKFLOW = "ci"
+AUDIT_JOB = "security-audit"
+AUDIT_MODEL_KEY = "MODEL_CODEX_SECURITY_AUDIT"
+AUDIT_HARNESS = "codex"
+DISPATCH_RECORDS = ".dev/records/dispatches/"
+FINDINGS_EXPORT = "ops/conductor/findings/findings.jsonl"
+# A dispatch record id as launch.py mints it, the shape ladder.py pins.
+RECORD_ID = re.compile(r"\d{8}T\d{6}Z-[a-z-]+-[0-9a-f]{6}")
 
 
-def proof_ids(body):
-    """The corpus row ids named under the PR body's ## Proof heading."""
+def proof_section(body):
+    """The text under the PR body's ## Proof heading, or None when there is
+    no such heading."""
     match = PROOF_HEADING.search(body or "")
     if match is None:
         return None
@@ -1104,6 +1127,14 @@ def proof_ids(body):
     nxt = re.search(r"^##\s", section, re.MULTILINE)
     if nxt:
         section = section[:nxt.start()]
+    return section
+
+
+def proof_ids(body):
+    """The corpus row ids named under the PR body's ## Proof heading."""
+    section = proof_section(body)
+    if section is None:
+        return None
     ids = []
     for found in PROOF_ID.findall(section):
         if found not in ids:
@@ -1156,6 +1187,201 @@ def gh_repo(toks):
     return None
 
 
+def field(record, path):
+    """The value at a dotted path of a record, or None."""
+    node = record
+    for key in path.split("."):
+        node = node.get(key) if isinstance(node, dict) else None
+    return node
+
+
+def agreed(record, paths, *, sha=False):
+    """(value, "") when the named fields carry one value between them, else
+    (None, what was found). Two fields that disagree are two answers, and an
+    audit is never read as met on two answers: the refusal names both."""
+    seen = {path: field(record, path) for path in paths}
+    seen = {path: value for path, value in seen.items() if isinstance(value, str) and value}
+    if not seen:
+        return None, "absent"
+    if len(set(seen.values())) > 1:
+        return None, ", ".join(f"{path}={value[:8] if sha else value}"
+                               for path, value in sorted(seen.items()))
+    return next(iter(seen.values())), ""
+
+
+def json_at(root, head, path):
+    """A JSON file as a commit holds it, or None when it is not there."""
+    shown = subprocess.run(["git", "-C", root, "show", f"{head}:{path}"],  # noqa: S603,S607 - fixed argv, a read
+                           capture_output=True, text=True, timeout=30, check=False)
+    if shown.returncode != 0:
+        return None
+    try:
+        return json.loads(shown.stdout)
+    except ValueError:
+        return None
+
+
+def dispositions_at(root, head):
+    """{key: disposition} from the findings export as the head holds it.
+    The export at the head, never the host's store: a disposition nobody
+    can read at the head is not evidence the head carries, and an absent
+    export answers `undisposed`, which refuses rather than passes."""
+    shown = subprocess.run(["git", "-C", root, "show", f"{head}:{FINDINGS_EXPORT}"],  # noqa: S603,S607 - fixed argv, a read
+                           capture_output=True, text=True, timeout=30, check=False)
+    if shown.returncode != 0:
+        return {}
+    out = {}
+    for line in shown.stdout.splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict) and isinstance(row.get("key"), str):
+            out[row["key"]] = row.get("disposition")
+    return out
+
+
+def is_a_fix_for(message, rid, count):
+    """A fix commit in CONTRIB.md's shape (### Fix commit) that cites a
+    finding of this audit: a ``Finding:`` line carrying the ledger key
+    ``<record id>#<n>`` of one of its ``n`` findings, and the ``Verified:``
+    line that shape requires. Owner, 2026-09-16: "you can't keep
+    re-auditing after fixes - draw a line"."""
+    lines = [line.strip() for line in (message or "").splitlines()]
+    if not any(line.startswith("Verified:") for line in lines):
+        return False
+    keys = {f"{rid}#{n}" for n in range(1, count + 1)}
+    return any(line.startswith("Finding:") and any(key in line for key in keys)
+               for line in lines)
+
+
+def voided_by(root, sha, head, rid, count, records_set):
+    """An empty string when every commit after the audited sha leaves the
+    audit standing, the reading of the first one that voids it when one does,
+    or None when git could not read the range. A commit stands when everything it touched
+    is inside the records set, or when it is a fix commit citing a finding of
+    this audit."""
+    listing = subprocess.run(["git", "-C", root, "log", "--reverse", "--format=%H", f"{sha}..{head}"],  # noqa: S603,S607 - fixed argv, a read
+                             capture_output=True, text=True, timeout=30, check=False)
+    if listing.returncode != 0:
+        return None
+    for commit in listing.stdout.split():
+        touched = subprocess.run(["git", "-C", root, "diff-tree", "--no-commit-id", "--name-only", "-r", commit],  # noqa: S603,S607 - fixed argv, a read
+                                 capture_output=True, text=True, timeout=30, check=False)
+        if touched.returncode != 0:
+            return None
+        paths = [path for path in touched.stdout.splitlines() if path]
+        outside = [path for path in paths if not path.startswith(records_set)]
+        if not outside:
+            continue
+        message = subprocess.run(["git", "-C", root, "log", "-1", "--format=%B", commit],  # noqa: S603,S607 - fixed argv, a read
+                                 capture_output=True, text=True, timeout=30, check=False)
+        if message.returncode != 0:
+            return None
+        if is_a_fix_for(message.stdout, rid, count):
+            continue
+        return (f"{commit[:8]} changed {outside[0]} after it, neither inside the records "
+                f"set nor a fix commit citing a finding of {rid}")
+    return ""
+
+
+def audit_of(root, head, rid, record, conf, records_set):
+    """None when this record is a security audit closed at ``head`` with
+    every finding disposed, else the (found, needed) halves of the refusal
+    that say which part is short. It never refuses itself: one function
+    emits the class, so the registry closes over it exactly."""
+    status = field(record, "status")
+    if status != "closed":
+        return (f"{rid} is status={status}",
+                "wait for the audit to close, then commit its record")
+    harness = field(record, "harness.name")
+    if harness != AUDIT_HARNESS:
+        return (f"{rid} ran on harness {harness}, not {AUDIT_HARNESS}",
+                f"re-run it on the {AUDIT_HARNESS} harness at the model ops/lane.conf names")
+    # The conf names the model, read at check time; the gate never carries a
+    # model string of its own (agentscient-11, 2026-09-16).
+    wanted = conf.get(AUDIT_MODEL_KEY)
+    if not wanted:
+        return (f"ops/lane.conf names no {AUDIT_MODEL_KEY}",
+                (f"name the audit model in ops/lane.conf as {AUDIT_MODEL_KEY}; "
+                 "could not look is not a pass"))
+    model, disagreement = agreed(record, ("model.requested", "model.ran"))
+    if model is None:
+        return f"{rid} model {disagreement}", f"re-run it on {AUDIT_HARNESS} at {wanted}"
+    if model != wanted:
+        return (f"{rid} ran model {model}, not {wanted} (ops/lane.conf {AUDIT_MODEL_KEY})",
+                f"re-run it on {AUDIT_HARNESS} at {wanted}")
+    # A read-role job commits nothing, so the ref it read and the head it
+    # reports are one sha. lineage.base_sha is the base, not the head.
+    sha, disagreement = agreed(record, ("snapshot.ref_sha", "result.head"), sha=True)
+    if sha is None:
+        return f"{rid} audited sha {disagreement}", f"re-run the {AUDIT_JOB} at the head"
+    findings = field(record, "result.envelope.findings") or []
+    if sha != head:
+        if not records_set:
+            return ("the audit row declares no records set",
+                    "add `records` to the audit row of ops/devlane/hooks/boundaries.json")
+        void = voided_by(root, sha, head, rid, len(findings), records_set)
+        if void is None:
+            return (f"git could not read {sha[:8]}..{head[:8]}",
+                    "could not look is not a pass; fetch the audited commit and retry")
+        if void:
+            return (f"{rid} audited {sha[:8]}; {void}",
+                    (f"re-run the {AUDIT_JOB} at {head[:8]}, or apply it as a fix "
+                     f"commit citing `Finding: {rid}#<n>` with its `Verified:` line"))
+    disposed = dispositions_at(root, head)
+    undisposed = [f"{rid}#{n}" for n in range(1, len(findings) + 1)
+                  if (disposed.get(f"{rid}#{n}") or "open") == "open"]
+    if undisposed:
+        return ((f"{rid} at {sha[:8]}, {len(undisposed)} of {len(findings)} findings "
+                 f"undisposed: {', '.join(undisposed)}"),
+                ("findings.py disposition <key> <how> <why> for each, then "
+                 f"findings.py export --write {FINDINGS_EXPORT} and commit it"))
+    return None
+
+
+def audit_at_head(root, head, body):
+    """The audit row. Owner, 2026-09-16: "i'd like if you have daybreak
+    security audits made required for draft pr's - and resolution required
+    before they can be made ready for review". The rule text is the audit
+    row of CONTRIB.md's ready table (PR #245); this is its gate, carried by
+    the pr-proof boundary because the same command crosses it."""
+    row = declared_boundaries().get("audit") or {}
+    records_set = tuple(row.get("records") or ())
+    expected = f"a closed {AUDIT_JOB} record at {head[:8]} with every finding disposed"
+    needed = f"dispatch {AUDIT_JOB} at the head and dispose each finding"
+    section = proof_section(body)
+    if section is None:
+        return deny("audit", expected, "no `## Proof` section in the PR body", needed)
+    ids = []
+    for found in RECORD_ID.findall(section):
+        if found not in ids:
+            ids.append(found)
+    if not ids:
+        return deny("audit", expected,
+                    f"a `## Proof` section naming no {AUDIT_JOB} record", needed)
+    records = {}
+    for rid in ids:
+        record = json_at(root, head, DISPATCH_RECORDS + rid + ".json")
+        if record is None:
+            return deny("audit", expected,
+                        f"{rid} absent from {DISPATCH_RECORDS} at {head[:8]}",
+                        f"commit the record of the {AUDIT_JOB} at the head")
+        records[rid] = record
+    audits = [(rid, r) for rid, r in records.items() if field(r, "job") == AUDIT_JOB]
+    if not audits:
+        return deny("audit", expected,
+                    ", ".join(f"{rid} is job={field(r, 'job')}" for rid, r in records.items()),
+                    needed)
+    # A body may name an audit and its re-run; one that holds is enough, and
+    # when none holds the first one's reading is the refusal.
+    short = []
+    for rid, record in audits:
+        reading = audit_of(root, head, rid, record, lane_conf(root), records_set)
+        if reading is None:
+            return None
+        short.append(reading)
+    return deny("audit", expected, short[0][0], short[0][1])
 def pr_proof(toks, cwd):
     """Owner, 2026-09-12: "it has to be impossible to not do the work".
     A PR is marked ready or merged only against proof the system verifies
@@ -1227,6 +1453,13 @@ def pr_proof(toks, cwd):
         return deny("pr-proof", f"a green ci run on {head[:8]}",
                     f"conclusion {', '.join(str(r.get('conclusion')) for r in done)}",
                     "fix the branch until the run is green; the Proof rows are in it")
+    # Ready only (agentscient-11, 2026-09-16, on the owner's words): GitHub
+    # refuses to merge a draft, so the ready flip binds first, and the rows
+    # above bind the lineage after it.
+    if toks[2] == "ready":
+        refused = audit_at_head(root, head, str(data.get("body") or ""))
+        if refused is not None:
+            return refused
     return None
 
 

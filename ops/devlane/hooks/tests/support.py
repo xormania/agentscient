@@ -319,3 +319,53 @@ def prove_linked_worktree(main: Path, linked: Path, env, sandbox: Path):
     if not gitfile.is_file():
         raise PlantFailed("INVALID: linked worktree has no .git gitfile")
     return link_git, link_common
+
+
+# -- the security audit a ready flip is measured against ---------------------
+
+AUDIT_RECORD_ID = "20260916T120000Z-review-codex-a1b2c3"
+AUDIT_MODEL = "gpt-daybreak-blue-latest"
+DISPATCH_RECORDS = ".dev/records/dispatches"
+FINDINGS_EXPORT = "ops/conductor/findings/findings.jsonl"
+
+
+def security_audit_record(*, audited, findings=2, job="security-audit",
+                          status="closed", harness="codex", ran=AUDIT_MODEL,
+                          requested=AUDIT_MODEL, ref=None, result_head=None,
+                          base=None):
+    """A security-audit dispatch record shaped as launch.py writes one.
+    The head is snapshot.ref_sha and result.head, which agree on a read-role
+    job because it commits nothing; lineage.base_sha is the base."""
+    return {
+        "id": AUDIT_RECORD_ID, "lane": "dev", "stage": "review",
+        "unit": "lane/fixture",
+        "lineage": {"branch": "lane/fixture",
+                    "base_sha": audited if base is None else base},
+        "job": job, "role": "read",
+        "snapshot": {"mode": "whole", "ref_sha": audited if ref is None else ref},
+        "harness": {"name": harness},
+        "model": {"requested": requested, "ran": ran},
+        "result": {
+            "head": audited if result_head is None else result_head,
+            "envelope": {
+                "job": job, "status": "ok", "verdict": "changes",
+                "findings": [
+                    {"severity": "p1", "where": f"a.py:{n}", "claim": f"finding {n}"}
+                    for n in range(1, findings + 1)],
+            },
+        },
+        "status": status,
+    }
+
+
+def findings_export(*rows):
+    """The findings export, the rows `findings.py export --write` writes."""
+    return "".join(
+        json.dumps({"key": key, "record": AUDIT_RECORD_ID, "job": "security-audit",
+                    "disposition": how, "n": n}, sort_keys=True) + "\n"
+        for n, (key, how) in enumerate(rows, 1))
+
+
+def audit_disposed(n=2):
+    """Every finding of the fixture's audit, disposed."""
+    return tuple((f"{AUDIT_RECORD_ID}#{i}", "fixed") for i in range(1, n + 1))
