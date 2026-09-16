@@ -40,17 +40,12 @@ the store inside every case of this suite.
 from __future__ import annotations
 
 import os
-import subprocess
-import sys
-import uuid
 
 import launch_support as ls
 
 from ops.testkit import World  # noqa: F401 - _TempLaunch owns the world
 
-SESSION_KEY = "CLAUDE_SESSION_ID"
-CORE = ls.REPO / "ops" / "conductor" / "tools" / "coordination.py"
-DISPATCHER = "Launch Test Dispatcher <noreply@example.invalid>"
+SESSION_KEY = ls.SESSION_KEY
 
 
 class TheWorkerLearnsTheSessionIdItWasMintedFor(ls._TempLaunch):
@@ -116,49 +111,8 @@ class TheWorkerLearnsTheSessionIdItWasMintedFor(ls._TempLaunch):
             f"another in its environment ({env.get(SESSION_KEY)!r})")
 
 
-class TheLauncherBindsTheWorkerItMints(ls._TempLaunch):
+class TheLauncherBindsTheWorkerItMints(ls.CoordinationCore, ls._TempLaunch):
     """L4 L5 L6."""
-
-    def core(self, *args, session=None, agent=DISPATCHER):
-        """The coordination lever, run the way the launcher runs it."""
-        env = dict(os.environ)
-        env["WF_AGENT"] = agent
-        if session:
-            env["CLAUDE_SESSION_ID"] = session
-        else:
-            env.pop("CLAUDE_SESSION_ID", None)
-        return subprocess.run(
-            [sys.executable, str(CORE), *args],
-            capture_output=True, text=True, timeout=60,
-            cwd=str(ls.REPO), env=env)
-
-    def dispatcher_session(self):
-        """A bound dispatcher in this world's own store, and its session id.
-
-        The store lives under the world's XDG_STATE_HOME, so nothing here
-        touches the host's. The first bind is the bootstrap: the core makes
-        the first participant a lead, and a lead may grant itself the
-        dispatcher role it needs to mint a worker.
-        """
-        key = str(uuid.uuid4())
-        done = self.core("bind", "--roles", "lead,dispatcher", session=key)
-        self.assertEqual(done.returncode, 0,
-                         f"bootstrap bind refused: {done.stderr!r}")
-        return key
-
-    def assignment(self, session):
-        drafted = self.core("draft", "a fixture assignment",
-                            "--outcome", "the launcher binds a worker for it",
-                            session=session)
-        self.assertEqual(drafted.returncode, 0,
-                         f"draft refused: {drafted.stderr!r}")
-        return drafted.stdout.split()[-1]
-
-    def participants(self, session):
-        shown = self.core("participants", session=session)
-        self.assertEqual(shown.returncode, 0,
-                         f"participants refused: {shown.stderr!r}")
-        return shown.stdout
 
     def test_a_dispatch_that_names_no_assignment_is_unchanged(self):
         """L4.
