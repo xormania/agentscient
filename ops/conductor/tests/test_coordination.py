@@ -20,8 +20,10 @@ both readings are quoted in the commit that carries it.
 
 from __future__ import annotations
 
+import os
 import sys
 import unittest
+import unittest.mock
 from pathlib import Path
 
 from ops.testkit import RefusalCase, World, refusal_wire, run, run_table
@@ -407,6 +409,83 @@ class DispatchedWorkers(_Scratch):
         listed = self.ok("participants", session=LEAD)
         self.assertIn("bound by PT-1", listed)
         self.assertIn(f"for {aid}", listed)
+
+
+class TheCoreSeam(_Scratch):
+    """The seam the MCP projection settles against: one function per verb,
+    typed arguments and the resolved participant in, a dict out, an
+    instrument.Refusal with expected, found and needed on refusal. The CLI
+    is a wrapper over the same functions. Ruled by the Lead, 2026-09-16.
+
+    These rows call the module in process rather than as a subprocess,
+    because the seam they are about is the function's, not the wire's.
+    The world still owns the directories; the environment is patched for
+    the call and restored after it.
+    """
+
+    def core(self, session_id=LEAD):
+        """The module, imported fresh against this world's state root."""
+        import importlib.util
+        env = self.env(session_id)
+        patch = unittest.mock.patch.dict(os.environ, env, clear=True)
+        patch.start()
+        self.addCleanup(patch.stop)
+        spec = importlib.util.spec_from_file_location("coordination_under_test", TOOL)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_every_verb_is_keyed_by_its_wire_name_in_one_table(self):
+        module = self.core()
+        self.assertIn("return", module.CORE, "the wire name is the key")
+        self.assertEqual(
+            set(module.CORE), set(module.VERBS),
+            "the CLI and the core must offer the same verbs",
+        )
+
+    def test_a_core_function_returns_a_dict(self):
+        module = self.core()
+        with module.writer() as conn:
+            part = module.core_bind(
+                conn, None, agent=SHARED, session_id=LEAD, roles="lead,coordinator",
+            )
+            self.assertIsInstance(part, dict)
+            self.assertEqual(part["participant"], "PT-1")
+            bound = module.resolve(conn)
+            drafted = module.CORE["draft"](
+                conn, bound, agent=SHARED, title="a bounded repair",
+                outcome="the row refuses", revision="a1b2c3d",
+            )
+        self.assertIsInstance(drafted, dict)
+        self.assertEqual(drafted["assignment"], "A-1")
+        self.assertEqual(drafted["place"], "drafted")
+        self.assertEqual(drafted["generation"], 1)
+
+    def test_a_core_function_raises_the_refusal_with_its_three_parts(self):
+        module = self.core()
+        with module.writer() as conn:
+            module.core_bind(conn, None, agent=SHARED, session_id=LEAD, roles="worker")
+            part = module.resolve(conn)
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](
+                    conn, part, agent=SHARED, title="a repair", outcome="it refuses",
+                )
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("role:"), line)
+        for word in ("expected", "found", "needed"):
+            self.assertIn(word, line)
+        self.assertIn("lead", line)
+
+    def test_the_cli_prints_what_the_function_returned(self):
+        """The wrapper parses argv, calls the function and prints; the id
+        the CLI shows is the id the function allocated."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        printed = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
+                          session=LEAD).strip()
+        module = self.core()
+        with module.reader() as conn:
+            row = conn.execute("SELECT id FROM assignments ORDER BY id").fetchone()
+        self.assertEqual(printed, f"assignment A-{row['id']}")
 
 
 if __name__ == "__main__":

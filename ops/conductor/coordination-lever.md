@@ -14,25 +14,31 @@ answer to.
 Package B is this core and its CLI projection. The MCP action
 projection is built over the same module by another session.
 
-**The seam, as built, and the part of it that is not.** Every verb is
-reached through one table, `VERBS`, keyed by the verb's wire name, so a
-projection calls `VERBS["return"]` by the string and never imports a
-function named for a verb — `return` is a Python keyword and a
-projection guessing `return` then `return_` is two guesses wearing a
-refusal (ruled by the Lead session, 2026-09-16). The functions behind
-the table are spelled `do_<verb>` and that spelling is private; the
-table is the entry point.
+**The seam.** Every verb of the core is one function taking typed
+arguments and the resolved participant, returning a dict, and raising
+`instrument.Refusal` with expected, found and needed. The authority
+checks — participant, role, holder, generation, revision, producer —
+live in those functions, so they run whoever calls them: a projection
+cannot reach the store around them, and a hook the MCP plane is blind to
+is never where authority sits. Both projections are therefore thin and
+neither holds authority of its own; the CLI verb parses argv, calls the
+function and prints, and the MCP action does the same with a result
+shape instead of a print.
 
-What is **not** built, declared rather than implied: those functions
-take an argv list and print, and they return an exit class, not a dict.
-The authority checks — participant, role, holder, generation, revision,
-producer — are inside them and run whoever calls them, which is the
-property that matters and is proven by the suite. The typed-argument,
-dict-returning form this contract first promised is a declared gap for
-the next slice. Until it is built, a projection either drives the CLI
-and reads its wire, or calls `VERBS[verb](argv)` and captures stdout;
-neither is the thin seam intended, and the mock a projection builds
-against must be told which it is.
+**The tables.** The core is reached through `CORE`, keyed by the verb's
+wire name, so a projection calls `CORE["return"]` by the string and
+never imports a function named for a verb — `return` is a Python keyword
+and a projection guessing `return` then `return_` is two guesses wearing
+a refusal (ruled by the Lead session, 2026-09-16). The functions behind
+the table are spelled `core_<verb>` and that spelling is private; the
+table is the entry point. `VERBS` keys the CLI wrappers by the same wire
+names, and `set(CORE) == set(VERBS)` is asserted by the suite, so a verb
+cannot be added to one projection and quietly missed by the other.
+
+A read verb takes the store connection and returns `{"store": "absent",
+...}` when there is nothing to read, so "could not look" stays
+distinguishable from "looked and found nothing"; the CLI prints `no
+store` for the first and `no <things>` for the second.
 
 ## Conventions
 
