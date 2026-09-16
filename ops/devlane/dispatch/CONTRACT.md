@@ -307,6 +307,7 @@ does not make that owner depend on output grants. C1 adds no lane-policy
 implementation, discovery or fileset dependency; its profile transport below
 consumes the policy owner's selection rule. Workers receive job-authorized context,
 not conductor-wide discovery; both MCP surfaces remain read-only.
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
 
 ### C1 frontend inputs and results
 

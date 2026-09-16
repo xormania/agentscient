@@ -20,8 +20,9 @@ is independent of harness, model and conductor/worker role.
 Shared wire, provenance, custody, independent producers and declared
 couplings remain binding. Reading shared contracts or inspecting the
 application does not make its framework a dev-tooling dependency. MCP
-remains a read-only context and diagnostics surface; separate servers and
-action tools are proposals, not authorization here.
+reads and acts (owner, 2026-09-16; D-MCP-1). The lane read server keeps
+its own read-only contract; action operations are a separate typed
+surface under ops/conductor/ that refuses on the wire like every lever.
 
 Follow this boundary through the [instrument conventions](conductor/instrument-conventions.md),
 [onboarding contract](conductor/onboard-lever.md),

@@ -36,7 +36,8 @@ dependency on discovery, dispatch, policy or worker tooling.
 Two role-specific MCP server entrypoints/instances from one codebase remain
 a proposed deployment boundary; writable conductor tools remain a separate
 proposal requiring explicit revision of the standing read-only MCP contract.
-Neither is admitted here. The parallel worker consolidation track precedes
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads. Neither is
+admitted here. The parallel worker consolidation track precedes
 conduct startup, not discovery; its contract still needs admission. The
 `lane/lane-boundary-20260905` enforcement track is pending, not implemented
 policy that discovery can claim to provide.
@@ -45,7 +46,9 @@ Extend `tools/lane_read.py` and `tools/lane_mcp.py`, not a second backend.
 [lane-mcp-lever.md](lane-mcp-lever.md) and [lane-mcp-v2.md](lane-mcp-v2.md)
 remain the v1/v2 baselines, including their existing limitations and payloads.
 The four new queries are the only v3 extension. MCP stays read-only:
-`readOnlyHint=true`, `destructiveHint=false`. Reads require no identity.
+`readOnlyHint=true`, `destructiveHint=false`. Superseded 2026-09-16
+(D-MCP-1): MCP acts as well as reads generally; this v3 query surface
+stays read-only. Reads require no identity.
 MCP visibility is not enforcement through other harness tools. CLI/API
 actions, harness enforcement, lifecycle and ratification retain their owners.
 
