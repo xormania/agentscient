@@ -263,6 +263,29 @@
    "engine": false
   },
   {
+   "class": "dispatcher",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "ops/bin/dispatch.sh, ops/bin/go.sh",
+   "evidence": "the Dispatcher named in the state engine's `dispatcher` machine, whose `holder_note` is the session id the harness named for the session running the command; a store that cannot be read is said to be unreadable and never read as no Dispatcher named",
+   "gate": "dispatch_role",
+   "tests": [
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_no_dispatcher_named_refuses_and_names_the_lever",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_the_named_session_dispatches",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_another_session_refuses_and_both_ids_are_named",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_a_store_that_cannot_be_read_is_not_none",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_a_grant_is_no_escape"
+   ],
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false,
+   "lever": "ops/conductor/tools/dispatcher.py",
+   "owner": "2026-09-12: \"one branch per session - lets try it\"; \"as long you account for the fact that i'll have multiple sessions running soon\""
+  },
+  {
    "class": "deliverable",
    "boundary": "branch",
    "actor": "session",
@@ -297,6 +320,46 @@
     "Bash"
    ],
    "engine": false
+  },
+  {
+   "class": "audit",
+   "boundary": "pr",
+   "actor": "session",
+   "trigger": "gh pr ready",
+   "evidence": "a closed security-audit record at the head, named under `## Proof`, on the codex harness at the model ops/lane.conf names in MODEL_CODEX_SECURITY_AUDIT, whose model.requested and model.ran are both present and agree, whose snapshot.ref_sha and result.head are both present and agree on an audited sha that is a commit id, which carries a result.envelope.findings array, with every commit the branch carries since \u2014 merges judged by their combined diff, what origin/<trunk> already carries excluded \u2014 either inside the records set below, which the gate matches as path prefixes, or a fix commit citing one of its findings at a path that finding's `where` names, the audit's own record under .dev/records/dispatches never exempt, and every finding of its envelope disposed in the findings export at the head",
+   "gate": "audit_at_head",
+   "tests": [
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_ready_passes_with_a_closed_audit_at_the_head",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_an_open_finding_refuses_and_is_named",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_code_commit_after_the_audit_voids_it_and_names_the_path",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_fix_commit_citing_a_finding_of_the_audit_keeps_it_standing",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_grant_is_no_escape",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_an_aar_an_idea_and_a_lesson_do_not_void_the_audit",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_conductor_tool_is_not_a_record_and_voids_the_audit",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_an_audited_sha_that_is_not_a_commit_id_refuses",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_merge_of_an_unaudited_topic_voids_the_audit",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_merges_own_conflict_content_is_judged",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_rewriting_the_audits_own_record_voids_it",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_record_carrying_only_one_of_the_sha_pair_refuses",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_record_with_no_findings_envelope_refuses",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_fix_commit_touching_no_path_its_finding_names_voids_the_audit",
+    "ops/devlane/hooks/tests/test_pr_audit.py::test_a_fix_commit_carries_its_test_file_beside_the_path_it_names"
+   ],
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false,
+   "records": [
+    ".dev/records/",
+    "ops/conductor/handoff/",
+    "ops/conductor/findings/findings.jsonl",
+    "ops/conductor/AAR-",
+    "ops/conductor/ideas/",
+    "ops/conductor/lessons/"
+   ],
+   "owner": "2026-09-16: \"i'd like if you have daybreak security audits made required for draft pr's - and resolution required before they can be made ready for review\"; \"you can't keep re-auditing after fixes - draw a line\""
   },
   {
    "class": "trunk-commit",
