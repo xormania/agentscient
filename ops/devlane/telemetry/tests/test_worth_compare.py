@@ -66,6 +66,37 @@ class _Compare(unittest.TestCase):
             self._assistant(session_id, f"msg-{session_id}-1", stamp, context),
         ])
 
+    def _plant_dispatch(self, job_id, launched, job="author-tests",
+                        harness="grok", cached=1000, total=1200):
+        """A launcher record the reader can count, minimal by design:
+        omitting snapshot leaves _same_repo answering this repository."""
+        root = self.world.cwd / "dispatch"
+        path = root / job_id / "record.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.world.plant_text(path, json.dumps({
+            "id": job_id, "job": job, "stage": "tests", "unit": "work",
+            "status": "closed",
+            "harness": {"name": harness, "version": "1.0.0", "argv": [harness]},
+            "lineage": {"branch": "work"},
+            "model": {"ran": "ran"},
+            "at": {"launched": launched, "closed": launched},
+            "session": {"spend": {"total": total, "cached": cached,
+                                  "input": 100, "out": 10}},
+        }, indent=1) + "\n", recognisable=job_id)
+        return root
+
+    def _merged_pr(self, when, number=99):
+        """One merged PR on the first-parent line inside a window."""
+        self.w._git("switch", "-q", "-c", f"pr-{number}")
+        self.w._commit_files({f"src/pr{number}.txt": "landed\n"},
+                             f"implement pr-{number}", when)
+        self.w._git("switch", "-q", "dev")
+        return self.w._merge(
+            f"pr-{number}",
+            f"Merge pull request #{number} from fixtures/pr-{number}",
+            when,
+        )
+
     def _run(self, *args, now=NOW):
         return self.w._run_worth("compare", *args, now=now)
 
@@ -175,6 +206,37 @@ class CompareLeverRows(_Compare):
         proc = self._run("--baseline", BASE_WINDOW, "--window", WINDOW)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertNotIn("turns", proc.stdout)
+
+
+class LandedCountsBothHalves(_Compare):
+    """LD-54: a rate of zero produced by an empty numerator is not an
+    improvement. `landed` carries `dispatches` beside `n` and reads
+    UNREACHABLE when either half is zero."""
+
+    def test_landed_carries_the_dispatch_count_beside_the_pr_count(self):
+        self._merged_pr("2026-08-22T10:30:00.000Z")
+        root = self._plant_dispatch("20260822T103000Z-tests-grok-aaaaaa",
+                                    "2026-08-22T10:30:00Z")
+        value = self._levers("--baseline", BASE_WINDOW, "--window", WINDOW,
+                             "--dispatch-dir", str(root))
+        row = self._row(value, "landed")
+        self.assertIn("dispatches", row["window"], row["window"])
+        self.assertEqual(row["window"]["n"], 1)
+        self.assertEqual(row["window"]["dispatches"], 1)
+        self.assertEqual(row["window"]["figure"], 1.0)
+
+    def test_landed_with_a_merge_and_no_dispatch_reads_unreachable(self):
+        self._merged_pr("2026-08-22T10:30:00.000Z")
+        root = self.world.cwd / "empty-dispatch"
+        root.mkdir(parents=True, exist_ok=True)
+        value = self._levers("--baseline", BASE_WINDOW, "--window", WINDOW,
+                             "--dispatch-dir", str(root))
+        row = self._row(value, "landed")
+        self.assertIn("dispatches", row["window"], row["window"])
+        self.assertEqual(row["window"]["n"], 1)
+        self.assertEqual(row["window"]["dispatches"], 0)
+        self.assertEqual(row["verdict"], "UNREACHABLE")
+        self.assertEqual(row["window"]["figure"], "unrecorded")
 
 
 class CompareOutput(_Compare):
