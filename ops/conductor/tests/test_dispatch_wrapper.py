@@ -118,19 +118,6 @@ def _bash_single_quote(value: str) -> str:
     return "'" + value.replace("'", "'\\''") + "'"
 
 
-def _jobs_roots_to_guard() -> list[Path]:
-    roots: list[Path] = []
-    snap = REPO.resolve()
-    if snap.name == "snapshot":
-        jobs_root = snap.parent.parent
-        if jobs_root.name == "dispatch":
-            roots.append(jobs_root)
-    home_default = Path.home() / ".local" / "state" / "agentscient" / "dispatch"
-    if home_default not in roots:
-        roots.append(home_default)
-    return roots
-
-
 def expected_launch_argv(
     *,
     pin: Path | str,
@@ -190,22 +177,6 @@ class _WrapperFixture(unittest.TestCase):
         self._conf_bytes = REAL_CONF.read_bytes() if self._conf_existed else None
         self._old_existed = OLD_CONF.exists()
         self._old_bytes = OLD_CONF.read_bytes() if self._old_existed else None
-        # LD-16 (2026-09-11): the CI runner shares the host store with running
-        # ladders; a job directory minted mid-run is not this tool's write.
-        # The shared guard declares exactly that exclusion.
-        self._guarded = []
-        self._store_watches = []
-        for root in _jobs_roots_to_guard():
-            if root.is_dir():
-                watch = self._world.watch(
-                    root,
-                    tolerate_new=(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$",),
-                    contents=False,
-                )
-                before = watch.before[str(root)]
-                self._guarded.append((root, before))
-                self._store_watches.append(watch)
-
         root = self._world.root
         self.home = self._world.home
         self.xdg = self._world.xdg_state
@@ -213,6 +184,25 @@ class _WrapperFixture(unittest.TestCase):
         self.scratch = root / "scratch"
         for path in (self.jobs_root, self.scratch):
             path.mkdir()
+
+        # S5, 2026-09-16: what is watched is this world's own jobs root.
+        # The subject runs under the world's HOME and XDG_STATE_HOME, so
+        # the operator's live store is not reachable from it, and the
+        # host-store watch that stood here is deleted rather than
+        # exempted: it failed whenever another session's dispatch minted
+        # a directory or a launcher log in a store shared with the runner
+        # (LD-69), which was never this tool's write. LD-16's exclusion
+        # for a concurrently minted job directory is kept on the world
+        # root, where the rows can plant one on purpose.
+        self._guarded = []
+        self._store_watches = []
+        watch = self._world.watch(
+            self.jobs_root,
+            tolerate_new=(r"^\d{8}T\d{6}Z-[a-z-]+-[a-z]+-[0-9a-f]{6}$",),
+            contents=False,
+        )
+        self._guarded.append((self.jobs_root, watch.before[str(self.jobs_root)]))
+        self._store_watches.append(watch)
 
         self.marker = self.scratch / "launched.marker"
         self.pin = self._world.tools.plant("sentinel-launch")
@@ -275,11 +265,6 @@ class _WrapperFixture(unittest.TestCase):
             self.assertEqual(OLD_CONF.exists(), self._old_existed)
             if self._old_existed:
                 self.assertEqual(OLD_CONF.read_bytes(), self._old_bytes)
-            for watch in self._store_watches:
-                watch.assert_unchanged(
-                    self,
-                    f"host dispatch directory changed: {watch.paths[0]}",
-                )
         finally:
             pass
 
