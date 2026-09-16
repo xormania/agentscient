@@ -47,6 +47,11 @@ CORE_TABLE = "CORE"
 CORE_RESOLVE = "bound_participant"
 CORE_WRITER = "writer"
 INBOX_VERB = "inbox"
+# Each read answers under its own key, and they are not the same word:
+# `inbox` returns `messages`, `undelivered` returns `undelivered`. Read
+# at 73e47041; assuming one for the other carried nothing at all.
+INBOX_KEY = "messages"
+UNDELIVERED_KEY = "undelivered"
 DELIVER_VERB = "deliver"
 UNDELIVERED_VERB = "undelivered"
 TICK_DEFAULT = 30
@@ -87,9 +92,15 @@ def undelivered(module, conn, part) -> list:
     """
     table = getattr(module, CORE_TABLE, {})
     if isinstance(table, dict) and callable(table.get(UNDELIVERED_VERB)):
-        rows = table[UNDELIVERED_VERB](conn, part).get("messages", [])
+        answer = table[UNDELIVERED_VERB](conn, part)
+        rows = answer.get(UNDELIVERED_KEY)
+        if not isinstance(rows, list):
+            refuse("state", f"a list under `{UNDELIVERED_KEY}` from the core's "
+                   f"`{UNDELIVERED_VERB}`",
+                   f"{sorted(answer) if isinstance(answer, dict) else type(answer).__name__}",
+                   "settle the courier against the core's own answer")
         return [row for row in rows if isinstance(row, dict)]
-    rows = verb(module, INBOX_VERB)(conn, part).get("messages", [])
+    rows = verb(module, INBOX_VERB)(conn, part).get(INBOX_KEY, [])
     return [row for row in rows
             if isinstance(row, dict) and row.get("delivered_at") is None]
 

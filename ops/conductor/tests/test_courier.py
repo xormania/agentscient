@@ -16,14 +16,17 @@ file: a courier that prints without recording is caught by three cases, one
 that carries the whole inbox by one, one that acknowledges while delivering
 by one, and one that carries another participant's messages by four.
 
-**A declared gap, found by that calibration.** `undelivered()` has two
-paths: the core's own `undelivered` verb when it carries one, and `inbox`
-filtered on `delivered_at` otherwise. The core at b1d868b0 has no such
-verb, so the first path is unreachable today and a fault planted in it is
-caught by nothing here — measured, not assumed. The cases exercise the
-filtered path, which is the one that runs. When package B lands the verb,
-the calibration must be re-run against the other path before it is
-trusted.
+**The declared gap, and what it caught.** `undelivered()` has two paths:
+the core's own `undelivered` verb when it carries one, and `inbox`
+filtered on `delivered_at` otherwise. While the core had no such verb the
+first path was unreachable and a fault planted in it was caught by
+nothing, which this docstring said. The verb landed at 73e47041 and the
+gap paid for itself the same hour: `core_undelivered` answers under the
+key `undelivered`, not `messages`, so the courier carried nothing and
+three cases here failed. The key is now read rather than assumed, and a
+core that answers under neither refuses class `state` naming the keys it
+did return. Both paths are exercised now — the verb's when the core
+carries it, which is today.
 
 Fixture set (docs/tests.md rule 3). Planted faults: a message queued and
 never carried; a second pass over an already-carried message; a tick of
