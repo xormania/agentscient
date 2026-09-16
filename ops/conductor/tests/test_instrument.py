@@ -187,6 +187,66 @@ class Identity(unittest.TestCase):
             )
 
 
+class TheIdentityOverride(unittest.TestCase):
+    """A deliberate identity for one command outranks the ambient one.
+
+    Measured 2026-09-16: .claude/settings.local.json binds
+    env.WF_AGENT for every session on this host, so WF_AGENT is always
+    set and a tool cannot tell "meant, on this command" from "inherited
+    from settings" — they arrive as the same key. Without a second key
+    no later branch of the precedence can ever fire, and every row a
+    session writes carries whichever name the settings file holds.
+    """
+
+    OTHER = "Claude Opus 5 (1M context) <noreply@anthropic.com>"
+
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
+        self.world = World(prefix="instrument-override-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
+
+    def with_env(self, **keys):
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("WF_AGENT", "WF_AGENT_OVERRIDE")}
+        env.update({k: v for k, v in keys.items() if v is not None})
+        return mock.patch.dict(os.environ, env, clear=True)
+
+    def test_the_override_is_the_identity_when_both_are_set(self):
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE=self.OTHER):
+            self.assertEqual(self.m.identity(), self.OTHER)
+
+    def test_the_override_alone_is_the_identity(self):
+        with self.with_env(WF_AGENT_OVERRIDE=self.OTHER):
+            self.assertEqual(self.m.identity(), self.OTHER)
+
+    def test_the_ambient_agent_still_answers_when_no_override_is_set(self):
+        with self.with_env(WF_AGENT=AGENT):
+            self.assertEqual(self.m.identity(), AGENT)
+
+    def test_a_malformed_override_refuses_and_never_falls_through(self):
+        # Falling back to the ambient name would stamp rows with someone
+        # else while the command said otherwise. A deliberate value that
+        # is wrong is not an absent one.
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE="JustAName"):
+            with self.assertRaises(self.m.Refusal) as caught:
+                self.m.identity()
+        self.assertEqual(caught.exception.kind, "identity")
+        self.assertIn("WF_AGENT_OVERRIDE", str(caught.exception))
+
+    def test_a_blank_override_is_not_a_declaration(self):
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE="   "):
+            self.assertEqual(self.m.identity(), AGENT)
+
+    def test_identity_parts_reads_the_override_too(self):
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE=self.OTHER):
+            self.assertEqual(
+                self.m.identity_parts(),
+                ("Claude Opus 5 (1M context)", "noreply@anthropic.com"),
+            )
+
+
 class TheSessionId(unittest.TestCase):
     """Who the harness says is running, or a declared absence.
 

@@ -33,9 +33,18 @@ accompanies a refusal.
 
 ## Identity
 
-Writing verbs require `WF_AGENT` matching `.+ <addr>` and refuse class
-`identity` without it. Reads need no identity. Where rows are stamped,
-`agent` comes from `WF_AGENT` and `session` from the harness:
+Writing verbs require an agent in `Name <address>` form and refuse class
+`identity` without one. Two keys carry it, in this order:
+`WF_AGENT_OVERRIDE` first, then `WF_AGENT`. The override exists because
+the ambient key is not always the command's own — a settings file may
+bind `WF_AGENT` for every session on a host, and nothing reading the
+environment can tell that from a value the command meant. A malformed
+override refuses and never falls through to `WF_AGENT`, because falling
+through would stamp a row with one agent while the command named
+another; a blank override is not a declaration and is passed over. One
+reader, `instrument.identity()`. Reads need no identity. Where rows are
+stamped, `agent` is what that reader returns and `session` comes from
+the harness:
 `CLAUDE_CODE_SESSION_ID`, else `CLAUDE_SESSION_ID`, else `unknown` (or
 whatever word the caller chose for its own absence, as skills.py chooses
 `unrecorded`). A blank value is not a declaration and is passed over.

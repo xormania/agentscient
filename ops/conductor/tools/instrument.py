@@ -42,6 +42,10 @@ EXIT_ABORT = 3
 
 IDENTITY = re.compile(r"(?P<name>[^<>\n]+) <(?P<address>[^<>\s@]+@[^<>\s]+)>")
 IDENTITY_NEEDED = "export WF_AGENT='Your Model Name <noreply@vendor>'"
+OVERRIDE_NEEDED = (
+    "WF_AGENT_OVERRIDE='Your Model Name <noreply@vendor>' on the command, "
+    "or unset it to use WF_AGENT"
+)
 GIT = shutil.which("git") or "git"
 
 
@@ -77,7 +81,29 @@ def emit(refusal: Refusal, stream=None) -> int:
 
 
 def identity() -> str:
-    """WF_AGENT in Name <address> form, or refuse identity."""
+    """The agent for this command in Name <address> form, or refuse identity.
+
+    WF_AGENT_OVERRIDE is read first and outranks WF_AGENT. The second key
+    exists because the first is not always the command's own: measured
+    2026-09-16, .claude/settings.local.json binds env.WF_AGENT for every
+    session on this host, so WF_AGENT is always set and nothing reading
+    os.environ can tell "meant, on this command" from "inherited from
+    settings" — both arrive as the same key. A precedence written on
+    WF_AGENT alone can therefore never reach a later branch, and every
+    row a session writes carries whichever name that file holds.
+
+    A malformed override refuses rather than falling through to WF_AGENT.
+    Falling through would stamp rows with one agent while the command
+    named another, which is the misattribution the key was added to end;
+    a deliberate value that is wrong is not an absent one. A blank
+    override is not a declaration and is passed over.
+    """
+    override = os.environ.get("WF_AGENT_OVERRIDE", "").strip()
+    if override:
+        if IDENTITY.fullmatch(override) is None:
+            refuse("identity", "WF_AGENT_OVERRIDE in the Name <address> form",
+                   override, OVERRIDE_NEEDED)
+        return override
     value = os.environ.get("WF_AGENT", "")
     if IDENTITY.fullmatch(value) is None:
         refuse("identity", "WF_AGENT in the Name <address> form", value or "unset",
