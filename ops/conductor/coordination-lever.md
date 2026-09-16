@@ -135,6 +135,16 @@ Lead session on 2026-09-16:
 - **`grant PT-n --roles R[,R]`** is how roles above `worker` are held.
   Only a `lead` may run it; the row records `granted_by` and
   `granted_at`, so the chain is readable back to the bootstrap.
+- **`revoke PT-n --roles R[,R]`** takes them back, and only a `lead` may
+  run it. The row records `revoked_by` and `revoked_at` beside the grant
+  fields, because a role put down is as much a fact as a role conferred.
+  It refuses class `role` when the roles it would leave hold no `lead`
+  anywhere in the store — counting what stands after the subtraction,
+  whoever the subject is, so a last lead cannot take its own down — and
+  when the participant does not hold what is named, since taking back
+  what was never given is a refusal rather than a silent success. What
+  is left is never nothing: a participant stripped of everything stands
+  at `worker`, where a fresh self-bind would stand.
 - A **re-bind** by the row's own session refreshes its `endpoint`, its
   `probe` and its `agent` string, and never its roles: a re-bind naming
   roles the row does not hold refuses class `role`.
@@ -373,6 +383,7 @@ reconciliation the caller still owes.
 | `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n` |
 | `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
 | `grant PT-n --roles R[,R]` | a lead grants roles above worker; records the grantor |
+| `revoke PT-n --roles R[,R]` | a lead takes them back; never the store's last lead |
 | `who` | this session's participant and roles; `no store` and exit 0 when there is none |
 | `participants [--role R]` | one line per participant |
 | `draft TITLE --outcome TEXT [--requirement REF] [--revision SHA] [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]` | prints `assignment A-n` |
