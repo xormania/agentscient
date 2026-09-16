@@ -37,7 +37,7 @@ OTHER_JOBS = (
 # declared their outputs (item 5 as amended), and again under grant 155
 # (2026-09-12) after caps.turns joined five entries, said in the commit.
 OTHERS_SHA256 = (
-    "5ccb2b8e90f67e7c860495d1da31728f56721be13f9291f7704f1236bba1745c"  # re-pinned 2026-09-16 (grant 251): verify, sweep, plan and adjudicate declare caps, so every job carries turns and timeout; the pin before this was ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
+    "d9c37a956db7685a9582f5a8148a1f7727bec6490b1e7e6257cd75daa941c1e3"  # re-pinned 2026-09-16 (grant 251) twice in one change: every job declares caps (verify, sweep, plan, adjudicate joined), then the author-tests brief gained its reading discipline; through 5ccb2b8e, from ff31dad2 (2026-09-15, the author-tests spend discipline, T-56 grant 246)
 )
 
 D1_PROMPT = (

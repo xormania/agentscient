@@ -22,6 +22,15 @@ from ops.testkit import World
 
 DEFAULT_TIMEOUT = 900.0
 COMMIT_ON_RED = "Commit each test file as soon as its red is proven"
+# The reading discipline, 2026-09-16: the largest single tool output in
+# each of the two heaviest author-tests runs was a whole-file dump of
+# about 40 KB, one of them the law under docs/, compounding over 80 to 98
+# turns into 9 to 13M cumulative input (measured by agentscient-11).
+READING_DISCIPLINE = (
+    "do not read docs/",
+    "sed -n",
+    "tail, not its whole output",
+)
 JOB_TURNS = 37
 ENV_TURNS = 21
 JOB_TIMEOUT = 42
@@ -190,6 +199,15 @@ class AuthorTestsPromptContainsTheCommitOnRedClause(unittest.TestCase):
         self.assertIsInstance(prompt, str)
         self.assertTrue(prompt.strip(), "author-tests prompt is empty")
         self.assertIn(COMMIT_ON_RED, prompt)
+
+    def test_author_tests_prompt_names_the_reading_discipline(self):
+        """Read the law from context, the scope's files in ranges, a run's
+        tail: the three the brief has to say, because the cost measured on
+        2026-09-16 was whole-file reading, not thinking."""
+        prompt = self.jobs["author-tests"]["prompt"]
+        self.assertIsInstance(prompt, str)
+        missing = [needle for needle in READING_DISCIPLINE if needle not in prompt]
+        self.assertEqual(missing, [], f"the author-tests brief does not say: {missing}")
 
 
 class SupervisionEnforcesTheResolvedJobCap(ls._TempLaunch):
