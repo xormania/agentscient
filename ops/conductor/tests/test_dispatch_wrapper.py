@@ -1556,9 +1556,11 @@ class RowDispatchConfRetired(_WrapperFixture):
 
 class RowAgentIdentity(_WrapperFixture):
     """Identity for the launched env: --agent if passed; else WF_AGENT
-    when it matches Name <address>; else WF_AGENT_DEFAULT. A Grok-led
-    session that already exports a well-formed WF_AGENT does not need
-    WF_AGENT_DEFAULT in conf or local conf.
+    when it matches Name <address>; else, when WF_AGENT is unset,
+    WF_AGENT_DEFAULT. A WF_AGENT that is set and does not match refuses
+    class identity instead: a declaration that failed is not an absence.
+    A Grok-led session that already exports a well-formed WF_AGENT does
+    not need WF_AGENT_DEFAULT in conf or local conf.
     """
 
     def _assert_dry_run_identity(self, proc, identity: str) -> None:
@@ -1621,18 +1623,80 @@ class RowAgentIdentity(_WrapperFixture):
         self.assertNotIn("--agent", argv)
         self.assert_no_launch()
 
-    def test_malformed_exported_wf_agent_falls_through_to_conf_default(self):
+    def test_malformed_exported_wf_agent_refuses_identity(self):
+        """Origin: LD-58. This row was
+        test_malformed_exported_wf_agent_falls_through_to_conf_default,
+        and it asserted `self.assertEqual(env.get("WF_AGENT"),
+        CONF_AGENT)` — a WF_AGENT that is not Name <address> was
+        dropped without a word and the job launched under the conf
+        default, so a caller who had declared an identity was recorded
+        as someone else and nothing said so. An unset WF_AGENT is an
+        absence and the conf default answers it; a set one that does
+        not match is a declaration that failed, and docs/wire.md
+        refuses rather than guess.
+        """
         self.assertNotEqual(MALFORMED_AGENT, CONF_AGENT)
         self.assertNotRegex(MALFORMED_AGENT, r".+ <.+>")
         proc = self.invoke(
             self.full_flags(omit=("agent",)),
             extra_env={"WF_AGENT": MALFORMED_AGENT},
         )
+        line = self.assert_wire_abort(
+            proc, "identity", named=(MALFORMED_AGENT,),
+        )
+        self.assertNotIn(CONF_AGENT, line)
+
+    def test_exported_wf_agent_carrying_a_newline_refuses_on_one_line(self):
+        """Origin: LD-58, the planted fault for the refusal above. The
+        found clause quotes the value it rejected, so a value carrying a
+        newline would split the refusal across lines and docs/wire.md
+        asks for one. The clause shows the break as the two characters
+        backslash-n rather than folding it to a space, which would make
+        a malformed value read as a well-formed one.
+        """
+        carried = "Grok 4.6\n<noreply@x.ai>"
+        self.assertIn("\n", carried)
+        self.assertNotRegex(carried, r"^.+ <.+>$")
+        proc = self.invoke(
+            self.full_flags(omit=("agent",)),
+            extra_env={"WF_AGENT": carried},
+        )
+        line = self.assert_wire_abort(proc, "identity", named=("Grok 4.6",))
+        self.assertIn("\\n", line)
+        self.assertNotIn(CONF_AGENT, line)
+
+    def test_unset_wf_agent_still_takes_the_conf_default(self):
+        """Origin: LD-58, the clean neighbour of the refusal above. The
+        refusal is for a value that failed the form, never for absence:
+        WF_AGENT_DEFAULT is in laneconf.py's REQUIRED_KEYS and has its
+        own conf-key refusal here when it is missing, so refusing on
+        unset would leave a required key with no live reader.
+        """
+        proc = self.invoke(self.full_flags(omit=("agent",)))
         self.assertEqual(proc.returncode, 0, self.combined(proc))
         argv, env = self.parse_dry_run(proc)
         self.assertEqual(env.get("WF_AGENT"), CONF_AGENT)
         self.assertNotEqual(env.get("WF_AGENT"), MALFORMED_AGENT)
-        self.assertNotEqual(env.get("WF_AGENT"), ENV_AGENT)
+        self.assertNotIn("--agent", argv)
+        self.assert_no_launch()
+
+    def test_agent_flag_beats_a_malformed_exported_wf_agent(self):
+        """Origin: LD-58. --agent is the remedy the refusal's needed
+        half names, so passing it must launch, not refuse: the flag is
+        read after the export and settles the identity itself.
+        """
+        self.assertRegex(FLAG_AGENT, r".+ <.+>")
+        self.assertNotRegex(MALFORMED_AGENT, r".+ <.+>")
+        self.assertNotEqual(FLAG_AGENT, CONF_AGENT)
+        proc = self.invoke(
+            self.full_flags(agent=FLAG_AGENT),
+            extra_env={"WF_AGENT": MALFORMED_AGENT},
+        )
+        self.assertEqual(proc.returncode, 0, self.combined(proc))
+        argv, env = self.parse_dry_run(proc)
+        self.assertEqual(env.get("WF_AGENT"), FLAG_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), MALFORMED_AGENT)
+        self.assertNotEqual(env.get("WF_AGENT"), CONF_AGENT)
         self.assertNotIn("--agent", argv)
         self.assert_no_launch()
 

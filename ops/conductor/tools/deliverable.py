@@ -122,7 +122,9 @@ def reading(target):
 
 def target_line(branch, target):
     met, line = reading(target)
-    return f"target {branch}: until {target['until']}; reading {line}; {'met' if met else 'short'}"
+    owner = f" (by {target['by']})" if target.get("by") else ""
+    return (f"target {branch}: until {target['until']}; reading {line}; "
+            f"{'met' if met else 'short'}{owner}")
 
 
 def lock_path():
@@ -151,6 +153,12 @@ def write(path, data):
 
 
 def do_set(args):
+    """T-71: a lead session ran set for its closing AAR and the lock then
+    read one measure against all three branches it named, so two other
+    sessions read short against a target that was never theirs -- and a
+    branch left unnamed was dropped from the lock outright. set re-targets
+    branches the lock already names and touches nothing else; add is the
+    verb that introduces one. On no lock, set still writes the first."""
     branches = positional(args, "--why", "--measure", "--until")
     why = option(args, "--why") or ""
     if not branches:
@@ -159,13 +167,38 @@ def do_set(args):
         refuse("arguments", "a non-empty --why", repr(why), "say what the deliverable is")
     target = target_of(args)
     by = identity()
-    data = {"branches": branches, "why": why, "by": by,
-            "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
-    if target:
-        data["targets"] = {b: {"measure": target[0], "until": target[1]} for b in branches}
+    stamp = now().strftime("%Y-%m-%dT%H:%M:%SZ")
     with held() as path:
+        try:
+            held_data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            held_data = {}
+        if not isinstance(held_data, dict):
+            held_data = {}
+        named = [str(b) for b in (held_data.get("branches") or [])]
+        targets = dict(held_data.get("targets") or {})
+        if named:
+            missing = [b for b in branches if b not in named]
+            if missing:
+                refuse("absent", f"branches the lock names ({', '.join(named)})", ", ".join(missing),
+                       "deliverable.py add <branch> names a new session's branch beside these")
+            reasons = [r for r in [str(held_data.get("why") or ""), why] if r.strip()]
+            if held_data.get("why") and why in held_data["why"]:
+                reasons = [str(held_data["why"])]
+            data = {"branches": named, "why": " | ".join(reasons),
+                    "by": held_data.get("by") or by,
+                    "at": held_data.get("at") or stamp}
+        else:
+            named = list(branches)
+            data = {"branches": named, "why": why, "by": by, "at": stamp}
+        if target:
+            for branch in branches:
+                targets[branch] = {"measure": target[0], "until": target[1],
+                                   "by": by, "at": stamp}
+        if targets:
+            data["targets"] = targets
         write(path, data)
-    print(f"locked {' '.join(branches)}")
+    print(f"locked {' '.join(named)}")
     return 0
 
 
@@ -181,6 +214,7 @@ def do_add(args):
         refuse("arguments", "a non-empty --why", repr(why), "say what this session's deliverable is")
     target = target_of(args)
     by = identity()
+    stamp = now().strftime("%Y-%m-%dT%H:%M:%SZ")
     with held() as path:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -195,10 +229,16 @@ def do_add(args):
             reasons = [str(data["why"])]
         targets = dict(data.get("targets") or {})
         if target:
+            # LD-49: the lock stamped one `by` at the top and add
+            # overwrote it, so the last writer appeared to own every
+            # branch. Each target says who set it and when; the
+            # lock-level by stays with whoever opened the lock.
             for branch in branches:
-                targets[branch] = {"measure": target[0], "until": target[1]}
-        data = {"branches": named, "why": " | ".join(reasons), "by": by,
-                "at": now().strftime("%Y-%m-%dT%H:%M:%SZ")}
+                targets[branch] = {"measure": target[0], "until": target[1],
+                                   "by": by, "at": stamp}
+        data = {"branches": named, "why": " | ".join(reasons),
+                "by": data.get("by") or by,
+                "at": data.get("at") or stamp}
         if targets:
             data["targets"] = targets
         write(path, data)

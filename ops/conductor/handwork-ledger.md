@@ -40,7 +40,8 @@ are.
 ## Identity
 
 Every writing verb requires `WF_AGENT` matching `.+ <addr>`; `agent`
-and `session` (from `CLAUDE_SESSION_ID` if set, else `unknown`) are
+and `session` (from `CLAUDE_CODE_SESSION_ID`, else `CLAUDE_SESSION_ID`,
+else `unknown`) are
 stamped on every row. Reads need no identity.
 
 ## The lever registry

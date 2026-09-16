@@ -76,9 +76,12 @@ line (an unperformed read is named, never silent):
   — or the refusal verbatim.
 - `prs:` open pull requests measured via
   `gh pr list --state open --limit 200`, number and title each — or
-  `gh unavailable: <reason>`; a listing that fills the limit is
-  reported truncated and counts unmeasured (a silent first page is a
-  false total).
+  `gh unavailable: <reason>` when gh ran and reported a failure, or
+  `prs: UNREACHABLE: <first>, retried and <second>` under the retry
+  rule below; a listing that fills the limit is reported truncated and
+  counts unmeasured (a silent first page is a false total). `prs: 0
+  open` is the answer for a repository with none, so a read that could
+  not look never spells it.
 - `dispatches:` record directories in the dispatch store
   (`$XDG_STATE_HOME/agentscient/dispatch`, else `~/.local/state/…`)
   are running only when `record.json` says `launched`, `state.json`
@@ -89,20 +92,41 @@ line (an unperformed read is named, never silent):
   Non-integer, boolean, zero, and negative pids are not running.
   Terminal records and directories
   without `record.json` are not running. A genuinely nonexistent
-  store path says ABSENT and is a measured fact; a path that exists
-  but is not a readable directory is unavailable and counts
-  unmeasured.
+  store path says ABSENT and is a measured fact. A path that could not
+  be read reads `dispatches: UNREACHABLE: <what>` and counts
+  unmeasured: a path that exists but is not a readable directory, a
+  store that will not list, and a closed record whose `exit` file will
+  not open. Each has an answer it must not borrow — ABSENT for the
+  store that is not there, `running=none` for the store that held no
+  live record, `exit=ABSENT` for the file that held nothing — and a
+  read that could not look is entitled to none of them.
 - `branch:` current branch and short sha of the repository the tool
   runs from.
 - `lock:` the deliverable lock as `deliverable.py show` prints it: the
   branches named and the owner's words on one line, then every measured
   target on its own `target <branch>: until ...; reading ...; met|short`
   line, the reading taken now. `lock: none` when no lock is set, a
-  measured fact; `lock: unavailable: <reason>` when the lever cannot
-  report, counted unmeasured. Owner, 2026-09-15: a brief that never
+  measured fact; `lock: unavailable: <reason>` when the lever reports a
+  failure, counted unmeasured. A read that expires is retried once with
+  a longer bound, and if that expires too the line reads
+  `lock: UNREACHABLE: <first>, retried and <second>`, also counted: the
+  brief that could not look says so, and never in a word that reads as
+  no lock (LD-48, measured 2026-09-16 under five concurrent sessions).
+  The bounds are `ONBOARD_TIMEOUT` and `ONBOARD_RETRY_TIMEOUT` seconds,
+  5 and 20 unless the environment names otherwise. Owner, 2026-09-15: a
+  brief that never
   printed the lock let a plan's paraphrase of the order stand in for the
   order after a compaction; the owner's words and the reading now ride
   every brief.
+
+  **The retry rule is every read's, not the lock's.** LD-48 was found on
+  the lock line and repaired there, and the brief's other subprocess
+  reads were the gap that repair declared. Each of them — the lock, the
+  prs listing, the handoff brief — retries once with the longer bound
+  when the first expired, then says `<label>: UNREACHABLE: <first>,
+  retried and <second>` and counts unmeasured. `unavailable` stays the
+  word for a lever that ran and reported a failure, which is a lever
+  that looked.
 
 Sibling outputs are as the siblings' own contracts define them — the
 register's report is deterministic JSON, the ledger's report begins
@@ -123,8 +147,12 @@ one line is `handoffs: ABSENT <path> (none recorded)`, a measured fact.
 Present, the section is `handoff.py brief` verbatim: a `handoffs:` line
 with the open, taken and done counts, then each handoff with live
 threads and its open and taken threads indented, holder and branch and
-age on the taken ones. A brief the manager cannot produce prints
-`handoffs: unavailable: <reason>` and counts as unmeasured. The section
+age on the taken ones. A brief the manager ran and failed to produce prints
+`handoffs: unavailable: <reason>` and counts as unmeasured; a read that
+expires twice under the retry rule prints
+`handoffs: UNREACHABLE: <first>, retried and <second>` and is counted
+the same way. ABSENT is the answer for a host with no store, so a read
+that could not look never spells it. The section
 shows and never claims: a session takes a thread with
 `handoff.py take T-n --branch <its branch>` once the lock names the
 branch, at the owner's word or its own choice.

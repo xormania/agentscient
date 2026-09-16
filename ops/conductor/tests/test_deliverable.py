@@ -14,6 +14,7 @@ from ops.testkit import World, run
 
 ROOT = Path(__file__).resolve().parents[3]
 LEVER = ROOT / "ops" / "conductor" / "tools" / "deliverable.py"
+OWNER = "Owner <owner@example.test>"
 
 
 class TheLockLever(unittest.TestCase):
@@ -27,17 +28,17 @@ class TheLockLever(unittest.TestCase):
         self.conf = conf
         self.lock = self.world.xdg_state / "testlane" / "deliverable.json"
 
-    def _env(self, identity=True):
+    def _env(self, identity=True, agent=OWNER):
         extra = {"LANE_CONF": str(self.conf)}
         if identity:
-            extra["WF_AGENT"] = "Owner <owner@example.test>"
+            extra["WF_AGENT"] = agent
         return self.world.env(extra=extra)
 
-    def run_lever(self, *args, identity=True):
+    def run_lever(self, *args, identity=True, agent=OWNER):
         return run(
             [sys.executable, str(LEVER), *args],
             cwd=self.world.cwd,
-            env=self._env(identity=identity),
+            env=self._env(identity=identity, agent=agent),
             timeout=60,
         )
 
@@ -161,16 +162,23 @@ class TheLockLever(unittest.TestCase):
                               "--measure", measure, "--until", "on_kit=226/226")
         self.assertEqual(proc.exit, 0, proc.stderr)
         data = json.loads(self.lock.read_text())
-        self.assertEqual(data["targets"]["lane/x"], {"measure": measure, "until": "on_kit=226/226"})
+        stored = data["targets"]["lane/x"]
+        self.assertEqual(stored["measure"], measure)
+        self.assertEqual(stored["until"], "on_kit=226/226")
         shown = self.run_lever("show", identity=False)
         self.assertEqual(shown.exit, 0, shown.stderr)
         self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=16/226; short", shown.stdout)
         met = self.measure_tool("on_kit=226/226 at abc1234\n")
-        proc = self.run_lever("set", "lane/y", "--why", "y", "--measure", met, "--until", "on_kit=226/226")
+        proc = self.run_lever("set", "lane/x", "--why", "every family onto the kit",
+                              "--measure", met, "--until", "on_kit=226/226")
         self.assertEqual(proc.exit, 0, proc.stderr)
         shown = self.run_lever("show", identity=False)
-        self.assertIn("target lane/y: until on_kit=226/226; reading on_kit=226/226 at abc1234; met", shown.stdout)
-        self.assertNotIn("lane/x", json.loads(self.lock.read_text())["branches"], "set replaces")
+        self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=226/226 at abc1234; met", shown.stdout)
+        # This line once read `assertNotIn("lane/x", ...), "set replaces"`.
+        # T-71 retired that pin: set re-targets a branch the lock already
+        # names and leaves the rest of the lock alone, so the branch it
+        # named is still there afterwards.
+        self.assertIn("lane/x", json.loads(self.lock.read_text())["branches"])
 
     def test_measure_without_until_or_until_without_measure_refuses_arguments(self):
         for extra in (("--measure", "true"), ("--until", "x")):
@@ -256,6 +264,71 @@ class TheLockLever(unittest.TestCase):
                 proc = self.run_lever(*args)
                 self.assertEqual(proc.exit, 2)
                 self.assertTrue(proc.stderr.startswith("arguments: expected"), proc.stderr)
+
+    def test_set_retargets_only_the_branch_it_names_and_refuses_a_stranger(self):
+        """Origin T-71: a lead session ran `set` for its closing AAR and the
+        lock then read one measure against all three branches, so two other
+        sessions read short against a target that was never theirs. set
+        re-targets what the lock already names; add introduces a branch."""
+        first = self.measure_tool("a=1\n")
+        second = self.measure_tool("b=1\n")
+        self.run_lever("set", "lane/session-a", "--why", "session a",
+                       "--measure", first, "--until", "a=1")
+        self.run_lever("add", "lane/session-b", "--why", "session b",
+                       "--measure", second, "--until", "b=1")
+
+        third = self.measure_tool("a=2\n")
+        proc = self.run_lever("set", "lane/session-a", "--why", "session a",
+                              "--measure", third, "--until", "a=2")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        data = json.loads(self.lock.read_text())
+        self.assertEqual(data["branches"],
+                         ["lane/session-a", "lane/session-b"],
+                         "set dropped a branch it was not asked about")
+        self.assertEqual(data["targets"]["lane/session-a"]["until"], "a=2")
+        self.assertEqual(data["targets"]["lane/session-b"]["until"], "b=1",
+                         "set re-targeted another session's branch")
+        self.assertEqual(data["targets"]["lane/session-b"]["measure"], second)
+
+        stranger = self.run_lever("set", "lane/session-z", "--why", "z")
+        self.assertEqual(stranger.exit, 2)
+        self.assertEqual(stranger.stdout, "")
+        self.assertEqual(len(stranger.stderr.strip().splitlines()), 1)
+        self.assertRegex(stranger.stderr.strip(),
+                         r"^absent: expected .*; found .*; needed .*$")
+        self.assertIn("lane/session-z", stranger.stderr)
+        self.assertIn("add", stranger.stderr)
+        self.assertEqual(json.loads(self.lock.read_text())["branches"],
+                         ["lane/session-a", "lane/session-b"],
+                         "a refused set still wrote the lock")
+
+    def test_each_target_records_who_added_it_and_when(self):
+        """Origin LD-49 (filed at 6fd0ba3b), beside T-71: a lock that stamps
+        one `by` at the top cannot say which session added which branch, and
+        add overwrote it, so the last writer owned them all. Each target
+        carries its own by and at, and add leaves the lock-level by where it
+        found it."""
+        other = "Claude Opus 5 (1M context) <noreply@anthropic.com>"
+        mine = self.measure_tool("a=1\n")
+        theirs = self.measure_tool("b=1\n")
+        self.run_lever("set", "lane/session-a", "--why", "session a",
+                       "--measure", mine, "--until", "a=1")
+        proc = self.run_lever("add", "lane/session-b", "--why", "session b",
+                              "--measure", theirs, "--until", "b=1",
+                              agent=other)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+
+        data = json.loads(self.lock.read_text())
+        self.assertEqual(data["targets"]["lane/session-a"]["by"], OWNER)
+        self.assertEqual(data["targets"]["lane/session-b"]["by"], other)
+        for branch in ("lane/session-a", "lane/session-b"):
+            self.assertRegex(data["targets"][branch]["at"],
+                             r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+        self.assertEqual(data["by"], OWNER, "add overwrote the lock-level by")
+
+        shown = self.run_lever("show", identity=False)
+        self.assertIn("target lane/session-b: until b=1", shown.stdout)
+        self.assertIn(f"(by {other})", shown.stdout)
 
 
 if __name__ == "__main__":

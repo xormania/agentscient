@@ -188,6 +188,14 @@ while (($#)); do
 done
 
 if ((!agent_set)); then
+    # An exported WF_AGENT that fails the form is a declaration that
+    # failed, not an absence: dropping it launched the job under the conf
+    # default and recorded an identity the caller never wrote. Unset is an
+    # absence, and WF_AGENT_DEFAULT is the answer the conf declares for it.
+    # The found clause shows a newline as backslash-n so the wire stays one
+    # line and a broken value is not folded into a well-formed-looking one.
+    [[ -z $invoking_agent ]] \
+        || refuse "identity: expected WF_AGENT in the Name <address> form; found ${invoking_agent//$'\n'/\\n}; needed export WF_AGENT='Name <address>' or pass --agent 'Name <address>'"
     [[ -v WF_AGENT_DEFAULT ]] \
         || refuse "conf-key: expected conf key WF_AGENT_DEFAULT; found it unset in $conf_path; needed define WF_AGENT_DEFAULT in $conf_path"
     agent=$WF_AGENT_DEFAULT

@@ -25,7 +25,21 @@ except ModuleNotFoundError:
     )
     raise SystemExit(2) from None
 
-TIMEOUT = 5
+def _bound(name: str, fallback: int) -> int:
+    """A read's bound in seconds. Overridable so a loaded host, and the
+    rows that prove the retry, can move it; anything that is not a
+    positive whole number is ignored, because a brief that refuses to
+    start over an environment variable helps nobody."""
+    try:
+        seconds = int(os.environ.get(name, ""))
+    except ValueError:
+        return fallback
+    return seconds if seconds > 0 else fallback
+
+
+TIMEOUT = _bound("ONBOARD_TIMEOUT", 5)
+RETRY_TIMEOUT = _bound("ONBOARD_RETRY_TIMEOUT", 20)
+TIMED_OUT = "timed out"
 LAW = (
     ("AGENTS.md", "the operating contract"),
     ("CONTRIB.md", "naming, PR bodies, fix commits, the review wire"),
@@ -47,8 +61,14 @@ def run(
     command: list[str],
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
+    timeout: int | None = None,
 ) -> tuple[str | None, str]:
-    """Run one bounded read, returning output or a printable absence reason."""
+    """Run one bounded read, returning output or a printable absence reason.
+
+    A reason that begins TIMED_OUT says the read could not look, which is
+    not the same as a sibling that looked and reported nothing.
+    """
+    bound = TIMEOUT if timeout is None else timeout
     try:
         result = subprocess.run(  # noqa: S603
             command,
@@ -56,18 +76,50 @@ def run(
             capture_output=True,
             text=True,
             check=False,
-            timeout=TIMEOUT,
+            timeout=bound,
             env=env,
         )
     except FileNotFoundError:
         return None, f"{command[0]} was not found"
     except subprocess.TimeoutExpired:
-        return None, f"timeout after {TIMEOUT}s"
+        return None, f"{TIMED_OUT} after {bound}s"
     if result.returncode != 0:
         detail = result.stderr.strip() or result.stdout.strip()
         reason = detail or f"exit {result.returncode} with no output"
         return None, reason.replace("\n", " | ")
     return result.stdout.strip(), ""
+
+
+def bounded_read(
+    command: list[str],
+    cwd: Path | None,
+    label: str,
+    env: dict[str, str] | None = None,
+    unavailable: str = "unavailable",
+) -> tuple[str | None, str]:
+    """One bounded read and, when it did not answer, the line that says so.
+
+    LD-48 taught the lock line to tell a read that could not look from a
+    lever that looked and reported a failure: under concurrent sessions
+    the first bound is what expires, and `unavailable` in that position
+    is taken for an answer by the reader after it. The line each read
+    prints then differs in the word only, so the rule is spelled once
+    here and the other three lines were the gap that repair declared:
+    one retry with the longer bound when the first expired, then
+    UNREACHABLE, which no reader takes for an answer.
+
+    A lever that ran and failed keeps `unavailable`: it looked. Callers
+    whose contract names another word for that case pass it.
+    """
+    output, reason = run(command, cwd, env)
+    if output is None and reason.startswith(TIMED_OUT):
+        first = reason
+        output, reason = run(command, cwd, env, timeout=RETRY_TIMEOUT)
+        if output is None and reason.startswith(TIMED_OUT):
+            return None, f"{label}: UNREACHABLE: {first}, retried and {reason}"
+    if output is None:
+        return None, f"{label}: {unavailable}: {reason}"
+    return output, ""
 
 
 def repository_root() -> Path:
@@ -133,9 +185,11 @@ def prs_line(root: Path) -> tuple[str, bool]:
     # optional state at an existing non-store location so onboarding remains
     # a read; authentication continues to come from the caller's normal env.
     gh_env["XDG_STATE_HOME"] = os.devnull
-    output, reason = run(command, root, gh_env)
+    output, absence = bounded_read(
+        command, root, "prs", gh_env, unavailable="gh unavailable"
+    )
     if output is None:
-        return f"prs: gh unavailable: {reason}", False
+        return absence, False
     try:
         rows = json.loads(output)
         if not isinstance(rows, list):
@@ -161,9 +215,13 @@ def lock_lines(root: Path) -> tuple[list[str], bool]:
         # directory (the doctor's read-only probe reads it that way).
         return ["lock: none"], True
     tool = root / "ops/conductor/tools/deliverable.py"
-    output, reason = run([sys.executable, str(tool), "show"], root)
+    # LD-48, where the retry and the UNREACHABLE word were first needed;
+    # bounded_read holds the rule now, and every other read shares it.
+    output, absence = bounded_read(
+        [sys.executable, str(tool), "show"], root, "lock"
+    )
     if output is None:
-        return [f"lock: unavailable: {reason}"], False
+        return [absence], False
     if output.strip() == "no lock":
         return ["lock: none"], True
     lines = output.splitlines()
@@ -206,13 +264,17 @@ def dispatches_line() -> tuple[str, bool]:
             # The contract: an absent store says so — a measured fact,
             # not an unmeasurable source.
             return f"dispatches: ABSENT {store} (nothing running)", True
-        return f"dispatches: unavailable: {store} is not a readable directory", False
+        # The path is there and cannot be listed. That is neither the
+        # ABSENT above, which is a measured nothing, nor an empty store.
+        return f"dispatches: UNREACHABLE: {store} is not a readable directory", False
     try:
         records = sorted(
             (path for path in store.iterdir() if path.is_dir()), key=lambda path: path.name
         )
     except OSError as error:
-        return f"dispatches: unavailable: {error}", False
+        # A store that will not list is a store nobody read: running=none
+        # would be an answer, and there is none to give.
+        return f"dispatches: UNREACHABLE: {error}", False
     running = [path.name for path in records if dispatch_is_running(path)]
     closed = [path for path in records if (path / "exit").is_file()]
     newest = "none"
@@ -221,7 +283,9 @@ def dispatches_line() -> tuple[str, bool]:
         try:
             code = (record / "exit").read_text(encoding="utf-8").strip()
         except OSError as error:
-            return f"dispatches: unavailable: {error}", False
+            # exit=ABSENT is the reading for a file that holds nothing;
+            # a file that could not be read has no reading at all.
+            return f"dispatches: UNREACHABLE: {error}", False
         newest = f"{record.name} exit={code or 'ABSENT'}"
     active = ",".join(running) if running else "none"
     return f"dispatches: running={active}; newest-closed={newest}", True
@@ -235,9 +299,11 @@ def handoffs_lines(root: Path) -> tuple[list[str], bool]:
     if not store.is_file():
         return [f"handoffs: ABSENT {store} (none recorded)"], True
     tool = root / "ops/conductor/tools/handoff.py"
-    output, reason = run([sys.executable, str(tool), "brief"], root)
+    output, absence = bounded_read(
+        [sys.executable, str(tool), "brief"], root, "handoffs"
+    )
     if output is None:
-        return [f"handoffs: unavailable: {reason}"], False
+        return [absence], False
     lines = output.splitlines()
     if not lines or not lines[0].startswith("handoffs:"):
         return ["handoffs: invalid report: the brief does not open with handoffs:"], False
