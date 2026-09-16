@@ -77,13 +77,34 @@ class _Scratch(unittest.TestCase):
         )
         self.assertEqual(proc.exit, 0, proc.stderr)
 
+    def core(self, session_id=LEAD):
+        """The module, imported fresh against this world's state root."""
+        import importlib.util
+        env = self.env(session_id)
+        patch = unittest.mock.patch.dict(os.environ, env, clear=True)
+        patch.start()
+        self.addCleanup(patch.stop)
+        spec = importlib.util.spec_from_file_location("coordination_under_test", TOOL)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
     # -- fixtures ----------------------------------------------------------
 
     def bind_three(self):
-        """Lead, worker and checker: one agent string, three sessions."""
+        """Lead, worker and checker: one agent string, three sessions.
+
+        Idempotent by looking, because several rows compose it with a
+        fixture that binds them itself: a second self-bind naming roles
+        the row has since been granted is a refusal, and that refusal is
+        the chain working, not a defect to reach around.
+        """
+        if "PT-3" in self.ok("participants", session=LEAD):
+            return
         self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
         self.ok("bind", "--roles", "worker", session=WORKER)
-        self.ok("bind", "--roles", "verifier", session=CHECKER)
+        self.ok("bind", "--roles", "worker", session=CHECKER)
+        self.ok("grant", "PT-3", "--roles", "verifier", session=LEAD)
 
     def offered(self, to="PT-2"):
         self.bind_three()
@@ -123,12 +144,16 @@ class Participants(_Scratch):
         self.assertIn("worker", self.ok("who", session=WORKER))
         self.assertNotIn("worker", self.ok("who", session=LEAD))
 
-    def test_bind_twice_replaces_this_session_row(self):
+    def test_bind_twice_keeps_one_row_and_its_roles(self):
+        """A re-bind is how a session refreshes what it can be reached
+        at. It is not how it changes what it may do: the row keeps its
+        id, and its roles are the ones it was granted."""
         self.ok("bind", "--roles", "worker", session=WORKER)
         first = self.ok("who", session=WORKER).split()[1]
-        self.ok("bind", "--roles", "worker,verifier", session=WORKER)
+        self.ok("bind", "--roles", "worker", "--endpoint", "tcp://127.0.0.1:7311",
+                "--probe", "answered in 40ms", session=WORKER)
         self.assertEqual(self.ok("who", session=WORKER).split()[1], first)
-        self.assertIn("verifier", self.ok("who", session=WORKER))
+        self.assertIn("worker", self.ok("who", session=WORKER))
 
     def test_the_acting_participant_cannot_be_supplied(self):
         """Objective §7: a caller-supplied actor confers no authority."""
@@ -140,7 +165,8 @@ class Participants(_Scratch):
 class Assignments(_Scratch):
     def test_the_vertical_path_reaches_accepted(self):
         aid = self.submitted()
-        self.ok("verify", aid, "--evidence", "a1b2c3d", "--generation", "1",
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", "1",
                 session=CHECKER)
         self.ok("accept", aid, "--evidence", "a1b2c3d", "--generation", "1",
                 session=LEAD)
@@ -203,14 +229,16 @@ class GenerationAndRevision(_Scratch):
                 "--revision", "a1b2c3d", "--generation", "1", session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
                 "--generation", "1", session=WORKER)
-        proc = self.run_tool("verify", aid, "--evidence", "9999999",
+        proc = self.run_tool("verify", aid, "--candidate", "9999999",
+                             "--evidence", "20260916T010203Z-job-v",
                              "--generation", "1", session=CHECKER)
         refusal_wire(RefusalCase("stale-revision", (), "revision"), proc)
 
     def test_reopen_stales_the_observations_and_keeps_them(self):
         """AC-10: a changed candidate needs reassessment; the old row stays."""
         aid = self.submitted()
-        self.ok("verify", aid, "--evidence", "a1b2c3d", "--generation", "1",
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", "1",
                 session=CHECKER)
         self.ok("reopen", aid, "--revision", "beefbee", "--why", "the candidate moved",
                 "--generation", "1", session=LEAD)
@@ -223,16 +251,18 @@ class Producers(_Scratch):
     def test_the_producer_cannot_verify_its_own_candidate(self):
         """AC-11: an independent pass is not a role label away."""
         aid = self.submitted()
-        self.ok("bind", "--roles", "worker,verifier", session=WORKER)
-        proc = self.run_tool("verify", aid, "--evidence", "a1b2c3d",
+        self.ok("grant", "PT-2", "--roles", "verifier", session=LEAD)
+        proc = self.run_tool("verify", aid, "--candidate", "a1b2c3d",
+                             "--evidence", "20260916T010203Z-job-v",
                              "--generation", "1", session=WORKER)
         refusal_wire(RefusalCase("self-verify", (), "producer"), proc)
 
     def test_the_producer_cannot_accept_its_own_candidate(self):
         aid = self.submitted()
-        self.ok("verify", aid, "--evidence", "a1b2c3d", "--generation", "1",
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", "1",
                 session=CHECKER)
-        self.ok("bind", "--roles", "worker,lead", session=WORKER)
+        self.ok("grant", "PT-2", "--roles", "lead", session=LEAD)
         proc = self.run_tool("accept", aid, "--evidence", "a1b2c3d",
                              "--generation", "1", session=WORKER)
         refusal_wire(RefusalCase("self-accept", (), "producer"), proc)
@@ -325,6 +355,19 @@ class Brief(_Scratch):
 
 
 class Absence(_Scratch):
+    def test_every_read_declares_an_absent_store_the_same_way(self):
+        """A read with no store could not look. Saying so is the whole of
+        docs/wire.md's absence discipline, and who said it differently:
+        it refused class participant naming the session, which reads as
+        having looked and found no participant. Grok #7 against 05b8aebe."""
+        self.assertFalse(self.store.exists())
+        for verb in ("who", "participants", "assignments", "brief",
+                     "outstanding", "resources", "decisions", "coverage"):
+            proc = self.run_tool(verb, session=LEAD)
+            self.assertEqual(proc.exit, 0, f"{verb}: {proc.stderr}")
+            self.assertEqual(proc.stdout.strip(), "no store", verb)
+        self.assertFalse(self.store.exists(), "a read created the store")
+
     def test_a_read_with_no_store_looked_and_found_nothing(self):
         self.assertFalse(self.store.exists())
         self.assertIn("no store", self.ok("assignments", session=LEAD))
@@ -423,18 +466,6 @@ class TheCoreSeam(_Scratch):
     the call and restored after it.
     """
 
-    def core(self, session_id=LEAD):
-        """The module, imported fresh against this world's state root."""
-        import importlib.util
-        env = self.env(session_id)
-        patch = unittest.mock.patch.dict(os.environ, env, clear=True)
-        patch.start()
-        self.addCleanup(patch.stop)
-        spec = importlib.util.spec_from_file_location("coordination_under_test", TOOL)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
-
     def test_every_verb_is_keyed_by_its_wire_name_in_one_table(self):
         module = self.core()
         self.assertIn("return", module.CORE, "the wire name is the key")
@@ -517,7 +548,8 @@ class ObservationsBindToARevision(_Scratch):
         """A-n at generation 2, revision beefbee; the worker still believes
         generation 1 and revision a1b2c3d."""
         aid = self.submitted()
-        self.ok("verify", aid, "--evidence", "a1b2c3d", "--generation", "1",
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", "1",
                 session=CHECKER)
         self.ok("reopen", aid, "--revision", "beefbee", "--why", "the candidate moved",
                 "--generation", "1", session=LEAD)
@@ -557,6 +589,597 @@ class ObservationsBindToARevision(_Scratch):
         self.ok("observe", aid, "--observation", "the suite ran again",
                 "--revision", "beefbee", "--generation", "2", session=WORKER)
         self.assertIn("the suite ran again", self.ok("observations", aid, session=LEAD))
+
+
+class TheGateUnderTheLock(_Scratch):
+    """Every generation-bearing transition checks the generation twice:
+    once in the verb so a stale holder reads class generation rather than
+    class place, and once inside the engine's gate, under the write lock,
+    so a candidate that moved between the two cannot be moved on. return
+    had only the first. Codex #3 against 05b8aebe."""
+
+    def racing(self, module, aid):
+        """require_generation, wrapped so the first call — the verb's own,
+        outside the lock — is followed by another session bumping the
+        generation. What refuses afterwards can only be the gate."""
+        seen = {"n": 0}
+        real = module.require_generation
+        number = int(aid.split("-")[1])
+
+        def wrapped(row, stated):
+            seen["n"] += 1
+            answer = real(row, stated)
+            if seen["n"] == 1:
+                other = module.writer()
+                other.execute(
+                    "UPDATE assignments SET generation = generation + 1 WHERE id = ?",
+                    (number,),
+                )
+                other.close()
+            return answer
+
+        return seen, wrapped
+
+    def test_return_re_checks_the_generation_inside_the_lock(self):
+        aid = self.submitted()
+        module = self.core(CHECKER)
+        seen, wrapped = self.racing(module, aid)
+        with unittest.mock.patch.object(module, "require_generation", wrapped):
+            with module.writer() as conn:
+                part = module.bound_participant(conn)
+                with self.assertRaises(module.Refusal) as caught:
+                    module.CORE["return"](conn, part, agent=SHARED, assignment=aid,
+                                          findings="a1b2c3d", generation="1")
+        self.assertEqual(seen["n"], 2, "the gate must check again under the lock")
+        self.assertTrue(caught.exception.line().startswith("generation:"),
+                        caught.exception.line())
+
+    def test_the_candidate_did_not_move_when_the_gate_refused(self):
+        """A refusal inside the gate rolls the whole move back: the place
+        is the one the winner left, not the one the loser asked for."""
+        aid = self.submitted()
+        module = self.core(CHECKER)
+        _seen, wrapped = self.racing(module, aid)
+        with unittest.mock.patch.object(module, "require_generation", wrapped):
+            with module.writer() as conn:
+                part = module.bound_participant(conn)
+                with self.assertRaises(module.Refusal):
+                    module.CORE["return"](conn, part, agent=SHARED, assignment=aid,
+                                          findings="a1b2c3d", generation="1")
+        self.assertIn("submitted", self.ok("show", aid, session=LEAD))
+
+
+class TheReturnVerb(_Scratch):
+    """return is the verb the whole table was reshaped around — it cannot
+    be a Python function of that name — and no row exercised it. Grok #5
+    against 05b8aebe: its findings were passed to the engine unread, so
+    any non-empty string stood as evidence."""
+
+    def test_return_sends_the_candidate_back_to_its_holder(self):
+        aid = self.submitted()
+        printed = self.ok("return", aid, "--findings", "#243",
+                          "--generation", "1", session=CHECKER).strip()
+        self.assertEqual(printed, f"returned {aid} to PT-2")
+        shown = self.ok("show", aid, session=LEAD)
+        self.assertIn("held", shown)
+        self.assertIn("PT-2", shown)
+
+    def test_the_findings_are_a_reading_and_not_a_sentence(self):
+        aid = self.submitted()
+        proc = self.run_tool("return", aid, "--findings", "because I said so",
+                             "--generation", "1", session=CHECKER)
+        refusal_wire(RefusalCase("return-prose-findings", (), "evidence"), proc)
+
+    def test_every_pinned_reading_shape_is_admitted_as_findings(self):
+        """The clean neighbours: the four shapes the contract pins."""
+        for shape in ("a1b2c3d", "#243", "20260916T010203Z-job-x", "P-probe-1"):
+            with self.subTest(shape=shape):
+                aid = self.submitted()
+                self.ok("return", aid, "--findings", shape, "--generation", "1",
+                        session=CHECKER)
+
+    def test_a_worker_cannot_return_a_candidate(self):
+        aid = self.submitted()
+        proc = self.run_tool("return", aid, "--findings", "#243",
+                             "--generation", "1", session=WORKER)
+        refusal_wire(RefusalCase("return-by-worker", (), "role",
+                                 named=("verifier",)), proc)
+
+    def test_return_refuses_a_generation_the_assignment_moved_past(self):
+        """The generation is read before the engine sees the place, so a
+        caller holding generation 1 reads class generation and not class
+        place — which is why the check sits in the verb at all."""
+        aid = self.held()
+        self.ok("release", aid, "--why", "blocked on the wall", "--generation", "1",
+                session=WORKER)
+        proc = self.run_tool("return", aid, "--findings", "#243",
+                             "--generation", "1", session=CHECKER)
+        refusal_wire(RefusalCase("return-stale-generation", (), "generation"), proc)
+
+    def test_return_refuses_a_candidate_that_was_never_submitted(self):
+        aid = self.held()
+        proc = self.run_tool("return", aid, "--findings", "#243",
+                             "--generation", "1", session=CHECKER)
+        refusal_wire(RefusalCase("return-from-held", (), "place"), proc)
+
+    def test_return_refuses_an_assignment_the_store_does_not_hold(self):
+        self.submitted()
+        proc = self.run_tool("return", "A-99", "--findings", "#243",
+                             "--generation", "1", session=CHECKER)
+        refusal_wire(RefusalCase("return-unknown", (), "unknown"), proc)
+
+    def test_return_refuses_an_id_of_the_wrong_kind(self):
+        self.submitted()
+        proc = self.run_tool("return", "M-1", "--findings", "#243",
+                             "--generation", "1", session=CHECKER)
+        refusal_wire(RefusalCase("return-wrong-kind", (), "id"), proc)
+
+    def test_return_refuses_without_its_findings(self):
+        aid = self.submitted()
+        proc = self.run_tool("return", aid, "--generation", "1", session=CHECKER)
+        refusal_wire(RefusalCase("return-no-findings", (), "arguments"), proc)
+
+
+class TheCandidateAnObservationNames(_Scratch):
+    """`if row["revision"] and revision != row["revision"]` lifted the
+    revision gate exactly when there was nothing to check against, so on
+    an assignment drafted without a candidate an observation of any
+    revision landed current, submit then wrote a different revision
+    without staling it, and verify and coverage both counted it. Grok #1
+    and Codex #2 against 05b8aebe."""
+
+    def no_candidate_yet(self):
+        """A drafted assignment with no revision: the contract keeps that
+        legal, because work can be assigned before a candidate exists."""
+        self.lock()
+        self.bind_three()
+        aid = self.ok("draft", "no candidate yet", "--outcome", "the gap",
+                      session=LEAD).split()[-1]
+        self.ok("offer", aid, "--to", "PT-2", session=LEAD)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        return aid
+
+    def test_observe_refuses_an_assignment_that_names_no_revision(self):
+        aid = self.no_candidate_yet()
+        proc = self.run_tool("observe", aid, "--observation", "ran at deadbee",
+                             "--revision", "deadbee", "--generation", "1",
+                             session=WORKER)
+        refusal_wire(RefusalCase("observe-no-candidate", (), "revision"), proc)
+
+    def test_stale_does_not_open_the_door_an_assignment_with_no_revision_shut(self):
+        """--stale files history against a candidate that was replaced.
+        With no candidate at all there is nothing it could be history of."""
+        aid = self.no_candidate_yet()
+        proc = self.run_tool("observe", aid, "--observation", "ran at deadbee",
+                             "--revision", "deadbee", "--generation", "1", "--stale",
+                             session=WORKER)
+        refusal_wire(RefusalCase("observe-no-candidate-stale", (), "revision"), proc)
+
+    def test_the_clean_neighbour_an_assignment_that_names_its_candidate(self):
+        aid = self.held()
+        self.ok("observe", aid, "--observation", "the suite ran", "--revision",
+                "a1b2c3d", "--generation", "1", session=WORKER)
+        self.assertIn("the suite ran", self.ok("observations", aid, session=LEAD))
+
+    def test_submit_stales_a_current_observation_of_another_revision(self):
+        """The second remedy, and defence in depth: with observe gated, no
+        verb can now produce this row, but a store written before the gate
+        can hold one. It is planted directly and submit must mark it."""
+        aid = self.no_candidate_yet()
+        module = self.core(WORKER)
+        number = int(aid.split("-")[1])
+        with module.writer() as conn:
+            conn.execute(
+                "INSERT INTO observations(assignment, producer, revision, observation, "
+                "applicability, at) VALUES (?, 2, 'deadbee', 'ran at deadbee', "
+                "'current', '2026-09-16T00:00:00Z')", (number,),
+            )
+        self.assertIn("ran at deadbee", self.ok("observations", aid, session=LEAD))
+        with module.writer() as conn:
+            module.CORE["submit"](conn, module.bound_participant(conn), agent=SHARED,
+                                  assignment=aid, evidence="a1b2c3d",
+                                  revision="a1b2c3d", generation="1")
+        every = self.ok("observations", aid, "--all", session=LEAD)
+        self.assertIn("ran at deadbee", every, "the row is kept, never deleted")
+        self.assertIn("[stale:", every)
+        self.assertNotIn("ran at deadbee",
+                         self.ok("observations", aid, session=LEAD))
+
+    def test_submit_keeps_a_current_observation_of_the_candidate_it_submits(self):
+        """The clean neighbour for the second remedy: the row that agrees
+        with the candidate stays current."""
+        aid = self.submitted()
+        self.assertIn("the suite ran", self.ok("observations", aid, session=LEAD))
+
+
+class TheCandidateAndTheReading(_Scratch):
+    """verify asked for one --evidence and used it as two things: it had
+    to be a pinned reading shape, and it had to equal the assignment's
+    revision exactly. So a candidate submitted with a P- row or a dispatch
+    record id as its reading could never be verified at all. Grok #8
+    against 05b8aebe."""
+
+    def submitted_with(self, evidence):
+        aid = self.held()
+        self.ok("submit", aid, "--evidence", evidence, "--revision", "a1b2c3d",
+                "--generation", "1", session=WORKER)
+        return aid
+
+    def test_a_candidate_submitted_with_a_corpus_row_can_be_verified(self):
+        aid = self.submitted_with("P-probe-1")
+        printed = self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                          "P-probe-1", "--generation", "1", session=CHECKER).strip()
+        self.assertEqual(printed, f"verified {aid} by PT-3")
+
+    def test_a_candidate_submitted_with_a_dispatch_record_can_be_verified(self):
+        aid = self.submitted_with("20260916T010203Z-job-x")
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", "1", session=CHECKER)
+
+    def test_the_candidate_must_be_the_one_the_assignment_stands_at(self):
+        aid = self.submitted_with("a1b2c3d")
+        proc = self.run_tool("verify", aid, "--candidate", "9999999", "--evidence",
+                             "20260916T010203Z-job-v", "--generation", "1",
+                             session=CHECKER)
+        refusal_wire(RefusalCase("verify-wrong-candidate", (), "revision"), proc)
+
+    def test_the_evidence_must_still_be_a_reading(self):
+        aid = self.submitted_with("a1b2c3d")
+        proc = self.run_tool("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                             "it looked fine to me", "--generation", "1",
+                             session=CHECKER)
+        refusal_wire(RefusalCase("verify-prose-evidence", (), "evidence"), proc)
+
+    def test_verify_refuses_without_its_candidate(self):
+        aid = self.submitted_with("a1b2c3d")
+        proc = self.run_tool("verify", aid, "--evidence", "20260916T010203Z-job-v",
+                             "--generation", "1", session=CHECKER)
+        refusal_wire(RefusalCase("verify-no-candidate", (), "arguments"), proc)
+
+    def test_the_verification_reading_is_what_the_marking_records(self):
+        """The two are kept apart in the record as well as in the call: the
+        marking carries the run that verified, not the candidate's sha."""
+        aid = self.submitted_with("a1b2c3d")
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", "1", session=CHECKER)
+        self.assertIn("20260916T010203Z-job-v", self.ok("show", aid, session=LEAD))
+
+
+class TheCliGoesThroughTheTable(_Scratch):
+    """The wrappers reach the core through `CORE[verb]`, not by name.
+
+    Codex raised it against 05b8aebe: with the wrappers calling the
+    functions directly, the table is a second surface, and a row of it
+    pointing at the wrong function would pass every CLI test in this
+    file. The projection in #242 reaches the core by that table alone,
+    so a misrouted entry is a live defect there and silent here.
+    """
+
+    def test_every_wrapper_names_the_table(self):
+        """Static, and it covers all of them: one row per verb would
+        need a fixture per verb, and this is the property itself."""
+        import inspect
+        module = self.core()
+        by_name = [
+            verb for verb, wrapper in module.VERBS.items()
+            if "CORE[" not in inspect.getsource(wrapper)
+        ]
+        self.assertEqual([], by_name,
+                         "these wrappers call a core function by name")
+
+    def test_a_misrouted_entry_fails_on_the_cli(self):
+        """Live, on one verb: swap the table's row and the wrapper must
+        reach the swap. If it calls core_draft by name it never will."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        module = self.core()
+        reached = []
+
+        def planted(conn, part, **rest):
+            reached.append(rest.get("title"))
+            raise module.Refusal("conflict", "the core's own draft",
+                                 "a planted entry",
+                                 "route the wrapper through CORE[verb]")
+
+        module.CORE["draft"] = planted
+        with self.assertRaises(module.Refusal) as caught:
+            module.VERBS["draft"](["a bounded repair", "--outcome", "it refuses"])
+        self.assertEqual(["a bounded repair"], reached)
+        self.assertTrue(caught.exception.line().startswith("conflict:"))
+
+
+class ThePassedRowIsNotAuthority(_Scratch):
+    """A participant argument the caller chose is a claim, not a fact.
+
+    Grok raised it against 05b8aebe: every authority check reads the row
+    it was handed, so a caller holding a lead's row acts as that lead.
+    The boundary binds the effective caller — the CLI from its own
+    environment, the MCP server per call from the inherited session id,
+    and a dispatched worker's process carries the id its launcher set —
+    so the row's session must be this process's session, and the
+    function is where that is checked, because the function is what both
+    projections reach.
+    """
+
+    def foreign(self, module, conn):
+        """The worker's row, read from a process bound as the lead."""
+        return conn.execute(
+            "SELECT * FROM participants WHERE session_id = ?", (WORKER,)
+        ).fetchone()
+
+    def test_every_core_function_checks_the_row_it_was_passed(self):
+        import inspect
+        module = self.core()
+        unchecked = [
+            verb for verb, fn in module.CORE.items()
+            if "same_session(part)" not in inspect.getsource(fn)
+        ]
+        self.assertEqual([], unchecked,
+                         "these functions trust the participant they are handed")
+
+    def test_a_foreign_row_refuses_class_participant(self):
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        module = self.core(LEAD)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](conn, self.foreign(module, conn), agent=SHARED,
+                                     title="a repair in another name",
+                                     outcome="it refuses", revision="a1b2c3d")
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("participant:"), line)
+        for word in ("expected", "found", "needed"):
+            self.assertIn(word, line)
+
+    def test_the_processs_own_row_passes(self):
+        """The clean neighbour: the same call with the row this process
+        is bound to does the work."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        module = self.core(LEAD)
+        with module.writer() as conn:
+            drafted = module.CORE["draft"](conn, module.bound_participant(conn),
+                                           agent=SHARED, title="its own name",
+                                           outcome="it lands", revision="a1b2c3d")
+        self.assertEqual("A-1", drafted["assignment"])
+
+    def test_a_read_refuses_a_foreign_row_too(self):
+        """A read cannot refuse a caller — but the row it reports on is
+        still the caller's own, or the answer is about someone else."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        module = self.core(LEAD)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["who"](conn, self.foreign(module, conn))
+        self.assertTrue(caught.exception.line().startswith("participant:"))
+
+
+class TheHolderIsAParticipant(_Scratch):
+    """The engine's holder is a string its machine's owner chooses, and
+    these machines choose the participant.
+
+    `subjects.holder` is compared for equality by the engine and nothing
+    else, so what it carries is the machine's decision. Carrying the
+    agent string put the holder-or-lapsed transitions — release and free
+    — back on the identity every other check in this module had already
+    stopped trusting: one WF_AGENT per host means a holder that changed
+    its agent string is refused, and a stranger that shares it is not.
+    Raised by Grok against 05b8aebe and ruled by the Lead, 2026-09-16.
+    """
+
+    OTHER = "Grok 4.6 <noreply@example.test>"
+
+    def subject(self, module, conn, aid):
+        return module.machine.subject(conn, module.ASSIGNMENT, int(aid.split("-")[1]))
+
+    def test_the_engine_holds_the_participant_not_the_agent(self):
+        aid = self.held()
+        module = self.core(LEAD)
+        with module.reader() as conn:
+            held = self.subject(module, conn, aid)
+        self.assertEqual("PT-2", held["holder"],
+                         "the machine's holder is the participant it chose")
+
+    def test_the_holder_releases_under_another_agent_string(self):
+        """The session that claimed is the session that releases; the
+        agent string it runs under is not what makes it the holder."""
+        aid = self.held()
+        self.assertIn(f"released {aid}", self.ok(
+            "release", aid, "--why", "blocked on a question", "--generation", "1",
+            session=WORKER, identity=self.OTHER))
+
+    def test_a_lapsed_hold_is_released_by_another_participant(self):
+        """holder-or-lapsed, as the transition is declared: once the
+        lease runs out the hold is anyone's to hand back."""
+        import time
+        self.lock()
+        aid = self.offered()
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", "--ttl", "0",
+                session=WORKER)
+        time.sleep(1.2)
+        self.assertIn(f"released {aid}", self.ok(
+            "release", aid, "--why", "the worker stopped answering",
+            "--generation", "1", session=LEAD))
+
+    def test_a_live_hold_refuses_another_participant(self):
+        """The clean neighbour: while the lease stands, the holder holds."""
+        aid = self.held()
+        proc = self.run_tool("release", aid, "--why", "I want it back",
+                             "--generation", "1", session=LEAD)
+        refusal_wire(RefusalCase("release-not-the-holder", (), "holder"), proc)
+
+    def test_a_resource_is_freed_by_its_holder_under_another_agent_string(self):
+        aid = self.held()
+        self.ok("reserve", "port-7311", "--for", aid, session=WORKER)
+        self.assertIn("freed port-7311", self.ok(
+            "free", "port-7311", "--why", "the run ended", session=WORKER,
+            identity=self.OTHER))
+
+
+class TheBindChain(_Scratch):
+    """Authority is rooted in the store's first participant.
+
+    Before this, bind wrote whatever roles it was handed: a dispatched
+    worker re-bound itself as a lead and drafted its own work (Codex #1),
+    and a bind-for rewrote a bound participant's roles (Grok #2). The
+    role a caller names is a request; what it may do comes from the chain
+    above it.
+    """
+
+    MINTED = "dispatch-7f3a"
+
+    def test_the_first_participant_is_the_bootstrap(self):
+        """One self-bind with any roles, because a store with nobody in
+        it has nobody to grant them."""
+        self.ok("bind", "--roles", "lead,coordinator,dispatcher", session=LEAD)
+        self.assertIn("lead,coordinator,dispatcher", self.ok("who", session=LEAD))
+
+    def test_a_later_self_bind_above_worker_refuses(self):
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        proc = self.run_tool("bind", "--roles", "lead,dispatcher", session=WORKER)
+        refusal_wire(RefusalCase("self-bind-above-worker", (), "role"), proc)
+
+    def test_a_later_self_bind_as_worker_is_admitted(self):
+        """The clean neighbour: a session announcing itself is fine, and
+        worker is what announcing yourself gets you."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.assertIn("worker", self.ok("bind", "--roles", "worker", session=WORKER))
+
+    def test_a_re_bind_refuses_to_change_its_own_roles(self):
+        """The shape Codex reproduced: the bound worker asks again, for
+        more."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        proc = self.run_tool("bind", "--roles", "worker,lead", session=WORKER)
+        refusal_wire(RefusalCase("re-bind-new-roles", (), "role"), proc)
+        self.assertNotIn("lead", self.ok("who", session=WORKER))
+
+    def test_a_lead_grants_a_role_and_the_grantor_is_recorded(self):
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        printed = self.ok("grant", "PT-2", "--roles", "verifier", session=LEAD)
+        self.assertIn("granted", printed)
+        self.assertIn("PT-1", printed, "the grantor is on the line")
+        self.assertIn("verifier", self.ok("who", session=WORKER))
+        module = self.core(LEAD)
+        with module.reader() as conn:
+            row = conn.execute(
+                "SELECT granted_by FROM participants WHERE session_id = ?", (WORKER,)
+            ).fetchone()
+        self.assertEqual(1, row["granted_by"], "the row records who granted it")
+
+    def test_only_a_lead_grants(self):
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        self.ok("bind", "--roles", "worker", session=CHECKER)
+        proc = self.run_tool("grant", "PT-3", "--roles", "lead", session=WORKER)
+        refusal_wire(RefusalCase("grant-not-a-lead", (), "role"), proc)
+
+    def test_bind_for_refuses_a_session_that_already_has_a_row(self):
+        """It never overwrites: the row that exists is the row that
+        stands, and the caller is told which one it is."""
+        self.ok("bind", "--roles", "lead,coordinator,dispatcher", session=LEAD)
+        aid = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        proc = self.run_tool("bind-for", "--session", WORKER, "--roles", "worker",
+                             "--for", aid, session=LEAD)
+        refusal_wire(RefusalCase("bind-for-existing-row", (), "conflict"), proc)
+        self.assertIn("worker", self.ok("who", session=WORKER))
+
+    def test_bind_for_above_worker_needs_a_lead(self):
+        """A dispatcher mints workers. Minting a lead is a grant, and a
+        grant is a lead's."""
+        self.ok("bind", "--roles", "lead,coordinator,dispatcher", session=LEAD)
+        aid = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        self.ok("grant", "PT-2", "--roles", "dispatcher", session=LEAD)
+        proc = self.run_tool("bind-for", "--session", self.MINTED, "--roles",
+                             "worker,lead", "--for", aid, session=WORKER)
+        refusal_wire(RefusalCase("bind-for-above-worker", (), "role"), proc)
+
+    def test_a_dispatcher_still_mints_a_worker(self):
+        """The clean neighbour: what bind-for exists for still works."""
+        self.ok("bind", "--roles", "lead,coordinator,dispatcher", session=LEAD)
+        aid = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        self.assertIn("bound for session", self.ok(
+            "bind-for", "--session", self.MINTED, "--roles", "worker", "--for", aid,
+            session=LEAD))
+
+
+class TheDocumentedFormsParse(_Scratch):
+    """Every command form the contract prints is run against the parser.
+
+    The two reviewers found the same thing by reading: the table had gone
+    stale where the verbs had moved. A table nobody runs goes stale
+    silently, and its readers are the projections and the next session.
+    Class `arguments` is exactly the answer this row is hunting — an
+    unknown option, a wrong positional count, or a required option the
+    form does not name.
+    """
+
+    CONTRACT = REPO / "ops" / "conductor" / "coordination-lever.md"
+
+    LITERAL = {"R[,R]": "R", "A-n,..": "A-n"}
+    VALUES = {
+        "A-n": "A-1", "A-m": "A-2", "M-n": "M-1", "DC-n": "DC-1", "PT-n": "PT-1",
+        "TITLE": "a bounded repair", "NAME": "port-7311", "R": "worker",
+        "REF": "#243", "TEXT": "a reading of the run", "SHA": "a1b2c3d",
+        "READING": "a1b2c3d", "REC": "20260916T010203Z-job-x", "WHO": "PT-1",
+        "B": BRANCH, "N": "1", "MIN": "5", "ID": "dispatch-7f3a", "P": "request",
+        "H": "claude-code", "E": "tcp://127.0.0.1:7311", "S": "held",
+    }
+
+    def forms(self):
+        """The first cell of every row of the instrument table."""
+        rows, inside = [], False
+        for line in self.CONTRACT.read_text(encoding="utf-8").splitlines():
+            if line.startswith("| verb | effect |"):
+                inside = True
+                continue
+            if inside:
+                if not line.startswith("|"):
+                    break
+                cell = line.split("|")[1].strip()
+                if set(cell) <= set("-: "):
+                    continue
+                rows.append(cell.strip("`"))
+        self.assertTrue(rows, "the instrument table was not found in the contract")
+        return rows
+
+    def argv(self, form):
+        text = form
+        for placeholder, plain in self.LITERAL.items():
+            text = text.replace(placeholder, plain)
+        out = []
+        for token in text.replace("[", " ").replace("]", " ").split():
+            if token.startswith("--") or token == out[:1]:
+                out.append(token)
+            elif not out:
+                out.append(token)
+            else:
+                self.assertIn(token, self.VALUES,
+                              f"no value for {token!r} in the form {form!r}")
+                out.append(self.VALUES[token])
+        return out
+
+    def test_the_table_names_every_verb_and_only_them(self):
+        module = self.core()
+        self.assertEqual(set(module.VERBS),
+                         {form.split()[0] for form in self.forms()},
+                         "the contract's table and the verb table disagree")
+
+    def test_every_documented_form_reaches_the_parser(self):
+        self.lock()
+        for form in self.forms():
+            with self.subTest(form=form):
+                proc = self.run_tool(*self.argv(form), session=LEAD)
+                self.assertIn(proc.exit, (0, 2), proc.stderr)
+                if proc.exit == 2:
+                    self.assertNotEqual(
+                        "arguments", proc.stderr.split(":")[0].strip(),
+                        f"the documented form does not parse: {proc.stderr.strip()}")
 
 
 if __name__ == "__main__":

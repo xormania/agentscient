@@ -20,7 +20,12 @@ arguments and the resolved participant, returning a dict, and raising
 checks — participant, role, holder, generation, revision, producer —
 live in those functions, so they run whoever calls them: a projection
 cannot reach the store around them, and a hook the MCP plane is blind to
-is never where authority sits. Both projections are therefore thin and
+is never where authority sits. The resolved participant is an argument
+so that both projections stay thin, and every function checks that the
+row it was passed is the calling process's own — its `session_id` is
+`instrument.session()` here, or it refuses class `participant`. The
+boundary binds the effective caller; the argument carries it and never
+chooses it. Both projections are therefore thin and
 neither holds authority of its own; the CLI verb parses argv, calls the
 function and prints, and the MCP action does the same with a result
 shape instead of a print.
@@ -75,7 +80,8 @@ not a display name. The table:
     participants(id INTEGER PRIMARY KEY AUTOINCREMENT,
                  session_id TEXT NOT NULL UNIQUE, agent TEXT NOT NULL,
                  harness TEXT, roles TEXT NOT NULL, endpoint TEXT,
-                 probe TEXT, bound_at TEXT NOT NULL)
+                 probe TEXT, bound_at TEXT NOT NULL, bound_by INTEGER,
+                 bound_for INTEGER, granted_by INTEGER, granted_at TEXT)
 
 `session_id` is `instrument.session()` and is unique, so two sessions
 on one host are two participants; `agent` is `instrument.identity()`
@@ -85,9 +91,11 @@ the engine's holder is the agent string (`machine.py:255` compares
 value satisfy each other's holder checks. The participant is the
 authority everywhere below; the agent string never is.
 
-`resolve()` reads `instrument.session()`, refuses class `session` when
-the harness set none, and refuses class `participant` when no row is
-bound to it. **No verb takes the acting participant as an argument.** A
+`bound_participant()` reads `instrument.session()`, refuses class
+`session` when the harness set none, and refuses class `participant`
+when no row is bound to it. It is not a verb and does not wear the wire
+name of `resolve`, which is the message verb, so a projection mapping
+its tools by wire name has one thing to reach. **No verb takes the acting participant as an argument.** A
 caller-supplied participant or role is refused class `arguments`, so
 neither a CLI flag nor an MCP field can confer another participant's
 authority (objective §7). Package C resolves the same way at its own
@@ -97,6 +105,30 @@ boundary.
 `dispatcher`, `worker`, `verifier`. A verb whose authority the bound
 roles do not carry refuses class `role`, naming the roles held and the
 role needed.
+
+### Authority is a chain, not an argument
+
+A role a caller names for itself confers nothing (objective §6 and §7).
+Codex and Grok both reproduced the same hole against `05b8aebe`: a bound
+worker re-bound itself as `lead,dispatcher` and drafted its own work,
+and a `bind-for` rewrote a bound lead's row. The chain, ruled by the
+Lead session on 2026-09-16:
+
+- The store's **first** participant is the bootstrap and may self-bind
+  with any roles, because a store with nobody in it has nobody to grant
+  them.
+- Every **later** self-bind is `worker` alone; naming more refuses class
+  `role`, with the grant verb as its remedy.
+- **`grant PT-n --roles R[,R]`** is how roles above `worker` are held.
+  Only a `lead` may run it; the row records `granted_by` and
+  `granted_at`, so the chain is readable back to the bootstrap.
+- A **re-bind** by the row's own session refreshes its `endpoint`, its
+  `probe` and its `agent` string, and never its roles: a re-bind naming
+  roles the row does not hold refuses class `role`.
+- **`bind-for`** never overwrites. A session that already holds a row
+  refuses class `conflict`, naming the participant that stands. A
+  `dispatcher` mints `worker`; anything above it is a grant, so the
+  issuer must also hold `lead`.
 
 ### A participant for a session that cannot bind itself
 
@@ -109,7 +141,9 @@ the material exists.
 
 `bind-for --session ID --roles R[,R] --for A-n` binds a participant to a
 session id the caller names. Only a participant holding `dispatcher` may
-issue one; another refuses class `role`. The row records `bound_by`, the
+issue one; another refuses class `role`, and a roles set above `worker`
+needs `lead` as well. A session that already holds a row refuses class
+`conflict`; the verb never overwrites. The row records `bound_by`, the
 issuing participant, and `bound_for`, the assignment it was issued for,
 and `participants` prints both, so a participant nobody dispatched is
 visible as such. `bind` is unchanged and stays the interactive session's
@@ -144,8 +178,20 @@ hold, and the role is checked in the gate; the engine's `gate` callback
 (`machine.py:291-292`) runs under the same write lock, before the
 UPDATE, and its refusal rolls the whole transaction back
 (`machine.py:338-343`). No change to `machine.py` is made by this
-package. Widening `subjects.holder` to the participant id is a later
-question and is recorded as an idea, not built here.
+package.
+
+`subjects.holder` is an opaque string the engine compares for equality
+and nothing else (`machine.py:253-264`), so what it carries is each
+machine's own choice. **These machines choose the participant**: the
+actor handed to `machine.move` and `machine.create` is `PT-n`, never the
+agent string. The `holder-or-lapsed` transitions — `release` and `free`
+— therefore compare the participant, so the holder that changed its
+agent string still holds and a stranger that shares one does not, and
+`release` honours the lapse the transition declares. The marking's
+attribution column takes the same value; the agent string behind it is
+on the participant's own row, recorded at bind. Widening the engine
+itself so that holder identity is typed rather than chosen per machine
+stays a later question, recorded as idea I-034.
 
 Submission, verification and acceptance are three separate places
 because §11 requires three separate records. `return` keeps the holder,
@@ -186,10 +232,25 @@ columns close it:
   lock and refuses class `generation` with expected, found and needed
   when they differ. A stale holder is refused, not silently applied.
 - `revision` is the candidate the work is against. `submit` states the
-  revision it produced; `verify` refuses class `revision` when the
-  observation it rests on names a different one. `reopen` sets a new
+  revision it produced; `verify` names it as `--candidate` and refuses
+  class `revision` when it is not the assignment's. `reopen` sets a new
   revision and marks every observation of the assignment `stale`,
   keeping the old rows and their original scope (§11).
+
+An assignment with **no revision** is a drafted one: `--revision` stays
+optional on `draft`, because a drafted assignment can have no candidate
+yet. Two rules keep that from becoming a hole through which evidence of
+nothing passes (Grok #1 and Codex #2 against `05b8aebe`, objective §11 —
+a changed candidate marks affected evidence for reassessment):
+
+- `observe` refuses class `revision` on an assignment with no revision,
+  needing a draft or a submit that names one first.
+- `submit` marks `stale` every current observation whose revision is not
+  the one submitted, keeping the rows and their scope.
+
+Every transition names its gate, `return` included: it passes the same
+generation gate under the write lock as its siblings, and its findings
+go through the same evidence shapes as every other reading.
 
 ## Messages
 
@@ -287,7 +348,8 @@ reconciliation the caller still owes.
 |---|---|
 | `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n` |
 | `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
-| `who` | this session's participant and roles |
+| `grant PT-n --roles R[,R]` | a lead grants roles above worker; records the grantor |
+| `who` | this session's participant and roles; `no store` and exit 0 when there is none |
 | `participants [--role R]` | one line per participant |
 | `draft TITLE --outcome TEXT [--requirement REF] [--revision SHA] [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]` | prints `assignment A-n` |
 | `offer A-n --to WHO` | names the recipient |
@@ -295,7 +357,7 @@ reconciliation the caller still owes.
 | `release A-n --why TEXT --generation N` | gives it back; bumps the generation |
 | `reassign A-n --to WHO --why TEXT --generation N` | lead or coordinator; bumps the generation |
 | `submit A-n --evidence READING --revision SHA --generation N` | the candidate |
-| `verify A-n --evidence READING --generation N` | an independent verifier's pass |
+| `verify A-n --candidate SHA --evidence READING --generation N` | an independent verifier's pass: the candidate it ran against and a reading of the run |
 | `return A-n --findings REF --generation N` | back to the holder |
 | `accept A-n --evidence READING --generation N` | the lead's acceptance |
 | `reopen A-n --revision SHA --why TEXT --generation N` | a changed candidate; stales the observations |
@@ -309,7 +371,7 @@ reconciliation the caller still owes.
 | `withdraw M-n --why TEXT` | the sender takes it back |
 | `inbox [--unresolved]` | messages to this participant or its roles |
 | `outstanding [--to WHO]` | requests and findings not yet resolved |
-| `observe A-n --observation TEXT --revision SHA [--execution REC] [--artifact REF] [--requirement REF] [--environment TEXT]` | prints `observation E-n` |
+| `observe A-n --observation TEXT --revision SHA --generation N [--stale] [--execution REC] [--artifact REF] [--requirement REF] [--environment TEXT]` | prints `observation E-n` |
 | `observations A-n [--all]` | current observations, `--all` includes stale |
 | `ask --question TEXT --alternatives TEXT [--assignment A-n]` | prints `decision DC-n` |
 | `answer DC-n [--counter TEXT] [--unknowns TEXT] [--consequence TEXT]` | attaches what the brief needs |
@@ -324,7 +386,10 @@ reconciliation the caller still owes.
 
 `brief` is what a restarted or compacted participant reads to recover
 its obligations (AC-12). Reads print `no store` and exit 0 when the
-store is absent: looked and found nothing.
+store is absent — `who` with them, since a read that refuses is a read
+that claimed to have looked. Every form in this table is run against the
+parser by the suite, so a row that goes stale where its verb moved is a
+failure and not a reader's surprise.
 
 ## Refusals
 
@@ -333,12 +398,13 @@ store is absent: looked and found nothing.
 | arguments | an unknown verb or option, a wrong positional count, a missing required option, or any attempt to supply the acting participant or role |
 | identity | a writing verb without an identity |
 | session | a bind or a resolve with no session id in the environment |
-| participant | no participant bound to this session; a named participant id with no row |
-| role | a verb whose authority the bound roles do not carry |
+| participant | no participant bound to this session; a named participant id with no row; a participant argument whose session is not the calling process's |
+| role | a verb whose authority the bound roles do not carry; a self-bind above `worker` after the first participant; a re-bind that would change its own roles |
+| conflict | a `bind-for` for a session that already holds a participant row |
 | id | an id not of the form `PT-n`, `A-n`, `M-n`, `E-n`, `DC-n` or `R-n`, or of the wrong kind for the verb |
 | unknown | an id the store does not hold |
 | generation | a move whose stated generation is not the assignment's |
-| revision | a verify whose observation names a revision other than the assignment's, or an observe of a revision the assignment has moved past without `--stale` |
+| revision | a verify whose candidate is not the assignment's revision, an observe of a revision the assignment has moved past without `--stale`, or an observe on an assignment with no revision named |
 | producer | a verify or accept by the participant that produced the candidate |
 | recipient | a claim by a participant the assignment was not offered to |
 | evidence | a reading with no known shape |
@@ -348,7 +414,11 @@ store is absent: looked and found nothing.
 
 The evidence shapes are the ones already pinned: a sha of 7 to 40 hex,
 `#N`, a dispatch record id `YYYYMMDDTHHMMSSZ-...`, or a `P-` corpus row
-(`handoff-lever.md:73-75`).
+(`handoff-lever.md:73-75`). Every reading a verb takes is held to them:
+`submit --evidence`, `verify --evidence`, `accept --evidence`, `resolve
+--evidence` and `return --findings`. `verify --candidate` is a revision
+identity, not a reading of a run, which is why it is a second option and
+not the same one.
 
 ## Where it sits in the session
 
