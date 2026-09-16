@@ -79,6 +79,14 @@ efficiency):
 | `landed` | dispatches per landed PR | falling against the baseline |
 | `dispatch-cached` | mean cached tokens per author-tests dispatch | under 3,000,000 |
 
+A baseline is chosen, and choosing it badly reads as success. A
+baseline window that excludes the behaviour being fixed cannot show
+the fix: measured 2026-09-16, a baseline starting at 23:00Z read
+`context` 295,986 and `met` before anything changed, because the two
+sessions at 431k and 573k that made the lever's case sat outside it,
+while the same window against the whole day read 426,038. A `met` is
+only as honest as the window under it.
+
 A verdict is mechanical, never a judgment: `UNREACHABLE` when the
 window's `n` is zero — an arm that could not look has no result — else
 `met` or `short` against the threshold. A falling threshold reads
