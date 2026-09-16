@@ -166,6 +166,31 @@ class TheDispatcherRole(unittest.TestCase):
                                         session=THEIRS))
         self.assertIn(MINE, reason)
 
+    def test_a_dispatcher_run_through_a_shell_carries_the_row(self):
+        """Origin: 20260916T122524Z-review-codex-05a9f5#1 at aea65bb9 — the
+        row read the first word of the statement, so every form that hands
+        the tracked dispatcher to a shell walked past it. Measured before
+        the fix: `bash ops/bin/dispatch.sh --job plan` classified as
+        nothing at all."""
+        self.lever("set", MINE, "--why", "the lane's dispatcher for today")
+        for form in ("bash {d}", "sh {d}", "/bin/bash {d}", "bash -x {d}",
+                     "source {d}", ". {d}", "env bash {d}"):
+            command = form.format(d=self.DISPATCH)
+            with self.subTest(command=command, origin="05a9f5#1"):
+                reason = self.refusal(self.bash(command, session=THEIRS))
+                self.assertIn(MINE, reason)
+
+    def test_the_named_session_still_dispatches_through_a_shell(self):
+        """The clean neighbour: the row narrows who, never how."""
+        self.lever("set", MINE, "--why", "the lane's dispatcher for today")
+        self.allowed(self.bash(f"bash {self.DISPATCH}", session=MINE))
+
+    def test_another_script_through_a_shell_is_untouched(self):
+        """The other clean neighbour: the row is about the two dispatchers,
+        so a shell running anything else is not its business."""
+        self.lever("set", MINE, "--why", "the lane's dispatcher for today")
+        self.allowed(self.bash("bash ops/bin/board.sh", session=THEIRS))
+
     def test_a_grant_is_no_escape(self):
         self.lever("set", MINE, "--why", "the lane's dispatcher for today")
         reason = self.refusal(self.bash(f"HAND_GRANT=264 {self.DISPATCH}", session=THEIRS))

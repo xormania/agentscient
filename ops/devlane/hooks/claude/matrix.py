@@ -725,6 +725,36 @@ def prune_targets(tokens, cwd, conf):
 
 # --- dispatch rows ----------------------------------------------------------
 
+SHELLS = ("sh", "bash", "dash", "ksh", "zsh")
+SOURCERS = (".", "source")
+
+
+def shell_operand(tokens, program):
+    """The script operand after a shell's options, or None.
+
+    A dispatcher handed to a shell is still that dispatcher. The rows read
+    the first word of the statement, so `bash ops/bin/dispatch.sh` and
+    `source ops/bin/dispatch.sh` were classified as nothing and walked past
+    every dispatch row, the `dispatcher` row included
+    (20260916T122524Z-review-codex-05a9f5#1). `-c` carries a command string
+    rather than a script and is not a script operand: check_text judges that
+    string on its own."""
+    program += 1
+    while program < len(tokens):
+        argument = tokens[program]
+        if argument == "--":
+            return program + 1 if program + 1 < len(tokens) else None
+        if argument == "-":
+            return None
+        if argument.startswith("-"):
+            if "c" in argument[1:]:
+                return None
+            program += 1
+            continue
+        return program
+    return None
+
+
 def dispatch_args(tokens):
     """(kind, flags) when the statement dispatches; kind is dispatcher|launcher|driver|None."""
     kind = None
@@ -737,6 +767,12 @@ def dispatch_args(tokens):
         if program is None:
             return None, {}
         name = base(tokens[program]) if program < len(tokens) else ""
+    elif name in SHELLS or name in SOURCERS:
+        program = (shell_operand(tokens, program) if name in SHELLS
+                   else (program + 1 if program + 1 < len(tokens) else None))
+        if program is None or program >= len(tokens):
+            return None, {}
+        name = base(tokens[program])
     if name in DISPATCHERS:
         kind = "dispatcher"
     elif name == LAUNCHER:
