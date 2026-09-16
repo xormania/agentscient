@@ -45,6 +45,32 @@ class HermeticPath(unittest.TestCase):
                     world.env()["PATH"], f"{world.bin}{os.pathsep}{host}"
                 )
 
+    def test_a_host_path_that_is_not_a_choice_is_invalid(self):
+        """Origin: 20260916T122524Z-review-codex-05a9f5#9 at aea65bb9 —
+        bool('false') is True, so a caller who spelled a false value got the
+        host's PATH appended and no word about it. A World's host_path is a
+        choice, so only a choice is taken."""
+        for value in ("false", "true", "0", "1", "", 0, 1, None, object()):
+            with self.subTest(value=repr(value), origin="05a9f5#9"):
+                with self.assertRaises(PlantFailed):
+                    World(host_path=value).close()
+
+    def test_hermetic_env_refuses_a_word_that_means_a_choice(self):
+        """The other door takes a string as the PATH to follow, so the same
+        word cannot be told from a one-entry PATH. It is refused rather than
+        read either way."""
+        with World() as world:
+            for value in ("false", "TRUE", "0", "no"):
+                with self.subTest(value=value, origin="05a9f5#9"):
+                    with self.assertRaises(PlantFailed):
+                        hermetic_env(world.home, bin=world.bin, host_path=value)
+
+    def test_hermetic_env_still_takes_a_path(self):
+        """The clean neighbour: a real PATH value is still a PATH value."""
+        with World() as world:
+            env = hermetic_env(world.home, bin=world.bin, host_path="/opt/x")
+            self.assertEqual(env["PATH"], f"{world.bin}{os.pathsep}/opt/x")
+
     def test_hermetic_env_takes_the_same_choice(self):
         """The other door: an env built without a World."""
         with self.subTest(id="hermetic-env-host-path", origin=ORIGIN):

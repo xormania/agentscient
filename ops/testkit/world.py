@@ -47,6 +47,65 @@ class PlantFailed(AssertionError):
     """The fixture was not what the case claimed to set up: INVALID, not a verdict."""
 
 
+#: Words a caller writes when they mean a choice. A PATH could in
+#: principle be a one-entry relative path spelled `false`, so the ambiguity
+#: is refused rather than settled one way
+#: (20260916T122524Z-review-codex-05a9f5#9).
+_CHOICE_WORDS = frozenset({"", "0", "1", "true", "false", "yes", "no", "on", "off"})
+
+
+def a_tool_name(name):
+    """The name, when it names a tool a world may place on its own bin.
+
+    A world places a tool at ``world.bin / name`` but resolves the real one
+    against the caller's directory, so a name carrying a separator or ``..``
+    put an executable outside the world, which then survived its close
+    (20260916T122524Z-review-codex-05a9f5#3). A tool name is a file name."""
+    text = str(name)
+    separators = [sep for sep in (os.sep, os.altsep) if sep]
+    if (not text or text in (".", "..") or text.startswith("-")
+            or any(sep in text for sep in separators)):
+        raise PlantFailed(
+            f"INVALID: {text!r} is not a tool name; a world places its tools on "
+            "its own bin, so the name is one file name with no separator, no "
+            "'.' or '..', and no leading dash"
+        )
+    return text
+
+
+def a_path_choice(value):
+    """``host_path`` for a World: True or False and nothing else.
+
+    A World uses it as a choice, never as a PATH, and ``bool('false')`` is
+    True, so a caller who spelled a false value got the host's PATH and no
+    word about it (20260916T122524Z-review-codex-05a9f5#9)."""
+    if isinstance(value, bool):
+        return value
+    raise PlantFailed(
+        f"INVALID: host_path is True or False; found {type(value).__name__} "
+        f"{value!r}; a World uses it as a choice, and hermetic_env is the door "
+        "that takes a PATH to follow"
+    )
+
+
+def a_path_or_choice(value):
+    """``host_path`` for hermetic_env: True, False, or the PATH to follow."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        if value.strip().lower() in _CHOICE_WORDS:
+            raise PlantFailed(
+                f"INVALID: host_path {value!r} reads as a choice and as a PATH "
+                "of one entry, and nothing here can tell which was meant; pass "
+                "True, False, or a PATH this is not"
+            )
+        return value
+    raise PlantFailed(
+        f"INVALID: host_path is True, False, or the PATH to follow; found "
+        f"{type(value).__name__} {value!r}"
+    )
+
+
 class World:
     def __init__(self, *, ambient=(), ambient_tools=(), prefix="world-", keep=False,
                  host_path=True):
@@ -72,11 +131,13 @@ class World:
                 )
             if name in _ALWAYS_OWN:
                 raise PlantFailed(f"INVALID: {name} is the world's own and cannot be ambient")
+        for name in ambient_tools:
+            a_tool_name(name)
         self.keep = keep
         # False is the hermetic PATH of LD-72, the world's bin alone; True,
         # today's default, appends the host's after it. See the module
         # docstring for the date and the sweep that moves the default.
-        self.host_path = bool(host_path)
+        self.host_path = a_path_choice(host_path)
         self._children: list[subprocess.Popen] = []
         self._saved_environ: dict[str, str] | None = None
         self._tools = None
@@ -164,6 +225,7 @@ class World:
         absolute path and placed on the world's bin as a wrapper that logs
         every call. A name the case already planted is left where it is, so
         a plant wins over an ambient tool of the same name."""
+        name = a_tool_name(name)
         placed = self.bin / name
         if placed.exists():
             return placed
@@ -255,6 +317,7 @@ def hermetic_env(home, *, xdg_state=None, xdg_config=None, xdg_cache=None, tmp=N
     # since a TMPDIR nobody created breaks every mktemp under it.
     if tmp is None and (home / "tmp").is_dir():
         tmp = home / "tmp"
+    host_path = a_path_or_choice(host_path)
     if host_path is True:
         host_path = os.environ.get("PATH", "")
     env = {

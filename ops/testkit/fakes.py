@@ -11,7 +11,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from .world import PlantFailed, make_executable
+from .world import PlantFailed, a_tool_name, make_executable
 
 KIT_DIR = Path(__file__).resolve().parent
 
@@ -50,6 +50,7 @@ class Tools:
         """Plant ``name`` on the world's bin: a program driven by the spec,
         or ``script``'s own text when the case needs a program the spec
         cannot express. Proves the file is executable and intact."""
+        name = a_tool_name(name)
         spec = {"stdout": stdout, "stderr": stderr, "exit": int(exit), "delay": float(delay),
                 "responses": list(responses or [])}
         spec_path = self.spec_path(name)
@@ -65,6 +66,7 @@ class Tools:
         return self.plant_executable(self.world.bin / name, body)
 
     def wrap(self, name: str, *, host_path: str | None = None) -> Path:
+        name = a_tool_name(name)
         """Plant a wrapper that logs the argv and execs the real tool.
         ``host_path`` is the PATH the real tool is resolved on; a world
         passes the one it read at construction, since its own PATH no

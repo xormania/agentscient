@@ -109,6 +109,40 @@ class Plants(unittest.TestCase):
                 world.require("no-such-tool-in-this-world")
 
 
+class ToolNames(unittest.TestCase):
+    """A world places its tools on its own bin and nowhere else.
+
+    Origin: 20260916T122524Z-review-codex-05a9f5#3 at aea65bb9 — a name
+    carrying `..` resolved against the caller's directory while the wrapper
+    was placed against the world's bin, so an executable landed outside the
+    world and survived its close.
+    """
+
+    ESCAPES = ("../escaped", "../../escaped", "a/b", "/tmp/escaped", "..", ".")
+
+    def test_a_tool_name_that_leaves_the_world_is_invalid(self):
+        for name in self.ESCAPES:
+            with self.subTest(name=name, origin="05a9f5#3"):
+                with World(host_path=False) as world:
+                    with self.assertRaises(PlantFailed):
+                        world.ambient_tool(name)
+                    with self.assertRaises(PlantFailed):
+                        world.tools.plant(name, stdout="x\n")
+
+    def test_a_planted_tool_lands_on_the_worlds_bin(self):
+        """The clean neighbour: an ordinary name still works, and lands
+        inside the world."""
+        with World(host_path=False) as world:
+            placed = world.tools.plant("mytool", stdout="x\n")
+            self.assertEqual(placed.parent.resolve(), world.bin.resolve())
+            self.assertTrue(placed.resolve().is_relative_to(world.root.resolve()))
+
+    def test_an_ambient_tool_lands_on_the_worlds_bin(self):
+        with World(host_path=False) as world:
+            placed = world.ambient_tool("git")
+            self.assertEqual(placed.parent.resolve(), world.bin.resolve())
+
+
 class Children(unittest.TestCase):
     def test_owned_child_is_reaped_at_close(self):
         world = World()
