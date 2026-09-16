@@ -254,3 +254,34 @@ The live dispatch that would measure lever 3 against a bound cap waits
 on the wall session's brief change (reading 12: the tests-job prompt),
 so one dispatch measures both `turns_applied` live and cached-per-run
 together, rather than two separate runs.
+
+## The Grok sweep on WF_AGENT (added by Fable after the record closed)
+
+Owner, 2026-09-16: "WF_AGENT is a derilect - can you dispatch grok 4.6
+to investigate history of it, and potential side-effects of fucking
+with it?" Dispatch 20260916T030018Z-review-grok-df544a (sweep, grok-4.6,
+launched by Claude Sonnet 5 from lane/session-20260915-i at f9e48c35,
+after one refusal at 24.3h credential age): status ok, verdict changes,
+p1=0 p2=4 p3=1; the report is the record's `.result.envelope.findings`.
+
+What it read, at f9e48c35: `git log -S WF_AGENT` is 173 commits; the
+read path is five places (launch.py `_identity`, the post-commit and
+post-checkout hooks, dispatch.sh, instrument.identity()), and the
+2026-09-12 commit 780b7b1b that claimed one identity check migrated
+none of the other readers. WF_AGENT's visible use is the trailer, but it
+gates writes directly: launch.py refuses before mint and collect,
+identity() gates ledger add, hand declare and settle, handoff writes,
+deliverable add, set, remove and clear, and skills events; matrix.py
+refuses a hand dispatch whose command lacks it. Not derelict: dropping
+it outright stops every write in the lane. Two readers diverge from the
+contract (dispatch.sh falls a malformed value through to a default; the
+hooks stamp USER and never refuse): LD-58. Two tests pin the current
+dispatch.sh behaviour by name and invert if the static binding is
+dropped or an override is put ahead of it in dispatch.sh; the state.db
+row is additive; SessionStart carries no identity today. Grok could not
+read the gitignored settings file (correct: it is not in the snapshot)
+and reported it absent rather than assumed. Decision (Fable): WF_AGENT
+stays as the ambient identity; the override and the session row (fix 5
+on lane/session-20260915-g) go ahead of it; the five readers converge on
+instrument.identity() as a later fix; deleting the static binding from
+the owner's settings file breaks nothing in the tree.
