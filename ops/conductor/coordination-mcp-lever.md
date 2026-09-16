@@ -54,9 +54,16 @@ same shape the read server already proves:
 - `initialize` advertises tools and resources only. No sampling, no
   elicitation, no subscriptions, no logging, no background refresh, no HTTP
   listener, and the server emits no notifications of its own.
-- `serverInfo.name` is `agentscient-coord`, distinct from the read server's
+- `serverInfo.name` is `coordination`, distinct from the read server's
   `agentscient-lane`, so a client, a launcher config and a call log can tell
-  the two apart without inspecting tool names.
+  the two apart without inspecting tool names. It carries no lane literal:
+  the guard's exemptions are hard-coded in `laneconf.py`, which is wall, and
+  a server name is this contract's to choose (the Lead's ruling C1,
+  2026-09-16).
+- `initialize` refuses a `protocolVersion` that is not a string with -32602:
+  a malformed request, not an unknown version to negotiate past. `ping`
+  accepts extra members, as JSON-RPC allows, and answers an empty result;
+  `tools/call` refuses an unknown top-level parameter with -32602.
 - Instructions: acting server; every mutation needs a binding; evidence is
   not authority; the wire carries every refusal.
 - `params._meta` is accepted as an object on every method, ignored, never
@@ -172,7 +179,7 @@ Slice two closes it, and the probe for each harness is already taken
   key `instrument.session()` already admits (LD-50), so the same
   resolution path serves all three harnesses without a second mechanism.
 
-### 2.3 Precedence
+### 2.4 Precedence
 
 A config binding (§2.1) wins where present, because the launcher issued it
 for one assignment. Absent a config, the session binding (§2.2) applies.
@@ -217,7 +224,9 @@ two core transitions into one tool.
 | `coord_ack` | `ack` | yes | the recipient | acknowledgment never closes the obligation |
 | `coord_resolve` | `resolve` | yes | the recipient, or the holder of the named assignment | the obligation answered, separately from the ack |
 | `coord_outstanding` | `outstanding` | no | any bound participant | requests and findings not yet resolved |
-| `coord_observe` | `observe` | yes | producer | an observation against an assignment and a revision |
+| `coord_observe` | `observe` | yes | producer | an observation against an assignment and a revision; it carries `generation` like every other assignment write |
+
+**The order a call is judged in**: the tool must be one this server carries; the request must not name its own authority, which is malformed whoever asks; the binding's capability list must carry the tool; the arguments must match the closed schema; the binding resolves; the core verb must exist. The capability is judged before the arguments because it is about the tool and not its shape, and the capability refusal says so in its remedy.
 
 **Every writing tool on an assignment carries `generation`**, the integer the
 caller believes, exactly as the core's verbs do. The core's gate reads the
@@ -264,7 +273,7 @@ and cancellation are not advertised because they are not implemented
 | path | outcome |
 |---|---|
 | `tools/call`, domain refusal | `isError: true`, content one text item, the wire line verbatim |
-| `resources/read`, domain refusal | the same: `isError` semantics carrying the wire line, **not** a bare -32602 |
+| `resources/read`, domain refusal | a JSON-RPC **error object**: code -32000, the implementation-defined server-error range; `message` is the wire line verbatim; `data` carries `class`, `expected`, `found` and `needed`. Never a bare -32602, and never a `tools/call` body — `resources/read` has no `content` field, so a refusal placed there hides as surely as the dropped line of LD-68 (G#2, 2026-09-16) |
 | protocol fault | the JSON-RPC error codes of §1, which are transport facts, not domain refusals |
 | the CLI projection | exit 2, one stderr line, stdout empty |
 
@@ -293,13 +302,20 @@ A role or a participant supplied as a tool argument refuses class
 `arguments`, the core's own rule for the same fault (AC-02).
 
 Registered in `ops/conductor/registry/coordination_mcp.py.json` in the change
-that lands it, with hermetic refusal-provoking invocations — at least one for
-`config` and one for `identity` — so the wire gate asserts this server the
-way it asserts every other.
+that lands it, with three hermetic refusal-provoking invocations: one for
+`config`, one for `arguments`, and one for `session` — a call with no binding
+in a hermetic environment. The third is the binding provocation, so the wire
+gate asserts the refusal this server's whole authority rests on. It cannot
+provoke class `identity`: this server reads no `WF_AGENT` by ruling, and a
+registry row promising a class the server never emits would be a dead row
+(G#5 with X#5, 2026-09-16).
 
 Placement: `ops/conductor/placement/coordination_mcp.py.json`,
-`{"placement": "migrated", "state": {"engine": "sqlite"}}`, because every
-mutation lands in the lane's state store through the core.
+`{"placement": "migrated", "state": {"engine": "none"}}`. Every mutation
+lands in the lane's state store, but through the core, which declares
+`sqlite` and owns it; this module opens no store and writes no file. A tool
+that declared `sqlite` while importing neither `sqlite3` nor `machine` is
+the placement gate's own finding (C2, 2026-09-16).
 
 ## 5. What the launcher writes, per harness
 
@@ -310,9 +326,9 @@ binds one:
 
 | harness | today, for the read server | added for the acting server |
 |---|---|---|
-| claude | `<job_dir>/mcp.json` + `--mcp-config`, and `mcp__agentscient-lane` in project_allow | a second key in the same `mcpServers` object, and `mcp__agentscient-coord` in project_allow |
-| codex | `-c mcp_servers.agentscient_lane.command/args` | `-c mcp_servers.agentscient_coord.command/args` |
-| grok | an `[mcp_servers.agentscient_lane]` block in `$GROK_HOME/config.toml` | a second block, `[mcp_servers.agentscient_coord]`, written once |
+| claude | `<job_dir>/mcp.json` + `--mcp-config`, and `mcp__agentscient-lane` in project_allow | a second key in the same `mcpServers` object, and `mcp__coordination` in project_allow |
+| codex | `-c mcp_servers.agentscient_lane.command/args` | `-c mcp_servers.coordination.command/args` |
+| grok | an `[mcp_servers.agentscient_lane]` block in `$GROK_HOME/config.toml` | a second block, `[mcp_servers.coordination]`, written once |
 | agy | nothing | nothing (the Lead's ruling, 2026-09-16) |
 
 All three carriers already hold more than one server, so nothing in the
@@ -329,8 +345,11 @@ it is named and sent to the Lead for a wall session, never written here.
   `unavailable` reading the read server uses rather than a truncated object
   that reads as complete.
 - Every page carries an explicit cursor; no unbounded list is returned.
-- Every call the server makes to the core is bounded by a timeout, and a
-  timeout is a reading, not a silent empty answer.
+- A call into the core is in-process and carries no timeout: a timeout on a
+  function call in this process would measure nothing a caller could act on
+  (struck at the Lead's disposition of X#3, 2026-09-16). The dispatch
+  actions of slice two do cross a process boundary, and each of those
+  carries an explicit timeout whose expiry is a reading.
 - Untrusted text — a message body, a finding, a report — is data. It is
   never interpreted as an instruction and never reaches a shell.
 

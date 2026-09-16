@@ -15,23 +15,32 @@ MCP is exercised as UTF-8 newline-delimited JSON-RPC on that same CLI's
 harness call: World owns HOME, the XDG roots and TMPDIR, so the core's
 own store can never be the host's.
 
+This file was sealed at 333c200f and reopened at the Lead's disposition
+of 2026-09-16, which accepted eleven review findings. What changed and
+why is in the fix commit, finding by finding; the rows below name their
+origin.
+
 The implementation may be absent. `World.stage` plants a no-op
 stand-in (exit 0, no output) when it is, so each case fails on the
 contract promise rather than on Python's missing-file exit 2; the
 absent entrypoint is one red of its own,
-`test_the_tool_file_is_present`. A run of this file claims no later
-green.
+`test_the_tool_file_is_present`.
 
 Fixture set (docs/tests.md rule 3). Planted faults it must catch: an
 unknown verb, an unknown tool, a role supplied as an argument, a
 participant supplied as an argument, an unknown argument key, a
 malformed config, a config of an unknown version, a config naming a
-participant that is not `PT-n`, a call with no binding of any kind, a
-call whose binding lacks the capability, an oversized transport line,
-an unknown JSON-RPC method. Clean neighbours it must pass quietly: a
-negotiated initialize, a tools/list carrying every declared tool, a
-notification answered with silence, a bounded valid line after an
-oversized one, and a call whose binding carries the capability.
+participant that is not `PT-n`, a config naming a participant the core
+does not hold, a generation below the bound the schema advertises, a
+call with no binding of any kind, a call whose binding lacks the
+capability, a core with no verb table, a verb absent from the table, an
+oversized transport line, an unknown JSON-RPC method, a non-string
+protocol version, and a payload over the response bound. Clean
+neighbours it must pass quietly: a negotiated initialize on each of the
+three declared protocols, a ping carrying extra members, a tools/list
+carrying every declared tool, a notification answered with silence, a
+bounded valid line after an oversized one, and a call whose binding
+carries the capability.
 """
 
 from __future__ import annotations
@@ -49,16 +58,22 @@ TOOL = REPO / "ops" / "conductor" / "tools" / "coordination_mcp.py"
 SIBLINGS = ("instrument.py",)
 
 TIMEOUT = 30.0
-SERVER = "agentscient-coord"
+# Renamed from agentscient-coord at the Lead's ruling C1, 2026-09-16:
+# the lane literal guard exempts four files by name and laneconf.py is
+# wall, so the server carries no lane literal instead.
+SERVER = "coordination"
 PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
 LATEST = "2025-06-18"
 MAX_LINE = 65_536
+DOMAIN_REFUSAL = -32000
+RESPONSE_BYTES = 16_384
 
 SESSION = "ab281ec6-0000-4000-8000-00000000d0d0"
 PARTICIPANT = "PT-7"
+ABSENT_PARTICIPANT = "PT-9"
 
-# The catalogue of slice one, from the contract's section 3. Each row is
-# the tool, the core verb it projects, and whether it mutates.
+# The catalogue of slice one, from the contract's section 3: the tool,
+# the core verb's wire name, and whether it mutates.
 CATALOGUE = (
     ("coord_brief", "brief", False),
     ("coord_assignments", "assignments", False),
@@ -81,12 +96,14 @@ CATALOGUE = (
 TOOL_NAMES = tuple(name for name, _verb, _mutates in CATALOGUE)
 MUTATIONS = tuple(name for name, _verb, mutates in CATALOGUE if mutates)
 READS = tuple(name for name, _verb, mutates in CATALOGUE if not mutates)
-# Assignment-writing tools state the generation the caller believes
-# (contract section 3; the core refuses class `generation` otherwise).
+# Every writing tool on an assignment states the generation the caller
+# believes; coord_observe joined them at X#2.
 GENERATION_TOOLS = (
     "coord_claim", "coord_release", "coord_submit", "coord_verify",
-    "coord_return", "coord_accept",
+    "coord_return", "coord_accept", "coord_observe",
 )
+# Every paged read carries an explicit cursor (X#3).
+PAGED_TOOLS = ("coord_assignments", "coord_inbox", "coord_outstanding")
 
 
 def binding(**over) -> dict:
@@ -135,10 +152,11 @@ class Subject:
         return self.world.plant_text(self.path.parent / "coordination.py", body)
 
 
-STUB_CORE = '''"""A stand-in for the coordination core: it records the call and answers."""
-
-import json
-import sys
+# The core exposes its verbs through a table keyed by wire name, and the
+# participant resolver is a module function that is not a verb (X#1).
+# The stub keeps both, with different bodies, so a projection that looked
+# the verb up on the module would call the resolver and fail the case.
+STUB_CORE = '''"""A stand-in for the coordination core: a verb table and a resolver."""
 
 
 class Refusal(Exception):
@@ -150,22 +168,54 @@ def _answer(verb, participant, arguments):
 
 
 def resolve():
-    """The core reads the session id from its own environment, as
+    """The participant resolver. Not a verb, and not in the table.
+
+    It reads the session id from its own environment, as
     instrument.session() does; echoing it proves the id reached this
-    process rather than being supplied by the caller."""
+    process rather than being supplied by the caller.
+    """
     import os
 
     return {"participant": "PT-1", "roles": ["lead", "worker"],
             "session": os.environ.get("CLAUDE_CODE_SESSION_ID", "")}
 
 
-def brief(participant, **arguments):
+def _brief(participant, **arguments):
     return _answer("brief", participant, arguments)
 
 
-def submit(participant, **arguments):
+def _submit(participant, **arguments):
     return _answer("submit", participant, arguments)
+
+
+def _message_resolve(participant, **arguments):
+    """The core's message verb. Shares its wire name with the resolver
+    above and must never be confused with it."""
+    return _answer("message-resolve", participant, arguments)
+
+
+def _participants():
+    return [{"id": "PT-7", "roles": ["worker"]}]
+
+
+def _assignments(participant, **arguments):
+    return {"verb": "assignments", "rows": ["x" * 512 for _ in range(64)]}
+
+
+VERBS = {
+    "brief": _brief,
+    "submit": _submit,
+    "resolve": _message_resolve,
+    "participants": _participants,
+    "assignments": _assignments,
+}
 '''
+
+# A core whose table is there but whose participant list holds nobody.
+STUB_CORE_NO_ROWS = STUB_CORE.replace(
+    'return [{"id": "PT-7", "roles": ["worker"]}]', "return []")
+# A core that is present but exposes no verb table at all.
+STUB_CORE_NO_TABLE = STUB_CORE.replace("VERBS = {", "NOT_THE_TABLE = {")
 
 
 def answer(answers, identifier=None):
@@ -248,6 +298,14 @@ class CoordinationMcpCli(unittest.TestCase):
                 cls="arguments",
                 origin="contract section 1"),
             RefusalCase(
+                id="generation-below-the-bound",
+                argv=("call", "coord_submit", json.dumps(
+                    {"assignment": "A-1", "evidence": "abc1234",
+                     "revision": "abc1234", "generation": 0})),
+                cls="arguments", named=("generation", "1"),
+                origin="G#1, 20260916T075500Z-review-grok-c7a708#1: a declared "
+                       "bound the server does not keep makes the next actor guess"),
+            RefusalCase(
                 id="config-absent",
                 argv=("--config", "/dev/null", "call", "coord_brief"),
                 cls="config",
@@ -270,7 +328,8 @@ class CoordinationMcpCli(unittest.TestCase):
             RefusalCase(
                 id="no-binding-at-all",
                 argv=("call", "coord_brief"), cls="session",
-                origin="contract section 2.3"),
+                origin=("contract section 2.3; also the registry's identity "
+                        "provocation (G#5 and X#5)")),
             RefusalCase(
                 id="capability-not-carried",
                 argv=("--config", str(good), "call", "coord_observe"),
@@ -296,6 +355,21 @@ class CoordinationMcpCli(unittest.TestCase):
                             origin="contract section 7, the core edge"),
                 result)
             self.assertIn("coordination", refusal.line)
+
+    def test_the_capability_refusal_says_arguments_come_after(self):
+        """G#4 and X#6: the remedy must not read as `your arguments are
+        wrong`; the caller needs the capability first, and the refusal
+        says the arguments are judged once it is held."""
+        with World() as world:
+            subject = Subject(world)
+            config = subject.config(binding())
+            result = subject.run("call", "coord_observe", config=config)
+            refusal = refusal_wire(
+                RefusalCase(id="capability-remedy", argv=(), cls="capability",
+                            origin="G#4 with X#6, disposed together"),
+                result)
+            self.assertIn("arguments are checked once the capability is held",
+                          refusal.line)
 
     def test_a_carried_capability_passes_the_allowlist(self):
         """The clean neighbour of capability-not-carried: same config, a tool
@@ -333,7 +407,6 @@ class CoordinationMcpTransport(unittest.TestCase):
         with World() as world:
             subject = Subject(world)
             _result, answers = self.serve(subject, self.initialize())
-            self.assertEqual(len(answers), 1, answers)
             result = answer(answers).get("result", {})
             self.assertEqual(result.get("serverInfo", {}).get("name"), SERVER)
             self.assertEqual(result.get("protocolVersion"), LATEST)
@@ -345,6 +418,15 @@ class CoordinationMcpTransport(unittest.TestCase):
             _result, answers = self.serve(subject, self.initialize(protocol="1999-01-01"))
             self.assertEqual(answer(answers)["result"]["protocolVersion"], LATEST)
 
+    def test_a_protocol_version_that_is_not_a_string_is_invalid_params(self):
+        """X#4: a malformed request, not an unknown version to negotiate past."""
+        with World() as world:
+            subject = Subject(world)
+            _result, answers = self.serve(subject, {
+                "jsonrpc": "2.0", "id": 12, "method": "initialize",
+                "params": {"protocolVersion": []}})
+            self.assertEqual(answer(answers)["error"]["code"], -32602)
+
     def test_every_declared_protocol_is_accepted(self):
         with World() as world:
             subject = Subject(world)
@@ -355,6 +437,15 @@ class CoordinationMcpTransport(unittest.TestCase):
                     self.assertEqual(
                         answer(answers)["result"]["protocolVersion"], wanted)
 
+    def test_ping_carrying_extra_members_still_answers(self):
+        """X#4's other half: JSON-RPC allows them and the contract says so."""
+        with World() as world:
+            subject = Subject(world)
+            _result, answers = self.serve(subject, {
+                "jsonrpc": "2.0", "id": 13, "method": "ping",
+                "params": {"bogus": 1}})
+            self.assertEqual(answer(answers)["result"], {})
+
     def test_a_notification_is_answered_with_silence(self):
         with World() as world:
             subject = Subject(world)
@@ -362,7 +453,7 @@ class CoordinationMcpTransport(unittest.TestCase):
                 subject,
                 {"jsonrpc": "2.0", "method": "notifications/initialized"},
                 self.initialize(identifier=2))
-            self.assertEqual([answer.get("id") for answer in answers], [2], answers)
+            self.assertEqual([item.get("id") for item in answers], [2], answers)
 
     def test_an_unknown_method_is_a_method_not_found(self):
         with World() as world:
@@ -378,9 +469,9 @@ class CoordinationMcpTransport(unittest.TestCase):
                                 "params": {"pad": "x" * (MAX_LINE + 2048)}})
             _result, answers = self.serve(
                 subject, raw=[flood, json.dumps(self.initialize(identifier=5))])
-            codes = [answer.get("error", {}).get("code") for answer in answers]
+            codes = [item.get("error", {}).get("code") for item in answers]
             self.assertIn(-32700, codes, answers)
-            self.assertIn(5, [answer.get("id") for answer in answers], answers)
+            self.assertIn(5, [item.get("id") for item in answers], answers)
 
     def test_the_tool_list_is_the_contract_catalogue(self):
         with World() as world:
@@ -426,6 +517,18 @@ class CoordinationMcpTransport(unittest.TestCase):
                     self.assertIn("generation", schema.get("properties", {}))
                     self.assertIn("generation", schema.get("required", []))
 
+    def test_every_paged_read_carries_an_explicit_cursor(self):
+        """X#3: a page with no cursor is an unbounded list wearing a bound."""
+        with World() as world:
+            subject = Subject(world)
+            _result, answers = self.serve(
+                subject, {"jsonrpc": "2.0", "id": 14, "method": "tools/list"})
+            listed = {item["name"]: item for item in answer(answers)["result"]["tools"]}
+            for name in PAGED_TOOLS:
+                with self.subTest(tool=name):
+                    self.assertIn(
+                        "cursor", listed[name]["inputSchema"].get("properties", {}))
+
     def test_a_refused_call_carries_the_wire_line_in_the_result(self):
         with World() as world:
             subject = Subject(world)
@@ -439,22 +542,36 @@ class CoordinationMcpTransport(unittest.TestCase):
             for word in ("expected", "found", "needed"):
                 self.assertIn(word, text)
 
-    def test_a_refused_resource_read_carries_the_wire_line_too(self):
-        """Contract section 4: unlike the read server, this one never drops
-        the line into a bare -32602 (LD-68)."""
+    def test_a_refused_resource_read_is_an_error_object_carrying_the_parts(self):
+        """G#2: the envelope is asserted, not the words in the raw JSON.
+
+        resources/read has no content field, so a tools/call body hides
+        the refusal as surely as the bare -32602 that LD-68 records.
+        """
         with World() as world:
             subject = Subject(world)
             _result, answers = self.serve(subject, {
                 "jsonrpc": "2.0", "id": 10, "method": "resources/read",
-                "params": {"uri": "coord://nothing-of-the-kind"}})
+                "params": {"uri": "coord://brief"}})
             found = answer(answers)
-            self.assertNotIn("error", found, found)
-            result = found["result"]
-            self.assertIs(result["isError"], True)
-            text = result["content"][0]["text"]
-            self.assertIn("expected", text)
-            self.assertIn("found", text)
-            self.assertIn("needed", text)
+            self.assertNotIn("result", found, found)
+            error = found["error"]
+            self.assertEqual(error["code"], DOMAIN_REFUSAL)
+            self.assertTrue(error["message"].startswith("session:"), error)
+            data = error["data"]
+            self.assertEqual(data["class"], "session")
+            for part in ("expected", "found", "needed"):
+                self.assertTrue(str(data[part]).strip(), f"{part} is empty: {data}")
+
+    def test_an_unknown_resource_uri_refuses_the_same_way(self):
+        with World() as world:
+            subject = Subject(world)
+            _result, answers = self.serve(subject, {
+                "jsonrpc": "2.0", "id": 15, "method": "resources/read",
+                "params": {"uri": "coord://nothing-of-the-kind"}})
+            error = answer(answers)["error"]
+            self.assertEqual(error["code"], DOMAIN_REFUSAL)
+            self.assertEqual(error["data"]["class"], "arguments")
 
     def test_resources_never_mutate(self):
         """Contract section 0: mutations travel only through tools/call."""
@@ -474,10 +591,7 @@ class CoordinationMcpCore(unittest.TestCase):
 
     def test_the_binding_resolves_from_the_inherited_session_id(self):
         """The Lead's ruling 5, 2026-09-16: the binding is proven here, in a
-        hermetic world, not only by the live reading in the PR. The world
-        plants the id in the server's environment; the core echoes what it
-        read; the case asserts the planted id came back, so a server that
-        invented a participant fails."""
+        hermetic world, not only by the live reading in the PR."""
         with World() as world:
             subject = Subject(world)
             subject.core(STUB_CORE)
@@ -489,9 +603,6 @@ class CoordinationMcpCore(unittest.TestCase):
                 f"the binding did not come from the environment: {answered}")
 
     def test_an_absent_session_id_refuses_session_and_never_guesses(self):
-        """The other half of the same proof: with the core present and no id
-        in the environment, the server refuses rather than resolving to
-        whatever row it can find."""
         with World() as world:
             subject = Subject(world)
             subject.core(STUB_CORE)
@@ -501,15 +612,62 @@ class CoordinationMcpCore(unittest.TestCase):
                             origin="contract section 2.2 and 2.3"),
                 result)
 
-    def test_a_bound_session_reaches_the_core_verb(self):
+    def test_the_message_verb_is_not_the_participant_resolver(self):
+        """X#1's surviving half, 20260916T075518Z-review-codex-c22c2d#1: the
+        core's message verb and its participant resolver share the word
+        `resolve`. A projection that looked the verb up on the module
+        would answer a message resolution with the resolver."""
         with World() as world:
             subject = Subject(world)
             subject.core(STUB_CORE)
-            result = subject.run("call", "coord_brief", session=SESSION)
+            result = subject.run(
+                "call", "coord_resolve",
+                '{"message": "M-1", "evidence": "abc1234"}', session=SESSION)
             self.assertEqual(result.exit, 0, result.stderr)
-            self.assertEqual(payload(result).get("verb"), "brief")
+            self.assertEqual(payload(result).get("verb"), "message-resolve")
 
-    def test_a_core_without_the_verb_refuses_state_and_names_it(self):
+    def test_a_config_naming_a_participant_the_core_lacks_refuses_participant(self):
+        """G#3: a missing row and the slice-one bind gap are different
+        faults and must not share a class."""
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE_NO_ROWS)
+            config = subject.config(binding(participant=ABSENT_PARTICIPANT,
+                                            capabilities=["coord_brief"]))
+            result = subject.run("call", "coord_brief", config=config)
+            refusal = refusal_wire(
+                RefusalCase(id="participant-absent", argv=(), cls="participant",
+                            named=(ABSENT_PARTICIPANT,),
+                            origin="G#3, 20260916T075500Z-review-grok-c7a708#3"),
+                result)
+            self.assertIn(ABSENT_PARTICIPANT, refusal.line)
+
+    def test_a_config_whose_participant_exists_still_meets_the_bind_gap(self):
+        """The clean neighbour: the row is there, so the refusal moves on to
+        the declared limit of slice one rather than staying `participant`."""
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE)
+            config = subject.config(binding(capabilities=["coord_brief"]))
+            result = subject.run("call", "coord_brief", config=config)
+            refusal_wire(
+                RefusalCase(id="bind-gap", argv=(), cls="state",
+                            origin="contract section 2.3, the declared limit"),
+                result)
+
+    def test_a_core_with_no_verb_table_refuses_state_and_names_it(self):
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE_NO_TABLE)
+            result = subject.run("call", "coord_brief", session=SESSION)
+            refusal = refusal_wire(
+                RefusalCase(id="table-absent", argv=(), cls="state",
+                            named=("VERBS",),
+                            origin="X#1 and the seam ruling, 2026-09-16"),
+                result)
+            self.assertIn("VERBS", refusal.line)
+
+    def test_a_verb_absent_from_the_table_refuses_state_and_names_it(self):
         with World() as world:
             subject = Subject(world)
             subject.core(STUB_CORE)
@@ -520,6 +678,18 @@ class CoordinationMcpCore(unittest.TestCase):
                             origin="contract section 7, the core edge"),
                 result)
             self.assertIn("outstanding", refusal.line)
+
+    def test_a_payload_over_the_bound_answers_the_unavailable_reading(self):
+        """X#3: a truncated object would read as a complete answer."""
+        with World() as world:
+            subject = Subject(world)
+            subject.core(STUB_CORE)
+            result = subject.run("call", "coord_assignments", session=SESSION)
+            self.assertEqual(result.exit, 0, result.stderr)
+            answered = payload(result)
+            self.assertEqual(answered.get("state"), "unavailable")
+            self.assertEqual(answered.get("bound"), RESPONSE_BYTES)
+            self.assertNotIn("rows", answered)
 
 
 if __name__ == "__main__":

@@ -10,11 +10,12 @@ found and needed.
 
     coordination_mcp.py [--config FILE] check | serve | call TOOL [JSON]
 
-This module holds no authority of its own. It validates arguments,
-resolves the caller's binding from its own environment or from a config
-on its own argv, narrows by the binding's capability list, and calls one
-core verb. A role or a participant named in a request is refused: a
-caller that can name its own authority has none.
+This module holds no authority of its own. It checks that a request does
+not name its own authority, checks the binding's capability list, checks
+the arguments against a closed schema, resolves who is calling from its
+own environment or from a config on its own argv, and calls one core
+verb looked up by its wire name. A role or a participant named in a
+request is refused: a caller that can name its own authority has none.
 """
 
 import sys
@@ -39,7 +40,14 @@ except ModuleNotFoundError:
 PROTOCOLS = ("2024-11-05", "2025-03-26", "2025-06-18")
 LATEST_PROTOCOL = PROTOCOLS[-1]
 MAX_LINE = 65_536
-SERVER_NAME = "agentscient-coord"
+# The whole-response bound. A payload over it answers the unavailable
+# reading rather than a truncated object that would read as complete.
+RESPONSE_BYTES = 16_384
+# JSON-RPC's implementation-defined server-error range is -32000..-32099.
+# A domain refusal on resources/read answers with this code, its message
+# the wire line and its data the four parts.
+DOMAIN_REFUSAL = -32000
+SERVER_NAME = "coordination"
 CONFIG_VERSION = 1
 CONFIG_KEYS = frozenset({
     "version", "participant", "assignment", "branch", "worktree", "record",
@@ -47,6 +55,14 @@ CONFIG_KEYS = frozenset({
 })
 CONFIG_BYTES = 65_536
 PARTICIPANT_RE = re.compile(r"PT-[1-9][0-9]{0,8}")
+# The core exposes its verbs through a table keyed by the verb's wire
+# name; a projection calls by string and never imports a function named
+# for a verb. The participant resolver is not a verb and is reached as a
+# module function, so the message verb `resolve` and the participant
+# resolver never collide.
+CORE_TABLE = "VERBS"
+CORE_RESOLVE = "resolve"
+PARTICIPANTS_VERB = "participants"
 INSTRUCTIONS = (
     "Acting server: these tools change durable state. Every mutation needs a "
     "binding the caller cannot supply. Evidence is not authority; every "
@@ -58,8 +74,8 @@ FORBIDDEN_ARGUMENTS = ("role", "roles", "participant", "session", "agent", "iden
 
 
 class Tool:
-    """One row of the catalogue: the tool, the core verb, the mutation
-    flag and the closed argument object it accepts."""
+    """One row of the catalogue: the tool, the core verb's wire name, the
+    mutation flag and the closed argument object it accepts."""
 
     __slots__ = ("mutates", "name", "properties", "required", "summary", "verb")
 
@@ -79,13 +95,16 @@ def _text(description=None):
 
 _INT = {"type": "integer", "minimum": 1}
 _BOOL = {"type": "boolean"}
+# Every paged read carries an explicit cursor; a page with no cursor is
+# an unbounded list wearing a bound.
+_CURSOR = {"type": "string", "description": "the cursor a previous page returned"}
 
 CATALOGUE = (
     Tool("coord_brief", "brief", False, {}, (),
          "This session's bounded picture: held assignments, unresolved inbox, "
          "open decisions, stale observations."),
     Tool("coord_assignments", "assignments", False,
-         {"state": _text(), "to": _text(), "mine": _BOOL}, (),
+         {"state": _text(), "to": _text(), "mine": _BOOL, "cursor": _CURSOR}, (),
          "A bounded page of assignments, oldest first."),
     Tool("coord_show", "show", False, {"assignment": _text()}, ("assignment",),
          "One assignment: its row, its marking, its observations and its open messages."),
@@ -130,20 +149,24 @@ CATALOGUE = (
           "reply_to": _text(), "artifact": _text()},
          ("to", "purpose", "body"),
          "Queue a durable message to a participant or a role."),
-    Tool("coord_inbox", "inbox", False, {"unresolved": _BOOL}, (),
+    Tool("coord_inbox", "inbox", False, {"unresolved": _BOOL, "cursor": _CURSOR}, (),
          "Messages addressed to this participant or its roles."),
     Tool("coord_ack", "ack", True, {"message": _text()}, ("message",),
          "Acknowledge receipt. An acknowledgment never closes the obligation."),
+    # The core's message verb. The participant resolver shares the word
+    # and is not a verb, so this maps by wire name and never by a lookup
+    # on the module.
     Tool("coord_resolve", "resolve", True,
          {"message": _text(), "evidence": _text()}, ("message", "evidence"),
          "Answer the obligation, separately from the acknowledgment."),
-    Tool("coord_outstanding", "outstanding", False, {"to": _text()}, (),
+    Tool("coord_outstanding", "outstanding", False,
+         {"to": _text(), "cursor": _CURSOR}, (),
          "Requests and findings not yet resolved."),
     Tool("coord_observe", "observe", True,
          {"assignment": _text(), "observation": _text(), "revision": _text(),
-          "execution": _text(), "artifact": _text(), "requirement": _text(),
-          "environment": _text()},
-         ("assignment", "observation", "revision"),
+          "generation": _INT, "execution": _text(), "artifact": _text(),
+          "requirement": _text(), "environment": _text()},
+         ("assignment", "observation", "revision", "generation"),
          "Record an observation against an assignment and a revision."),
 )
 BY_NAME = {tool.name: tool for tool in CATALOGUE}
@@ -161,6 +184,18 @@ RESOURCES = (
 def canonical(payload) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"),
                       ensure_ascii=False)
+
+
+def bounded(payload) -> dict:
+    """The payload, or the unavailable reading when it is over the bound.
+
+    A truncated object would read as a complete answer; the reading says
+    it could not be delivered and names the bound.
+    """
+    if len(canonical(payload).encode("utf-8")) <= RESPONSE_BYTES:
+        return payload
+    return {"state": "unavailable", "reason": "over the response bound",
+            "bound": RESPONSE_BYTES}
 
 
 # -- the config binding ----------------------------------------------------
@@ -225,8 +260,8 @@ def _core():
     refuses rather than answering from nothing.
     """
     try:
-        # Imported at call time, not at module load: the edge is resolved
-        # when a verb needs it, so `check` can report an absent core.
+        # Imported at call time, not at module load, so `check` can
+        # report an absent core rather than failing to start.
         import coordination
     except ModuleNotFoundError:
         refuse("state", "the coordination core beside this tool",
@@ -235,38 +270,63 @@ def _core():
     return coordination
 
 
-def _verb(core, tool: Tool):
-    """The core function a tool projects.
+def _table(core):
+    """The core's verb table, keyed by wire name."""
+    table = getattr(core, CORE_TABLE, None)
+    if not isinstance(table, dict):
+        refuse("state", f"the core's verb table `{CORE_TABLE}`",
+               "absent from coordination.py",
+               "land the core's verb table, keyed by each verb's wire name")
+    return table
 
-    `return` is a reserved word, so the core cannot spell that verb as a
-    function of the same name; the trailing-underscore spelling is tried
-    after the plain one. A verb the core does not carry is a reading, not
-    a guess.
+
+def _verb(core, wire: str):
+    """One core verb, by its wire name.
+
+    Never by a lookup on the module: the message verb `resolve` and the
+    participant resolver share a word, and a projection that guessed by
+    name would call the resolver when a message was meant.
     """
-    for spelling in (tool.verb, tool.verb + "_"):
-        found = getattr(core, spelling, None)
-        if callable(found):
-            return found
-    refuse("state", f"the core verb `{tool.verb}`", "absent from coordination.py",
-           f"land the verb `{tool.verb}` in the core, or withdraw {tool.name}")
+    found = _table(core).get(wire)
+    if not callable(found):
+        refuse("state", f"the core verb `{wire}`", "absent from the verb table",
+               f"land the verb `{wire}` in the core's table")
+    return found
 
 
 # -- the binding -----------------------------------------------------------
 
-def check_capability(config, tool: Tool) -> None:
-    """The binding's allowlist, checked before anything about arguments.
+def _participant_rows(core):
+    """Every participant the core holds; a read, so it needs no binding."""
+    return _verb(core, PARTICIPANTS_VERB)()
 
-    The capability is about the tool, not its shape: a caller whose
-    binding does not carry the tool learns that, and not what arguments
-    it would have taken. It narrows and never widens — the core's own
-    role gate still runs inside every verb (contract section 2.1).
+
+def _row_named(rows, wanted: str):
+    if not isinstance(rows, (list, tuple)):
+        return None
+    for row in rows:
+        if isinstance(row, dict) and row.get("id") == wanted:
+            return row
+    return None
+
+
+def check_capability(config, tool: Tool) -> None:
+    """The binding's allowlist, checked before the arguments are judged.
+
+    The capability is about the tool, not its shape, so a caller whose
+    binding does not carry the tool is refused before its arguments are
+    read. The one check that runs earlier is the forbidden-authority
+    one, because a request naming its own authority is malformed
+    whoever asks. It narrows and never widens: the core's own role gate
+    still runs inside every verb.
     """
     if config is None:
         return
     if tool.name not in config["capabilities"]:
         refuse("capability", f"a binding carrying {tool.name}",
                f"capabilities {sorted(config['capabilities'])}",
-               "ask the dispatcher for a binding that carries this tool")
+               "ask the dispatcher for a binding that carries this tool; the "
+               "arguments are checked once the capability is held")
 
 
 def resolve_binding(config, tool: Tool):
@@ -276,23 +336,37 @@ def resolve_binding(config, tool: Tool):
     refused before this is reached.
     """
     if config is not None:
+        # The row must exist before anything else is said about it: a
+        # config naming a participant the core does not hold is a
+        # different fault from the slice-one bind gap, and reads as one.
+        named = config["participant"]
+        if _row_named(_participant_rows(_core()), named) is None:
+            refuse("participant", f"a participant row for {named}",
+                   "the core holds none",
+                   "bind the participant before issuing this config")
         # The core binds a participant to the calling session alone, so a
         # config naming another session's participant cannot yet be
         # resolved (contract section 9, divergence 1).
         refuse("state", "a core verb binding a participant for another session",
-               f"config names {config['participant']}",
+               f"config names {named}",
                "land the dispatcher-issued bind of package B, then bind this "
                "worker's session id before launch")
+    # The session id is read before the core is reached: an unbound
+    # session is a fault of this server's own boundary, and a core that
+    # happens to be absent must not turn it into a different class.
     key = session("")
     if not key:
         refuse("session", "a session id in this server's environment",
                "unset",
                "run under a harness that sets CLAUDE_CODE_SESSION_ID, or pass "
                "--config FILE with a binding the dispatcher issued")
-    core = _core()
-    resolver = getattr(core, "resolve", None)
+    # The participant resolver is a module function, not a verb: it
+    # refuses class session or participant itself, and those refusals
+    # surface unchanged.
+    resolver = getattr(_core(), CORE_RESOLVE, None)
     if not callable(resolver):
-        refuse("state", "the core verb `resolve`", "absent from coordination.py",
+        refuse("state", f"the core's participant resolver `{CORE_RESOLVE}`",
+               "absent from coordination.py",
                "land the participant resolution of package B")
     return resolver()
 
@@ -302,8 +376,8 @@ def resolve_binding(config, tool: Tool):
 def check_named_authority(tool: Tool, arguments) -> None:
     """A request may not name its own authority, whoever is asking.
 
-    This runs before the binding is resolved, because it is a malformed
-    request and not a permission question (AC-02).
+    This runs before the capability and the binding, because it is a
+    malformed request and not a permission question.
     """
     if not isinstance(arguments, dict):
         return
@@ -329,10 +403,18 @@ def check_arguments(tool: Tool, arguments) -> dict:
         refuse("arguments", f"the required arguments {list(tool.required)}",
                f"missing {missing}", "supply them")
     for name, value in arguments.items():
-        wanted = tool.properties[name].get("type")
-        if wanted == "integer" and (isinstance(value, bool) or not isinstance(value, int)):
-            refuse("arguments", f"{name} as an integer", repr(value),
-                   f"pass {name} as a whole number")
+        schema = tool.properties[name]
+        wanted = schema.get("type")
+        if wanted == "integer":
+            if isinstance(value, bool) or not isinstance(value, int):
+                refuse("arguments", f"{name} as an integer", repr(value),
+                       f"pass {name} as a whole number")
+            # A bound this server advertises and does not keep makes the
+            # next actor guess (docs/wire.md).
+            low = schema.get("minimum")
+            if isinstance(low, int) and value < low:
+                refuse("arguments", f"{name} of at least {low}", repr(value),
+                       f"pass {name} as {low} or more")
         if wanted == "string" and not isinstance(value, str):
             refuse("arguments", f"{name} as a string", repr(value),
                    f"pass {name} as text")
@@ -343,7 +425,8 @@ def check_arguments(tool: Tool, arguments) -> dict:
 
 
 def call(config, name, arguments) -> dict:
-    """One tool call: arguments, then binding, then the one core verb."""
+    """One tool call: the tool, the caller's own words, the capability,
+    the arguments, the binding, then the one core verb."""
     tool = BY_NAME.get(name)
     if tool is None:
         refuse("arguments", "a tool this server carries", repr(name),
@@ -352,8 +435,8 @@ def call(config, name, arguments) -> dict:
     check_capability(config, tool)
     checked = check_arguments(tool, arguments)
     binding = resolve_binding(config, tool)
-    verb = _verb(_core(), tool)
-    return verb(binding, **checked)
+    verb = _verb(_core(), tool.verb)
+    return bounded(verb(binding, **checked))
 
 
 # -- the transport ---------------------------------------------------------
@@ -386,20 +469,35 @@ def _resources() -> list:
             for uri, name, description in RESOURCES]
 
 
-def _error(identifier, code, message) -> dict:
-    return {"jsonrpc": "2.0", "id": identifier, "error": {"code": code, "message": message}}
+def _error(identifier, code, message, data=None) -> dict:
+    error = {"code": code, "message": message}
+    if data is not None:
+        error["data"] = data
+    return {"jsonrpc": "2.0", "id": identifier, "error": error}
 
 
 def _result(identifier, result) -> dict:
     return {"jsonrpc": "2.0", "id": identifier, "result": result}
 
 
-def _refusal_result(identifier, refusal: Refusal) -> dict:
-    """A domain refusal, on every path, carrying its line.
+def _refusal_error(identifier, refusal: Refusal) -> dict:
+    """A domain refusal on a method whose result shape has no room for one.
 
-    The read server drops this line on resources/read (LD-68); this
-    server never does (contract section 4).
+    The read server answers a bare -32602 here and throws the line away
+    (LD-68); a tools/call body on a resources/read would hide it just as
+    well, in a field that method's schema does not have. This carries
+    the line as the message and its four parts as the data.
     """
+    return _error(identifier, DOMAIN_REFUSAL, refusal.line(), {
+        "class": refusal.kind,
+        "expected": refusal.expected,
+        "found": refusal.found,
+        "needed": refusal.needed,
+    })
+
+
+def _refusal_result(identifier, refusal: Refusal) -> dict:
+    """A domain refusal on tools/call, whose result shape carries it."""
     return _result(identifier, {
         "content": [{"type": "text", "text": refusal.line()}],
         "isError": True,
@@ -433,6 +531,10 @@ def _dispatch(config, request) -> dict | None:
         return None
     if method == "initialize":
         requested = params.get("protocolVersion")
+        # A protocolVersion that is not a string is a malformed request,
+        # not an unknown version to negotiate past.
+        if requested is not None and not isinstance(requested, str):
+            return _error(identifier, -32602, "Invalid params")
         selected = requested if requested in PROTOCOLS else LATEST_PROTOCOL
         return _result(identifier, {
             "protocolVersion": selected,
@@ -442,6 +544,8 @@ def _dispatch(config, request) -> dict | None:
             "instructions": INSTRUCTIONS,
         })
     if method == "ping":
+        # JSON-RPC allows extra members here and the contract says so:
+        # ping is a liveness check, not a domain call.
         return _result(identifier, {})
     if method == "tools/list":
         return _result(identifier, {"tools": _schemas()})
@@ -466,7 +570,7 @@ def _dispatch(config, request) -> dict | None:
         try:
             payload = _read_resource(config, params["uri"])
         except Refusal as exc:
-            return _refusal_result(identifier, exc)
+            return _refusal_error(identifier, exc)
         return _result(identifier, {"contents": [
             {"uri": params["uri"], "mimeType": "application/json",
              "text": canonical(payload)}]})
@@ -528,6 +632,7 @@ def check_result(config) -> dict:
         "binding": "config" if config is not None else (
             "session" if session("") else "none"),
         "core": core,
+        "response_bound": RESPONSE_BYTES,
     }
 
 
