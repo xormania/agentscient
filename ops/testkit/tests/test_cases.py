@@ -126,7 +126,9 @@ class Verbs(unittest.TestCase):
             before = support.REFUSER.read_bytes()
             mutants = write_mutants(world.root / "faults.py", WIRE_MUTANTS)
             out = world.root / "record.json"
-            record = sidebyside(REFUSER_REL, mutants, self.COMMAND, "true", repo=support.REPO)
+            # Origin: LD-72, PR #241. Host true is not on a bare world's PATH.
+            new = str(world.tools.plant("true"))
+            record = sidebyside(REFUSER_REL, mutants, self.COMMAND, new, repo=support.REPO)
             self.assertEqual(record["clean"], {"old": "green", "new": "green"})
             self.assertEqual(record["quiet_in_new"], sorted(m.id for m in WIRE_MUTANTS))
             self.assertFalse(record["ok"])
