@@ -29,7 +29,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py submit A-n --evidence READING --revision SHA --generation N
     coordination.py verify A-n --candidate SHA --evidence READING --generation N
     coordination.py return A-n --findings REF --generation N
-    coordination.py accept A-n --evidence READING --generation N
+    coordination.py accept A-n --evidence READING --generation N [--exception TEXT]
     coordination.py reopen A-n --revision SHA --why TEXT --generation N
     coordination.py supersede A-n --by A-m --generation N
     coordination.py assignments [--state S] [--to WHO] [--mine] | show A-n|M-n
@@ -1118,14 +1118,67 @@ def core_return(conn, part, *, agent, assignment, findings, generation) -> dict:
     return assignment_dict(assignment_row(conn, aid))
 
 
-def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
+def acceptance_evidence(conn, row, *, exception=None) -> dict:
+    """AC-10: a missing examination and stale evidence both stop an
+    acceptance that nothing supports.
+
+    Read against the applicable revision, which is the candidate the
+    assignment stands at. An observation of an earlier candidate is
+    history: `reopen` stales what was read against the revision it
+    replaced, and holding that against the new candidate would make an
+    assignment unacceptable for ever. What refuses is a reading of *this*
+    candidate that has gone stale — something moved under evidence that
+    was supposed to cover what is being accepted.
+
+    An observation carries its own requirement or none; one taken against
+    the assignment as a whole counts for the requirement the assignment
+    names, and one taken against a different requirement does not.
+
+    `exception` is the Lead's explicitly permitted exception (objective
+    §11). It does not lift the gate quietly: the acceptance records it,
+    and `show` reads it back beside the transition.
+    """
+    applicable = row["revision"]
+    observations = conn.execute(
+        "SELECT * FROM observations WHERE assignment = ? ORDER BY id", (row["id"],)
+    ).fetchall()
+    of_candidate = [entry for entry in observations
+                    if not applicable or entry["revision"] == applicable]
+    required = row["requirement"]
+    current = [entry for entry in of_candidate
+               if entry["applicability"] == "current"
+               and (not required or entry["requirement"] in (None, required))]
+    stale = [entry for entry in of_candidate if entry["applicability"] == "stale"]
+    if not current and exception is None:
+        refuse("evidence",
+               f"an examination of {required or 'the outcome'} at the applicable "
+               f"revision {applicable or 'unstated'}",
+               f"none of the {len(observations)} observation(s) of A-{row['id']}",
+               "an independent observation of this candidate before acceptance, "
+               "or a permitted exception recorded with --exception")
+    if stale and exception is None:
+        refuse("evidence",
+               f"every observation of {applicable} current at acceptance",
+               f"{len(stale)} stale: "
+               + (stale[0]["stale_reason"] or "reason unstated"),
+               "reassess the changed candidate, or record a permitted exception "
+               "with --exception")
+    return {"current": len(current), "stale": len(stale)}
+
+
+def core_accept(conn, part, *, agent, assignment, evidence, generation,
+                exception=None) -> dict:
     part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     evidence = reading(evidence, "the acceptance")
+    if exception is not None and not exception.strip():
+        refuse("arguments", "words in --exception", "an exception with no words",
+               "say what the permitted exception is, or leave the option out")
     row = assignment_row(conn, aid)
     require_generation(row, generation)
     require_role(part, ("lead",))
     not_the_producer(part, row, "accepts")
+    standing = acceptance_evidence(conn, row, exception=exception)
 
     def gate(_subject):
         live = assignment_row(conn, aid)
@@ -1133,8 +1186,13 @@ def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
         conn.execute("UPDATE assignments SET accepted_by = ? WHERE id = ?",
                      (part["id"], aid))
 
-    advance(conn, aid, "accept", part, evidence=evidence, gate=gate)
-    return assignment_dict(assignment_row(conn, aid))
+    advance(conn, aid, "accept", part, evidence=evidence, gate=gate,
+            note=f"exception: {exception.strip()}" if exception else None)
+    shown = assignment_dict(assignment_row(conn, aid))
+    shown["evidence"] = standing
+    if exception:
+        shown["exception"] = exception.strip()
+    return shown
 
 
 def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> dict:
@@ -1948,11 +2006,16 @@ def do_return(rest):
 
 def do_accept(rest):
     agent = identity()
-    (raw,), opts = parse(rest, 1, required=("evidence", "generation"))
+    (raw,), opts = parse(rest, 1, required=("evidence", "generation"),
+                         optional=("exception",))
     with writer() as conn:
         shown = CORE["accept"](conn, bound_participant(conn), agent=agent, assignment=raw,
-                               evidence=opts["evidence"], generation=opts["generation"])
-    print(f"accepted {shown['assignment']} by {shown['accepted_by']}")
+                               evidence=opts["evidence"], generation=opts["generation"],
+                               exception=opts.get("exception"))
+    line = f"accepted {shown['assignment']} by {shown['accepted_by']}"
+    if shown.get("exception"):
+        line += f", under a recorded exception: {shown['exception']}"
+    print(line)
 
 
 def do_reopen(rest):
