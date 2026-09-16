@@ -1,0 +1,13 @@
+Move the devlane/workflow test family onto World(host_path=False) with planted fakes
+for every tool the subject calls.
+Modules (30 failing rows): ops/devlane/workflow/tests/test_term_wall.py (15),
+test_term_wall_archives.py (13), test_suites_ruff.py (2).
+Do not touch anything outside the modules named. No new dependency; stdlib only.
+Rules: docs/tests.md 4 (a world is hermetic by default, ambient explicit and named),
+5 (every subprocess through testkit run, with a timeout), 6 (a fake is planted through
+the registry and logs every call; no program embedded in a test module).
+Input list and remedy: ops/conductor/handoff/HANDOFF-2026-09-16-hermetic-path-sweep.md
+on this branch. Re-measure the family before you start; the counts there are from
+lane/session-20260916-g at e948141a and move as the sweep lands.
+Green means: the family passes from the repository root under the strict world.
+Commit on this branch with Source: and Co-Authored-By: trailers.
