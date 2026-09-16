@@ -89,6 +89,7 @@ automates it:
 | body per template | the four headings filled; every evidence claim produced by a command at write time, stamped with its sha |
 | trailers on every commit | `git log --format='%h %(trailers:only)' origin/dev..HEAD` — `Source:` and `Co-Authored-By:` on each |
 | zone floor named and run | the touched zone's regression floor (coverage-zones.md), cited in the note |
+| security audit closed at the head | the `## Proof` section names a closed `security-audit` record on the codex harness at `MODEL_CODEX_SECURITY_AUDIT` (`gpt-daybreak-blue-latest`) whose `stamp.ref` is the head sha, and every finding of that record is disposed in the findings ledger (`findings.py`); a push after the audit voids it. Owner, 2026-09-16: "i'd like if you have daybreak security audits made required for draft pr's - and resolution required before they can be made ready for review". By hand until the `pr-proof` row carries it (wall item W3 in agentscient-11's queue) |
 
 **Ready means mergeable now** (owner, 2026-09-13: "a draft PR should never
 be marked for review unless it can be merged immediately"). The flip is
