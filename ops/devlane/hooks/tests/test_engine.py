@@ -460,6 +460,25 @@ class TheDoneGate(_Engine):
             with self.subTest(line=line):
                 self.allowed(self.stop("The row is done.\n" + line + "\n"))
 
+    def test_a_lock_line_is_the_reading_indented_fenced_or_quoted(self):
+        """The row named three remedies and accepted them at column 0 only, so
+        a reading pasted the way output is normally pasted was refused. It
+        refused its own `target: expected the measure to read ...` line, which
+        it prints and then names as the remedy."""
+        self.gate()
+        refusal = ("target: expected the measure to read donegate=on-dev; "
+                   "found donegate=not-on-dev; needed keep going")
+        show = "target lane/x: until a=b; reading a=c; short (by Claude Opus 5 <n@a.com>)"
+        for pasted in (
+            "    " + refusal,
+            "  " + show,
+            "```\n" + show + "\n```",
+            "> " + refusal,
+            "\t" + "done lane/x: modules=1",
+        ):
+            with self.subTest(pasted=pasted):
+                self.allowed(self.stop("The row is done.\n" + pasted + "\n"))
+
     def test_the_row_passes_prose_that_carries_a_completion_word_but_makes_no_claim(self):
         """Measured on one session's 73 replies: 15 firings, 3 of them claims.
         Each line below fired the word-set predicate and claims nothing. The
