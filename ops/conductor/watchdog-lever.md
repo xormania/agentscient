@@ -48,8 +48,16 @@ before it settles the record.
 ## The lines
 
 Each line is printed once per record (or per key) for the life of the
-process. Records already closed when the process starts are not
-reported unless `--report-existing`.
+process. A record that was already closed when the process starts is
+backlog, and nothing about it is reported: not the `closed` line, not a
+`deviation` line, not `no record copy`, not `drift`. `--report-existing`
+asks for backlog and reports every one of those lines once. A job
+directory already present with no record copy is backlog by the same
+rule. A record that closes, or a job directory that appears, while the
+process runs is live and is reported without the flag (owner,
+2026-09-16, through the Lead: "a watcher reports nothing about a record
+that was already closed when it started, in every condition family";
+LD-68).
 
 - `closed <id> status=<s> env=<envelope status> changed=<n> after <m> min`
   — `m` from `at.launched` to `at.closed`; `changed` is the count of
@@ -98,8 +106,10 @@ reported unless `--report-existing`.
 
 ## Deviations
 
-Closed records are compared even when their ordinary `closed` line is
-suppressed at startup. Each matching comparison prints once per record:
+A closed record is compared unless it was already closed when the watcher
+started: backlog says nothing in this family either, and
+`--report-existing` is what asks for it (§The lines; LD-68). Each
+matching comparison prints once per record:
 
 - `deviation assumption <id>` — an envelope note or finding contains
   one of `assumption`, `assume`, `substitute`, `stub`, or
@@ -218,10 +228,13 @@ ratification and not a new conductor or automatic-remediation service.
 - A store-directory enumeration failure reaches the existing watchdog
   error line and tick guard; it is not a successful zero-job reading.
 
-Unchanged: historical deviations are still reported, the current period
-is work plus sleep, missing PID is not declared dead, launcher counting
-remains a labeled heuristic, and this instrument writes no state. Those
-separate semantic changes are not smuggled into an efficiency fix.
+Unchanged: the current period is work plus sleep, missing PID is not
+declared dead, launcher counting remains a labeled heuristic, and this
+instrument writes no state. Those separate semantic changes are not
+smuggled into an efficiency fix. Historical deviations were still
+reported when this efficiency fix landed; that carve-out was withdrawn
+on 2026-09-16 (LD-68) and backlog is now silent in every condition
+family — see the rule in §The lines, which governs.
 
 The cache, notification-key set, and last-scanned fingerprints live only for
 the watchdog process. The 16 MiB ceiling covers the cache; notification and

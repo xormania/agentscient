@@ -196,6 +196,8 @@ def _result(result: Result) -> _Result:
 # `ops/devlane/task/jobs.json` (cwd = repo root), else `wall unknown`
 # with a 40-minute threshold.
 # PIN_NOCOPY: `no record copy <id>: cannot judge` once per process.
+# A job directory already there at start is backlog: silent unless
+# `--report-existing` (LD-68).
 # PIN_ERROR: `watchdog error: <type>: <message> (tick <t>; the loop
 # continues)` and `--once` still exits 0.
 # PIN_CI: `ci <fail|cancel> #<pr> at <sha>: <check>` once per pull
@@ -226,8 +228,9 @@ def _result(result: Result) -> _Result:
 # refused (empty-comparison/scope-cap/conf-key/toolchain from the
 # record directory's log lines or the launcher's stderr), retry (a
 # ladder stage retried, or a ladder stopped), minutes (a stage beyond
-# the calibration row by a stated factor). Already-closed records
-# still print deviations on the first pass. A clean store prints none.
+# the calibration row by a stated factor). A record already closed
+# when the watcher started prints none of them unless
+# `--report-existing` is given (LD-68). A clean store prints none.
 # PIN_HEARTBEAT_DEVIATIONS: the heartbeat carries deviations=<n> since
 # start.
 
@@ -1331,16 +1334,41 @@ class ClosedRecords(_WatchdogFixture):
 
 
 class NoCopy(_WatchdogFixture):
-    """A job directory with no record.json is said once, never inferred."""
+    """A job directory with no record.json is said once, never inferred.
+
+    A directory already there when the watcher starts is backlog and is
+    asked for with --report-existing (LD-68); one that appears while it
+    runs is live and needs no flag.
+    """
 
     def test_no_record_copy_is_said_once(self):
         self.plant_no_copy(NOCOPY_ID)
         self.assertFalse((self.store / NOCOPY_ID / "record.json").exists())
         proc = self.loop(
-            ["--tick", "0.15", "--no-forge"],
+            ["--tick", "0.15", "--no-forge", "--report-existing"],
             seconds=0.55,
         )
         self.assert_armed(proc, store=self.store)
+        lines = self.named_lines(proc, f"no record copy {NOCOPY_ID}:")
+        self.assertEqual(len(lines), 1, proc.stdout)
+        self.assertIn("cannot judge", lines[0])
+
+    def test_a_directory_that_appears_after_start_is_said_without_the_flag(
+        self,
+    ):
+        """LD-68: the flag is for backlog. A job directory that appears
+        while the watcher runs is a live condition and is unchanged."""
+        self.ensure_store()
+
+        def plant_it():
+            self.plant_no_copy(NOCOPY_ID)
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.75,
+            mutate=plant_it,
+            mutate_after=0.2,
+        )
         lines = self.named_lines(proc, f"no record copy {NOCOPY_ID}:")
         self.assertEqual(len(lines), 1, proc.stdout)
         self.assertIn("cannot judge", lines[0])
@@ -1592,13 +1620,124 @@ class ReadOnly(_WatchdogFixture):
         self.assertFalse(self.home_store.exists(), "tool created a HOME store")
 
 
+class ClosedAtStartIsSilent(_WatchdogFixture):
+    """Backlog is silent in every condition family (LD-68).
+
+    Owner, 2026-09-16, through the Lead: a watcher reports nothing about
+    a record that was already closed when it started — the closed line,
+    the deviation lines, no record copy, and drift — unless
+    `--report-existing` is given, and then it reports all of them once.
+    Live conditions are unchanged; drift is pinned beside the lock in
+    test_watchdog_deliverable.py.
+    """
+
+    def plant_backlog(self) -> None:
+        self.plant_dev_job(
+            ASSUME_ID,
+            job=JOB_IMPLEMENT,
+            files=(KEEP_A, KEEP_B),
+            note=ASSUMPTION_NOTE,
+        )
+        self.plant_dev_job(
+            ENV_TRIP_ID,
+            job=JOB_CHECK,
+            files=(KEEP_A, KEEP_B),
+            env_status="tripped",
+            findings=[FINDING_LOST],
+        )
+        self.plant_no_copy(NOCOPY_ID)
+        self.assertTrue(
+            (self.store / ASSUME_ID / "record.json").exists(),
+            "plant: the assumption record is there",
+        )
+        self.assertTrue(
+            (self.store / ENV_TRIP_ID / "record.json").exists(),
+            "plant: the tripped-envelope record is there",
+        )
+        self.assertFalse(
+            (self.store / NOCOPY_ID / "record.json").exists(),
+            "plant: the no-copy directory has no record",
+        )
+
+    def test_backlog_prints_no_deviation_and_no_record_copy_line(self):
+        self.plant_backlog()
+        proc = self.once(extra=["--heartbeat-every", "1"])
+        self.assert_armed(proc, store=self.store, ignored=2)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
+        self.assertEqual(
+            self.named_lines(proc, f"no record copy {NOCOPY_ID}"),
+            [],
+            proc.stdout,
+        )
+        self.assertEqual(self.heartbeat_deviation_count(proc), 0)
+
+    def test_report_existing_prints_the_whole_backlog_once(self):
+        self.plant_backlog()
+        proc = self.once(extra=["--heartbeat-every", "1", "--report-existing"])
+        self.assert_armed(proc, store=self.store, ignored=0)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+        self.assertEqual(
+            len(self.deviation_lines(proc, ASSUME_ID)), 1, proc.stdout
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, ENV_TRIP_ID)), 1, proc.stdout
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, f"no record copy {NOCOPY_ID}")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(self.heartbeat_deviation_count(proc), 2)
+
+    def test_a_record_that_closes_after_start_still_reports_its_deviation(self):
+        proc_pid = self.spawn_named(HARNESS)
+        launched = utc_ago(6)
+        job_dir = self.plant_job(CLOSE_LIVE_ID, pid=proc_pid, launched=launched)
+        rec_path = job_dir / "record.json"
+
+        def close_it():
+            payload = self.record_dict(
+                CLOSE_LIVE_ID,
+                status="closed",
+                launched=launched,
+                closed=utc_now(),
+                env_status="tripped",
+                changed_paths=[KEEP_A],
+            )
+            self.world.plant_text(
+                rec_path,
+                json.dumps(payload, indent=2) + "\n",
+            )
+            landed = json.loads(rec_path.read_text(encoding="utf-8"))
+            self.assertEqual(landed["status"], "closed")
+
+        proc = self.loop(
+            ["--tick", "0.3", "--no-forge"],
+            seconds=0.75,
+            mutate=close_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.deviation_lines(proc, CLOSE_LIVE_ID)), 1, proc.stdout
+        )
+
+
 class Deviations(_WatchdogFixture):
     """One deviation line per planted case; a clean store prints none.
 
     Pins are from the deviations contract (input), not from the tool.
-    Closed records still report deviations without --report-existing.
-    Invocations are --once --no-forge on a temporary XDG_STATE_HOME.
+    Every record here is planted before the run, so this family asks
+    for its lines with --report-existing (LD-68); their silence
+    without the flag is ClosedAtStartIsSilent's charge.
+    Invocations are --once --no-forge --report-existing on a
+    temporary XDG_STATE_HOME.
     """
+
+    def once(self, extra=None, **kw):
+        # The planted records are all closed before the tool starts;
+        # the flag is what asks for backlog (LD-68).
+        return super().once(extra=["--report-existing", *(extra or [])], **kw)
 
     def test_clean_store_prints_no_deviation_lines_and_heartbeat_count_zero(
         self,
@@ -1630,8 +1769,9 @@ class Deviations(_WatchdogFixture):
         self.assertEqual(proc.exit, 0, self.combined(proc))
         self.assertEqual(self.heartbeat_deviation_count(proc), 0)
         self.assertEqual(self.deviation_lines(proc), [], proc.stdout)
-        self.assertFalse(
-            self.named_lines(proc, f"closed {CLEAN_ID}"),
+        self.assertEqual(
+            len(self.named_lines(proc, f"closed {CLEAN_ID} ")),
+            1,
             proc.stdout,
         )
 

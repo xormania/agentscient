@@ -141,6 +141,18 @@ class DeliverableLines(base._WatchdogFixture):
         proc = self.once(["--report-existing"])
         self.assertEqual(self.named_lines(proc, "drift "), [], proc.stdout)
 
+    def test_a_record_closed_at_start_is_not_drift_without_report_existing(self):
+        """LD-68: backlog is silent in the drift family too (owner,
+        2026-09-16, through the Lead). The line with the flag is pinned
+        by test_a_record_on_another_branch_after_the_lock_is_drift."""
+        self.plant_lock(minutes_ago=120)
+        self.plant_closed(DRIFT_ID, OTHER, 1)
+        proc = self.once()
+        self.assertEqual(self.named_lines(proc, "drift "), [], proc.stdout)
+        self.assertEqual(
+            self.named_lines(proc, f"closed {DRIFT_ID}"), [], proc.stdout
+        )
+
     def test_a_quiet_deliverable_branch_is_stall(self):
         self.plant_lock(minutes_ago=180)
         self.plant_closed(QUIET_ID, LOCKED, base.watchdog_module().STALL_MIN + 5 if hasattr(base, "watchdog_module") else 50)

@@ -883,6 +883,7 @@ class Watch:
         self.launcher_pairs = set()
         self.ci_seen = set()
         self.startup_closed = set()
+        self.startup_silent = set()
         self.closed_cache = ClosedCache()
         self.closed_scanned = {}
         self.forge_reading = None
@@ -890,10 +891,18 @@ class Watch:
         self.startup_error = None
         self.deviations = 0
         try:
-            initial = entries(args.store, self.caps, self.closed_cache)
+            initial = list(entries(args.store, self.caps, self.closed_cache))
             if not args.report_existing:
                 self.startup_closed = {
                     entry.name for entry in initial if entry.kind == "closed"
+                }
+                # Backlog is silent in every condition family, not only in
+                # the closed line (owner, 2026-09-16, through the Lead;
+                # LD-68): a record already closed, and a job directory
+                # already there with no record copy, say nothing at all
+                # unless --report-existing asks for them.
+                self.startup_silent = self.startup_closed | {
+                    entry.name for entry in initial if entry.kind == "no-copy"
                 }
         except OSError as exc:
             self.startup_error = exc
@@ -905,7 +914,16 @@ class Watch:
             return True
         return False
 
+    def silent(self, record_id):
+        """True for a record that was backlog when this watcher started:
+        already closed, or a job directory already there with no record
+        copy. Nothing about it is reported in any condition family unless
+        --report-existing (owner, 2026-09-16; LD-68)."""
+        return record_id in self.startup_silent
+
     def deviation(self, kind, record_id):
+        if self.silent(record_id):
+            return
         if self.once(
             ("deviation", kind, record_id),
             f"deviation {kind} {record_id}",
@@ -1016,6 +1034,8 @@ class Watch:
                 continue
             if since is not None and launched is not None and launched < since:
                 continue
+            if self.silent(e.name):
+                continue
             if self.once(("drift", e.name), f"drift {e.name}: branch {branch or 'unknown'} outside the deliverable ({', '.join(branches)})"):
                 self.deviations += 1
         for branch in branches:
@@ -1079,10 +1099,11 @@ class Watch:
                 self.once(("error", e.name), f"watchdog error: InputUnavailable: job inputs unavailable for {e.name} (tick {self.tick}; the loop continues)")
                 continue
             if e.kind == "no-copy":
-                self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
+                if not self.silent(e.name):
+                    self.once(("no-copy", e.name), f"no record copy {e.name}: cannot judge (no record.json in the job directory)")
                 continue
             scan_ok = True
-            needs_scan = (
+            needs_scan = not self.silent(e.name) and (
                 e.kind != "closed"
                 or self.closed_scanned.get(e.name) != e.fingerprint
             )
