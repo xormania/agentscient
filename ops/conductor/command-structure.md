@@ -19,23 +19,34 @@ given:
 - "you support them, i support you"
 - "all sessions talk to you - not me"
 - "make sure this structure holds between sessions - i'll leave it to you"
-- "every session reports to me by message, never to its terminal's
-  user, and never stops to wait for the owner; a denied command is
-  sent to me as text and the rest of the work continues" (the Lead's
-  standing rule for its sessions, from the owner's word)
-- "no session runs dispatch.sh itself; every dispatch goes through
-  the Dispatcher"
 - "you need an XO"; "the key is to figure out how to keep it all moving"
 - "be proactive, keep things moving, look for delays and for problems
   in how the work moves"
 - "record the experience (hence AARs)"
 - "the work needs to actually get done - not endless excursions"
+- "hand-grant means me and you work together - and you hand write
+  the delegation - just work with ME"
+
+## The Lead's standing rules
+
+The Lead's rules for its sessions, each from the owner's words it
+came from:
+
+- "every session reports to me by message, never to its terminal's
+  user, and never stops to wait for the owner; a denied command is
+  sent to me as text and the rest of the work continues" (from the
+  owner's "all sessions talk to you - not me" and "you handle
+  subordinates - and we work together").
+- "no session runs dispatch.sh itself; every dispatch goes through
+  the Dispatcher" (from the owner's "bad" and "can't let happen
+  again - that was the brilliant idea from last session", on a
+  session dispatching for itself).
 
 ## The chain
 
 | role | store role | who, 2026-09-16 | decides alone | brings upward | never |
 |---|---|---|---|---|---|
-| Owner | none; the owner types nothing into the levers | the terminal user | the mission, the tools, the hand grant by word ("hand grant ok'd", "get it done"), the register's ratification, the release merge into master | — | runs a lever |
+| Owner | none; the owner types nothing into the levers | the terminal user | the mission, the tools, the hand grant, which is the owner's word ("hand grant ok'd", "get it done") plus the Lead's hand-written delegation, no lever, the register's ratification, the release merge into master | — | runs a lever |
 | Lead | `lead` (PT-2) | agentscient-11 | what is built and in what order; assignments (A-n) drafted and accepted from the brief; every flip to ready and every merge into dev (#243 merged at fecdd37c); rulings on the rules the gates enforce; role grants and revocations in the store; deadlines | to the owner: decisions that need the owner's hand (a forced push, a prune, a release), and the day's report | lets a session below it go to the owner |
 | XO, the Coordinator and Chief of Staff | `coordinator` (PT-4), granted by the Lead | agentscient-0d | the board; sequencing and deadlines between sessions; chasing; reassigning work between idle sessions; forward merges and conflict resolution by the rules given; a finding rated p3 becomes a ledger row; any question a contract or the code answers; a dead session's worktree (pushed as it stood, the unfinished diff finished by the taker crediting the author) | to the Lead: a flip or merge, new surface on a merged package, a role change in the store, any rule the gates enforce, anything needing the owner's hand, any choice between two outcomes; one line each, recommendation first | runs reviews or audits; flips or merges; edits another session's branch; writes the work it coordinates |
 | Dispatcher | `dispatcher` (PT-3) | agentscient-c8 | the launch shape; the record id back to the requester and the XO at launch, the refusal verbatim otherwise | to the XO: a refusal it cannot answer, a run that dies | runs a dispatch for itself outside a request; lets any other session run `dispatch.sh` |
