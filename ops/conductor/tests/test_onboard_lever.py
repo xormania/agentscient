@@ -937,6 +937,56 @@ class TheLockLine(_OnboardFixture):
         self.assertIn("tooling", line)
         self.assertEqual(proc.exit, 1, self.combined(proc))
 
+    def plant_slow_lock_lever(self, seconds: float) -> None:
+        """A deliverable.py that answers, but later than the first bound."""
+        fake = self.world.tools.plant(
+            "deliverable-slow", stdout=LOCK_STDOUT, exit=0, delay=seconds,
+        )
+        for folder in (self.staged.parent,
+                       self.repo / "ops" / "conductor" / "tools"):
+            self._plant_bytes(folder / "deliverable.py", fake.read_bytes())
+
+    def test_a_lock_read_that_times_out_is_retried_once_with_a_longer_bound(self):
+        """Origin LD-48: the brief printed the lock line unavailable after a
+        5s bound expired under five concurrent sessions, while
+        deliverable.py show answered on a direct retry a moment later.
+        Contention on the store read as an absent lock. The read is retried
+        once, with a longer bound, before anything is reported."""
+        self.ready()
+        self.plant_lock()
+        self.plant_slow_lock_lever(1.5)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "20"})
+        # The fake logs every invocation before it sleeps, so the log
+        # separates a read that was retried from one that answered first
+        # time. Without the count this row passes at the base tree, where
+        # the bound is not overridable and 1.5s fits inside the standing 5s.
+        calls = self.world.tools.calls("deliverable-slow")
+        self.assertEqual(len(calls), 2,
+                         f"the lock read was not retried: {calls}")
+        line = self.labelled_line(proc.stdout or "", "lock")
+        self.assertIn("lane/session-a", line)
+        self.assertNotIn("UNREACHABLE", line)
+        self.assertNotIn("unavailable", line)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_lock_read_that_times_out_twice_is_unreachable_never_none(self):
+        """The other half of LD-48: when the longer retry expires too, the
+        line says UNREACHABLE and counts an absence. It never says none,
+        which is the answer for a lock that is not set, and it never says
+        unavailable, which is the answer for a lever that did report."""
+        self.ready()
+        self.plant_lock()
+        self.plant_slow_lock_lever(3)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "2"})
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "lock")
+        self.assertIn("UNREACHABLE", line)
+        self.assertIn("timed out", line)
+        self.assertNotIn("lock: none", stdout)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
 
 class MissingLaw(_OnboardFixture):
     """2. A missing law file prints ABSENT and counts it; exit 1."""
@@ -1228,14 +1278,26 @@ class ReviewPins(_OnboardFixture):
         self.assertIn("truncated at the 200 limit", out)
         self.assertEqual(proc.exit, 1, self.combined(proc))
 
-    def test_a_store_path_that_is_a_file_is_unavailable_not_absent(self):
+    def test_a_store_path_that_is_a_file_is_not_an_absent_store(self):
+        """Codex's charge is unchanged: a path that exists as a file must
+        not read as the store that is not there, which is a measured
+        nothing. Only the word moved. The pin read
+
+            self.assertIn("unavailable", line)
+
+        until fix 7 gave every line of the brief the distinction LD-48
+        put on the lock line. A path that is there and cannot be listed
+        is a read that could not look, so the line now says UNREACHABLE,
+        and `unavailable` is kept for a lever that looked and reported a
+        failure."""
         self.ready(plant_store=False)
         self._plant_bytes(self.store, b"not a directory")
         proc = self.invoke()
         out = proc.stdout or ""
         line = self.labelled_line(out, "dispatches")
-        self.assertIn("unavailable", line)
+        self.assertIn("UNREACHABLE", line)
         self.assertNotIn("nothing running", line)
+        self.assertNotIn("ABSENT", line)
         self.assertEqual(proc.exit, 1, self.combined(proc))
 
     def test_an_unreadable_aar_is_never_read_and_counts_no_absence(self):
@@ -1526,6 +1588,150 @@ class HandoffsSection(_OnboardFixture):
         self.assertIn("HANDOFF_STUB_FAIL_MARKER", line)
         self.assertEqual(self.last_line(stdout), "brief complete, 1 absence(s)")
         self.assertEqual(proc.exit, 1, self.combined(proc))
+
+class ReadsThatCouldNotLook(_OnboardFixture):
+    """Origin LD-48, the gap its repair declared: the lock line learned to
+    tell a read that timed out from a lever that reported, and the brief's
+    three other lines did not. A line that says `unavailable` after a bound
+    expired is read as an answer — `prs: 0 open` and `handoffs: ABSENT` are
+    answers a session acts on — and under five concurrent sessions the bound
+    is what expires first.
+
+    The clean neighbours for these rows live in their own classes and are
+    not repeated here: GhFailure pins a gh that ran and failed as
+    `gh unavailable`, DispatchStore pins an absent store as ABSENT, and
+    HandoffsSection pins both an absent store and a manager that reported a
+    failure. One neighbour is repeated below, the gh that failed, because
+    the prs line is the one this change rewrites most.
+
+    The store path that exists as a file is not here either: that fault
+    is Codex's finding on PR #106 and keeps its row in ReviewPins, which
+    this change rewrites in place rather than copy.
+    """
+
+    def plant_slow_gh(self, seconds: float) -> None:
+        """A gh that answers with the usual row, later than the first bound."""
+        payload = json.dumps([{"number": int(PR_NUMBER), "title": PR_TITLE}]) + "\n"
+        self.world.tools.plant("gh", stdout=payload, exit=0, delay=seconds)
+        self.assertTrue(self.gh.is_file(), "slow gh fake did not land")
+
+    def state_store(self) -> Path:
+        return self.store.parent / "state.db"
+
+    def plant_slow_handoff(self, seconds: float) -> None:
+        """A handoff.py whose brief is well formed but late."""
+        self.state_store().parent.mkdir(parents=True, exist_ok=True)
+        if not self.state_store().exists():
+            self._plant_bytes(self.state_store(), b"")
+        fake = self.world.tools.plant(
+            "handoff-slow", stdout="handoffs: open=0 taken=0 done=0\n",
+            exit=0, delay=seconds,
+        )
+        tools = self.repo / "ops" / "conductor" / "tools"
+        tools.mkdir(parents=True, exist_ok=True)
+        self._plant_bytes(tools / "handoff.py", fake.read_bytes())
+
+    def no_root(self) -> None:
+        """A permission fault is not a fault for a user who has them all."""
+        if os.geteuid() == 0:
+            self.skipTest("root reads a mode-000 path; the fault cannot be planted")
+
+    def test_a_prs_read_that_times_out_is_retried_once_with_a_longer_bound(self):
+        self.ready()
+        self.plant_slow_gh(1.5)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "20"})
+        # The fake logs each invocation before it sleeps, so the log is what
+        # separates a read that was retried from one that answered first
+        # time. Without the count this row passes at the base tree, where
+        # 1.5s fits inside the standing 5s bound.
+        calls = self.world.tools.calls("gh")
+        self.assertEqual(len(calls), 2, f"the prs read was not retried: {calls}")
+        line = self.labelled_line(proc.stdout or "", "prs")
+        self.assertIn(f"#{PR_NUMBER}", line)
+        self.assertNotIn("UNREACHABLE", line)
+        self.assertNotIn("unavailable", line)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_prs_read_that_times_out_twice_is_unreachable_never_a_count(self):
+        self.ready()
+        self.plant_slow_gh(3)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "2"})
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "prs")
+        self.assertIn("UNREACHABLE", line)
+        self.assertIn("timed out", line)
+        # `prs: 0 open` is the answer for a repository with no open PR. A
+        # read that could not look must not spell it.
+        self.assertNotIn("0 open", stdout)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_gh_that_ran_and_failed_is_unavailable_and_never_unreachable(self):
+        """The clean neighbour: gh answered, with a failure. That is a lever
+        reporting, not a read that could not look, and the line keeps the
+        wording GhFailure pins."""
+        self.ready(gh_exit=1, gh_stderr=GH_FAIL)
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "prs")
+        self.assertIn("gh unavailable:", line)
+        self.assertIn(GH_FAIL, line)
+        self.assertNotIn("UNREACHABLE", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_handoff_read_that_times_out_is_retried_once(self):
+        self.ready()
+        self.plant_slow_handoff(1.5)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "20"})
+        calls = self.world.tools.calls("handoff-slow")
+        self.assertEqual(len(calls), 2, f"the handoff read was not retried: {calls}")
+        line = self.labelled_line(proc.stdout or "", "handoffs")
+        self.assertEqual(line, "handoffs: open=0 taken=0 done=0")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_handoff_read_that_times_out_twice_is_unreachable_never_absent(self):
+        self.ready()
+        self.plant_slow_handoff(3)
+        proc = self.invoke(extra_env={"ONBOARD_TIMEOUT": "1",
+                                      "ONBOARD_RETRY_TIMEOUT": "2"})
+        stdout = proc.stdout or ""
+        line = self.labelled_line(stdout, "handoffs")
+        self.assertIn("UNREACHABLE", line)
+        self.assertIn("timed out", line)
+        # ABSENT is the answer for a host with no store. The store is
+        # planted here, so that word would be a false reading.
+        self.assertNotIn("ABSENT", stdout)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_dispatch_store_that_cannot_be_listed_is_unreachable(self):
+        self.no_root()
+        self.ready()
+        self.addCleanup(self.store.chmod, 0o755)
+        self.store.chmod(0o000)
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "dispatches")
+        self.assertIn("UNREACHABLE", line)
+        # running=none is the answer for a store that was read and held no
+        # live record. A store that could not be listed has no such answer.
+        self.assertNotIn("running=none", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
+    def test_a_dispatch_exit_file_that_cannot_be_read_is_unreachable(self):
+        self.no_root()
+        self.ready()
+        exit_file = self.store / CLOSED_NEW / "exit"
+        self.assertTrue(exit_file.is_file(), "INVALID: closed record has no exit")
+        self.addCleanup(exit_file.chmod, 0o644)
+        exit_file.chmod(0o000)
+        proc = self.invoke()
+        line = self.labelled_line(proc.stdout or "", "dispatches")
+        self.assertIn("UNREACHABLE", line)
+        # ABSENT is what the line says for a closed record whose exit file
+        # holds nothing; an unreadable one is a different fact.
+        self.assertNotIn("exit=ABSENT", line)
+        self.assertEqual(proc.exit, 1, self.combined(proc))
+
 
 if __name__ == "__main__":
     unittest.main()

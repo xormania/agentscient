@@ -226,7 +226,13 @@ class GrokUsageReader(unittest.TestCase):
         return session
 
     def rows(self):
-        return list(self.module.grok_sessions(self.grok, REPO))
+        # The readers take a Placement, not a path: a worktree of the
+        # repository is under none of its paths and only its shared .git
+        # places it (LD-56). REPO here is a path no checkout sits at, so
+        # the placement answers on the path test alone, which is what
+        # these rows have always measured.
+        return list(self.module.grok_sessions(
+            self.grok, self.module.Placement(REPO)))
 
     def run_usage(self, *args):
         return run(
