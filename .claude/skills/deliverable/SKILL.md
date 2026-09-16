@@ -56,31 +56,36 @@ is what a session does so the refusal never fires.
    ```
 
    Several branches may be named for parallel work; unnamed work
-   refuses. `show` reads it.
+   refuses. `show` prints the lock without running measures; `show
+   <branch>` reads one.
 
    **The target** (owner, 2026-09-15, on a session that reported a
    plan's slices all done with 210 of 226 test modules still off the
    kit: "whatever it says - is the problem we to solve - right fucking
    now"): when the owner's order is a measurable state of the tree,
-   the lock carries it as a measure command and the text its output
-   must carry, on the same `add` or `set`:
+   the lock carries it as a measure argv (a JSON list) and the text
+   its output must carry, on the same `add` or `set`:
 
    ```sh
    python3 ops/conductor/tools/deliverable.py add <branch> --why '<the words>' \
-       --measure '<command that prints the reading>' --until '<the text the reading must carry>'
+       --measure '["python3", "-c", "..."]' --until '<the text the reading must carry>'
    ```
 
-   `show` runs the measure and prints `met` or `short` beside the
-   target every time the lock is read; a measure that cannot run reads
-   `unreachable`, never met. A plan's slices are how the target is
-   reached, never the target: a plan that names a later item still
-   leaves the target short.
+   A string on `--measure` refuses `arguments`, naming the JSON list
+   shape (`["python3", "-c", "..."]` or `["sh", "-c", "..."]`). Bare
+   `show` prints the lock and each target as `reading not run; show
+   <branch> reads it`. `show <branch>` runs that one measure and
+   prints `met` or `short`; a measure that cannot run reads
+   `unreachable`, never met. A target already stored as a string is
+   `legacy-string`. A plan's slices are how the target is reached,
+   never the target: a plan that names a later item still leaves the
+   target short.
 
    **Shown before the first command** (owner, 2026-09-15: the target is
    only as good as the measure the session writes from the words; row
    P-DONEGATE-20260915-shown-line): before any work, the session says
    one line to the owner, with the until text and the live reading from
-   `show` in it, in this shape:
+   `show <branch>` in it, in this shape:
 
        I will count this done when <until>; it reads <reading> now.
 

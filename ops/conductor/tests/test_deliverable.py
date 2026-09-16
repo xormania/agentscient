@@ -17,7 +17,7 @@ LEVER = ROOT / "ops" / "conductor" / "tools" / "deliverable.py"
 OWNER = "Owner <owner@example.test>"
 
 
-class TheLockLever(unittest.TestCase):
+class _LockFixture(unittest.TestCase):
     def setUp(self):
         self.world = World(prefix="deliverable-")
         self.addCleanup(self.world.close)
@@ -28,20 +28,30 @@ class TheLockLever(unittest.TestCase):
         self.conf = conf
         self.lock = self.world.xdg_state / "testlane" / "deliverable.json"
 
-    def _env(self, identity=True, agent=OWNER):
-        extra = {"LANE_CONF": str(self.conf)}
+    def _env(self, identity=True, agent=OWNER, extra=None):
+        payload = {"LANE_CONF": str(self.conf), **(extra or {})}
         if identity:
-            extra["WF_AGENT"] = agent
-        return self.world.env(extra=extra)
+            payload["WF_AGENT"] = agent
+        return self.world.env(extra=payload)
 
-    def run_lever(self, *args, identity=True, agent=OWNER):
+    def run_lever(self, *args, identity=True, agent=OWNER, extra=None):
         return run(
             [sys.executable, str(LEVER), *args],
             cwd=self.world.cwd,
-            env=self._env(identity=identity, agent=agent),
+            env=self._env(identity=identity, agent=agent, extra=extra),
             timeout=60,
         )
 
+    def measure_tool(self, text: str, *, delay: float = 0.0) -> str:
+        """A measure argv as JSON: prints ``text`` and exits 0."""
+        self._measures += 1
+        path = self.world.tools.plant(
+            f"measure-{self._measures}", stdout=text, exit=0, delay=delay,
+        )
+        return json.dumps([sys.executable, str(path)])
+
+
+class TheLockLever(_LockFixture):
     def test_set_writes_the_lock_and_show_reads_it(self):
         proc = self.run_lever("set", "lane/a", "lane/b", "--why", "the slices")
         self.assertEqual(proc.exit, 0, proc.stderr)
@@ -142,12 +152,6 @@ class TheLockLever(unittest.TestCase):
                 before = self.lock.read_text()
         self.assertEqual(json.loads(self.lock.read_text())["branches"], ["lane/b"])
 
-    def measure_tool(self, text: str) -> str:
-        """A measure command: prints ``text`` and exits 0."""
-        self._measures += 1
-        path = self.world.tools.plant(f"measure-{self._measures}", stdout=text, exit=0)
-        return f"{sys.executable} {path}"
-
     def test_a_target_is_stored_and_show_prints_the_live_reading_beside_it(self):
         """Owner, 2026-09-15, on a session that reported a plan's slices all
         done with 210 of 226 test modules still off the kit: "whatever it
@@ -163,16 +167,16 @@ class TheLockLever(unittest.TestCase):
         self.assertEqual(proc.exit, 0, proc.stderr)
         data = json.loads(self.lock.read_text())
         stored = data["targets"]["lane/x"]
-        self.assertEqual(stored["measure"], measure)
+        self.assertEqual(stored["measure"], json.loads(measure))
         self.assertEqual(stored["until"], "on_kit=226/226")
-        shown = self.run_lever("show", identity=False)
+        shown = self.run_lever("show", "lane/x", identity=False)
         self.assertEqual(shown.exit, 0, shown.stderr)
         self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=16/226; short", shown.stdout)
         met = self.measure_tool("on_kit=226/226 at abc1234\n")
         proc = self.run_lever("set", "lane/x", "--why", "every family onto the kit",
                               "--measure", met, "--until", "on_kit=226/226")
         self.assertEqual(proc.exit, 0, proc.stderr)
-        shown = self.run_lever("show", identity=False)
+        shown = self.run_lever("show", "lane/x", identity=False)
         self.assertIn("target lane/x: until on_kit=226/226; reading on_kit=226/226 at abc1234; met", shown.stdout)
         # This line once read `assertNotIn("lane/x", ...), "set replaces"`.
         # T-71 retired that pin: set re-targets a branch the lock already
@@ -217,9 +221,10 @@ class TheLockLever(unittest.TestCase):
         self.assertRegex(absent.stderr.strip(), r"^absent: ")
 
     def test_a_measure_that_cannot_run_is_unreachable_never_met(self):
-        self.run_lever("add", "lane/x", "--why", "w", "--measure", f"{sys.executable} {self.world.tmp}/missing.py",
+        missing = json.dumps([sys.executable, str(self.world.tmp / "missing.py")])
+        self.run_lever("add", "lane/x", "--why", "w", "--measure", missing,
                        "--until", "on_kit=226/226")
-        shown = self.run_lever("show", identity=False)
+        shown = self.run_lever("show", "lane/x", identity=False)
         self.assertEqual(shown.exit, 0, shown.stderr)
         self.assertIn("target lane/x: until on_kit=226/226; reading unreachable", shown.stdout)
         proc = self.run_lever("done", "lane/x")
@@ -288,7 +293,7 @@ class TheLockLever(unittest.TestCase):
         self.assertEqual(data["targets"]["lane/session-a"]["until"], "a=2")
         self.assertEqual(data["targets"]["lane/session-b"]["until"], "b=1",
                          "set re-targeted another session's branch")
-        self.assertEqual(data["targets"]["lane/session-b"]["measure"], second)
+        self.assertEqual(data["targets"]["lane/session-b"]["measure"], json.loads(second))
 
         stranger = self.run_lever("set", "lane/session-z", "--why", "z")
         self.assertEqual(stranger.exit, 2)
@@ -326,9 +331,118 @@ class TheLockLever(unittest.TestCase):
                              r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
         self.assertEqual(data["by"], OWNER, "add overwrote the lock-level by")
 
-        shown = self.run_lever("show", identity=False)
+        shown = self.run_lever("show", "lane/session-b", identity=False)
         self.assertIn("target lane/session-b: until b=1", shown.stdout)
         self.assertIn(f"(by {other})", shown.stdout)
+
+
+class MeasureAsArgv(_LockFixture):
+    """S3: --measure is a JSON list run as argv; a string refuses;
+    a stored string reads as legacy-string; bare show runs no measure.
+
+    Origin: issue 3 of the 2026-09-16 issues report; onboard's LD-48 retry.
+    Planted faults: ops/conductor/tests/deliverable_faults.py.
+    """
+
+    def test_measure_is_argv(self):
+        """id: measure-is-argv origin: issue 3"""
+        self.world.require("sh")
+        planted = "planted-x-value"
+        measure = json.dumps(["sh", "-c", 'printf "%s" "$X"'])
+        proc = self.run_lever(
+            "add", "lane/x", "--why", "w",
+            "--measure", measure, "--until", planted,
+            extra={"X": planted},
+        )
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        first = self.run_lever("show", "lane/x", identity=False, extra={"X": planted})
+        second = self.run_lever("show", "lane/x", identity=False, extra={"X": planted})
+        self.assertEqual(first.exit, 0, first.stderr)
+        self.assertEqual(second.exit, 0, second.stderr)
+        self.assertEqual(first.stdout, second.stdout)
+        line = first.stdout.strip()
+        self.assertIn(planted, line)
+        self.assertIn("met", line)
+        self.assertNotIn("legacy-string", line)
+        self.assertEqual(json.loads(self.lock.read_text())["targets"]["lane/x"]["measure"],
+                         json.loads(measure))
+
+    def test_string_refuses(self):
+        """id: string-refuses origin: issue 3"""
+        proc = self.run_lever(
+            "add", "lane/x", "--why", "w",
+            "--measure", 'sh -c "echo hi"', "--until", "hi",
+        )
+        self.assertEqual(proc.exit, 2, proc.stdout)
+        self.assertEqual(proc.stdout, "")
+        self.assertEqual(len(proc.stderr.strip().splitlines()), 1)
+        refusal = proc.refusal()
+        self.assertEqual(refusal.cls, "arguments")
+        self.assertIn("JSON", proc.stderr)
+        self.assertIn("list", proc.stderr)
+
+    def test_legacy_string_reads(self):
+        """id: legacy-string-reads origin: issue 3"""
+        path = self.world.tools.plant("legacy-measure", stdout="hello from legacy\n", exit=0)
+        data = {
+            "branches": ["lane/x"],
+            "why": "legacy",
+            "targets": {
+                "lane/x": {
+                    "measure": f"{sys.executable} {path}",
+                    "until": "hello from legacy",
+                }
+            },
+        }
+        self.world.plant_text(self.lock, json.dumps(data) + "\n")
+        shown = self.run_lever("show", "lane/x", identity=False)
+        self.assertEqual(shown.exit, 0, shown.stderr)
+        self.assertIn("hello from legacy", shown.stdout)
+        self.assertIn("legacy-string", shown.stdout)
+        self.assertIn("met", shown.stdout)
+        done = self.run_lever("done", "lane/x")
+        self.assertEqual(done.exit, 0, done.stderr)
+        self.assertIn("hello from legacy", done.stdout)
+
+    def test_show_runs_nothing(self):
+        """id: show-runs-nothing origin: issue 3"""
+        measure = self.measure_tool("zzz\n", delay=20)
+        proc = self.run_lever("add", "lane/x", "--why", "w",
+                              "--measure", measure, "--until", "never")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        shown = self.run_lever("show", identity=False)
+        self.assertEqual(shown.exit, 0, shown.stderr)
+        self.assertLess(shown.duration, 2, shown.stderr)
+        self.assertIn("reading not run", shown.stdout)
+        self.assertIn("show lane/x reads it", shown.stdout)
+
+    def test_show_branch_reads(self):
+        """id: show-branch-reads origin: issue 3"""
+        sleepy = self.measure_tool("zzz\n", delay=20)
+        quick = self.measure_tool("y-reading\n")
+        self.run_lever("add", "lane/x", "--why", "w",
+                       "--measure", sleepy, "--until", "never")
+        self.run_lever("add", "lane/y", "--why", "w",
+                       "--measure", quick, "--until", "y-reading")
+        shown = self.run_lever("show", "lane/y", identity=False)
+        self.assertEqual(shown.exit, 0, shown.stderr)
+        self.assertLess(shown.duration, 2, shown.stderr)
+        self.assertIn("y-reading", shown.stdout)
+        self.assertIn("met", shown.stdout)
+        self.assertNotIn("reading not run", shown.stdout)
+
+    def test_done_runs_one(self):
+        """id: done-runs-one origin: issue 3"""
+        sleepy = self.measure_tool("zzz\n", delay=20)
+        quick = self.measure_tool("y-reading\n")
+        self.run_lever("add", "lane/x", "--why", "w",
+                       "--measure", sleepy, "--until", "never")
+        self.run_lever("add", "lane/y", "--why", "w",
+                       "--measure", quick, "--until", "y-reading")
+        proc = self.run_lever("done", "lane/y")
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertLess(proc.duration, 2, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "done lane/y: y-reading")
 
 
 if __name__ == "__main__":

@@ -205,9 +205,10 @@ def prs_line(root: Path) -> tuple[str, bool]:
 
 def lock_lines(root: Path) -> tuple[list[str], bool]:
     """The deliverable lock as deliverable.py show prints it: the branches
-    and the owner's words on one line, then every target with its live
-    reading (owner, 2026-09-15: a brief that never printed the lock let a
-    plan's paraphrase of the order stand in for the order)."""
+    and the owner's words on one line, then every target as reading not
+    run (show BRANCH reads one). Owner, 2026-09-15: a brief that never
+    printed the lock let a plan's paraphrase of the order stand in for
+    the order."""
     state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
     lock = state_home / lane_name() / "deliverable.json"
     if not lock.is_file():

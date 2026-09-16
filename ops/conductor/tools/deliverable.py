@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """The lane's deliverable lock.
 
-    deliverable.py set BRANCH... --why TEXT [--measure CMD --until TEXT]
+    deliverable.py set BRANCH... --why TEXT [--measure JSON --until TEXT]
                                                  name the branches work may aim at, and the target
-    deliverable.py add BRANCH... --why TEXT [--measure CMD --until TEXT]
+    deliverable.py add BRANCH... --why TEXT [--measure JSON --until TEXT]
                                                  name more beside the ones named (a second session)
-    deliverable.py show                          print the lock, or "no lock"; each target with its
-                                                 live reading and met or short
+    deliverable.py show                          print the lock, or "no lock"; each target as
+                                                 reading not run; show BRANCH reads one
+    deliverable.py show BRANCH                   run that branch's measure: the target line with
+                                                 its reading and met or short
     deliverable.py done BRANCH                   run the target's measure: print the reading when it
                                                  carries the --until text, else refuse `target`
     deliverable.py remove BRANCH... [--unmet TEXT]
@@ -26,11 +28,12 @@ The target (owner, 2026-09-15, on a session that reported a plan's
 slices all done with 210 of 226 test modules still off the kit:
 "whatever it says - is the problem we to solve - right fucking now"):
 "done" was measured against the named work, never against the owner's
-target, and no gate had a floor. A target is a measure command and the
-text its output must carry; show prints the reading beside the target
-every time the lock is read, done is the reading and nothing else, and a
-branch is not lifted while its target is short unless the reason is
-said. A measure that cannot run reads unreachable, never met.
+target, and no gate had a floor. A target is a measure argv (a JSON list) and the
+text its output must carry; bare show prints each target as reading not
+run, show BRANCH runs that one measure, done is the reading and nothing
+else, and a branch is not lifted while its target is short unless the
+reason is said. A measure that cannot run reads unreachable, never met.
+A stored string measure is legacy-string: split as before, marked so.
 """
 
 from __future__ import annotations
@@ -91,24 +94,59 @@ def positional(args, *flags):
     return out
 
 
+MEASURE_SHAPE = (
+    '--measure as a JSON list of argv strings '
+    '(["python3", "-c", "..."] or ["sh", "-c", "..."])'
+)
+
+
+def parse_measure(raw):
+    """The argv stored for a target: a JSON list of strings, nothing else."""
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        parsed = None
+    argv_shape = isinstance(parsed, list) and parsed and all(
+        isinstance(item, str) and item for item in parsed
+    )
+    if not argv_shape:
+        refuse("arguments", MEASURE_SHAPE, repr(raw),
+               "pass the argv as a JSON list, not a shell string")
+    return parsed
+
+
 def target_of(args):
     """(measure, until) from --measure and --until, both or neither."""
     measure, until = option(args, "--measure"), option(args, "--until")
     if (measure is None) != (until is None):
-        refuse("arguments", "--measure CMD and --until TEXT together",
+        refuse("arguments", "--measure JSON-LIST and --until TEXT together",
                f"measure={measure!r} until={until!r}", "give both, or neither")
     if measure is not None and not (measure.strip() and until.strip()):
         refuse("arguments", "a non-empty --measure and --until", f"measure={measure!r} until={until!r}",
-               "name the command and the text its output must carry")
-    return (measure, until) if measure is not None else None
+               "name the argv as a JSON list and the text its output must carry")
+    if measure is None:
+        return None
+    return parse_measure(measure), until
+
+
+def measure_argv(target):
+    """(argv, legacy) for a stored measure: a list as-is, a string split."""
+    measure = target["measure"]
+    if isinstance(measure, str):
+        return shlex.split(measure), True
+    if isinstance(measure, list):
+        argv = [str(part) for part in measure]
+        return argv, False
+    return [str(measure)], False
 
 
 def reading(target):
     """(met, line) for a target: the measure's first line carrying the
     until text when met, else its first non-empty line; a measure that
     cannot run, or exits non-zero, reads unreachable and is never met."""
+    argv, _legacy = measure_argv(target)
     try:
-        proc = run(shlex.split(target["measure"]), cwd=REPO_ROOT, timeout=MEASURE_TIMEOUT)
+        proc = run(argv, cwd=REPO_ROOT, timeout=MEASURE_TIMEOUT)
     except (Refusal, ValueError) as error:
         return False, f"unreachable ({error})"
     if proc.returncode != 0:
@@ -120,11 +158,17 @@ def reading(target):
     return False, (lines[0] if lines else "no output")
 
 
-def target_line(branch, target):
-    met, line = reading(target)
+def target_line(branch, target, *, run_measure=True):
     owner = f" (by {target['by']})" if target.get("by") else ""
-    return (f"target {branch}: until {target['until']}; reading {line}; "
-            f"{'met' if met else 'short'}{owner}")
+    until = target["until"]
+    if not run_measure:
+        return (f"target {branch}: until {until}; reading not run; "
+                f"show {branch} reads it")
+    met, line = reading(target)
+    _argv, legacy = measure_argv(target)
+    mark = "legacy-string; " if legacy else ""
+    return (f"target {branch}: until {until}; reading {line}; "
+            f"{mark}{'met' if met else 'short'}{owner}")
 
 
 def lock_path():
@@ -312,7 +356,7 @@ def do_done(args):
                "deliverable.py show; done is asked of a named branch")
     target = (data.get("targets") or {}).get(branch)
     if not target:
-        refuse("target", f"a measured target on {branch} (--measure CMD --until TEXT on set or add)",
+        refuse("target", f"a measured target on {branch} (--measure JSON-LIST --until TEXT on set or add)",
                "none: the lock names the branch and no reading", "set the target, then ask again; done is a reading")
     met, line = reading(target)
     if not met:
@@ -322,20 +366,38 @@ def do_done(args):
     return 0
 
 
-def do_show(_args):
+def do_show(args):
+    branches = [a for a in args if not a.startswith("--")]
     path = lock_path()
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
         print("no lock")
         return 0
-    print(text.rstrip())
     try:
         data = json.loads(text)
     except ValueError:
+        print(text.rstrip())
         return 0
-    for branch, target in (data.get("targets") or {}).items():
-        print(target_line(branch, target))
+    named = [str(b) for b in (data.get("branches") if isinstance(data, dict) else None) or []]
+    targets = dict(data.get("targets") or {}) if isinstance(data, dict) else {}
+    if not branches:
+        print(text.rstrip())
+        for branch, target in targets.items():
+            print(target_line(branch, target, run_measure=False))
+        return 0
+    if len(branches) != 1:
+        refuse("arguments", "show or show BRANCH", " ".join(args),
+               "name one branch to read, or none to print the lock")
+    branch = branches[0]
+    if branch not in named:
+        refuse("absent", f"a branch the lock names ({', '.join(named) or 'none'})", branch,
+               "deliverable.py show; show BRANCH is asked of a named branch")
+    target = targets.get(branch)
+    if not target:
+        refuse("target", f"a measured target on {branch} (--measure JSON-LIST --until TEXT on set or add)",
+               "none: the lock names the branch and no reading", "set the target, then ask again")
+    print(target_line(branch, target, run_measure=True))
     return 0
 
 

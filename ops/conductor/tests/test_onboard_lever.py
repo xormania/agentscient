@@ -987,6 +987,39 @@ class TheLockLine(_OnboardFixture):
         self.assertNotIn("lock: none", stdout)
         self.assertEqual(proc.exit, 1, self.combined(proc))
 
+    def test_onboard_prints_lock(self):
+        """id: onboard-prints-lock origin: issue 3 / LD-48"""
+        self.ready()
+        sleepy = self.world.tools.plant(
+            "sleeping-measure", stdout="zzz\n", exit=0, delay=20,
+        )
+        lock = {
+            "branches": ["lane/session-a", "lane/sleep"],
+            "why": "onboard-prints-lock",
+            "targets": {
+                "lane/sleep": {
+                    "measure": [sys.executable, str(sleepy)],
+                    "until": "never",
+                }
+            },
+        }
+        self.world.plant_text(
+            self.store.parent / "deliverable.json", json.dumps(lock) + "\n",
+        )
+        real = REPO / "ops" / "conductor" / "tools"
+        dest = self.repo / "ops" / "conductor" / "tools"
+        for name in ("deliverable.py", "instrument.py", "laneconf.py"):
+            self._plant_bytes(dest / name, (real / name).read_bytes())
+        proc = self.invoke()
+        stdout = proc.stdout or ""
+        self.assertLess(proc.duration, 5, self.combined(proc))
+        line = self.labelled_line(stdout, "lock")
+        self.assertIn("lane/session-a", line)
+        self.assertIn("lane/sleep", line)
+        self.assertNotIn("UNREACHABLE", stdout)
+        self.assertIn("reading not run", stdout)
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
 
 class MissingLaw(_OnboardFixture):
     """2. A missing law file prints ABSENT and counts it; exit 1."""
