@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
 import sqlite3
 import sys
 
@@ -72,6 +73,51 @@ ROLE = machine.Machine(
     ),
     ttl_s=12 * 3600,
 )
+
+
+SESSION_ID = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
+
+
+def _a_session_id(value):
+    """The value, when it is a session id and nothing else.
+
+    The `dispatcher` boundary row reads `holder_note` and compares it with
+    the id the harness names, so a note that is not that id names no
+    Dispatcher. It is also echoed by `show` and carried into the engine's
+    log, and a column that accepts lines and spaces is a column doing a
+    second job it never declared
+    (20260916T122524Z-review-codex-05a9f5#10). The refusal does not echo
+    what it refused: the value may be the secret someone pasted."""
+    if SESSION_ID.match(value):
+        return value
+    shape = f"{len(value)} characters, not that shape"
+    return refuse("session",
+                  "a session id: a letter or digit, then letters, digits, dot, "
+                  "dash or underscore, at most 128 in all",
+                  shape,
+                  "name the session the harness gave, as `dispatcher.py show` prints it")
+
+
+def _the_holder(row, verb):
+    """Refuse unless this session is the one holding the role.
+
+    The machine's `holder-or-lapsed` actor class compares the agent string,
+    and every session of one model carries the same agent string, so a peer
+    could take a live role from its holder
+    (20260916T122524Z-review-codex-05a9f5#2). The seam this role is
+    identified by is the session, so the check is on the session. A lapsed
+    role is still anyone's to take: that is what lapsing is for."""
+    if machine.lapsed(row):
+        return
+    held = (row["holder_note"] or "").strip()
+    mine = session("").strip()
+    if not mine:
+        refuse("session", f"the Dispatcher session {held}",
+               "the harness named no session for this one",
+               f"run {verb} from {held}, or wait for the ttl to lapse")
+    if mine != held:
+        refuse("session", f"the Dispatcher session {held}", mine,
+               f"run {verb} from {held}, or wait for the ttl to lapse")
 
 
 def usage() -> str:
@@ -155,12 +201,15 @@ def _set(rest) -> int:
         refuse("session", "the session to name as Dispatcher",
                "the harness named no session and none was given",
                "run it from the Dispatcher session, or name the session id")
+    _a_session_id(named)
     agent = identity()
     conn = machine.connect(create=True)
     machine.declare(conn, ROLE)
     sid = _subject(conn, create=True)
     row = machine.subject(conn, ROLE, sid)
     move = "hand" if row["place"] == "named" else "set"
+    if move == "hand":
+        _the_holder(row, "set")
     machine.move(conn, ROLE, sid, move, agent, evidence=options["why"],
                  note=named, ttl_s=_ttl_seconds(options))
     _settle(conn)
@@ -176,6 +225,9 @@ def _clear(rest) -> int:
     if sid is None:
         refuse("place", "a Dispatcher named", "none",
                "nothing to clear; dispatcher.py set names one")
+    row = machine.subject(conn, ROLE, sid)
+    if row["place"] == "named":
+        _the_holder(row, "clear")
     machine.move(conn, ROLE, sid, "clear", agent, evidence=options["why"])
     _settle(conn)
     print("no Dispatcher named")
