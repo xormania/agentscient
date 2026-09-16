@@ -58,6 +58,7 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -136,7 +137,7 @@ READS = tuple(name for name, _verb, mutates in CATALOGUE if not mutates)
 # believes; coord_observe joined them at X#2.
 GENERATION_TOOLS = (
     "coord_claim", "coord_release", "coord_submit", "coord_verify",
-    "coord_return", "coord_accept", "coord_observe",
+    "coord_return", "coord_accept", "coord_observe", "coord_offer",
 )
 # coord_observe also carries the core's explicit stale flag (05b8aebe).
 STALE_TOOL = "coord_observe"
@@ -964,14 +965,30 @@ class CoordinationMcpRealCore(unittest.TestCase):
                        "every tool runs against the core", "--revision",
                        FIXTURE_REVISION, session=LEAD_SESSION).stdout
         assignment = out.split()[-1]
-        self.cli("offer", assignment, "--to", to, session=LEAD_SESSION)
+        self.cli("offer", assignment, "--to", to, "--generation", "1",
+                 session=LEAD_SESSION)
         return assignment
+
+    def generation(self, assignment) -> str:
+        """The assignment's current generation, read from the core.
+
+        Every move bumps it — `offer` takes a new assignment from 1 to 2 —
+        so a fixture that named a number would be a stale holder the first
+        time the core added a transition. It asks instead.
+        """
+        shown = self.cli("show", assignment, session=LEAD_SESSION).stdout
+        found = re.search(r"generation (\d+)", shown)
+        if not found:
+            raise AssertionError(
+                f"the core's show no longer prints a generation: {shown!r}")
+        return found.group(1)
 
     def held(self):
         self.lock()
         assignment = self.offered()
         self.cli("claim", assignment, "--branch", FIXTURE_BRANCH,
-                 "--generation", "1", session=WORKER_SESSION)
+                 "--generation", self.generation(assignment),
+                 session=WORKER_SESSION)
         return assignment
 
     # -- the rewritten cases ----------------------------------------------
@@ -1045,7 +1062,8 @@ class CoordinationMcpRealCore(unittest.TestCase):
             stale)
         good = self.mcp("call", "coord_submit", json.dumps(
             {"assignment": assignment, "evidence": FIXTURE_REVISION,
-             "revision": FIXTURE_REVISION, "generation": 1}),
+             "revision": FIXTURE_REVISION,
+             "generation": int(self.generation(assignment))}),
             session=WORKER_SESSION)
         self.assertEqual(good.exit, 0, good.stderr)
 

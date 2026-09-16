@@ -141,8 +141,11 @@ CATALOGUE = (
          ("title", "outcome"),
          "Create an assignment. It names no recipient: offer does that."),
     Tool("coord_offer", "offer", True,
-         {"assignment": _text(), "to": _text()}, ("assignment", "to"),
-         "Name the recipient of a drafted assignment."),
+         {"assignment": _text(), "to": _text(), "generation": _INT},
+         ("assignment", "to", "generation"),
+         "Name the recipient of a drafted assignment. It carries the "
+         "generation like every other assignment write: the core gave "
+         "`offer` one at 73e47041.", strings=("generation",)),
     Tool("coord_claim", "claim", True,
          {"assignment": _text(), "branch": _text(), "generation": _INT,
           "ttl": _INT},
