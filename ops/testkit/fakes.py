@@ -64,9 +64,12 @@ class Tools:
             body = script
         return self.plant_executable(self.world.bin / name, body)
 
-    def wrap(self, name: str) -> Path:
-        """Plant a wrapper that logs the argv and execs the real tool."""
-        host_path = os.environ.get("PATH", "/usr/bin:/bin")
+    def wrap(self, name: str, *, host_path: str | None = None) -> Path:
+        """Plant a wrapper that logs the argv and execs the real tool.
+        ``host_path`` is the PATH the real tool is resolved on; a world
+        passes the one it read at construction, since its own PATH no
+        longer carries the host."""
+        host_path = host_path or os.environ.get("PATH", "/usr/bin:/bin")
         real = shutil.which(name, path=host_path)
         if real is None:
             raise PlantFailed(f"INVALID: {name} is not on the host PATH; nothing to wrap")

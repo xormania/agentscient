@@ -2,8 +2,9 @@
 roots, TMPDIR, the working directory, a hermetic environment, planted
 files and tools, owned child processes, and before/after snapshots of
 declared paths. Hermetic by default: nothing from the host reaches a
-subject unless it is named in ``ambient``. Owned children are reaped
-at close. A plant proves it landed.
+subject unless it is named — values in ``ambient``, tools in
+``ambient_tools``. A subject's PATH is the world's own bin and nothing
+else. Owned children are reaped at close. A plant proves it landed.
 """
 
 from __future__ import annotations
@@ -24,8 +25,9 @@ EMAIL = "test@example.invalid"
 
 # The host values a world never carries unless ``ambient`` names them:
 # every GIT_* value, the XDG roots, HOME, TMPDIR and the escape hatches a
-# hook or a tool reads. PATH is the one host value every world inherits,
-# behind its own bin directory, so planted tools shadow real ones.
+# hook or a tool reads. PATH is never inherited: a subject's PATH is the
+# world's own bin, so a tool the case neither planted nor named in
+# ``ambient_tools`` is not there to be found (LD-72).
 _ALWAYS_OWN = ("HOME", "TMPDIR", "XDG_STATE_HOME", "XDG_CONFIG_HOME", "XDG_CACHE_HOME")
 
 
@@ -34,7 +36,7 @@ class PlantFailed(AssertionError):
 
 
 class World:
-    def __init__(self, *, ambient=(), prefix="world-", keep=False):
+    def __init__(self, *, ambient=(), ambient_tools=(), prefix="world-", keep=False):
         self.root = Path(tempfile.mkdtemp(prefix=prefix))
         self.home = self.root / "home"
         self.xdg_state = self.root / "xdg" / "state"
@@ -48,13 +50,24 @@ class World:
             path.mkdir(parents=True)
         self.ambient = tuple(ambient)
         for name in self.ambient:
-            if name in _ALWAYS_OWN or name == "PATH":
+            if name == "PATH":
+                raise PlantFailed(
+                    "INVALID: PATH is the world's own and cannot be ambient; "
+                    "name the tools the case needs in ambient_tools instead"
+                )
+            if name in _ALWAYS_OWN:
                 raise PlantFailed(f"INVALID: {name} is the world's own and cannot be ambient")
         self.keep = keep
         self._children: list[subprocess.Popen] = []
         self._saved_environ: dict[str, str] | None = None
         self._tools = None
         self.closed = False
+        # Read once, at construction: a world entered later has replaced
+        # os.environ with its own, and the host's PATH is gone by then.
+        self._host_path = os.environ.get("PATH", "/usr/bin:/bin")
+        self.ambient_tools = tuple(ambient_tools)
+        for name in self.ambient_tools:
+            self.ambient_tool(name)
 
     # -- the environment -------------------------------------------------
 
@@ -126,6 +139,16 @@ class World:
             dest.write_bytes(b"import sys\nsys.exit(0)\n")
         return dest
 
+    def ambient_tool(self, name: str) -> Path:
+        """A host tool this world carries, named: resolved on the host by
+        absolute path and placed on the world's bin as a wrapper that logs
+        every call. A name the case already planted is left where it is, so
+        a plant wins over an ambient tool of the same name."""
+        placed = self.bin / name
+        if placed.exists():
+            return placed
+        return self.tools.wrap(name, host_path=self._host_path)
+
     def require(self, tool: str) -> str:
         """An ambient tool the case needs; its absence is INVALID, never a verdict."""
         return require(tool)
@@ -148,7 +171,11 @@ class World:
     # -- git -------------------------------------------------------------
 
     def git(self, *args: str, cwd=None, check: bool = True, timeout: float = 60):
+        """Git in this world. A world that offers git must carry it, so this
+        method declares git ambient for itself: the first call places the
+        logged wrapper on the world's bin. A planted git wins over it."""
         from .command import run
+        self.ambient_tool("git")
         argv = ["git", "-c", f"user.name={USER}", "-c", f"user.email={EMAIL}",
                 "-c", "commit.gpgsign=false", *args]
         return run(argv, cwd=cwd or self.cwd, env=self.env(), timeout=timeout,
@@ -194,18 +221,17 @@ class World:
 def hermetic_env(home, *, xdg_state=None, xdg_config=None, xdg_cache=None, tmp=None, bin=None,
                  ambient=(), extra: dict[str, str] | None = None) -> dict[str, str]:
     """The hermetic environment for ``home``: the roots (defaulting to the
-    XDG layout under ``home`` and ``home``/tmp), the host PATH behind
-    ``bin`` when one is given, a fixed git identity and clock, C locales,
-    and only the ``ambient`` names from the host. ``extra`` overrides."""
+    XDG layout under ``home`` and ``home``/tmp), a PATH of ``bin`` alone
+    and never the host's, a fixed git identity and clock, C locales, and
+    only the ``ambient`` names from the host. ``extra`` overrides."""
     home = Path(home)
-    host_path = os.environ.get("PATH", "/usr/bin:/bin")
     # TMPDIR names a directory that exists: the world's own, or a caller's
     # home/tmp when it has one; a home without one keeps the system default,
     # since a TMPDIR nobody created breaks every mktemp under it.
     if tmp is None and (home / "tmp").is_dir():
         tmp = home / "tmp"
     env = {
-        "PATH": (str(bin) + os.pathsep + host_path) if bin is not None else host_path,
+        "PATH": str(bin) if bin is not None else "",
         "HOME": str(home),
         "XDG_STATE_HOME": str(xdg_state or home / ".local" / "state"),
         "XDG_CONFIG_HOME": str(xdg_config or home / ".config"),

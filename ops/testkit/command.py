@@ -117,7 +117,15 @@ def run(argv, *, cwd, env, stdin: str | None = None, timeout: float = DEFAULT_TI
             stderr=subprocess.PIPE, text=True, start_new_session=True,
         )
     except FileNotFoundError as exc:
-        raise PlantFailed(f"INVALID: {argv[0]} is not on PATH ({exc})") from exc
+        # The world's PATH is its own bin: a tool the case neither planted
+        # nor named is absent, and saying so beats a fabricated Result for
+        # a process that never started (LD-72).
+        raise PlantFailed(
+            f"unplanted: expected {argv[0]} on the world's PATH; "
+            f"found {argv[0]} absent from {env.get('PATH', '')!r}; "
+            f'needed world.tools.plant("{argv[0]}") '
+            f'or World(ambient_tools=("{argv[0]}",))'
+        ) from exc
     try:
         out, err = child.communicate(input=stdin, timeout=timeout)
     except subprocess.TimeoutExpired as exc:
