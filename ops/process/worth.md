@@ -30,12 +30,21 @@ test-definition count at each window edge with its delta.
 `--claude-dir` has no command-line default. When omitted it is read from
 `CLAUDE_DIR` in the lane configuration; a relative value is resolved against
 the user's home directory, and a missing key refuses as `conf-key`.
+`--repo` is taken as an absolute path, resolved once when the arguments
+are parsed, so the session, dispatch and stamp readers see one path: a
+relative value, `.` from the checkout being the usual shape, is resolved
+against the working directory (measured 2026-09-15: `--repo .` printed
+`claude sessions=0` for a window in which three sessions ran; the
+absolute path found four). A Claude row is the repo's when its `cwd` is
+the root or a directory under it; a sibling directory that shares the
+prefix without the separator is another repository.
 
 Ranks sessions by total tokens and names, for each: the harness, the
 session id, messages (or runs), out, and cached tokens. Claude rows also carry
 turns after last-write-per-message-id dedup, mean context tokens over that
-same retained population, and tool-result deny refusals (both `is_error=true`
-and the deny marker are required). A retained usage row with malformed token
+same retained population, and tool-result refusals: `is_error=true` and
+either the harness's deny marker or the lane's refusal wire
+(`class: expected ...; found ...; needed ...`) in the result's text. A retained usage row with malformed token
 types, negative values, or non-finite values is an explicit gap rather than
 a partial measurement. Boolean values are not token currencies. An unreadable
 candidate found under Claude's slash-and-dot encoded repository directory is
@@ -89,7 +98,14 @@ agent decides what to change; the tool only points.
    Claude row carries `turns` from the retained, id-bearing assistant-usage
    population after last-write-per-message-id dedup, mean `avg_context`
    (input plus both caches) over that population, and tool-result deny
-   `refusals`. A refusal requires `is_error=true` as well as the deny marker.
+   `refusals`. A refusal requires `is_error=true` and, in the result's
+   text, either the deny marker (`hook returned a deny decision`) or the
+   refusal wire as a line: an optional `[source]` tag, the class token,
+   then `expected`, `found` and `needed`, anchored at a line start. A
+   hook's refusal reaches the transcript without the marker (measured
+   2026-09-15 on session 44f9de58, 30 wire refusals, none marked). The
+   wire in a result that is not an error is not a refusal, and neither is
+   a wire line quoted inside an assertion message of an errored result.
    Malformed retained usage values, including negative and non-finite values,
    produce an explicit unrecorded gap. Zero and valid nonnegative numeric
    values retain their existing meaning. An

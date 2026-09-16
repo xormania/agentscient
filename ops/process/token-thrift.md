@@ -22,6 +22,17 @@ A turn that moved no file, landed no commit, and decided nothing was
 either a read that should have been narrower or a wait that should
 have been a notification.
 
+Worker briefs carry the same rule. The author-tests brief in
+`ops/devlane/task/jobs.json` names its spend discipline and a target of
+under 3M cached tokens per run; measured 2026-09-15 at dev 564ab769 over
+[2026-09-14T23:00Z, 2026-09-16T00:25Z), the five heaviest author-tests
+runs re-read 8.5M to 12.6M cached tokens each for 30k to 66k of output
+(records 20260915T053518Z-tests-codex-34dc59, 20260915T053520Z-tests-grok-c14b8c,
+20260915T045242Z-tests-codex-0353f2, 20260915T053525Z-tests-codex-f66d80,
+20260915T053516Z-tests-codex-b41d6c). A turn cap does not reach Codex,
+which offers no such flag; the brief is the lever for both harnesses,
+and the next window's `worth.py waste` is its test.
+
 Review cadence: run `worth.py waste` over the last day before closing
 a lane; anything ranked in the top 5 twice in a row gets a class
 assigned from this table and a countermeasure applied, and the next
