@@ -1,5 +1,6 @@
 Make this exit 0 from the repository root:
-  python3 -m unittest discover -s ops/devlane/workflow/tests -t .
+  python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_term_wall*.py'
+  python3 -m unittest discover -s ops/devlane/workflow/tests -p 'test_suites_ruff.py'
 Move that family onto World(host_path=False), planting a fake for every
 tool the subject calls. 30 rows: test_term_wall 15,
 test_term_wall_archives 13, test_suites_ruff 2.
