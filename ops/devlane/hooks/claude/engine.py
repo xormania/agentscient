@@ -419,12 +419,83 @@ def p_unittest_path_form(ctx):
     return None
 
 
-DONE_WORDS = re.compile(
-    r"\b(all done|done|complete|completed|finished|landed|merged|solved|ready for review|implemented|verified|fixed)\b",
-    re.IGNORECASE)
+# The lock's own lines. `show` stamps a target's owner after met|short
+# (deliverable.py target_line), so the anchor ends at the word and allows
+# the stamp: the row demanded a line it then rejected, accepting 4 of
+# show's 21 lines and refusing the 17 that carried `(by ...)`.
 LOCK_LINES = re.compile(
-    r"^(done lane/|target: expected the measure to read|target \S+: until .*; reading .*; (?:met|short)\s*$)",
+    r"^(done lane/|target: expected the measure to read|target \S+: until .*; reading .*; (?:met|short)\b)",
     re.MULTILINE)
+
+# A completion claim, not a completion word. Measured 2026-09-16 over one
+# session's 73 replies: the word set fired 15 times and 3 were claims. A
+# predicate over words also fires on the negation of what it hunts
+# ("nothing of mine is complete") and on this row's own name, so the defect
+# could not be reported without reproducing it. The forms below are the
+# writer's own voice: a copula or auxiliary carrying the word, a first
+# person subject carrying it, or a line that is nothing else.
+CLAIM_WORDS = (r"(?:all done|done|complete|completed|finished|landed|merged"
+               r"|solved|ready for review|implemented|verified|fixed)")
+CLAIM_COPULA = (r"(?:is|are|was|were|am|be|been|being|has been|have been"
+                r"|had been|'s|\u2019s|'re|\u2019re)")
+CLAIM_FILL = r"(?:\s+(?:now|already|all|fully|finally|both|then|also|effectively))*"
+CLAIM_FIRST = r"(?:I|[Ww]e)\s*(?:'ve|\u2019ve|have|had|has)?\s*"
+CLAIM_PREDICATION = re.compile(
+    r"\b" + CLAIM_COPULA + CLAIM_FILL + r"\s+" + CLAIM_WORDS + r"\b", re.IGNORECASE)
+CLAIM_FIRSTPERSON = re.compile(r"\b" + CLAIM_FIRST + CLAIM_WORDS + r"\b")
+CLAIM_STANDALONE = re.compile(r"^(?:all\s+)?" + CLAIM_WORDS + r"[.!]*$", re.IGNORECASE)
+# A denial is not a claim, and neither is a count of none.
+CLAIM_NEGATED = re.compile(
+    r"\b(?:not|never|isn't|aren't|wasn't|can't|cannot|couldn't|won't|unable"
+    r"|no longer|nothing|none|no|zero|hardly)\b"
+    r"[^.;]{0,48}?\b" + CLAIM_WORDS + r"\b", re.IGNORECASE)
+# fixed-shape, well-verified: the word modifies, it does not predicate.
+CLAIM_HYPHEN = re.compile(
+    r"(?:\b" + CLAIM_WORDS + r"-\w)|(?:\w-" + CLAIM_WORDS + r"\b)", re.IGNORECASE)
+CLAIM_GATE_NAME = re.compile(r"\bdone[- ]gate\b", re.IGNORECASE)
+# matrix.QUOTED strips double and curly quotes; code formatting is quotation too.
+CLAIM_QUOTED = re.compile(r"\"[^\"\n]*\"|\u201c[^\u201d\n]*\u201d|`[^`\n]*`")
+CLAIM_FENCE = re.compile(r"^\s*```")
+CLAIM_EMPHASIS = re.compile(r"\*\*|__|\*|_")
+
+
+def done_claim(message):
+    """The span of the reply that claims completion, with its sentence for
+    context, or None. The span is taken from the text the predicate matched,
+    never from the raw line: the row used to match the quote-stripped line
+    and quote `line[:160]`, two different strings, so a word past character
+    160 produced a refusal carrying no trigger word and a stripped quotation
+    was shown back as the offending text. docs/wire.md: found says what was
+    found.
+
+    Declared gap: reported speech still fires. "three are genuine claims
+    that assigned work is complete" predicates the word of a complement
+    clause, and telling that from an assertion is past a regex. Measured
+    2026-09-16 over 113 replies of the session that wrote this: 5 firings,
+    3 of them real claims, 2 reported speech, against 15 firings and 3 real
+    claims for the word set it replaces. A narrower rule wants a referent
+    the lock knows, and losing a real claim is the worse error for this
+    row, so the gap is declared rather than covered."""
+    fenced = False
+    for raw in message.splitlines():
+        if CLAIM_FENCE.match(raw):
+            fenced = not fenced
+            continue
+        if fenced or raw.lstrip().startswith(">"):
+            continue
+        line = CLAIM_EMPHASIS.sub("", CLAIM_QUOTED.sub("", raw))
+        line = CLAIM_GATE_NAME.sub(" ", line)
+        line = CLAIM_HYPHEN.sub(" ", line)
+        for sentence in re.split(r"(?<=[.;!?])\s+", line):
+            sentence = sentence.strip()
+            if not sentence or CLAIM_NEGATED.search(sentence):
+                continue
+            for pattern in (CLAIM_STANDALONE, CLAIM_PREDICATION, CLAIM_FIRSTPERSON):
+                found = pattern.search(sentence)
+                if found:
+                    return sentence[:160] if len(sentence) <= 160 else (
+                        "..." + sentence[max(0, found.start() - 60):found.end() + 60] + "...")
+    return None
 NO_LOCK_LINE = re.compile(r"^no lock\s*$", re.MULTILINE)
 DONE_GATE_CAP = 3
 DONE_GATE_COUNTER = "done-gate.json"
@@ -489,14 +560,7 @@ def p_reply_claims_done(ctx):
     if LOCK_LINES.search(message):
         _done_gate_count(ctx, session, 0)
         return None
-    claim = None
-    for line in message.splitlines():
-        if line.lstrip().startswith(">"):
-            continue
-        bare = matrix.QUOTED.sub("", line)
-        if DONE_WORDS.search(bare):
-            claim = line.strip()[:160]
-            break
+    claim = done_claim(message)
     if claim is None:
         _done_gate_count(ctx, session, 0)
         return None
