@@ -1965,6 +1965,9 @@ def _launch(args):
         "caps": {"cap-out": wires.budget(role), "source": "wires.py",
                  "turns": turns, "turns_source": turns_source,
                  "turns_argv": turns_argv,
+                 # Declared is not applied, and says which it was: a
+                 # harness with no turn flag records the cap it was given
+                 # while nothing carried it.
                  "turns_applied": bool(turns_argv),
                  **({"turns_note": turns_note} if turns_note else {})},
         "overrides": overrides, "attempts": [], "result": None, "status": "launched"})
