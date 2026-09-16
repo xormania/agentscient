@@ -152,6 +152,41 @@ cost an hour of peer argument each; this one cost a minute and one
 message, and the reason is that the fault landed somewhere a mechanism
 was already looking.
 
+## The fifth instance: the row finding its own fourth defect
+
+agentscient-e3 reports, and I have not re-measured it, that
+`LOCK_LINES` anchored at column 0. All four accepted forms are rejected
+under two spaces, four spaces, a tab, a fenced block or a `>` quote. A
+session pasting a reading the way output is normally pasted was not
+seen to have pasted anything.
+
+The case that names it: the row prints
+`target: expected the measure to read ...`, lists that line as one of
+its three accepted remedies, and then refuses it when the session
+pastes it indented. e3 ran `done`, pasted its refusal in a fenced block
+exactly as instructed, and was refused for carrying no lock line. The
+remedy the row hands out did not satisfy the row.
+
+Two mechanisms in one gate were also contradicting each other. The
+model-judged layer registered beside the deterministic one publishes
+that a reading counts "inside a fenced code block, a quote or plain
+text alike". So a session complying with the published rule of one
+layer was refused by the other, with no way to satisfy both.
+
+This is the fifth instance and it has the shape of the fourth, not the
+first three. The mechanism caught it, not a peer; it cost one block
+rather than an hour of cross-session argument. What is particular about
+it is how it was found: the row refused the report of its own first
+three fixes, and that refusal was the only thing that could have
+surfaced the fourth. A defect that hides every pasted reading cannot be
+found by reading pasted readings.
+
+The count for the day is five instances of a session committing the
+fault it had just documented. Three cost an hour each and were caught
+by a peer. Two cost minutes and were caught by an instrument. That
+ratio is the whole argument for D-PATTERN-1 preferring a mechanism to a
+rule relayed by message, and the day made it without anyone arguing it.
+
 ## The gate refusing the report of its own fix
 
 e3 reports that the deterministic done-gate blocked its previous reply
