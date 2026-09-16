@@ -36,6 +36,8 @@ minutes rather than billed. Reports on cadence and on events (I-015):
 what was spent, against what, what renews when, what the next batch
 will cost at the measured rates, with the numbers beside the words.
 
+Superseded 2026-09-16 (D-MCP-1): MCP acts as well as reads.
+
 How it sits. Every vendor billing surface is an edge (contract,
 probe, mock; docs/verified-couplings.md), so no vendor's API becomes
 load-bearing and a vendor without one is a declared gap fed from the

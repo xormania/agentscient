@@ -33,7 +33,8 @@ names Symfony application projections. The latest owner scope supersedes its
 dev-tool replacement direction: this read plane has no Symfony application
 dependency or eventual prod replacement. Separate conductor/worker MCP
 entrypoints and writable conductor tools remain proposals; the read-only
-contract here stands. See the [reconciliation](reports/discovery-reconciliation-20260906.md).
+contract here stands. Superseded 2026-09-16 (D-MCP-1): MCP acts as well as
+reads. See the [reconciliation](reports/discovery-reconciliation-20260906.md).
 The precursor workflow server at commit 99334f71ae9af9fa324a1a27241e60af62f8f340
 demonstrates one query layer behind tools/resources/CLI. Reuse that pattern,
 not its retired engine or cache-rebuilding launcher. No vendor is required.
