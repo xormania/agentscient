@@ -124,7 +124,12 @@ Lead session on 2026-09-16:
 
 - The store's **first** participant is the bootstrap and may self-bind
   with any roles, because a store with nobody in it has nobody to grant
-  them.
+  them. The count that decides this and the insert that acts on it take
+  the write lock together, the way a transition does: the store is opened
+  in autocommit, so two first callers reading the same empty table
+  between them would both be the bootstrap and the chain would have two
+  roots. `bind-for` takes the same lock over its conflict check and its
+  mint.
 - Every **later** self-bind is `worker` alone; naming more refuses class
   `role`, with the grant verb as its remedy.
 - **`grant PT-n --roles R[,R]`** is how roles above `worker` are held.

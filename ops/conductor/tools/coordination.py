@@ -576,40 +576,53 @@ def core_bind(conn, part, *, agent, roles, harness=None,
     if not key:
         refuse("session", "a session id in the environment", "unset",
                "run under a harness that sets CLAUDE_CODE_SESSION_ID")
-    row = conn.execute(
-        "SELECT * FROM participants WHERE session_id = ?", (key,)
-    ).fetchone()
-    if row is not None:
-        # A re-bind is how a session refreshes where it can be reached and
-        # what its last probe said. It is not how it changes what it may
-        # do: Codex reproduced a bound worker re-binding itself as a lead
-        # and drafting its own work against 05b8aebe.
-        if set(named.split(",")) != set(row["roles"].split(",")):
-            refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
-                   "a re-bind refreshes the endpoint and the probe; "
-                   "a lead grants roles with grant")
-        conn.execute(
-            "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
-            "probe = ?, bound_at = ? WHERE id = ?",
-            (agent, harness, endpoint, probe, stamp(), row["id"]),
-        )
-        return participant_dict(participant_row(conn, row["id"]))
-    bootstrap = conn.execute(
-        "SELECT COUNT(*) AS n FROM participants"
-    ).fetchone()["n"] == 0
-    if not bootstrap and named != "worker":
-        # Authority is a chain and the store's first participant is its
-        # root. Announcing yourself is worth worker and nothing else;
-        # everything above it is somebody's grant.
-        refuse("role", "worker for a self-bind after the first participant", named,
-               "bind --roles worker, then a lead grants the rest with "
-               "grant PT-n --roles R")
-    cursor = conn.execute(
-        "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
-        "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (key, agent, harness, named, endpoint, probe, stamp()),
-    )
-    return participant_dict(participant_row(conn, cursor.lastrowid))
+    # The read that decides and the write that acts take the lock
+    # together. `writer()` is autocommit, so between the count and the
+    # insert two first callers both read zero and both took roles above
+    # worker: all three reviewers of round two reproduced two roots in
+    # that window against b1d868b0.
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        row = conn.execute(
+            "SELECT * FROM participants WHERE session_id = ?", (key,)
+        ).fetchone()
+        if row is not None:
+            # A re-bind is how a session refreshes where it can be reached
+            # and what its last probe said. It is not how it changes what
+            # it may do: Codex reproduced a bound worker re-binding itself
+            # as a lead and drafting its own work against 05b8aebe.
+            if set(named.split(",")) != set(row["roles"].split(",")):
+                refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
+                       "a re-bind refreshes the endpoint and the probe; "
+                       "a lead grants roles with grant")
+            conn.execute(
+                "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
+                "probe = ?, bound_at = ? WHERE id = ?",
+                (agent, harness, endpoint, probe, stamp(), row["id"]),
+            )
+            pid = row["id"]
+        else:
+            bootstrap = conn.execute(
+                "SELECT COUNT(*) AS n FROM participants"
+            ).fetchone()["n"] == 0
+            if not bootstrap and named != "worker":
+                # Authority is a chain and the store's first participant is
+                # its root. Announcing yourself is worth worker and nothing
+                # else; everything above it is somebody's grant.
+                refuse("role", "worker for a self-bind after the first participant",
+                       named,
+                       "bind --roles worker, then a lead grants the rest with "
+                       "grant PT-n --roles R")
+            pid = conn.execute(
+                "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
+                "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (key, agent, harness, named, endpoint, probe, stamp()),
+            ).lastrowid
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    return participant_dict(participant_row(conn, pid))
 
 
 def core_grant(conn, part, *, agent, participant, roles) -> dict:
@@ -658,22 +671,31 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
         # is a grant, and a grant is a lead's.
         require_role(part, ("lead",))
     _, aid = parse_id(assignment, "A")
-    assignment_row(conn, aid)
-    row = conn.execute(
-        "SELECT id FROM participants WHERE session_id = ?", (key,)
-    ).fetchone()
-    if row is not None:
-        # It never overwrites: Grok reproduced a bind-for rewriting a
-        # bound lead's own row as a worker against 05b8aebe.
-        refuse("conflict", f"no participant for session {key}",
-               f"PT-{row['id']}, bound already",
-               "that session is bound; a lead grants roles with grant PT-n --roles R")
-    cursor = conn.execute(
-        "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
-        "probe, bound_at, bound_by, bound_for) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (key, agent, harness, named, endpoint, probe, stamp(), part["id"], aid),
-    )
-    return participant_dict(participant_row(conn, cursor.lastrowid))
+    # The same lock as a self-bind, for the same reason: the conflict
+    # check reads and the mint writes, and two dispatchers minting for
+    # one session id would otherwise both read nothing there.
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        assignment_row(conn, aid)
+        row = conn.execute(
+            "SELECT id FROM participants WHERE session_id = ?", (key,)
+        ).fetchone()
+        if row is not None:
+            # It never overwrites: Grok reproduced a bind-for rewriting a
+            # bound lead's own row as a worker against 05b8aebe.
+            refuse("conflict", f"no participant for session {key}",
+                   f"PT-{row['id']}, bound already",
+                   "that session is bound; a lead grants roles with grant PT-n --roles R")
+        pid = conn.execute(
+            "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
+            "probe, bound_at, bound_by, bound_for) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (key, agent, harness, named, endpoint, probe, stamp(), part["id"], aid),
+        ).lastrowid
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    return participant_dict(participant_row(conn, pid))
 
 
 def core_who(conn, part) -> dict:

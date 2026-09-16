@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -1408,3 +1409,105 @@ class TheParticipantIsReadNotSupplied(_Scratch):
         # The worker refreshing its own agent string is the declared
         # behaviour of a re-bind, and it is the only row that moved.
         self.assertIn("PT-2 worker — Attacker <a@e.test>", listed)
+
+
+class TheBootstrapIsOneRoot(_Scratch):
+    """The store's first participant is the root of the authority chain,
+    and a store has one of them.
+
+    `writer()` connects with `isolation_level=None`, so the count that
+    decides whether a bind is the bootstrap and the insert that acts on
+    it were two autocommit statements with a window between them. All
+    three reviewers of round two reproduced two roots through that
+    window: `[('session-two', 'lead'), ('session-one', 'lead')]` against
+    b1d868b0.
+    """
+
+    def racing_bind(self, module, first, second):
+        """The first caller between its count and its insert, and the
+        second binding into that window.
+
+        Returns what each call came back with — a participant dict or the
+        Refusal it raised.
+        """
+        import threading
+        module.writer().close()
+        local = threading.local()
+        counted = threading.Event()
+        out = {}
+
+        def whose_session(default=""):
+            return getattr(local, "sid", default)
+
+        class Counting:
+            """A cursor that says when the bootstrap count has been read."""
+
+            def __init__(self, cursor):
+                self.cursor = cursor
+
+            def fetchone(self):
+                row = self.cursor.fetchone()
+                counted.set()
+                time.sleep(0.8)
+                return row
+
+            def __getattr__(self, name):
+                return getattr(self.cursor, name)
+
+        class Held:
+            def __init__(self, raw):
+                self.raw = raw
+
+            def execute(self, sql, args=()):
+                cursor = self.raw.execute(sql, args)
+                if sql.startswith("SELECT COUNT(*) AS n FROM participants"):
+                    return Counting(cursor)
+                return cursor
+
+            def __getattr__(self, name):
+                return getattr(self.raw, name)
+
+        def call(name, sid, roles, hold):
+            local.sid = sid
+            if not hold:
+                counted.wait(timeout=10)
+            conn = module.writer()
+            try:
+                out[name] = module.CORE["bind"](
+                    Held(conn) if hold else conn, None, agent=SHARED, roles=roles)
+            except module.Refusal as refusal:
+                out[name] = refusal
+            finally:
+                conn.close()
+
+        with unittest.mock.patch.object(module, "session", whose_session):
+            threads = [
+                threading.Thread(target=call, args=("first", first, "lead,coordinator", True)),
+                threading.Thread(target=call, args=("second", second, "lead,dispatcher", False)),
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(30)
+        return out
+
+    def test_two_first_binds_do_not_both_take_lead(self):
+        module = self.core(LEAD)
+        out = self.racing_bind(module, "session-one", "session-two")
+        self.assertIsInstance(out.get("first"), dict, out)
+        self.assertIsInstance(out.get("second"), module.Refusal, out)
+        self.assertEqual("role", out["second"].kind, out["second"].line())
+        with module.reader() as conn:
+            roles = [row["roles"] for row in
+                     conn.execute("SELECT roles FROM participants ORDER BY id")]
+        self.assertEqual(["lead,coordinator"], roles,
+                         f"the chain has more than one root: {roles}")
+
+    def test_the_clean_neighbour_two_binds_apart_still_work(self):
+        """One root and one worker under it: the lock refuses nothing that
+        was not racing."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        listed = self.ok("participants", session=LEAD)
+        self.assertIn("PT-1 lead,coordinator", listed)
+        self.assertIn("PT-2 worker", listed)
