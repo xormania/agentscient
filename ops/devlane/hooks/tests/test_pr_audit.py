@@ -344,6 +344,30 @@ class AuditAtTheHead(unittest.TestCase):
         self.plant(body=self.GOOD, head=head)
         self.allowed(self.run_bash("gh pr ready 12"))
 
+    def test_an_aar_an_idea_and_a_lesson_do_not_void_the_audit(self):
+        """The three locations a closing session writes, joined to the set
+        as data on the row: a close is not a change to the tree audited."""
+        self.close_audit()
+        for path in ("ops/conductor/AAR-2026-09-16-fixture.md",
+                     "ops/conductor/ideas/I-999-fixture.md",
+                     "ops/conductor/lessons/L-999-fixture.md"):
+            self.world.plant_text(self.repo / path,
+                                  "# a record written after the audit\n")
+        head = self.commit("records: an AAR, an idea and a lesson after the audit")
+        self.plant(body=self.GOOD, head=head)
+        self.allowed(self.run_bash("gh pr ready 12"))
+
+    def test_a_conductor_tool_is_not_a_record_and_voids_the_audit(self):
+        """The clean neighbour of the row above: the set is prefixes named
+        on the row, never the whole conductor directory."""
+        self.close_audit()
+        self.world.plant_text(self.repo / "ops" / "conductor" / "tools" / "new.py",
+                              "# a lever written after the audit\n")
+        head = self.commit("conductor: a lever after the audit")
+        self.plant(body=self.GOOD, head=head)
+        reason = self.refusal(self.run_bash("gh pr ready 12"))
+        self.assertIn("ops/conductor/tools/new.py", reason)
+
     def merge_the_trunk_forward(self):
         """What `dispatch.sh` does before every launch: the trunk moves
         under the branch and is merged in. Answers the merge commit's sha."""
