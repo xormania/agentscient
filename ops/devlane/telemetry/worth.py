@@ -80,6 +80,18 @@ def read_jsonl(path):
     return rows
 
 
+DENY_MARKER = "hook returned a deny decision"
+WIRE_PARTS = (": expected ", "; found ", "; needed ")
+
+
+def _is_refusal_text(text):
+    """The harness's deny marker, or the lane's refusal wire
+    (class: expected; found; needed) as a hook prints it since the
+    marker stopped prefixing it (measured 2026-09-15 on session
+    44f9de58: 30 wire refusals, none with the marker)."""
+    return DENY_MARKER in text or all(part in text for part in WIRE_PARTS)
+
+
 def _tool_result_denied(message):
     content = message.get("content") or []
     if not isinstance(content, list):
@@ -88,7 +100,7 @@ def _tool_result_denied(message):
         isinstance(item, dict)
         and item.get("type") == "tool_result"
         and item.get("is_error") is True
-        and "hook returned a deny decision" in str(item.get("content", ""))
+        and _is_refusal_text(str(item.get("content", "")))
         for item in content
     )
 
@@ -523,7 +535,9 @@ def plain_stamp(stamp):
 
 
 def gather(args, window, include_unreadable=False):
-    repo = str(args.repo)
+    # A transcript carries an absolute cwd; a relative --repo (".", the
+    # usual shape from the checkout) matched nothing and read sessions=0.
+    repo = os.path.abspath(str(args.repo))
     return {
         "claude": claude_sessions(
             args.claude_dir, repo, window, include_unreadable),
