@@ -28,6 +28,12 @@ row that cannot look refuses: "could not look" is not a pass.
     dispatch-env    a launch without LAUNCHER_PIN in the          command or run-script
                     worktree, DISPATCH_TIMEOUT and WF_AGENT       text
     dispatch-by-hand a driver job sent straight to dispatch.sh    job, command word
+    dispatcher      dispatch.sh or go.sh from a session that is   the dispatcher machine
+                    not the Dispatcher the state engine names,    in state.db, the
+                    or while no Dispatcher is named; no grant     harness's session id
+                    escape (owner, 2026-09-12: "as long you
+                    account for the fact that i'll have multiple
+                    sessions running soon")
     test-form       unittest given a path instead of discovery    tokens
     prune           rm -r of records, state, worktrees, .git      statement
     graft-first     a grep/rg/git grep search over a code root    statement, targets
@@ -195,6 +201,8 @@ HEREDOC_OPEN = re.compile(
 HEREDOC_TOKEN = re.compile(r"^(?:(\d+))?<<-?(.*)$")
 PRUNE_TARGETS = (".dev/records", ".git", "ops/conductor/ideas")
 STATE_DIR = os.path.expanduser("~/.local/state")
+STATE_STORE = "state.db"
+ROLE_MACHINE = "dispatcher"
 # Owner, 2026-09-12: "i have the right to issue a hand grant to change CI and
 # tests - but i'm willing to make that something that can only be done in
 # isolation". The wall is the machinery that contains everyone's mistakes;
@@ -791,7 +799,83 @@ def read_text(path):
         return None
 
 
+def harness_session():
+    """The session the harness named for this one, or "" when it named none.
+
+    Both keys are spelled literally rather than looped over a tuple of
+    names, for the same reason instrument.session() spells them: laneconf's
+    closure check matches a literal beside os.environ.get, and a read its
+    own gate cannot see is the dark coupling docs/verified-couplings.md
+    names. Blank is not a declaration and is passed over.
+    """
+    for value in (os.environ.get("CLAUDE_CODE_SESSION_ID", ""),
+                  os.environ.get("CLAUDE_SESSION_ID", "")):
+        named = value.strip()
+        if named:
+            return named
+    return ""
+
+
+def dispatcher_named(lane):
+    """(session, "") for the Dispatcher the state engine names, ("", "") when
+    none is named, or ("", what was found) when the store could not be read.
+
+    Absence is declared, never inferred (docs/wire.md): a store that is
+    absent is an answer — nobody has named a Dispatcher on this host — and
+    a store that is there but unreadable is not, so the two are returned
+    apart and the refusal says which one it met.
+    """
+    if not lane:
+        return "", ""
+    path = os.path.join(STATE_DIR, lane, STATE_STORE)
+    if not os.path.isfile(path):
+        return "", ""
+    try:
+        connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        row = connection.execute(
+            "SELECT place, holder_note FROM subjects WHERE machine = ? ORDER BY id LIMIT 1",
+            (ROLE_MACHINE,),
+        ).fetchone()
+        connection.close()
+    except sqlite3.Error as error:
+        return "", f"the state store at {path} could not be read ({type(error).__name__})"
+    if row is None or row[0] != "named" or not (row[1] or "").strip():
+        return "", ""
+    return row[1].strip(), ""
+
+
+def dispatch_role(cwd):
+    """The only emitter of class `dispatcher`: ops/bin/dispatch.sh and
+    ops/bin/go.sh answer to the session the state engine names and to no
+    other. The session is judged, never the working directory: two sessions
+    in one worktree are still two sessions."""
+    lane = lane_conf(repo_root(cwd)).get("LANE_NAME")
+    named, unreadable = dispatcher_named(lane)
+    if unreadable:
+        return deny("dispatcher", "a Dispatcher named in the state engine", unreadable,
+                    "a readable state store, then dispatcher.py set")
+    if not named:
+        return deny("dispatcher", "a Dispatcher named in the state engine", "none",
+                    "dispatcher.py set in the session that will dispatch")
+    mine = harness_session()
+    if not mine:
+        return deny("dispatcher", f"the Dispatcher session {named}",
+                    "the harness named no session for this one",
+                    "send the request to the Dispatcher")
+    if mine != named:
+        return deny("dispatcher", f"the Dispatcher session {named}", mine,
+                    "send the request to the Dispatcher")
+    return None
+
+
 def check_dispatch(kind, flags, cwd, text, grant):
+    if kind == "dispatcher":
+        # Asked first, and no grant lifts it: the remedy is not a write this
+        # session may be trusted with, it is another session sending the
+        # request. A grant that opened this row would make the role advice.
+        refused = dispatch_role(cwd)
+        if refused is not None:
+            return refused
     if kind == "launcher":
         if flags.get("verb") in LAUNCHER_READ_VERBS:
             return None

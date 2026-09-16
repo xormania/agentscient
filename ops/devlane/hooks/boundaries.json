@@ -263,6 +263,29 @@
    "engine": false
   },
   {
+   "class": "dispatcher",
+   "boundary": "dispatch",
+   "actor": "session",
+   "trigger": "ops/bin/dispatch.sh, ops/bin/go.sh",
+   "evidence": "the Dispatcher named in the state engine's `dispatcher` machine, whose `holder_note` is the session id the harness named for the session running the command; a store that cannot be read is said to be unreadable and never read as no Dispatcher named",
+   "gate": "dispatch_role",
+   "tests": [
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_no_dispatcher_named_refuses_and_names_the_lever",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_the_named_session_dispatches",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_another_session_refuses_and_both_ids_are_named",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_a_store_that_cannot_be_read_is_not_none",
+    "ops/devlane/hooks/tests/test_dispatch_role.py::test_a_grant_is_no_escape"
+   ],
+   "escape": "none",
+   "event": "PreToolUse",
+   "tools": [
+    "Bash"
+   ],
+   "engine": false,
+   "lever": "ops/conductor/tools/dispatcher.py",
+   "owner": "2026-09-12: \"one branch per session - lets try it\"; \"as long you account for the fact that i'll have multiple sessions running soon\""
+  },
+  {
    "class": "deliverable",
    "boundary": "branch",
    "actor": "session",

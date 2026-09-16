@@ -12,8 +12,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import sqlite3
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -24,6 +26,11 @@ from ops.testkit import World, run
 HOOK = support.CLAUDE_DIR / "matrix.py"
 
 LANE_NAME = "testlane"
+# The session every world below runs as, and the Dispatcher it names. Every
+# dispatch row of this module is about what a dispatch says; the row that
+# asks who may dispatch is test_dispatch_role.py's.
+FIXTURE_SESSION = "session-matrix-fixture"
+_DISPATCHER_STORE: Path | None = None
 SCOPE_CAP = 64
 GRANT_SCOPED = 11
 GRANT_OPEN = 22
@@ -196,6 +203,40 @@ ALLOWED_BY_HAND_LINE = re.compile(
 )
 
 
+def setUpModule():
+    """One Dispatcher store for the module, written by the real lever.
+
+    Built once and copied into each world: 71 cases share it, the lever is
+    the only writer of the engine's rows, and a lever that refuses fails
+    the fixture loudly rather than leaving a world that quietly refuses
+    every dispatch below.
+    """
+    global _DISPATCHER_STORE
+    tmp = Path(tempfile.mkdtemp(prefix="matrix-dispatcher-"))
+    conf = tmp / "lane.conf"
+    conf.write_text(f"LANE_NAME='{LANE_NAME}'\n", encoding="utf-8")
+    result = run(
+        [sys.executable, str(support.DISPATCHER_LEVER), "set", FIXTURE_SESSION,
+         "--why", "the fixture's Dispatcher"],
+        cwd=str(tmp), timeout=support.RUN_CAP,
+        env=support.isolated_env(tmp, extra={
+            "XDG_STATE_HOME": str(tmp),
+            "LANE_CONF": str(conf),
+            "WF_AGENT": "Fixture <fixture@example.invalid>",
+            "CLAUDE_CODE_SESSION_ID": FIXTURE_SESSION,
+        }),
+    )
+    if result.exit != 0:
+        raise support.PlantFailed(
+            f"INVALID: dispatcher.py set exit {result.exit}: "
+            f"{result.stderr or result.stdout}"
+        )
+    store = tmp / LANE_NAME / "state.db"
+    if not store.is_file():
+        raise support.PlantFailed(f"INVALID: the lever wrote no store at {store}")
+    _DISPATCHER_STORE = store
+
+
 class MatrixHookTests(unittest.TestCase):
     """One subprocess invocation of matrix.py per assertion."""
 
@@ -217,6 +258,8 @@ class MatrixHookTests(unittest.TestCase):
             (self.bin / "cue").resolve(),
             "INVALID: PATH cue is not the planted fake",
         )
+        self.env["CLAUDE_CODE_SESSION_ID"] = FIXTURE_SESSION
+        self._plant_dispatcher()
         self.store = (
             self.home / ".local" / "state" / LANE_NAME / "handwork.db"
         )
@@ -240,6 +283,16 @@ class MatrixHookTests(unittest.TestCase):
             0,
             "INVALID: origin/dev is not an ancestor of HEAD in the fixture",
         )
+
+    def _plant_dispatcher(self):
+        """This world's Dispatcher is this session, so the dispatch rows
+        below are reached. A world that did not get the store would refuse
+        every one of them with `dispatcher`, which is not what they test."""
+        assert _DISPATCHER_STORE is not None, "INVALID: setUpModule did not run"
+        target = self.home / ".local" / "state" / LANE_NAME / "state.db"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(_DISPATCHER_STORE, target)
+        self.assertGreater(target.stat().st_size, 0, "INVALID: empty dispatcher store")
 
     def _plant_handwork(self):
         rows = (

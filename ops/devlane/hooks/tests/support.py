@@ -24,6 +24,10 @@ TESTS_DIR = Path(__file__).resolve().parent
 HOOKS_DIR = TESTS_DIR.parent
 CLAUDE_DIR = HOOKS_DIR / "claude"
 WORKTREE_ROOT = TESTS_DIR.parents[3]
+# The counterparty of the `dispatcher` row: a case that needs a Dispatcher
+# named drives the real lever rather than writing the engine's rows itself,
+# so the store shape has one author (docs/verified-couplings.md, shape).
+DISPATCHER_LEVER = WORKTREE_ROOT / "ops" / "conductor" / "tools" / "dispatcher.py"
 
 RUN_CAP = 120  # the one timeout of this suite's subprocesses (docs/tests.md rule 5)
 
