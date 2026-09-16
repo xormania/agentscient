@@ -261,7 +261,8 @@ Not projected in slice one, and named so the omission is visible rather than
 discovered: `bind`, `bind-for`, `who`, `participants`, `grant`, `revoke`,
 `reassign`, `reopen`, `supersede`, `deliver`, `undelivered`, `withdraw`,
 `observations`, `ask`, `answer`, `decide`, `decision`, `decisions`,
-`reserve`, `free`, `resources`, `coverage`. Decision support and resource
+`reserve`, `free`, `resources`, `coverage`, `entry`. Decision support and
+resource
 reservation are required operation groups of the objective's §7 and are a
 later slice of this package, not a gap in the core. The participant
 administration group — `bind`, `bind-for`, `grant`, `revoke` — is withheld
@@ -269,7 +270,13 @@ for a reason of its own and not merely deferred: this server's authority is
 the session id it inherits, so a tool that binds a participant or moves a
 role would let a caller widen the authority it was judged under, in the one
 projection where the caller chooses the arguments and the server chooses
-nothing. It stays on the CLI, where a person runs it.
+nothing. It stays on the CLI, where a person runs it. `entry`, package E's role entry
+point, is the one name on that list this package expects to carry rather
+than to keep withholding: it is a read, it is what a participant asks first,
+and a projection that cannot answer "what am I holding" sends its caller to
+the CLI to start. It is listed rather than projected because it landed in the
+core after this branch's suite was green, and a tool added after that point
+would carry neither a contract row nor a test written against it.
 
 Every mutation above is a write to the lane's state store through the
 coordination core — **pending** the core's contract for its function names.
