@@ -37,7 +37,7 @@ OTHER_JOBS = (
 # declared their outputs (item 5 as amended), and again under grant 155
 # (2026-09-12) after caps.turns joined five entries, said in the commit.
 OTHERS_SHA256 = (
-    "0ed185861ef242798bd275512165c14ae1b013c5bc0aa3f6244dd2802b605617"  # re-pinned 2026-09-14: the author-tests prompt names the kit (plan slice 18)
+    "4118c18ef1b1d63eb7422af67616f4d79a6fc5eda7f3b9d5d9686ead9fa5d491"  # re-pinned 2026-09-15: the author-tests brief names its spend discipline (T-56, grant 246)
 )
 
 D1_PROMPT = (
