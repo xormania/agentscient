@@ -187,6 +187,58 @@ class Identity(unittest.TestCase):
             )
 
 
+class TheSessionId(unittest.TestCase):
+    """Who the harness says is running, or a declared absence.
+
+    LD-50, measured 2026-09-16 at bbdcc651: all 251 handwork rows carried
+    session `unknown` and all 506 skill events `unrecorded`, because the
+    tools read CLAUDE_SESSION_ID and this harness sets
+    CLAUDE_CODE_SESSION_ID. That is the absence discipline failing at its
+    own name: a default that reads as an answer, printed by a reader
+    looking at a key nothing sets.
+    """
+
+    KEYS = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")
+
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
+        self.world = World(prefix="instrument-session-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
+
+    def session_for(self, default=None, **keys):
+        env = {k: v for k, v in os.environ.items() if k not in self.KEYS}
+        env.update({k: v for k, v in keys.items() if v is not None})
+        with mock.patch.dict(os.environ, env, clear=True):
+            return self.m.session() if default is None else self.m.session(default)
+
+    def test_the_harness_key_is_the_one_read(self):
+        self.assertEqual(
+            self.session_for(CLAUDE_CODE_SESSION_ID="63a377bf-6a5b"), "63a377bf-6a5b"
+        )
+
+    def test_the_older_key_still_answers(self):
+        self.assertEqual(self.session_for(CLAUDE_SESSION_ID="older-1"), "older-1")
+
+    def test_the_harness_key_wins_over_the_older_one(self):
+        self.assertEqual(
+            self.session_for(CLAUDE_CODE_SESSION_ID="live", CLAUDE_SESSION_ID="stale"),
+            "live",
+        )
+
+    def test_neither_set_reads_unknown_and_the_caller_may_name_its_own(self):
+        self.assertEqual(self.session_for(), "unknown")
+        self.assertEqual(self.session_for(default="unrecorded"), "unrecorded")
+
+    def test_a_blank_value_is_not_a_declaration(self):
+        self.assertEqual(
+            self.session_for(CLAUDE_CODE_SESSION_ID="", CLAUDE_SESSION_ID="named"),
+            "named",
+        )
+        self.assertEqual(self.session_for(CLAUDE_CODE_SESSION_ID="   "), "unknown")
+
+
 class TheClock(unittest.TestCase):
     def setUp(self):
         self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")

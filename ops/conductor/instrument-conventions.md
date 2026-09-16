@@ -35,8 +35,14 @@ accompanies a refusal.
 
 Writing verbs require `WF_AGENT` matching `.+ <addr>` and refuse class
 `identity` without it. Reads need no identity. Where rows are stamped,
-`agent` comes from `WF_AGENT` and `session` from `CLAUDE_SESSION_ID`
-(else `unknown`).
+`agent` comes from `WF_AGENT` and `session` from the harness:
+`CLAUDE_CODE_SESSION_ID`, else `CLAUDE_SESSION_ID`, else `unknown` (or
+whatever word the caller chose for its own absence, as skills.py chooses
+`unrecorded`). A blank value is not a declaration and is passed over.
+One reader, `instrument.session()`; a tool that reads the environment
+for this itself is a finding (LD-50, measured 2026-09-16: the lane read
+`CLAUDE_SESSION_ID` alone, which this harness does not set, so 251
+handwork rows and 506 skill events recorded no session at all).
 
 ## The four classes on the wire
 

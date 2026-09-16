@@ -41,6 +41,8 @@ LAND_PROBE = REPO / "ops" / "conductor" / "tools" / "land.py"
 AGENT = "Grok 4.6 <noreply@x.ai>"
 MALFORMED_AGENT = "JustAName"
 SESSION = "handwork-session-test-1"
+# What this harness actually sets. LD-50: the ledger read the other key.
+HARNESS_SESSION = "handwork-harness-session-test-1"
 
 ACTION = "retry the land"
 WHY = "the land lever is not built yet"
@@ -520,6 +522,34 @@ class DeclareOpen(_LedgerFixture):
             )
             return
         self.fail("session was not unknown when CLAUDE_SESSION_ID was unset")
+
+    def test_session_comes_from_the_harness_key(self):
+        # LD-50: this harness sets CLAUDE_CODE_SESSION_ID, and the ledger
+        # read CLAUDE_SESSION_ID alone, so every one of the 251 rows
+        # standing on 2026-09-16 recorded its session as unknown.
+        self.invoke(
+            ["declare", ACTION, WHY, "pr-open"],
+            agent=AGENT,
+            extra_env={"CLAUDE_CODE_SESSION_ID": HARNESS_SESSION},
+        )
+        row = self.latest_row()
+        self.assertIsNotNone(row, "the declare landed no row")
+        self.assertEqual(
+            row["session"],
+            HARNESS_SESSION,
+            "session must come from CLAUDE_CODE_SESSION_ID",
+        )
+
+    def test_the_harness_key_outranks_the_older_one_on_the_row(self):
+        self.invoke(
+            ["declare", ACTION, WHY, "pr-open"],
+            agent=AGENT,
+            session=SESSION,
+            extra_env={"CLAUDE_CODE_SESSION_ID": HARNESS_SESSION},
+        )
+        row = self.latest_row()
+        self.assertIsNotNone(row, "the declare landed no row")
+        self.assertEqual(row["session"], HARNESS_SESSION)
 
 
 class Identity(_LedgerFixture):

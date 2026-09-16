@@ -90,6 +90,36 @@ def identity_parts() -> tuple[str, str]:
     return match.group("name"), match.group("address")
 
 
+# The harness names the session in CLAUDE_CODE_SESSION_ID. The lane read
+# CLAUDE_SESSION_ID, which nothing sets here, so every row it stamped
+# recorded nobody: 251 handwork rows `unknown` and 506 skill events
+# `unrecorded` at bbdcc651 (LD-50). The older key stays admitted, because
+# a host that exports it is answering the same question.
+SESSION_UNKNOWN = "unknown"
+
+
+def session(default: str = SESSION_UNKNOWN) -> str:
+    """The session id the harness set, or `default` when none did.
+
+    A read, so it never refuses: a row that cannot name its session says
+    so in the word the caller chose. Blank is not a declaration and is
+    passed over, so an exported-but-empty key never reads as an answer.
+
+    Both keys are spelled literally here rather than looped over a tuple
+    of names: laneconf's closure check matches a literal beside
+    `os.environ.get`, and a read its own gate cannot see is the dark
+    coupling docs/verified-couplings.md names.
+    """
+    for value in (
+        os.environ.get("CLAUDE_CODE_SESSION_ID", ""),
+        os.environ.get("CLAUDE_SESSION_ID", ""),
+    ):
+        named = value.strip()
+        if named:
+            return named
+    return default
+
+
 def now() -> datetime:
     return datetime.now(timezone.utc)
 
