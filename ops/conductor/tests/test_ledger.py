@@ -23,6 +23,7 @@ DEFECTS_PAGE = Path("ops/conductor/handoff/lane-defects.md")
 DEFECTS_ROWS = Path("ops/conductor/handoff/lane-defects")
 PITFALLS_PAGE = Path("ops/conductor/handoff/pitfalls-20260911.md")
 PITFALLS_ROWS = Path("ops/conductor/handoff/pitfalls")
+IDEAS_ROWS = Path("ops/conductor/ideas")
 
 DEFECTS_TABLE = ("# Lane defects\n\n| id | observed | where | defect | repair | tests |\n|---|---|---|---|---|---|\n"
                  "| LD-1 | 2026-09-10 | `x.py` | a defect | a repair | a test |\n"
@@ -71,11 +72,81 @@ class TheLedgerLever(unittest.TestCase):
         self.assertRegex(lines[0], rf"^{klass}: expected .+; found .+; needed .+$")
 
     def test_ledgers_lists_the_named_registers(self):
+        """The charge is that the verb names every register this lever
+        knows and refuses a name it does not. The pin read
+
+            self.assertEqual(names, ["defects", "pitfalls"])
+
+        until LD-53 put the ideas directory under the same next-id
+        reader. A list pinned to its own length is the finding
+        docs/tests.md rule 3 names, so the row asks for the registers it
+        is about and for nothing it is not."""
         proc = self.run_lever("ledgers", identity=False)
         self.assertEqual(proc.exit, 0, proc.stderr)
         names = [l.split()[0] for l in proc.stdout.strip().splitlines()]
-        self.assertEqual(names, ["defects", "pitfalls"])
+        for known in ("defects", "pitfalls", "ideas"):
+            self.assertIn(known, names)
+        self.assertEqual(len(names), len(set(names)), names)
         self.assert_wire(self.run_lever("next", "nowhere", identity=False), "ledger")
+
+    def plant_ideas(self, *names):
+        """Idea records, which are prose in the owner's words and never a
+        field table, so the lever only ever reads them."""
+        for name in names:
+            self.world.plant_text(self.repo / IDEAS_ROWS / name,
+                                  f"# {name[:-3]}\n\nrecorded by hand.\n")
+
+    def test_ideas_next_is_one_past_the_highest_in_the_records_own_shape(self):
+        """LD-53: two sessions minted I-029 on two branches because there
+        was no reader to ask. The ideas directory is one now, read-only:
+        the number is three digits wide, as every record in the directory
+        spells it, and I-32 would be a fourth spelling of the same id."""
+        self.plant_ideas("I-001-first.md", "I-002-second.md", "I-031-last.md")
+        proc = self.run_lever("next", "ideas", identity=False)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "I-032")
+
+    def test_ideas_check_is_quiet_when_no_number_is_shared(self):
+        """The clean neighbour. A directory where every record holds its
+        own number is an answer, and the verb says so rather than saying
+        nothing, because silence is not a declaration."""
+        self.plant_ideas("I-001-first.md", "I-002-second.md")
+        proc = self.run_lever("check", "ideas", identity=False)
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        self.assertIn("no shared numbers", proc.stdout)
+
+    def test_ideas_check_finds_a_shared_number_and_names_every_file(self):
+        self.plant_ideas("I-001-first.md", "I-002-second.md",
+                         "I-002-minted-elsewhere.md")
+        proc = self.run_lever("check", "ideas", identity=False)
+        # A Finding, not a Rejection: the verb ran to completion and the
+        # result carries findings (docs/wire.md).
+        self.assertEqual(proc.exit, 1, proc.stdout + proc.stderr)
+        self.assertIn("I-002", proc.stdout)
+        self.assertIn("I-002-second.md", proc.stdout)
+        self.assertIn("I-002-minted-elsewhere.md", proc.stdout)
+        self.assertNotIn("I-001", proc.stdout)
+
+    def test_ideas_next_still_answers_while_a_number_is_shared(self):
+        """A collision already minted says nothing about the next number,
+        and a reader that refused would leave a session with no way to
+        mint at all. The two questions are separate verbs on purpose."""
+        self.plant_ideas("I-001-first.md", "I-002-second.md",
+                         "I-002-minted-elsewhere.md")
+        proc = self.run_lever("next", "ideas", identity=False)
+        self.assertEqual(proc.exit, 0, proc.stderr)
+        self.assertEqual(proc.stdout.strip(), "I-003")
+
+    def test_ideas_refuses_the_verbs_that_write_or_read_a_field_table(self):
+        """An idea is recorded by hand, in the owner's words, in the shape
+        ops/conductor/ideas/README.md gives. The lever mints its number
+        and reports collisions; it never writes one, and show and list
+        would read a field table that is not there."""
+        self.plant_ideas("I-001-first.md")
+        for argv in (("add", "ideas", "--where", "x"),
+                     ("show", "ideas", "I-001"),
+                     ("list", "ideas")):
+            self.assert_wire(self.run_lever(*argv), "ledger")
 
     def test_pitfalls_next_add_show_list(self):
         proc = self.run_lever("next", "pitfalls", identity=False)
