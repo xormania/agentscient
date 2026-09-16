@@ -96,11 +96,13 @@ class _LaneConfLaunch(ls._TempLaunch):
 
 
 class WallDefaultFromConf(_LaneConfLaunch):
-    """A job without caps and WALL_DEFAULT='7' records timeout 7.0
-    with timeout_source `default`."""
+    """A catalogue entry without caps and WALL_DEFAULT='7' records timeout
+    7.0 with timeout_source `default`. Every job declares its caps since
+    2026-09-16, so the capless entry is planted (ls.strip_job_caps)."""
 
     def test_wall_default_from_conf_is_recorded_as_timeout_source_default(self):
         self.assertNotIn("DISPATCH_TIMEOUT", os.environ)
+        ls.strip_job_caps(self, "plan")
         jobs = json.loads(self.jobs_file.read_text(encoding="utf-8"))
         self.assertNotIn("caps", jobs["plan"])
         self.plant_conf(WALL_DEFAULT="7")

@@ -757,6 +757,61 @@ class ClosureVerb(_LaneconfFixture):
         self.assertIn("app", text)
 
 
+class ExternalEnvKeys(_LaneconfFixture):
+    """A key the finite controller supplies to its children is read by
+    code and declared nowhere in lane.conf, and that is not a finding.
+    The fixture set: the two harness session ids and the identity
+    override as the faults the exemption must swallow, a near neighbour
+    spelled one word short as the fault it must still catch."""
+
+    ENV_READER = "ops/bin/session.py"
+
+    def read_of(self, key: str) -> dict[str, str]:
+        return {
+            "ops/conductor/tools/reads.py": reader_source(),
+            self.ENV_READER: f"import os\nos.environ.get({key!r})\n",
+        }
+
+    def closure_over_a_read_of(self, key: str):
+        repo = self.plant_scratch_repo(self.read_of(key))
+        conf = repo / "ops" / "lane.conf"
+        self.assertNotIn(key, declared_keys(conf.read_text(encoding="utf-8")))
+        self.assertIn(
+            key,
+            (repo / self.ENV_READER).read_text(encoding="utf-8"),
+            "plant: the reader does not read the key",
+        )
+        return self.invoke(["closure"], lane_conf=conf, cwd=repo)
+
+    def test_the_harness_session_id_is_external_and_closes(self):
+        proc = self.closure_over_a_read_of("CLAUDE_SESSION_ID")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_the_code_session_id_the_harness_supplies_is_external_and_closes(self):
+        """CLAUDE_CODE_SESSION_ID is what Claude Code puts in a child's
+        environment; the identity hook reads it and lane.conf never
+        declares it, so the closure must pass it by name."""
+        proc = self.closure_over_a_read_of("CLAUDE_CODE_SESSION_ID")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_the_identity_override_is_external_and_closes(self):
+        """WF_AGENT_OVERRIDE is put on the command by whoever launches a
+        child and outranks WF_AGENT, which is external already; the
+        override is read the same way and declared the same nowhere."""
+        proc = self.closure_over_a_read_of("WF_AGENT_OVERRIDE")
+        self.assertEqual(proc.exit, 0, self.combined(proc))
+
+    def test_a_near_neighbour_of_an_external_key_is_still_a_finding(self):
+        """The clean neighbour: the exemption is a list of names, not a
+        prefix and not a file the scanner skips."""
+        ghost = "CLAUDE_CODE_SESSION"
+        proc = self.closure_over_a_read_of(ghost)
+        text = self.combined(proc)
+        self.assertEqual(proc.exit, 1, text)
+        self.assertIn(ghost, text)
+        self.assertIn(self.ENV_READER, text)
+
+
 class LiteralsVerb(_LaneconfFixture):
     """`literals` exits 0 on the tree; a scratch lane file carrying a
     forbidden token exits 1 naming file and line. The record.py lane
