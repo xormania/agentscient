@@ -179,7 +179,16 @@ class TheDispatcherRole(unittest.TestCase):
 
     def test_a_store_that_cannot_be_read_is_not_none(self):
         self.lever("set", MINE, "--why", "the lane's dispatcher for today")
+        # The engine runs SQLite in WAL mode, so the row lives in
+        # `state.db-wal` until a checkpoint: overwriting `state.db` alone
+        # leaves it readable and plants nothing.
+        for sidecar in ("state.db-wal", "state.db-shm"):
+            beside = self.state / sidecar
+            if beside.exists():
+                beside.unlink()
         self.world.plant_text(self.state / "state.db", "not a database\n")
+        with self.assertRaises(sqlite3.DatabaseError):
+            self.named()
         reason = self.refusal(self.bash(self.DISPATCH, session=MINE))
         self.assertIn("could not be read", reason)
         self.assertNotIn("found none", reason)
