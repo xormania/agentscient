@@ -288,7 +288,7 @@ def agy_rows(root: Path, repo, now, window, tail):
     spec = importlib.util.spec_from_file_location("agy_pulse_usage", Path(__file__).with_name("usage.py"))
     usage = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(usage)
-    for row in usage.agy_sessions(root, repo):
+    for row in usage.agy_sessions(root, usage.Placement(repo)):
         source = Path(row["source"])
         idle = _idle(source, now)
         if idle > window:

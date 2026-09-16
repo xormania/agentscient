@@ -27,6 +27,7 @@ import importlib.util
 import io
 import json
 import os
+import sqlite3
 import sys
 import unittest
 from contextlib import redirect_stderr
@@ -51,7 +52,7 @@ AGENT = "Claude Fable 5.1 <noreply@anthropic.com>"
 # tool, a file with no tool a failure naming the file, a file with any
 # other placement a failure naming the field.
 PLACEMENT_DIR = REPO / "ops" / "conductor" / "placement"
-PLACEMENTS = ("migrated", "pending", "no-wire")
+PLACEMENTS = ("migrated", "pending", "no-wire", "shared")
 
 
 def placements() -> dict[str, list[str]]:
@@ -59,7 +60,9 @@ def placements() -> dict[str, list[str]]:
     migrated (imports the shared module, carries none of its helpers),
     pending (still carrying private copies, named so the absence is a
     declaration), no-wire (returns outcomes, never refuses, nothing to
-    import). Malformed files are reported by the gate's closure test."""
+    import), shared (the module the others import, which defines those
+    helpers rather than importing them). Malformed files are reported by
+    the gate's closure test."""
     found: dict[str, list[str]] = {k: [] for k in PLACEMENTS}
     if PLACEMENT_DIR.is_dir():
         for path in sorted(PLACEMENT_DIR.glob("*.py.json")):
@@ -77,6 +80,7 @@ PLACED = placements()
 MIGRATED: tuple[str, ...] = tuple(PLACED["migrated"])
 PENDING: tuple[str, ...] = tuple(PLACED["pending"])
 NO_WIRE: tuple[str, ...] = tuple(PLACED["no-wire"])
+SHARED: tuple[str, ...] = tuple(PLACED["shared"])
 
 # A migrated or no-wire tool defines none of these at module level.
 PRIVATE_NAMES = frozenset({
@@ -185,6 +189,263 @@ class Identity(unittest.TestCase):
             self.assertEqual(
                 self.m.identity_parts(), ("Claude Fable 5.1", "noreply@anthropic.com")
             )
+
+
+class TheIdentityOverride(unittest.TestCase):
+    """A deliberate identity for one command outranks the ambient one.
+
+    Measured 2026-09-16: .claude/settings.local.json binds
+    env.WF_AGENT for every session on this host, so WF_AGENT is always
+    set and a tool cannot tell "meant, on this command" from "inherited
+    from settings" — they arrive as the same key. Without a second key
+    no later branch of the precedence can ever fire, and every row a
+    session writes carries whichever name the settings file holds.
+    """
+
+    OTHER = "Claude Opus 5 (1M context) <noreply@anthropic.com>"
+
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
+        self.world = World(prefix="instrument-override-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
+
+    def with_env(self, **keys):
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("WF_AGENT", "WF_AGENT_OVERRIDE")}
+        env.update({k: v for k, v in keys.items() if v is not None})
+        return mock.patch.dict(os.environ, env, clear=True)
+
+    def test_the_override_is_the_identity_when_both_are_set(self):
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE=self.OTHER):
+            self.assertEqual(self.m.identity(), self.OTHER)
+
+    def test_the_override_alone_is_the_identity(self):
+        with self.with_env(WF_AGENT_OVERRIDE=self.OTHER):
+            self.assertEqual(self.m.identity(), self.OTHER)
+
+    def test_the_ambient_agent_still_answers_when_no_override_is_set(self):
+        with self.with_env(WF_AGENT=AGENT):
+            self.assertEqual(self.m.identity(), AGENT)
+
+    def test_a_malformed_override_refuses_and_never_falls_through(self):
+        # Falling back to the ambient name would stamp rows with someone
+        # else while the command said otherwise. A deliberate value that
+        # is wrong is not an absent one.
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE="JustAName"):
+            with self.assertRaises(self.m.Refusal) as caught:
+                self.m.identity()
+        self.assertEqual(caught.exception.kind, "identity")
+        self.assertIn("WF_AGENT_OVERRIDE", str(caught.exception))
+
+    def test_a_blank_override_is_not_a_declaration(self):
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE="   "):
+            self.assertEqual(self.m.identity(), AGENT)
+
+    def test_identity_parts_reads_the_override_too(self):
+        with self.with_env(WF_AGENT=AGENT, WF_AGENT_OVERRIDE=self.OTHER):
+            self.assertEqual(
+                self.m.identity_parts(),
+                ("Claude Opus 5 (1M context)", "noreply@anthropic.com"),
+            )
+
+
+class TheSessionId(unittest.TestCase):
+    """Who the harness says is running, or a declared absence.
+
+    LD-50, measured 2026-09-16 at bbdcc651: all 251 handwork rows carried
+    session `unknown` and all 506 skill events `unrecorded`, because the
+    tools read CLAUDE_SESSION_ID and this harness sets
+    CLAUDE_CODE_SESSION_ID. That is the absence discipline failing at its
+    own name: a default that reads as an answer, printed by a reader
+    looking at a key nothing sets.
+    """
+
+    KEYS = ("CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")
+
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
+        self.world = World(prefix="instrument-session-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
+
+    def session_for(self, default=None, **keys):
+        env = {k: v for k, v in os.environ.items() if k not in self.KEYS}
+        env.update({k: v for k, v in keys.items() if v is not None})
+        with mock.patch.dict(os.environ, env, clear=True):
+            return self.m.session() if default is None else self.m.session(default)
+
+    def test_the_harness_key_is_the_one_read(self):
+        self.assertEqual(
+            self.session_for(CLAUDE_CODE_SESSION_ID="63a377bf-6a5b"), "63a377bf-6a5b"
+        )
+
+    def test_the_older_key_still_answers(self):
+        self.assertEqual(self.session_for(CLAUDE_SESSION_ID="older-1"), "older-1")
+
+    def test_the_harness_key_wins_over_the_older_one(self):
+        self.assertEqual(
+            self.session_for(CLAUDE_CODE_SESSION_ID="live", CLAUDE_SESSION_ID="stale"),
+            "live",
+        )
+
+    def test_neither_set_reads_unknown_and_the_caller_may_name_its_own(self):
+        self.assertEqual(self.session_for(), "unknown")
+        self.assertEqual(self.session_for(default="unrecorded"), "unrecorded")
+
+    def test_a_blank_value_is_not_a_declaration(self):
+        self.assertEqual(
+            self.session_for(CLAUDE_CODE_SESSION_ID="", CLAUDE_SESSION_ID="named"),
+            "named",
+        )
+        self.assertEqual(self.session_for(CLAUDE_CODE_SESSION_ID="   "), "unknown")
+
+
+class TheSessionIdentityStore(unittest.TestCase):
+    """A session may bind its own name, and that outranks the ambient one.
+
+    The ambient WF_AGENT is bound by a settings file for every session on
+    this host, so without a per-session identity every row carries one
+    name whoever wrote it. The store is where a session says who it is.
+    The override still beats it, because a command may always say
+    otherwise; the ambient key is beneath both, because it is the one
+    nobody chose.
+    """
+
+    OTHER = "Claude Opus 5 (1M context) <noreply@anthropic.com>"
+    THIRD = "Grok 4.6 <noreply@x.ai>"
+    SESSION = "store-session-1"
+
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
+        self.world = World(prefix="instrument-store-")
+        self.addCleanup(self.world.close)
+        self.world.enter()
+        self.conf = self.world.plant_text("store-lane.conf", "LANE_NAME='testlane'\n")
+        self.m = load(self.world.stage(MODULE, siblings=("laneconf.py",)))
+
+    def env(self, **keys):
+        base = {k: v for k, v in os.environ.items()
+                if k not in ("WF_AGENT", "WF_AGENT_OVERRIDE",
+                             "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")}
+        base["LANE_CONF"] = str(self.conf)
+        base.update({k: v for k, v in keys.items() if v is not None})
+        return mock.patch.dict(os.environ, base, clear=True)
+
+    def test_an_absent_store_is_an_answer_and_never_a_refusal(self):
+        # Looked and found nothing: no session has bound a name here, so
+        # the ambient one answers. A read must not create the store.
+        with self.env(WF_AGENT=AGENT, CLAUDE_CODE_SESSION_ID=self.SESSION):
+            self.assertFalse(self.m.state_db().exists())
+            self.assertEqual(self.m.identity(), AGENT)
+            self.assertFalse(self.m.state_db().exists(), "a read created the store")
+
+    def test_the_stored_identity_outranks_the_ambient_one(self):
+        with self.env(WF_AGENT=AGENT, CLAUDE_CODE_SESSION_ID=self.SESSION):
+            self.m.set_identity(self.THIRD)
+            self.assertEqual(self.m.identity(), self.THIRD)
+
+    def test_the_override_outranks_the_stored_identity(self):
+        with self.env(WF_AGENT=AGENT, CLAUDE_CODE_SESSION_ID=self.SESSION,
+                      WF_AGENT_OVERRIDE=self.OTHER):
+            self.m.set_identity(self.THIRD)
+            self.assertEqual(self.m.identity(), self.OTHER)
+
+    def test_a_row_answers_its_own_session_and_no_other(self):
+        with self.env(WF_AGENT=AGENT, CLAUDE_CODE_SESSION_ID=self.SESSION):
+            self.m.set_identity(self.THIRD)
+        with self.env(WF_AGENT=AGENT, CLAUDE_CODE_SESSION_ID="a-different-session"):
+            self.assertEqual(self.m.identity(), AGENT)
+
+    def test_setting_again_replaces_the_row_and_never_adds_one(self):
+        with self.env(WF_AGENT=AGENT, CLAUDE_CODE_SESSION_ID=self.SESSION):
+            self.m.set_identity(self.THIRD)
+            self.m.set_identity(self.OTHER)
+            self.assertEqual(self.m.identity(), self.OTHER)
+            store = self.m.state_db()
+        with sqlite3.connect(store) as con:
+            rows = con.execute(
+                "SELECT session_id, agent FROM session_identity").fetchall()
+        self.assertEqual(rows, [(self.SESSION, self.OTHER)])
+
+    def test_setting_a_malformed_agent_refuses_identity(self):
+        with self.env(CLAUDE_CODE_SESSION_ID=self.SESSION):
+            with self.assertRaises(self.m.Refusal) as caught:
+                self.m.set_identity("JustAName")
+        self.assertEqual(caught.exception.kind, "identity")
+
+    def test_setting_with_no_session_refuses_and_leaves_no_store(self):
+        # A row keyed on the word `unknown` would be shared by every
+        # session that has no id, which is worse than no row at all.
+        with self.env(WF_AGENT=AGENT):
+            with self.assertRaises(self.m.Refusal) as caught:
+                self.m.set_identity(self.THIRD)
+            self.assertEqual(caught.exception.kind, "session")
+            self.assertFalse(self.m.state_db().exists(),
+                             "a refused set left a store behind")
+
+    def test_a_store_that_cannot_be_read_refuses_rather_than_answering(self):
+        # Could not look. Falling through to the ambient name here would
+        # print an answer the reader never obtained.
+        with self.env(WF_AGENT=AGENT, CLAUDE_CODE_SESSION_ID=self.SESSION):
+            store = self.m.state_db()
+            store.parent.mkdir(parents=True, exist_ok=True)
+            store.write_bytes(b"this is not a database")
+            with self.assertRaises(self.m.Refusal) as caught:
+                self.m.identity()
+        self.assertEqual(caught.exception.kind, "store")
+
+    def test_a_copy_with_no_lane_conf_answers_from_the_ambient_key(self):
+        # No conf means no lane, so no lane state directory and no store:
+        # found nothing, not could-not-look. A staged copy must still be
+        # able to name its agent.
+        base = {k: v for k, v in os.environ.items()
+                if k not in ("WF_AGENT", "WF_AGENT_OVERRIDE", "LANE_CONF",
+                             "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")}
+        base["WF_AGENT"] = AGENT
+        base["CLAUDE_CODE_SESSION_ID"] = self.SESSION
+        with mock.patch.dict(os.environ, base, clear=True):
+            self.assertEqual(self.m.identity(), AGENT)
+
+
+class TheIdentitySetVerb(unittest.TestCase):
+    """The shell-facing half of the store, on the same wire."""
+
+    OTHER = "Claude Opus 5 (1M context) <noreply@anthropic.com>"
+
+    def setUp(self):
+        self.assertTrue(MODULE.is_file(), f"absent: {MODULE}")
+        self.world = World(prefix="instrument-set-")
+        self.addCleanup(self.world.close)
+        self.conf = self.world.plant_text("set-lane.conf", "LANE_NAME='testlane'\n")
+        self.module = self.world.stage(MODULE, siblings=("laneconf.py",))
+
+    def invoke(self, *argv, session=None, agent=None):
+        extra = {"LANE_CONF": str(self.conf)}
+        if session is not None:
+            extra["CLAUDE_CODE_SESSION_ID"] = session
+        if agent is not None:
+            extra["WF_AGENT"] = agent
+        return run([sys.executable, str(self.module), *argv],
+                   cwd=self.world.cwd, env=self.world.env(extra), timeout=60)
+
+    def test_set_then_read_prints_the_bound_identity(self):
+        written = self.invoke("identity", "--set", self.OTHER, session="cli-1")
+        self.assertEqual(written.exit, 0, written.stderr)
+        self.assertIn(self.OTHER, written.stdout)
+        read = self.invoke("identity", session="cli-1", agent=AGENT)
+        self.assertEqual(read.exit, 0, read.stderr)
+        self.assertEqual(read.stdout, self.OTHER + "\n")
+
+    def test_set_with_no_session_refuses_on_the_wire(self):
+        proc = self.invoke("identity", "--set", self.OTHER)
+        self.assertEqual(proc.exit, 2)
+        self.assertEqual(proc.stdout, "")
+        lines = proc.stderr.splitlines()
+        self.assertEqual(len(lines), 1, proc.stderr)
+        self.assertRegex(lines[0], r"^session: expected .*; found .*; needed .*$")
 
 
 class TheClock(unittest.TestCase):
@@ -374,12 +635,15 @@ class TheConsolidationGate(unittest.TestCase):
     """Every tool is placed; a migrated tool carries no private copy."""
 
     def tools(self) -> list[str]:
-        return sorted(
-            p.name for p in TOOLS.glob("*.py") if p.name != "instrument.py"
-        )
+        # instrument.py was excluded here by name, so it alone had no
+        # placement file — and the state law declares a state engine only
+        # in a placement file. The module every tool imports was the one
+        # place a store could be opened with nothing declaring it. It is
+        # in the census now, under a placement of its own.
+        return sorted(p.name for p in TOOLS.glob("*.py"))
 
     def test_every_tool_is_migrated_or_declared_pending(self):
-        lists = (MIGRATED, PENDING, NO_WIRE)
+        lists = (MIGRATED, PENDING, NO_WIRE, SHARED)
         placed = set().union(*lists)
         self.assertEqual(
             sum(len(t) for t in lists), len(placed), "a tool in two lists"
@@ -389,9 +653,47 @@ class TheConsolidationGate(unittest.TestCase):
             "each tool under ops/conductor/tools/ has one file under ops/conductor/placement/",
         )
 
-    def test_placement_files_close_both_ways_and_name_one_of_three(self):
+    def test_the_shared_placement_names_the_module_the_others_import(self):
+        """`shared` is not a spare label. It is instrument.py, and what makes
+        it shared is that it defines the helpers the others are forbidden to
+        define. Pinning both halves keeps a tool from claiming the placement
+        to escape the private-copy rule."""
+        self.assertEqual(
+            list(SHARED), ["instrument.py"],
+            "shared names the module the others import, and nothing else",
+        )
+        tree = ast.parse(MODULE.read_text(encoding="utf-8"))
+        defined = {
+            node.name
+            for node in tree.body
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef))
+        } | {
+            target.id
+            for node in tree.body if isinstance(node, ast.Assign)
+            for target in node.targets if isinstance(target, ast.Name)
+        }
+        # Not every name in PRIVATE_NAMES: four of them (AGENT_FORM,
+        # IDENTITY_RE, Refused, conf_value) are retired spellings that no
+        # module defines any more, and the set forbids them so a tool
+        # cannot bring one back. What the shared module must hold is the
+        # live ones the others import instead of defining.
+        self.assertTrue(
+            defined & PRIVATE_NAMES,
+            "the shared module defines none of the names the others may not, "
+            "so nothing is being shared",
+        )
+        for name in ("Refusal", "refuse", "identity", "now", "stamp"):
+            with self.subTest(name=name):
+                self.assertIn(
+                    name, defined,
+                    f"{name} is forbidden to every other tool and must come "
+                    "from the shared module",
+                )
+
+    def test_placement_files_close_both_ways_and_name_a_declared_placement(self):
         """A file for no tool names the file; a file whose placement is not
-        one of the three names the field; the directory holds nothing else."""
+        one of the declared ones names the field; the directory holds
+        nothing else."""
         self.assertTrue(PLACEMENT_DIR.is_dir(), "ops/conductor/placement/ exists")
         tools = set(self.tools())
         for path in sorted(PLACEMENT_DIR.iterdir()):

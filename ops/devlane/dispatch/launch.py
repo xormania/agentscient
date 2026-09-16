@@ -2196,20 +2196,21 @@ def _spend(rec, stream, job_dir):
     try:
         if harness == "agy":
             root = job_dir
-            sessions = list(usage.agy_sessions(root, rec["snapshot"]["root"]))
+            sessions = list(usage.agy_sessions(
+                root, usage.Placement(rec["snapshot"]["root"])))
         elif harness == "claude":
             root = stream.parent.parent
-            sessions = list(usage.claude_sessions(root, None))
+            sessions = list(usage.claude_sessions(root, usage.Placement(None)))
         elif harness == "codex":
             root = job_dir / "home" / "codex-stream"
             if not root.exists():
                 root = job_dir / "home" / "codex"
-            sessions = list(usage.codex_sessions(root, None))
+            sessions = list(usage.codex_sessions(root, usage.Placement(None)))
         elif harness == "grok":
             root = job_dir / "home" / "grok-stream"
             if not root.exists():
                 root = job_dir / "home" / "grok"
-            sessions = list(usage.grok_sessions(root, None))
+            sessions = list(usage.grok_sessions(root, usage.Placement(None)))
         else:
             return unreachable(f"no usage parser for {harness}")
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:

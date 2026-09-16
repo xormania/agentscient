@@ -31,8 +31,8 @@ class _Fixture(unittest.TestCase):
         self.home = self.world.home
         self.state = self.world.xdg_state
 
-    def run_tool(self, *argv, agent=AGENT):
-        extra = {}
+    def run_tool(self, *argv, agent=AGENT, extra_env=None):
+        extra = dict(extra_env or {})
         if agent is not None:
             extra["WF_AGENT"] = agent
         return run(
@@ -52,6 +52,33 @@ class _Fixture(unittest.TestCase):
         self.assertIn("; found ", line)
         self.assertIn("; needed ", line)
         return line
+
+
+class TheSessionOnAnEvent(_Fixture):
+    """An event says which session did it, or says it does not know.
+
+    LD-50: all 506 events standing on 2026-09-16 read `unrecorded`,
+    because the lever read CLAUDE_SESSION_ID and this harness sets
+    CLAUDE_CODE_SESSION_ID.
+    """
+
+    def sessions(self):
+        with sqlite3.connect(self.state / "agentscient" / "skills.db") as con:
+            return [row[0] for row in con.execute(
+                "SELECT session FROM skill_events ORDER BY id")]
+
+    def test_the_harness_key_is_stamped_on_the_event(self):
+        proc = self.run_tool(
+            "wish", "a-wished-skill", "it should exist",
+            extra_env={"CLAUDE_CODE_SESSION_ID": "skills-harness-session-1"},
+        )
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.sessions(), ["skills-harness-session-1"])
+
+    def test_no_session_in_the_environment_reads_unrecorded(self):
+        proc = self.run_tool("wish", "a-wished-skill", "it should exist")
+        self.assertEqual(proc.exit, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.sessions(), ["unrecorded"])
 
 
 class Refusals(_Fixture):
