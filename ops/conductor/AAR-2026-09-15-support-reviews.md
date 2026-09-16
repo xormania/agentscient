@@ -96,7 +96,7 @@ re-reads the whole of it.
 ## The serena census
 
 `ps -eo user,pid,ppid,rss,lstart,args`, one bounded call: 27 serena-family
-processes, RSS sum 2817084 kB. User scientdb holds 6 of them, 678 MB,
+processes, RSS sum 2817084 kB. The owner's account holds 6 of them, 678 MB,
 exactly two live session chains — the lead's 2629402 and this session's
 2659435 — each with a serena and a phpactor language server that grows
 (201 MB and 172 MB when measured). User `work` holds the other 20, 2097
