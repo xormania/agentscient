@@ -1,0 +1,231 @@
+{
+  "id": "20260916T100458Z-review-codex-f1070f",
+  "lane": "dev",
+  "stage": "review",
+  "unit": "lane/session-20260916-i",
+  "lineage": {
+    "branch": "lane/session-20260916-i",
+    "base_sha": "cdd1d53c04068615ac4550f53be48f64e6a3ee20"
+  },
+  "follows": [],
+  "answers": [],
+  "job": "check-tests",
+  "role": "read",
+  "dispatched_by": "Claude Fable 5.1 <noreply@anthropic.com>",
+  "at": {
+    "launched": "2026-09-16T10:04:58Z",
+    "closed": "2026-09-16T10:10:43Z"
+  },
+  "snapshot": {
+    "mode": "whole",
+    "ref_name": "cdd1d53c04068615ac4550f53be48f64e6a3ee20",
+    "ref_sha": "cdd1d53c04068615ac4550f53be48f64e6a3ee20",
+    "behind_tip": 0,
+    "root": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/snapshot"
+  },
+  "harness": {
+    "name": "codex",
+    "worker": {
+      "name": "codex",
+      "executable": "/home/scientdb/.local/bin/codex",
+      "sources": {
+        "workers": "file:/home/scientdb/projects/uscient/agentscient/ops/lane.conf#WORKER_HARNESSES",
+        "executable": "PATH"
+      }
+    },
+    "version": "unknown",
+    "isolation": {
+      "mechanism": "home",
+      "env": {
+        "CODEX_HOME": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/home/codex"
+      },
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/home/codex/sessions",
+      "observed": {
+        "unresolved": "behavioural probe has not run"
+      },
+      "home": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/home/codex",
+      "auth_files": [
+        "auth.json"
+      ]
+    },
+    "sandbox": "workspace-write",
+    "containment": "os",
+    "argv": [
+      "/home/scientdb/.local/bin/codex",
+      "exec",
+      "--sandbox",
+      "workspace-write",
+      "-c",
+      "sandbox_workspace_write.writable_roots=[\"/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/out\"]",
+      "--model",
+      "gpt-5.6-sol",
+      "-c",
+      "model_reasoning_effort=\"high\"",
+      "--json",
+      "-o",
+      "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/out/last-message.json",
+      "-c",
+      "mcp_servers.agentscient_lane.command=\"python3\"",
+      "-c",
+      "mcp_servers.agentscient_lane.args=[\"-B\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/snapshot/ops/conductor/tools/lane_mcp.py\", \"--config\", \"/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/lane-mcp.json\", \"serve\"]",
+      "-"
+    ]
+  },
+  "model": {
+    "requested": "gpt-5.6-sol",
+    "effort_requested": "high",
+    "effort_argv": [
+      "-c",
+      "model_reasoning_effort=\"high\""
+    ],
+    "ran": "gpt-5.6-sol",
+    "read_from": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-05-02-01a0a9ad-4d4f-7da2-a0a2-304855167bcb.jsonl"
+  },
+  "session": {
+    "id": "01a0a9ad-4d4f-7da2-a0a2-304855167bcb",
+    "stream": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-05-02-01a0a9ad-4d4f-7da2-a0a2-304855167bcb.jsonl",
+    "stream_sha256_at_close": "d4222f93310105bc76e5552955a653cb592fe17b58f2e5504c0b7761479561c3",
+    "spend": {
+      "input": 859526,
+      "cached": 805888,
+      "output": 13096,
+      "total": 872622,
+      "source": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-05-02-01a0a9ad-4d4f-7da2-a0a2-304855167bcb.jsonl",
+      "messages": 177
+    }
+  },
+  "brief": {
+    "template": {
+      "path": "/home/scientdb/projects/uscient/agentscient/ops/devlane/task/jobs.json",
+      "sha256": "19e9bd5a5cd687cf13a46eba4bce93894963116290eb7de3bfba27142a5196b0"
+    },
+    "scope": "check-tests for S5 wrapper-hermetic-store. Judge RowHermeticStore in ops/conductor/tests/test_dispatch_wrapper.py (4 rows: record-lands-in-world-jobs, jobs-root-under-world-state, concurrent-entry-not-ours, host-store-untouched-by-construction) and dispatch_wrapper_faults.py (M-ignore-jobs-env, M-host-home) against this contract: the fixture must watch only the world's jobs root, never a host path; DISPATCH_JOBS unset must still resolve under the world's XDG_STATE_HOME, never the host home; no env/argv handed to the wrapper may carry a host-home path; a concurrent unrelated jobs-root entry must not be misclassified as ours. Each row must execute the wrapper (self.invoke) and assert what it did, not just shape. The old test_dispatch_wrapper_ld16.py is untouched this round by design (retires later via sidebyside); do not fault its absence of change. Refuse by default; findings only where a row fails to pin the behaviour or fails to exercise the subject.\n",
+    "inputs": [
+      {
+        "path": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/in/brief.md",
+        "sha256": "eedad990b0fc3e391fda7384fcd0bd1a57ac43989359e11c5ed8a34940ddd769"
+      }
+    ],
+    "sha256": "207cef93da84446c9e9a5617e2d7c0c5fb0e7fbf57db53b8bca1d40fdd6965ce",
+    "bytes": 11113,
+    "mcp": {
+      "config": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/lane-mcp.json",
+      "sha256": "dba346d775f9060b5181f47442a09b98b01cfb37e295992b01cc1545f71cce58",
+      "job_ids": [
+        "20260916T093722Z-code-grok-7f0bcf"
+      ],
+      "server": [
+        "python3",
+        "-B",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/snapshot/ops/conductor/tools/lane_mcp.py",
+        "--config",
+        "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/lane-mcp.json",
+        "serve"
+      ],
+      "tools": [
+        "lane_brief",
+        "lane_jobs",
+        "lane_changes",
+        "lane_findings",
+        "lane_record",
+        "lane_alerts",
+        "lane_usage"
+      ]
+    },
+    "graft": {
+      "state": "withheld",
+      "reason": "implementation context withheld for test independence"
+    }
+  },
+  "caps": {
+    "cap-out": 500000,
+    "source": "wires.py",
+    "turns": 150,
+    "turns_source": "job",
+    "turns_argv": [],
+    "turns_applied": false,
+    "turns_note": "codex offers no turn-cap flag (measured 2026-09-12: its --help names none); caps.turns is recorded, the wall cap governs",
+    "timeout": 1800.0,
+    "timeout_source": "job"
+  },
+  "overrides": [],
+  "attempts": [
+    {
+      "n": 1,
+      "launched": "2026-09-16T10:05:00Z",
+      "ended": "2026-09-16T10:10:43Z",
+      "exit": 0,
+      "tripped": false,
+      "credential": [
+        {
+          "file": "auth.json",
+          "outcome": "linked"
+        }
+      ]
+    }
+  ],
+  "result": {
+    "head": "cdd1d53c04068615ac4550f53be48f64e6a3ee20",
+    "changed_paths": [],
+    "residual_paths": [],
+    "envelope": {
+      "job": "check-tests",
+      "status": "ok",
+      "verdict": "changes",
+      "counts": {
+        "p1": 0,
+        "p2": 3,
+        "p3": 0,
+        "opinions": 0
+      },
+      "findings": [
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:665",
+          "claim": "declared (/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/in/brief.md:20): \"with `DISPATCH_JOBS` unset, the jobs root the wrapper resolves is under the world's `XDG_STATE_HOME`; the host home path does not appear in the resolved argv or the record.\"; practiced: `self.assertNotIn(host, item, f\"dry-run argv carries the host home: {argv!r}\")` rejects the clean wrapper because the hermetic world's path itself is physically beneath `/home/scientdb`, and calibration reports `\"clean\": \"red\"`; misses: M-host-home is not caught as a behavioral difference because clean and mutant are already red before the record-location assertion.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' -k test_jobs_root_under_world_state"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:708",
+          "claim": "declared (/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/in/brief.md:21): \"a `.launcher.abcdef` directory and a record-shaped directory planted under `<world>/jobs` by the test mid-run are reported by the fixture as not this run's\"; practiced: `planted_launcher.mkdir()` and `planted_record.mkdir()` precede `proc = self.invoke(self.full_flags(\"--detach\", dry_run=False), timeout=8)`, while the current watched-path assertion fails before `self.invoke`; misses: a fixture that treats every unrelated entry created after wrapper start as this run's, because both test entries are pre-existing rather than concurrent and the subject is not reached on the current fixture.",
+          "reproduce": "python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' -k test_concurrent_entry_not_ours"
+        },
+        {
+          "severity": "p2",
+          "where": "ops/conductor/tests/test_dispatch_wrapper.py:739",
+          "claim": "declared (/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/in/brief.md:22): \"the environment handed to the wrapper carries no path under the host's home\"; practiced: `if key == \"PATH\" or not value: continue` exempts PATH, and the row passes when PATH contains `/home/scientdb/host-bin`; misses: a wrapper that resolves or executes an unqualified program from a host-home PATH entry.",
+          "reproduce": "env TMPDIR=/tmp PATH=/home/scientdb/host-bin:/usr/bin:/bin /usr/bin/python3 -m unittest discover -s ops/conductor/tests -p 'test_dispatch_wrapper.py' -k test_host_store_untouched_by_construction"
+        }
+      ],
+      "artifacts": {},
+      "spend": {
+        "harness": "codex",
+        "total": 872622,
+        "out": 13096,
+        "runs": 1
+      },
+      "stamp": {
+        "ref": "cdd1d53c04068615ac4550f53be48f64e6a3ee20"
+      },
+      "note": "Reviewed all four RowHermeticStore rows and both planted faults; record-lands-in-world-jobs survives and catches M-ignore-jobs-env. The required table calibration reports clean=red, so its caught-mutant result is not valid calibration. reused: lane MCP brief/jobs/changes/findings, testkit.world, testkit.run, testkit.rows"
+    },
+    "proof": {
+      "mcp_wired": true,
+      "mcp_calls": 4,
+      "mcp_tools": [
+        "lane_brief",
+        "lane_changes",
+        "lane_findings",
+        "lane_jobs"
+      ],
+      "store": "/home/scientdb/.local/state/agentscient/dispatch/20260916T100458Z-review-codex-f1070f/home/codex-stream/sessions/2026/09/16/rollout-2026-09-16T06-05-02-01a0a9ad-4d4f-7da2-a0a2-304855167bcb.jsonl"
+    },
+    "cause": {
+      "reason": "last-event",
+      "type": "event_msg",
+      "at": "2026-09-16T10:10:42.932Z"
+    }
+  },
+  "status": "closed"
+}
