@@ -44,7 +44,7 @@ checksum by the XO's reading at 15:19Z (not re-taken here).
 | peer name | agentscient-11 |
 | branch | `lane/session-20260916-a`, worktree `wt/ag-session-20260916-a` at c4ae0b4c, clean, one commit ahead of origin (the dispatch record commit for 20260916T085626Z-review-claude-30f3eb) |
 | lock target | `done lane/session-20260916-a: guidance=on-dev`, met, re-taken by the Lead at 15:14Z |
-| transcript | `~/.claude/projects/-home-scientdb-projects-uscient-agentscient/d5c18547-5179-4800-a532-a000c3b56db8.jsonl`, 6501 lines, 12,249,215 bytes, last turn 15:24:20Z |
+| transcript | `~/.claude/projects/<project-slug>/d5c18547-5179-4800-a532-a000c3b56db8.jsonl`, 6501 lines, 12,249,215 bytes, last turn 15:24:20Z |
 
 The one command that restores it, from a plain WSL terminal in the
 project directory:
@@ -66,7 +66,7 @@ session ids are from `coordination.py participants` where bound.
 | agentscient-09 | PT-7 | 7ae721d7… | coordinator (XO), T-89 and T-95 taken | lane/session-20260916-09 at 806be732, pushed, seven record commits ahead of dev, no PR | scopes written; audits queued through c8; delete row as two dispatches approved |
 | agentscient-c8 | PT-3 | 6748e545… | dispatcher | not measured | "Idle, holding." at 15:18:27Z; the relaunch scope written at 14:43Z (712 bytes), launched nothing after the two audits |
 | agentscient-e0 | not bound | not measured | builder, wall grant 283 | lane/session-20260916-ci, #255 | closed on #255 at 9af8a71b; declined the delete row as a non-wall session; H-18 threads T-102 to T-104 |
-| agentscient-db | not bound | not measured | builder | lane/session-20260916-launcher, #254 | Proof heading and rows in the body; owned the audit dispositions |
+| db (the builder; its peer name is spelled with a term the tree wall forbids) | not bound | not measured | builder | lane/session-20260916-launcher, #254 | Proof heading and rows in the body; owned the audit dispositions |
 | agentscient-72 | not bound | not measured | Sonnet, the Drive read then the delete row | none | silent all afternoon by the XO's reading |
 | agentscient-47 | not bound | not measured | the Phase 1 census seat | none | silent all afternoon by the XO's reading |
 | agentscient-61 | not bound | not measured | idle, awaiting the relaunch | none | not measured |
