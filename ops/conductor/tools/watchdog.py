@@ -902,7 +902,8 @@ class Watch:
                 # already there with no record copy, say nothing at all
                 # unless --report-existing asks for them.
                 self.startup_silent = self.startup_closed | {
-                    entry.name for entry in initial if entry.kind == "no-copy"
+                    entry.name for entry in initial
+                    if entry.kind in ("no-copy", "error")
                 }
         except OSError as exc:
             self.startup_error = exc
@@ -917,8 +918,9 @@ class Watch:
     def silent(self, record_id):
         """True for a record that was backlog when this watcher started:
         already closed, or a job directory already there with no record
-        copy. Nothing about it is reported in any condition family unless
-        --report-existing (owner, 2026-09-16; LD-68)."""
+        copy or with inputs that cannot be read. Nothing about it is
+        reported in any condition family unless --report-existing. Only
+        what changes after start speaks (owner, 2026-09-16; LD-68)."""
         return record_id in self.startup_silent
 
     def deviation(self, kind, record_id):
@@ -1096,7 +1098,8 @@ class Watch:
         for e in all_entries:
             if e.kind == "error":
                 self.deviation("unavailable", e.name)
-                self.once(("error", e.name), f"watchdog error: InputUnavailable: job inputs unavailable for {e.name} (tick {self.tick}; the loop continues)")
+                if not self.silent(e.name):
+                    self.once(("error", e.name), f"watchdog error: InputUnavailable: job inputs unavailable for {e.name} (tick {self.tick}; the loop continues)")
                 continue
             if e.kind == "no-copy":
                 if not self.silent(e.name):

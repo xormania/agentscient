@@ -48,16 +48,20 @@ before it settles the record.
 ## The lines
 
 Each line is printed once per record (or per key) for the life of the
-process. A record that was already closed when the process starts is
-backlog, and nothing about it is reported: not the `closed` line, not a
-`deviation` line, not `no record copy`, not `drift`. `--report-existing`
-asks for backlog and reports every one of those lines once. A job
-directory already present with no record copy is backlog by the same
-rule. A record that closes, or a job directory that appears, while the
-process runs is live and is reported without the flag (owner,
-2026-09-16, through the Lead: "a watcher reports nothing about a record
-that was already closed when it started, in every condition family";
-LD-68).
+process. Whatever the process can already see when it starts is backlog:
+a record already closed, a job directory with no record copy, and a job
+directory whose inputs cannot be read. Nothing about backlog is
+reported — not the `closed` line, not a `deviation` line, not
+`no record copy`, not `drift`, not the `watchdog error` line for its
+unreadable inputs. `--report-existing` asks for backlog and reports
+every one of those lines once. Only what changes after start speaks: a
+record that closes, a directory that appears, inputs that become
+unreadable while the process runs are live and are reported without the
+flag (owner, 2026-09-16, through the Lead: "a watcher reports nothing
+about a record that was already closed when it started, in every
+condition family"; and, the same day, "anything the watcher can see when
+it starts, closed, no-copy, unreadable, is silent without
+--report-existing"; LD-68).
 
 - `closed <id> status=<s> env=<envelope status> changed=<n> after <m> min`
   — `m` from `at.launched` to `at.closed`; `changed` is the count of

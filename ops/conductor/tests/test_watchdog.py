@@ -58,6 +58,7 @@ CLOSE_TRIP_ID = "20260904T100500Z-code-grok-aa3106"
 CLOSE_UNK_ID = "20260904T100600Z-code-grok-aa3107"
 CLOSE_LIVE_ID = "20260904T100700Z-code-grok-aa3108"
 NOCOPY_ID = "20260904T100800Z-code-grok-aa3109"
+UNREADABLE_ID = "20260904T100900Z-code-grok-aa3110"
 LONG_REC_ID = "20260904T100900Z-code-grok-aa3110"
 LONG_JOB_ID = "20260904T101000Z-code-grok-aa3111"
 LONG_UNK_ID = "20260904T101100Z-code-grok-aa3112"
@@ -197,9 +198,12 @@ def _result(result: Result) -> _Result:
 # with a 40-minute threshold.
 # PIN_NOCOPY: `no record copy <id>: cannot judge` once per process.
 # A job directory already there at start is backlog: silent unless
-# `--report-existing` (LD-68).
+# `--report-existing` (LD-68), and so is one whose inputs cannot be read
+# (`watchdog error: InputUnavailable` and `deviation unavailable`).
 # PIN_ERROR: `watchdog error: <type>: <message> (tick <t>; the loop
-# continues)` and `--once` still exits 0.
+# continues)` and `--once` still exits 0. A job directory whose inputs
+# were already unreadable at start is backlog: silent unless
+# `--report-existing` (LD-68).
 # PIN_CI: `ci <fail|cancel> #<pr> at <sha>: <check>` once per pull
 # request head and check name; every failing or cancelled check.
 # PIN_HEARTBEAT: `heartbeat: running=<id m/wall, ...>; settling=<n>;
@@ -1476,14 +1480,20 @@ class LongRunning(_WatchdogFixture):
 
 
 class TickError(_WatchdogFixture):
-    """A tick that raises prints the error line; --once still exits 0."""
+    """A tick that raises prints the error line; --once still exits 0.
+
+    The directory is planted before the run, so it is backlog and the
+    line is asked for with --report-existing (LD-68); the live half is
+    ClosedAtStartIsSilent's
+    test_an_unreadable_directory_that_appears_after_start_is_said.
+    """
 
     def test_record_json_directory_prints_error_and_once_exits_0(self):
         job_dir = self.plant_job(ERR_ID, record_as_dir=True)
         rec_path = job_dir / "record.json"
         self.assertTrue(rec_path.is_dir(), "plant: record.json is a directory")
         self.assertFalse(rec_path.is_file())
-        proc = self.once()
+        proc = self.once(extra=["--report-existing"])
         text = self.combined(proc)
         err_lines = [
             ln for ln in text.splitlines() if ln.startswith("watchdog error:")
@@ -1631,6 +1641,19 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
     test_watchdog_deliverable.py.
     """
 
+    def plant_unreadable(self, rec_id: str) -> Path:
+        """A job directory whose record.json is a symlink: the tool opens
+        job inputs with O_NOFOLLOW, so the reading is unavailable rather
+        than wrong."""
+        job_dir = self.ensure_store() / rec_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+        target = job_dir / "record.real.json"
+        self.world.plant_text(target, "{}\n")
+        link = job_dir / "record.json"
+        link.symlink_to(target)
+        self.assertTrue(link.is_symlink(), "plant: record.json is a symlink")
+        return job_dir
+
     def plant_backlog(self) -> None:
         self.plant_dev_job(
             ASSUME_ID,
@@ -1646,6 +1669,7 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
             findings=[FINDING_LOST],
         )
         self.plant_no_copy(NOCOPY_ID)
+        self.plant_unreadable(UNREADABLE_ID)
         self.assertTrue(
             (self.store / ASSUME_ID / "record.json").exists(),
             "plant: the assumption record is there",
@@ -1670,6 +1694,11 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
             [],
             proc.stdout,
         )
+        self.assertEqual(
+            self.named_lines(proc, "watchdog error: InputUnavailable"),
+            [],
+            proc.stdout,
+        )
         self.assertEqual(self.heartbeat_deviation_count(proc), 0)
 
     def test_report_existing_prints_the_whole_backlog_once(self):
@@ -1688,7 +1717,33 @@ class ClosedAtStartIsSilent(_WatchdogFixture):
             1,
             proc.stdout,
         )
-        self.assertEqual(self.heartbeat_deviation_count(proc), 2)
+        self.assertEqual(
+            len(self.deviation_lines(proc, UNREADABLE_ID)), 1, proc.stdout
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
+        self.assertEqual(self.heartbeat_deviation_count(proc), 3)
+
+    def test_an_unreadable_directory_that_appears_after_start_is_said(self):
+        self.ensure_store()
+
+        def plant_it():
+            self.plant_unreadable(UNREADABLE_ID)
+
+        proc = self.loop(
+            ["--tick", "0.15", "--no-forge"],
+            seconds=0.75,
+            mutate=plant_it,
+            mutate_after=0.2,
+        )
+        self.assertEqual(
+            len(self.named_lines(proc, "watchdog error: InputUnavailable")),
+            1,
+            proc.stdout,
+        )
 
     def test_a_record_that_closes_after_start_still_reports_its_deviation(self):
         proc_pid = self.spawn_named(HARNESS)
