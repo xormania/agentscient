@@ -21,6 +21,7 @@ written, both readings quoted in the commit that carries it.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -70,6 +71,13 @@ class _World(unittest.TestCase):
         self.assertEqual(proc.exit, 0, f"{argv}: {proc.stderr}")
         return proc.stdout
 
+    def gen(self, aid: str) -> str:
+        """The generation the assignment stands at, read and not assumed."""
+        shown = self.ok("show", aid, session=LEAD)
+        found = re.search(r"generation (\d+)", shown)
+        self.assertIsNotNone(found, f"no generation in: {shown}")
+        return found.group(1)
+
     def lock(self):
         proc = run(
             [sys.executable, str(LOCK_LEVER), "add", BRANCH, "--why", "package E's trial"],
@@ -91,8 +99,8 @@ class _World(unittest.TestCase):
                          "--outcome", "the brief reads back",
                          "--revision", "a1b2c3d", session=LEAD)
         aid = opened.split()[-1]
-        self.ok("offer", aid, "--to", "PT-2", session=LEAD)
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        self.ok("offer", aid, "--to", "PT-2", "--generation", self.gen(aid), session=LEAD)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), session=WORKER)
         return aid
 
     def verified(self) -> str:
@@ -102,11 +110,11 @@ class _World(unittest.TestCase):
         self.ok("bind", "--roles", "worker", session=CHECKER)
         self.ok("grant", "PT-3", "--roles", "verifier", session=LEAD)
         self.ok("observe", aid, "--observation", "the suite ran",
-                "--revision", "a1b2c3d", "--generation", "1", session=WORKER)
+                "--revision", "a1b2c3d", "--generation", self.gen(aid), session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
-                "--generation", "1", session=WORKER)
+                "--generation", self.gen(aid), session=WORKER)
         self.ok("verify", aid, "--candidate", "a1b2c3d",
-                "--evidence", "20260916T010203Z-job-v", "--generation", "1",
+                "--evidence", "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
         return aid
 
@@ -222,7 +230,7 @@ class Evidence(_World):
     def test_stale_evidence_names_its_reason_and_the_revision(self):
         aid = self.verified()
         self.ok("reopen", aid, "--revision", "b2c3d4e",
-                "--why", "the candidate moved under it", "--generation", "1",
+                "--why", "the candidate moved under it", "--generation", self.gen(aid),
                 session=LEAD)
         brief = self.ok("brief", session=WORKER)
         self.assertIn("stale", brief)
@@ -232,7 +240,7 @@ class Evidence(_World):
     def test_evidence_taken_against_the_applicable_revision_reads_as_current(self):
         aid = self.held()
         self.ok("observe", aid, "--observation", "the suite ran",
-                "--revision", "a1b2c3d", "--generation", "1", session=WORKER)
+                "--revision", "a1b2c3d", "--generation", self.gen(aid), session=WORKER)
         brief = self.ok("brief", session=WORKER)
         self.assertIn("current", brief)
         self.assertNotIn("stale:", brief)

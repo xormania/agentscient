@@ -21,7 +21,9 @@ both readings are quoted in the commit that carries it.
 from __future__ import annotations
 
 import os
+import sqlite3
 import sys
+import time
 import unittest
 import unittest.mock
 from pathlib import Path
@@ -77,6 +79,18 @@ class _Scratch(unittest.TestCase):
         )
         self.assertEqual(proc.exit, 0, proc.stderr)
 
+    def gen(self, aid) -> str:
+        """The generation the assignment stands at, read and not assumed.
+
+        Every move bumps it, so a row that means "now" asks. A row that
+        means a generation the assignment has moved past captures this
+        before the move that stales it."""
+        import re
+        shown = self.ok("show", aid, session=LEAD)
+        found = re.search(r"generation (\d+)", shown)
+        self.assertIsNotNone(found, f"show printed no generation: {shown!r}")
+        return found.group(1)
+
     def core(self, session_id=LEAD):
         """The module, imported fresh against this world's state root."""
         import importlib.util
@@ -111,22 +125,23 @@ class _Scratch(unittest.TestCase):
         out = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
                       "--revision", "a1b2c3d", session=LEAD)
         aid = out.split()[-1]
-        self.ok("offer", aid, "--to", to, session=LEAD)
+        self.ok("offer", aid, "--to", to, "--generation", self.gen(aid),
+                session=LEAD)
         return aid
 
     def held(self):
         self.lock()
         aid = self.offered()
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), session=WORKER)
         return aid
 
     def submitted(self):
         aid = self.held()
         self.ok("observe", aid, "--observation", "the suite ran",
-                "--revision", "a1b2c3d", "--generation", "1",
+                "--revision", "a1b2c3d", "--generation", self.gen(aid),
                 "--execution", "20260916T010203Z-job-x", session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
-                "--generation", "1", session=WORKER)
+                "--generation", self.gen(aid), session=WORKER)
         return aid
 
 
@@ -166,9 +181,9 @@ class Assignments(_Scratch):
     def test_the_vertical_path_reaches_accepted(self):
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
-        self.ok("accept", aid, "--evidence", "a1b2c3d", "--generation", "1",
+        self.ok("accept", aid, "--evidence", "a1b2c3d", "--generation", self.gen(aid),
                 session=LEAD)
         self.assertIn("accepted", self.ok("show", aid, session=LEAD))
 
@@ -176,14 +191,15 @@ class Assignments(_Scratch):
         self.bind_three()
         out = self.ok("draft", "a repair", "--outcome", "it refuses", session=LEAD)
         aid = out.split()[-1]
-        proc = self.run_tool("offer", aid, "--to", "PT-2", session=WORKER)
+        proc = self.run_tool("offer", aid, "--to", "PT-2", "--generation",
+                             self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("worker-offers", (), "role", named=("lead",)), proc)
 
     def test_a_claim_by_another_participant_refuses_recipient(self):
         self.lock()
         self.bind_three()
         aid = self.offered(to="PT-2")
-        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", "1",
+        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid),
                              session=CHECKER)
         refusal_wire(RefusalCase("wrong-claimant", (), "recipient"), proc)
 
@@ -191,12 +207,12 @@ class Assignments(_Scratch):
         self.bind_three()
         aid = self.offered()
         proc = self.run_tool("claim", aid, "--branch", "lane/not-on-the-board",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("claim-off-lock", (), "deliverable"), proc)
 
     def test_a_second_claim_refuses_taken(self):
         aid = self.held()
-        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", "1",
+        proc = self.run_tool("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid),
                              session=WORKER)
         refusal_wire(RefusalCase("second-claim", (), "taken"), proc)
 
@@ -206,42 +222,44 @@ class GenerationAndRevision(_Scratch):
         """AC-03: the place alone returns to `held`, so the generation is
         what refuses the old holder."""
         aid = self.held()
+        stale = self.gen(aid)
         self.ok("reassign", aid, "--to", "PT-3", "--why", "the worker went quiet",
-                "--generation", "1", session=LEAD)
+                "--generation", stale, session=LEAD)
         proc = self.run_tool("submit", aid, "--evidence", "a1b2c3d",
-                             "--revision", "a1b2c3d", "--generation", "1",
+                             "--revision", "a1b2c3d", "--generation", stale,
                              session=WORKER)
         refusal_wire(RefusalCase("stale-generation", (), "generation",
-                                 named=("1", "2")), proc)
+                                 named=(stale, self.gen(aid))), proc)
 
     def test_release_bumps_the_generation(self):
         aid = self.held()
-        self.ok("release", aid, "--why", "blocked on the wall", "--generation", "1",
-                session=WORKER)
-        self.assertIn("generation 2", self.ok("show", aid, session=LEAD))
+        before = int(self.gen(aid))
+        self.ok("release", aid, "--why", "blocked on the wall", "--generation",
+                str(before), session=WORKER)
+        self.assertIn(f"generation {before + 1}", self.ok("show", aid, session=LEAD))
 
     def test_verify_refuses_an_observation_of_another_revision(self):
         self.lock()
         self.bind_three()
         aid = self.offered()
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), session=WORKER)
         self.ok("observe", aid, "--observation", "ran at the old tree",
-                "--revision", "a1b2c3d", "--generation", "1", session=WORKER)
+                "--revision", "a1b2c3d", "--generation", self.gen(aid), session=WORKER)
         self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
-                "--generation", "1", session=WORKER)
+                "--generation", self.gen(aid), session=WORKER)
         proc = self.run_tool("verify", aid, "--candidate", "9999999",
                              "--evidence", "20260916T010203Z-job-v",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("stale-revision", (), "revision"), proc)
 
     def test_reopen_stales_the_observations_and_keeps_them(self):
         """AC-10: a changed candidate needs reassessment; the old row stays."""
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
         self.ok("reopen", aid, "--revision", "beefbee", "--why", "the candidate moved",
-                "--generation", "1", session=LEAD)
+                "--generation", self.gen(aid), session=LEAD)
         current = self.ok("observations", aid, session=LEAD)
         self.assertNotIn("the suite ran", current)
         self.assertIn("the suite ran", self.ok("observations", aid, "--all", session=LEAD))
@@ -254,17 +272,17 @@ class Producers(_Scratch):
         self.ok("grant", "PT-2", "--roles", "verifier", session=LEAD)
         proc = self.run_tool("verify", aid, "--candidate", "a1b2c3d",
                              "--evidence", "20260916T010203Z-job-v",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("self-verify", (), "producer"), proc)
 
     def test_the_producer_cannot_accept_its_own_candidate(self):
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
         self.ok("grant", "PT-2", "--roles", "lead", session=LEAD)
         proc = self.run_tool("accept", aid, "--evidence", "a1b2c3d",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("self-accept", (), "producer"), proc)
 
 
@@ -436,7 +454,7 @@ class DispatchedWorkers(_Scratch):
     def test_a_dispatched_worker_can_record_its_own_findings(self):
         aid = self.dispatched()
         done = self.as_worker("observe", aid, "--observation", "the row refuses",
-                              "--revision", "a1b2c3d", "--generation", "1")
+                              "--revision", "a1b2c3d", "--generation", self.gen(aid))
         self.assertEqual(done.exit, 0, done.stderr)
         self.assertIn("the row refuses", self.ok("observations", aid, session=LEAD))
 
@@ -478,7 +496,7 @@ class TheCoreSeam(_Scratch):
         module = self.core()
         with module.writer() as conn:
             part = module.core_bind(
-                conn, None, agent=SHARED, session_id=LEAD, roles="lead,coordinator",
+                conn, None, agent=SHARED, roles="lead,coordinator",
             )
             self.assertIsInstance(part, dict)
             self.assertEqual(part["participant"], "PT-1")
@@ -495,7 +513,7 @@ class TheCoreSeam(_Scratch):
     def test_a_core_function_raises_the_refusal_with_its_three_parts(self):
         module = self.core()
         with module.writer() as conn:
-            module.core_bind(conn, None, agent=SHARED, session_id=LEAD, roles="worker")
+            module.core_bind(conn, None, agent=SHARED, roles="worker")
             part = module.bound_participant(conn)
             with self.assertRaises(module.Refusal) as caught:
                 module.CORE["draft"](
@@ -549,23 +567,24 @@ class ObservationsBindToARevision(_Scratch):
         generation 1 and revision a1b2c3d."""
         aid = self.submitted()
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
                 session=CHECKER)
+        self.stale = self.gen(aid)
         self.ok("reopen", aid, "--revision", "beefbee", "--why", "the candidate moved",
-                "--generation", "1", session=LEAD)
+                "--generation", self.stale, session=LEAD)
         return aid
 
     def test_an_observation_refuses_a_generation_the_assignment_moved_past(self):
         aid = self.reopened()
         proc = self.run_tool("observe", aid, "--observation", "the suite ran",
-                             "--revision", "beefbee", "--generation", "1",
+                             "--revision", "beefbee", "--generation", self.stale,
                              session=WORKER)
         refusal_wire(RefusalCase("observe-stale-generation", (), "generation"), proc)
 
     def test_an_observation_refuses_a_revision_that_is_not_the_current_one(self):
         aid = self.reopened()
         proc = self.run_tool("observe", aid, "--observation", "the suite ran",
-                             "--revision", "a1b2c3d", "--generation", "2",
+                             "--revision", "a1b2c3d", "--generation", self.gen(aid),
                              session=WORKER)
         refusal_wire(RefusalCase("observe-old-revision", (), "revision"), proc)
 
@@ -575,7 +594,7 @@ class ObservationsBindToARevision(_Scratch):
         evidence of the candidate that replaced it."""
         aid = self.reopened()
         self.ok("observe", aid, "--observation", "ran before the move",
-                "--revision", "a1b2c3d", "--generation", "1", "--stale",
+                "--revision", "a1b2c3d", "--generation", self.stale, "--stale",
                 session=WORKER)
         every = self.ok("observations", aid, "--all", session=LEAD)
         self.assertIn("ran before the move", every)
@@ -587,7 +606,7 @@ class ObservationsBindToARevision(_Scratch):
         """The clean neighbour: the same verb, the readings that agree."""
         aid = self.reopened()
         self.ok("observe", aid, "--observation", "the suite ran again",
-                "--revision", "beefbee", "--generation", "2", session=WORKER)
+                "--revision", "beefbee", "--generation", self.gen(aid), session=WORKER)
         self.assertIn("the suite ran again", self.ok("observations", aid, session=LEAD))
 
 
@@ -622,6 +641,7 @@ class TheGateUnderTheLock(_Scratch):
 
     def test_return_re_checks_the_generation_inside_the_lock(self):
         aid = self.submitted()
+        believed = self.gen(aid)
         module = self.core(CHECKER)
         seen, wrapped = self.racing(module, aid)
         with unittest.mock.patch.object(module, "require_generation", wrapped):
@@ -629,7 +649,7 @@ class TheGateUnderTheLock(_Scratch):
                 part = module.bound_participant(conn)
                 with self.assertRaises(module.Refusal) as caught:
                     module.CORE["return"](conn, part, agent=SHARED, assignment=aid,
-                                          findings="a1b2c3d", generation="1")
+                                          findings="a1b2c3d", generation=believed)
         self.assertEqual(seen["n"], 2, "the gate must check again under the lock")
         self.assertTrue(caught.exception.line().startswith("generation:"),
                         caught.exception.line())
@@ -638,6 +658,7 @@ class TheGateUnderTheLock(_Scratch):
         """A refusal inside the gate rolls the whole move back: the place
         is the one the winner left, not the one the loser asked for."""
         aid = self.submitted()
+        believed = self.gen(aid)
         module = self.core(CHECKER)
         _seen, wrapped = self.racing(module, aid)
         with unittest.mock.patch.object(module, "require_generation", wrapped):
@@ -645,7 +666,7 @@ class TheGateUnderTheLock(_Scratch):
                 part = module.bound_participant(conn)
                 with self.assertRaises(module.Refusal):
                     module.CORE["return"](conn, part, agent=SHARED, assignment=aid,
-                                          findings="a1b2c3d", generation="1")
+                                          findings="a1b2c3d", generation=believed)
         self.assertIn("submitted", self.ok("show", aid, session=LEAD))
 
 
@@ -658,7 +679,7 @@ class TheReturnVerb(_Scratch):
     def test_return_sends_the_candidate_back_to_its_holder(self):
         aid = self.submitted()
         printed = self.ok("return", aid, "--findings", "#243",
-                          "--generation", "1", session=CHECKER).strip()
+                          "--generation", self.gen(aid), session=CHECKER).strip()
         self.assertEqual(printed, f"returned {aid} to PT-2")
         shown = self.ok("show", aid, session=LEAD)
         self.assertIn("held", shown)
@@ -667,7 +688,7 @@ class TheReturnVerb(_Scratch):
     def test_the_findings_are_a_reading_and_not_a_sentence(self):
         aid = self.submitted()
         proc = self.run_tool("return", aid, "--findings", "because I said so",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("return-prose-findings", (), "evidence"), proc)
 
     def test_every_pinned_reading_shape_is_admitted_as_findings(self):
@@ -675,13 +696,13 @@ class TheReturnVerb(_Scratch):
         for shape in ("a1b2c3d", "#243", "20260916T010203Z-job-x", "P-probe-1"):
             with self.subTest(shape=shape):
                 aid = self.submitted()
-                self.ok("return", aid, "--findings", shape, "--generation", "1",
+                self.ok("return", aid, "--findings", shape, "--generation", self.gen(aid),
                         session=CHECKER)
 
     def test_a_worker_cannot_return_a_candidate(self):
         aid = self.submitted()
         proc = self.run_tool("return", aid, "--findings", "#243",
-                             "--generation", "1", session=WORKER)
+                             "--generation", self.gen(aid), session=WORKER)
         refusal_wire(RefusalCase("return-by-worker", (), "role",
                                  named=("verifier",)), proc)
 
@@ -690,16 +711,17 @@ class TheReturnVerb(_Scratch):
         caller holding generation 1 reads class generation and not class
         place — which is why the check sits in the verb at all."""
         aid = self.held()
-        self.ok("release", aid, "--why", "blocked on the wall", "--generation", "1",
+        stale = self.gen(aid)
+        self.ok("release", aid, "--why", "blocked on the wall", "--generation", stale,
                 session=WORKER)
         proc = self.run_tool("return", aid, "--findings", "#243",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", stale, session=CHECKER)
         refusal_wire(RefusalCase("return-stale-generation", (), "generation"), proc)
 
     def test_return_refuses_a_candidate_that_was_never_submitted(self):
         aid = self.held()
         proc = self.run_tool("return", aid, "--findings", "#243",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("return-from-held", (), "place"), proc)
 
     def test_return_refuses_an_assignment_the_store_does_not_hold(self):
@@ -716,7 +738,7 @@ class TheReturnVerb(_Scratch):
 
     def test_return_refuses_without_its_findings(self):
         aid = self.submitted()
-        proc = self.run_tool("return", aid, "--generation", "1", session=CHECKER)
+        proc = self.run_tool("return", aid, "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("return-no-findings", (), "arguments"), proc)
 
 
@@ -735,14 +757,15 @@ class TheCandidateAnObservationNames(_Scratch):
         self.bind_three()
         aid = self.ok("draft", "no candidate yet", "--outcome", "the gap",
                       session=LEAD).split()[-1]
-        self.ok("offer", aid, "--to", "PT-2", session=LEAD)
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", session=WORKER)
+        self.ok("offer", aid, "--to", "PT-2", "--generation", self.gen(aid),
+                session=LEAD)
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), session=WORKER)
         return aid
 
     def test_observe_refuses_an_assignment_that_names_no_revision(self):
         aid = self.no_candidate_yet()
         proc = self.run_tool("observe", aid, "--observation", "ran at deadbee",
-                             "--revision", "deadbee", "--generation", "1",
+                             "--revision", "deadbee", "--generation", self.gen(aid),
                              session=WORKER)
         refusal_wire(RefusalCase("observe-no-candidate", (), "revision"), proc)
 
@@ -751,14 +774,14 @@ class TheCandidateAnObservationNames(_Scratch):
         With no candidate at all there is nothing it could be history of."""
         aid = self.no_candidate_yet()
         proc = self.run_tool("observe", aid, "--observation", "ran at deadbee",
-                             "--revision", "deadbee", "--generation", "1", "--stale",
+                             "--revision", "deadbee", "--generation", self.gen(aid), "--stale",
                              session=WORKER)
         refusal_wire(RefusalCase("observe-no-candidate-stale", (), "revision"), proc)
 
     def test_the_clean_neighbour_an_assignment_that_names_its_candidate(self):
         aid = self.held()
         self.ok("observe", aid, "--observation", "the suite ran", "--revision",
-                "a1b2c3d", "--generation", "1", session=WORKER)
+                "a1b2c3d", "--generation", self.gen(aid), session=WORKER)
         self.assertIn("the suite ran", self.ok("observations", aid, session=LEAD))
 
     def test_submit_stales_a_current_observation_of_another_revision(self):
@@ -766,6 +789,7 @@ class TheCandidateAnObservationNames(_Scratch):
         verb can now produce this row, but a store written before the gate
         can hold one. It is planted directly and submit must mark it."""
         aid = self.no_candidate_yet()
+        believed = self.gen(aid)
         module = self.core(WORKER)
         number = int(aid.split("-")[1])
         with module.writer() as conn:
@@ -778,7 +802,7 @@ class TheCandidateAnObservationNames(_Scratch):
         with module.writer() as conn:
             module.CORE["submit"](conn, module.bound_participant(conn), agent=SHARED,
                                   assignment=aid, evidence="a1b2c3d",
-                                  revision="a1b2c3d", generation="1")
+                                  revision="a1b2c3d", generation=believed)
         every = self.ok("observations", aid, "--all", session=LEAD)
         self.assertIn("ran at deadbee", every, "the row is kept, never deleted")
         self.assertIn("[stale:", every)
@@ -802,38 +826,38 @@ class TheCandidateAndTheReading(_Scratch):
     def submitted_with(self, evidence):
         aid = self.held()
         self.ok("submit", aid, "--evidence", evidence, "--revision", "a1b2c3d",
-                "--generation", "1", session=WORKER)
+                "--generation", self.gen(aid), session=WORKER)
         return aid
 
     def test_a_candidate_submitted_with_a_corpus_row_can_be_verified(self):
         aid = self.submitted_with("P-probe-1")
         printed = self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                          "P-probe-1", "--generation", "1", session=CHECKER).strip()
+                          "P-probe-1", "--generation", self.gen(aid), session=CHECKER).strip()
         self.assertEqual(printed, f"verified {aid} by PT-3")
 
     def test_a_candidate_submitted_with_a_dispatch_record_can_be_verified(self):
         aid = self.submitted_with("20260916T010203Z-job-x")
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1", session=CHECKER)
+                "20260916T010203Z-job-v", "--generation", self.gen(aid), session=CHECKER)
 
     def test_the_candidate_must_be_the_one_the_assignment_stands_at(self):
         aid = self.submitted_with("a1b2c3d")
         proc = self.run_tool("verify", aid, "--candidate", "9999999", "--evidence",
-                             "20260916T010203Z-job-v", "--generation", "1",
+                             "20260916T010203Z-job-v", "--generation", self.gen(aid),
                              session=CHECKER)
         refusal_wire(RefusalCase("verify-wrong-candidate", (), "revision"), proc)
 
     def test_the_evidence_must_still_be_a_reading(self):
         aid = self.submitted_with("a1b2c3d")
         proc = self.run_tool("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                             "it looked fine to me", "--generation", "1",
+                             "it looked fine to me", "--generation", self.gen(aid),
                              session=CHECKER)
         refusal_wire(RefusalCase("verify-prose-evidence", (), "evidence"), proc)
 
     def test_verify_refuses_without_its_candidate(self):
         aid = self.submitted_with("a1b2c3d")
         proc = self.run_tool("verify", aid, "--evidence", "20260916T010203Z-job-v",
-                             "--generation", "1", session=CHECKER)
+                             "--generation", self.gen(aid), session=CHECKER)
         refusal_wire(RefusalCase("verify-no-candidate", (), "arguments"), proc)
 
     def test_the_verification_reading_is_what_the_marking_records(self):
@@ -841,7 +865,7 @@ class TheCandidateAndTheReading(_Scratch):
         marking carries the run that verified, not the candidate's sha."""
         aid = self.submitted_with("a1b2c3d")
         self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
-                "20260916T010203Z-job-v", "--generation", "1", session=CHECKER)
+                "20260916T010203Z-job-v", "--generation", self.gen(aid), session=CHECKER)
         self.assertIn("20260916T010203Z-job-v", self.ok("show", aid, session=LEAD))
 
 
@@ -905,16 +929,6 @@ class ThePassedRowIsNotAuthority(_Scratch):
         return conn.execute(
             "SELECT * FROM participants WHERE session_id = ?", (WORKER,)
         ).fetchone()
-
-    def test_every_core_function_checks_the_row_it_was_passed(self):
-        import inspect
-        module = self.core()
-        unchecked = [
-            verb for verb, fn in module.CORE.items()
-            if "same_session(part)" not in inspect.getsource(fn)
-        ]
-        self.assertEqual([], unchecked,
-                         "these functions trust the participant they are handed")
 
     def test_a_foreign_row_refuses_class_participant(self):
         self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
@@ -984,7 +998,7 @@ class TheHolderIsAParticipant(_Scratch):
         agent string it runs under is not what makes it the holder."""
         aid = self.held()
         self.assertIn(f"released {aid}", self.ok(
-            "release", aid, "--why", "blocked on a question", "--generation", "1",
+            "release", aid, "--why", "blocked on a question", "--generation", self.gen(aid),
             session=WORKER, identity=self.OTHER))
 
     def test_a_lapsed_hold_is_released_by_another_participant(self):
@@ -993,18 +1007,18 @@ class TheHolderIsAParticipant(_Scratch):
         import time
         self.lock()
         aid = self.offered()
-        self.ok("claim", aid, "--branch", BRANCH, "--generation", "1", "--ttl", "0",
+        self.ok("claim", aid, "--branch", BRANCH, "--generation", self.gen(aid), "--ttl", "0",
                 session=WORKER)
         time.sleep(1.2)
         self.assertIn(f"released {aid}", self.ok(
             "release", aid, "--why", "the worker stopped answering",
-            "--generation", "1", session=LEAD))
+            "--generation", self.gen(aid), session=LEAD))
 
     def test_a_live_hold_refuses_another_participant(self):
         """The clean neighbour: while the lease stands, the holder holds."""
         aid = self.held()
         proc = self.run_tool("release", aid, "--why", "I want it back",
-                             "--generation", "1", session=LEAD)
+                             "--generation", self.gen(aid), session=LEAD)
         refusal_wire(RefusalCase("release-not-the-holder", (), "holder"), proc)
 
     def test_a_resource_is_freed_by_its_holder_under_another_agent_string(self):
@@ -1182,3 +1196,650 @@ class TheDocumentedFormsParse(_Scratch):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EveryMoveBumpsTheGeneration(_Scratch):
+    """The generation is what refuses a caller acting on a view the
+    assignment has moved past, and it only does that if every move moves
+    it.
+
+    Grok reproduced the hole against b1d868b0: return and submit both
+    left the generation alone, so a verifier that began a return against
+    one submission had it land on the next one, with the marking reading
+    `return submitted -> held by PT-3; evidence a1b2c3d` after
+    `submit held -> submitted by PT-2; evidence beefbee`. The Daybreak
+    audit found the same shape in `supersede`, which stated no generation
+    at all. Ruled by the Lead, 2026-09-16: every move bumps it, so a
+    delayed verb refuses on the gate it already has.
+    """
+
+    def test_each_transition_bumps_the_generation(self):
+        self.lock()
+        self.bind_three()
+        aid = self.ok("draft", "the whole ladder", "--outcome", "one bump a move",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        seen = [int(self.gen(aid))]
+        for argv, who in (
+            (("offer", aid, "--to", "PT-2"), LEAD),
+            (("claim", aid, "--branch", BRANCH), WORKER),
+            (("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d"), WORKER),
+            (("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+              "20260916T010203Z-job-v"), CHECKER),
+            (("accept", aid, "--evidence", "a1b2c3d"), LEAD),
+        ):
+            self.ok(*argv, "--generation", self.gen(aid), session=who)
+            seen.append(int(self.gen(aid)))
+        self.assertEqual(seen, list(range(seen[0], seen[0] + len(seen))),
+                         f"a move left the generation where it was: {seen}")
+
+    def test_a_delayed_return_refuses_the_submission_it_never_saw(self):
+        """Grok's sequence, run through the CLI: the verifier reads the
+        generation, a competing return and a resubmit go past it, and the
+        return it then makes is of a candidate it never looked at."""
+        aid = self.submitted()
+        believed = self.gen(aid)
+        self.ok("return", aid, "--findings", "#243", "--generation", believed,
+                session=LEAD)
+        self.ok("submit", aid, "--evidence", "beefbee", "--revision", "a1b2c3d",
+                "--generation", self.gen(aid), session=WORKER)
+        proc = self.run_tool("return", aid, "--findings", "a1b2c3d",
+                             "--generation", believed, session=CHECKER)
+        refusal_wire(RefusalCase("delayed-return", (), "generation"), proc)
+
+    def test_a_delayed_submit_refuses_after_a_return(self):
+        """The other half of the same race: the holder's resubmit is of a
+        candidate the return has already sent back."""
+        aid = self.submitted()
+        believed = self.gen(aid)
+        self.ok("return", aid, "--findings", "#243", "--generation", believed,
+                session=CHECKER)
+        proc = self.run_tool("submit", aid, "--evidence", "beefbee",
+                             "--revision", "a1b2c3d", "--generation", believed,
+                             session=WORKER)
+        refusal_wire(RefusalCase("delayed-submit", (), "generation"), proc)
+
+    def test_supersede_states_the_generation_it_believes(self):
+        """The Daybreak audit's ABA: release returns the assignment to
+        `offered` at a new generation, and the coordinator's stale view
+        supersedes the assignment that now stands there."""
+        self.lock()
+        self.bind_three()
+        old = self.ok("draft", "the older", "--outcome", "x", "--revision",
+                      "a1b2c3d", session=LEAD).split()[-1]
+        new = self.ok("draft", "the newer", "--outcome", "x", "--revision",
+                      "beefbee", session=LEAD).split()[-1]
+        self.ok("offer", old, "--to", "PT-2", "--generation", self.gen(old),
+                session=LEAD)
+        self.ok("claim", old, "--branch", BRANCH, "--generation", self.gen(old),
+                session=WORKER)
+        believed = self.gen(old)
+        self.ok("release", old, "--why", "retry", "--generation", believed,
+                session=WORKER)
+        proc = self.run_tool("supersede", old, "--by", new, "--generation",
+                             believed, session=LEAD)
+        refusal_wire(RefusalCase("supersede-stale-generation", (), "generation"), proc)
+
+    def test_supersede_refuses_without_a_generation(self):
+        self.lock()
+        self.bind_three()
+        old = self.ok("draft", "the older", "--outcome", "x", session=LEAD).split()[-1]
+        new = self.ok("draft", "the newer", "--outcome", "x", session=LEAD).split()[-1]
+        self.ok("offer", old, "--to", "PT-2", "--generation", self.gen(old),
+                session=LEAD)
+        proc = self.run_tool("supersede", old, "--by", new, session=LEAD)
+        refusal_wire(RefusalCase("supersede-no-generation", (), "arguments"), proc)
+
+    def test_offer_refuses_without_a_generation(self):
+        """The other verb the audit of the table found: it moves the
+        assignment and stated nothing about the view it moved from."""
+        self.bind_three()
+        aid = self.ok("draft", "a repair", "--outcome", "x",
+                      session=LEAD).split()[-1]
+        proc = self.run_tool("offer", aid, "--to", "PT-2", session=LEAD)
+        refusal_wire(RefusalCase("offer-no-generation", (), "arguments"), proc)
+
+    def test_the_clean_neighbour_a_current_view_still_moves_it(self):
+        """A verb that states the generation the assignment stands at is
+        not refused: the gate is a stale-view check, not a second lock."""
+        aid = self.submitted()
+        self.ok("return", aid, "--findings", "#243", "--generation", self.gen(aid),
+                session=CHECKER)
+        self.assertIn("held", self.ok("show", aid, session=LEAD))
+
+
+class TheParticipantIsReadNotSupplied(_Scratch):
+    """A caller hands the participant in; nothing it hands in is believed.
+
+    Round two found the first repair had moved the boundary rather than
+    closed it. `same_session` compared the supplied mapping's own
+    `session_id` against the environment and read nothing else from the
+    store, so a mapping carrying this session's id and another
+    participant's id and roles passed and then acted as that participant
+    (Codex 834580#2, Daybreak 1833de#3). `core_bind` took the session id
+    as an argument and never called `instrument.session()` at all, so a
+    worker process minted participants for sessions that do not exist and
+    rewrote a bound lead's agent, endpoint and probe (Grok bcfee6#2).
+
+    The rule, ruled by the Lead on 2026-09-16: the mapping carries an id
+    and nothing more. The row is reloaded from the store by that id and
+    its `session_id` must be this process's; every field the function
+    then reads — the roles above all — is the store's.
+    """
+
+    def forged(self, module, **fields):
+        """A mapping shaped like a participant row and written by hand."""
+        base = {"id": 1, "session_id": WORKER, "roles": "lead,coordinator",
+                "agent": SHARED, "harness": None, "endpoint": None,
+                "probe": None, "bound_at": "2026-09-16T00:00:00Z",
+                "bound_by": None, "bound_for": None, "granted_by": None,
+                "granted_at": None}
+        base.update(fields)
+        return base
+
+    def test_a_hybrid_row_of_two_participants_refuses(self):
+        """Daybreak's mapping: this session's id, another's id and roles."""
+        self.bind_three()
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](conn, self.forged(module), agent=SHARED,
+                                     title="forged", outcome="opened as PT-1")
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("participant:"), line)
+
+    def test_a_row_the_store_does_not_hold_refuses(self):
+        """Codex's invented id, from a session with no participant at all."""
+        self.bind_three()
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](conn, self.forged(module, id=999),
+                                     agent=SHARED, title="forged",
+                                     outcome="opened as nobody")
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("participant:"), line)
+
+    def test_the_roles_are_the_stores_and_not_the_mappings(self):
+        """The half a session-id comparison cannot reach: the caller's own
+        row, with the roles it wishes it held."""
+        self.bind_three()
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            with self.assertRaises(module.Refusal) as caught:
+                module.CORE["draft"](conn,
+                                     self.forged(module, id=2, session_id=WORKER,
+                                                 roles="lead,coordinator"),
+                                     agent=SHARED, title="forged",
+                                     outcome="drafted as a lead")
+        line = caught.exception.line()
+        self.assertTrue(line.startswith("role:"), line)
+
+    def test_the_clean_neighbour_the_stores_own_row_works(self):
+        self.bind_three()
+        module = self.core(LEAD)
+        with module.writer() as conn:
+            shown = module.CORE["draft"](conn, module.bound_participant(conn),
+                                         agent=SHARED, title="a real repair",
+                                         outcome="it lands")
+        self.assertTrue(shown["assignment"].startswith("A-"), shown)
+
+    def test_bind_binds_the_session_this_process_runs_under(self):
+        """Grok's mint: the session id is read, never passed."""
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            shown = module.CORE["bind"](conn, None, agent=SHARED, roles="worker")
+        self.assertEqual(WORKER, shown["session"])
+        listed = self.ok("participants", session=WORKER)
+        self.assertEqual(1, len(listed.strip().splitlines()), listed)
+
+    def test_bind_cannot_rewrite_another_participants_row(self):
+        """Grok's hijack: a worker process re-binding the lead's session,
+        rewriting its agent, its endpoint and its probe."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        module = self.core(WORKER)
+        with module.writer() as conn:
+            module.CORE["bind"](conn, None, agent="Attacker <a@e.test>",
+                                roles="worker", endpoint="tcp://attacker:9",
+                                probe="hijacked")
+        listed = self.ok("participants", session=LEAD)
+        lead = next(line for line in listed.splitlines() if line.startswith("PT-1 "))
+        self.assertIn(f"PT-1 lead,coordinator — {SHARED}", lead)
+        self.assertNotIn("Attacker", lead)
+        self.assertNotIn("attacker:9", lead)
+        # The worker refreshing its own agent string is the declared
+        # behaviour of a re-bind, and it is the only row that moved.
+        self.assertIn("PT-2 worker — Attacker <a@e.test>", listed)
+
+
+class TheBootstrapIsOneRoot(_Scratch):
+    """The store's first participant is the root of the authority chain,
+    and a store has one of them.
+
+    `writer()` connects with `isolation_level=None`, so the count that
+    decides whether a bind is the bootstrap and the insert that acts on
+    it were two autocommit statements with a window between them. All
+    three reviewers of round two reproduced two roots through that
+    window: `[('session-two', 'lead'), ('session-one', 'lead')]` against
+    b1d868b0.
+    """
+
+    def racing_bind(self, module, first, second):
+        """The first caller between its count and its insert, and the
+        second binding into that window.
+
+        Returns what each call came back with — a participant dict or the
+        Refusal it raised.
+        """
+        import threading
+        module.writer().close()
+        local = threading.local()
+        counted = threading.Event()
+        out = {}
+
+        def whose_session(default=""):
+            return getattr(local, "sid", default)
+
+        class Counting:
+            """A cursor that says when the bootstrap count has been read."""
+
+            def __init__(self, cursor):
+                self.cursor = cursor
+
+            def fetchone(self):
+                row = self.cursor.fetchone()
+                counted.set()
+                time.sleep(0.8)
+                return row
+
+            def __getattr__(self, name):
+                return getattr(self.cursor, name)
+
+        class Held:
+            def __init__(self, raw):
+                self.raw = raw
+
+            def execute(self, sql, args=()):
+                cursor = self.raw.execute(sql, args)
+                if sql.startswith("SELECT COUNT(*) AS n FROM participants"):
+                    return Counting(cursor)
+                return cursor
+
+            def __getattr__(self, name):
+                return getattr(self.raw, name)
+
+        def call(name, sid, roles, hold):
+            local.sid = sid
+            if not hold:
+                counted.wait(timeout=10)
+            conn = module.writer()
+            try:
+                out[name] = module.CORE["bind"](
+                    Held(conn) if hold else conn, None, agent=SHARED, roles=roles)
+            except module.Refusal as refusal:
+                out[name] = refusal
+            finally:
+                conn.close()
+
+        with unittest.mock.patch.object(module, "session", whose_session):
+            threads = [
+                threading.Thread(target=call, args=("first", first, "lead,coordinator", True)),
+                threading.Thread(target=call, args=("second", second, "lead,dispatcher", False)),
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(30)
+        return out
+
+    def test_two_first_binds_do_not_both_take_lead(self):
+        module = self.core(LEAD)
+        out = self.racing_bind(module, "session-one", "session-two")
+        self.assertIsInstance(out.get("first"), dict, out)
+        self.assertIsInstance(out.get("second"), module.Refusal, out)
+        self.assertEqual("role", out["second"].kind, out["second"].line())
+        with module.reader() as conn:
+            roles = [row["roles"] for row in
+                     conn.execute("SELECT roles FROM participants ORDER BY id")]
+        self.assertEqual(["lead,coordinator"], roles,
+                         f"the chain has more than one root: {roles}")
+
+    def test_the_clean_neighbour_two_binds_apart_still_work(self):
+        """One root and one worker under it: the lock refuses nothing that
+        was not racing."""
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        listed = self.ok("participants", session=LEAD)
+        self.assertIn("PT-1 lead,coordinator", listed)
+        self.assertIn("PT-2 worker", listed)
+
+
+class AnEmptyRevisionIsNotARevision(_Scratch):
+    """A revision is the identity of the candidate the work is against,
+    and the empty string is not an identity.
+
+    Every revision gate is spelled `if row["revision"] and ...`, so the
+    column holding something falsy lifts all of them: the hole the
+    no-revision repair closed reopened one character to the left. Grok
+    and Codex both reproduced it against b1d868b0 — `submit --revision ''`
+    exit 0, `show` reading `revision none`, and then `verify --candidate
+    deadbee` exit 0 against a submission that named no candidate at all.
+    """
+
+    def test_submit_refuses_an_empty_revision(self):
+        aid = self.held()
+        proc = self.run_tool("submit", aid, "--evidence", "a1b2c3d",
+                             "--revision", "", "--generation", self.gen(aid),
+                             session=WORKER)
+        refusal_wire(RefusalCase("submit-empty-revision", (), "revision"), proc)
+
+    def test_submit_refuses_a_revision_of_whitespace(self):
+        aid = self.held()
+        proc = self.run_tool("submit", aid, "--evidence", "a1b2c3d",
+                             "--revision", "   ", "--generation", self.gen(aid),
+                             session=WORKER)
+        refusal_wire(RefusalCase("submit-blank-revision", (), "revision"), proc)
+
+    def test_a_draft_refuses_an_empty_revision(self):
+        """`--revision` stays optional on a draft; naming it empty is not
+        the same as leaving it out."""
+        self.bind_three()
+        proc = self.run_tool("draft", "a repair", "--outcome", "x",
+                             "--revision", "", session=LEAD)
+        refusal_wire(RefusalCase("draft-empty-revision", (), "revision"), proc)
+
+    def test_reopen_refuses_an_empty_revision(self):
+        aid = self.submitted()
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
+                session=CHECKER)
+        proc = self.run_tool("reopen", aid, "--revision", "", "--why", "moved",
+                             "--generation", self.gen(aid), session=LEAD)
+        refusal_wire(RefusalCase("reopen-empty-revision", (), "revision"), proc)
+
+    def test_verify_refuses_an_assignment_that_stands_at_no_revision(self):
+        """The half a check on submit cannot reach: a store written before
+        that check can hold such a row, so it is planted directly and
+        verify must refuse it rather than compare against nothing."""
+        aid = self.submitted()
+        module = self.core(LEAD)
+        number = int(aid.split("-")[1])
+        conn = module.writer()
+        try:
+            conn.execute("UPDATE assignments SET revision = '' WHERE id = ?",
+                         (number,))
+        finally:
+            conn.close()
+        self.assertIn("revision none", self.ok("show", aid, session=LEAD))
+        proc = self.run_tool("verify", aid, "--candidate", "deadbee", "--evidence",
+                             "20260916T010203Z-job-v", "--generation", self.gen(aid),
+                             session=CHECKER)
+        refusal_wire(RefusalCase("verify-no-revision", (), "revision"), proc)
+
+    def test_the_clean_neighbour_a_named_revision_still_submits_and_verifies(self):
+        aid = self.held()
+        self.ok("submit", aid, "--evidence", "a1b2c3d", "--revision", "a1b2c3d",
+                "--generation", self.gen(aid), session=WORKER)
+        self.ok("verify", aid, "--candidate", "a1b2c3d", "--evidence",
+                "20260916T010203Z-job-v", "--generation", self.gen(aid),
+                session=CHECKER)
+        self.assertIn("verified", self.ok("show", aid, session=LEAD))
+
+
+class BindForNamesWhoGrantedTheRoles(_Scratch):
+    """A participant above worker holds roles somebody granted, and the
+    row says who and when.
+
+    `grant` writes `granted_by` and `granted_at`; `bind-for` wrote
+    neither, so a dispatcher could mint a verifier and the store carried
+    no record of the grant at all — the audit's fifth finding against
+    b1d868b0. `bound_by` is not that record: it says who ran the verb,
+    not that anything above worker was conferred.
+    """
+
+    MINTED = "dispatch-9c14ba77"
+
+    def minting(self, roles):
+        self.lock()
+        self.ok("bind", "--roles", "lead,coordinator,dispatcher", session=LEAD)
+        aid = self.ok("draft", "review the core", "--outcome", "findings",
+                      "--revision", "a1b2c3d", session=LEAD).split()[-1]
+        self.ok("bind-for", "--session", self.MINTED, "--roles", roles,
+                "--for", aid, session=LEAD)
+        module = self.core(LEAD)
+        conn = module.reader()
+        try:
+            return conn.execute(
+                "SELECT roles, granted_by, granted_at FROM participants "
+                "WHERE session_id = ?", (self.MINTED,)).fetchone()
+        finally:
+            conn.close()
+
+    def test_a_minted_role_above_worker_records_its_grantor(self):
+        row = self.minting("worker,verifier")
+        self.assertEqual("worker,verifier", row["roles"])
+        self.assertEqual(1, row["granted_by"],
+                         "the dispatcher that minted the roles is not recorded")
+        self.assertTrue(row["granted_at"], "the grant carries no stamp")
+
+    def test_a_minted_worker_records_no_grant_because_none_was_made(self):
+        """Announcing yourself is worth worker, so minting one confers
+        nothing and the row says nothing. Absence declared, not implied."""
+        row = self.minting("worker")
+        self.assertEqual("worker", row["roles"])
+        self.assertIsNone(row["granted_by"])
+        self.assertIsNone(row["granted_at"])
+
+    def test_the_minted_participant_still_reads_as_bound_by_its_issuer(self):
+        """The clean neighbour: recording the grant does not disturb what
+        bind-for already recorded."""
+        self.minting("worker,verifier")
+        self.assertIn("bound by PT-1", self.ok("participants", session=LEAD))
+
+
+class AReadOpensTheStoreReadOnly(_Scratch):
+    """A read never writes, and a store it cannot read is a refusal, not
+    a store it builds.
+
+    `reader()` connected read-write, ran `executescript(SCHEMA)` and then
+    `ensure_columns`, so every read of this instrument migrated the store
+    on the way past: the server session's reviewers found a read creating
+    tables and adding columns under a caller that had asked for nothing
+    of the kind (codex-beb7b6#3, grok-7bbe10#2). Reads need no identity,
+    which makes an unidentified writer of exactly the reach of a read.
+    """
+
+    def test_a_reader_cannot_write_through_its_connection(self):
+        self.bind_three()
+        module = self.core(LEAD)
+        conn = module.reader()
+        try:
+            with self.assertRaises(sqlite3.OperationalError) as caught:
+                conn.execute("INSERT INTO participants(session_id, agent, roles, "
+                             "bound_at) VALUES ('x', 'x', 'lead', 'x')")
+        finally:
+            conn.close()
+        self.assertIn("readonly", str(caught.exception))
+
+    def test_a_store_without_the_schema_refuses_class_state(self):
+        """"Could not look" is a marker, never a store built to order."""
+        module = self.core(LEAD)
+        path = module.machine.store_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        sqlite3.connect(path).close()
+        proc = self.run_tool("participants", session=LEAD)
+        refusal_wire(RefusalCase("bare-store", (), "state"), proc)
+
+    def test_a_read_leaves_the_stores_bytes_unchanged(self):
+        """The pin the ruling asks for, over every file the store is: the
+        database, its write-ahead log and its shared-memory index."""
+        import hashlib
+        aid = self.submitted()
+        module = self.core(LEAD)
+        path = module.machine.store_path()
+
+        def digest():
+            return hashlib.sha256(path.read_bytes()).hexdigest()
+
+        def frames():
+            """The bytes the write-ahead log holds, which a read adds none
+            of. The log and the shared-memory index are apparatus, not
+            content: a read-only connection materialises both — the index
+            is how any reader finds the log's frames — and the writer had
+            checkpointed them away. A log of no frames is a log of
+            nothing, and that is what a read leaves behind."""
+            log = path.with_name(path.name + "-wal")
+            return log.stat().st_size if log.is_file() else 0
+
+        before = digest()
+        self.ok("assignments", session=LEAD)
+        self.ok("show", aid, session=LEAD)
+        self.ok("participants", session=LEAD)
+        self.assertEqual(before, digest(), "a read moved the store's bytes")
+        self.assertEqual(0, frames(), "a read wrote frames to the log")
+
+
+class TheQueueToMeNobodyHasDeliveredYet(_Scratch):
+    """`undelivered` is what a deliverer asks: the messages queued to the
+    calling participant that have not left the store yet.
+
+    It is package D's one piece in this file; the server session's
+    deliverer calls it. It closes no finding — it is a read the core
+    lacked, and `outstanding` is not it: an obligation stays outstanding
+    long after it was delivered, and an inform is never outstanding at
+    all yet still has to be carried.
+    """
+
+    def queued(self, purpose="request", to="PT-2"):
+        self.bind_three()
+        return self.ok("send", "--to", to, "--purpose", purpose,
+                       "--body", "read the core", session=LEAD).split()[1]
+
+    def test_it_lists_what_is_queued_to_me_and_not_delivered(self):
+        mid = self.queued()
+        listed = self.ok("undelivered", session=WORKER)
+        self.assertIn(mid, listed)
+        self.assertIn("read the core", listed)
+
+    def test_a_delivered_message_leaves_the_queue(self):
+        mid = self.queued()
+        self.ok("deliver", mid, "--ref", "750aa45e-a0c6", session=LEAD)
+        self.assertIn("none", self.ok("undelivered", session=WORKER))
+
+    def test_it_never_shows_another_participants_queue(self):
+        mid = self.queued()
+        self.assertNotIn(mid, self.ok("undelivered", session=LEAD))
+
+    def test_an_inform_is_carried_too_though_it_is_no_obligation(self):
+        """The line `outstanding` cannot answer: an inform has to be
+        delivered and is never outstanding."""
+        mid = self.queued(purpose="inform")
+        self.assertIn(mid, self.ok("undelivered", session=WORKER))
+        self.assertIn("none", self.ok("outstanding", session=LEAD))
+
+    def test_a_message_addressed_to_a_role_reaches_its_holder(self):
+        mid = self.queued(to="verifier")
+        self.assertIn(mid, self.ok("undelivered", session=CHECKER))
+        self.assertNotIn(mid, self.ok("undelivered", session=WORKER))
+
+    def test_with_no_store_it_says_so_rather_than_answering_none(self):
+        proc = self.run_tool("undelivered", session=LEAD)
+        self.assertEqual(0, proc.exit, proc.stderr)
+        self.assertIn("no store", proc.stdout)
+
+
+class ARoleGivenCanBeTakenBack(_Scratch):
+    """`grant` is additive and nothing subtracted, so a store accumulated
+    authority and never shed it.
+
+    The live run found it, not a review: the trial store stands at two
+    leads because the roles were granted for a trial and could not be put
+    down afterwards. Taking a role back is a lead's, it is recorded the
+    way granting is, and it stops at the one thing the chain cannot do
+    without — a store with no lead in it has nobody who can grant
+    anything ever again, and that is unrecoverable rather than merely
+    inconvenient.
+    """
+
+    def two_leads(self):
+        self.ok("bind", "--roles", "lead,coordinator", session=LEAD)
+        self.ok("bind", "--roles", "worker", session=WORKER)
+        self.ok("grant", "PT-2", "--roles", "lead", session=LEAD)
+        return self.ok("participants", session=LEAD)
+
+    def test_a_lead_takes_a_role_back(self):
+        # `grant` appends, so the granted row reads `worker,lead` and
+        # `PT-2 worker` is a prefix of it rather than another row. Both
+        # assertions read to the end of the field.
+        self.assertIn("PT-2 worker,lead —", self.two_leads())
+        self.ok("revoke", "PT-2", "--roles", "lead", session=LEAD)
+        listed = self.ok("participants", session=LEAD)
+        self.assertIn("PT-2 worker —", listed)
+        self.assertIn("PT-1 lead,coordinator —", listed)
+
+    def test_the_revocation_says_who_took_it_and_when(self):
+        self.two_leads()
+        self.ok("revoke", "PT-2", "--roles", "lead", session=LEAD)
+        module = self.core(LEAD)
+        conn = module.reader()
+        try:
+            row = conn.execute("SELECT revoked_by, revoked_at FROM participants "
+                               "WHERE id = 2").fetchone()
+        finally:
+            conn.close()
+        self.assertEqual(1, row["revoked_by"])
+        self.assertTrue(row["revoked_at"])
+
+    def test_only_a_lead_revokes(self):
+        """A verifier is not a lead, and holding one granted role is not
+        holding the one that grants."""
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-1", "--roles", "coordinator",
+                             session=CHECKER)
+        refusal_wire(RefusalCase("verifier-revokes", (), "role",
+                                 named=("lead",)), proc)
+
+    def test_a_worker_may_not_revoke_a_lead(self):
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-1", "--roles", "lead", session=WORKER)
+        refusal_wire(RefusalCase("worker-revokes-lead", (), "role",
+                                 named=("lead",)), proc)
+
+    def test_the_last_lead_is_not_revocable(self):
+        """The floor: a store with no lead has nobody who can ever grant
+        one, so the check counts what is left, not what is asked for."""
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-1", "--roles", "lead", session=LEAD)
+        refusal_wire(RefusalCase("last-lead", (), "role"), proc)
+
+    def test_the_last_lead_is_not_revocable_by_a_second_lead_either(self):
+        """Counting leads after the subtraction, whoever the subject is:
+        two leads, one revokes the other, and then neither may take the
+        last one down — including from itself."""
+        self.two_leads()
+        self.ok("revoke", "PT-2", "--roles", "lead", session=LEAD)
+        proc = self.run_tool("revoke", "PT-1", "--roles", "lead", session=LEAD)
+        refusal_wire(RefusalCase("last-lead-self", (), "role"), proc)
+
+    def test_a_role_the_participant_does_not_hold_refuses(self):
+        """Absence is declared: taking back what was never given is a
+        refusal, not a silent no-op that reads as success."""
+        self.bind_three()
+        proc = self.run_tool("revoke", "PT-2", "--roles", "verifier", session=LEAD)
+        refusal_wire(RefusalCase("not-held", (), "role"), proc)
+
+    def test_what_is_left_is_never_nothing(self):
+        """Announcing yourself is worth worker, so a participant stripped
+        of everything stands where a fresh self-bind would, not at no
+        roles at all."""
+        self.bind_three()
+        self.ok("grant", "PT-3", "--roles", "coordinator", session=LEAD)
+        self.ok("revoke", "PT-3", "--roles", "coordinator,verifier,worker",
+                session=LEAD)
+        self.assertIn("PT-3 worker", self.ok("participants", session=LEAD))
+
+    def test_the_clean_neighbour_a_second_lead_still_leads_until_it_is_taken(self):
+        self.two_leads()
+        aid = self.ok("draft", "a bounded repair", "--outcome", "the row refuses",
+                      "--revision", "a1b2c3d", session=WORKER).split()[-1]
+        self.assertIn(aid, self.ok("assignments", session=LEAD))

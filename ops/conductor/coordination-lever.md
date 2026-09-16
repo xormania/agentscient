@@ -21,11 +21,33 @@ checks — participant, role, holder, generation, revision, producer —
 live in those functions, so they run whoever calls them: a projection
 cannot reach the store around them, and a hook the MCP plane is blind to
 is never where authority sits. The resolved participant is an argument
-so that both projections stay thin, and every function checks that the
-row it was passed is the calling process's own — its `session_id` is
-`instrument.session()` here, or it refuses class `participant`. The
-boundary binds the effective caller; the argument carries it and never
-chooses it. Both projections are therefore thin and
+so that both projections stay thin, and what that argument carries is an
+id: every function reloads the row from `participants` by it, refuses
+class `participant` unless the loaded row's `session_id` is
+`instrument.session()`, and reads the loaded row from there on. Nothing
+else the caller passes is believed — the roles above all, because a
+mapping carrying this session's id beside another participant's id and
+roles is what a comparison on `session_id` alone admits. `bind` reads the
+session id rather than taking it, for the same reason: an argument by
+which a process names another session is an argument by which it acts as
+one. `bind-for` still takes one, because minting a participant for a
+session that cannot bind itself is what it is for, and it is a
+dispatcher's verb and records its issuer. The boundary binds the
+effective caller; the argument carries it and never chooses it.
+
+What the session id is, said plainly, because every sentence above rests
+on it. It is a bearer credential: any process holding it acts as the
+participant bound to it, and this instrument has no second factor, no
+expiry and no way to tell a session from something that learned its id.
+The id is in the environment of every process the harness starts and in
+the record of every dispatch, so it is about as secret as a process
+listing. It is not proof of who is calling; it is the name under which a
+caller's acts are recorded, and what the checks above buy is that a
+caller cannot act under a name it does not hold. Codex's audit named this
+(20260916T100839Z-review-codex-1833de#1, p1) and the owner accepted it on
+2026-09-16 rather than fixing it, redaction included. It is written here
+so that nobody reads "the participant is the authority" as a claim about
+identity that the code does not make. Both projections are therefore thin and
 neither holds authority of its own; the CLI verb parses argv, calls the
 function and prints, and the MCP action does the same with a result
 shape instead of a print.
@@ -116,12 +138,27 @@ Lead session on 2026-09-16:
 
 - The store's **first** participant is the bootstrap and may self-bind
   with any roles, because a store with nobody in it has nobody to grant
-  them.
+  them. The count that decides this and the insert that acts on it take
+  the write lock together, the way a transition does: the store is opened
+  in autocommit, so two first callers reading the same empty table
+  between them would both be the bootstrap and the chain would have two
+  roots. `bind-for` takes the same lock over its conflict check and its
+  mint.
 - Every **later** self-bind is `worker` alone; naming more refuses class
   `role`, with the grant verb as its remedy.
 - **`grant PT-n --roles R[,R]`** is how roles above `worker` are held.
   Only a `lead` may run it; the row records `granted_by` and
   `granted_at`, so the chain is readable back to the bootstrap.
+- **`revoke PT-n --roles R[,R]`** takes them back, and only a `lead` may
+  run it. The row records `revoked_by` and `revoked_at` beside the grant
+  fields, because a role put down is as much a fact as a role conferred.
+  It refuses class `role` when the roles it would leave hold no `lead`
+  anywhere in the store — counting what stands after the subtraction,
+  whoever the subject is, so a last lead cannot take its own down — and
+  when the participant does not hold what is named, since taking back
+  what was never given is a refusal rather than a silent success. What
+  is left is never nothing: a participant stripped of everything stands
+  at `worker`, where a fresh self-bind would stand.
 - A **re-bind** by the row's own session refreshes its `endpoint`, its
   `probe` and its `agent` string, and never its roles: a re-bind naming
   roles the row does not hold refuses class `role`.
@@ -226,11 +263,22 @@ place it held before cannot by itself refuse the old holder. Two
 columns close it:
 
 - `generation` starts at 1 and is bumped, in the same transaction as
-  the move, by `release`, `reassign` and `reopen` — every transition
-  that changes who may act. Every writing verb on an assignment states
-  the generation it believes; the gate reads the row under the write
-  lock and refuses class `generation` with expected, found and needed
-  when they differ. A stale holder is refused, not silently applied.
+  the move, by **every** transition. Bumping it only where the holder
+  changed left the verbs that do not change the holder — `submit`,
+  `verify`, `return`, `accept` — moving an assignment while its
+  generation stood still, so a verifier that began a `return` against
+  one submission had it land on the next one; and `supersede` and
+  `offer` stated no generation at all, so a coordinator's stale view of
+  an `offered` assignment superseded the one that stands there now. One
+  bump a move closes both, because a delayed verb then refuses on the
+  gate it already has. Every writing verb on an assignment states the
+  generation it believes; the verb reads it first, so a stale caller
+  reads class `generation` and not class `place`, and the gate reads the
+  row again under the write lock and refuses class `generation` with
+  expected, found and needed when they differ. A stale holder is
+  refused, not silently applied. The cost is stated rather than hidden:
+  a caller running a chain of verbs re-reads the generation between
+  them, from `show`, because every one of them moved it.
 - `revision` is the candidate the work is against. `submit` states the
   revision it produced; `verify` names it as `--candidate` and refuses
   class `revision` when it is not the assignment's. `reopen` sets a new
@@ -349,10 +397,11 @@ reconciliation the caller still owes.
 | `bind --roles R[,R] [--harness H] [--endpoint E] [--probe TEXT]` | binds this session; prints `participant PT-n` |
 | `bind-for --session ID --roles R[,R] --for A-n [--harness H]` | a dispatcher binds a participant for a dispatched worker's minted session |
 | `grant PT-n --roles R[,R]` | a lead grants roles above worker; records the grantor |
+| `revoke PT-n --roles R[,R]` | a lead takes them back; never the store's last lead |
 | `who` | this session's participant and roles; `no store` and exit 0 when there is none |
 | `participants [--role R]` | one line per participant |
 | `draft TITLE --outcome TEXT [--requirement REF] [--revision SHA] [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]` | prints `assignment A-n` |
-| `offer A-n --to WHO` | names the recipient |
+| `offer A-n --to WHO --generation N` | names the recipient |
 | `claim A-n --branch B --generation N [--ttl MIN]` | takes the hold |
 | `release A-n --why TEXT --generation N` | gives it back; bumps the generation |
 | `reassign A-n --to WHO --why TEXT --generation N` | lead or coordinator; bumps the generation |
@@ -361,7 +410,7 @@ reconciliation the caller still owes.
 | `return A-n --findings REF --generation N` | back to the holder |
 | `accept A-n --evidence READING --generation N` | the lead's acceptance |
 | `reopen A-n --revision SHA --why TEXT --generation N` | a changed candidate; stales the observations |
-| `supersede A-n --by A-m` | an offered assignment replaced |
+| `supersede A-n --by A-m --generation N` | an offered assignment replaced |
 | `assignments [--state S] [--to WHO] [--mine]` | one line each, oldest first |
 | `show A-n` | the row, its marking, its observations and its open messages |
 | `send --to WHO --purpose P --body TEXT [--assignment A-n] [--decision DC-n] [--reply-to M-n] [--artifact REF]` | prints `message M-n queued` |
@@ -371,6 +420,7 @@ reconciliation the caller still owes.
 | `withdraw M-n --why TEXT` | the sender takes it back |
 | `inbox [--unresolved]` | messages to this participant or its roles |
 | `outstanding [--to WHO]` | requests and findings not yet resolved |
+| `undelivered [--to WHO]` | queued to the caller and not yet delivered |
 | `observe A-n --observation TEXT --revision SHA --generation N [--stale] [--execution REC] [--artifact REF] [--requirement REF] [--environment TEXT]` | prints `observation E-n` |
 | `observations A-n [--all]` | current observations, `--all` includes stale |
 | `ask --question TEXT --alternatives TEXT [--assignment A-n]` | prints `decision DC-n` |
