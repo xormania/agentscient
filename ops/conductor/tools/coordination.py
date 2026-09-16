@@ -21,7 +21,7 @@ there would not run when the MCP projection calls the same function.
     coordination.py who | participants [--role R]
     coordination.py draft TITLE --outcome TEXT [--requirement REF] [--revision SHA]
                               [--depends A-n,..] [--duty TEXT] [--scope TEXT] [--inputs REF]
-    coordination.py offer A-n --to WHO
+    coordination.py offer A-n --to WHO --generation N
     coordination.py claim A-n --branch B --generation N [--ttl MIN]
     coordination.py release A-n --why TEXT --generation N
     coordination.py reassign A-n --to WHO --why TEXT --generation N
@@ -30,12 +30,13 @@ there would not run when the MCP projection calls the same function.
     coordination.py return A-n --findings REF --generation N
     coordination.py accept A-n --evidence READING --generation N
     coordination.py reopen A-n --revision SHA --why TEXT --generation N
-    coordination.py supersede A-n --by A-m
+    coordination.py supersede A-n --by A-m --generation N
     coordination.py assignments [--state S] [--to WHO] [--mine] | show A-n|M-n
     coordination.py send --to WHO --purpose P --body TEXT [--assignment A-n]
                          [--decision DC-n] [--reply-to M-n] [--artifact REF]
     coordination.py deliver M-n --ref REF | ack M-n | resolve M-n --evidence READING
     coordination.py withdraw M-n --why TEXT | inbox [--unresolved] | outstanding [--to WHO]
+    coordination.py undelivered [--to WHO]
     coordination.py observe A-n --observation TEXT --revision SHA --generation N
                             [--stale] [--execution REC] [--artifact REF]
                             [--requirement REF] [--environment TEXT]
@@ -55,6 +56,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sqlite3
 import sys
 
 # The shared instrument module sits beside this file; its directory goes
@@ -254,13 +256,40 @@ def writer():
     return conn
 
 
+STORE_TABLES = tuple(sorted(set(
+    re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", SCHEMA)
+    + re.findall(r"CREATE TABLE IF NOT EXISTS (\w+)", machine.SCHEMA))))
+
+
 def reader():
-    """The store for a read, or None when there is nothing to read."""
-    if not machine.store_path().is_file():
+    """The store for a read, or None when there is nothing to read.
+
+    Read-only by the connection itself, and migrating nothing. It used to
+    connect read-write, run `executescript(SCHEMA)` and then
+    `ensure_columns`, so every read of this instrument created tables and
+    added columns on the way past — an unidentified writer of exactly the
+    reach of a read, because reads need no identity (codex-beb7b6#3,
+    grok-7bbe10#2). A store this module cannot read is a refusal, class
+    `state`, and never a store built to order: "could not look" is a
+    marker, not an empty answer (docs/wire.md, absence discipline).
+    """
+    path = machine.store_path()
+    if not path.is_file():
         return None
-    conn = machine.connect(create=False)
-    conn.executescript(SCHEMA)
-    ensure_columns(conn)
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True,
+                           timeout=machine.BUSY_TIMEOUT_MS / 1000)
+    conn.row_factory = sqlite3.Row
+    conn.execute(f"PRAGMA busy_timeout = {machine.BUSY_TIMEOUT_MS}")
+    held = {row["name"] for row in
+            conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+    missing = [name for name in STORE_TABLES if name not in held]
+    if missing:
+        conn.close()
+        refuse("state", f"the coordination schema in the store at {path}",
+               "a store with no tables at all" if not held
+               else f"a store without {', '.join(missing)}",
+               "a writing verb creates the schema and migrates it; "
+               "a read does neither")
     return conn
 
 
@@ -283,30 +312,43 @@ def bound_participant(conn):
     return row
 
 
-def same_session(part) -> None:
-    """The row a caller passes is a claim, not authority.
+def same_session(conn, part):
+    """The row a caller passes is an id, and everything else is read.
 
-    Every authority check below reads the participant it was handed, so
-    a caller holding a lead's row would act as that lead (Grok #3
-    against 05b8aebe). The argument shape stays — passing the resolved
-    row is what keeps the CLI and the MCP server thin — and each
-    function verifies instead that the row is this process's own. The
-    boundary is what binds the effective caller: the CLI resolves from
-    its own environment, the MCP server per call from the inherited
-    session id, and a dispatched worker's process carries the id its
-    launcher set, so the check holds in both projections.
+    The first repair compared the passed mapping's own `session_id`
+    against the environment and read nothing else, which moved the
+    boundary rather than closing it: a mapping carrying this session's id
+    beside another participant's id and roles passed, and the function
+    then acted on the roles it had been handed (Codex 834580#2, Daybreak
+    1833de#3 against b1d868b0). So the id is all a caller supplies. The
+    row is loaded from `participants` by that id, its `session_id` must
+    be this process's, and the row this returns — never the argument — is
+    what the function reads from there on.
+
+    The argument shape stays, because passing the resolved row is what
+    keeps the CLI and the MCP server thin. What it carries is a claim
+    about which participant is acting, and the store answers it.
 
     `None` is the two declared cases and not a caller's choice: bind has
     no row yet, and a read with no store has nothing to resolve from.
     """
     if part is None:
-        return
+        return None
     key = session("")
-    if part["session_id"] != key:
+    row = None
+    if conn is not None:
+        row = conn.execute(
+            "SELECT * FROM participants WHERE id = ?", (part["id"],)
+        ).fetchone()
+    if row is None or row["session_id"] != key:
+        stood = (f"PT-{part['id']}, bound to session {row['session_id']}"
+                 if row is not None else
+                 f"PT-{part['id']}, which the store does not hold")
         refuse("participant", f"the participant bound to session {key or 'unset'}",
-               f"PT-{part['id']}, bound to session {part['session_id']}",
+               stood,
                "act as the participant this process is bound to; "
                "the caller does not choose it")
+    return row
 
 
 def actor(part) -> str:
@@ -392,6 +434,35 @@ def decision_row(conn, did: int):
         refuse("unknown", "a decision id in the store", f"DC-{did}",
                "an id printed by decisions")
     return row
+
+
+def advance(conn, aid: int, transition: str, part, *, evidence=None, note=None,
+            ttl_s=None, gate=None):
+    """Every move on an assignment bumps its generation, inside the move.
+
+    The generation is what refuses a caller acting on a view the
+    assignment has moved past, and it only does that if every move moves
+    it. Grok reproduced the hole against b1d868b0: `return` and `submit`
+    both left it where it was, so a verifier that began a return against
+    one submission had it land on the next one. The Daybreak audit found
+    the same shape in `supersede`, which stated no generation at all.
+    Ruled by the Lead, 2026-09-16: one bump a move, so a delayed verb
+    refuses on the gate it already has.
+
+    The bump runs last inside the caller's own gate, so it is in the
+    engine's `BEGIN IMMEDIATE` with the rest of the move and a refusal
+    from the gate rolls it back with everything else.
+    """
+
+    def bump(subject):
+        if gate is not None:
+            gate(subject)
+        conn.execute(
+            "UPDATE assignments SET generation = generation + 1 WHERE id = ?", (aid,)
+        )
+
+    return machine.move(conn, ASSIGNMENT, aid, transition, actor(part),
+                        evidence=evidence, note=note, ttl_s=ttl_s, gate=bump)
 
 
 def require_generation(row, stated: str) -> int:
@@ -509,6 +580,25 @@ def decision_dict(row) -> dict:
     }
 
 
+def named_revision(value, where: str) -> str:
+    """A revision is the identity of the candidate the work is against,
+    and the empty string is not an identity.
+
+    Every revision gate reads `if row["revision"] and ...`, so a falsy
+    column lifts all of them at once: Grok and Codex both submitted
+    `--revision ''` against b1d868b0 and then verified a candidate the
+    submission had never named. Leaving a revision out and naming an
+    empty one are different acts and the second says so.
+    """
+    text = (value or "").strip()
+    if not text:
+        refuse("revision", f"the revision {where} is against",
+               "an empty string" if value == "" else repr(value),
+               "name it; leaving it out where it is optional is a "
+               "different thing and reads as one")
+    return text
+
+
 def no_store(**rest) -> dict:
     """Could not look, said as a marker: a read with no store behind it
     returns this and never an empty list dressed as an answer
@@ -518,50 +608,69 @@ def no_store(**rest) -> dict:
 
 # -- the core: one function per verb, keyed by the wire name in CORE ----------
 
-def core_bind(conn, part, *, agent, session_id, roles, harness=None,
+def core_bind(conn, part, *, agent, roles, harness=None,
               endpoint=None, probe=None) -> dict:
-    """This session's own participant. `part` is None here by construction:
-    binding is how a session comes to have one."""
-    same_session(part)
+    """This session's own participant, and no other session's.
+
+    `part` is None here by construction: binding is how a session comes
+    to have one. The session id is read here and is not an argument —
+    taking it as one let a worker process mint participants for sessions
+    that do not exist and rewrite a bound lead's agent, endpoint and
+    probe (Grok bcfee6#2 against b1d868b0).
+    """
+    part = same_session(conn, part)
     named = roles_of(roles)
-    key = (session_id or "").strip()
+    key = session("").strip()
     if not key:
         refuse("session", "a session id in the environment", "unset",
                "run under a harness that sets CLAUDE_CODE_SESSION_ID")
-    row = conn.execute(
-        "SELECT * FROM participants WHERE session_id = ?", (key,)
-    ).fetchone()
-    if row is not None:
-        # A re-bind is how a session refreshes where it can be reached and
-        # what its last probe said. It is not how it changes what it may
-        # do: Codex reproduced a bound worker re-binding itself as a lead
-        # and drafting its own work against 05b8aebe.
-        if set(named.split(",")) != set(row["roles"].split(",")):
-            refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
-                   "a re-bind refreshes the endpoint and the probe; "
-                   "a lead grants roles with grant")
-        conn.execute(
-            "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
-            "probe = ?, bound_at = ? WHERE id = ?",
-            (agent, harness, endpoint, probe, stamp(), row["id"]),
-        )
-        return participant_dict(participant_row(conn, row["id"]))
-    bootstrap = conn.execute(
-        "SELECT COUNT(*) AS n FROM participants"
-    ).fetchone()["n"] == 0
-    if not bootstrap and named != "worker":
-        # Authority is a chain and the store's first participant is its
-        # root. Announcing yourself is worth worker and nothing else;
-        # everything above it is somebody's grant.
-        refuse("role", "worker for a self-bind after the first participant", named,
-               "bind --roles worker, then a lead grants the rest with "
-               "grant PT-n --roles R")
-    cursor = conn.execute(
-        "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
-        "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (key, agent, harness, named, endpoint, probe, stamp()),
-    )
-    return participant_dict(participant_row(conn, cursor.lastrowid))
+    # The read that decides and the write that acts take the lock
+    # together. `writer()` is autocommit, so between the count and the
+    # insert two first callers both read zero and both took roles above
+    # worker: all three reviewers of round two reproduced two roots in
+    # that window against b1d868b0.
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        row = conn.execute(
+            "SELECT * FROM participants WHERE session_id = ?", (key,)
+        ).fetchone()
+        if row is not None:
+            # A re-bind is how a session refreshes where it can be reached
+            # and what its last probe said. It is not how it changes what
+            # it may do: Codex reproduced a bound worker re-binding itself
+            # as a lead and drafting its own work against 05b8aebe.
+            if set(named.split(",")) != set(row["roles"].split(",")):
+                refuse("role", f"the roles PT-{row['id']} holds, {row['roles']}", named,
+                       "a re-bind refreshes the endpoint and the probe; "
+                       "a lead grants roles with grant")
+            conn.execute(
+                "UPDATE participants SET agent = ?, harness = ?, endpoint = ?, "
+                "probe = ?, bound_at = ? WHERE id = ?",
+                (agent, harness, endpoint, probe, stamp(), row["id"]),
+            )
+            pid = row["id"]
+        else:
+            bootstrap = conn.execute(
+                "SELECT COUNT(*) AS n FROM participants"
+            ).fetchone()["n"] == 0
+            if not bootstrap and named != "worker":
+                # Authority is a chain and the store's first participant is
+                # its root. Announcing yourself is worth worker and nothing
+                # else; everything above it is somebody's grant.
+                refuse("role", "worker for a self-bind after the first participant",
+                       named,
+                       "bind --roles worker, then a lead grants the rest with "
+                       "grant PT-n --roles R")
+            pid = conn.execute(
+                "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
+                "probe, bound_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (key, agent, harness, named, endpoint, probe, stamp()),
+            ).lastrowid
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    return participant_dict(participant_row(conn, pid))
 
 
 def core_grant(conn, part, *, agent, participant, roles) -> dict:
@@ -572,7 +681,7 @@ def core_grant(conn, part, *, agent, participant, roles) -> dict:
     be read back rather than a label a caller wrote about itself
     (objective sections 6 and 7; ruled by the Lead, 2026-09-16).
     """
-    same_session(part)
+    part = same_session(conn, part)
     require_role(part, ("lead",))
     named = roles_of(roles)
     _, pid = parse_id(participant, "PT")
@@ -598,7 +707,7 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
     and the binding records who issued it and for which assignment, so a
     participant nobody dispatched is visible as such.
     """
-    same_session(part)
+    part = same_session(conn, part)
     require_role(part, ("dispatcher",))
     named = roles_of(roles)
     key = (session_id or "").strip()
@@ -610,35 +719,52 @@ def core_bind_for(conn, part, *, agent, session_id, roles, assignment,
         # is a grant, and a grant is a lead's.
         require_role(part, ("lead",))
     _, aid = parse_id(assignment, "A")
-    assignment_row(conn, aid)
-    row = conn.execute(
-        "SELECT id FROM participants WHERE session_id = ?", (key,)
-    ).fetchone()
-    if row is not None:
-        # It never overwrites: Grok reproduced a bind-for rewriting a
-        # bound lead's own row as a worker against 05b8aebe.
-        refuse("conflict", f"no participant for session {key}",
-               f"PT-{row['id']}, bound already",
-               "that session is bound; a lead grants roles with grant PT-n --roles R")
-    cursor = conn.execute(
-        "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
-        "probe, bound_at, bound_by, bound_for) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (key, agent, harness, named, endpoint, probe, stamp(), part["id"], aid),
-    )
-    return participant_dict(participant_row(conn, cursor.lastrowid))
+    # The same lock as a self-bind, for the same reason: the conflict
+    # check reads and the mint writes, and two dispatchers minting for
+    # one session id would otherwise both read nothing there.
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        assignment_row(conn, aid)
+        row = conn.execute(
+            "SELECT id FROM participants WHERE session_id = ?", (key,)
+        ).fetchone()
+        if row is not None:
+            # It never overwrites: Grok reproduced a bind-for rewriting a
+            # bound lead's own row as a worker against 05b8aebe.
+            refuse("conflict", f"no participant for session {key}",
+                   f"PT-{row['id']}, bound already",
+                   "that session is bound; a lead grants roles with grant PT-n --roles R")
+        # Roles above worker are a grant, and a grant says who made it
+        # and when, the way `grant` does. `bound_by` is not that record:
+        # it says who ran the verb, not that anything was conferred. The
+        # audit minted a verifier through this verb against b1d868b0 and
+        # the store carried no grant at all (codex-1833de#5).
+        granted = part["id"] if set(named.split(",")) - {"worker"} else None
+        pid = conn.execute(
+            "INSERT INTO participants(session_id, agent, harness, roles, endpoint, "
+            "probe, bound_at, bound_by, bound_for, granted_by, granted_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (key, agent, harness, named, endpoint, probe, stamp(), part["id"], aid,
+             granted, stamp() if granted else None),
+        ).lastrowid
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
+    return participant_dict(participant_row(conn, pid))
 
 
 def core_who(conn, part) -> dict:
     """A read: with no store it could not look, and says so rather than
     refusing class participant, which would read as having looked."""
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None or part is None:
         return no_store(participant=None)
     return participant_dict(part)
 
 
 def core_participants(conn, part, *, role=None) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(participants=[])
     rows = conn.execute("SELECT * FROM participants ORDER BY id").fetchall()
@@ -648,8 +774,10 @@ def core_participants(conn, part, *, role=None) -> dict:
 
 def core_draft(conn, part, *, agent, title, outcome, requirement=None, revision=None,
                depends=None, duty=None, scope=None, inputs=None) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     require_role(part, ("lead", "coordinator"))
+    if revision is not None:
+        revision = named_revision(revision, "the draft")
     sid = machine.create(conn, ASSIGNMENT, actor(part))
     conn.execute(
         "INSERT INTO assignments(id, title, outcome, requirement, scope, inputs, "
@@ -661,22 +789,24 @@ def core_draft(conn, part, *, agent, title, outcome, requirement=None, revision=
     return assignment_dict(assignment_row(conn, sid))
 
 
-def core_offer(conn, part, *, agent, assignment, to) -> dict:
-    same_session(part)
+def core_offer(conn, part, *, agent, assignment, to, generation) -> dict:
+    part = same_session(conn, part)
     require_role(part, ("lead", "coordinator"))
     _, aid = parse_id(assignment, "A")
-    assignment_row(conn, aid)
+    row = assignment_row(conn, aid)
+    require_generation(row, generation)
     recipient = recipient_of(conn, to)
 
     def gate(_subject):
+        require_generation(assignment_row(conn, aid), generation)
         conn.execute("UPDATE assignments SET recipient = ? WHERE id = ?", (recipient, aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "offer", actor(part), note=recipient, gate=gate)
+    advance(conn, aid, "offer", part, note=recipient, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
 def core_claim(conn, part, *, agent, assignment, branch, generation, ttl=None) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     ttl_s = int(ttl) * 60 if str(ttl or "").isdigit() else None
     require_lock(branch)
@@ -695,8 +825,7 @@ def core_claim(conn, part, *, agent, assignment, branch, generation, ttl=None) -
             (part["id"], branch, aid),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, "claim", actor(part), note=branch,
-                 ttl_s=ttl_s, gate=gate)
+    advance(conn, aid, "claim", part, note=branch, ttl_s=ttl_s, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -721,33 +850,34 @@ def _hand_back(conn, part, *, agent, assignment, why, generation, transition, to
         live = assignment_row(conn, aid)
         require_generation(live, generation)
         conn.execute(
-            "UPDATE assignments SET generation = generation + 1, holder = NULL, "
-            "recipient = ? WHERE id = ?", (recipient, aid),
+            "UPDATE assignments SET holder = NULL, recipient = ? WHERE id = ?",
+            (recipient, aid),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, transition, actor(part), evidence=why, gate=gate)
+    advance(conn, aid, transition, part, evidence=why, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
 def core_release(conn, part, *, agent, assignment, why, generation) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     return _hand_back(conn, part, agent=agent, assignment=assignment, why=why,
                       generation=generation, transition="release")
 
 
 def core_reassign(conn, part, *, agent, assignment, to, why, generation) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     return _hand_back(conn, part, agent=agent, assignment=assignment, why=why,
                       generation=generation, transition="reassign", to=to)
 
 
 def core_submit(conn, part, *, agent, assignment, evidence, revision, generation) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     evidence = reading(evidence, "the candidate")
     row = assignment_row(conn, aid)
     require_generation(row, generation)
     require_holder(part, row)
+    revision = named_revision(revision, "the submission")
     if row["revision"] and revision != row["revision"]:
         refuse("revision", f"the applicable revision {row['revision']} of A-{aid}",
                revision, "submit against the applicable revision, or reopen it")
@@ -770,7 +900,7 @@ def core_submit(conn, part, *, agent, assignment, evidence, revision, generation
              aid, revision),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, "submit", actor(part), evidence=evidence, gate=gate)
+    advance(conn, aid, "submit", part, evidence=evidence, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -785,7 +915,7 @@ def core_verify(conn, part, *, agent, assignment, candidate, evidence,
     verified at all (Grok #8 against 05b8aebe). Both go through the
     contract's pinned evidence shapes.
     """
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     candidate = reading(candidate, "the candidate")
     evidence = reading(evidence, "the verification")
@@ -793,7 +923,15 @@ def core_verify(conn, part, *, agent, assignment, candidate, evidence,
     require_generation(row, generation)
     require_role(part, ("verifier", "lead"))
     not_the_producer(part, row, "verifies")
-    if row["revision"] and candidate != row["revision"]:
+    candidate = named_revision(candidate, "the verification")
+    if not row["revision"]:
+        # Defence in depth, and the half the check on submit cannot
+        # reach: a store written before that check can hold such a row,
+        # and comparing a candidate against nothing verified anything.
+        refuse("revision", f"a candidate named on A-{aid}", "none",
+               "submit names the revision the work is against; an "
+               "assignment standing at none cannot be verified")
+    if candidate != row["revision"]:
         refuse("revision", f"the applicable revision {row['revision']} of A-{aid}",
                candidate,
                "verify the candidate that was submitted, or reopen the assignment")
@@ -804,7 +942,7 @@ def core_verify(conn, part, *, agent, assignment, candidate, evidence,
         conn.execute("UPDATE assignments SET verified_by = ? WHERE id = ?",
                      (part["id"], aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "verify", actor(part), evidence=evidence, gate=gate)
+    advance(conn, aid, "verify", part, evidence=evidence, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
@@ -817,7 +955,7 @@ def core_return(conn, part, *, agent, assignment, findings, generation) -> dict:
     write lock, so a candidate that moved between the two is not moved
     on (docs/workflow.md: every transition names its gate).
     """
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     findings = reading(findings, "the findings")
     row = assignment_row(conn, aid)
@@ -827,12 +965,12 @@ def core_return(conn, part, *, agent, assignment, findings, generation) -> dict:
     def gate(_subject):
         require_generation(assignment_row(conn, aid), generation)
 
-    machine.move(conn, ASSIGNMENT, aid, "return", actor(part), evidence=findings, gate=gate)
+    advance(conn, aid, "return", part, evidence=findings, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
 def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     evidence = reading(evidence, "the acceptance")
     row = assignment_row(conn, aid)
@@ -846,13 +984,14 @@ def core_accept(conn, part, *, agent, assignment, evidence, generation) -> dict:
         conn.execute("UPDATE assignments SET accepted_by = ? WHERE id = ?",
                      (part["id"], aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "accept", actor(part), evidence=evidence, gate=gate)
+    advance(conn, aid, "accept", part, evidence=evidence, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
 def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> dict:
     """A changed candidate: the observations go stale and keep their scope."""
-    same_session(part)
+    part = same_session(conn, part)
+    revision = named_revision(revision, "the reopen")
     _, aid = parse_id(assignment, "A")
     row = assignment_row(conn, aid)
     require_generation(row, generation)
@@ -862,8 +1001,8 @@ def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> 
         live = assignment_row(conn, aid)
         require_generation(live, generation)
         conn.execute(
-            "UPDATE assignments SET generation = generation + 1, revision = ?, "
-            "verified_by = NULL WHERE id = ?", (revision, aid),
+            "UPDATE assignments SET revision = ?, verified_by = NULL WHERE id = ?",
+            (revision, aid),
         )
         conn.execute(
             "UPDATE observations SET applicability = 'stale', stale_reason = ? "
@@ -871,23 +1010,31 @@ def core_reopen(conn, part, *, agent, assignment, revision, why, generation) -> 
             (f"the candidate moved to {revision}: {why}", aid),
         )
 
-    machine.move(conn, ASSIGNMENT, aid, "reopen", actor(part), evidence=revision, gate=gate)
+    advance(conn, aid, "reopen", part, evidence=revision, gate=gate)
     return assignment_dict(assignment_row(conn, aid))
 
 
-def core_supersede(conn, part, *, agent, assignment, by) -> dict:
-    same_session(part)
+def core_supersede(conn, part, *, agent, assignment, by, generation) -> dict:
+    """Superseding is a writing verb on an assignment like any other.
+
+    It moves an `offered` assignment, and `offered` is exactly the place
+    a `release` or a `reassign` returns one to, so the place alone cannot
+    tell the assignment that stands there now from the one the caller
+    read. The Daybreak audit reproduced that ABA against b1d868b0.
+    """
+    part = same_session(conn, part)
     require_role(part, ("lead", "coordinator"))
     _, aid = parse_id(assignment, "A")
     _, newer = parse_id(by, "A")
-    assignment_row(conn, aid)
+    row = assignment_row(conn, aid)
+    require_generation(row, generation)
     assignment_row(conn, newer)
 
     def gate(_subject):
+        require_generation(assignment_row(conn, aid), generation)
         conn.execute("UPDATE assignments SET superseded_by = ? WHERE id = ?", (newer, aid))
 
-    machine.move(conn, ASSIGNMENT, aid, "supersede", actor(part),
-                 evidence=f"A-{newer}", gate=gate)
+    advance(conn, aid, "supersede", part, evidence=f"A-{newer}", gate=gate)
     shown = assignment_dict(assignment_row(conn, aid))
     shown["superseded_by"] = f"A-{newer}"
     return shown
@@ -895,7 +1042,7 @@ def core_supersede(conn, part, *, agent, assignment, by) -> dict:
 
 def core_assignments(conn, part, *, state=None, to=None) -> dict:
     """`part` filters to what that participant holds; None shows every row."""
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(assignments=[])
     rows = conn.execute(
@@ -914,7 +1061,7 @@ def core_assignments(conn, part, *, state=None, to=None) -> dict:
 
 def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision=None,
               reply_to=None, artifact=None) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     if purpose not in PURPOSES:
         refuse("arguments", "a purpose of " + ", ".join(PURPOSES), purpose,
                "an inform carries no obligation; a request and a finding do")
@@ -936,7 +1083,7 @@ def core_send(conn, part, *, agent, to, purpose, body, assignment=None, decision
 
 def core_deliver(conn, part, *, message, ref) -> dict:
     """The transport's own receipt. The core never sends; it records."""
-    same_session(part)
+    part = same_session(conn, part)
     _, mid = parse_id(message, "M")
     row = message_row(conn, mid)
     if row["sender"] != part["id"] and not addressed(part, row["recipient"]):
@@ -949,7 +1096,7 @@ def core_deliver(conn, part, *, message, ref) -> dict:
 
 
 def core_ack(conn, part, *, message) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, mid = parse_id(message, "M")
     row = message_row(conn, mid)
     if not addressed(part, row["recipient"]):
@@ -964,7 +1111,7 @@ def core_ack(conn, part, *, message) -> dict:
 def core_resolve(conn, part, *, agent, message, evidence) -> dict:
     """Resolution is a place, moved by the obligation's holder, never by
     the acknowledgment (AC-04)."""
-    same_session(part)
+    part = same_session(conn, part)
     _, mid = parse_id(message, "M")
     evidence = reading(evidence, "the resolution")
     row = message_row(conn, mid)
@@ -982,7 +1129,7 @@ def core_resolve(conn, part, *, agent, message, evidence) -> dict:
 
 
 def core_withdraw(conn, part, *, agent, message, why) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, mid = parse_id(message, "M")
     row = message_row(conn, mid)
     if row["sender"] != part["id"]:
@@ -993,7 +1140,7 @@ def core_withdraw(conn, part, *, agent, message, why) -> dict:
 
 
 def core_inbox(conn, part, *, unresolved=False) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(messages=[])
     rows = conn.execute(
@@ -1006,7 +1153,7 @@ def core_inbox(conn, part, *, unresolved=False) -> dict:
 
 def core_outstanding(conn, part, *, to=None) -> dict:
     """An obligation stays here until it is resolved; an ack does not lift it."""
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(outstanding=[])
     rows = conn.execute(
@@ -1016,6 +1163,29 @@ def core_outstanding(conn, part, *, to=None) -> dict:
     shown = [row for row in rows if row["purpose"] in OBLIGATIONS
              and (not to or row["recipient"] == to)]
     return {"outstanding": [message_dict(row) for row in shown]}
+
+
+def core_undelivered(conn, part, *, to=None) -> dict:
+    """The messages queued to the calling participant that have not left
+    the store yet — what a deliverer asks before it carries anything.
+
+    `outstanding` is not this read and cannot stand in for it: an
+    obligation stays outstanding long after it was delivered, and an
+    inform is never outstanding at all yet still has to be carried. A
+    withdrawn message is not carried, so only the open ones are here.
+    Addressing is the inbox's rule: a participant by id, or a role its
+    holder answers to.
+    """
+    part = same_session(conn, part)
+    if conn is None:
+        return no_store(undelivered=[])
+    rows = conn.execute(
+        "SELECT m.*, s.place FROM messages m JOIN subjects s ON s.id = m.id "
+        "WHERE m.delivered_at IS NULL AND s.place = 'open' ORDER BY m.id"
+    ).fetchall()
+    shown = [row for row in rows if addressed(part, row["recipient"])
+             and (not to or row["recipient"] == to)]
+    return {"undelivered": [message_dict(row) for row in shown]}
 
 
 def core_observe(conn, part, *, assignment, observation, revision, generation,
@@ -1038,7 +1208,7 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
     the revision together and an old observation could otherwise never be
     filed at all.
     """
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     if not str(generation).isdigit():
         refuse("arguments", "--generation as a whole number", str(generation),
@@ -1078,7 +1248,7 @@ def core_observe(conn, part, *, assignment, observation, revision, generation,
 
 
 def core_observations(conn, part, *, assignment, include_stale=False) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     if conn is None:
         return no_store(observations=[])
@@ -1092,7 +1262,7 @@ def core_observations(conn, part, *, assignment, include_stale=False) -> dict:
 
 
 def core_ask(conn, part, *, question, alternatives, assignment=None) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     aid = parse_id(assignment, "A")[1] if assignment else None
     if aid is not None:
         assignment_row(conn, aid)
@@ -1106,7 +1276,7 @@ def core_ask(conn, part, *, question, alternatives, assignment=None) -> dict:
 
 def core_answer(conn, part, *, decision, counter=None, unknowns=None,
                 consequence=None) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     if counter is None and unknowns is None and consequence is None:
         refuse("arguments", "at least one of --counter, --unknowns, --consequence",
                "none", "say what the brief is missing")
@@ -1123,7 +1293,7 @@ def core_answer(conn, part, *, decision, counter=None, unknowns=None,
 
 
 def core_decide(conn, part, *, decision, choice, rationale) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, did = parse_id(decision, "DC")
     require_role(part, ("lead",))
     decision_row(conn, did)
@@ -1136,7 +1306,7 @@ def core_decide(conn, part, *, decision, choice, rationale) -> dict:
 
 def core_decision(conn, part, *, decision) -> dict:
     """The bounded brief: what is missing is named, never passed over."""
-    same_session(part)
+    part = same_session(conn, part)
     _, did = parse_id(decision, "DC")
     if conn is None:
         return no_store(decision=None)
@@ -1153,7 +1323,7 @@ def core_decision(conn, part, *, decision) -> dict:
 
 
 def core_decisions(conn, part, *, undecided_only=False) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(decisions=[])
     rows = conn.execute("SELECT * FROM decisions ORDER BY id").fetchall()
@@ -1162,7 +1332,7 @@ def core_decisions(conn, part, *, undecided_only=False) -> dict:
 
 
 def core_reserve(conn, part, *, agent, name, assignment, ttl=None) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     _, aid = parse_id(assignment, "A")
     ttl_s = int(ttl) * 60 if str(ttl or "").isdigit() else None
     assignment_row(conn, aid)
@@ -1186,7 +1356,7 @@ def core_reserve(conn, part, *, agent, name, assignment, ttl=None) -> dict:
 
 
 def core_free(conn, part, *, agent, name, why) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     row = conn.execute("SELECT * FROM resources WHERE name = ?", (name,)).fetchone()
     if row is None:
         refuse("unknown", "a reserved resource", name, "a name printed by resources")
@@ -1208,7 +1378,7 @@ def core_free(conn, part, *, agent, name, why) -> dict:
 
 
 def core_resources(conn, part) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(resources=[])
     rows = conn.execute(
@@ -1225,7 +1395,7 @@ def core_resources(conn, part) -> dict:
 
 
 def core_show(conn, part, *, target) -> dict:
-    same_session(part)
+    part = same_session(conn, part)
     kind, number = parse_id(target, ("A", "M", "DC"))
     if kind == "DC":
         return core_decision(conn, part, decision=target)
@@ -1249,7 +1419,7 @@ def core_show(conn, part, *, target) -> dict:
 def core_coverage(conn, part, *, requirement=None) -> dict:
     """requirement -> assignment -> candidate -> observation -> verification
     -> acceptance or the gap, named."""
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(coverage=[])
     rows = conn.execute(
@@ -1279,7 +1449,7 @@ def core_coverage(conn, part, *, requirement=None) -> dict:
 def core_brief(conn, part) -> dict:
     """What a restarted or compacted participant reads to recover its
     obligations (AC-12): held work, unresolved inbox, open decisions."""
-    same_session(part)
+    part = same_session(conn, part)
     if conn is None:
         return no_store(brief=None)
     held = conn.execute(
@@ -1318,7 +1488,8 @@ CORE = {
     "assignments": core_assignments,
     "show": core_show, "send": core_send, "deliver": core_deliver, "ack": core_ack,
     "resolve": core_resolve, "withdraw": core_withdraw, "inbox": core_inbox,
-    "outstanding": core_outstanding, "observe": core_observe,
+    "outstanding": core_outstanding, "undelivered": core_undelivered,
+    "observe": core_observe,
     "observations": core_observations, "ask": core_ask, "answer": core_answer,
     "decide": core_decide, "decision": core_decision, "decisions": core_decisions,
     "reserve": core_reserve, "free": core_free, "resources": core_resources,
@@ -1332,7 +1503,7 @@ def do_bind(rest):
     agent = identity()
     _, opts = parse(rest, 0, required=("roles",), optional=("harness", "endpoint", "probe"))
     with writer() as conn:
-        shown = CORE["bind"](conn, None, agent=agent, session_id=session(""),
+        shown = CORE["bind"](conn, None, agent=agent,
                              roles=opts["roles"], harness=opts.get("harness"),
                              endpoint=opts.get("endpoint"), probe=opts.get("probe"))
     print(f"participant {shown['participant']} bound to session {shown['session']}")
@@ -1412,10 +1583,10 @@ def do_draft(rest):
 
 def do_offer(rest):
     agent = identity()
-    (raw,), opts = parse(rest, 1, required=("to",))
+    (raw,), opts = parse(rest, 1, required=("to", "generation"))
     with writer() as conn:
         shown = CORE["offer"](conn, bound_participant(conn), agent=agent, assignment=raw,
-                              to=opts["to"])
+                              to=opts["to"], generation=opts["generation"])
     print(f"offered {shown['assignment']} to {shown['recipient']}")
 
 
@@ -1501,10 +1672,10 @@ def do_reopen(rest):
 
 def do_supersede(rest):
     agent = identity()
-    (raw,), opts = parse(rest, 1, required=("by",))
+    (raw,), opts = parse(rest, 1, required=("by", "generation"))
     with writer() as conn:
         shown = CORE["supersede"](conn, bound_participant(conn), agent=agent, assignment=raw,
-                                  by=opts["by"])
+                                  by=opts["by"], generation=opts["generation"])
     print(f"superseded {shown['assignment']} by {shown['superseded_by']}")
 
 
@@ -1599,6 +1770,21 @@ def do_inbox(rest):
         return EXIT_DONE
     for row in shown["messages"]:
         print(message_line(row))
+    return EXIT_DONE
+
+
+def do_undelivered(rest):
+    _, opts = parse(rest, 0, optional=("to",))
+    conn = reader()
+    if conn is None:
+        print("no store")
+        return EXIT_DONE
+    shown = CORE["undelivered"](conn, bound_participant(conn), to=opts.get("to"))
+    if not shown["undelivered"]:
+        print("none undelivered")
+        return EXIT_DONE
+    for row in shown["undelivered"]:
+        print(message_line(row) + f", queued {row['queued_at']}")
     return EXIT_DONE
 
 
@@ -1838,7 +2024,8 @@ VERBS = {
     "reopen": do_reopen, "supersede": do_supersede, "assignments": do_assignments,
     "show": do_show, "send": do_send, "deliver": do_deliver, "ack": do_ack,
     "resolve": do_resolve, "withdraw": do_withdraw, "inbox": do_inbox,
-    "outstanding": do_outstanding, "observe": do_observe,
+    "outstanding": do_outstanding, "undelivered": do_undelivered,
+    "observe": do_observe,
     "observations": do_observations, "ask": do_ask, "answer": do_answer,
     "decide": do_decide, "decision": do_decision, "decisions": do_decisions,
     "reserve": do_reserve, "free": do_free, "resources": do_resources,
