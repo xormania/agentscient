@@ -3,6 +3,7 @@
 
     ledger.py ledgers                         the ledgers this lever knows, one per line
     ledger.py next LEDGER                     print the next id
+    ledger.py check LEDGER                    findings: numbers held by more than one row
     ledger.py add LEDGER --field VALUE ...    write the row file, print "ID path"
     ledger.py show LEDGER ID                  print the row
     ledger.py list LEDGER                     one line per row: id, observed, first field
@@ -57,6 +58,24 @@ LEDGERS: dict[str, dict[str, object]] = {
         "heading": "pitfall ",
         "fields": ("what-bit", "do-instead"),
     },
+    # LD-53: two sessions minted I-029 on two branches because there was
+    # no reader to ask. An idea is prose in the owner's words in the
+    # shape ops/conductor/ideas/README.md gives, never a field table, so
+    # this register is handwritten: the lever mints its number and
+    # reports the numbers already shared, and writes nothing.
+    "ideas": {
+        "page": None,
+        "rows": Path("ops/conductor/ideas"),
+        "prefix": "I-",
+        "heading": "",
+        "fields": (),
+        # The record's file name carries a slug after its number, so the
+        # entry pattern is the directory's own, not the default one row
+        # per id.
+        "entry": r"I-(\d+)-.+\.md",
+        "width": 3,
+        "handwritten": True,
+    },
 }
 FIELD_LINE = re.compile(r"^\| ([\w-]+) \| (.*) \|$", re.MULTILINE)
 
@@ -94,27 +113,60 @@ def trunk_ref(root: Path) -> str | None:
     return ref
 
 
-def highest(root: Path, spec: dict[str, object]) -> int:
-    """One past this is the next id: the highest over the page's table and
-    the rows directory, in the working tree and on origin/<trunk>."""
-    prefix = re.escape(str(spec["prefix"]))
-    table = re.compile(rf"^\| {prefix}(\d+) \|", re.MULTILINE)
-    entry = re.compile(rf"{prefix}(\d+)\.md$")
-    top = 0
-    page = root / spec["page"]
-    if page.is_file():
-        top = max([int(n) for n in table.findall(page.read_text(encoding="utf-8"))] + [top])
+def entry_re(spec: dict[str, object]) -> re.Pattern:
+    """A row file's name to its number. A register whose file names carry
+    more than the id (the ideas directory's slug) declares its own."""
+    named = spec.get("entry")
+    if named:
+        return re.compile(str(named))
+    return re.compile(rf"{re.escape(str(spec['prefix']))}(\d+)\.md$")
+
+
+def ident(spec: dict[str, object], number: int) -> str:
+    """The id as the register spells it. The ideas directory writes its
+    number three digits wide, so I-32 would be a second spelling of one
+    id and the reader would have taught a session to mint it."""
+    return f"{spec['prefix']}{number:0{int(spec.get('width') or 0)}d}"
+
+
+def by_number(root: Path, spec: dict[str, object]) -> dict[int, list[str]]:
+    """The rows directory read as number -> file names, in the working
+    tree only: a file on the trunk and the same file here are one row,
+    and counting both would report every row as shared with itself."""
+    entry = entry_re(spec)
+    found: dict[int, list[str]] = {}
     rows = root / spec["rows"]
     if rows.is_dir():
-        for name in os.listdir(rows):
-            m = entry.fullmatch(name)
+        for name in sorted(os.listdir(rows)):
+            m = entry.fullmatch(name) or entry.search(name)
             if m:
-                top = max(top, int(m.group(1)))
+                found.setdefault(int(m.group(1)), []).append(name)
+    return found
+
+
+def highest(root: Path, spec: dict[str, object]) -> int:
+    """One past this is the next id: the highest over the page's table and
+    the rows directory, in the working tree and on origin/<trunk>.
+
+    A register with no page (the ideas directory) is read from its rows
+    alone; a number already held by two rows does not change what the
+    next one is, so this answers whether or not `check` has findings.
+    """
+    prefix = re.escape(str(spec["prefix"]))
+    table = re.compile(rf"^\| {prefix}(\d+) \|", re.MULTILINE)
+    entry = entry_re(spec)
+    top = 0
+    page = root / spec["page"] if spec["page"] else None
+    if page is not None and page.is_file():
+        top = max([int(n) for n in table.findall(page.read_text(encoding="utf-8"))] + [top])
+    for number in by_number(root, spec):
+        top = max(top, number)
     ref = trunk_ref(root)
     if ref is not None:
-        shown = git("show", f"{ref}:{spec['page'].as_posix()}", cwd=root)
-        if shown.returncode == 0:
-            top = max([int(n) for n in table.findall(shown.stdout)] + [top])
+        if spec["page"]:
+            shown = git("show", f"{ref}:{spec['page'].as_posix()}", cwd=root)
+            if shown.returncode == 0:
+                top = max([int(n) for n in table.findall(shown.stdout)] + [top])
         listed = git("ls-tree", "--name-only", ref, f"{spec['rows'].as_posix()}/", cwd=root)
         if listed.returncode == 0:
             for line in listed.stdout.splitlines():
@@ -163,8 +215,35 @@ def contain(root: Path, target: Path, shown: Path) -> None:
                f"replace the symlink at {shown} with a directory of the repository")
 
 
+def handwritten(name: str, spec: dict[str, object], verb: str) -> None:
+    """A register the lever reads and never writes refuses the verbs that
+    would write one or read a field table out of prose."""
+    if spec.get("handwritten"):
+        refuse("ledger", f"a ledger this lever writes for {verb}", name,
+               f"{name} is recorded by hand in the shape its README gives; "
+               f"this lever answers next {name} and check {name}")
+
+
+def do_check(root: Path, name: str) -> int:
+    """Findings, not a refusal: the verb ran to completion and the result
+    carries what it found (docs/wire.md). A number minted twice in the
+    past says nothing about the next one, so `next` keeps answering and
+    this is where the collision is reported.
+    """
+    spec = ledger(name)
+    shared = {n: names for n, names in by_number(root, spec).items() if len(names) > 1}
+    if not shared:
+        print(f"{name}: no shared numbers")
+        return 0
+    for number in sorted(shared):
+        print(f"{ident(spec, number)} shared by " + ", ".join(shared[number]))
+    print(f"{name}: {len(shared)} shared number(s)")
+    return 1
+
+
 def do_add(root: Path, name: str, args: list[str]) -> int:
     spec = ledger(name)
+    handwritten(name, spec, "add")
     by = identity()
     fields = parse_fields(spec, args)
     observed = fields.get("observed") or now().strftime("%Y-%m-%d")
@@ -182,8 +261,10 @@ def do_add(root: Path, name: str, args: list[str]) -> int:
     return 0
 
 
-def row_path(root: Path, name: str, ident: str) -> Path:
+def row_path(root: Path, name: str, row_id: str) -> Path:
     spec = ledger(name)
+    handwritten(name, spec, "show")
+    ident = row_id
     if not re.fullmatch(rf"{re.escape(str(spec['prefix']))}\d+", ident):
         refuse("arguments", f"an id of the form {spec['prefix']}NN", ident, "name the row by its id")
     path = root / spec["rows"] / f"{ident}.md"
@@ -200,6 +281,7 @@ def do_show(root: Path, name: str, ident: str) -> int:
 
 def do_list(root: Path, name: str) -> int:
     spec = ledger(name)
+    handwritten(name, spec, "list")
     rows = root / spec["rows"]
     prefix = re.escape(str(spec["prefix"]))
     entries = []
@@ -217,18 +299,24 @@ def do_list(root: Path, name: str) -> int:
 
 def do_ledgers() -> int:
     for name, spec in LEDGERS.items():
-        print(f"{name} {spec['rows']} " + " ".join("--" + f for f in spec["fields"]))
+        line = f"{name} {spec['rows']} "
+        line += ("(handwritten: next, check)" if spec.get("handwritten")
+                 else " ".join("--" + f for f in spec["fields"]))
+        print(line)
     return 0
 
 
-USAGE = "ledgers | next LEDGER | add LEDGER --field TEXT ... | show LEDGER ID | list LEDGER"
+USAGE = "ledgers | next LEDGER | check LEDGER | add LEDGER --field TEXT ... | show LEDGER ID | list LEDGER"
 
 
 def main(argv: list[str]) -> int:
     if argv == ["ledgers"]:
         return do_ledgers()
     if len(argv) == 2 and argv[0] == "next":
-        return (print(f"{ledger(argv[1])['prefix']}{highest(repo_root(), ledger(argv[1])) + 1}") or 0)
+        spec = ledger(argv[1])
+        return print(ident(spec, highest(repo_root(), spec) + 1)) or 0
+    if len(argv) == 2 and argv[0] == "check":
+        return do_check(repo_root(), argv[1])
     if len(argv) >= 2 and argv[0] == "add":
         return do_add(repo_root(), argv[1], argv[2:])
     if len(argv) == 3 and argv[0] == "show":
